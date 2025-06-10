@@ -30,6 +30,18 @@ export interface TagLibModule {
   setValue: (ptr: number, value: number, type: string) => void;
   addFunction: (func: Function, signature: string) => number;
   removeFunction: (funcPtr: number) => void;
+
+  // Memory allocation functions
+  _malloc: (size: number) => number;
+  _free: (ptr: number) => void;
+  allocate: (array: Uint8Array, type: number) => number;
+  
+  // Allocation types
+  ALLOC_NORMAL: number;
+  ALLOC_STACK: number;
+  ALLOC_STATIC: number;
+  ALLOC_DYNAMIC: number;
+  ALLOC_NONE: number;
   
   // File operations
   _taglib_file_new_from_buffer: (data: number, size: number) => number;
@@ -68,9 +80,7 @@ export interface TagLibModule {
   _taglib_string_delete: (str: number) => void;
   _taglib_string_to_cstring: (str: number) => number;
 
-  // Memory management
-  _malloc: (size: number) => number;
-  _free: (ptr: number) => void;
+  // Memory management functions already defined above
 }
 
 /**
