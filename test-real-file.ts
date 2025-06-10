@@ -16,7 +16,7 @@ async function testWithRealFile() {
     console.log("✅ TagLib initialized successfully");
     
     // Load a real audio file from TagLib's test data
-    const audioPath = "/Users/Charles/Projects/taglib-wasm-ts/lib/taglib/tests/data/ape.mp3";
+    const audioPath = "/Users/Charles/Projects/taglib-wasm/lib/taglib/tests/data/ape.mp3";
     console.log("📁 Loading file:", audioPath);
     
     const audioData = await Deno.readFile(audioPath);
