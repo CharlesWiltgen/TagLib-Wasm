@@ -62,7 +62,7 @@ file.setAcoustidFingerprint(fingerprint);
 ### Basic AcoustID Handling
 
 ```typescript
-import { TagLib } from "taglib-wasm-ts";
+import { TagLib } from "taglib-wasm";
 
 const taglib = await TagLib.initialize();
 const file = taglib.openFile(audioBuffer);

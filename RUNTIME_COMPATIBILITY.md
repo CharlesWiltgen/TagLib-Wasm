@@ -6,7 +6,7 @@ TagLib WASM is designed to work seamlessly across all major JavaScript runtimes.
 
 ### ✅ Deno 2.0+
 - **Status**: Fully supported and recommended
-- **Installation**: `import { TagLib } from "jsr:@taglib/wasm-ts"`
+- **Installation**: `import { TagLib } from "jsr:@taglib/wasm"`
 - **Features**: 
   - Native TypeScript support
   - Built-in Web APIs
@@ -24,7 +24,7 @@ const file = taglib.openFile(audioData);
 
 ### ✅ Bun 1.0+
 - **Status**: Fully supported 
-- **Installation**: `bun add taglib-wasm-ts`
+- **Installation**: `bun add taglib-wasm`
 - **Features**:
   - Native TypeScript support
   - Fast startup and execution
@@ -33,7 +33,7 @@ const file = taglib.openFile(audioData);
 - **File Loading**: `Bun.file().arrayBuffer()`
 
 ```typescript
-import { TagLib } from "taglib-wasm-ts";
+import { TagLib } from "taglib-wasm";
 
 const taglib = await TagLib.initialize();
 const audioData = await Bun.file("song.mp3").arrayBuffer();
@@ -42,7 +42,7 @@ const file = taglib.openFile(new Uint8Array(audioData));
 
 ### ✅ Node.js 18+
 - **Status**: Fully supported
-- **Installation**: `npm install taglib-wasm-ts`
+- **Installation**: `npm install taglib-wasm`
 - **Features**:
   - Mature ecosystem
   - Extensive package support
@@ -50,7 +50,7 @@ const file = taglib.openFile(new Uint8Array(audioData));
 - **File Loading**: `fs.readFile()` or `fs.promises.readFile()`
 
 ```typescript
-import { TagLib } from "taglib-wasm-ts";
+import { TagLib } from "taglib-wasm";
 import { readFile } from "fs/promises";
 
 const taglib = await TagLib.initialize();
@@ -68,7 +68,7 @@ const file = taglib.openFile(audioData);
 - **File Loading**: `File API`, `fetch()`, or `FileReader`
 
 ```typescript
-import { TagLib } from "taglib-wasm-ts";
+import { TagLib } from "taglib-wasm";
 
 const taglib = await TagLib.initialize();
 
@@ -115,11 +115,11 @@ Each runtime has different file system capabilities:
 
 | Runtime | Package Manager | Command |
 |---------|----------------|---------|
-| **Deno** | JSR | `import { TagLib } from "jsr:@taglib/wasm-ts"` |
-| **Bun** | bun | `bun add taglib-wasm-ts` |
-| **Node.js** | npm | `npm install taglib-wasm-ts` |
-| **Node.js** | yarn | `yarn add taglib-wasm-ts` |
-| **Node.js** | pnpm | `pnpm add taglib-wasm-ts` |
+| **Deno** | JSR | `import { TagLib } from "jsr:@taglib/wasm"` |
+| **Bun** | bun | `bun add taglib-wasm` |
+| **Node.js** | npm | `npm install taglib-wasm` |
+| **Node.js** | yarn | `yarn add taglib-wasm` |
+| **Node.js** | pnpm | `pnpm add taglib-wasm` |
 | **Browser** | CDN | `<script type="module" src="...">` |
 
 ## 🧪 Testing Across Runtimes
@@ -173,7 +173,7 @@ Write code that works across all runtimes:
 
 ```typescript
 // Good: Runtime-agnostic
-import { TagLib } from "taglib-wasm-ts";
+import { TagLib } from "taglib-wasm";
 const taglib = await TagLib.initialize();
 
 // Avoid: Runtime-specific APIs in shared code

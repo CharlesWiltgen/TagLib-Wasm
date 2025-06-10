@@ -24,13 +24,13 @@ In the process of building my own utility to improve the metadata of my own musi
 
 ```bash
 # For Deno projects
-import { TagLib } from "jsr:@taglib/wasm-ts";
+import { TagLib } from "jsr:@taglib/wasm";
 
 # For NPM/Node.js projects
-npm install taglib-wasm-ts
+npm install taglib-wasm
 
 # For Bun projects
-bun add taglib-wasm-ts
+bun add taglib-wasm
 ```
 
 ## 🚀 Quick Start
@@ -75,7 +75,7 @@ file.dispose();
 ### Bun
 
 ```typescript
-import { TagLib } from 'taglib-wasm-ts';
+import { TagLib } from 'taglib-wasm';
 
 // Initialize TagLib WASM
 const taglib = await TagLib.initialize();
@@ -112,7 +112,7 @@ file.dispose();
 ### Node.js
 
 ```typescript
-import { TagLib } from 'taglib-wasm-ts';
+import { TagLib } from 'taglib-wasm';
 import { readFile } from 'fs/promises';
 
 // Initialize TagLib WASM
@@ -150,7 +150,7 @@ file.dispose();
 ### Browser
 
 ```typescript
-import { TagLib } from 'taglib-wasm-ts';
+import { TagLib } from 'taglib-wasm';
 
 // Initialize TagLib WASM
 const taglib = await TagLib.initialize();
@@ -261,7 +261,7 @@ file.setExtendedTag({
 
 # Clone and build
 git clone <repository>
-cd taglib-wasm-ts
+cd taglib-wasm
 
 # Build WASM module
 deno task build:wasm
@@ -414,9 +414,9 @@ TagLib WASM works seamlessly across all major JavaScript runtimes:
 
 | Runtime | Status | Installation | Performance | TypeScript |
 |---------|--------|--------------|-------------|------------|
-| **Deno** | ✅ Full | `jsr:@taglib/wasm-ts` | Excellent | Native |
-| **Bun** | ✅ Full | `bun add taglib-wasm-ts` | Excellent | Native |
-| **Node.js** | ✅ Full | `npm install taglib-wasm-ts` | Good | Via loader |
+| **Deno** | ✅ Full | `jsr:@taglib/wasm` | Excellent | Native |
+| **Bun** | ✅ Full | `bun add taglib-wasm` | Excellent | Native |
+| **Node.js** | ✅ Full | `npm install taglib-wasm` | Good | Via loader |
 | **Browser** | ✅ Full | CDN/bundler | Good | Via build |
 
 **📖 See [RUNTIME_COMPATIBILITY.md](RUNTIME_COMPATIBILITY.md) for detailed runtime information**

@@ -124,9 +124,9 @@ async function demonstrateBunUsage() {
     console.log("• Modern JavaScript/TypeScript features");
     
     console.log("\n📦 Installation for Bun:");
-    console.log("bun add taglib-wasm-ts");
+    console.log("bun add taglib-wasm");
     console.log("# or");
-    console.log("bun add jsr:@taglib/wasm-ts");
+    console.log("bun add jsr:@taglib/wasm");
     
   } catch (error) {
     console.error("❌ Error:", error.message);
