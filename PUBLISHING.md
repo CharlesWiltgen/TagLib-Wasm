@@ -37,6 +37,13 @@ Only these components are published to registries:
 
 ### JSR Publishing (Deno)
 
+**First time setup:**
+```bash
+# Login to JSR (one-time setup)
+deno publish --dry-run  # This will prompt for authentication
+```
+
+**Publishing:**
 ```bash
 # Publish to JSR (JavaScript Registry)
 deno publish
