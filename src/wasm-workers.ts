@@ -1,0 +1,154 @@
+/**
+ * @fileoverview WebAssembly module interface for Cloudflare Workers
+ */
+
+import type { TagLibConfig, TagLibModule } from "./types.ts";
+
+/**
+ * Default configuration for TagLib WASM module in Workers environment
+ * Reduced memory limits to fit within Workers constraints
+ */
+const DEFAULT_WORKERS_CONFIG: Required<TagLibConfig> = {
+  memory: {
+    initial: 8 * 1024 * 1024,  // 8MB (reduced from 16MB)
+    maximum: 64 * 1024 * 1024, // 64MB (reduced from 256MB)
+  },
+  debug: false,
+};
+
+/**
+ * Load and initialize the TagLib WebAssembly module for Cloudflare Workers
+ * 
+ * @param wasmBinary - The WebAssembly binary as Uint8Array
+ * @param config - Optional configuration for the WASM module
+ * @returns Promise resolving to initialized TagLib module
+ * 
+ * @example
+ * ```typescript
+ * import wasmBinary from "../build/taglib.wasm";
+ * 
+ * const taglib = await loadTagLibModuleForWorkers(wasmBinary);
+ * ```
+ */
+export async function loadTagLibModuleForWorkers(
+  wasmBinary: Uint8Array,
+  config: TagLibConfig = {},
+): Promise<TagLibModule> {
+  const mergedConfig = { ...DEFAULT_WORKERS_CONFIG, ...config };
+
+  // Create Emscripten module configuration for Workers
+  const moduleConfig = {
+    wasmBinary,
+    wasmMemory: new WebAssembly.Memory({
+      initial: mergedConfig.memory.initial! / (64 * 1024),
+      maximum: mergedConfig.memory.maximum! / (64 * 1024),
+    }),
+    print: mergedConfig.debug ? console.log : () => {},
+    printErr: mergedConfig.debug ? console.error : () => {},
+    onRuntimeInitialized: () => {
+      if (mergedConfig.debug) {
+        console.log("TagLib WASM module initialized in Workers");
+      }
+    },
+    // Workers-specific settings
+    locateFile: () => {
+      // Return empty string since we're providing wasmBinary directly
+      return "";
+    },
+    // Disable file system access
+    noFSInit: true,
+    noExitRuntime: true,
+  };
+
+  try {
+    // For Workers, we need to use a modified version of the Emscripten output
+    // that doesn't include Node.js/CommonJS dependencies
+    const TagLibWASM = await createWorkersCompatibleModule();
+    
+    if (typeof TagLibWASM !== 'function') {
+      throw new Error('Failed to load TagLib WASM module for Workers');
+    }
+    
+    const wasmInstance = await TagLibWASM(moduleConfig);
+    
+    // Ensure proper memory arrays are set up
+    if (!wasmInstance.HEAPU8) {
+      const buffer = wasmInstance.buffer || wasmInstance.wasmMemory?.buffer;
+      if (buffer) {
+        wasmInstance.HEAPU8 = new Uint8Array(buffer);
+        wasmInstance.HEAP8 = new Int8Array(buffer);
+        wasmInstance.HEAP16 = new Int16Array(buffer);
+        wasmInstance.HEAP32 = new Int32Array(buffer);
+        wasmInstance.HEAPU16 = new Uint16Array(buffer);
+        wasmInstance.HEAPU32 = new Uint32Array(buffer);
+        wasmInstance.HEAPF32 = new Float32Array(buffer);
+        wasmInstance.HEAPF64 = new Float64Array(buffer);
+      }
+    }
+    
+    return wasmInstance as TagLibModule;
+  } catch (error) {
+    throw new Error(`Failed to load TagLib WASM for Workers: ${(error as Error).message}`);
+  }
+}
+
+/**
+ * Create a Workers-compatible version of the Emscripten module
+ * This function loads the WASM module without Node.js/CommonJS dependencies
+ */
+async function createWorkersCompatibleModule(): Promise<any> {
+  // In a real Workers environment, you would typically:
+  // 1. Use a build process to create a Workers-compatible version of taglib.js
+  // 2. Or inline the essential parts of the Emscripten runtime here
+  // 3. Or use dynamic import with proper bundling
+  
+  // For now, we'll attempt to load the existing module with Workers compatibility
+  try {
+    // Try to import the existing module
+    const wasmModule = await import("../build/taglib.js");
+    return wasmModule.default || wasmModule;
+  } catch (error) {
+    // If that fails, provide a fallback implementation
+    throw new Error(
+      "Workers-compatible WASM module not available. " +
+      "Please build with Workers target or use a bundler that supports WASM modules. " +
+      `Original error: ${(error as Error).message}`
+    );
+  }
+}
+
+/**
+ * Convert a C string pointer to JavaScript string (Workers-compatible)
+ */
+export function cStringToJS(module: TagLibModule, ptr: number): string {
+  if (ptr === 0) return "";
+
+  const view = new Uint8Array(module.HEAPU8.buffer, ptr);
+  let length = 0;
+  while (view[length] !== 0) length++;
+
+  return new TextDecoder().decode(view.subarray(0, length));
+}
+
+/**
+ * Convert JavaScript string to C string (Workers-compatible)
+ */
+export function jsToCString(module: TagLibModule, str: string): number {
+  const encoder = new TextEncoder();
+  const bytes = encoder.encode(str + "\0");
+  return module.allocate(bytes, module.ALLOC_NORMAL);
+}
+
+/**
+ * Utility function to check if we're running in Cloudflare Workers
+ */
+export function isCloudflareWorkers(): boolean {
+  return (
+    typeof globalThis !== 'undefined' &&
+    typeof globalThis.caches !== 'undefined' &&
+    typeof globalThis.Request !== 'undefined' &&
+    typeof globalThis.Response !== 'undefined' &&
+    typeof process === 'undefined' &&
+    typeof Deno === 'undefined'
+  );
+}

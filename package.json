@@ -4,6 +4,10 @@
   "description": "TagLib compiled to WebAssembly with TypeScript bindings for universal audio metadata handling",
   "main": "src/mod.ts",
   "types": "src/mod.ts",
+  "exports": {
+    ".": "./src/mod.ts",
+    "./workers": "./src/workers.ts"
+  },
   "files": [
     "src/**/*",
     "build/taglib.wasm",
@@ -37,6 +41,8 @@
     "deno",
     "node",
     "browser",
+    "cloudflare",
+    "workers",
     "replaygain",
     "musicbrainz",
     "acoustid"
