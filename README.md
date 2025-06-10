@@ -4,7 +4,10 @@
 
 `taglib-wasm` makes the robust, industry-standard TagLib tagging library available to browser, Deno, Node.js, and Bun apps for the first time, thanks to the magic of ✨[Wasm](https://webassembly.org/)✨ ([WebAssembly](https://webassembly.org/)).
 
-### Why?
+> [!IMPORTANT]
+> I’m personally using this to solve a problem for another project I’m creating, but this project is still very much a baby. A tantrum would not surprise me and should not surprise you.
+
+## Why?
 
 In the process of building my own utility to improve the metadata of my own music collection, I discovered that the JavaScipt/TypeScipt ecosystem has no battle-tested audio tagging library that supports reading and writing music metadata to all popular audio formats.
 
@@ -12,7 +15,7 @@ In the process of building my own utility to improve the metadata of my own musi
 
 ## 🎯 Features
 
-- **✅ Universal compatibility** – Works in browsers, Deno, Node.js, and Bun
+- **✅ Universal compatibility** – Works with Deno, Node.js, Bun, web browsers, and Cloudflare Workers
 - **✅ TypeScript first** – Complete type definitions and modern API
 - **✅ Full audio format support** – Supports all audio formats supported by TagLib
 - **✅ Format abstraction** – `taglib-wasm` deals with how tags are read from/written to in different file formats
@@ -202,6 +205,7 @@ All formats are **fully tested and working**:
 TagLib WASM supports **format-agnostic tag naming** so you don’t have to worry about how the same tag is stored differently in different audio container formats.
 
 ### AcoustID example
+
 ```typescript
 // Single API works for ALL formats (MP3, FLAC, OGG, MP4)
 file.setAcoustidFingerprint("AQADtMmybfGO8NCNEESLnzHyXNOHeHnG...");
@@ -214,6 +218,7 @@ file.setAcoustidId("e7359e88-f1f7-41ed-b9f6-16e58e906997");
 ```
 
 ### MusicBrainz example
+
 ```typescript
 // Professional music database integration
 file.setMusicBrainzTrackId("f4d1b6b8-8c1e-4d9a-9f2a-1234567890ab");
@@ -222,6 +227,7 @@ file.setMusicBrainzArtistId("12345678-90ab-cdef-1234-567890abcdef");
 ```
 
 ### Volume example
+
 ```typescript
 // ReplayGain support (automatic format mapping)
 file.setReplayGainTrackGain("-6.54 dB");
@@ -234,6 +240,7 @@ file.setAppleSoundCheck("00000150 00000150 00000150 00000150...");
 ```
 
 ### Extended fields
+
 ```typescript
 // Advanced metadata fields
 file.setExtendedTag({
@@ -272,7 +279,7 @@ deno task test
 
 ### Project Structure
 
-```
+```text
 src/
 ├── mod.ts          # Main module exports
 ├── taglib.ts       # Core TagLib and AudioFile classes
@@ -446,7 +453,3 @@ Contributions welcome! Areas of interest:
 
 - [TagLib](https://taglib.org/) – Excellent audio metadata library
 - [Emscripten](https://emscripten.org/) – WebAssembly compilation toolchain
-
----
-
-**Status**: Production Ready - Universal audio metadata handling across all JavaScript runtimes.

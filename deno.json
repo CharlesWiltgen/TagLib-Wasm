@@ -2,7 +2,10 @@
   "name": "@charleswiltgen/taglib-wasm",
   "version": "0.1.0",
   "license": "MIT",
-  "exports": "./mod-jsr.ts",
+  "exports": {
+    ".": "./mod-jsr.ts",
+    "./workers": "./src/workers.ts"
+  },
   "publish": {
     "include": [
       "mod-jsr.ts",
