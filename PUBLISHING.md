@@ -54,13 +54,22 @@ npm run publish:jsr
 
 **JSR Configuration** (`deno.json`):
 - **Package name**: `@charleswiltgen/taglib-wasm`
-- **Entry point**: `./src/mod.ts`
-- **Includes**: TypeScript source + WASM files
+- **Entry point**: `./mod-jsr.ts` (JSR-compatible version)
+- **Includes**: TypeScript source + WASM files only (excludes Emscripten JS)
 
 **Installation**:
 ```typescript
 import { TagLib } from "jsr:@charleswiltgen/taglib-wasm";
+
+// Initialize for JSR
+await TagLib.initialize();
+const audioFile = new AudioFile(audioData);
 ```
+
+**JSR Version Notes:**
+- Uses direct WASM loading without Emscripten's JavaScript file
+- Compatible with JSR's static analysis requirements
+- Provides same API but uses `TagLibJSR` and `AudioFileJSR` internally
 
 ### NPM Publishing
 
