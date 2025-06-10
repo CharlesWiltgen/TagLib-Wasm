@@ -6,7 +6,7 @@ TagLib WASM is designed to work seamlessly across all major JavaScript runtimes.
 
 ### ✅ Deno 2.0+
 - **Status**: Fully supported and recommended
-- **Installation**: `import { TagLib } from "jsr:@taglib/wasm"`
+- **Installation**: `import { TagLib } from "jsr:@charleswiltgen/taglib-wasm"`
 - **Features**: 
   - Native TypeScript support
   - Built-in Web APIs
@@ -115,7 +115,7 @@ Each runtime has different file system capabilities:
 
 | Runtime | Package Manager | Command |
 |---------|----------------|---------|
-| **Deno** | JSR | `import { TagLib } from "jsr:@taglib/wasm"` |
+| **Deno** | JSR | `import { TagLib } from "jsr:@charleswiltgen/taglib-wasm"` |
 | **Bun** | bun | `bun add taglib-wasm` |
 | **Node.js** | npm | `npm install taglib-wasm` |
 | **Node.js** | yarn | `yarn add taglib-wasm` |

@@ -24,7 +24,7 @@ In the process of building my own utility to improve the metadata of my own musi
 
 ```bash
 # For Deno projects
-import { TagLib } from "jsr:@taglib/wasm";
+import { TagLib } from "jsr:@charleswiltgen/taglib-wasm";
 
 # For NPM/Node.js projects
 npm install taglib-wasm
@@ -414,7 +414,7 @@ TagLib WASM works seamlessly across all major JavaScript runtimes:
 
 | Runtime | Status | Installation | Performance | TypeScript |
 |---------|--------|--------------|-------------|------------|
-| **Deno** | ✅ Full | `jsr:@taglib/wasm` | Excellent | Native |
+| **Deno** | ✅ Full | `jsr:@charleswiltgen/taglib-wasm` | Excellent | Native |
 | **Bun** | ✅ Full | `bun add taglib-wasm` | Excellent | Native |
 | **Node.js** | ✅ Full | `npm install taglib-wasm` | Good | Via loader |
 | **Browser** | ✅ Full | CDN/bundler | Good | Via build |
