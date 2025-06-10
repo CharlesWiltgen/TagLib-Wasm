@@ -53,13 +53,13 @@ npm run publish:jsr
 ```
 
 **JSR Configuration** (`deno.json`):
-- **Package name**: `@taglib/wasm`
+- **Package name**: `@charleswiltgen/taglib-wasm`
 - **Entry point**: `./src/mod.ts`
 - **Includes**: TypeScript source + WASM files
 
 **Installation**:
 ```typescript
-import { TagLib } from "jsr:@taglib/wasm";
+import { TagLib } from "jsr:@charleswiltgen/taglib-wasm";
 ```
 
 ### NPM Publishing
@@ -157,7 +157,7 @@ node -e "console.log(require('taglib-wasm'))"
 **From JSR**:
 ```bash
 # Test with Deno
-deno eval "import { TagLib } from 'jsr:@taglib/wasm'; console.log(TagLib)"
+deno eval "import { TagLib } from 'jsr:@charleswiltgen/taglib-wasm'; console.log(TagLib)"
 ```
 
 ## 📈 Version Management

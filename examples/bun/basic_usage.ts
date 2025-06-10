@@ -126,7 +126,7 @@ async function demonstrateBunUsage() {
     console.log("\n📦 Installation for Bun:");
     console.log("bun add taglib-wasm");
     console.log("# or");
-    console.log("bun add jsr:@taglib/wasm");
+    console.log("bun add jsr:@charleswiltgen/taglib-wasm");
     
   } catch (error) {
     console.error("❌ Error:", error.message);
