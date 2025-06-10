@@ -1,16 +1,17 @@
 # taglib-wasm-ts
 
-**✅ FULLY FUNCTIONAL** - TagLib v2.1 compiled to WebAssembly with TypeScript bindings for universal audio metadata handling.
+TagLib v2.1 compiled to WebAssembly with TypeScript bindings for universal audio metadata handling.
 
 ## 🎯 Features
 
-- **✅ Universal compatibility** - Works in browsers, Node.js, and Deno 2
+- **✅ Universal compatibility** - Works in browsers, Node.js, Deno, and Bun
 - **✅ Full TagLib support** - All major audio formats supported by TagLib v2.1
-- **✅ Advanced metadata** - Format-agnostic API for AcoustID, MusicBrainz, and custom fields
+- **✅ Advanced metadata** - Format-agnostic API for AcoustID, MusicBrainz, ReplayGain, and Apple Sound Check
+- **✅ Professional audio tools** - Volume normalization, music database integration, and fingerprinting
 - **✅ TypeScript first** - Complete type definitions and modern API
 - **✅ Zero dependencies** - Self-contained WASM bundle
 - **✅ Memory efficient** - In-memory processing without filesystem access
-- **✅ Production ready** - Comprehensive test suite with 5/5 formats passing
+- **✅ Production ready** - Comprehensive test suite with 5/5 formats passing across all runtimes
 
 ## 📦 Installation
 
@@ -18,7 +19,10 @@
 # For NPM/Node.js projects
 npm install taglib-wasm-ts
 
-# For Deno projects (recommended)
+# For Bun projects
+bun add taglib-wasm-ts
+
+# For Deno projects 
 import { TagLib } from "jsr:@taglib/wasm-ts";
 ```
 
@@ -59,6 +63,22 @@ file.setMusicBrainzTrackId("f4d1b6b8-8c1e-4d9a-9f2a-1234567890ab");
 
 // Clean up
 file.dispose();
+```
+
+### Bun
+
+```typescript
+import { TagLib } from 'taglib-wasm-ts';
+
+const taglib = await TagLib.initialize();
+
+// Load from file system (Bun's native file API)
+const audioData = await Bun.file("song.mp3").arrayBuffer();
+const file = taglib.openFile(new Uint8Array(audioData));
+
+// Read/write metadata (same API as above)
+const tags = file.tag();
+file.setTitle("New Title");
 ```
 
 ### Node.js/Browser
@@ -109,6 +129,18 @@ file.setMusicBrainzReleaseId("a1b2c3d4-e5f6-7890-abcd-ef1234567890");
 file.setMusicBrainzArtistId("12345678-90ab-cdef-1234-567890abcdef");
 ```
 
+### Volume Normalization
+```typescript
+// ReplayGain support (automatic format mapping)
+file.setReplayGainTrackGain("-6.54 dB");
+file.setReplayGainTrackPeak("0.987654");
+file.setReplayGainAlbumGain("-8.12 dB");
+file.setReplayGainAlbumPeak("0.995432");
+
+// Apple Sound Check support
+file.setAppleSoundCheck("00000150 00000150 00000150 00000150...");
+```
+
 ### Extended Fields
 ```typescript
 // Advanced metadata fields
@@ -119,6 +151,9 @@ file.setExtendedTag({
   compilation: true,
   discNumber: 1,
   totalTracks: 12,
+  // Volume normalization
+  replayGainTrackGain: "-6.54 dB",
+  appleSoundCheck: "00000150...",
 });
 ```
 
@@ -160,6 +195,10 @@ build/
 test-files/         # Sample audio files for testing
 tests/              # Test suite
 examples/           # Usage examples for different runtimes
+├── deno/           # Deno-specific examples
+├── bun/            # Bun-specific examples  
+├── basic-usage.ts  # General usage example
+└── *.ts            # Advanced feature examples
 ```
 
 ## 🧪 Testing
@@ -167,10 +206,16 @@ examples/           # Usage examples for different runtimes
 Comprehensive test suite validates all functionality:
 
 ```bash
-# Run systematic tests
+# Run with Deno
 deno run --allow-read test-systematic.ts
 
-# Results: 5/5 formats working ✅
+# Run with Bun
+bun run test-systematic.ts
+
+# Run with Node.js
+npm test
+
+# Results: 5/5 formats working ✅ across all runtimes
 # ✅ WAV  - 44.1kHz, stereo, tag reading/writing
 # ✅ MP3  - 44.1kHz, stereo, ID3 tag support  
 # ✅ FLAC - 44.1kHz, stereo, Vorbis comments
@@ -234,12 +279,28 @@ class AudioFile {
   // Advanced Metadata (Format-Agnostic)
   extendedTag(): ExtendedTag
   setExtendedTag(tag: Partial<ExtendedTag>): void
+  
+  // AcoustID Integration
   setAcoustidFingerprint(fingerprint: string): void
   getAcoustidFingerprint(): string | undefined
   setAcoustidId(id: string): void
   getAcoustidId(): string | undefined
+  
+  // MusicBrainz Integration
   setMusicBrainzTrackId(id: string): void
   getMusicBrainzTrackId(): string | undefined
+  
+  // Volume Normalization
+  setReplayGainTrackGain(gain: string): void
+  getReplayGainTrackGain(): string | undefined
+  setReplayGainTrackPeak(peak: string): void
+  getReplayGainTrackPeak(): string | undefined
+  setReplayGainAlbumGain(gain: string): void
+  getReplayGainAlbumGain(): string | undefined
+  setReplayGainAlbumPeak(peak: string): void
+  getReplayGainAlbumPeak(): string | undefined
+  setAppleSoundCheck(iTunNORM: string): void
+  getAppleSoundCheck(): string | undefined
 }
 ```
 
@@ -255,6 +316,19 @@ interface TagLibConfig {
 }
 ```
 
+## 🌐 Runtime Compatibility
+
+TagLib WASM works seamlessly across all major JavaScript runtimes:
+
+| Runtime | Status | Installation | Performance | TypeScript |
+|---------|--------|--------------|-------------|------------|
+| **Bun** | ✅ Full | `bun add taglib-wasm-ts` | Excellent | Native |
+| **Deno** | ✅ Full | `jsr:@taglib/wasm-ts` | Excellent | Native |  
+| **Node.js** | ✅ Full | `npm install taglib-wasm-ts` | Good | Via loader |
+| **Browser** | ✅ Full | CDN/bundler | Good | Via build |
+
+**📖 See [RUNTIME_COMPATIBILITY.md](RUNTIME_COMPATIBILITY.md) for detailed runtime information**
+
 ## 🚧 Known Limitations
 
 - **File Writing**: Saves only affect in-memory representation (no filesystem persistence)
@@ -265,9 +339,10 @@ interface TagLibConfig {
 
 Contributions welcome! Areas of interest:
 
-- Additional format support
+- Additional format support (DSF, DSDIFF, etc.)
+- Advanced metadata implementation (PropertyMap integration)
 - Performance optimizations  
-- Browser compatibility testing
+- Runtime-specific optimizations
 - Documentation improvements
 
 ## 📄 License
@@ -280,7 +355,8 @@ Contributions welcome! Areas of interest:
 - [TagLib](https://taglib.org/) - Excellent audio metadata library
 - [Emscripten](https://emscripten.org/) - WebAssembly compilation toolchain
 - [Deno](https://deno.com/) - Modern JavaScript/TypeScript runtime
+- [Bun](https://bun.sh/) - Fast JavaScript runtime and package manager
 
 ---
 
-**Status**: ✅ **Production Ready** - All major functionality implemented and tested.
+**Status**: Production Ready - Universal audio metadata handling across all JavaScript runtimes.
