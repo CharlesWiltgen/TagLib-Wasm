@@ -1,34 +1,36 @@
 # taglib-wasm-ts
 
-TagLib v2.1 compiled to WebAssembly with TypeScript bindings for universal audio metadata handling.
+[TagLib](https://taglib.org/) is the de-facto standard library for reading and editing metadata tags (Title, Album, Artist, etc.) in all popular audio formats. See [“Goals & Features”](https://taglib.org/) for all the reasons you should use TagLib.
+
+This project makes TagLib’s power available to browser, Deno, Node.js, and Bun apps for the first time, thanks to the magic of ✨[Wasm](https://webassembly.org/)✨ ([WebAssembly](https://webassembly.org/)).
 
 ## 🎯 Features
 
-- **✅ Universal compatibility** - Works in browsers, Node.js, Deno, and Bun
-- **✅ Full TagLib support** - All major audio formats supported by TagLib v2.1
-- **✅ Advanced metadata** - Format-agnostic API for AcoustID, MusicBrainz, ReplayGain, and Apple Sound Check
-- **✅ Professional audio tools** - Volume normalization, music database integration, and fingerprinting
-- **✅ TypeScript first** - Complete type definitions and modern API
-- **✅ Zero dependencies** - Self-contained WASM bundle
-- **✅ Memory efficient** - In-memory processing without filesystem access
-- **✅ Production ready** - Comprehensive test suite with 5/5 formats passing across all runtimes
+- **✅ Universal compatibility** – Works in browsers, Deno, Node.js, and Bun
+- **✅ Full TagLib support** – All major audio formats supported by TagLib v2.1
+- **✅ Advanced metadata** – Format-agnostic API for AcoustID, MusicBrainz, ReplayGain, and Apple Sound Check
+- **✅ Professional audio tools** – Volume normalization, music database integration, and fingerprinting
+- **✅ TypeScript first** – Complete type definitions and modern API
+- **✅ Zero dependencies** – Self-contained WASM bundle
+- **✅ Memory efficient** – In-memory processing without filesystem access
+- **✅ Production ready** – Comprehensive test suite with 5/5 formats passing across all runtimes
 
 ## 📦 Installation
 
 ```bash
+# For Deno projects
+import { TagLib } from "jsr:@taglib/wasm-ts";
+
 # For NPM/Node.js projects
 npm install taglib-wasm-ts
 
 # For Bun projects
 bun add taglib-wasm-ts
-
-# For Deno projects 
-import { TagLib } from "jsr:@taglib/wasm-ts";
 ```
 
 ## 🚀 Quick Start
 
-### Deno (Recommended)
+### Deno
 
 ```typescript
 import { TagLib } from "./src/mod.ts";
@@ -70,46 +72,131 @@ file.dispose();
 ```typescript
 import { TagLib } from 'taglib-wasm-ts';
 
+// Initialize TagLib WASM
 const taglib = await TagLib.initialize();
 
 // Load from file system (Bun's native file API)
 const audioData = await Bun.file("song.mp3").arrayBuffer();
 const file = taglib.openFile(new Uint8Array(audioData));
 
-// Read/write metadata (same API as above)
+// Read metadata
 const tags = file.tag();
+const props = file.audioProperties();
+
+console.log(`Title: ${tags.title}`);
+console.log(`Artist: ${tags.artist}`);
+console.log(`Duration: ${props.length}s`);
+console.log(`Bitrate: ${props.bitrate} kbps`);
+
+// Write metadata
 file.setTitle("New Title");
+file.setArtist("New Artist");
+file.setAlbum("New Album");
+
+console.log("Updated tags:", file.tag());
+
+// Advanced metadata (format-agnostic)
+file.setAcoustidFingerprint("AQADtMmybfGO8NCNEESLnzHyXNOHeHnG...");
+file.setAcoustidId("e7359e88-f1f7-41ed-b9f6-16e58e906997");
+file.setMusicBrainzTrackId("f4d1b6b8-8c1e-4d9a-9f2a-1234567890ab");
+
+// Clean up
+file.dispose();
 ```
 
-### Node.js/Browser
+### Node.js
+
+```typescript
+import { TagLib } from 'taglib-wasm-ts';
+import { readFile } from 'fs/promises';
+
+// Initialize TagLib WASM
+const taglib = await TagLib.initialize();
+
+// Load audio file from filesystem
+const audioData = await readFile("song.mp3");
+const file = taglib.openFile(audioData);
+
+// Read metadata
+const tags = file.tag();
+const props = file.audioProperties();
+
+console.log(`Title: ${tags.title}`);
+console.log(`Artist: ${tags.artist}`);
+console.log(`Duration: ${props.length}s`);
+console.log(`Bitrate: ${props.bitrate} kbps`);
+
+// Write metadata
+file.setTitle("New Title");
+file.setArtist("New Artist");
+file.setAlbum("New Album");
+
+console.log("Updated tags:", file.tag());
+
+// Advanced metadata (format-agnostic)
+file.setAcoustidFingerprint("AQADtMmybfGO8NCNEESLnzHyXNOHeHnG...");
+file.setAcoustidId("e7359e88-f1f7-41ed-b9f6-16e58e906997");
+file.setMusicBrainzTrackId("f4d1b6b8-8c1e-4d9a-9f2a-1234567890ab");
+
+// Clean up
+file.dispose();
+```
+
+### Browser
 
 ```typescript
 import { TagLib } from 'taglib-wasm-ts';
 
+// Initialize TagLib WASM
 const taglib = await TagLib.initialize();
-const file = taglib.openFile(audioBuffer);
 
-// Read/write metadata (same API as above)
+// Load from file input or fetch
+const fileInput = document.querySelector('input[type="file"]');
+const audioFile = fileInput.files[0];
+const audioData = new Uint8Array(await audioFile.arrayBuffer());
+const file = taglib.openFile(audioData);
+
+// Read metadata
 const tags = file.tag();
+const props = file.audioProperties();
+
+console.log(`Title: ${tags.title}`);
+console.log(`Artist: ${tags.artist}`);
+console.log(`Duration: ${props.length}s`);
+console.log(`Bitrate: ${props.bitrate} kbps`);
+
+// Write metadata
 file.setTitle("New Title");
+file.setArtist("New Artist");
+file.setAlbum("New Album");
+
+console.log("Updated tags:", file.tag());
+
+// Advanced metadata (format-agnostic)
+file.setAcoustidFingerprint("AQADtMmybfGO8NCNEESLnzHyXNOHeHnG...");
+file.setAcoustidId("e7359e88-f1f7-41ed-b9f6-16e58e906997");
+file.setMusicBrainzTrackId("f4d1b6b8-8c1e-4d9a-9f2a-1234567890ab");
+
+// Clean up
+file.dispose();
 ```
 
 ## 📋 Supported Formats
 
 All formats are **fully tested and working**:
 
-- ✅ **MP3** - ID3v1, ID3v2 tags
-- ✅ **MP4/M4A** - iTunes-style metadata atoms  
-- ✅ **FLAC** - Vorbis comments and audio properties
-- ✅ **OGG Vorbis** - Vorbis comments
-- ✅ **WAV** - INFO chunk metadata
+- ✅ **MP3** – ID3v2 and ID3v1 tags
+- ✅ **MP4/M4A** – Standard MPEG (iTunes-compatible) metadata atoms
+- ✅ **FLAC** – Vorbis comments and audio properties
+- ✅ **OGG Vorbis** – Vorbis comments
+- ✅ **WAV** – INFO chunk metadata
 - 🔄 **Additional formats**: Opus, APE, MPC, WavPack, TrueAudio, and more
 
 ## 🎯 Advanced Metadata Support
 
-TagLib WASM includes a **format-agnostic metadata system** for professional audio applications:
+TagLib WASM supports **format-agnostic tag naming** so you don’t have to worry about how the same tag is stored differently in different audio container formats.
 
-### AcoustID Integration
+### AcoustID example
 ```typescript
 // Single API works for ALL formats (MP3, FLAC, OGG, MP4)
 file.setAcoustidFingerprint("AQADtMmybfGO8NCNEESLnzHyXNOHeHnG...");
@@ -117,11 +204,11 @@ file.setAcoustidId("e7359e88-f1f7-41ed-b9f6-16e58e906997");
 
 // Automatically stores in format-specific locations:
 // • MP3: TXXX frames with proper descriptions
-// • FLAC/OGG: ACOUSTID_FINGERPRINT and ACOUSTID_ID Vorbis comments  
+// • FLAC/OGG: ACOUSTID_FINGERPRINT and ACOUSTID_ID Vorbis comments
 // • MP4: ----:com.apple.iTunes:Acoustid... freeform atoms
 ```
 
-### MusicBrainz Integration
+### MusicBrainz example
 ```typescript
 // Professional music database integration
 file.setMusicBrainzTrackId("f4d1b6b8-8c1e-4d9a-9f2a-1234567890ab");
@@ -129,7 +216,7 @@ file.setMusicBrainzReleaseId("a1b2c3d4-e5f6-7890-abcd-ef1234567890");
 file.setMusicBrainzArtistId("12345678-90ab-cdef-1234-567890abcdef");
 ```
 
-### Volume Normalization
+### Volume example
 ```typescript
 // ReplayGain support (automatic format mapping)
 file.setReplayGainTrackGain("-6.54 dB");
@@ -141,7 +228,7 @@ file.setReplayGainAlbumPeak("0.995432");
 file.setAppleSoundCheck("00000150 00000150 00000150 00000150...");
 ```
 
-### Extended Fields
+### Extended fields
 ```typescript
 // Advanced metadata fields
 file.setExtendedTag({
@@ -183,7 +270,7 @@ deno task test
 ```
 src/
 ├── mod.ts          # Main module exports
-├── taglib.ts       # Core TagLib and AudioFile classes  
+├── taglib.ts       # Core TagLib and AudioFile classes
 ├── types.ts        # TypeScript type definitions
 └── wasm.ts         # WASM module interface and utilities
 
@@ -196,7 +283,7 @@ test-files/         # Sample audio files for testing
 tests/              # Test suite
 examples/           # Usage examples for different runtimes
 ├── deno/           # Deno-specific examples
-├── bun/            # Bun-specific examples  
+├── bun/            # Bun-specific examples
 ├── basic-usage.ts  # General usage example
 └── *.ts            # Advanced feature examples
 ```
@@ -217,7 +304,7 @@ npm test
 
 # Results: 5/5 formats working ✅ across all runtimes
 # ✅ WAV  - 44.1kHz, stereo, tag reading/writing
-# ✅ MP3  - 44.1kHz, stereo, ID3 tag support  
+# ✅ MP3  - 44.1kHz, stereo, ID3 tag support
 # ✅ FLAC - 44.1kHz, stereo, Vorbis comments
 # ✅ OGG  - 44.1kHz, stereo, Vorbis comments
 # ✅ M4A  - 44.1kHz, stereo, iTunes metadata
@@ -225,14 +312,14 @@ npm test
 
 ## 🔧 Technical Implementation
 
-### Key Architecture Decisions
+### Key architecture decisions
 
 1. **Memory Management**: Uses Emscripten's `allocate()` for reliable JS↔WASM data transfer
 2. **Buffer-Based Processing**: `TagLib::ByteVectorStream` enables in-memory file processing
 3. **C++ Wrapper**: Custom C functions bridge TagLib's C++ API to WASM exports
 4. **Type Safety**: Complete TypeScript definitions for all audio formats and metadata
 
-### Critical Implementation Details
+### Critical implementation details
 
 - **ByteVectorStream**: Enables processing audio files from memory buffers without filesystem
 - **ID-based Object Management**: C++ objects managed via integer IDs for memory safety
@@ -241,7 +328,7 @@ npm test
 
 ## 📚 API Reference
 
-### TagLib Class
+### TagLib class
 
 ```typescript
 class TagLib {
@@ -251,18 +338,18 @@ class TagLib {
 }
 ```
 
-### AudioFile Class
+### AudioFile class
 
 ```typescript
 class AudioFile {
   // Validation
   isValid(): boolean
   format(): string
-  
+
   // Properties
   audioProperties(): AudioProperties
   tag(): TagData
-  
+
   // Tag Writing
   setTitle(title: string): void
   setArtist(artist: string): void
@@ -271,25 +358,25 @@ class AudioFile {
   setGenre(genre: string): void
   setYear(year: number): void
   setTrack(track: number): void
-  
+
   // File Operations
   save(): boolean
   dispose(): void
-  
+
   // Advanced Metadata (Format-Agnostic)
   extendedTag(): ExtendedTag
   setExtendedTag(tag: Partial<ExtendedTag>): void
-  
+
   // AcoustID Integration
   setAcoustidFingerprint(fingerprint: string): void
   getAcoustidFingerprint(): string | undefined
   setAcoustidId(id: string): void
   getAcoustidId(): string | undefined
-  
+
   // MusicBrainz Integration
   setMusicBrainzTrackId(id: string): void
   getMusicBrainzTrackId(): string | undefined
-  
+
   // Volume Normalization
   setReplayGainTrackGain(gain: string): void
   getReplayGainTrackGain(): string | undefined
@@ -322,8 +409,8 @@ TagLib WASM works seamlessly across all major JavaScript runtimes:
 
 | Runtime | Status | Installation | Performance | TypeScript |
 |---------|--------|--------------|-------------|------------|
+| **Deno** | ✅ Full | `jsr:@taglib/wasm-ts` | Excellent | Native |
 | **Bun** | ✅ Full | `bun add taglib-wasm-ts` | Excellent | Native |
-| **Deno** | ✅ Full | `jsr:@taglib/wasm-ts` | Excellent | Native |  
 | **Node.js** | ✅ Full | `npm install taglib-wasm-ts` | Good | Via loader |
 | **Browser** | ✅ Full | CDN/bundler | Good | Via build |
 
@@ -341,21 +428,19 @@ Contributions welcome! Areas of interest:
 
 - Additional format support (DSF, DSDIFF, etc.)
 - Advanced metadata implementation (PropertyMap integration)
-- Performance optimizations  
+- Performance optimizations
 - Runtime-specific optimizations
 - Documentation improvements
 
 ## 📄 License
 
-- **This project**: MIT License - see [LICENSE](LICENSE)
-- **TagLib library**: LGPL/MPL dual license - see [lib/taglib/COPYING.LGPL](lib/taglib/COPYING.LGPL)
+- **This project**: MIT License (see [LICENSE](LICENSE))
+- **TagLib library**: LGPL/MPL dual license (see [lib/taglib/COPYING.LGPL](lib/taglib/COPYING.LGPL))
 
 ## 🙏 Acknowledgments
 
-- [TagLib](https://taglib.org/) - Excellent audio metadata library
-- [Emscripten](https://emscripten.org/) - WebAssembly compilation toolchain
-- [Deno](https://deno.com/) - Modern JavaScript/TypeScript runtime
-- [Bun](https://bun.sh/) - Fast JavaScript runtime and package manager
+- [TagLib](https://taglib.org/) – Excellent audio metadata library
+- [Emscripten](https://emscripten.org/) – WebAssembly compilation toolchain
 
 ---
 
