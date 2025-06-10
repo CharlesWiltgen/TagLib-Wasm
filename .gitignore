@@ -153,3 +153,6 @@ test-files.zip
 # But keep the directory structure and documentation
 !test-files/README.md
 !test-files/*/
+
+# Development tools
+mise.toml
