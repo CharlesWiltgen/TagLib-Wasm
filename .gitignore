@@ -156,3 +156,4 @@ test-files.zip
 
 # Development tools
 mise.toml
+.claude/
