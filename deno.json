@@ -1,14 +1,18 @@
 {
-  "name": "@taglib/wasm",
+  "name": "@charleswiltgen/taglib-wasm",
   "version": "0.1.0",
-  "exports": "./src/mod.ts",
+  "license": "MIT",
+  "exports": "./mod.ts",
   "publish": {
-    "include": [
-      "src/",
-      "build/taglib.wasm",
-      "build/taglib.js", 
-      "README.md",
-      "LICENSE"
+    "exclude": [
+      "test-files/",
+      "tests/",
+      "examples/",
+      "*.ts",
+      "lib/taglib/",
+      "CLAUDE.md",
+      "IMPLEMENTATION.md",
+      "scripts/"
     ]
   },
   "tasks": {
