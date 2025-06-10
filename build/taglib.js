@@ -1,0 +1,35 @@
+var TagLibWASM = (() => {
+  var _scriptName = typeof document != 'undefined' ? document.currentScript?.src : undefined;
+  return (
+async function(moduleArg = {}) {
+  var moduleRtn;
+
+var c=moduleArg,aa="object"==typeof window,ba="undefined"!=typeof WorkerGlobalScope,m="object"==typeof process&&process.versions?.node&&"renderer"!=process.type;"undefined"!=typeof __filename&&(_scriptName=__filename);var p="",q,r;
+if(m){var fs=require("fs");p=__dirname+"/";r=a=>{a=t(a)?new URL(a):a;return fs.readFileSync(a)};q=async a=>{a=t(a)?new URL(a):a;return fs.readFileSync(a,void 0)};process.argv.slice(2)}else if(aa||ba){try{p=(new URL(".",_scriptName)).href}catch{}q=async a=>{a=await fetch(a,{credentials:"same-origin"});if(a.ok)return a.arrayBuffer();throw Error(a.status+" : "+a.url);}}console.log.bind(console);var u=console.error.bind(console),v,w=!1,t=a=>a.startsWith("file://"),x,y,z,A,B,C,D,E,F,G,H,I=!1;
+function J(){var a=z.buffer;A=new Int8Array(a);C=new Int16Array(a);B=new Uint8Array(a);new Uint16Array(a);D=new Int32Array(a);E=new Uint32Array(a);F=new Float32Array(a);G=new Float64Array(a);H=new BigInt64Array(a);new BigUint64Array(a)}var K=0,L=null;function M(a){c.onAbort?.(a);a="Aborted("+a+")";u(a);w=!0;a=new WebAssembly.RuntimeError(a+". Build with -sASSERTIONS for more info.");y?.(a);throw a;}var N;
+async function ca(a){if(!v)try{var d=await q(a);return new Uint8Array(d)}catch{}if(a==N&&v)a=new Uint8Array(v);else if(r)a=r(a);else throw"both async and sync fetching of the wasm failed";return a}async function da(a,d){try{var b=await ca(a);return await WebAssembly.instantiate(b,d)}catch(e){u(`failed to asynchronously prepare wasm: ${e}`),M(e)}}
+async function ea(a){var d=N;if(!v&&"function"==typeof WebAssembly.instantiateStreaming&&!m)try{var b=fetch(d,{credentials:"same-origin"});return await WebAssembly.instantiateStreaming(b,a)}catch(e){u(`wasm streaming compile failed: ${e}`),u("falling back to ArrayBuffer instantiation")}return da(d,a)}var O=a=>{for(;0<a.length;)a.shift()(c)},P=[],Q=[],fa=()=>{var a=c.preRun.shift();Q.push(a)};class ha{constructor(a){this.J=a-24}}
+var R=0,ia=0,S=a=>{for(var d=0,b=0;b<a.length;++b){var e=a.charCodeAt(b);127>=e?d++:2047>=e?d+=2:55296<=e&&57343>=e?(d+=4,++b):d+=3}return d},T=(a,d,b,e)=>{if(!(0<e))return 0;var f=b;e=b+e-1;for(var h=0;h<a.length;++h){var g=a.codePointAt(h);if(127>=g){if(b>=e)break;d[b++]=g}else if(2047>=g){if(b+1>=e)break;d[b++]=192|g>>6;d[b++]=128|g&63}else if(65535>=g){if(b+2>=e)break;d[b++]=224|g>>12;d[b++]=128|g>>6&63;d[b++]=128|g&63}else{if(b+3>=e)break;d[b++]=240|g>>18;d[b++]=128|g>>12&63;d[b++]=128|g>>6&
+63;d[b++]=128|g&63;h++}}d[b]=0;return b-f},U="undefined"!=typeof TextDecoder?new TextDecoder:void 0,ja=(a=0)=>{for(var d=B,b=a+NaN,e=a;d[e]&&!(e>=b);)++e;if(16<e-a&&d.buffer&&U)return U.decode(d.subarray(a,e));for(b="";a<e;){var f=d[a++];if(f&128){var h=d[a++]&63;if(192==(f&224))b+=String.fromCharCode((f&31)<<6|h);else{var g=d[a++]&63;f=224==(f&240)?(f&15)<<12|h<<6|g:(f&7)<<18|h<<12|g<<6|d[a++]&63;65536>f?b+=String.fromCharCode(f):(f-=65536,b+=String.fromCharCode(55296|f>>10,56320|f&1023))}}else b+=
+String.fromCharCode(f)}return b},ma=(a,d,b,e)=>{var f={string:k=>{var l=0;if(null!==k&&void 0!==k&&0!==k){l=S(k)+1;var Y=V(l);T(k,B,Y,l);l=Y}return l},array:k=>{var l=V(k.length);A.set(k,l);return l}};a=c["_"+a];var h=[],g=0;if(e)for(var n=0;n<e.length;n++){var Z=f[b[n]];Z?(0===g&&(g=ka()),h[n]=Z(e[n])):h[n]=e[n]}b=a(...h);return b=function(k){0!==g&&la(g);return"string"===d?k?ja(k):"":"boolean"===d?!!k:k}(b)};c.printErr&&(u=c.printErr);c.wasmBinary&&(v=c.wasmBinary);c.ccall=ma;
+c.cwrap=(a,d,b,e)=>{var f=!b||b.every(h=>"number"===h||"boolean"===h);return"string"!==d&&f&&!e?c["_"+a]:(...h)=>ma(a,d,b,h,e)};c.setValue=function(a,d,b="i8"){b.endsWith("*")&&(b="*");switch(b){case "i1":A[a]=d;break;case "i8":A[a]=d;break;case "i16":C[a>>1]=d;break;case "i32":D[a>>2]=d;break;case "i64":H[a>>3]=BigInt(d);break;case "float":F[a>>2]=d;break;case "double":G[a>>3]=d;break;case "*":E[a>>2]=d;break;default:M(`invalid type for setValue: ${b}`)}};
+c.getValue=function(a,d="i8"){d.endsWith("*")&&(d="*");switch(d){case "i1":return A[a];case "i8":return A[a];case "i16":return C[a>>1];case "i32":return D[a>>2];case "i64":return H[a>>3];case "float":return F[a>>2];case "double":return G[a>>3];case "*":return E[a>>2];default:M(`invalid type for getValue: ${d}`)}};c.intArrayFromString=(a,d,b)=>{b=Array(0<b?b:S(a)+1);a=T(a,b,0,b.length);d&&(b.length=a);return b};c.ALLOC_NORMAL=0;
+c.allocate=(a,d)=>{d=1==d?V(a.length):na(a.length);a.subarray||a.slice||(a=new Uint8Array(a));B.set(a,d);return d};
+var na,la,V,ka,oa={a:(a,d,b)=>{var e=new ha(a);E[e.J+16>>2]=0;E[e.J+4>>2]=d;E[e.J+8>>2]=b;R=a;ia++;throw R;},b:()=>M(""),c:a=>{var d=B.length;a>>>=0;if(268435456<a)return!1;for(var b=1;4>=b;b*=2){var e=d*(1+.2/b);e=Math.min(e,a+100663296);a:{e=(Math.min(268435456,65536*Math.ceil(Math.max(a,e)/65536))-z.buffer.byteLength+65535)/65536|0;try{z.grow(e);J();var f=1;break a}catch(h){}f=void 0}if(f)return!0}return!1}},W=await (async function(){function a(b){W=b.exports;z=W.d;J();b=W;c._taglib_file_new_from_buffer=
+b.f;c._taglib_file_delete=b.g;c._taglib_file_save=b.h;c._taglib_file_is_valid=b.i;c._taglib_file_format=b.j;c._taglib_file_tag=b.k;c._taglib_tag_title=b.l;c._taglib_tag_artist=b.m;c._taglib_tag_album=b.n;c._taglib_tag_comment=b.o;c._taglib_tag_genre=b.p;c._taglib_tag_year=b.q;c._taglib_tag_track=b.r;c._taglib_tag_set_title=b.s;c._taglib_tag_set_artist=b.t;c._taglib_tag_set_album=b.u;c._taglib_tag_set_comment=b.v;c._taglib_tag_set_genre=b.w;c._taglib_tag_set_year=b.x;c._taglib_tag_set_track=b.y;c._taglib_file_audioproperties=
+b.z;c._taglib_audioproperties_length=b.A;c._taglib_audioproperties_bitrate=b.B;c._taglib_audioproperties_samplerate=b.C;c._taglib_audioproperties_channels=b.D;c._malloc=na=b.E;c._free=b.F;la=b.G;V=b.H;ka=b.I;K--;c.monitorRunDependencies?.(K);0==K&&L&&(b=L,L=null,b());return W}K++;c.monitorRunDependencies?.(K);var d={a:oa};if(c.instantiateWasm)return new Promise(b=>{c.instantiateWasm(d,(e,f)=>{b(a(e,f))})});N??=c.locateFile?c.locateFile("taglib.wasm",p):p+"taglib.wasm";return a((await ea(d)).instance)}());
+function X(){function a(){c.calledRun=!0;if(!w){I=!0;W.e();x?.(c);c.onRuntimeInitialized?.();if(c.postRun)for("function"==typeof c.postRun&&(c.postRun=[c.postRun]);c.postRun.length;){var d=c.postRun.shift();P.push(d)}O(P)}}if(0<K)L=X;else{if(c.preRun)for("function"==typeof c.preRun&&(c.preRun=[c.preRun]);c.preRun.length;)fa();O(Q);0<K?L=X:c.setStatus?(c.setStatus("Running..."),setTimeout(()=>{setTimeout(()=>c.setStatus(""),1);a()},1)):a()}}
+if(c.preInit)for("function"==typeof c.preInit&&(c.preInit=[c.preInit]);0<c.preInit.length;)c.preInit.shift()();X();I?moduleRtn=c:moduleRtn=new Promise((a,d)=>{x=a;y=d});
+
+
+  return moduleRtn;
+}
+);
+})();
+if (typeof exports === 'object' && typeof module === 'object') {
+  module.exports = TagLibWASM;
+  // This default export looks redundant, but it allows TS to import this
+  // commonjs style module.
+  module.exports.default = TagLibWASM;
+} else if (typeof define === 'function' && define['amd'])
+  define([], () => TagLibWASM);
