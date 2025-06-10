@@ -134,3 +134,22 @@ dist
 .yarn/build-state.yml
 .yarn/install-state.gz
 .pnp.*
+
+# Test audio files (keep structure but not the actual files)
+test-files/*.mp3
+test-files/*.flac
+test-files/*.ogg
+test-files/*.wav
+test-files/*.m4a
+test-files/*.mp4
+test-files/*/*.mp3
+test-files/*/*.flac
+test-files/*/*.ogg
+test-files/*/*.wav
+test-files/*/*.m4a
+test-files/*/*.mp4
+test-files.zip
+
+# But keep the directory structure and documentation
+!test-files/README.md
+!test-files/*/

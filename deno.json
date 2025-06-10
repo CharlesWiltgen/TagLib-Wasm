@@ -1,0 +1,50 @@
+{
+  "name": "@taglib/wasm-ts",
+  "version": "0.1.0",
+  "exports": "./src/mod.ts",
+  "tasks": {
+    "build:wasm": "./build/build-wasm.sh",
+    "build:ts": "deno run --allow-run npm:typescript/tsc",
+    "build": "deno task build:wasm && deno task build:ts",
+    "test": "deno test --allow-read --allow-write --allow-run tests/",
+    "dev": "deno run --watch --allow-read --allow-write src/mod.ts",
+    "fmt": "deno fmt",
+    "lint": "deno lint",
+    "check": "deno check src/mod.ts",
+    "update-taglib": "./scripts/update-taglib.sh"
+  },
+  "imports": {
+    "@std/assert": "jsr:@std/assert@^1.0.0",
+    "@std/path": "jsr:@std/path@^1.0.0",
+    "@std/fs": "jsr:@std/fs@^1.0.0"
+  },
+  "exclude": [
+    "node_modules/",
+    "dist/",
+    "lib/",
+    "build/",
+    "examples/node/"
+  ],
+  "compilerOptions": {
+    "lib": ["ES2022", "DOM", "deno.ns"],
+    "strict": true,
+    "exactOptionalPropertyTypes": false,
+    "noImplicitReturns": true,
+    "noImplicitOverride": true,
+    "noUncheckedIndexedAccess": true,
+    "noPropertyAccessFromIndexSignature": true
+  },
+  "fmt": {
+    "useTabs": false,
+    "lineWidth": 80,
+    "indentWidth": 2,
+    "semiColons": true,
+    "singleQuote": false,
+    "proseWrap": "preserve"
+  },
+  "lint": {
+    "rules": {
+      "tags": ["recommended"]
+    }
+  }
+}
