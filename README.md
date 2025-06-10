@@ -1,19 +1,24 @@
-# taglib-wasm-ts
+# taglib-wasm
 
-[TagLib](https://taglib.org/) is the de-facto standard library for reading and editing metadata tags (Title, Album, Artist, etc.) in all popular audio formats. See [“Goals & Features”](https://taglib.org/) for all the reasons you should use TagLib.
+[TagLib](https://taglib.org/) is the de-facto standard library for reading and editing metadata tags (Title, Album, Artist, etc.) in all popular audio formats. See [“Goals & Features”](https://taglib.org/) for the reasons TagLib is so great.
 
-This project makes TagLib’s power available to browser, Deno, Node.js, and Bun apps for the first time, thanks to the magic of ✨[Wasm](https://webassembly.org/)✨ ([WebAssembly](https://webassembly.org/)).
+`taglib-wasm` makes the robust, industry-standard TagLib tagging library available to browser, Deno, Node.js, and Bun apps for the first time, thanks to the magic of ✨[Wasm](https://webassembly.org/)✨ ([WebAssembly](https://webassembly.org/)).
+
+### Why?
+
+In the process of building my own utility to improve the metadata of my own music collection, I discovered that the JavaScipt/TypeScipt ecosystem has no battle-tested audio tagging library that supports reading and writing music metadata to all popular audio formats.
+
+[`mp3tag.js`](https://mp3tag.js.org/) is mature and active, but only supports MP3 files and ID3 tags. TagLib was an ideal choice from a maturity and capabilities point of view, but wrappers like `node-taglib` appeared to be dormant, and I wanted to avoid making users install platform-specific dependencies whenever possible.
 
 ## 🎯 Features
 
 - **✅ Universal compatibility** – Works in browsers, Deno, Node.js, and Bun
-- **✅ Full TagLib support** – All major audio formats supported by TagLib v2.1
-- **✅ Advanced metadata** – Format-agnostic API for AcoustID, MusicBrainz, ReplayGain, and Apple Sound Check
-- **✅ Professional audio tools** – Volume normalization, music database integration, and fingerprinting
 - **✅ TypeScript first** – Complete type definitions and modern API
+- **✅ Full audio format support** – Supports all audio formats supported by TagLib
+- **✅ Format abstraction** – `taglib-wasm` deals with how tags are read from/written to in different file formats
 - **✅ Zero dependencies** – Self-contained WASM bundle
 - **✅ Memory efficient** – In-memory processing without filesystem access
-- **✅ Production ready** – Comprehensive test suite with 5/5 formats passing across all runtimes
+- **✅ Production ready** – Growing test suite helps ensure safety and reliability
 
 ## 📦 Installation
 
