@@ -2,6 +2,15 @@
   "name": "@taglib/wasm",
   "version": "0.1.0",
   "exports": "./src/mod.ts",
+  "publish": {
+    "include": [
+      "src/",
+      "build/taglib.wasm",
+      "build/taglib.js", 
+      "README.md",
+      "LICENSE"
+    ]
+  },
   "tasks": {
     "build:wasm": "./build/build-wasm.sh",
     "build:ts": "deno run --allow-run npm:typescript/tsc",
