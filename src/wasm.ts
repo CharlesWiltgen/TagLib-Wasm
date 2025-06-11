@@ -103,7 +103,7 @@ export async function loadTagLibModule(
   const mergedConfig = { ...DEFAULT_CONFIG, ...config };
 
   // Detect runtime environment
-  const isNode = typeof process !== "undefined" && process.versions?.node;
+  const isNode = typeof (globalThis as any).process !== "undefined" && (globalThis as any).process.versions?.node;
   const isDeno = typeof (globalThis as any).Deno !== "undefined";
 
   let wasmPath: string;
