@@ -34,28 +34,28 @@ file.setAcoustidFingerprint(fingerprint);
 
 ### AcoustID Fields
 
-| Field | MP3 (ID3v2) | FLAC/OGG (Vorbis) | MP4/M4A (Atoms) |
-|-------|-------------|-------------------|-----------------|
+| Field           | MP3 (ID3v2)                                             | FLAC/OGG (Vorbis)      | MP4/M4A (Atoms)                              |
+| --------------- | ------------------------------------------------------- | ---------------------- | -------------------------------------------- |
 | **Fingerprint** | `TXXX` frame with description: `"Acoustid Fingerprint"` | `ACOUSTID_FINGERPRINT` | `----:com.apple.iTunes:Acoustid Fingerprint` |
-| **AcoustID** | `TXXX` frame with description: `"Acoustid Id"` | `ACOUSTID_ID` | `----:com.apple.iTunes:Acoustid Id` |
+| **AcoustID**    | `TXXX` frame with description: `"Acoustid Id"`          | `ACOUSTID_ID`          | `----:com.apple.iTunes:Acoustid Id`          |
 
-### MusicBrainz Fields  
+### MusicBrainz Fields
 
-| Field | MP3 (ID3v2) | FLAC/OGG (Vorbis) | MP4/M4A (Atoms) |
-|-------|-------------|-------------------|-----------------|
-| **Track ID** | `UFID` frame: `"http://musicbrainz.org"` | `MUSICBRAINZ_TRACKID` | `----:com.apple.iTunes:MusicBrainz Track Id` |
-| **Release ID** | `TXXX` frame: `"MusicBrainz Album Id"` | `MUSICBRAINZ_ALBUMID` | `----:com.apple.iTunes:MusicBrainz Album Id` |
-| **Artist ID** | `TXXX` frame: `"MusicBrainz Artist Id"` | `MUSICBRAINZ_ARTISTID` | `----:com.apple.iTunes:MusicBrainz Artist Id` |
+| Field                | MP3 (ID3v2)                                    | FLAC/OGG (Vorbis)            | MP4/M4A (Atoms)                                      |
+| -------------------- | ---------------------------------------------- | ---------------------------- | ---------------------------------------------------- |
+| **Track ID**         | `UFID` frame: `"http://musicbrainz.org"`       | `MUSICBRAINZ_TRACKID`        | `----:com.apple.iTunes:MusicBrainz Track Id`         |
+| **Release ID**       | `TXXX` frame: `"MusicBrainz Album Id"`         | `MUSICBRAINZ_ALBUMID`        | `----:com.apple.iTunes:MusicBrainz Album Id`         |
+| **Artist ID**        | `TXXX` frame: `"MusicBrainz Artist Id"`        | `MUSICBRAINZ_ARTISTID`       | `----:com.apple.iTunes:MusicBrainz Artist Id`        |
 | **Release Group ID** | `TXXX` frame: `"MusicBrainz Release Group Id"` | `MUSICBRAINZ_RELEASEGROUPID` | `----:com.apple.iTunes:MusicBrainz Release Group Id` |
 
 ### Extended Fields
 
-| Field | MP3 (ID3v2) | FLAC/OGG (Vorbis) | MP4/M4A (Atoms) |
-|-------|-------------|-------------------|-----------------|
-| **Album Artist** | `TPE2` | `ALBUMARTIST` | `aART` |
-| **Composer** | `TCOM` | `COMPOSER` | `©wrt` |
-| **BPM** | `TBPM` | `BPM` | `tmpo` |
-| **Compilation** | `TCMP` | `COMPILATION` | `cpil` |
+| Field            | MP3 (ID3v2) | FLAC/OGG (Vorbis) | MP4/M4A (Atoms) |
+| ---------------- | ----------- | ----------------- | --------------- |
+| **Album Artist** | `TPE2`      | `ALBUMARTIST`     | `aART`          |
+| **Composer**     | `TCOM`      | `COMPOSER`        | `©wrt`          |
+| **BPM**          | `TBPM`      | `BPM`             | `tmpo`          |
+| **Compilation**  | `TCMP`      | `COMPILATION`     | `cpil`          |
 
 ## 🚀 Usage Examples
 
@@ -71,7 +71,7 @@ const file = taglib.openFile(audioBuffer);
 file.setAcoustidFingerprint("AQADtMmybfGO8NCNEESLnzHyXNOHeHnG...");
 file.setAcoustidId("e7359e88-f1f7-41ed-b9f6-16e58e906997");
 
-// Read AcoustID data (works for ANY format)  
+// Read AcoustID data (works for ANY format)
 const fingerprint = file.getAcoustidFingerprint();
 const acoustidId = file.getAcoustidId();
 
@@ -97,9 +97,9 @@ file.setMusicBrainzArtistId("12345678-90ab-cdef-1234-567890abcdef");
 file.setExtendedTag({
   // Basic fields
   title: "Song Title",
-  artist: "Artist Name", 
+  artist: "Artist Name",
   album: "Album Name",
-  
+
   // Advanced fields
   acoustidFingerprint: "AQADtMmybfGO8NCNEESLnzHyXNOHeHnG...",
   acoustidId: "e7359e88-f1f7-41ed-b9f6-16e58e906997",
@@ -154,17 +154,20 @@ file->setProperties(propertyMap);
 ## 🚧 Current Implementation Status
 
 ### ✅ Completed
+
 - **Type Definitions**: Complete `ExtendedTag` interface
 - **Mapping Configuration**: Full `METADATA_MAPPINGS` for all formats
 - **API Design**: Format-agnostic method signatures
 - **Documentation**: Complete usage examples and reference
 
-### 🚧 In Progress  
+### 🚧 In Progress
+
 - **C++ PropertyMap Integration**: Requires additional C++ wrapper functions
 - **Format-Specific Writers**: Need C++ functions for advanced field writing
 - **Format-Specific Readers**: Need C++ functions for advanced field reading
 
 ### 📋 Next Steps
+
 1. **Extend C++ Wrapper**: Add PropertyMap access functions
 2. **Implement Field Writers**: Format-specific writing logic
 3. **Implement Field Readers**: Format-specific reading logic
@@ -174,12 +177,14 @@ file->setProperties(propertyMap);
 ## 🎯 Benefits
 
 ### For Developers
+
 - **Single API**: One method call works for all formats
 - **No Format Knowledge**: Don't need to know ID3 frame names, Vorbis fields, etc.
 - **Consistent Behavior**: Same API regardless of audio format
 - **Type Safety**: Full TypeScript support with auto-completion
 
 ### For Applications
+
 - **Professional Metadata**: Proper storage following format conventions
 - **MusicBrainz Compatible**: Follows MusicBrainz Picard conventions
 - **AcoustID Ready**: Built-in support for audio fingerprinting

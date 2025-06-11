@@ -2,6 +2,10 @@
  * @fileoverview TypeScript type definitions for TagLib WASM
  */
 
+// Re-export commonly used classes from other modules
+export type { TagLibModule } from "./wasm";
+export type { AudioFile } from "./taglib";
+
 /**
  * Audio format types supported by TagLib
  */
@@ -96,7 +100,7 @@ export interface ExtendedTag extends Tag {
   artistSort?: string;
   /** Sort album for alphabetization */
   albumSort?: string;
-  
+
   // ReplayGain fields
   /** ReplayGain track gain in dB (e.g., "-6.54 dB") */
   replayGainTrackGain?: string;
@@ -106,7 +110,7 @@ export interface ExtendedTag extends Tag {
   replayGainAlbumGain?: string;
   /** ReplayGain album peak value (0.0-1.0) */
   replayGainAlbumPeak?: string;
-  
+
   // Apple Sound Check
   /** Apple Sound Check normalization data (iTunNORM) */
   appleSoundCheck?: string;
@@ -142,14 +146,14 @@ export const METADATA_MAPPINGS: Record<keyof ExtendedTag, FieldMapping> = {
   },
   artist: {
     id3v2: { frame: "TPE1" },
-    vorbis: "ARTIST", 
+    vorbis: "ARTIST",
     mp4: "©ART",
     wav: "IART",
   },
   album: {
     id3v2: { frame: "TALB" },
     vorbis: "ALBUM",
-    mp4: "©alb", 
+    mp4: "©alb",
     wav: "IPRD",
   },
   comment: {
@@ -172,11 +176,11 @@ export const METADATA_MAPPINGS: Record<keyof ExtendedTag, FieldMapping> = {
   },
   track: {
     id3v2: { frame: "TRCK" },
-    vorbis: "TRACKNUMBER", 
+    vorbis: "TRACKNUMBER",
     mp4: "trkn",
     wav: "ITRK",
   },
-  
+
   // Advanced fields requiring format-specific handling
   acoustidFingerprint: {
     id3v2: { frame: "TXXX", description: "Acoustid Fingerprint" },
@@ -185,7 +189,7 @@ export const METADATA_MAPPINGS: Record<keyof ExtendedTag, FieldMapping> = {
   },
   acoustidId: {
     id3v2: { frame: "TXXX", description: "Acoustid Id" },
-    vorbis: "ACOUSTID_ID", 
+    vorbis: "ACOUSTID_ID",
     mp4: "----:com.apple.iTunes:Acoustid Id",
   },
   musicbrainzTrackId: {
@@ -196,7 +200,7 @@ export const METADATA_MAPPINGS: Record<keyof ExtendedTag, FieldMapping> = {
   musicbrainzReleaseId: {
     id3v2: { frame: "TXXX", description: "MusicBrainz Album Id" },
     vorbis: "MUSICBRAINZ_ALBUMID",
-    mp4: "----:com.apple.iTunes:MusicBrainz Album Id", 
+    mp4: "----:com.apple.iTunes:MusicBrainz Album Id",
   },
   musicbrainzArtistId: {
     id3v2: { frame: "TXXX", description: "MusicBrainz Artist Id" },
@@ -205,7 +209,7 @@ export const METADATA_MAPPINGS: Record<keyof ExtendedTag, FieldMapping> = {
   },
   musicbrainzReleaseGroupId: {
     id3v2: { frame: "TXXX", description: "MusicBrainz Release Group Id" },
-    vorbis: "MUSICBRAINZ_RELEASEGROUPID", 
+    vorbis: "MUSICBRAINZ_RELEASEGROUPID",
     mp4: "----:com.apple.iTunes:MusicBrainz Release Group Id",
   },
   albumArtist: {
@@ -229,7 +233,7 @@ export const METADATA_MAPPINGS: Record<keyof ExtendedTag, FieldMapping> = {
     mp4: "trkn", // Part of trkn atom
   },
   totalDiscs: {
-    id3v2: { frame: "TPOS" }, // Part of TPOS frame  
+    id3v2: { frame: "TPOS" }, // Part of TPOS frame
     vorbis: "DISCTOTAL",
     mp4: "disk", // Part of disk atom
   },
@@ -250,7 +254,7 @@ export const METADATA_MAPPINGS: Record<keyof ExtendedTag, FieldMapping> = {
   },
   artistSort: {
     id3v2: { frame: "TSOP" },
-    vorbis: "ARTISTSORT", 
+    vorbis: "ARTISTSORT",
     mp4: "soar",
   },
   albumSort: {
@@ -258,7 +262,7 @@ export const METADATA_MAPPINGS: Record<keyof ExtendedTag, FieldMapping> = {
     vorbis: "ALBUMSORT",
     mp4: "soal",
   },
-  
+
   // ReplayGain mappings
   replayGainTrackGain: {
     id3v2: { frame: "TXXX", description: "ReplayGain_Track_Gain" },
@@ -267,7 +271,7 @@ export const METADATA_MAPPINGS: Record<keyof ExtendedTag, FieldMapping> = {
   },
   replayGainTrackPeak: {
     id3v2: { frame: "TXXX", description: "ReplayGain_Track_Peak" },
-    vorbis: "REPLAYGAIN_TRACK_PEAK", 
+    vorbis: "REPLAYGAIN_TRACK_PEAK",
     mp4: "----:com.apple.iTunes:replaygain_track_peak",
   },
   replayGainAlbumGain: {
@@ -278,9 +282,9 @@ export const METADATA_MAPPINGS: Record<keyof ExtendedTag, FieldMapping> = {
   replayGainAlbumPeak: {
     id3v2: { frame: "TXXX", description: "ReplayGain_Album_Peak" },
     vorbis: "REPLAYGAIN_ALBUM_PEAK",
-    mp4: "----:com.apple.iTunes:replaygain_album_peak", 
+    mp4: "----:com.apple.iTunes:replaygain_album_peak",
   },
-  
+
   // Apple Sound Check mapping
   appleSoundCheck: {
     id3v2: { frame: "TXXX", description: "iTunNORM" },

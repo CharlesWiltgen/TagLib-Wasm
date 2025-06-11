@@ -5,9 +5,10 @@ TagLib WASM is designed to work seamlessly across all major JavaScript runtimes.
 ## 🟢 Supported Runtimes
 
 ### ✅ Deno 2.0+
+
 - **Status**: Fully supported and recommended
 - **Installation**: `import { TagLib } from "jsr:@charleswiltgen/taglib-wasm"`
-- **Features**: 
+- **Features**:
   - Native TypeScript support
   - Built-in Web APIs
   - Excellent WASM performance
@@ -15,7 +16,7 @@ TagLib WASM is designed to work seamlessly across all major JavaScript runtimes.
 - **File Loading**: `Deno.readFile()`
 
 ```typescript
-import { TagLib } from "./src/mod.ts";
+import { TagLib } from "./mod.ts";
 
 const taglib = await TagLib.initialize();
 const audioData = await Deno.readFile("song.mp3");
@@ -23,7 +24,8 @@ const file = taglib.openFile(audioData);
 ```
 
 ### ✅ Bun 1.0+
-- **Status**: Fully supported 
+
+- **Status**: Fully supported
 - **Installation**: `bun add taglib-wasm`
 - **Features**:
   - Native TypeScript support
@@ -41,6 +43,7 @@ const file = taglib.openFile(new Uint8Array(audioData));
 ```
 
 ### ✅ Node.js 18+
+
 - **Status**: Fully supported
 - **Installation**: `npm install taglib-wasm`
 - **Features**:
@@ -59,6 +62,7 @@ const file = taglib.openFile(audioData);
 ```
 
 ### ✅ Browsers (Chrome 57+, Firefox 52+, Safari 11+)
+
 - **Status**: Fully supported
 - **Installation**: Via CDN or bundler
 - **Features**:
@@ -87,40 +91,43 @@ const tagFile = taglib.openFile(audioData);
 ## 🔧 Runtime-Specific Features
 
 ### Memory Management
+
 All runtimes use the same memory management approach:
+
 - Emscripten's `allocate()` for JS↔WASM data transfer
 - Automatic garbage collection for JavaScript objects
 - Manual disposal required for C++ objects: `file.dispose()`
 
 ### File System Access
+
 Each runtime has different file system capabilities:
 
-| Runtime | File System | Security | Best For |
-|---------|-------------|----------|----------|
-| **Deno** | Sandboxed, permission-based | High | Server-side, CLI tools |
-| **Bun** | Full access | Medium | Server-side, build tools |
-| **Node.js** | Full access | Medium | Server-side, traditional apps |
-| **Browser** | Limited (File API only) | High | Client-side, web apps |
+| Runtime     | File System                 | Security | Best For                      |
+| ----------- | --------------------------- | -------- | ----------------------------- |
+| **Deno**    | Sandboxed, permission-based | High     | Server-side, CLI tools        |
+| **Bun**     | Full access                 | Medium   | Server-side, build tools      |
+| **Node.js** | Full access                 | Medium   | Server-side, traditional apps |
+| **Browser** | Limited (File API only)     | High     | Client-side, web apps         |
 
 ### Performance Characteristics
 
-| Runtime | Startup | WASM Performance | Memory Usage | TypeScript |
-|---------|---------|------------------|--------------|------------|
-| **Bun** | Very Fast | Excellent | Low | Native |
-| **Deno** | Fast | Excellent | Medium | Native |
-| **Node.js** | Medium | Good | Medium | Via loader |
-| **Browser** | Fast | Good | Medium | Via build |
+| Runtime     | Startup   | WASM Performance | Memory Usage | TypeScript |
+| ----------- | --------- | ---------------- | ------------ | ---------- |
+| **Bun**     | Very Fast | Excellent        | Low          | Native     |
+| **Deno**    | Fast      | Excellent        | Medium       | Native     |
+| **Node.js** | Medium    | Good             | Medium       | Via loader |
+| **Browser** | Fast      | Good             | Medium       | Via build  |
 
 ## 📦 Installation Matrix
 
-| Runtime | Package Manager | Command |
-|---------|----------------|---------|
-| **Deno** | JSR | `import { TagLib } from "jsr:@charleswiltgen/taglib-wasm"` |
-| **Bun** | bun | `bun add taglib-wasm` |
-| **Node.js** | npm | `npm install taglib-wasm` |
-| **Node.js** | yarn | `yarn add taglib-wasm` |
-| **Node.js** | pnpm | `pnpm add taglib-wasm` |
-| **Browser** | CDN | `<script type="module" src="...">` |
+| Runtime     | Package Manager | Command                                                    |
+| ----------- | --------------- | ---------------------------------------------------------- |
+| **Deno**    | JSR             | `import { TagLib } from "jsr:@charleswiltgen/taglib-wasm"` |
+| **Bun**     | bun             | `bun add taglib-wasm`                                      |
+| **Node.js** | npm             | `npm install taglib-wasm`                                  |
+| **Node.js** | yarn            | `yarn add taglib-wasm`                                     |
+| **Node.js** | pnpm            | `pnpm add taglib-wasm`                                     |
+| **Browser** | CDN             | `<script type="module" src="...">`                         |
 
 ## 🧪 Testing Across Runtimes
 
@@ -143,6 +150,7 @@ npm test
 ## 🚧 Known Limitations
 
 ### General Limitations
+
 - **File Writing**: Changes only affect in-memory representation
 - **Large Files**: Memory usage scales with file size
 - **Thread Safety**: Single-threaded execution (JavaScript limitation)
@@ -150,18 +158,22 @@ npm test
 ### Runtime-Specific Limitations
 
 #### Deno
+
 - Requires `--allow-read` permission for file access
 - Some Node.js modules may not be compatible
 
-#### Bun  
+#### Bun
+
 - Relatively new runtime, ecosystem still developing
 - Some npm packages may have compatibility issues
 
 #### Node.js
+
 - Requires TypeScript loader for direct .ts execution
 - Older versions (<18) may have limited WASM support
 
 #### Browser
+
 - No direct file system access (security limitation)
 - WASM files must be served with correct MIME type
 - May require additional build configuration
@@ -169,6 +181,7 @@ npm test
 ## 💡 Best Practices
 
 ### Universal Code
+
 Write code that works across all runtimes:
 
 ```typescript
@@ -182,6 +195,7 @@ const taglib = await TagLib.initialize();
 ```
 
 ### Error Handling
+
 Account for different runtime capabilities:
 
 ```typescript
@@ -200,6 +214,7 @@ async function loadAudioFile(path: string): Promise<Uint8Array> {
 ```
 
 ### Configuration
+
 Use runtime-appropriate configuration:
 
 ```typescript

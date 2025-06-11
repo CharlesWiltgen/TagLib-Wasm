@@ -1,14 +1,14 @@
 {
   "name": "@charleswiltgen/taglib-wasm",
-  "version": "0.1.0",
+  "version": "0.2.0-alpha",
   "license": "MIT",
   "exports": {
-    ".": "./mod-jsr.ts",
+    ".": "./mod.ts",
     "./workers": "./src/workers.ts"
   },
   "publish": {
     "include": [
-      "mod-jsr.ts",
+      "mod.ts",
       "src/",
       "build/taglib.wasm",
       "README.md",
@@ -19,13 +19,15 @@
   },
   "tasks": {
     "build:wasm": "./build/build-wasm.sh",
-    "build:ts": "deno run --allow-run npm:typescript/tsc",
+    "build:ts": "deno run --allow-run --allow-env npm:typescript/tsc",
     "build": "deno task build:wasm && deno task build:ts",
     "test": "deno test --allow-read --allow-write --allow-run tests/",
-    "dev": "deno run --watch --allow-read --allow-write src/mod.ts",
+    "test:watch": "deno test --watch --allow-read --allow-write --allow-run tests/",
+    "test:systematic": "deno run --allow-read tests/test-systematic.ts",
+    "dev": "deno run --watch --allow-read --allow-write mod.ts",
     "fmt": "deno fmt",
     "lint": "deno lint",
-    "check": "deno check src/mod.ts",
+    "check": "deno check mod.ts",
     "update-taglib": "./scripts/update-taglib.sh"
   },
   "imports": {
