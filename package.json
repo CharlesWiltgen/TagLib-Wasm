@@ -24,10 +24,10 @@
     "test:bun": "bun run tests/test-systematic.ts",
     "test:node": "node --loader ts-node/esm tests/test-systematic.ts",
     "update-taglib": "./scripts/update-taglib.sh",
-    "publish:npm": "npm publish",
-    "publish:github": "./scripts/publish-github.sh",
-    "publish:jsr": "deno publish",
-    "publish:all": "npm run publish:npm && npm run publish:github && npm run publish:jsr"
+    "publish:npm": "echo 'Use GitHub Actions workflow for publishing'",
+    "publish:github": "echo 'Use GitHub Actions workflow for publishing'",
+    "publish:jsr": "echo 'Use GitHub Actions workflow for publishing'",
+    "publish:all": "echo 'Use GitHub Actions workflow for publishing'"
   },
   "keywords": [
     "taglib",
