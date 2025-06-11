@@ -193,6 +193,62 @@ file.setMusicBrainzTrackId("f4d1b6b8-8c1e-4d9a-9f2a-1234567890ab");
 file.dispose();
 ```
 
+### Cloudflare Workers
+
+```typescript
+import { TagLib } from 'taglib-wasm';
+
+export default {
+  async fetch(request: Request): Promise<Response> {
+    if (request.method === 'POST') {
+      try {
+        // Initialize TagLib WASM
+        const taglib = await TagLib.initialize({
+          memory: { initial: 8 * 1024 * 1024 } // 8MB for Workers
+        });
+
+        // Get audio data from request
+        const audioData = new Uint8Array(await request.arrayBuffer());
+        const file = taglib.openFile(audioData);
+
+        // Read metadata
+        const tags = file.tag();
+        const props = file.audioProperties();
+
+        // Extract metadata
+        const metadata = {
+          title: tags.title,
+          artist: tags.artist,
+          album: tags.album,
+          year: tags.year,
+          genre: tags.genre,
+          duration: props.length,
+          bitrate: props.bitrate,
+          format: file.format()
+        };
+
+        // Clean up
+        file.dispose();
+
+        return Response.json({
+          success: true,
+          metadata,
+          fileSize: audioData.length
+        });
+
+      } catch (error) {
+        return Response.json({
+          error: 'Failed to process audio file',
+          message: (error as Error).message
+        }, { status: 500 });
+      }
+    }
+
+    return new Response('Send POST request with audio file', { status: 400 });
+  }
+};
+```
+
 ## 📋 Supported Formats
 
 All formats are **fully tested and working**:
