@@ -19,13 +19,16 @@ This example demonstrates how to use TagLib WASM in Cloudflare Workers for serve
 ## API Endpoints
 
 ### `GET /`
+
 Returns service information and available endpoints.
 
 ### `POST /metadata`
+
 Upload an audio file and get its metadata.
 
 **Request**: Binary audio file in request body
 **Response**:
+
 ```json
 {
   "success": true,
@@ -52,9 +55,11 @@ Upload an audio file and get its metadata.
 ```
 
 ### `POST /metadata/batch`
+
 Process multiple audio files in one request.
 
 **Request**:
+
 ```json
 [
   {
@@ -62,7 +67,7 @@ Process multiple audio files in one request.
     "data": "base64-encoded-audio-data"
   },
   {
-    "filename": "song2.flac", 
+    "filename": "song2.flac",
     "data": "base64-encoded-audio-data"
   }
 ]
@@ -104,19 +109,23 @@ bucket_name = "your-assets-bucket"
 ### 4. Upload WASM Binary
 
 #### Option A: Using KV Storage
+
 ```bash
 # Upload WASM to KV
 wrangler kv:key put --binding=TAGLIB_WASM_KV "taglib.wasm" --path="../../build/taglib.wasm"
 ```
 
 #### Option B: Using R2 Storage
+
 ```bash
 # Upload WASM to R2
 wrangler r2 object put your-assets-bucket/taglib.wasm --file="../../build/taglib.wasm"
 ```
 
 #### Option C: Bundle with Worker (Recommended)
+
 Add to `wrangler.toml`:
+
 ```toml
 [build]
 command = "npm run build"
@@ -167,27 +176,29 @@ curl -X POST https://your-worker.workers.dev/metadata/batch \\
 
 ```javascript
 // Single file upload
-const file = document.getElementById('audioFile').files[0];
-const response = await fetch('/metadata', {
-  method: 'POST',
-  body: file
+const file = document.getElementById("audioFile").files[0];
+const response = await fetch("/metadata", {
+  method: "POST",
+  body: file,
 });
 const result = await response.json();
 console.log(result.metadata);
 
 // Batch upload
-const files = Array.from(document.getElementById('audioFiles').files);
+const files = Array.from(document.getElementById("audioFiles").files);
 const batchData = await Promise.all(
-  files.map(async file => ({
+  files.map(async (file) => ({
     filename: file.name,
-    data: btoa(String.fromCharCode(...new Uint8Array(await file.arrayBuffer())))
-  }))
+    data: btoa(
+      String.fromCharCode(...new Uint8Array(await file.arrayBuffer())),
+    ),
+  })),
 );
 
-const batchResponse = await fetch('/metadata/batch', {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify(batchData)
+const batchResponse = await fetch("/metadata/batch", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify(batchData),
 });
 const batchResult = await batchResponse.json();
 ```
@@ -195,9 +206,10 @@ const batchResult = await batchResponse.json();
 ## Supported Audio Formats
 
 The Worker supports all formats that TagLib supports:
+
 - MP3 (with ID3v1 and ID3v2 tags)
 - MP4/M4A (with iTunes-style metadata)
-- FLAC (with Vorbis comments)  
+- FLAC (with Vorbis comments)
 - Ogg Vorbis/Opus (with Vorbis comments)
 - WAV (with INFO tags)
 
@@ -220,6 +232,7 @@ The Worker provides detailed error responses:
 ```
 
 Common errors:
+
 - Invalid audio format
 - Corrupted file data
 - Memory allocation failures

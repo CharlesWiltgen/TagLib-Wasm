@@ -1,25 +1,25 @@
 /**
  * @fileoverview JSR-compatible TagLib implementation
- * 
+ *
  * This version uses direct WASM loading without Emscripten's JS file
  * to be compatible with JSR publishing requirements.
  */
 
-import type { 
-  AudioFormat, 
-  AudioProperties, 
-  ExtendedTag, 
-  Picture, 
-  Tag, 
-  TagLibConfig 
-} from "./types.ts";
-import { 
-  loadTagLibModuleJSR, 
-  jsToCStringJSR, 
+import type {
+  AudioFormat,
+  AudioProperties,
+  ExtendedTag,
+  Picture,
+  Tag,
+  TagLibConfig,
+} from "./types";
+import {
   cStringToJSJSR,
-  type TagLibModule 
-} from "./wasm-jsr.ts";
-import { METADATA_MAPPINGS } from "./types.ts";
+  jsToCStringJSR,
+  loadTagLibModuleJSR,
+  type TagLibModule,
+} from "./wasm-jsr";
+import { METADATA_MAPPINGS } from "./types";
 
 /**
  * JSR-compatible TagLib singleton for WASM module management
@@ -40,14 +40,16 @@ export class TagLibJSR {
 
   async initialize(config?: TagLibConfig): Promise<void> {
     if (this.initialized) return;
-    
+
     this.module = await loadTagLibModuleJSR(config);
     this.initialized = true;
   }
 
   getModule(): TagLibModule {
     if (!this.module) {
-      throw new Error("TagLib not initialized. Call TagLib.initialize() first.");
+      throw new Error(
+        "TagLib not initialized. Call TagLib.initialize() first.",
+      );
     }
     return this.module;
   }
@@ -89,16 +91,21 @@ export class AudioFileJSR {
 
   constructor(data: Uint8Array) {
     this.module = TagLibJSR.getModule();
-    
+
     // Allocate memory for file data
     this.dataPtr = this.module.allocate(data, this.module.ALLOC_NORMAL);
-    
+
     // Create TagLib file from buffer
-    this.fileId = this.module._taglib_file_new_from_buffer(this.dataPtr, data.length);
-    
+    this.fileId = this.module._taglib_file_new_from_buffer(
+      this.dataPtr,
+      data.length,
+    );
+
     if (!this.isValid()) {
       this.cleanup();
-      throw new Error("Failed to load audio file - invalid format or corrupted data");
+      throw new Error(
+        "Failed to load audio file - invalid format or corrupted data",
+      );
     }
   }
 
@@ -115,7 +122,7 @@ export class AudioFileJSR {
   getFormat(): AudioFormat {
     const formatId = this.module._taglib_file_format(this.fileId);
     const formats: Record<number, AudioFormat> = {
-      1: "MP3", 
+      1: "MP3",
       2: "FLAC",
       3: "OGG",
       4: "MP4",
@@ -130,7 +137,7 @@ export class AudioFileJSR {
       13: "MOD",
       14: "S3M",
       15: "XM",
-      16: "IT"
+      16: "IT",
     };
     return formats[formatId] || "MP3";
   }
@@ -148,18 +155,24 @@ export class AudioFileJSR {
         comment: "",
         genre: "",
         year: 0,
-        track: 0
+        track: 0,
       };
     }
 
     return {
       title: cStringToJSJSR(this.module, this.module._taglib_tag_title(tagPtr)),
-      artist: cStringToJSJSR(this.module, this.module._taglib_tag_artist(tagPtr)),
+      artist: cStringToJSJSR(
+        this.module,
+        this.module._taglib_tag_artist(tagPtr),
+      ),
       album: cStringToJSJSR(this.module, this.module._taglib_tag_album(tagPtr)),
-      comment: cStringToJSJSR(this.module, this.module._taglib_tag_comment(tagPtr)),
+      comment: cStringToJSJSR(
+        this.module,
+        this.module._taglib_tag_comment(tagPtr),
+      ),
       genre: cStringToJSJSR(this.module, this.module._taglib_tag_genre(tagPtr)),
       year: this.module._taglib_tag_year(tagPtr),
-      track: this.module._taglib_tag_track(tagPtr)
+      track: this.module._taglib_tag_track(tagPtr),
     };
   }
 
@@ -175,35 +188,35 @@ export class AudioFileJSR {
       this.module._taglib_tag_set_title(tagPtr, titlePtr);
       this.module._free(titlePtr);
     }
-    
+
     if (tag.artist !== undefined) {
       const artistPtr = jsToCStringJSR(this.module, tag.artist);
       this.module._taglib_tag_set_artist(tagPtr, artistPtr);
       this.module._free(artistPtr);
     }
-    
+
     if (tag.album !== undefined) {
       const albumPtr = jsToCStringJSR(this.module, tag.album);
       this.module._taglib_tag_set_album(tagPtr, albumPtr);
       this.module._free(albumPtr);
     }
-    
+
     if (tag.comment !== undefined) {
       const commentPtr = jsToCStringJSR(this.module, tag.comment);
       this.module._taglib_tag_set_comment(tagPtr, commentPtr);
       this.module._free(commentPtr);
     }
-    
+
     if (tag.genre !== undefined) {
       const genrePtr = jsToCStringJSR(this.module, tag.genre);
       this.module._taglib_tag_set_genre(tagPtr, genrePtr);
       this.module._free(genrePtr);
     }
-    
+
     if (tag.year !== undefined) {
       this.module._taglib_tag_set_year(tagPtr, tag.year);
     }
-    
+
     if (tag.track !== undefined) {
       this.module._taglib_tag_set_track(tagPtr, tag.track);
     }
@@ -220,7 +233,7 @@ export class AudioFileJSR {
         bitrate: 0,
         sampleRate: 0,
         channels: 0,
-        format: this.getFormat()
+        format: this.getFormat(),
       };
     }
 
@@ -229,7 +242,7 @@ export class AudioFileJSR {
       bitrate: this.module._taglib_audioproperties_bitrate(propsPtr),
       sampleRate: this.module._taglib_audioproperties_samplerate(propsPtr),
       channels: this.module._taglib_audioproperties_channels(propsPtr),
-      format: this.getFormat()
+      format: this.getFormat(),
     };
   }
 
@@ -241,7 +254,7 @@ export class AudioFileJSR {
     const basicTag = this.getTag();
     return {
       ...basicTag,
-      
+
       // Fingerprinting & identification - placeholder
       acoustidFingerprint: "",
       acoustidId: "",
@@ -259,13 +272,13 @@ export class AudioFileJSR {
       titleSort: "",
       artistSort: "",
       albumSort: "",
-      
-      // Volume normalization - placeholder  
+
+      // Volume normalization - placeholder
       replayGainTrackGain: "",
       replayGainTrackPeak: "",
       replayGainAlbumGain: "",
       replayGainAlbumPeak: "",
-      appleSoundCheck: ""
+      appleSoundCheck: "",
     };
   }
 
@@ -275,7 +288,7 @@ export class AudioFileJSR {
   setExtendedTag(extendedTag: Partial<ExtendedTag>): void {
     // Set basic fields
     this.setTag(extendedTag);
-    
+
     // Extended fields are placeholder for JSR version
     // Full implementation would require PropertyMap integration
   }
@@ -296,29 +309,53 @@ export class AudioFileJSR {
   }
 
   // Placeholder methods for extended metadata (same as main implementation)
-  getAcoustidFingerprint(): string { return ""; }
+  getAcoustidFingerprint(): string {
+    return "";
+  }
   setAcoustidFingerprint(fingerprint: string): void {}
-  getMusicbrainzTrackId(): string { return ""; }
+  getMusicbrainzTrackId(): string {
+    return "";
+  }
   setMusicbrainzTrackId(id: string): void {}
-  getMusicbrainzRecordingId(): string { return ""; }
+  getMusicbrainzRecordingId(): string {
+    return "";
+  }
   setMusicbrainzRecordingId(id: string): void {}
-  getMusicbrainzArtistId(): string { return ""; }
+  getMusicbrainzArtistId(): string {
+    return "";
+  }
   setMusicbrainzArtistId(id: string): void {}
-  getMusicbrainzAlbumId(): string { return ""; }
+  getMusicbrainzAlbumId(): string {
+    return "";
+  }
   setMusicbrainzAlbumId(id: string): void {}
-  getMusicbrainzAlbumArtistId(): string { return ""; }
+  getMusicbrainzAlbumArtistId(): string {
+    return "";
+  }
   setMusicbrainzAlbumArtistId(id: string): void {}
-  getMusicbrainzReleaseGroupId(): string { return ""; }
+  getMusicbrainzReleaseGroupId(): string {
+    return "";
+  }
   setMusicbrainzReleaseGroupId(id: string): void {}
-  getReplayGainTrackGain(): string { return ""; }
+  getReplayGainTrackGain(): string {
+    return "";
+  }
   setReplayGainTrackGain(gain: string): void {}
-  getReplayGainTrackPeak(): string { return ""; }
+  getReplayGainTrackPeak(): string {
+    return "";
+  }
   setReplayGainTrackPeak(peak: string): void {}
-  getReplayGainAlbumGain(): string { return ""; }
+  getReplayGainAlbumGain(): string {
+    return "";
+  }
   setReplayGainAlbumGain(gain: string): void {}
-  getReplayGainAlbumPeak(): string { return ""; }
+  getReplayGainAlbumPeak(): string {
+    return "";
+  }
   setReplayGainAlbumPeak(peak: string): void {}
-  getAppleSoundCheck(): string { return ""; }
+  getAppleSoundCheck(): string {
+    return "";
+  }
   setAppleSoundCheck(soundCheck: string): void {}
 
   /**
@@ -328,7 +365,7 @@ export class AudioFileJSR {
     if (!this.module._taglib_file_save(this.fileId)) {
       throw new Error("Failed to save audio file");
     }
-    
+
     // In a real implementation, we'd need to extract the modified file data
     // For now, return empty array as placeholder
     return new Uint8Array(0);

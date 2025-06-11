@@ -1,0 +1,37 @@
+{
+  // Align with Deno fmt preferences
+  "deno.enable": true,
+  "deno.unstable": false,
+
+  // Markdown formatting to match deno fmt
+  "[markdown]": {
+    "editor.defaultFormatter": "denoland.vscode-deno",
+    "editor.formatOnSave": true,
+    "editor.wordWrap": "on",
+    "editor.wordWrapColumn": 80,
+    "editor.rulers": [80],
+    "editor.accessibilitySupport": "off" // Improves wrapping performance
+  },
+
+  // Disable conflicting markdown linting rules
+  "markdownlint.config": {
+    "MD024": false, // Allow duplicate headings (common in API docs)
+    "MD013": false, // Disable line length rule (conflicts with deno fmt prose preserve)
+    "MD033": false, // Allow inline HTML (for badges, etc.)
+    "MD041": false // Allow non-h1 first heading
+  },
+
+  // Use Deno for TypeScript/JavaScript
+  "[typescript]": {
+    "editor.defaultFormatter": "denoland.vscode-deno"
+  },
+  "[typescriptreact]": {
+    "editor.defaultFormatter": "denoland.vscode-deno"
+  },
+  "[javascript]": {
+    "editor.defaultFormatter": "denoland.vscode-deno"
+  },
+  "[javascriptreact]": {
+    "editor.defaultFormatter": "denoland.vscode-deno"
+  }
+}

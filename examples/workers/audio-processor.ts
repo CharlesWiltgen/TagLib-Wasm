@@ -2,8 +2,8 @@
  * @fileoverview Cloudflare Workers example for processing audio metadata
  */
 
-import { TagLibWorkers, processAudioMetadata } from "taglib-wasm/workers";
-import type { Tag, AudioProperties, AudioFormat } from "taglib-wasm/workers";
+import { processAudioMetadata, TagLibWorkers } from "taglib-wasm/workers";
+import type { AudioFormat, AudioProperties, Tag } from "taglib-wasm/workers";
 
 // In a real Workers deployment, you would import the WASM binary like this:
 // import wasmBinary from "../../build/taglib.wasm";
@@ -13,7 +13,7 @@ import type { Tag, AudioProperties, AudioFormat } from "taglib-wasm/workers";
 
 /**
  * Example Cloudflare Worker that processes audio file metadata
- * 
+ *
  * Usage:
  * POST /metadata - Upload audio file and get metadata
  * GET / - Basic info endpoint
@@ -52,14 +52,14 @@ export default {
       try {
         // Get WASM binary (this would need to be provided by your build process)
         const wasmBinary = await getWasmBinary(env);
-        
+
         // Get audio data from request
         const audioData = new Uint8Array(await request.arrayBuffer());
-        
+
         if (audioData.length === 0) {
           return Response.json(
             { error: "No audio data provided" },
-            { status: 400, headers: corsHeaders }
+            { status: 400, headers: corsHeaders },
           );
         }
 
@@ -67,7 +67,7 @@ export default {
         const result = await processAudioMetadata(wasmBinary, audioData, {
           debug: false, // Set to true for debugging in Workers
           memory: {
-            initial: 8 * 1024 * 1024,  // 8MB
+            initial: 8 * 1024 * 1024, // 8MB
             maximum: 32 * 1024 * 1024, // 32MB (conservative for Workers)
           },
         });
@@ -83,15 +83,14 @@ export default {
           fileSize: audioData.length,
           timestamp: new Date().toISOString(),
         }, { headers: corsHeaders });
-
       } catch (error) {
         console.error("Error processing audio file:", error);
         return Response.json({
           error: "Failed to process audio file",
           message: (error as Error).message,
-        }, { 
-          status: 500, 
-          headers: corsHeaders 
+        }, {
+          status: 500,
+          headers: corsHeaders,
         });
       }
     }
@@ -100,13 +99,17 @@ export default {
     if (request.method === "POST" && url.pathname === "/metadata/batch") {
       try {
         const wasmBinary = await getWasmBinary(env);
-        
+
         // Parse multipart form data or JSON array
         const contentType = request.headers.get("content-type") || "";
-        
+
         let results: Array<{
           filename?: string;
-          metadata?: { tag: Tag; audioProperties: AudioProperties | null; format: AudioFormat };
+          metadata?: {
+            tag: Tag;
+            audioProperties: AudioProperties | null;
+            format: AudioFormat;
+          };
           error?: string;
         }> = [];
 
@@ -119,19 +122,26 @@ export default {
 
           for (const file of files) {
             try {
-              const audioData = Uint8Array.from(atob(file.data), c => c.charCodeAt(0));
-              const metadata = await processAudioMetadata(wasmBinary, audioData);
+              const audioData = Uint8Array.from(
+                atob(file.data),
+                (c) => c.charCodeAt(0),
+              );
+              const metadata = await processAudioMetadata(
+                wasmBinary,
+                audioData,
+              );
               results.push({ filename: file.filename, metadata });
             } catch (error) {
-              results.push({ 
-                filename: file.filename, 
-                error: (error as Error).message 
+              results.push({
+                filename: file.filename,
+                error: (error as Error).message,
               });
             }
           }
         } else {
           return Response.json({
-            error: "Batch processing requires JSON format with base64-encoded files",
+            error:
+              "Batch processing requires JSON format with base64-encoded files",
           }, { status: 400, headers: corsHeaders });
         }
 
@@ -141,15 +151,14 @@ export default {
           processed: results.length,
           timestamp: new Date().toISOString(),
         }, { headers: corsHeaders });
-
       } catch (error) {
         console.error("Error in batch processing:", error);
         return Response.json({
           error: "Batch processing failed",
           message: (error as Error).message,
-        }, { 
-          status: 500, 
-          headers: corsHeaders 
+        }, {
+          status: 500,
+          headers: corsHeaders,
         });
       }
     }
@@ -158,9 +167,9 @@ export default {
     return Response.json({
       error: "Not found",
       message: `${request.method} ${url.pathname} not supported`,
-    }, { 
-      status: 404, 
-      headers: corsHeaders 
+    }, {
+      status: 404,
+      headers: corsHeaders,
     });
   },
 };
@@ -201,7 +210,7 @@ async function getWasmBinary(env: Env): Promise<Uint8Array> {
   // This would typically be handled by your build process
   throw new Error(
     "WASM binary not available. Please configure TAGLIB_WASM_KV, ASSETS_BUCKET, " +
-    "or WASM_URL environment variables, or bundle the WASM with your Worker."
+      "or WASM_URL environment variables, or bundle the WASM with your Worker.",
   );
 }
 
@@ -211,10 +220,10 @@ async function getWasmBinary(env: Env): Promise<Uint8Array> {
 interface Env {
   // Optional KV namespace for storing WASM binary
   TAGLIB_WASM_KV?: KVNamespace;
-  
+
   // Optional R2 bucket for assets
   ASSETS_BUCKET?: R2Bucket;
-  
+
   // Optional external URL for WASM binary
   WASM_URL?: string;
 }

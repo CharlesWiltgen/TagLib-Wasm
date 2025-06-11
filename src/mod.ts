@@ -3,6 +3,6 @@
  * Universal audio metadata handling for Deno, Node.js, and browsers
  */
 
-export * from "./taglib.ts";
-export * from "./types.ts";
-export { type TagLibModule } from "./wasm.ts";
+export * from "./taglib";
+export * from "./types";
+export { type TagLibModule } from "./wasm";

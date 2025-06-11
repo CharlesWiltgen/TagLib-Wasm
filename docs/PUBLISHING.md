@@ -6,17 +6,20 @@ This document explains how to publish `taglib-wasm` to both JSR (JavaScript Regi
 
 Only these components are published to registries:
 
-### 1. **WASM TagLib** 
+### 1. **WASM TagLib**
+
 - `build/taglib.wasm` - Compiled TagLib WebAssembly module
 - `build/taglib.js` - Emscripten-generated JavaScript glue code
 
 ### 2. **TypeScript API**
-- `src/mod.ts` - Main module exports
+
+- `index.ts` - NPM main module exports
 - `src/taglib.ts` - Core TagLib and AudioFile classes
-- `src/types.ts` - TypeScript type definitions  
+- `src/types.ts` - TypeScript type definitions
 - `src/wasm.ts` - WASM module interface and utilities
 
 ### 3. **Documentation & Licensing**
+
 - `README.md` - Usage documentation
 - `LICENSE` - MIT license
 - `lib/taglib/COPYING*` - TagLib library licenses
@@ -38,12 +41,14 @@ Only these components are published to registries:
 ### JSR Publishing (Deno)
 
 **First time setup:**
+
 ```bash
 # Login to JSR (one-time setup)
 deno publish --dry-run  # This will prompt for authentication
 ```
 
 **Publishing:**
+
 ```bash
 # Publish to JSR (JavaScript Registry)
 deno publish
@@ -53,11 +58,13 @@ npm run publish:jsr
 ```
 
 **JSR Configuration** (`deno.json`):
+
 - **Package name**: `@charleswiltgen/taglib-wasm`
-- **Entry point**: `./mod-jsr.ts` (JSR-compatible version)
+- **Entry point**: `./mod.ts` (JSR-compatible version)
 - **Includes**: TypeScript source + WASM files only (excludes Emscripten JS)
 
 **Installation**:
+
 ```typescript
 import { TagLib } from "jsr:@charleswiltgen/taglib-wasm";
 
@@ -67,6 +74,7 @@ const audioFile = new AudioFile(audioData);
 ```
 
 **JSR Version Notes:**
+
 - Uses direct WASM loading without Emscripten's JavaScript file
 - Compatible with JSR's static analysis requirements
 - Provides same API but uses `TagLibJSR` and `AudioFileJSR` internally
@@ -82,11 +90,13 @@ npm run publish:npm
 ```
 
 **NPM Configuration** (`package.json`):
+
 - **Package name**: `taglib-wasm`
-- **Entry point**: `src/mod.ts`
+- **Entry point**: `index.ts`
 - **Includes**: TypeScript source + WASM files
 
 **Installation**:
+
 ```bash
 npm install taglib-wasm
 bun add taglib-wasm
@@ -128,7 +138,7 @@ The following development files are **NOT** published:
 ```
 ❌ Not Published:
 ├── .git/               # Git repository
-├── test-files/         # Test audio samples
+├── tests/              # Test files and sample audio
 ├── tests/              # Test suite
 ├── examples/           # Usage examples
 ├── build/build-wasm.sh # Build scripts
@@ -143,11 +153,13 @@ The following development files are **NOT** published:
 ### Check Package Contents
 
 **NPM**:
+
 ```bash
 npm pack --dry-run
 ```
 
 **JSR**:
+
 ```bash
 deno publish --dry-run
 ```
@@ -155,6 +167,7 @@ deno publish --dry-run
 ### Test Installation
 
 **From NPM**:
+
 ```bash
 # Test in a temporary directory
 mkdir /tmp/test-npm && cd /tmp/test-npm
@@ -164,6 +177,7 @@ node -e "console.log(require('taglib-wasm'))"
 ```
 
 **From JSR**:
+
 ```bash
 # Test with Deno
 deno eval "import { TagLib } from 'jsr:@charleswiltgen/taglib-wasm'; console.log(TagLib)"
@@ -189,6 +203,7 @@ deno eval "import { TagLib } from 'jsr:@charleswiltgen/taglib-wasm'; console.log
 ### Version Consistency
 
 Ensure both files have the same version:
+
 - `package.json` → `"version": "X.Y.Z"`
 - `deno.json` → `"version": "X.Y.Z"`
 
