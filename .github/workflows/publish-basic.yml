@@ -47,7 +47,17 @@ jobs:
             echo "Version already set to ${{ github.event.inputs.version }}"
           fi
 
+      - name: Check if package exists on npm
+        id: check_npm
+        run: |
+          if npm view taglib-wasm version 2>/dev/null; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+          fi
+
       - run: npm publish --access public
+        if: steps.check_npm.outputs.exists == 'true' || github.event_name == 'release'
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
@@ -79,6 +89,12 @@ jobs:
         with:
           node-version: 20
           registry-url: https://npm.pkg.github.com/
+          scope: '@charleswiltgen'
+
+      - name: Authenticate to GitHub Packages
+        run: |
+          echo "@charleswiltgen:registry=https://npm.pkg.github.com" >> ~/.npmrc
+          echo "//npm.pkg.github.com/:_authToken=${{ github.token }}" >> ~/.npmrc
 
       - run: npm publish --access public
         env:
