@@ -1,6 +1,6 @@
 # taglib-wasm
 
-[TagLib](https://taglib.org/) is the robust, industry-standard tagging library for reading and editing metadata tags (Title, Album, Artist, etc.) in all popular audio formats. See [“Goals & Features”](https://taglib.org/) for the reasons TagLib is so great.
+[TagLib](https://taglib.org/) is the most robust, de-facto standard for reading and editing metadata tags (Title, Album, Artist, etc.) in all popular audio formats. See [“Goals & Features”](https://taglib.org/) for the reasons TagLib is so great.
 
 `taglib-wasm` is designed to be **TagLib for JavaScript/TypeScript** platforms — specifically Deno, Node.js, Bun, web browsers, and Cloudflare Workers. It does this by leveraging technologies including [TagLib](https://taglib.org/) itself, [Emscripten](https://emscripten.org/), and [Wasm](https://webassembly.org/) ([WebAssembly](https://webassembly.org/)).
 
@@ -9,7 +9,7 @@
 
 ## Why?
 
-In the process of building my own utility to improve the metadata of my own music collection, I discovered that the JavaScipt/TypeScipt ecosystem has no battle-tested audio tagging library that supports reading and writing music metadata to all popular audio formats.
+In the process of building a utility to improve the metadata of my music collection, I discovered that the JavaScipt/TypeScipt ecosystem had no battle-tested audio tagging library that supports reading and writing music metadata to all popular audio formats.
 
 [`mp3tag.js`](https://mp3tag.js.org/) is mature and active, but only supports MP3 files and ID3 tags. TagLib was an ideal choice from a maturity and capabilities point of view, but wrappers like `node-taglib` appeared to be dormant, and I wanted to avoid making users install platform-specific dependencies whenever possible.
 
@@ -25,14 +25,18 @@ In the process of building my own utility to improve the metadata of my own musi
 
 ## 📦 Installation
 
-```bash
-# For Deno projects
+### Deno
+```typescript
 import { TagLib } from "jsr:@charleswiltgen/taglib-wasm";
+```
 
-# For NPM/Node.js projects
+### Node.js
+```bash
 npm install taglib-wasm
+```
 
-# For Bun projects
+### Bun
+```bash
 bun add taglib-wasm
 ```
 
@@ -41,7 +45,7 @@ bun add taglib-wasm
 ### Deno
 
 ```typescript
-import { TagLib } from "./src/mod.ts";
+import { TagLib } from "jsr:@charleswiltgen/taglib-wasm";
 
 // Initialize TagLib WASM
 const taglib = await TagLib.initialize();
