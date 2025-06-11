@@ -118,9 +118,13 @@ jobs:
         run: |
           if npm view @charleswiltgen/taglib-wasm version --registry=https://npm.pkg.github.com/ 2>/dev/null; then
             echo "exists=true" >> $GITHUB_OUTPUT
+            echo "Package already exists on GitHub Packages"
           else
             echo "exists=false" >> $GITHUB_OUTPUT
+            echo "Package does not exist on GitHub Packages"
           fi
+        env:
+          NODE_AUTH_TOKEN: ${{ github.token }}
 
       - run: npm publish --access public
         if: steps.check_github.outputs.exists == 'false' || github.event_name == 'release'
