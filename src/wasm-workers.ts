@@ -2,7 +2,10 @@
  * @fileoverview WebAssembly module interface for Cloudflare Workers
  */
 
-import type { TagLibConfig, TagLibModule } from "./types.ts";
+import type { TagLibConfig, TagLibModule } from "./types";
+
+// Re-export TagLibModule for convenience
+export type { TagLibModule };
 
 /**
  * Default configuration for TagLib WASM module in Workers environment
@@ -10,7 +13,7 @@ import type { TagLibConfig, TagLibModule } from "./types.ts";
  */
 const DEFAULT_WORKERS_CONFIG: Required<TagLibConfig> = {
   memory: {
-    initial: 8 * 1024 * 1024,  // 8MB (reduced from 16MB)
+    initial: 8 * 1024 * 1024, // 8MB (reduced from 16MB)
     maximum: 64 * 1024 * 1024, // 64MB (reduced from 256MB)
   },
   debug: false,
@@ -18,15 +21,15 @@ const DEFAULT_WORKERS_CONFIG: Required<TagLibConfig> = {
 
 /**
  * Load and initialize the TagLib WebAssembly module for Cloudflare Workers
- * 
+ *
  * @param wasmBinary - The WebAssembly binary as Uint8Array
  * @param config - Optional configuration for the WASM module
  * @returns Promise resolving to initialized TagLib module
- * 
+ *
  * @example
  * ```typescript
  * import wasmBinary from "../build/taglib.wasm";
- * 
+ *
  * const taglib = await loadTagLibModuleForWorkers(wasmBinary);
  * ```
  */
@@ -64,13 +67,13 @@ export async function loadTagLibModuleForWorkers(
     // For Workers, we need to use a modified version of the Emscripten output
     // that doesn't include Node.js/CommonJS dependencies
     const TagLibWASM = await createWorkersCompatibleModule();
-    
-    if (typeof TagLibWASM !== 'function') {
-      throw new Error('Failed to load TagLib WASM module for Workers');
+
+    if (typeof TagLibWASM !== "function") {
+      throw new Error("Failed to load TagLib WASM module for Workers");
     }
-    
+
     const wasmInstance = await TagLibWASM(moduleConfig);
-    
+
     // Ensure proper memory arrays are set up
     if (!wasmInstance.HEAPU8) {
       const buffer = wasmInstance.buffer || wasmInstance.wasmMemory?.buffer;
@@ -85,10 +88,12 @@ export async function loadTagLibModuleForWorkers(
         wasmInstance.HEAPF64 = new Float64Array(buffer);
       }
     }
-    
+
     return wasmInstance as TagLibModule;
   } catch (error) {
-    throw new Error(`Failed to load TagLib WASM for Workers: ${(error as Error).message}`);
+    throw new Error(
+      `Failed to load TagLib WASM for Workers: ${(error as Error).message}`,
+    );
   }
 }
 
@@ -101,7 +106,7 @@ async function createWorkersCompatibleModule(): Promise<any> {
   // 1. Use a build process to create a Workers-compatible version of taglib.js
   // 2. Or inline the essential parts of the Emscripten runtime here
   // 3. Or use dynamic import with proper bundling
-  
+
   // For now, we'll attempt to load the existing module with Workers compatibility
   try {
     // Try to import the existing module
@@ -111,8 +116,8 @@ async function createWorkersCompatibleModule(): Promise<any> {
     // If that fails, provide a fallback implementation
     throw new Error(
       "Workers-compatible WASM module not available. " +
-      "Please build with Workers target or use a bundler that supports WASM modules. " +
-      `Original error: ${(error as Error).message}`
+        "Please build with Workers target or use a bundler that supports WASM modules. " +
+        `Original error: ${(error as Error).message}`,
     );
   }
 }
@@ -144,11 +149,11 @@ export function jsToCString(module: TagLibModule, str: string): number {
  */
 export function isCloudflareWorkers(): boolean {
   return (
-    typeof globalThis !== 'undefined' &&
-    typeof globalThis.caches !== 'undefined' &&
-    typeof globalThis.Request !== 'undefined' &&
-    typeof globalThis.Response !== 'undefined' &&
-    typeof process === 'undefined' &&
-    typeof Deno === 'undefined'
+    typeof globalThis !== "undefined" &&
+    typeof globalThis.caches !== "undefined" &&
+    typeof globalThis.Request !== "undefined" &&
+    typeof globalThis.Response !== "undefined" &&
+    typeof process === "undefined" &&
+    typeof (globalThis as any).Deno === "undefined"
   );
 }

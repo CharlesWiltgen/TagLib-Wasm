@@ -11,14 +11,14 @@ import type {
   PropertyMap,
   Tag,
   TagLibConfig,
-} from "./types.ts";
-import { METADATA_MAPPINGS } from "./types.ts";
+} from "./types";
+import { METADATA_MAPPINGS } from "./types";
 import {
   cStringToJS,
   jsToCString,
   loadTagLibModule,
   type TagLibModule,
-} from "./wasm.ts";
+} from "./wasm";
 
 /**
  * Represents an audio file with metadata and properties
@@ -181,7 +181,7 @@ export class AudioFile {
   extendedTag(): ExtendedTag {
     // Get basic tags first
     const basicTag = this.tag();
-    
+
     // TODO: Implement advanced metadata reading via PropertyMap
     // For now, return basic tags with placeholder for advanced fields
     return {
@@ -226,7 +226,7 @@ export class AudioFile {
     if (tag.genre !== undefined) this.setGenre(tag.genre);
     if (tag.year !== undefined) this.setYear(tag.year);
     if (tag.track !== undefined) this.setTrack(tag.track);
-    
+
     // TODO: Implement advanced metadata writing via PropertyMap
     // For fields like acoustidFingerprint, acoustidId, etc.
   }
@@ -240,7 +240,9 @@ export class AudioFile {
    */
   setAcoustidFingerprint(fingerprint: string): void {
     // TODO: Implement format-specific storage
-    console.warn("setAcoustidFingerprint: Advanced metadata not yet implemented");
+    console.warn(
+      "setAcoustidFingerprint: Advanced metadata not yet implemented",
+    );
   }
 
   /**
@@ -254,7 +256,7 @@ export class AudioFile {
   /**
    * Set AcoustID UUID (format-agnostic)
    * Automatically stores in the correct location for each format:
-   * - MP3: TXXX frame with "Acoustid Id" description  
+   * - MP3: TXXX frame with "Acoustid Id" description
    * - FLAC/OGG: ACOUSTID_ID Vorbis comment
    * - MP4: ----:com.apple.iTunes:Acoustid Id atom
    */
@@ -276,7 +278,9 @@ export class AudioFile {
    */
   setMusicBrainzTrackId(id: string): void {
     // TODO: Implement format-specific storage
-    console.warn("setMusicBrainzTrackId: Advanced metadata not yet implemented");
+    console.warn(
+      "setMusicBrainzTrackId: Advanced metadata not yet implemented",
+    );
   }
 
   /**
@@ -296,7 +300,9 @@ export class AudioFile {
    */
   setReplayGainTrackGain(gain: string): void {
     // TODO: Implement format-specific storage
-    console.warn("setReplayGainTrackGain: Advanced metadata not yet implemented");
+    console.warn(
+      "setReplayGainTrackGain: Advanced metadata not yet implemented",
+    );
   }
 
   /**
@@ -312,7 +318,9 @@ export class AudioFile {
    */
   setReplayGainTrackPeak(peak: string): void {
     // TODO: Implement format-specific storage
-    console.warn("setReplayGainTrackPeak: Advanced metadata not yet implemented");
+    console.warn(
+      "setReplayGainTrackPeak: Advanced metadata not yet implemented",
+    );
   }
 
   /**
@@ -328,7 +336,9 @@ export class AudioFile {
    */
   setReplayGainAlbumGain(gain: string): void {
     // TODO: Implement format-specific storage
-    console.warn("setReplayGainAlbumGain: Advanced metadata not yet implemented");
+    console.warn(
+      "setReplayGainAlbumGain: Advanced metadata not yet implemented",
+    );
   }
 
   /**
@@ -344,7 +354,9 @@ export class AudioFile {
    */
   setReplayGainAlbumPeak(peak: string): void {
     // TODO: Implement format-specific storage
-    console.warn("setReplayGainAlbumPeak: Advanced metadata not yet implemented");
+    console.warn(
+      "setReplayGainAlbumPeak: Advanced metadata not yet implemented",
+    );
   }
 
   /**
@@ -411,7 +423,7 @@ export class TagLib {
     if (!this.module.HEAPU8) {
       throw new Error("WASM module not properly initialized - missing HEAPU8");
     }
-    
+
     // Use Emscripten's allocate function for proper memory management
     const dataPtr = this.module.allocate(buffer, this.module.ALLOC_NORMAL);
 
@@ -422,8 +434,12 @@ export class TagLib {
 
     if (fileId === 0) {
       // Don't free memory immediately to debug reuse issue
-      console.log(`DEBUG: File creation failed, not freeing memory at ${dataPtr}`);
-      throw new Error("Failed to open audio file - invalid format or corrupted data");
+      console.log(
+        `DEBUG: File creation failed, not freeing memory at ${dataPtr}`,
+      );
+      throw new Error(
+        "Failed to open audio file - invalid format or corrupted data",
+      );
     }
 
     // Free the temporary buffer copy (TagLib has made its own copy in ByteVector)

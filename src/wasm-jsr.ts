@@ -1,6 +1,6 @@
 /**
  * @fileoverview JSR-compatible WASM loading for TagLib
- * 
+ *
  * This version loads the WASM file directly without relying on Emscripten's JS file,
  * making it compatible with JSR publishing requirements.
  */
@@ -25,7 +25,7 @@ export interface TagLibModule {
   _malloc: (size: number) => number;
   _free: (ptr: number) => void;
   allocate: (array: Uint8Array, type: number) => number;
-  
+
   // Allocation constants
   ALLOC_NORMAL: number;
   ALLOC_STACK: number;
@@ -64,11 +64,13 @@ export interface TagLibModule {
 /**
  * Load TagLib WASM module for JSR
  */
-export async function loadTagLibModuleJSR(config?: TagLibConfig): Promise<TagLibModule> {
+export async function loadTagLibModuleJSR(
+  config?: TagLibConfig,
+): Promise<TagLibModule> {
   // Load WASM file as bytes
   const wasmUrl = new URL("../build/taglib.wasm", import.meta.url);
-  const wasmBytes = await fetch(wasmUrl).then(r => r.arrayBuffer());
-  
+  const wasmBytes = await fetch(wasmUrl).then((r) => r.arrayBuffer());
+
   // Minimal WebAssembly instantiation
   const wasmModule = await WebAssembly.instantiate(wasmBytes, {
     env: {
@@ -76,7 +78,7 @@ export async function loadTagLibModuleJSR(config?: TagLibConfig): Promise<TagLib
       memory: new WebAssembly.Memory({ initial: 256, maximum: 512 }),
       __handle_stack_overflow: () => {},
       emscripten_notify_memory_growth: () => {},
-    }
+    },
   });
 
   const instance = wasmModule.instance;
@@ -99,7 +101,9 @@ export async function loadTagLibModuleJSR(config?: TagLibConfig): Promise<TagLib
     HEAPF64: new Float64Array(buffer),
 
     // Standard functions
-    _malloc: exports._malloc || (() => { throw new Error("malloc not available"); }),
+    _malloc: exports._malloc || (() => {
+      throw new Error("malloc not available");
+    }),
     _free: exports._free || (() => {}),
     allocate: (array: Uint8Array, type: number) => {
       const ptr = module._malloc(array.length);
@@ -138,7 +142,8 @@ export async function loadTagLibModuleJSR(config?: TagLibConfig): Promise<TagLib
     _taglib_file_audioproperties: exports._taglib_file_audioproperties,
     _taglib_audioproperties_length: exports._taglib_audioproperties_length,
     _taglib_audioproperties_bitrate: exports._taglib_audioproperties_bitrate,
-    _taglib_audioproperties_samplerate: exports._taglib_audioproperties_samplerate,
+    _taglib_audioproperties_samplerate:
+      exports._taglib_audioproperties_samplerate,
     _taglib_audioproperties_channels: exports._taglib_audioproperties_channels,
   };
 
@@ -159,7 +164,7 @@ export function jsToCStringJSR(module: TagLibModule, str: string): number {
  */
 export function cStringToJSJSR(module: TagLibModule, ptr: number): string {
   if (ptr === 0) return "";
-  
+
   const bytes: number[] = [];
   let i = 0;
   while (true) {
@@ -168,7 +173,7 @@ export function cStringToJSJSR(module: TagLibModule, ptr: number): string {
     bytes.push(byte);
     i++;
   }
-  
+
   const decoder = new TextDecoder();
   return decoder.decode(new Uint8Array(bytes));
 }

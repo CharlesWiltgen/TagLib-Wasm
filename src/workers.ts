@@ -8,13 +8,13 @@ import type {
   ExtendedTag,
   Tag,
   TagLibConfig,
-} from "./types.ts";
+} from "./types";
 import {
   cStringToJS,
   jsToCString,
   loadTagLibModuleForWorkers,
   type TagLibModule,
-} from "./wasm-workers.ts";
+} from "./wasm-workers";
 
 /**
  * Represents an audio file with metadata and properties (Workers-compatible)
@@ -178,7 +178,7 @@ export class AudioFileWorkers {
    */
   extendedTag(): ExtendedTag {
     const basicTag = this.tag();
-    
+
     return {
       ...basicTag,
       // Advanced fields placeholder - would be populated by PropertyMap reading
@@ -242,15 +242,15 @@ export class TagLibWorkers {
 
   /**
    * Initialize TagLib for Workers with WASM binary
-   * 
+   *
    * @param wasmBinary - The WebAssembly binary as Uint8Array
    * @param config - Optional configuration for the WASM module
-   * 
+   *
    * @example
    * ```typescript
    * // In a Cloudflare Worker
    * import wasmBinary from "../build/taglib.wasm";
-   * 
+   *
    * const taglib = await TagLibWorkers.initialize(wasmBinary);
    * const file = taglib.openFile(audioBuffer);
    * const metadata = file.tag();
@@ -271,7 +271,7 @@ export class TagLibWorkers {
     if (!this.module.HEAPU8) {
       throw new Error("WASM module not properly initialized - missing HEAPU8");
     }
-    
+
     // Use Emscripten's allocate function for proper memory management
     const dataPtr = this.module.allocate(buffer, this.module.ALLOC_NORMAL);
 
@@ -281,8 +281,12 @@ export class TagLibWorkers {
     );
 
     if (fileId === 0) {
-      console.log(`DEBUG: File creation failed, not freeing memory at ${dataPtr}`);
-      throw new Error("Failed to open audio file - invalid format or corrupted data");
+      console.log(
+        `DEBUG: File creation failed, not freeing memory at ${dataPtr}`,
+      );
+      throw new Error(
+        "Failed to open audio file - invalid format or corrupted data",
+      );
     }
 
     // Free the temporary buffer copy (TagLib has made its own copy in ByteVector)
@@ -301,7 +305,7 @@ export class TagLibWorkers {
 
 /**
  * Utility function to process audio metadata in a Cloudflare Worker
- * 
+ *
  * @example
  * ```typescript
  * export default {
@@ -320,15 +324,17 @@ export async function processAudioMetadata(
   wasmBinary: Uint8Array,
   audioData: Uint8Array,
   config?: TagLibConfig,
-): Promise<{ tag: Tag; properties: AudioProperties | null; format: AudioFormat }> {
+): Promise<
+  { tag: Tag; properties: AudioProperties | null; format: AudioFormat }
+> {
   const taglib = await TagLibWorkers.initialize(wasmBinary, config);
   const file = taglib.openFile(audioData);
-  
+
   try {
     const tag = file.tag();
     const properties = file.audioProperties();
     const format = file.format();
-    
+
     return { tag, properties, format };
   } finally {
     file.dispose();

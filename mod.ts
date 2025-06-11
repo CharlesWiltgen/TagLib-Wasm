@@ -1,21 +1,24 @@
 /**
- * @fileoverview Main module exports for TagLib WASM
- * 
- * TagLib v2.1 compiled to WebAssembly with TypeScript bindings
- * for universal audio metadata handling.
+ * @fileoverview JSR-compatible module exports for TagLib WASM
+ *
+ * This version uses JSR-compatible WASM loading that doesn't depend on
+ * Emscripten's generated JavaScript file.
  */
 
-export { TagLib, AudioFile } from "./src/taglib.ts";
+export {
+  AudioFileJSR as AudioFile,
+  TagLibJSR as TagLib,
+} from "./src/taglib-jsr.ts";
 export type {
   AudioFormat,
   AudioProperties,
   ExtendedTag,
   FieldMapping,
+  METADATA_MAPPINGS,
   Picture,
   PictureType,
   PropertyMap,
   Tag,
   TagLibConfig,
-  METADATA_MAPPINGS,
 } from "./src/types.ts";
-export type { TagLibModule } from "./src/wasm.ts";
+export type { TagLibModule } from "./src/wasm-jsr.ts";

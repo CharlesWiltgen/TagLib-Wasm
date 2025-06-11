@@ -1,14 +1,15 @@
 {
   "name": "taglib-wasm",
-  "version": "0.1.0",
+  "version": "0.2.0-alpha",
   "description": "TagLib compiled to WebAssembly with TypeScript bindings for universal audio metadata handling",
-  "main": "src/mod.ts",
-  "types": "src/mod.ts",
+  "main": "index.ts",
+  "types": "index.ts",
   "exports": {
-    ".": "./src/mod.ts",
+    ".": "./index.ts",
     "./workers": "./src/workers.ts"
   },
   "files": [
+    "index.ts",
     "src/**/*",
     "build/taglib.wasm",
     "build/taglib.js",
@@ -19,9 +20,9 @@
     "build:wasm": "./build/build-wasm.sh",
     "build:ts": "tsc",
     "build": "npm run build:wasm && npm run build:ts",
-    "test": "deno run --allow-read test-systematic.ts",
-    "test:bun": "bun run test-systematic.ts", 
-    "test:node": "node --loader ts-node/esm test-systematic.ts",
+    "test": "deno run --allow-read tests/test-systematic.ts",
+    "test:bun": "bun run tests/test-systematic.ts",
+    "test:node": "node --loader ts-node/esm tests/test-systematic.ts",
     "update-taglib": "./scripts/update-taglib.sh",
     "publish:npm": "npm publish",
     "publish:jsr": "deno publish",

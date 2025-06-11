@@ -2,7 +2,7 @@
  * @fileoverview WebAssembly module interface and loading utilities
  */
 
-import type { TagLibConfig } from "./types.ts";
+import type { TagLibConfig } from "./types";
 
 /**
  * Emscripten module interface for TagLib WASM
@@ -35,14 +35,14 @@ export interface TagLibModule {
   _malloc: (size: number) => number;
   _free: (ptr: number) => void;
   allocate: (array: Uint8Array, type: number) => number;
-  
+
   // Allocation types
   ALLOC_NORMAL: number;
   ALLOC_STACK: number;
   ALLOC_STATIC: number;
   ALLOC_DYNAMIC: number;
   ALLOC_NONE: number;
-  
+
   // File operations
   _taglib_file_new_from_buffer: (data: number, size: number) => number;
   _taglib_file_delete: (fileId: number) => void;
@@ -104,7 +104,7 @@ export async function loadTagLibModule(
 
   // Detect runtime environment
   const isNode = typeof process !== "undefined" && process.versions?.node;
-  const isDeno = typeof Deno !== "undefined";
+  const isDeno = typeof (globalThis as any).Deno !== "undefined";
 
   let wasmPath: string;
 
@@ -123,7 +123,7 @@ export async function loadTagLibModule(
   let wasmBinary: Uint8Array;
 
   if (isDeno) {
-    wasmBinary = await Deno.readFile(wasmPath);
+    wasmBinary = await (globalThis as any).Deno.readFile(wasmPath);
   } else if (isNode) {
     const fs = await import("node:fs");
     wasmBinary = await fs.promises.readFile(wasmPath);
@@ -153,11 +153,13 @@ export async function loadTagLibModule(
   try {
     // For Deno, we need to handle the CommonJS-style export
     let TagLibWASM: any;
-    
+
     if (isDeno) {
       // In Deno, read and evaluate the JS file
-      const jsContent = await Deno.readTextFile(new URL("../build/taglib.js", import.meta.url).pathname);
-      
+      const jsContent = await (globalThis as any).Deno.readTextFile(
+        new URL("../build/taglib.js", import.meta.url).pathname,
+      );
+
       // Create a minimal CommonJS environment
       const exports = {} as any;
       const module = { exports } as any;
@@ -165,38 +167,45 @@ export async function loadTagLibModule(
       const require = (name: string) => {
         if (name === "fs") {
           return {
-            readFileSync: (path: string) => Deno.readFileSync(path),
+            readFileSync: (path: string) => (globalThis as any).Deno.readFileSync(path),
           };
         }
         throw new Error(`Module ${name} not found`);
       };
-      
+
       // Add a minimal process object for Node.js compatibility
       const process = {
         versions: {},
         argv: [],
         type: "deno",
       };
-      
+
       // Execute the WASM JS with the proper context
       const func = new Function(
-        'exports', 'module', 'define', 'require', 'process', '__dirname', '__filename',
-        jsContent + '\nreturn typeof TagLibWASM !== "undefined" ? TagLibWASM : module.exports;'
+        "exports",
+        "module",
+        "define",
+        "require",
+        "process",
+        "__dirname",
+        "__filename",
+        jsContent +
+          '\nreturn typeof TagLibWASM !== "undefined" ? TagLibWASM : module.exports;',
       );
-      
+
       TagLibWASM = func(exports, module, define, require, process, "", "");
     } else {
       // For Node.js and browsers, use normal import
       const wasmModule = await import("../build/taglib.js");
       TagLibWASM = wasmModule.default || wasmModule;
     }
-    
-    if (typeof TagLibWASM !== 'function') {
-      throw new Error('Failed to load TagLib WASM module');
+
+    if (typeof TagLibWASM !== "function") {
+      throw new Error("Failed to load TagLib WASM module");
     }
-    
+
     const wasmInstance = await TagLibWASM(moduleConfig);
-    
+
     // Ensure proper memory arrays are set up
     if (!wasmInstance.HEAPU8) {
       // Manual setup if not automatically created
@@ -212,7 +221,7 @@ export async function loadTagLibModule(
         wasmInstance.HEAPF64 = new Float64Array(buffer);
       }
     }
-    
+
     return wasmInstance as TagLibModule;
   } catch (error) {
     throw new Error(`Failed to load TagLib WASM: ${(error as Error).message}`);

@@ -11,7 +11,10 @@ Deno.test("TagLib initialization", async () => {
     const taglib = await TagLib.initialize();
     assertExists(taglib);
   } catch (error) {
-    console.log("Expected failure until WASM is built:", (error as Error).message);
+    console.log(
+      "Expected failure until WASM is built:",
+      (error as Error).message,
+    );
   }
 });
 
@@ -28,7 +31,10 @@ Deno.test("TagLib configuration", async () => {
     const taglib = await TagLib.initialize(config);
     assertExists(taglib);
   } catch (error) {
-    console.log("Expected failure until WASM is built:", (error as Error).message);
+    console.log(
+      "Expected failure until WASM is built:",
+      (error as Error).message,
+    );
   }
 });
 
