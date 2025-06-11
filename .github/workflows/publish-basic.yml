@@ -72,9 +72,6 @@ jobs:
 
       - name: Update package for GitHub Packages
         run: |
-          # Remove .npmrc to avoid conflicts
-          rm -f .npmrc
-          
           # Update package name for GitHub Packages (must be lowercase and scoped)
           sed -i 's/"name": "[^"]*"/"name": "@charleswiltgen\/taglib-wasm"/' package.json
 
