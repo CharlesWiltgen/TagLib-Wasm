@@ -1,4 +1,4 @@
-# Advanced Metadata Handling
+# Automatic Tag Mapping Handling
 
 TagLib WASM provides a **format-agnostic metadata system** that automatically handles storing advanced fields like AcoustID fingerprints in the correct location for each audio format.
 
@@ -200,4 +200,4 @@ file->setProperties(propertyMap);
 
 ---
 
-This advanced metadata system represents **professional-grade audio metadata handling** that works seamlessly across all major audio formats. The format-agnostic approach eliminates the complexity of dealing with different metadata systems while ensuring proper, standards-compliant storage.
+This automatic tag mapping system represents **professional-grade audio metadata handling** that works seamlessly across all major audio formats. The format-agnostic approach eliminates the complexity of dealing with different metadata systems while ensuring proper, standards-compliant storage.
