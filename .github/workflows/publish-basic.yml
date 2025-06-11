@@ -113,7 +113,17 @@ jobs:
           echo "Registry:"
           npm config get registry
 
+      - name: Check if package exists on GitHub Packages
+        id: check_github
+        run: |
+          if npm view @charleswiltgen/taglib-wasm version 2>/dev/null; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+          fi
+
       - run: npm publish --access public
+        if: steps.check_github.outputs.exists == 'false' || github.event_name == 'release'
         env:
           NODE_AUTH_TOKEN: ${{ github.token }}
 
