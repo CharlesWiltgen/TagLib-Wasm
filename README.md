@@ -1,11 +1,11 @@
 # taglib-wasm
 
-[TagLib](https://taglib.org/) is the de-facto standard library for reading and editing metadata tags (Title, Album, Artist, etc.) in all popular audio formats. See [“Goals & Features”](https://taglib.org/) for the reasons TagLib is so great.
+[TagLib](https://taglib.org/) is the robust, industry-standard tagging library for reading and editing metadata tags (Title, Album, Artist, etc.) in all popular audio formats. See [“Goals & Features”](https://taglib.org/) for the reasons TagLib is so great.
 
-`taglib-wasm` makes the robust, industry-standard TagLib tagging library available to browser, Deno, Node.js, and Bun apps for the first time, thanks to the magic of ✨[Wasm](https://webassembly.org/)✨ ([WebAssembly](https://webassembly.org/)).
+`taglib-wasm` is designed to be **TagLib for JavaScript/TypeScript** platforms — specifically Deno, Node.js, Bun, web browsers, and Cloudflare Workers. It does this by leveraging technologies including [TagLib](https://taglib.org/) itself, [Emscripten](https://emscripten.org/), and [Wasm](https://webassembly.org/) ([WebAssembly](https://webassembly.org/)).
 
 > [!IMPORTANT]
-> I’m personally using this to solve a problem for another project I’m creating, but this project is still very much a baby. A tantrum would not surprise me and should not surprise you.
+> I’m personally using this to solve a problem for another project I’m creating, but this project is still very much a baby. You may experience tantrums at this stage of `taglib-wasm`’s development.
 
 ## Why?
 
