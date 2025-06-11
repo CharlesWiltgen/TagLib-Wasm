@@ -1,0 +1,93 @@
+name: Publish Packages
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Package version to publish'
+        required: true
+        type: string
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      
+      - name: Setup Deno
+        uses: denoland/setup-deno@v1
+        with:
+          deno-version: v1.x
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          registry-url: 'https://registry.npmjs.org/'
+      
+      - name: Setup Emscripten
+        uses: mymindstorm/setup-emsdk@v14
+        with:
+          version: '3.1.45'
+          actions-cache-folder: 'emsdk-cache'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Build WASM
+        run: npm run build:wasm
+      
+      - name: Build TypeScript
+        run: npm run build:ts
+      
+      - name: Run tests
+        run: deno task test
+      
+      - name: Update version (if manual trigger)
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          npm version ${{ github.event.inputs.version }} --no-git-tag-version
+          # Update deno.json version
+          sed -i 's/"version": "[^"]*"/"version": "${{ github.event.inputs.version }}"/' deno.json
+      
+      - name: Publish to NPM
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish
+      
+      - name: Setup Node.js for GitHub Packages
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          registry-url: 'https://npm.pkg.github.com/'
+      
+      - name: Publish to GitHub Packages
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Backup original package.json
+          cp package.json package.json.backup
+          
+          # Create GitHub-specific package.json
+          jq '.name = "@charleswiltgen/taglib-wasm" | .publishConfig.registry = "https://npm.pkg.github.com"' package.json > package.github.json
+          mv package.github.json package.json
+          
+          # Publish to GitHub Packages
+          npm publish
+          
+          # Restore original package.json
+          mv package.json.backup package.json
+      
+      - name: Publish to JSR
+        run: deno publish
