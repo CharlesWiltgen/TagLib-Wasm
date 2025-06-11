@@ -19,7 +19,7 @@ jobs:
         with:
           node-version: 20
       - run: npm ci
-      - uses: denoland/setup-deno@v1
+      - uses: denoland/setup-deno@61fe2df320078202e33d7d5ad347e7dcfa0e8f31  # v1.1.2
         with:
           deno-version: v1.x
       - run: deno task test || echo "Tests failed but continuing"
@@ -72,6 +72,7 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   publish-jsr:
+    # Publish to JSR (jsr.io) using OIDC, not Denoland
     needs: test
     runs-on: ubuntu-latest
     permissions:
