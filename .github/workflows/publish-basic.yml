@@ -53,17 +53,21 @@ jobs:
       packages: write
     steps:
       - uses: actions/checkout@v4
+      
+      - name: Update package for GitHub Packages
+        run: |
+          # Update package name for GitHub Packages
+          sed -i 's/"name": "[^"]*"/"name": "@charleswiltgen\/taglib-wasm"/' package.json
+          
+          # Update version if manual trigger
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            sed -i 's/"version": "[^"]*"/"version": "${{ github.event.inputs.version }}"/' package.json
+          fi
+      
       - uses: actions/setup-node@v4
         with:
           node-version: 20
           registry-url: https://npm.pkg.github.com/
-      
-      - name: Update version (if manual)
-        if: github.event_name == 'workflow_dispatch'
-        run: |
-          npm version ${{ github.event.inputs.version }} --no-git-tag-version
-          # Update package name for GitHub Packages
-          sed -i 's/"name": "[^"]*"/"name": "@charleswiltgen\/taglib-wasm"/' package.json
       
       - run: npm publish --access public
         env:
@@ -86,5 +90,9 @@ jobs:
         if: github.event_name == 'workflow_dispatch'
         run: |
           sed -i 's/"version": "[^"]*"/"version": "${{ github.event.inputs.version }}"/' deno.json
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add deno.json
+          git commit -m "chore: update version to ${{ github.event.inputs.version }}" || true
       
-      - run: deno publish --allow-dirty
+      - run: deno publish
