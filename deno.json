@@ -1,6 +1,6 @@
 {
   "name": "@charleswiltgen/taglib-wasm",
-  "version": "0.2.0",
+  "version": "0.2.2",
   "license": "MIT",
   "exports": {
     ".": "./mod.ts"
@@ -9,7 +9,7 @@
     "include": [
       "mod.ts",
       "src/taglib-jsr.ts",
-      "src/wasm-jsr.ts", 
+      "src/wasm-jsr.ts",
       "src/types.ts",
       "build/taglib.wasm",
       "README.md",

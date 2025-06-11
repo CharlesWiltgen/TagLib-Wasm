@@ -33,14 +33,14 @@ jobs:
         with:
           node-version: 20
           registry-url: https://registry.npmjs.org/
-      
+
       - name: Update version (if manual)
         if: github.event_name == 'workflow_dispatch'
         run: |
           npm version ${{ github.event.inputs.version }} --no-git-tag-version
           # Update deno.json version too
           sed -i 's/"version": "[^"]*"/"version": "${{ github.event.inputs.version }}"/' deno.json
-      
+
       - run: npm publish --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
@@ -53,22 +53,22 @@ jobs:
       packages: write
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Update package for GitHub Packages
         run: |
           # Update package name for GitHub Packages
           sed -i 's/"name": "[^"]*"/"name": "@charleswiltgen\/taglib-wasm"/' package.json
-          
+
           # Update version if manual trigger
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             sed -i 's/"version": "[^"]*"/"version": "${{ github.event.inputs.version }}"/' package.json
           fi
-      
+
       - uses: actions/setup-node@v4
         with:
           node-version: 20
           registry-url: https://npm.pkg.github.com/
-      
+
       - run: npm publish --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -85,7 +85,7 @@ jobs:
       - uses: denoland/setup-deno@v1
         with:
           deno-version: v1.x
-      
+
       - name: Update version (if manual)
         if: github.event_name == 'workflow_dispatch'
         run: |
@@ -94,5 +94,5 @@ jobs:
           git config --local user.name "GitHub Action"
           git add deno.json
           git commit -m "chore: update version to ${{ github.event.inputs.version }}" || true
-      
+
       - run: deno publish
