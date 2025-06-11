@@ -37,10 +37,20 @@ import { TagLib } from "jsr:@charleswiltgen/taglib-wasm";
 npm install taglib-wasm
 ```
 
+**Alternative (GitHub Packages):**
+```bash
+npm install @charleswiltgen/taglib-wasm --registry=https://npm.pkg.github.com/
+```
+
 ### Bun
 
 ```bash
 bun add taglib-wasm
+```
+
+**Alternative (GitHub Packages):**
+```bash
+bun add @charleswiltgen/taglib-wasm --registry=https://npm.pkg.github.com/
 ```
 
 ## 🚀 Quick Start
