@@ -40,11 +40,30 @@ jobs:
           version: '3.1.45'
           actions-cache-folder: 'emsdk-cache'
       
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential cmake jq
+      
       - name: Install dependencies
         run: npm ci
       
+      - name: Debug environment
+        run: |
+          echo "=== Environment Debug ==="
+          pwd
+          ls -la
+          echo "=== TagLib directory ==="
+          ls -la lib/taglib/ || echo "TagLib directory not found"
+          echo "=== Build directory ==="
+          ls -la build/ || echo "Build directory not found"
+          echo "=== Emscripten version ==="
+          emcc --version || echo "Emscripten not found"
+      
       - name: Build WASM
-        run: npm run build:wasm
+        run: |
+          chmod +x build/build-wasm.sh
+          npm run build:wasm
       
       - name: Build TypeScript
         run: npm run build:ts
