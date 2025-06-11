@@ -3,8 +3,8 @@
  */
 
 // Re-export commonly used classes from other modules
-export type { TagLibModule } from "./wasm";
-export type { AudioFile } from "./taglib";
+export type { TagLibModule } from "./wasm-jsr.ts";
+// Note: AudioFile is not needed for JSR exports
 
 /**
  * Audio format types supported by TagLib

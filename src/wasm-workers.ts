@@ -2,7 +2,7 @@
  * @fileoverview WebAssembly module interface for Cloudflare Workers
  */
 
-import type { TagLibConfig, TagLibModule } from "./types";
+import type { TagLibConfig, TagLibModule } from "./types.ts";
 
 // Re-export TagLibModule for convenience
 export type { TagLibModule };
@@ -153,7 +153,7 @@ export function isCloudflareWorkers(): boolean {
     typeof globalThis.caches !== "undefined" &&
     typeof globalThis.Request !== "undefined" &&
     typeof globalThis.Response !== "undefined" &&
-    typeof process === "undefined" &&
+    typeof (globalThis as any).process === "undefined" &&
     typeof (globalThis as any).Deno === "undefined"
   );
 }

@@ -2,7 +2,7 @@
  * @fileoverview WebAssembly module interface and loading utilities
  */
 
-import type { TagLibConfig } from "./types";
+import type { TagLibConfig } from "./types.ts";
 
 /**
  * Emscripten module interface for TagLib WASM
