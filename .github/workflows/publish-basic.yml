@@ -90,17 +90,22 @@ jobs:
 
           # Remove publishConfig that points to npmjs
           sed -i '/"publishConfig":/,/}/d' package.json
+          
+          # Debug: Show the modified package.json
+          echo "Modified package.json:"
+          cat package.json | jq .
 
       - uses: actions/setup-node@v4
         with:
           node-version: 20
           registry-url: https://npm.pkg.github.com/
-          scope: '@charleswiltgen'
 
-      - name: Authenticate to GitHub Packages
+      - name: Debug npm config
         run: |
-          echo "@charleswiltgen:registry=https://npm.pkg.github.com" >> ~/.npmrc
-          echo "//npm.pkg.github.com/:_authToken=${{ github.token }}" >> ~/.npmrc
+          echo "NPM config:"
+          npm config list
+          echo "Registry:"
+          npm config get registry
 
       - run: npm publish --access public
         env:
