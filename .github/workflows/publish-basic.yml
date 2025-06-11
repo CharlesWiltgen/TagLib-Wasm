@@ -57,7 +57,6 @@ jobs:
         with:
           node-version: 20
           registry-url: https://npm.pkg.github.com/
-      - run: npm ci
       
       - name: Update version (if manual)
         if: github.event_name == 'workflow_dispatch'
