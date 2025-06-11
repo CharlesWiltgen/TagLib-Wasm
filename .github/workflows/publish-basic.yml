@@ -87,4 +87,4 @@ jobs:
         run: |
           sed -i 's/"version": "[^"]*"/"version": "${{ github.event.inputs.version }}"/' deno.json
       
-      - run: deno publish
+      - run: deno publish --allow-dirty
