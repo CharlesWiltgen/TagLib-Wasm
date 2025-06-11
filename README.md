@@ -4,7 +4,7 @@
 
 `taglib-wasm` is designed to be **TagLib for JavaScript/TypeScript** platforms — specifically Deno, Node.js, Bun, web browsers, and Cloudflare Workers. It does this by leveraging technologies including [TagLib](https://taglib.org/) itself, [Emscripten](https://emscripten.org/), and [Wasm](https://webassembly.org/) ([WebAssembly](https://webassembly.org/)).
 
-> [!IMPORTANT]
+> [!NOTE]
 > I’m personally using this to solve a problem for another project I’m creating, but this project is still very much a baby. You may experience tantrums at this stage of `taglib-wasm`’s development.
 
 ## Why?
@@ -36,23 +36,11 @@ import { TagLib } from "jsr:@charleswiltgen/taglib-wasm";
 ```bash
 npm install taglib-wasm
 ```
-
-**Alternative (GitHub Packages):**
-```bash
-npm install @charleswiltgen/taglib-wasm --registry=https://npm.pkg.github.com/
-```
-
 ### Bun
 
 ```bash
 bun add taglib-wasm
 ```
-
-**Alternative (GitHub Packages):**
-```bash
-bun add @charleswiltgen/taglib-wasm --registry=https://npm.pkg.github.com/
-```
-
 ## 🚀 Quick Start
 
 ### Deno
@@ -209,7 +197,7 @@ file.dispose();
 ### Cloudflare Workers
 
 ```typescript
-import { TagLib } from "taglib-wasm";
+import { TagLib } from "taglib-wasm/workers";
 
 export default {
   async fetch(request: Request): Promise<Response> {
@@ -328,7 +316,7 @@ file.setExtendedTag({
 });
 ```
 
-**📖 See [docs/AUTOMATIC_TAG_MAPPING.md](docs/AUTOMATIC_TAG_MAPPING.md) for complete documentation**
+**📖 See [docs/ADVANCED_METADATA.md](docs/ADVANCED_METADATA.md) for complete documentation**
 
 ## 🏗️ Development
 
@@ -386,12 +374,12 @@ bun run test-systematic.ts
 # Run with Node.js
 npm test
 
-# Results: 5/5 formats working ✅ across all runtimes
-# ✅ WAV  - 44.1kHz, stereo, tag reading/writing
-# ✅ MP3  - 44.1kHz, stereo, ID3 tag support
-# ✅ FLAC - 44.1kHz, stereo, Vorbis comments
-# ✅ OGG  - 44.1kHz, stereo, Vorbis comments
-# ✅ M4A  - 44.1kHz, stereo, iTunes metadata
+# Results: All formats working ✅ across all runtimes
+# ✅ WAV  - INFO chunk metadata support
+# ✅ MP3  - ID3v1/v2 tag support
+# ✅ FLAC - Vorbis comments and properties
+# ✅ OGG  - Vorbis comments
+# ✅ M4A  - iTunes-compatible metadata atoms
 ```
 
 ## 🔧 Technical Implementation
