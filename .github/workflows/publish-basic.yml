@@ -57,7 +57,7 @@ jobs:
       - name: Update package for GitHub Packages
         run: |
           # Update package name for GitHub Packages
-          sed -i 's/"name": "[^"]*"/"name": "@charleswiltgen\/taglib-wasm"/' package.json
+          sed -i 's/"name": "[^"]*"/"name": "@CharlesWiltgen\/taglib-wasm"/' package.json
 
           # Update version if manual trigger
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
