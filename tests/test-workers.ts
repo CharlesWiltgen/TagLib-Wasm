@@ -2,8 +2,11 @@
  * @fileoverview Test Workers compatibility (simulated environment)
  */
 
-import { isCloudflareWorkers, loadTagLibModuleForWorkers } from "./src/wasm-workers.ts";
-import { TagLibWorkers, processAudioMetadata } from "./src/workers.ts";
+import {
+  isCloudflareWorkers,
+  loadTagLibModuleForWorkers,
+} from "../src/wasm-workers.ts";
+import { processAudioMetadata, TagLibWorkers } from "../src/workers.ts";
 
 async function testWorkersCompatibility() {
   console.log("🧪 Testing Cloudflare Workers compatibility...\n");
@@ -26,13 +29,15 @@ async function testWorkersCompatibility() {
       const module = await loadTagLibModuleForWorkers(wasmBinary, {
         debug: true,
         memory: {
-          initial: 8 * 1024 * 1024,  // 8MB
+          initial: 8 * 1024 * 1024, // 8MB
           maximum: 32 * 1024 * 1024, // 32MB
         },
       });
       console.log("   ✓ Workers WASM loader functional\n");
     } catch (error) {
-      console.log(`   ⚠️  Workers WASM loader failed: ${(error as Error).message}`);
+      console.log(
+        `   ⚠️  Workers WASM loader failed: ${(error as Error).message}`,
+      );
       console.log("   This is expected - requires Workers-compatible build\n");
     }
 
@@ -50,8 +55,8 @@ async function testWorkersCompatibility() {
 
       // Test with actual audio file
       console.log("5. Testing with audio file...");
-      const testAudioPath = "./test-files/mp3/test.mp3";
-      
+      const testAudioPath = "./test-files/mp3/kiss-snippet.mp3";
+
       try {
         const audioData = await Deno.readFile(testAudioPath);
         console.log(`   Audio file loaded: ${audioData.length} bytes`);
@@ -71,12 +76,10 @@ async function testWorkersCompatibility() {
 
         file.dispose();
         console.log("   ✓ File processed and disposed\n");
-
       } catch (error) {
         console.log(`   ⚠️  Test audio file not found: ${testAudioPath}`);
         console.log("   This is expected if test files aren't available\n");
       }
-
     } catch (error) {
       console.log(`   ⚠️  TagLibWorkers failed: ${(error as Error).message}`);
       console.log("   This is expected - requires Workers-compatible build\n");
@@ -87,18 +90,29 @@ async function testWorkersCompatibility() {
     try {
       const testData = new Uint8Array([
         // Minimal MP3 header for testing
-        0xFF, 0xFB, 0x90, 0x00, // MP3 sync + header
-        ...new Array(100).fill(0x00) // Padding
+        0xFF,
+        0xFB,
+        0x90,
+        0x00, // MP3 sync + header
+        ...new Array(100).fill(0x00), // Padding
       ]);
 
       try {
         const result = await processAudioMetadata(wasmBinary, testData);
-        console.log(`   ✓ Utility function works: ${JSON.stringify(result.tag)}\n`);
+        console.log(
+          `   ✓ Utility function works: ${JSON.stringify(result.tag)}\n`,
+        );
       } catch (error) {
-        console.log(`   ⚠️  Expected failure with minimal test data: ${(error as Error).message}\n`);
+        console.log(
+          `   ⚠️  Expected failure with minimal test data: ${
+            (error as Error).message
+          }\n`,
+        );
       }
     } catch (error) {
-      console.log(`   ⚠️  processAudioMetadata failed: ${(error as Error).message}\n`);
+      console.log(
+        `   ⚠️  processAudioMetadata failed: ${(error as Error).message}\n`,
+      );
     }
 
     console.log("🎉 Workers compatibility testing completed!");
@@ -106,12 +120,13 @@ async function testWorkersCompatibility() {
     console.log("   ✅ Workers API structure is compatible");
     console.log("   ✅ Type definitions are correct");
     console.log("   ✅ Environment detection works");
-    console.log("   ⚠️  Full functionality requires Workers-compatible WASM build");
+    console.log(
+      "   ⚠️  Full functionality requires Workers-compatible WASM build",
+    );
     console.log("\n🔧 Next steps for production use:");
     console.log("   1. Build WASM with -sENVIRONMENT=web flag");
     console.log("   2. Bundle WASM binary with Worker");
     console.log("   3. Test in actual Cloudflare Workers environment");
-
   } catch (error) {
     console.error("❌ Test failed:", error);
     throw error;

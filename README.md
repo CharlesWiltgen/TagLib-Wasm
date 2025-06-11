@@ -26,16 +26,19 @@ In the process of building a utility to improve the metadata of my music collect
 ## 📦 Installation
 
 ### Deno
+
 ```typescript
 import { TagLib } from "jsr:@charleswiltgen/taglib-wasm";
 ```
 
 ### Node.js
+
 ```bash
 npm install taglib-wasm
 ```
 
 ### Bun
+
 ```bash
 bun add taglib-wasm
 ```
@@ -82,7 +85,7 @@ file.dispose();
 ### Bun
 
 ```typescript
-import { TagLib } from 'taglib-wasm';
+import { TagLib } from "taglib-wasm";
 
 // Initialize TagLib WASM
 const taglib = await TagLib.initialize();
@@ -119,8 +122,8 @@ file.dispose();
 ### Node.js
 
 ```typescript
-import { TagLib } from 'taglib-wasm';
-import { readFile } from 'fs/promises';
+import { TagLib } from "taglib-wasm";
+import { readFile } from "fs/promises";
 
 // Initialize TagLib WASM
 const taglib = await TagLib.initialize();
@@ -157,7 +160,7 @@ file.dispose();
 ### Browser
 
 ```typescript
-import { TagLib } from 'taglib-wasm';
+import { TagLib } from "taglib-wasm";
 
 // Initialize TagLib WASM
 const taglib = await TagLib.initialize();
@@ -196,15 +199,15 @@ file.dispose();
 ### Cloudflare Workers
 
 ```typescript
-import { TagLib } from 'taglib-wasm';
+import { TagLib } from "taglib-wasm";
 
 export default {
   async fetch(request: Request): Promise<Response> {
-    if (request.method === 'POST') {
+    if (request.method === "POST") {
       try {
         // Initialize TagLib WASM
         const taglib = await TagLib.initialize({
-          memory: { initial: 8 * 1024 * 1024 } // 8MB for Workers
+          memory: { initial: 8 * 1024 * 1024 }, // 8MB for Workers
         });
 
         // Get audio data from request
@@ -224,7 +227,7 @@ export default {
           genre: tags.genre,
           duration: props.length,
           bitrate: props.bitrate,
-          format: file.format()
+          format: file.format(),
         };
 
         // Clean up
@@ -233,19 +236,18 @@ export default {
         return Response.json({
           success: true,
           metadata,
-          fileSize: audioData.length
+          fileSize: audioData.length,
         });
-
       } catch (error) {
         return Response.json({
-          error: 'Failed to process audio file',
-          message: (error as Error).message
+          error: "Failed to process audio file",
+          message: (error as Error).message,
         }, { status: 500 });
       }
     }
 
-    return new Response('Send POST request with audio file', { status: 400 });
-  }
+    return new Response("Send POST request with audio file", { status: 400 });
+  },
 };
 ```
 
@@ -316,7 +318,7 @@ file.setExtendedTag({
 });
 ```
 
-**📖 See [ADVANCED_METADATA.md](ADVANCED_METADATA.md) for complete documentation**
+**📖 See [docs/ADVANCED_METADATA.md](docs/ADVANCED_METADATA.md) for complete documentation**
 
 ## 🏗️ Development
 
@@ -351,7 +353,7 @@ build/
 ├── taglib.js       # Generated Emscripten JavaScript
 └── taglib.wasm     # Compiled WebAssembly module
 
-test-files/         # Sample audio files for testing
+tests/              # Test files and sample audio files
 tests/              # Test suite
 examples/           # Usage examples for different runtimes
 ├── deno/           # Deno-specific examples
@@ -404,9 +406,9 @@ npm test
 
 ```typescript
 class TagLib {
-  static async initialize(config?: TagLibConfig): Promise<TagLib>
-  openFile(buffer: Uint8Array): AudioFile
-  getModule(): TagLibModule
+  static async initialize(config?: TagLibConfig): Promise<TagLib>;
+  openFile(buffer: Uint8Array): AudioFile;
+  getModule(): TagLibModule;
 }
 ```
 
@@ -415,51 +417,51 @@ class TagLib {
 ```typescript
 class AudioFile {
   // Validation
-  isValid(): boolean
-  format(): string
+  isValid(): boolean;
+  format(): string;
 
   // Properties
-  audioProperties(): AudioProperties
-  tag(): TagData
+  audioProperties(): AudioProperties;
+  tag(): TagData;
 
   // Tag Writing
-  setTitle(title: string): void
-  setArtist(artist: string): void
-  setAlbum(album: string): void
-  setComment(comment: string): void
-  setGenre(genre: string): void
-  setYear(year: number): void
-  setTrack(track: number): void
+  setTitle(title: string): void;
+  setArtist(artist: string): void;
+  setAlbum(album: string): void;
+  setComment(comment: string): void;
+  setGenre(genre: string): void;
+  setYear(year: number): void;
+  setTrack(track: number): void;
 
   // File Operations
-  save(): boolean
-  dispose(): void
+  save(): boolean;
+  dispose(): void;
 
   // Advanced Metadata (Format-Agnostic)
-  extendedTag(): ExtendedTag
-  setExtendedTag(tag: Partial<ExtendedTag>): void
+  extendedTag(): ExtendedTag;
+  setExtendedTag(tag: Partial<ExtendedTag>): void;
 
   // AcoustID Integration
-  setAcoustidFingerprint(fingerprint: string): void
-  getAcoustidFingerprint(): string | undefined
-  setAcoustidId(id: string): void
-  getAcoustidId(): string | undefined
+  setAcoustidFingerprint(fingerprint: string): void;
+  getAcoustidFingerprint(): string | undefined;
+  setAcoustidId(id: string): void;
+  getAcoustidId(): string | undefined;
 
   // MusicBrainz Integration
-  setMusicBrainzTrackId(id: string): void
-  getMusicBrainzTrackId(): string | undefined
+  setMusicBrainzTrackId(id: string): void;
+  getMusicBrainzTrackId(): string | undefined;
 
   // Volume Normalization
-  setReplayGainTrackGain(gain: string): void
-  getReplayGainTrackGain(): string | undefined
-  setReplayGainTrackPeak(peak: string): void
-  getReplayGainTrackPeak(): string | undefined
-  setReplayGainAlbumGain(gain: string): void
-  getReplayGainAlbumGain(): string | undefined
-  setReplayGainAlbumPeak(peak: string): void
-  getReplayGainAlbumPeak(): string | undefined
-  setAppleSoundCheck(iTunNORM: string): void
-  getAppleSoundCheck(): string | undefined
+  setReplayGainTrackGain(gain: string): void;
+  getReplayGainTrackGain(): string | undefined;
+  setReplayGainTrackPeak(peak: string): void;
+  getReplayGainTrackPeak(): string | undefined;
+  setReplayGainAlbumGain(gain: string): void;
+  getReplayGainAlbumGain(): string | undefined;
+  setReplayGainAlbumPeak(peak: string): void;
+  getReplayGainAlbumPeak(): string | undefined;
+  setAppleSoundCheck(iTunNORM: string): void;
+  getAppleSoundCheck(): string | undefined;
 }
 ```
 
@@ -468,10 +470,10 @@ class AudioFile {
 ```typescript
 interface TagLibConfig {
   memory?: {
-    initial?: number;  // Initial memory size (default: 16MB)
-    maximum?: number;  // Maximum memory size (default: 256MB)
+    initial?: number; // Initial memory size (default: 16MB)
+    maximum?: number; // Maximum memory size (default: 256MB)
   };
-  debug?: boolean;     // Enable debug output
+  debug?: boolean; // Enable debug output
 }
 ```
 
@@ -479,14 +481,14 @@ interface TagLibConfig {
 
 TagLib WASM works seamlessly across all major JavaScript runtimes:
 
-| Runtime | Status | Installation | Performance | TypeScript |
-|---------|--------|--------------|-------------|------------|
-| **Deno** | ✅ Full | `jsr:@charleswiltgen/taglib-wasm` | Excellent | Native |
-| **Bun** | ✅ Full | `bun add taglib-wasm` | Excellent | Native |
-| **Node.js** | ✅ Full | `npm install taglib-wasm` | Good | Via loader |
-| **Browser** | ✅ Full | CDN/bundler | Good | Via build |
+| Runtime     | Status  | Installation                      | Performance | TypeScript |
+| ----------- | ------- | --------------------------------- | ----------- | ---------- |
+| **Deno**    | ✅ Full | `jsr:@charleswiltgen/taglib-wasm` | Excellent   | Native     |
+| **Bun**     | ✅ Full | `bun add taglib-wasm`             | Excellent   | Native     |
+| **Node.js** | ✅ Full | `npm install taglib-wasm`         | Good        | Via loader |
+| **Browser** | ✅ Full | CDN/bundler                       | Good        | Via build  |
 
-**📖 See [RUNTIME_COMPATIBILITY.md](RUNTIME_COMPATIBILITY.md) for detailed runtime information**
+**📖 See [docs/RUNTIME_COMPATIBILITY.md](docs/RUNTIME_COMPATIBILITY.md) for detailed runtime information**
 
 ## 🚧 Known Limitations
 

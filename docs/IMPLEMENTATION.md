@@ -17,13 +17,15 @@ The project consists of three main layers:
 The most important implementation detail is **proper memory management between JavaScript and WASM**:
 
 #### ❌ What Doesn't Work
+
 ```typescript
 // Manual memory allocation + copying causes data corruption
 const ptr = module._malloc(buffer.length);
-module.HEAPU8.set(buffer, ptr);  // ← This corrupts data!
+module.HEAPU8.set(buffer, ptr); // ← This corrupts data!
 ```
 
 #### ✅ What Works
+
 ```typescript
 // Emscripten's allocate() function works reliably
 const ptr = module.allocate(buffer, module.ALLOC_NORMAL);
@@ -38,6 +40,7 @@ const ptr = module.allocate(buffer, module.ALLOC_NORMAL);
 The C++ wrapper (`build/build-wasm.sh`) bridges TagLib's object-oriented C++ API to C functions suitable for WASM:
 
 #### Object Lifetime Management
+
 ```cpp
 // Global storage for C++ objects
 std::map<int, std::unique_ptr<TagLib::FileRef>> g_files;
@@ -58,6 +61,7 @@ extern "C" int taglib_file_new_from_buffer(const char* data, int size) {
 ```
 
 #### Memory-Based File Processing
+
 ```cpp
 // Uses ByteVectorStream for in-memory processing
 TagLib::ByteVector buffer(data, size);
@@ -68,6 +72,7 @@ auto fileRef = std::make_unique<TagLib::FileRef>(stream.get());
 This enables processing audio files entirely in memory without filesystem access.
 
 #### Format Detection and Fallback
+
 ```cpp
 // Try FileRef first (auto-detection)
 auto fileRef = std::make_unique<TagLib::FileRef>(stream.get());
@@ -91,6 +96,7 @@ if (fileRef->isNull() || !fileRef->file()) {
 The TypeScript layer (`src/`) provides a modern async API:
 
 #### Module Initialization
+
 ```typescript
 class TagLib {
   static async initialize(config?: TagLibConfig): Promise<TagLib> {
@@ -101,6 +107,7 @@ class TagLib {
 ```
 
 #### Safe Object Disposal
+
 ```typescript
 class AudioFile {
   dispose(): void {
@@ -113,11 +120,12 @@ class AudioFile {
 ```
 
 #### String Handling
+
 ```typescript
 function jsToCString(module: TagLibModule, str: string): number {
   const encoder = new TextEncoder();
   const bytes = encoder.encode(str + "\0");
-  return module.allocate(bytes, module.ALLOC_NORMAL);  // ← Using allocate()
+  return module.allocate(bytes, module.ALLOC_NORMAL); // ← Using allocate()
 }
 ```
 
@@ -171,6 +179,7 @@ The test suite (`test-systematic.ts`) validates:
 6. **Memory Management**: Are objects properly disposed?
 
 ### Test File Structure
+
 ```
 test-files/
 ├── wav/kiss-snippet.wav     # Simplest format
@@ -183,35 +192,44 @@ test-files/
 ## 🚧 Known Technical Limitations
 
 ### Memory Usage
+
 - Entire files are loaded into memory
 - Memory usage = file size + TagLib overhead
 - No streaming support (limitation of ByteVectorStream approach)
 
 ### File Writing
+
 - Changes only affect in-memory representation
 - No automatic persistence to filesystem
 - Browser applications need manual download/save
 
 ### Threading
+
 - Not thread-safe (JavaScript limitation)
 - Multiple files should be processed sequentially
 
 ## 🔍 Debugging Tips
 
 ### Memory Corruption Issues
+
 If you see data corruption (files appearing as zeros):
+
 1. Check that you're using `allocate()` not `malloc() + HEAPU8.set()`
 2. Verify WASM module is fully initialized before use
 3. Check that memory isn't freed too early
 
 ### Function Export Issues
+
 If functions are "not defined":
+
 1. Verify function is in EXPORTED_FUNCTIONS list
 2. Check C function signature matches TypeScript interface
 3. Ensure WASM module loaded successfully
 
 ### Build Issues
+
 If Emscripten build fails:
+
 1. Check Emscripten SDK installation
 2. Verify TagLib dependencies (utfcpp)
 3. Check CMake configuration flags
@@ -219,6 +237,7 @@ If Emscripten build fails:
 ## 📈 Performance Considerations
 
 ### Optimization Flags
+
 ```bash
 -O3                    # Maximum optimization
 --closure 1            # Google Closure Compiler
@@ -226,11 +245,13 @@ If Emscripten build fails:
 ```
 
 ### Memory Management
+
 - Use `dispose()` to free C++ objects promptly
 - Consider object pooling for frequent operations
 - Monitor memory usage with browser dev tools
 
 ### File Size Optimization
+
 - WASM bundle: ~800KB (optimized)
 - Supports tree-shaking for unused formats
 - Consider format-specific builds for size-critical applications
@@ -238,6 +259,7 @@ If Emscripten build fails:
 ## 🔄 Future Improvements
 
 ### Potential Enhancements
+
 1. **Streaming Support**: Investigate TagLib::IOStream implementations
 2. **Worker Thread Support**: Offload processing to Web Workers
 3. **Format-Specific Builds**: Smaller bundles for specific use cases
@@ -245,6 +267,7 @@ If Emscripten build fails:
 5. **Advanced Metadata**: Support for custom/proprietary tags
 
 ### Performance Optimizations
+
 1. **Lazy Loading**: Load WASM module on first use
 2. **Memory Pooling**: Reuse allocated buffers
 3. **Batch Processing**: Process multiple files efficiently

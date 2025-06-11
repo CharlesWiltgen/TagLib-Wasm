@@ -136,24 +136,28 @@ dist
 .pnp.*
 
 # Test audio files (keep structure but not the actual files)
-test-files/*.mp3
-test-files/*.flac
-test-files/*.ogg
-test-files/*.wav
-test-files/*.m4a
-test-files/*.mp4
-test-files/*/*.mp3
-test-files/*/*.flac
-test-files/*/*.ogg
-test-files/*/*.wav
-test-files/*/*.m4a
-test-files/*/*.mp4
-test-files.zip
+tests/test-files/*.mp3
+tests/test-files/*.flac
+tests/test-files/*.ogg
+tests/test-files/*.wav
+tests/test-files/*.m4a
+tests/test-files/*.mp4
+tests/test-files/*/*.mp3
+tests/test-files/*/*.flac
+tests/test-files/*/*.ogg
+tests/test-files/*/*.wav
+tests/test-files/*/*.m4a
+tests/test-files/*/*.mp4
+
+# Test files backup
+test-files-backup.zip
 
 # But keep the directory structure and documentation
-!test-files/README.md
-!test-files/*/
+!tests/test-files/README.md
+!tests/test-files/*/
 
 # Development tools
 mise.toml
 .claude/
+# Uncomment to ignore VSCode settings:
+# .vscode/
