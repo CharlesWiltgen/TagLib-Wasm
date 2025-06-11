@@ -11,14 +11,14 @@ import type {
   PropertyMap,
   Tag,
   TagLibConfig,
-} from "./types";
-import { METADATA_MAPPINGS } from "./types";
+} from "./types.ts";
+import { METADATA_MAPPINGS } from "./types.ts";
 import {
   cStringToJS,
   jsToCString,
   loadTagLibModule,
   type TagLibModule,
-} from "./wasm";
+} from "./wasm.ts";
 
 /**
  * Represents an audio file with metadata and properties

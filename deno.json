@@ -3,13 +3,14 @@
   "version": "0.2.0-alpha",
   "license": "MIT",
   "exports": {
-    ".": "./mod.ts",
-    "./workers": "./src/workers.ts"
+    ".": "./mod.ts"
   },
   "publish": {
     "include": [
       "mod.ts",
-      "src/",
+      "src/taglib-jsr.ts",
+      "src/wasm-jsr.ts", 
+      "src/types.ts",
       "build/taglib.wasm",
       "README.md",
       "LICENSE",
@@ -19,7 +20,7 @@
   },
   "tasks": {
     "build:wasm": "./build/build-wasm.sh",
-    "build:ts": "deno run --allow-read --allow-run --allow-env npm:typescript/tsc",
+    "build:ts": "deno run --allow-read --allow-write --allow-run --allow-env npm:typescript/tsc",
     "build": "deno task build:wasm && deno task build:ts",
     "test": "deno test --allow-read --allow-write --allow-run tests/",
     "test:watch": "deno test --watch --allow-read --allow-write --allow-run tests/",
