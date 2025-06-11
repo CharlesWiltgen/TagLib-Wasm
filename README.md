@@ -316,7 +316,7 @@ file.setExtendedTag({
 });
 ```
 
-**📖 See [docs/ADVANCED_METADATA.md](docs/ADVANCED_METADATA.md) for complete documentation**
+**📖 See [docs/Automatic-Tag-Mapping.md](docs/Automatic-Tag-Mapping.md) for complete documentation**
 
 ## 🏗️ Development
 
@@ -486,7 +486,7 @@ TagLib WASM works seamlessly across all major JavaScript runtimes:
 | **Node.js** | ✅ Full | `npm install taglib-wasm`         | Good        | Via loader |
 | **Browser** | ✅ Full | CDN/bundler                       | Good        | Via build  |
 
-**📖 See [docs/RUNTIME_COMPATIBILITY.md](docs/RUNTIME_COMPATIBILITY.md) for detailed runtime information**
+**📖 See [docs/Runtime-Compatibility.md](docs/Runtime-Compatibility.md) for detailed runtime information**
 
 ## 🚧 Known Limitations
 
