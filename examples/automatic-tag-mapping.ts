@@ -1,7 +1,7 @@
 #!/usr/bin/env -S deno run --allow-read
 
 /**
- * Advanced Metadata Handling Example
+ * Automatic Tag Mapping Handling Example
  *
  * This example demonstrates the format-agnostic metadata system that automatically
  * handles storing fields like AcoustID fingerprints in the correct location for each format:
@@ -16,7 +16,7 @@ import { TagLib } from "../index.ts";
 import { METADATA_MAPPINGS } from "../src/types.ts";
 
 async function demonstrateAdvancedMetadata() {
-  console.log("🎵 TagLib WASM - Advanced Metadata Example");
+  console.log("🎵 TagLib WASM - Automatic Tag Mapping Example");
   console.log("=".repeat(50));
 
   try {
@@ -57,7 +57,7 @@ async function demonstrateAdvancedMetadata() {
       console.log(`  Composer: ${currentTags.composer || "(none)"}`);
 
       // Demonstrate format-agnostic field setting
-      console.log("\n✏️  Setting advanced metadata (format-agnostic)...");
+      console.log("\n✏️  Setting automatic tag mapping (format-agnostic)...");
 
       // These calls will automatically use the correct storage method for each format
       file.setAcoustidFingerprint(

@@ -117,7 +117,7 @@ export interface ExtendedTag extends Tag {
 }
 
 /**
- * Format-specific field mapping for advanced metadata
+ * Format-specific field mapping for automatic tag mapping
  */
 export interface FieldMapping {
   /** MP3 ID3v2 mapping */

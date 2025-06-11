@@ -73,7 +73,7 @@ file.setAlbum("New Album");
 
 console.log("Updated tags:", file.tag());
 
-// Advanced metadata (format-agnostic)
+// Automatic tag mapping (format-agnostic)
 file.setAcoustidFingerprint("AQADtMmybfGO8NCNEESLnzHyXNOHeHnG...");
 file.setAcoustidId("e7359e88-f1f7-41ed-b9f6-16e58e906997");
 file.setMusicBrainzTrackId("f4d1b6b8-8c1e-4d9a-9f2a-1234567890ab");
@@ -110,7 +110,7 @@ file.setAlbum("New Album");
 
 console.log("Updated tags:", file.tag());
 
-// Advanced metadata (format-agnostic)
+// Automatic tag mapping (format-agnostic)
 file.setAcoustidFingerprint("AQADtMmybfGO8NCNEESLnzHyXNOHeHnG...");
 file.setAcoustidId("e7359e88-f1f7-41ed-b9f6-16e58e906997");
 file.setMusicBrainzTrackId("f4d1b6b8-8c1e-4d9a-9f2a-1234567890ab");
@@ -148,7 +148,7 @@ file.setAlbum("New Album");
 
 console.log("Updated tags:", file.tag());
 
-// Advanced metadata (format-agnostic)
+// Automatic tag mapping (format-agnostic)
 file.setAcoustidFingerprint("AQADtMmybfGO8NCNEESLnzHyXNOHeHnG...");
 file.setAcoustidId("e7359e88-f1f7-41ed-b9f6-16e58e906997");
 file.setMusicBrainzTrackId("f4d1b6b8-8c1e-4d9a-9f2a-1234567890ab");
@@ -187,7 +187,7 @@ file.setAlbum("New Album");
 
 console.log("Updated tags:", file.tag());
 
-// Advanced metadata (format-agnostic)
+// Automatic tag mapping (format-agnostic)
 file.setAcoustidFingerprint("AQADtMmybfGO8NCNEESLnzHyXNOHeHnG...");
 file.setAcoustidId("e7359e88-f1f7-41ed-b9f6-16e58e906997");
 file.setMusicBrainzTrackId("f4d1b6b8-8c1e-4d9a-9f2a-1234567890ab");
@@ -262,9 +262,9 @@ All formats are **fully tested and working**:
 - ✅ **WAV** – INFO chunk metadata
 - 🔄 **Additional formats**: Opus, APE, MPC, WavPack, TrueAudio, and more
 
-## 🎯 Advanced Metadata Support
+## 🎯 Automatic Tag Mapping
 
-TagLib WASM supports **format-agnostic tag naming** so you don’t have to worry about how the same tag is stored differently in different audio container formats.
+TagLib WASM supports **automatic tag mapping** so you don’t have to worry about how the same tag is stored differently in different audio container formats.
 
 ### AcoustID example
 
@@ -318,7 +318,7 @@ file.setExtendedTag({
 });
 ```
 
-**📖 See [docs/ADVANCED_METADATA.md](docs/ADVANCED_METADATA.md) for complete documentation**
+**📖 See [docs/AUTOMATIC_TAG_MAPPING.md](docs/AUTOMATIC_TAG_MAPPING.md) for complete documentation**
 
 ## 🏗️ Development
 
@@ -437,7 +437,7 @@ class AudioFile {
   save(): boolean;
   dispose(): void;
 
-  // Advanced Metadata (Format-Agnostic)
+  // Automatic Tag Mapping (Format-Agnostic)
   extendedTag(): ExtendedTag;
   setExtendedTag(tag: Partial<ExtendedTag>): void;
 
