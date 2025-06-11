@@ -264,7 +264,7 @@ If Emscripten build fails:
 2. **Worker Thread Support**: Offload processing to Web Workers
 3. **Format-Specific Builds**: Smaller bundles for specific use cases
 4. **Picture Support**: Add album artwork handling
-5. **Advanced Metadata**: Support for custom/proprietary tags
+5. **Automatic Tag Mapping**: Support for custom/proprietary tags
 
 ### Performance Optimizations
 
