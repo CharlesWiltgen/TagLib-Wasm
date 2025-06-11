@@ -72,8 +72,11 @@ jobs:
 
       - name: Update package for GitHub Packages
         run: |
-          # Update package name for GitHub Packages (must be lowercase)
+          # Update package name for GitHub Packages (must be lowercase and scoped)
           sed -i 's/"name": "[^"]*"/"name": "@charleswiltgen\/taglib-wasm"/' package.json
+          
+          # Update repository.url to remove git+ prefix (GitHub Packages requirement)
+          sed -i 's/"url": "git+https:/"url": "https:/' package.json
 
           # Update version if manual trigger
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
@@ -84,6 +87,9 @@ jobs:
               echo "Version already set to ${{ github.event.inputs.version }}"
             fi
           fi
+          
+          # Remove publishConfig that points to npmjs
+          sed -i '/"publishConfig":/,/}/d' package.json
 
       - uses: actions/setup-node@v4
         with:
