@@ -52,17 +52,20 @@ jobs:
             echo "Version already set to ${{ github.event.inputs.version }}"
           fi
 
-      - name: Check if package exists on npm
+      - name: Check if specific version exists on npm
         id: check_npm
         run: |
-          if npm view taglib-wasm version 2>/dev/null; then
+          PACKAGE_VERSION="${{ github.event_name == 'workflow_dispatch' && github.event.inputs.version || github.event.release.tag_name }}"
+          if npm view taglib-wasm@$PACKAGE_VERSION version 2>/dev/null; then
             echo "exists=true" >> $GITHUB_OUTPUT
+            echo "Version $PACKAGE_VERSION already exists on npm"
           else
             echo "exists=false" >> $GITHUB_OUTPUT
+            echo "Version $PACKAGE_VERSION does not exist on npm"
           fi
 
       - run: npm publish --access public
-        if: steps.check_npm.outputs.exists == 'false' || github.event_name == 'release'
+        if: steps.check_npm.outputs.exists == 'false'
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
@@ -114,21 +117,22 @@ jobs:
           echo "Registry:"
           npm config get registry
 
-      - name: Check if package exists on GitHub Packages
+      - name: Check if specific version exists on GitHub Packages
         id: check_github
         run: |
-          if npm view @charleswiltgen/taglib-wasm version --registry=https://npm.pkg.github.com/ 2>/dev/null; then
+          PACKAGE_VERSION="${{ github.event_name == 'workflow_dispatch' && github.event.inputs.version || github.event.release.tag_name }}"
+          if npm view @charleswiltgen/taglib-wasm@$PACKAGE_VERSION version --registry=https://npm.pkg.github.com/ 2>/dev/null; then
             echo "exists=true" >> $GITHUB_OUTPUT
-            echo "Package already exists on GitHub Packages"
+            echo "Version $PACKAGE_VERSION already exists on GitHub Packages"
           else
             echo "exists=false" >> $GITHUB_OUTPUT
-            echo "Package does not exist on GitHub Packages"
+            echo "Version $PACKAGE_VERSION does not exist on GitHub Packages"
           fi
         env:
           NODE_AUTH_TOKEN: ${{ github.token }}
 
       - run: npm publish --access public
-        if: steps.check_github.outputs.exists == 'false' || github.event_name == 'release'
+        if: steps.check_github.outputs.exists == 'false'
         env:
           NODE_AUTH_TOKEN: ${{ github.token }}
 
