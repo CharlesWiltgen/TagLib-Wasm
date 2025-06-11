@@ -86,7 +86,7 @@ async function demonstrateBunUsage() {
         file.setAppleSoundCheck("00000150 00000150 00000150 00000150...");
 
         console.log(
-          "✅ Advanced metadata set (would be stored format-specifically)",
+          "✅ Automatic tag mapping set (would be stored format-specifically)",
         );
 
         // Clean up

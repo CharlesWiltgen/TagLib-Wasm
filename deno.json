@@ -19,7 +19,7 @@
   },
   "tasks": {
     "build:wasm": "./build/build-wasm.sh",
-    "build:ts": "deno run --allow-run --allow-env npm:typescript/tsc",
+    "build:ts": "deno run --allow-read --allow-run --allow-env npm:typescript/tsc",
     "build": "deno task build:wasm && deno task build:ts",
     "test": "deno test --allow-read --allow-write --allow-run tests/",
     "test:watch": "deno test --watch --allow-read --allow-write --allow-run tests/",
@@ -51,6 +51,12 @@
     "noImplicitOverride": true,
     "noUncheckedIndexedAccess": true,
     "noPropertyAccessFromIndexSignature": true
+  },
+  "permissions": {
+    "read": true,
+    "write": true,
+    "run": true,
+    "env": true
   },
   "fmt": {
     "useTabs": false,

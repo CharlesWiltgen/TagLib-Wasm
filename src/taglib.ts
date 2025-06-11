@@ -182,7 +182,7 @@ export class AudioFile {
     // Get basic tags first
     const basicTag = this.tag();
 
-    // TODO: Implement advanced metadata reading via PropertyMap
+    // TODO: Implement automatic tag mapping reading via PropertyMap
     // For now, return basic tags with placeholder for advanced fields
     return {
       ...basicTag,
@@ -227,7 +227,7 @@ export class AudioFile {
     if (tag.year !== undefined) this.setYear(tag.year);
     if (tag.track !== undefined) this.setTrack(tag.track);
 
-    // TODO: Implement advanced metadata writing via PropertyMap
+    // TODO: Implement automatic tag mapping writing via PropertyMap
     // For fields like acoustidFingerprint, acoustidId, etc.
   }
 
