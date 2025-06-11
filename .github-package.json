@@ -1,5 +1,5 @@
 {
-  "name": "taglib-wasm",
+  "name": "@charleswiltgen/taglib-wasm",
   "version": "0.2.0",
   "description": "TagLib compiled to WebAssembly with TypeScript bindings for universal audio metadata handling",
   "main": "index.ts",
@@ -13,21 +13,17 @@
     "src/**/*",
     "build/taglib.wasm",
     "build/taglib.js",
-    "lib/taglib/COPYING*",
-    "README.md"
+    "lib/taglib/COPYING.LGPL",
+    "lib/taglib/COPYING.MPL"
   ],
   "scripts": {
     "build:wasm": "./build/build-wasm.sh",
-    "build:ts": "tsc",
-    "build": "npm run build:wasm && npm run build:ts",
+    "build:ts": "deno run --allow-read --allow-write --allow-run --allow-env npm:typescript/tsc",
+    "build": "deno task build:wasm && deno task build:ts",
     "test": "deno run --allow-read tests/test-systematic.ts",
     "test:bun": "bun run tests/test-systematic.ts",
     "test:node": "node --loader ts-node/esm tests/test-systematic.ts",
-    "update-taglib": "./scripts/update-taglib.sh",
-    "publish:npm": "npm publish",
-    "publish:github": "./scripts/publish-github.sh",
-    "publish:jsr": "deno publish",
-    "publish:all": "npm run publish:npm && npm run publish:github && npm run publish:jsr"
+    "update-taglib": "./scripts/update-taglib.sh"
   },
   "keywords": [
     "taglib",
@@ -49,26 +45,20 @@
     "musicbrainz",
     "acoustid"
   ],
-  "author": "Your Name <your.email@example.com>",
+  "author": "Charles Wiltgen <charles@wiltgen.net>",
   "license": "MIT",
   "repository": {
     "type": "git",
     "url": "https://github.com/CharlesWiltgen/taglib-wasm.git"
   },
   "publishConfig": {
-    "registry": "https://registry.npmjs.org/"
+    "registry": "https://npm.pkg.github.com/"
   },
   "bugs": {
     "url": "https://github.com/CharlesWiltgen/taglib-wasm/issues"
   },
   "homepage": "https://github.com/CharlesWiltgen/taglib-wasm#readme",
-  "devDependencies": {
-    "@types/emscripten": "^1.39.6",
-    "@types/node": "^20.0.0",
-    "typescript": "^5.0.0",
-    "jest": "^29.0.0"
-  },
-  "peerDependencies": {
-    "typescript": ">=4.5.0"
+  "engines": {
+    "node": ">=18.0.0"
   }
 }

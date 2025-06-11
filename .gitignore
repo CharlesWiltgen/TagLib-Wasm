@@ -161,3 +161,10 @@ mise.toml
 .claude/
 # Uncomment to ignore VSCode settings:
 # .vscode/
+
+# NPM and publishing
+.npmrc.local
+*.backup
+package.json.backup
+.npm-token
+.github-token

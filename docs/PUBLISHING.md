@@ -102,10 +102,40 @@ npm install taglib-wasm
 bun add taglib-wasm
 ```
 
-### Publish to Both
+### GitHub Packages Publishing
 
 ```bash
-# Publish to both registries
+# Publish to GitHub Packages
+npm run publish:github
+
+# Or manually
+./scripts/publish-github.sh
+```
+
+**GitHub Packages Configuration** (`.github-package.json`):
+
+- **Package name**: `@charleswiltgen/taglib-wasm`
+- **Registry**: `https://npm.pkg.github.com/`
+- **Entry point**: `index.ts`
+- **Includes**: TypeScript source + WASM files
+
+**Installation**:
+
+```bash
+npm install @charleswiltgen/taglib-wasm --registry=https://npm.pkg.github.com/
+bun add @charleswiltgen/taglib-wasm --registry=https://npm.pkg.github.com/
+```
+
+**Authentication** for GitHub Packages:
+
+1. Generate a GitHub Personal Access Token with `packages:write` permission
+2. Set environment variable: `export GITHUB_TOKEN=your_token_here`
+3. Or configure `.npmrc` with your token
+
+### Publish to All Registries
+
+```bash
+# Publish to NPM + GitHub Packages + JSR
 npm run publish:all
 ```
 
