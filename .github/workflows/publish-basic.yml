@@ -11,7 +11,8 @@ on:
         type: string
 
 jobs:
-  test:
+  publish-everywhere:
+    name: "Publish everywhere"
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -27,7 +28,7 @@ jobs:
       - run: deno task test --no-lock || echo "Tests failed but continuing"
 
   publish-npm:
-    needs: test
+    needs: publish-everywhere
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -66,7 +67,7 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
   publish-github:
-    needs: test
+    needs: publish-everywhere
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -133,7 +134,7 @@ jobs:
 
   publish-jsr:
     # Publish to JSR (jsr.io) using OIDC, not Denoland
-    needs: test
+    needs: publish-everywhere
     runs-on: ubuntu-latest
     permissions:
       contents: read
