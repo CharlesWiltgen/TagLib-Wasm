@@ -12,14 +12,14 @@ import type {
   Picture,
   Tag,
   TagLibConfig,
-} from "./types";
+} from "./types.ts";
 import {
   cStringToJSJSR,
   jsToCStringJSR,
   loadTagLibModuleJSR,
   type TagLibModule,
-} from "./wasm-jsr";
-import { METADATA_MAPPINGS } from "./types";
+} from "./wasm-jsr.ts";
+import { METADATA_MAPPINGS } from "./types.ts";
 
 /**
  * JSR-compatible TagLib singleton for WASM module management
