@@ -41,7 +41,7 @@ jobs:
           # Update deno.json version too
           sed -i 's/"version": "[^"]*"/"version": "${{ github.event.inputs.version }}"/' deno.json
       
-      - run: npm publish
+      - run: npm publish --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
@@ -66,7 +66,7 @@ jobs:
           # Update package name for GitHub Packages
           sed -i 's/"name": "[^"]*"/"name": "@charleswiltgen\/taglib-wasm"/' package.json
       
-      - run: npm publish
+      - run: npm publish --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
