@@ -4,7 +4,8 @@
   "description": "TagLib compiled to WebAssembly with TypeScript bindings for universal audio metadata handling",
   "license": "MIT",
   "exports": {
-    ".": "./mod.ts"
+    ".": "./mod.ts",
+    "./simple": "./src/simple-jsr.ts"
   },
   "publish": {
     "include": [
@@ -12,6 +13,7 @@
       "src/taglib-jsr.ts",
       "src/wasm-jsr.ts",
       "src/types.ts",
+      "src/simple-jsr.ts",
       "build/taglib.wasm",
       "README.md",
       "LICENSE",
