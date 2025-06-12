@@ -75,6 +75,18 @@ export interface TagLibModule {
   _taglib_audioproperties_samplerate: (props: number) => number;
   _taglib_audioproperties_channels: (props: number) => number;
 
+  // PropertyMap operations
+  _taglib_file_properties_json: (fileId: number) => number;
+  _taglib_file_set_properties_json: (fileId: number, json: number) => number;
+  _taglib_file_get_property: (fileId: number, key: number) => number;
+  _taglib_file_set_property: (fileId: number, key: number, value: number) => number;
+
+  // MP4-specific operations
+  _taglib_file_is_mp4: (fileId: number) => number;
+  _taglib_mp4_get_item: (fileId: number, key: number) => number;
+  _taglib_mp4_set_item: (fileId: number, key: number, value: number) => number;
+  _taglib_mp4_remove_item: (fileId: number, key: number) => number;
+
   // String utilities
   _taglib_string_new: (str: number) => number;
   _taglib_string_delete: (str: number) => void;
