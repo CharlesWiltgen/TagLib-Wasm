@@ -7,9 +7,7 @@
   "exports": {
     ".": "./index.ts",
     "./workers": "./src/workers.ts",
-    "./simple": "./src/simple.ts",
-    "./auto": "./src/auto.ts",
-    "./fluent": "./src/fluent.ts"
+    "./simple": "./src/simple.ts"
   },
   "files": [
     "index.ts",
