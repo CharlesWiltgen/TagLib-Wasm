@@ -25,6 +25,7 @@
     "test:bun": "bun run tests/test-systematic.ts",
     "test:node": "node --loader ts-node/esm tests/test-systematic.ts",
     "update-taglib": "./scripts/update-taglib.sh",
+    "release": "./scripts/release.sh",
     "publish:npm": "echo 'Use GitHub Actions workflow for publishing'",
     "publish:github": "echo 'Use GitHub Actions workflow for publishing'",
     "publish:jsr": "echo 'Use GitHub Actions workflow for publishing'",
