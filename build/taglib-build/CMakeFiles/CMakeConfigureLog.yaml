@@ -1,0 +1,387 @@
+
+---
+events:
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/opt/homebrew/share/cmake/Modules/CMakeDetermineSystem.cmake:200 (message)"
+      - "CMakeLists.txt:3 (project)"
+    message: |
+      The target system is: Emscripten - 1 - x86
+      The host system is: Darwin - 24.5.0 - arm64
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/opt/homebrew/share/cmake/Modules/CheckIncludeFile.cmake:99 (try_compile)"
+      - "/opt/homebrew/share/cmake/Modules/CheckTypeSize.cmake:318 (check_include_file)"
+      - "ConfigureChecks.cmake:7 (check_type_size)"
+      - "CMakeLists.txt:101 (include)"
+    checks:
+      - "Looking for sys/types.h"
+    directories:
+      source: "/Users/Charles/Projects/taglib-wasm/build/taglib-build/CMakeFiles/CMakeScratch/TryCompile-tCIIy0"
+      binary: "/Users/Charles/Projects/taglib-wasm/build/taglib-build/CMakeFiles/CMakeScratch/TryCompile-tCIIy0"
+    cmakeVariables:
+      CMAKE_CXX_COMPILER_CLANG_SCAN_DEPS: "/opt/homebrew/Cellar/emscripten/4.0.10/libexec/emscan-deps"
+      CMAKE_C_FLAGS: "-O3 -Wall"
+      CMAKE_EXE_LINKER_FLAGS: ""
+      CMAKE_MODULE_PATH: "/Users/Charles/Projects/taglib-wasm/lib/taglib/cmake/modules"
+    buildResult:
+      variable: "HAVE_SYS_TYPES_H"
+      cached: true
+      stdout: |
+        Change Dir: '/Users/Charles/Projects/taglib-wasm/build/taglib-build/CMakeFiles/CMakeScratch/TryCompile-tCIIy0'
+        
+        Run Build Command(s): /opt/homebrew/bin/cmake -E env VERBOSE=1 /usr/bin/make -f Makefile cmTC_2d3cc/fast
+        /Applications/Xcode.app/Contents/Developer/usr/bin/make  -f CMakeFiles/cmTC_2d3cc.dir/build.make CMakeFiles/cmTC_2d3cc.dir/build
+        Building C object CMakeFiles/cmTC_2d3cc.dir/CheckIncludeFile.c.o
+        /opt/homebrew/Cellar/emscripten/4.0.10/libexec/emcc   -O3 -Wall  -MD -MT CMakeFiles/cmTC_2d3cc.dir/CheckIncludeFile.c.o -MF CMakeFiles/cmTC_2d3cc.dir/CheckIncludeFile.c.o.d -o CMakeFiles/cmTC_2d3cc.dir/CheckIncludeFile.c.o -c /Users/Charles/Projects/taglib-wasm/build/taglib-build/CMakeFiles/CMakeScratch/TryCompile-tCIIy0/CheckIncludeFile.c
+        Linking C executable cmTC_2d3cc.js
+        /opt/homebrew/bin/cmake -E cmake_link_script CMakeFiles/cmTC_2d3cc.dir/link.txt --verbose=1
+        /opt/homebrew/Cellar/emscripten/4.0.10/libexec/emcc -O3 -Wall  @CMakeFiles/cmTC_2d3cc.dir/objects1.rsp -o cmTC_2d3cc.js
+        
+      exitCode: 0
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/opt/homebrew/share/cmake/Modules/CheckIncludeFile.cmake:99 (try_compile)"
+      - "/opt/homebrew/share/cmake/Modules/CheckTypeSize.cmake:319 (check_include_file)"
+      - "ConfigureChecks.cmake:7 (check_type_size)"
+      - "CMakeLists.txt:101 (include)"
+    checks:
+      - "Looking for stdint.h"
+    directories:
+      source: "/Users/Charles/Projects/taglib-wasm/build/taglib-build/CMakeFiles/CMakeScratch/TryCompile-ncCIma"
+      binary: "/Users/Charles/Projects/taglib-wasm/build/taglib-build/CMakeFiles/CMakeScratch/TryCompile-ncCIma"
+    cmakeVariables:
+      CMAKE_CXX_COMPILER_CLANG_SCAN_DEPS: "/opt/homebrew/Cellar/emscripten/4.0.10/libexec/emscan-deps"
+      CMAKE_C_FLAGS: "-O3 -Wall"
+      CMAKE_EXE_LINKER_FLAGS: ""
+      CMAKE_MODULE_PATH: "/Users/Charles/Projects/taglib-wasm/lib/taglib/cmake/modules"
+    buildResult:
+      variable: "HAVE_STDINT_H"
+      cached: true
+      stdout: |
+        Change Dir: '/Users/Charles/Projects/taglib-wasm/build/taglib-build/CMakeFiles/CMakeScratch/TryCompile-ncCIma'
+        
+        Run Build Command(s): /opt/homebrew/bin/cmake -E env VERBOSE=1 /usr/bin/make -f Makefile cmTC_43456/fast
+        /Applications/Xcode.app/Contents/Developer/usr/bin/make  -f CMakeFiles/cmTC_43456.dir/build.make CMakeFiles/cmTC_43456.dir/build
+        Building C object CMakeFiles/cmTC_43456.dir/CheckIncludeFile.c.o
+        /opt/homebrew/Cellar/emscripten/4.0.10/libexec/emcc   -O3 -Wall  -MD -MT CMakeFiles/cmTC_43456.dir/CheckIncludeFile.c.o -MF CMakeFiles/cmTC_43456.dir/CheckIncludeFile.c.o.d -o CMakeFiles/cmTC_43456.dir/CheckIncludeFile.c.o -c /Users/Charles/Projects/taglib-wasm/build/taglib-build/CMakeFiles/CMakeScratch/TryCompile-ncCIma/CheckIncludeFile.c
+        Linking C executable cmTC_43456.js
+        /opt/homebrew/bin/cmake -E cmake_link_script CMakeFiles/cmTC_43456.dir/link.txt --verbose=1
+        /opt/homebrew/Cellar/emscripten/4.0.10/libexec/emcc -O3 -Wall  @CMakeFiles/cmTC_43456.dir/objects1.rsp -o cmTC_43456.js
+        
+      exitCode: 0
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/opt/homebrew/share/cmake/Modules/CheckIncludeFile.cmake:99 (try_compile)"
+      - "/opt/homebrew/share/cmake/Modules/CheckTypeSize.cmake:320 (check_include_file)"
+      - "ConfigureChecks.cmake:7 (check_type_size)"
+      - "CMakeLists.txt:101 (include)"
+    checks:
+      - "Looking for stddef.h"
+    directories:
+      source: "/Users/Charles/Projects/taglib-wasm/build/taglib-build/CMakeFiles/CMakeScratch/TryCompile-bXlF3c"
+      binary: "/Users/Charles/Projects/taglib-wasm/build/taglib-build/CMakeFiles/CMakeScratch/TryCompile-bXlF3c"
+    cmakeVariables:
+      CMAKE_CXX_COMPILER_CLANG_SCAN_DEPS: "/opt/homebrew/Cellar/emscripten/4.0.10/libexec/emscan-deps"
+      CMAKE_C_FLAGS: "-O3 -Wall"
+      CMAKE_EXE_LINKER_FLAGS: ""
+      CMAKE_MODULE_PATH: "/Users/Charles/Projects/taglib-wasm/lib/taglib/cmake/modules"
+    buildResult:
+      variable: "HAVE_STDDEF_H"
+      cached: true
+      stdout: |
+        Change Dir: '/Users/Charles/Projects/taglib-wasm/build/taglib-build/CMakeFiles/CMakeScratch/TryCompile-bXlF3c'
+        
+        Run Build Command(s): /opt/homebrew/bin/cmake -E env VERBOSE=1 /usr/bin/make -f Makefile cmTC_07eab/fast
+        /Applications/Xcode.app/Contents/Developer/usr/bin/make  -f CMakeFiles/cmTC_07eab.dir/build.make CMakeFiles/cmTC_07eab.dir/build
+        Building C object CMakeFiles/cmTC_07eab.dir/CheckIncludeFile.c.o
+        /opt/homebrew/Cellar/emscripten/4.0.10/libexec/emcc   -O3 -Wall  -MD -MT CMakeFiles/cmTC_07eab.dir/CheckIncludeFile.c.o -MF CMakeFiles/cmTC_07eab.dir/CheckIncludeFile.c.o.d -o CMakeFiles/cmTC_07eab.dir/CheckIncludeFile.c.o -c /Users/Charles/Projects/taglib-wasm/build/taglib-build/CMakeFiles/CMakeScratch/TryCompile-bXlF3c/CheckIncludeFile.c
+        Linking C executable cmTC_07eab.js
+        /opt/homebrew/bin/cmake -E cmake_link_script CMakeFiles/cmTC_07eab.dir/link.txt --verbose=1
+        /opt/homebrew/Cellar/emscripten/4.0.10/libexec/emcc -O3 -Wall  @CMakeFiles/cmTC_07eab.dir/objects1.rsp -o cmTC_07eab.js
+        
+      exitCode: 0
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/opt/homebrew/share/cmake/Modules/CheckTypeSize.cmake:212 (try_compile)"
+      - "/opt/homebrew/share/cmake/Modules/CheckTypeSize.cmake:339 (__check_type_size_impl)"
+      - "ConfigureChecks.cmake:7 (check_type_size)"
+      - "CMakeLists.txt:101 (include)"
+    checks:
+      - "Check size of short"
+    directories:
+      source: "/Users/Charles/Projects/taglib-wasm/build/taglib-build/CMakeFiles/CMakeScratch/TryCompile-VS0E7k"
+      binary: "/Users/Charles/Projects/taglib-wasm/build/taglib-build/CMakeFiles/CMakeScratch/TryCompile-VS0E7k"
+    cmakeVariables:
+      CMAKE_CXX_COMPILER_CLANG_SCAN_DEPS: "/opt/homebrew/Cellar/emscripten/4.0.10/libexec/emscan-deps"
+      CMAKE_C_FLAGS: "-O3 -Wall"
+      CMAKE_EXE_LINKER_FLAGS: ""
+      CMAKE_MODULE_PATH: "/Users/Charles/Projects/taglib-wasm/lib/taglib/cmake/modules"
+    buildResult:
+      variable: "HAVE_SIZEOF_SHORT"
+      cached: true
+      stdout: |
+        Change Dir: '/Users/Charles/Projects/taglib-wasm/build/taglib-build/CMakeFiles/CMakeScratch/TryCompile-VS0E7k'
+        
+        Run Build Command(s): /opt/homebrew/bin/cmake -E env VERBOSE=1 /usr/bin/make -f Makefile cmTC_9281f/fast
+        /Applications/Xcode.app/Contents/Developer/usr/bin/make  -f CMakeFiles/cmTC_9281f.dir/build.make CMakeFiles/cmTC_9281f.dir/build
+        Building C object CMakeFiles/cmTC_9281f.dir/SIZEOF_SHORT.c.o
+        /opt/homebrew/Cellar/emscripten/4.0.10/libexec/emcc   -O3 -Wall  -MD -MT CMakeFiles/cmTC_9281f.dir/SIZEOF_SHORT.c.o -MF CMakeFiles/cmTC_9281f.dir/SIZEOF_SHORT.c.o.d -o CMakeFiles/cmTC_9281f.dir/SIZEOF_SHORT.c.o -c /Users/Charles/Projects/taglib-wasm/build/taglib-build/CMakeFiles/CMakeScratch/TryCompile-VS0E7k/SIZEOF_SHORT.c
+        Linking C executable cmTC_9281f.js
+        /opt/homebrew/bin/cmake -E cmake_link_script CMakeFiles/cmTC_9281f.dir/link.txt --verbose=1
+        /opt/homebrew/Cellar/emscripten/4.0.10/libexec/emcc -O3 -Wall  @CMakeFiles/cmTC_9281f.dir/objects1.rsp -o cmTC_9281f.js
+        
+      exitCode: 0
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/opt/homebrew/share/cmake/Modules/CheckTypeSize.cmake:212 (try_compile)"
+      - "/opt/homebrew/share/cmake/Modules/CheckTypeSize.cmake:339 (__check_type_size_impl)"
+      - "ConfigureChecks.cmake:12 (check_type_size)"
+      - "CMakeLists.txt:101 (include)"
+    checks:
+      - "Check size of int"
+    directories:
+      source: "/Users/Charles/Projects/taglib-wasm/build/taglib-build/CMakeFiles/CMakeScratch/TryCompile-MxIhrT"
+      binary: "/Users/Charles/Projects/taglib-wasm/build/taglib-build/CMakeFiles/CMakeScratch/TryCompile-MxIhrT"
+    cmakeVariables:
+      CMAKE_CXX_COMPILER_CLANG_SCAN_DEPS: "/opt/homebrew/Cellar/emscripten/4.0.10/libexec/emscan-deps"
+      CMAKE_C_FLAGS: "-O3 -Wall"
+      CMAKE_EXE_LINKER_FLAGS: ""
+      CMAKE_MODULE_PATH: "/Users/Charles/Projects/taglib-wasm/lib/taglib/cmake/modules"
+    buildResult:
+      variable: "HAVE_SIZEOF_INT"
+      cached: true
+      stdout: |
+        Change Dir: '/Users/Charles/Projects/taglib-wasm/build/taglib-build/CMakeFiles/CMakeScratch/TryCompile-MxIhrT'
+        
+        Run Build Command(s): /opt/homebrew/bin/cmake -E env VERBOSE=1 /usr/bin/make -f Makefile cmTC_31e8e/fast
+        /Applications/Xcode.app/Contents/Developer/usr/bin/make  -f CMakeFiles/cmTC_31e8e.dir/build.make CMakeFiles/cmTC_31e8e.dir/build
+        Building C object CMakeFiles/cmTC_31e8e.dir/SIZEOF_INT.c.o
+        /opt/homebrew/Cellar/emscripten/4.0.10/libexec/emcc   -O3 -Wall  -MD -MT CMakeFiles/cmTC_31e8e.dir/SIZEOF_INT.c.o -MF CMakeFiles/cmTC_31e8e.dir/SIZEOF_INT.c.o.d -o CMakeFiles/cmTC_31e8e.dir/SIZEOF_INT.c.o -c /Users/Charles/Projects/taglib-wasm/build/taglib-build/CMakeFiles/CMakeScratch/TryCompile-MxIhrT/SIZEOF_INT.c
+        Linking C executable cmTC_31e8e.js
+        /opt/homebrew/bin/cmake -E cmake_link_script CMakeFiles/cmTC_31e8e.dir/link.txt --verbose=1
+        /opt/homebrew/Cellar/emscripten/4.0.10/libexec/emcc -O3 -Wall  @CMakeFiles/cmTC_31e8e.dir/objects1.rsp -o cmTC_31e8e.js
+        
+      exitCode: 0
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/opt/homebrew/share/cmake/Modules/CheckTypeSize.cmake:212 (try_compile)"
+      - "/opt/homebrew/share/cmake/Modules/CheckTypeSize.cmake:339 (__check_type_size_impl)"
+      - "ConfigureChecks.cmake:17 (check_type_size)"
+      - "CMakeLists.txt:101 (include)"
+    checks:
+      - "Check size of long long"
+    directories:
+      source: "/Users/Charles/Projects/taglib-wasm/build/taglib-build/CMakeFiles/CMakeScratch/TryCompile-8xtB4q"
+      binary: "/Users/Charles/Projects/taglib-wasm/build/taglib-build/CMakeFiles/CMakeScratch/TryCompile-8xtB4q"
+    cmakeVariables:
+      CMAKE_CXX_COMPILER_CLANG_SCAN_DEPS: "/opt/homebrew/Cellar/emscripten/4.0.10/libexec/emscan-deps"
+      CMAKE_C_FLAGS: "-O3 -Wall"
+      CMAKE_EXE_LINKER_FLAGS: ""
+      CMAKE_MODULE_PATH: "/Users/Charles/Projects/taglib-wasm/lib/taglib/cmake/modules"
+    buildResult:
+      variable: "HAVE_SIZEOF_LONGLONG"
+      cached: true
+      stdout: |
+        Change Dir: '/Users/Charles/Projects/taglib-wasm/build/taglib-build/CMakeFiles/CMakeScratch/TryCompile-8xtB4q'
+        
+        Run Build Command(s): /opt/homebrew/bin/cmake -E env VERBOSE=1 /usr/bin/make -f Makefile cmTC_f452b/fast
+        /Applications/Xcode.app/Contents/Developer/usr/bin/make  -f CMakeFiles/cmTC_f452b.dir/build.make CMakeFiles/cmTC_f452b.dir/build
+        Building C object CMakeFiles/cmTC_f452b.dir/SIZEOF_LONGLONG.c.o
+        /opt/homebrew/Cellar/emscripten/4.0.10/libexec/emcc   -O3 -Wall  -MD -MT CMakeFiles/cmTC_f452b.dir/SIZEOF_LONGLONG.c.o -MF CMakeFiles/cmTC_f452b.dir/SIZEOF_LONGLONG.c.o.d -o CMakeFiles/cmTC_f452b.dir/SIZEOF_LONGLONG.c.o -c /Users/Charles/Projects/taglib-wasm/build/taglib-build/CMakeFiles/CMakeScratch/TryCompile-8xtB4q/SIZEOF_LONGLONG.c
+        Linking C executable cmTC_f452b.js
+        /opt/homebrew/bin/cmake -E cmake_link_script CMakeFiles/cmTC_f452b.dir/link.txt --verbose=1
+        /opt/homebrew/Cellar/emscripten/4.0.10/libexec/emcc -O3 -Wall  @CMakeFiles/cmTC_f452b.dir/objects1.rsp -o cmTC_f452b.js
+        
+      exitCode: 0
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/opt/homebrew/share/cmake/Modules/CheckTypeSize.cmake:212 (try_compile)"
+      - "/opt/homebrew/share/cmake/Modules/CheckTypeSize.cmake:339 (__check_type_size_impl)"
+      - "ConfigureChecks.cmake:22 (check_type_size)"
+      - "CMakeLists.txt:101 (include)"
+    checks:
+      - "Check size of wchar_t"
+    directories:
+      source: "/Users/Charles/Projects/taglib-wasm/build/taglib-build/CMakeFiles/CMakeScratch/TryCompile-mXZfID"
+      binary: "/Users/Charles/Projects/taglib-wasm/build/taglib-build/CMakeFiles/CMakeScratch/TryCompile-mXZfID"
+    cmakeVariables:
+      CMAKE_CXX_COMPILER_CLANG_SCAN_DEPS: "/opt/homebrew/Cellar/emscripten/4.0.10/libexec/emscan-deps"
+      CMAKE_C_FLAGS: "-O3 -Wall"
+      CMAKE_EXE_LINKER_FLAGS: ""
+      CMAKE_MODULE_PATH: "/Users/Charles/Projects/taglib-wasm/lib/taglib/cmake/modules"
+    buildResult:
+      variable: "HAVE_SIZEOF_WCHAR_T"
+      cached: true
+      stdout: |
+        Change Dir: '/Users/Charles/Projects/taglib-wasm/build/taglib-build/CMakeFiles/CMakeScratch/TryCompile-mXZfID'
+        
+        Run Build Command(s): /opt/homebrew/bin/cmake -E env VERBOSE=1 /usr/bin/make -f Makefile cmTC_572a4/fast
+        /Applications/Xcode.app/Contents/Developer/usr/bin/make  -f CMakeFiles/cmTC_572a4.dir/build.make CMakeFiles/cmTC_572a4.dir/build
+        Building C object CMakeFiles/cmTC_572a4.dir/SIZEOF_WCHAR_T.c.o
+        /opt/homebrew/Cellar/emscripten/4.0.10/libexec/emcc   -O3 -Wall  -MD -MT CMakeFiles/cmTC_572a4.dir/SIZEOF_WCHAR_T.c.o -MF CMakeFiles/cmTC_572a4.dir/SIZEOF_WCHAR_T.c.o.d -o CMakeFiles/cmTC_572a4.dir/SIZEOF_WCHAR_T.c.o -c /Users/Charles/Projects/taglib-wasm/build/taglib-build/CMakeFiles/CMakeScratch/TryCompile-mXZfID/SIZEOF_WCHAR_T.c
+        Linking C executable cmTC_572a4.js
+        /opt/homebrew/bin/cmake -E cmake_link_script CMakeFiles/cmTC_572a4.dir/link.txt --verbose=1
+        /opt/homebrew/Cellar/emscripten/4.0.10/libexec/emcc -O3 -Wall  @CMakeFiles/cmTC_572a4.dir/objects1.rsp -o cmTC_572a4.js
+        
+      exitCode: 0
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/opt/homebrew/share/cmake/Modules/CheckTypeSize.cmake:212 (try_compile)"
+      - "/opt/homebrew/share/cmake/Modules/CheckTypeSize.cmake:339 (__check_type_size_impl)"
+      - "ConfigureChecks.cmake:27 (check_type_size)"
+      - "CMakeLists.txt:101 (include)"
+    checks:
+      - "Check size of float"
+    directories:
+      source: "/Users/Charles/Projects/taglib-wasm/build/taglib-build/CMakeFiles/CMakeScratch/TryCompile-odxWnx"
+      binary: "/Users/Charles/Projects/taglib-wasm/build/taglib-build/CMakeFiles/CMakeScratch/TryCompile-odxWnx"
+    cmakeVariables:
+      CMAKE_CXX_COMPILER_CLANG_SCAN_DEPS: "/opt/homebrew/Cellar/emscripten/4.0.10/libexec/emscan-deps"
+      CMAKE_C_FLAGS: "-O3 -Wall"
+      CMAKE_EXE_LINKER_FLAGS: ""
+      CMAKE_MODULE_PATH: "/Users/Charles/Projects/taglib-wasm/lib/taglib/cmake/modules"
+    buildResult:
+      variable: "HAVE_SIZEOF_FLOAT"
+      cached: true
+      stdout: |
+        Change Dir: '/Users/Charles/Projects/taglib-wasm/build/taglib-build/CMakeFiles/CMakeScratch/TryCompile-odxWnx'
+        
+        Run Build Command(s): /opt/homebrew/bin/cmake -E env VERBOSE=1 /usr/bin/make -f Makefile cmTC_2819d/fast
+        /Applications/Xcode.app/Contents/Developer/usr/bin/make  -f CMakeFiles/cmTC_2819d.dir/build.make CMakeFiles/cmTC_2819d.dir/build
+        Building C object CMakeFiles/cmTC_2819d.dir/SIZEOF_FLOAT.c.o
+        /opt/homebrew/Cellar/emscripten/4.0.10/libexec/emcc   -O3 -Wall  -MD -MT CMakeFiles/cmTC_2819d.dir/SIZEOF_FLOAT.c.o -MF CMakeFiles/cmTC_2819d.dir/SIZEOF_FLOAT.c.o.d -o CMakeFiles/cmTC_2819d.dir/SIZEOF_FLOAT.c.o -c /Users/Charles/Projects/taglib-wasm/build/taglib-build/CMakeFiles/CMakeScratch/TryCompile-odxWnx/SIZEOF_FLOAT.c
+        Linking C executable cmTC_2819d.js
+        /opt/homebrew/bin/cmake -E cmake_link_script CMakeFiles/cmTC_2819d.dir/link.txt --verbose=1
+        /opt/homebrew/Cellar/emscripten/4.0.10/libexec/emcc -O3 -Wall  @CMakeFiles/cmTC_2819d.dir/objects1.rsp -o cmTC_2819d.js
+        
+      exitCode: 0
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/opt/homebrew/share/cmake/Modules/CheckTypeSize.cmake:212 (try_compile)"
+      - "/opt/homebrew/share/cmake/Modules/CheckTypeSize.cmake:339 (__check_type_size_impl)"
+      - "ConfigureChecks.cmake:32 (check_type_size)"
+      - "CMakeLists.txt:101 (include)"
+    checks:
+      - "Check size of double"
+    directories:
+      source: "/Users/Charles/Projects/taglib-wasm/build/taglib-build/CMakeFiles/CMakeScratch/TryCompile-KHK3WQ"
+      binary: "/Users/Charles/Projects/taglib-wasm/build/taglib-build/CMakeFiles/CMakeScratch/TryCompile-KHK3WQ"
+    cmakeVariables:
+      CMAKE_CXX_COMPILER_CLANG_SCAN_DEPS: "/opt/homebrew/Cellar/emscripten/4.0.10/libexec/emscan-deps"
+      CMAKE_C_FLAGS: "-O3 -Wall"
+      CMAKE_EXE_LINKER_FLAGS: ""
+      CMAKE_MODULE_PATH: "/Users/Charles/Projects/taglib-wasm/lib/taglib/cmake/modules"
+    buildResult:
+      variable: "HAVE_SIZEOF_DOUBLE"
+      cached: true
+      stdout: |
+        Change Dir: '/Users/Charles/Projects/taglib-wasm/build/taglib-build/CMakeFiles/CMakeScratch/TryCompile-KHK3WQ'
+        
+        Run Build Command(s): /opt/homebrew/bin/cmake -E env VERBOSE=1 /usr/bin/make -f Makefile cmTC_700c8/fast
+        /Applications/Xcode.app/Contents/Developer/usr/bin/make  -f CMakeFiles/cmTC_700c8.dir/build.make CMakeFiles/cmTC_700c8.dir/build
+        Building C object CMakeFiles/cmTC_700c8.dir/SIZEOF_DOUBLE.c.o
+        /opt/homebrew/Cellar/emscripten/4.0.10/libexec/emcc   -O3 -Wall  -MD -MT CMakeFiles/cmTC_700c8.dir/SIZEOF_DOUBLE.c.o -MF CMakeFiles/cmTC_700c8.dir/SIZEOF_DOUBLE.c.o.d -o CMakeFiles/cmTC_700c8.dir/SIZEOF_DOUBLE.c.o -c /Users/Charles/Projects/taglib-wasm/build/taglib-build/CMakeFiles/CMakeScratch/TryCompile-KHK3WQ/SIZEOF_DOUBLE.c
+        Linking C executable cmTC_700c8.js
+        /opt/homebrew/bin/cmake -E cmake_link_script CMakeFiles/cmTC_700c8.dir/link.txt --verbose=1
+        /opt/homebrew/Cellar/emscripten/4.0.10/libexec/emcc -O3 -Wall  @CMakeFiles/cmTC_700c8.dir/objects1.rsp -o cmTC_700c8.js
+        
+      exitCode: 0
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/opt/homebrew/share/cmake/Modules/Internal/CheckSourceCompiles.cmake:104 (try_compile)"
+      - "/opt/homebrew/share/cmake/Modules/CheckCXXSourceCompiles.cmake:58 (cmake_check_source_compiles)"
+      - "ConfigureChecks.cmake:39 (check_cxx_source_compiles)"
+      - "CMakeLists.txt:101 (include)"
+    checks:
+      - "Performing Test HAVE_GCC_BYTESWAP"
+    directories:
+      source: "/Users/Charles/Projects/taglib-wasm/build/taglib-build/CMakeFiles/CMakeScratch/TryCompile-NatvBK"
+      binary: "/Users/Charles/Projects/taglib-wasm/build/taglib-build/CMakeFiles/CMakeScratch/TryCompile-NatvBK"
+    cmakeVariables:
+      CMAKE_CXX_COMPILER_CLANG_SCAN_DEPS: "/opt/homebrew/Cellar/emscripten/4.0.10/libexec/emscan-deps"
+      CMAKE_CXX_FLAGS: "-O3 -fexceptions -Wall"
+      CMAKE_EXE_LINKER_FLAGS: ""
+      CMAKE_MODULE_PATH: "/Users/Charles/Projects/taglib-wasm/lib/taglib/cmake/modules"
+    buildResult:
+      variable: "HAVE_GCC_BYTESWAP"
+      cached: true
+      stdout: |
+        Change Dir: '/Users/Charles/Projects/taglib-wasm/build/taglib-build/CMakeFiles/CMakeScratch/TryCompile-NatvBK'
+        
+        Run Build Command(s): /opt/homebrew/bin/cmake -E env VERBOSE=1 /usr/bin/make -f Makefile cmTC_01bf1/fast
+        /Applications/Xcode.app/Contents/Developer/usr/bin/make  -f CMakeFiles/cmTC_01bf1.dir/build.make CMakeFiles/cmTC_01bf1.dir/build
+        Building CXX object CMakeFiles/cmTC_01bf1.dir/src.cxx.o
+        /opt/homebrew/Cellar/emscripten/4.0.10/libexec/em++ -DHAVE_GCC_BYTESWAP  -O3 -fexceptions -Wall  -MD -MT CMakeFiles/cmTC_01bf1.dir/src.cxx.o -MF CMakeFiles/cmTC_01bf1.dir/src.cxx.o.d -o CMakeFiles/cmTC_01bf1.dir/src.cxx.o -c /Users/Charles/Projects/taglib-wasm/build/taglib-build/CMakeFiles/CMakeScratch/TryCompile-NatvBK/src.cxx
+        /Users/Charles/Projects/taglib-wasm/build/taglib-build/CMakeFiles/CMakeScratch/TryCompile-NatvBK/src.cxx:3:5: warning: ignoring return value of function declared with const attribute [-Wunused-value]
+            3 |     __builtin_bswap16(0);
+              |     ^~~~~~~~~~~~~~~~~ ~
+        /Users/Charles/Projects/taglib-wasm/build/taglib-build/CMakeFiles/CMakeScratch/TryCompile-NatvBK/src.cxx:4:5: warning: ignoring return value of function declared with const attribute [-Wunused-value]
+            4 |     __builtin_bswap32(0);
+              |     ^~~~~~~~~~~~~~~~~ ~
+        /Users/Charles/Projects/taglib-wasm/build/taglib-build/CMakeFiles/CMakeScratch/TryCompile-NatvBK/src.cxx:5:5: warning: ignoring return value of function declared with const attribute [-Wunused-value]
+            5 |     __builtin_bswap64(0);
+              |     ^~~~~~~~~~~~~~~~~ ~
+        3 warnings generated.
+        Linking CXX executable cmTC_01bf1.js
+        /opt/homebrew/bin/cmake -E cmake_link_script CMakeFiles/cmTC_01bf1.dir/link.txt --verbose=1
+        cache:INFO: generating system library: sysroot/lib/wasm32-emscripten/libc++.a... (this will be cached in "/opt/homebrew/Cellar/emscripten/4.0.10/libexec/cache/sysroot/lib/wasm32-emscripten/libc++.a" for subsequent builds)
+        system_libs:INFO: compiled 56 inputs in 4.34s
+        cache:INFO:  - ok
+        cache:INFO: generating system library: sysroot/lib/wasm32-emscripten/libc++abi.a... (this will be cached in "/opt/homebrew/Cellar/emscripten/4.0.10/libexec/cache/sysroot/lib/wasm32-emscripten/libc++abi.a" for subsequent builds)
+        system_libs:INFO: compiled 16 inputs in 1.19s
+        cache:INFO:  - ok
+        /opt/homebrew/Cellar/emscripten/4.0.10/libexec/em++ -O3 -fexceptions -Wall  @CMakeFiles/cmTC_01bf1.dir/objects1.rsp -o cmTC_01bf1.js
+        
+      exitCode: 0
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/opt/homebrew/share/cmake/Modules/Internal/CheckSourceCompiles.cmake:104 (try_compile)"
+      - "/opt/homebrew/share/cmake/Modules/CheckCXXSourceCompiles.cmake:58 (cmake_check_source_compiles)"
+      - "ConfigureChecks.cmake:98 (check_cxx_source_compiles)"
+      - "CMakeLists.txt:101 (include)"
+    checks:
+      - "Performing Test HAVE_ISO_STRDUP"
+    directories:
+      source: "/Users/Charles/Projects/taglib-wasm/build/taglib-build/CMakeFiles/CMakeScratch/TryCompile-vOffg2"
+      binary: "/Users/Charles/Projects/taglib-wasm/build/taglib-build/CMakeFiles/CMakeScratch/TryCompile-vOffg2"
+    cmakeVariables:
+      CMAKE_CXX_COMPILER_CLANG_SCAN_DEPS: "/opt/homebrew/Cellar/emscripten/4.0.10/libexec/emscan-deps"
+      CMAKE_CXX_FLAGS: "-O3 -fexceptions -Wall"
+      CMAKE_EXE_LINKER_FLAGS: ""
+      CMAKE_MODULE_PATH: "/Users/Charles/Projects/taglib-wasm/lib/taglib/cmake/modules"
+    buildResult:
+      variable: "HAVE_ISO_STRDUP"
+      cached: true
+      stdout: |
+        Change Dir: '/Users/Charles/Projects/taglib-wasm/build/taglib-build/CMakeFiles/CMakeScratch/TryCompile-vOffg2'
+        
+        Run Build Command(s): /opt/homebrew/bin/cmake -E env VERBOSE=1 /usr/bin/make -f Makefile cmTC_1b2e3/fast
+        /Applications/Xcode.app/Contents/Developer/usr/bin/make  -f CMakeFiles/cmTC_1b2e3.dir/build.make CMakeFiles/cmTC_1b2e3.dir/build
+        Building CXX object CMakeFiles/cmTC_1b2e3.dir/src.cxx.o
+        /opt/homebrew/Cellar/emscripten/4.0.10/libexec/em++ -DHAVE_ISO_STRDUP  -O3 -fexceptions -Wall  -MD -MT CMakeFiles/cmTC_1b2e3.dir/src.cxx.o -MF CMakeFiles/cmTC_1b2e3.dir/src.cxx.o.d -o CMakeFiles/cmTC_1b2e3.dir/src.cxx.o -c /Users/Charles/Projects/taglib-wasm/build/taglib-build/CMakeFiles/CMakeScratch/TryCompile-vOffg2/src.cxx
+        /Users/Charles/Projects/taglib-wasm/build/taglib-build/CMakeFiles/CMakeScratch/TryCompile-vOffg2/src.cxx:4:5: error: use of undeclared identifier '_strdup'; did you mean 'strdup'?
+            4 |     _strdup(0);
+              |     ^~~~~~~
+              |     strdup
+        /opt/homebrew/Cellar/emscripten/4.0.10/libexec/cache/sysroot/include/string.h:70:7: note: 'strdup' declared here
+           70 | char *strdup (const char *);
+              |       ^
+        1 error generated.
+        make[1]: *** [CMakeFiles/cmTC_1b2e3.dir/src.cxx.o] Error 1
+        make: *** [cmTC_1b2e3/fast] Error 2
+        
+      exitCode: 2
+...
