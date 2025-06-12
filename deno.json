@@ -1,6 +1,7 @@
 {
   "name": "@charleswiltgen/taglib-wasm",
   "version": "0.2.2",
+  "description": "TagLib compiled to WebAssembly with TypeScript bindings for universal audio metadata handling",
   "license": "MIT",
   "exports": {
     ".": "./mod.ts"
