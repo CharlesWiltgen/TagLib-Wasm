@@ -1,0 +1,9 @@
+{
+	"InstallScripts" : 
+	[
+		"/Users/Charles/Projects/taglib-wasm/build/taglib-build/cmake_install.cmake",
+		"/Users/Charles/Projects/taglib-wasm/build/taglib-build/3rdparty/utfcpp/cmake_install.cmake",
+		"/Users/Charles/Projects/taglib-wasm/build/taglib-build/taglib/cmake_install.cmake"
+	],
+	"Parallel" : false
+}
