@@ -599,7 +599,7 @@ EOF
 
 echo "🔗 Compiling WASM module..."
 
-# Compile the WASM module with proper flags
+# Compile the WASM module without minification for cross-platform compatibility
 emcc "$BUILD_DIR/taglib_wasm.cpp" \
   -I"$CMAKE_BUILD_DIR/install/include" \
   -L"$CMAKE_BUILD_DIR/install/lib" \
@@ -614,8 +614,7 @@ emcc "$BUILD_DIR/taglib_wasm.cpp" \
   -s EXPORT_NAME="TagLibWASM" \
   -s MODULARIZE=1 \
   -s ENVIRONMENT='web,node' \
-  -O3 \
-  --closure 1
+  -O3
 
 echo "✅ TagLib WASM build complete!"
 echo "📁 Output files:"

@@ -79,46 +79,124 @@ export interface TagLibModule {
 export async function loadTagLibModuleJSR(
   config?: TagLibConfig,
 ): Promise<TagLibModule> {
-  // Load WASM file as bytes
+  // Load WASM file as bytes (same file for all platforms)
   const wasmUrl = new URL("../build/taglib.wasm", import.meta.url);
   const wasmBytes = await fetch(wasmUrl).then((r) => r.arrayBuffer());
 
-  // Minimal WebAssembly instantiation
-  const wasmModule = await WebAssembly.instantiate(wasmBytes, {
-    env: {
-      // Minimal environment for WASM
-      memory: new WebAssembly.Memory({ initial: 256, maximum: 512 }),
-      __handle_stack_overflow: () => {},
-      emscripten_notify_memory_growth: () => {},
+  // Create memory
+  const memory = new WebAssembly.Memory({ initial: 256, maximum: 4096 });
+  
+  // Create heap views
+  let HEAP8: Int8Array;
+  let HEAPU8: Uint8Array;
+  let HEAP16: Int16Array;
+  let HEAPU16: Uint16Array;
+  let HEAP32: Int32Array;
+  let HEAPU32: Uint32Array;
+  let HEAPF32: Float32Array;
+  let HEAPF64: Float64Array;
+  
+  function updateMemoryViews() {
+    const buffer = memory.buffer;
+    HEAP8 = new Int8Array(buffer);
+    HEAPU8 = new Uint8Array(buffer);
+    HEAP16 = new Int16Array(buffer);
+    HEAPU16 = new Uint16Array(buffer);
+    HEAP32 = new Int32Array(buffer);
+    HEAPU32 = new Uint32Array(buffer);
+    HEAPF32 = new Float32Array(buffer);
+    HEAPF64 = new Float64Array(buffer);
+  }
+  
+  updateMemoryViews();
+  
+  // Import functions expected by the WASM module (still minified with -O3)
+  const wasmImports = {
+    a: {
+      // a: ___cxa_throw
+      a: (ptr: number, type: number, destructor: number) => {
+        throw new Error('Exception thrown from WASM');
+      },
+      // e: __abort_js  
+      e: () => {
+        throw new Error('Abort called from WASM');
+      },
+      // b: __tzset_js
+      b: (timezone: number, daylight: number, std_name: number, dst_name: number) => {
+        // Minimal timezone implementation
+      },
+      // f: _emscripten_resize_heap
+      f: (requestedSize: number) => {
+        const oldSize = HEAPU8.length;
+        const newSize = Math.max(oldSize, requestedSize);
+        const pages = Math.ceil((newSize - memory.buffer.byteLength) / 65536);
+        try {
+          memory.grow(pages);
+          updateMemoryViews();
+          return 1;
+        } catch (e) {
+          return 0;
+        }
+      },
+      // c: _environ_get
+      c: (__environ: number, environ_buf: number) => 0,
+      // d: _environ_sizes_get
+      d: (penviron_count: number, penviron_buf_size: number) => {
+        HEAPU32[penviron_count >> 2] = 0;
+        HEAPU32[penviron_buf_size >> 2] = 0;
+        return 0;
+      },
+      // g: memory
+      g: memory,
     },
-  });
+  };
+  
+  // Instantiate WASM with the expected imports
+  const wasmModule = await WebAssembly.instantiate(wasmBytes, wasmImports);
 
-  const instance = wasmModule.instance;
-  const exports = instance.exports as any;
-
-  // Create memory views
-  const memory = exports.memory || new WebAssembly.Memory({ initial: 256 });
-  const buffer = memory.buffer;
+  const exports = wasmModule.instance.exports as any;
+  
+  // Update memory reference from exports (g is memory in minified version)
+  if (exports.g) {
+    updateMemoryViews();
+  }
+  
+  // Initialize runtime (h is the init function in minified version)
+  if (exports.h) {
+    exports.h();
+  }
 
   // Build the module interface
   const module: TagLibModule = {
     // Memory arrays
-    HEAPU8: new Uint8Array(buffer),
-    HEAP8: new Int8Array(buffer),
-    HEAP16: new Int16Array(buffer),
-    HEAP32: new Int32Array(buffer),
-    HEAPU16: new Uint16Array(buffer),
-    HEAPU32: new Uint32Array(buffer),
-    HEAPF32: new Float32Array(buffer),
-    HEAPF64: new Float64Array(buffer),
+    HEAPU8,
+    HEAP8,
+    HEAP16,
+    HEAP32,
+    HEAPU16,
+    HEAPU32,
+    HEAPF32,
+    HEAPF64,
 
-    // Standard functions
-    _malloc: exports._malloc || (() => {
+    // Standard functions (minified with -O3)
+    _malloc: exports.P || (() => {
       throw new Error("malloc not available");
     }),
-    _free: exports._free || (() => {}),
+    _free: exports.Q || (() => {}),
     allocate: (array: Uint8Array, type: number) => {
       const ptr = module._malloc(array.length);
+      // Ensure we have the latest memory view
+      if (memory.buffer !== module.HEAPU8.buffer) {
+        updateMemoryViews();
+        module.HEAPU8 = HEAPU8;
+        module.HEAP8 = HEAP8;
+        module.HEAP16 = HEAP16;
+        module.HEAP32 = HEAP32;
+        module.HEAPU16 = HEAPU16;
+        module.HEAPU32 = HEAPU32;
+        module.HEAPF32 = HEAPF32;
+        module.HEAPF64 = HEAPF64;
+      }
       module.HEAPU8.set(array, ptr);
       return ptr;
     },
@@ -130,45 +208,44 @@ export async function loadTagLibModuleJSR(
     ALLOC_DYNAMIC: 3,
     ALLOC_NONE: 4,
 
-    // TagLib functions - map from WASM exports
-    _taglib_file_new_from_buffer: exports._taglib_file_new_from_buffer,
-    _taglib_file_delete: exports._taglib_file_delete,
-    _taglib_file_save: exports._taglib_file_save,
-    _taglib_file_is_valid: exports._taglib_file_is_valid,
-    _taglib_file_format: exports._taglib_file_format,
-    _taglib_file_tag: exports._taglib_file_tag,
-    _taglib_tag_title: exports._taglib_tag_title,
-    _taglib_tag_artist: exports._taglib_tag_artist,
-    _taglib_tag_album: exports._taglib_tag_album,
-    _taglib_tag_comment: exports._taglib_tag_comment,
-    _taglib_tag_genre: exports._taglib_tag_genre,
-    _taglib_tag_year: exports._taglib_tag_year,
-    _taglib_tag_track: exports._taglib_tag_track,
-    _taglib_tag_set_title: exports._taglib_tag_set_title,
-    _taglib_tag_set_artist: exports._taglib_tag_set_artist,
-    _taglib_tag_set_album: exports._taglib_tag_set_album,
-    _taglib_tag_set_comment: exports._taglib_tag_set_comment,
-    _taglib_tag_set_genre: exports._taglib_tag_set_genre,
-    _taglib_tag_set_year: exports._taglib_tag_set_year,
-    _taglib_tag_set_track: exports._taglib_tag_set_track,
-    _taglib_file_audioproperties: exports._taglib_file_audioproperties,
-    _taglib_audioproperties_length: exports._taglib_audioproperties_length,
-    _taglib_audioproperties_bitrate: exports._taglib_audioproperties_bitrate,
-    _taglib_audioproperties_samplerate:
-      exports._taglib_audioproperties_samplerate,
-    _taglib_audioproperties_channels: exports._taglib_audioproperties_channels,
+    // TagLib functions - map from minified WASM exports (with -O3)
+    _taglib_file_new_from_buffer: exports.i,
+    _taglib_file_delete: exports.j,
+    _taglib_file_save: exports.k,
+    _taglib_file_is_valid: exports.l,
+    _taglib_file_format: exports.m,
+    _taglib_file_tag: exports.n,
+    _taglib_tag_title: exports.o,
+    _taglib_tag_artist: exports.p,
+    _taglib_tag_album: exports.q,
+    _taglib_tag_comment: exports.r,
+    _taglib_tag_genre: exports.s,
+    _taglib_tag_year: exports.t,
+    _taglib_tag_track: exports.u,
+    _taglib_tag_set_title: exports.v,
+    _taglib_tag_set_artist: exports.w,
+    _taglib_tag_set_album: exports.x,
+    _taglib_tag_set_comment: exports.y,
+    _taglib_tag_set_genre: exports.z,
+    _taglib_tag_set_year: exports.A,
+    _taglib_tag_set_track: exports.B,
+    _taglib_file_audioproperties: exports.C,
+    _taglib_audioproperties_length: exports.D,
+    _taglib_audioproperties_bitrate: exports.E,
+    _taglib_audioproperties_samplerate: exports.F,
+    _taglib_audioproperties_channels: exports.G,
 
     // PropertyMap operations
-    _taglib_file_properties_json: exports._taglib_file_properties_json,
-    _taglib_file_set_properties_json: exports._taglib_file_set_properties_json,
-    _taglib_file_get_property: exports._taglib_file_get_property,
-    _taglib_file_set_property: exports._taglib_file_set_property,
+    _taglib_file_properties_json: exports.H,
+    _taglib_file_set_properties_json: exports.I,
+    _taglib_file_get_property: exports.J,
+    _taglib_file_set_property: exports.K,
 
     // MP4-specific operations
-    _taglib_file_is_mp4: exports._taglib_file_is_mp4,
-    _taglib_mp4_get_item: exports._taglib_mp4_get_item,
-    _taglib_mp4_set_item: exports._taglib_mp4_set_item,
-    _taglib_mp4_remove_item: exports._taglib_mp4_remove_item,
+    _taglib_file_is_mp4: exports.L,
+    _taglib_mp4_get_item: exports.M,
+    _taglib_mp4_set_item: exports.N,
+    _taglib_mp4_remove_item: exports.O,
   };
 
   return module;
