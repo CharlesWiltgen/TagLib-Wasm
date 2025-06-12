@@ -342,6 +342,35 @@ export enum PictureType {
 }
 
 /**
+ * Bitrate control modes for audio encoding (MP4/M4A specific)
+ */
+export type BitrateControlMode = 
+  | "Constant"
+  | "LongTermAverage" 
+  | "VariableConstrained"
+  | "Variable";
+
+/**
+ * Map of bitrate control mode names to their numeric values
+ */
+export const BITRATE_CONTROL_MODE_VALUES: Record<BitrateControlMode, number> = {
+  Constant: 0,
+  LongTermAverage: 1,
+  VariableConstrained: 2,
+  Variable: 3,
+};
+
+/**
+ * Map of numeric values to bitrate control mode names
+ */
+export const BITRATE_CONTROL_MODE_NAMES: Record<number, BitrateControlMode> = {
+  0: "Constant",
+  1: "LongTermAverage",
+  2: "VariableConstrained",
+  3: "Variable",
+};
+
+/**
  * Configuration options for TagLib initialization
  */
 export interface TagLibConfig {

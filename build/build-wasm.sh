@@ -54,6 +54,8 @@ cat > "$BUILD_DIR/taglib_wasm.cpp" << 'EOF'
 #include <taglib/tbytevectorstream.h>
 #include <taglib/mpegfile.h>
 #include <taglib/mp4file.h>
+#include <taglib/mp4tag.h>
+#include <taglib/mp4item.h>
 #include <taglib/flacfile.h>
 #include <taglib/vorbisfile.h>
 #include <taglib/opusfile.h>
@@ -63,6 +65,7 @@ cat > "$BUILD_DIR/taglib_wasm.cpp" << 'EOF'
 #include <memory>
 #include <map>
 #include <string>
+#include <sstream>
 
 // Global storage for file objects and streams to prevent memory issues
 static std::map<int, std::unique_ptr<TagLib::FileRef>> g_files;
@@ -360,6 +363,237 @@ int taglib_audioproperties_channels(TagLib::AudioProperties* props) {
     return props ? props->channels() : 0;
 }
 
+// PropertyMap operations
+const char* taglib_file_properties_json(int fileId) {
+    auto it = g_files.find(fileId);
+    if (it == g_files.end() || !it->second || !it->second->file()) {
+        return nullptr;
+    }
+    
+    static std::string json;
+    std::stringstream ss;
+    ss << "{";
+    
+    TagLib::PropertyMap properties = it->second->file()->properties();
+    bool first = true;
+    
+    for (const auto& prop : properties) {
+        if (!first) ss << ",";
+        first = false;
+        
+        ss << "\"" << prop.first.to8Bit(true) << "\":[";
+        bool firstValue = true;
+        for (const auto& value : prop.second) {
+            if (!firstValue) ss << ",";
+            firstValue = false;
+            ss << "\"" << value.to8Bit(true) << "\"";
+        }
+        ss << "]";
+    }
+    
+    ss << "}";
+    json = ss.str();
+    return json.c_str();
+}
+
+int taglib_file_set_properties_json(int fileId, const char* jsonStr) {
+    auto it = g_files.find(fileId);
+    if (it == g_files.end() || !it->second || !it->second->file() || !jsonStr) {
+        return 0;
+    }
+    
+    // For this simple implementation, we'll expect a simplified JSON format
+    // Real implementation would use a proper JSON parser
+    TagLib::PropertyMap properties;
+    
+    // This is a simplified parser - in production you'd use a real JSON library
+    std::string json(jsonStr);
+    // Skip the outer braces
+    if (json.length() > 2 && json[0] == '{' && json[json.length()-1] == '}') {
+        json = json.substr(1, json.length()-2);
+    }
+    
+    // Basic parsing - assumes well-formed input
+    size_t pos = 0;
+    while (pos < json.length()) {
+        // Find key
+        size_t keyStart = json.find('"', pos);
+        if (keyStart == std::string::npos) break;
+        size_t keyEnd = json.find('"', keyStart + 1);
+        if (keyEnd == std::string::npos) break;
+        
+        std::string key = json.substr(keyStart + 1, keyEnd - keyStart - 1);
+        
+        // Find array start
+        size_t arrayStart = json.find('[', keyEnd);
+        if (arrayStart == std::string::npos) break;
+        size_t arrayEnd = json.find(']', arrayStart);
+        if (arrayEnd == std::string::npos) break;
+        
+        // Parse values
+        TagLib::StringList values;
+        size_t valuePos = arrayStart + 1;
+        while (valuePos < arrayEnd) {
+            size_t valueStart = json.find('"', valuePos);
+            if (valueStart >= arrayEnd) break;
+            size_t valueEnd = json.find('"', valueStart + 1);
+            if (valueEnd >= arrayEnd) break;
+            
+            std::string value = json.substr(valueStart + 1, valueEnd - valueStart - 1);
+            values.append(TagLib::String(value, TagLib::String::UTF8));
+            valuePos = valueEnd + 1;
+        }
+        
+        if (!values.isEmpty()) {
+            properties[TagLib::String(key, TagLib::String::UTF8)] = values;
+        }
+        
+        pos = arrayEnd + 1;
+        // Skip comma if present
+        if (pos < json.length() && json[pos] == ',') pos++;
+    }
+    
+    it->second->file()->setProperties(properties);
+    return 1;
+}
+
+const char* taglib_file_get_property(int fileId, const char* key) {
+    if (!key) return nullptr;
+    
+    auto it = g_files.find(fileId);
+    if (it == g_files.end() || !it->second || !it->second->file()) {
+        return nullptr;
+    }
+    
+    static std::string value;
+    TagLib::PropertyMap properties = it->second->file()->properties();
+    TagLib::String tagKey(key, TagLib::String::UTF8);
+    
+    if (properties.contains(tagKey) && !properties[tagKey].isEmpty()) {
+        value = properties[tagKey].front().to8Bit(true);
+        return value.c_str();
+    }
+    
+    return nullptr;
+}
+
+int taglib_file_set_property(int fileId, const char* key, const char* value) {
+    if (!key || !value) return 0;
+    
+    auto it = g_files.find(fileId);
+    if (it == g_files.end() || !it->second || !it->second->file()) {
+        return 0;
+    }
+    
+    TagLib::PropertyMap properties = it->second->file()->properties();
+    TagLib::StringList values;
+    values.append(TagLib::String(value, TagLib::String::UTF8));
+    properties[TagLib::String(key, TagLib::String::UTF8)] = values;
+    it->second->file()->setProperties(properties);
+    
+    return 1;
+}
+
+// MP4-specific operations
+int taglib_file_is_mp4(int fileId) {
+    auto it = g_files.find(fileId);
+    if (it == g_files.end() || !it->second || !it->second->file()) {
+        return 0;
+    }
+    
+    return dynamic_cast<TagLib::MP4::File*>(it->second->file()) != nullptr ? 1 : 0;
+}
+
+const char* taglib_mp4_get_item(int fileId, const char* key) {
+    if (!key) return nullptr;
+    
+    auto it = g_files.find(fileId);
+    if (it == g_files.end() || !it->second || !it->second->file()) {
+        return nullptr;
+    }
+    
+    TagLib::MP4::File* mp4File = dynamic_cast<TagLib::MP4::File*>(it->second->file());
+    if (!mp4File || !mp4File->tag()) {
+        return nullptr;
+    }
+    
+    static std::string value;
+    TagLib::MP4::Tag* tag = mp4File->tag();
+    TagLib::String tagKey(key, TagLib::String::UTF8);
+    
+    if (tag->contains(tagKey)) {
+        TagLib::MP4::Item item = tag->item(tagKey);
+        if (item.isValid()) {
+            if (item.type() == TagLib::MP4::Item::Type::Int) {
+                value = std::to_string(item.toInt());
+            } else if (item.type() == TagLib::MP4::Item::Type::StringList && !item.toStringList().isEmpty()) {
+                value = item.toStringList().front().to8Bit(true);
+            } else if (item.type() == TagLib::MP4::Item::Type::Bool) {
+                value = item.toBool() ? "true" : "false";
+            } else if (item.type() == TagLib::MP4::Item::Type::Byte) {
+                value = std::to_string(item.toByte());
+            }
+            return value.c_str();
+        }
+    }
+    
+    return nullptr;
+}
+
+int taglib_mp4_set_item(int fileId, const char* key, const char* value) {
+    if (!key || !value) return 0;
+    
+    auto it = g_files.find(fileId);
+    if (it == g_files.end() || !it->second || !it->second->file()) {
+        return 0;
+    }
+    
+    TagLib::MP4::File* mp4File = dynamic_cast<TagLib::MP4::File*>(it->second->file());
+    if (!mp4File || !mp4File->tag()) {
+        return 0;
+    }
+    
+    TagLib::MP4::Tag* tag = mp4File->tag();
+    TagLib::String tagKey(key, TagLib::String::UTF8);
+    
+    // Try to parse as integer first
+    char* endptr;
+    long intValue = strtol(value, &endptr, 10);
+    if (*endptr == '\0') {
+        // It's a valid integer
+        tag->setItem(tagKey, TagLib::MP4::Item(static_cast<int>(intValue)));
+    } else {
+        // Store as string
+        tag->setItem(tagKey, TagLib::MP4::Item(TagLib::String(value, TagLib::String::UTF8)));
+    }
+    
+    return 1;
+}
+
+int taglib_mp4_remove_item(int fileId, const char* key) {
+    if (!key) return 0;
+    
+    auto it = g_files.find(fileId);
+    if (it == g_files.end() || !it->second || !it->second->file()) {
+        return 0;
+    }
+    
+    TagLib::MP4::File* mp4File = dynamic_cast<TagLib::MP4::File*>(it->second->file());
+    if (!mp4File || !mp4File->tag()) {
+        return 0;
+    }
+    
+    TagLib::MP4::Tag* tag = mp4File->tag();
+    TagLib::String tagKey(key, TagLib::String::UTF8);
+    
+    if (tag->contains(tagKey)) {
+        tag->removeItem(tagKey);
+        return 1;
+    }
+    
+    return 0;
+}
+
 } // extern "C"
 EOF
 
@@ -373,7 +607,7 @@ emcc "$BUILD_DIR/taglib_wasm.cpp" \
   -o "$OUTPUT_DIR/taglib.js" \
   -s WASM=1 \
   -s EXPORTED_RUNTIME_METHODS='["cwrap","ccall","getValue","setValue","allocate","intArrayFromString","ALLOC_NORMAL"]' \
-  -s EXPORTED_FUNCTIONS='["_malloc","_free","_taglib_file_new_from_buffer","_taglib_file_delete","_taglib_file_save","_taglib_file_is_valid","_taglib_file_format","_taglib_file_tag","_taglib_tag_title","_taglib_tag_artist","_taglib_tag_album","_taglib_tag_comment","_taglib_tag_genre","_taglib_tag_year","_taglib_tag_track","_taglib_tag_set_title","_taglib_tag_set_artist","_taglib_tag_set_album","_taglib_tag_set_comment","_taglib_tag_set_genre","_taglib_tag_set_year","_taglib_tag_set_track","_taglib_file_audioproperties","_taglib_audioproperties_length","_taglib_audioproperties_bitrate","_taglib_audioproperties_samplerate","_taglib_audioproperties_channels"]' \
+  -s EXPORTED_FUNCTIONS='["_malloc","_free","_taglib_file_new_from_buffer","_taglib_file_delete","_taglib_file_save","_taglib_file_is_valid","_taglib_file_format","_taglib_file_tag","_taglib_tag_title","_taglib_tag_artist","_taglib_tag_album","_taglib_tag_comment","_taglib_tag_genre","_taglib_tag_year","_taglib_tag_track","_taglib_tag_set_title","_taglib_tag_set_artist","_taglib_tag_set_album","_taglib_tag_set_comment","_taglib_tag_set_genre","_taglib_tag_set_year","_taglib_tag_set_track","_taglib_file_audioproperties","_taglib_audioproperties_length","_taglib_audioproperties_bitrate","_taglib_audioproperties_samplerate","_taglib_audioproperties_channels","_taglib_file_properties_json","_taglib_file_set_properties_json","_taglib_file_get_property","_taglib_file_set_property","_taglib_file_is_mp4","_taglib_mp4_get_item","_taglib_mp4_set_item","_taglib_mp4_remove_item"]' \
   -s ALLOW_MEMORY_GROWTH=1 \
   -s INITIAL_MEMORY=16777216 \
   -s MAXIMUM_MEMORY=268435456 \
