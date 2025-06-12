@@ -5,7 +5,7 @@
 `taglib-wasm` is designed to be **TagLib for JavaScript/TypeScript** platforms — specifically Deno, Node.js, Bun, web browsers, and Cloudflare Workers. It does this by leveraging technologies including [TagLib](https://taglib.org/) itself, [Emscripten](https://emscripten.org/), and [Wasm](https://webassembly.org/) ([WebAssembly](https://webassembly.org/)).
 
 > [!NOTE]
-> This project is a baby, and tou’re likely to experience some surprises at this stage of its development. I’m extremely moditivated to help address them, though.
+> This project is a baby, and you’re likely to experience some surprises at this stage of its development. I’m extremely moditivated to help address them, though.
 
 ## Why?
 
@@ -48,7 +48,7 @@ bun add taglib-wasm
 
 ### Simple API
 
-Inspired by [go-taglib](https://github.com/sentriz/go-taglib)'s excellent developer experience:
+Inspired by [go-taglib](https://github.com/sentriz/go-taglib)’s excellent developer experience:
 
 ```typescript
 import { readProperties, readTags, writeTags } from "taglib-wasm/simple";
@@ -68,7 +68,6 @@ await writeTags("song.mp3", {
 const props = await readProperties("song.mp3");
 console.log(`Duration: ${props.length}s, Bitrate: ${props.bitrate} kbps`);
 ```
-
 
 ### Core API
 
@@ -109,17 +108,19 @@ file.setMusicBrainzTrackId("f4d1b6b8-8c1e-4d9a-9f2a-1234567890ab");
 file.dispose();
 ```
 
-### Bun
+## Platform examples
+
+### Deno
 
 ```typescript
-import { TagLib } from "taglib-wasm";
+import { TagLib } from "jsr:@charleswiltgen/taglib-wasm";
 
 // Initialize taglib-wasm
 const taglib = await TagLib.initialize();
 
-// Load from file system (Bun's native file API)
-const audioData = await Bun.file("song.mp3").arrayBuffer();
-const file = taglib.openFile(new Uint8Array(audioData));
+// Load audio file from filesystem
+const audioData = await Deno.readFile("song.mp3");
+const file = taglib.openFile(audioData);
 
 // Read metadata
 const tags = file.tag();
@@ -158,6 +159,43 @@ const taglib = await TagLib.initialize();
 // Load audio file from filesystem
 const audioData = await readFile("song.mp3");
 const file = taglib.openFile(audioData);
+
+// Read metadata
+const tags = file.tag();
+const props = file.audioProperties();
+
+console.log(`Title: ${tags.title}`);
+console.log(`Artist: ${tags.artist}`);
+console.log(`Duration: ${props.length}s`);
+console.log(`Bitrate: ${props.bitrate} kbps`);
+
+// Write metadata
+file.setTitle("New Title");
+file.setArtist("New Artist");
+file.setAlbum("New Album");
+
+console.log("Updated tags:", file.tag());
+
+// Automatic tag mapping (format-agnostic)
+file.setAcoustidFingerprint("AQADtMmybfGO8NCNEESLnzHyXNOHeHnG...");
+file.setAcoustidId("e7359e88-f1f7-41ed-b9f6-16e58e906997");
+file.setMusicBrainzTrackId("f4d1b6b8-8c1e-4d9a-9f2a-1234567890ab");
+
+// Clean up
+file.dispose();
+```
+
+### Bun
+
+```typescript
+import { TagLib } from "taglib-wasm";
+
+// Initialize taglib-wasm
+const taglib = await TagLib.initialize();
+
+// Load from file system (Bun's native file API)
+const audioData = await Bun.file("song.mp3").arrayBuffer();
+const file = taglib.openFile(new Uint8Array(audioData));
 
 // Read metadata
 const tags = file.tag();
