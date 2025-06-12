@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-echo "🔧 Building TagLib WASM..."
+echo "🔧 Building taglib-wasm..."
 
 # Check if Emscripten is installed
 if ! command -v emcc &> /dev/null; then
@@ -616,7 +616,7 @@ emcc "$BUILD_DIR/taglib_wasm.cpp" \
   -s ENVIRONMENT='web,node' \
   -O3
 
-echo "✅ TagLib WASM build complete!"
+echo "✅ taglib-wasm build complete!"
 echo "📁 Output files:"
 echo "   - $OUTPUT_DIR/taglib.js"
 echo "   - $OUTPUT_DIR/taglib.wasm"

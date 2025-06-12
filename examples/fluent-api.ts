@@ -1,7 +1,7 @@
 #!/usr/bin/env -S deno run --allow-read
 
 /**
- * Fluent API Examples for TagLib WASM
+ * Fluent API Examples for taglib-wasm
  * 
  * This demonstrates the chainable, fluent API that makes complex
  * operations more readable and concise.
@@ -10,7 +10,7 @@
 import { TagLib } from "../src/fluent.ts";
 
 async function demonstrateFluentAPI() {
-  console.log("🎵 TagLib WASM - Fluent API Examples");
+  console.log("🎵 taglib-wasm - Fluent API Examples");
   console.log("=".repeat(50));
   
   const testFile = "./tests/test-files/mp3/kiss-snippet.mp3";
@@ -21,7 +21,7 @@ async function demonstrateFluentAPI() {
   await TagLib
     .fromFile(testFile)
     .setTitle("Fluent API Demo")
-    .setArtist("TagLib WASM")
+    .setArtist("taglib-wasm")
     .setAlbum("Fluent Examples")
     .setYear(2025)
     .setTrack(1)

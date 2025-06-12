@@ -37,7 +37,7 @@ export default {
     // Basic info endpoint
     if (request.method === "GET" && url.pathname === "/") {
       return Response.json({
-        service: "TagLib WASM Audio Processor",
+        service: "taglib-wasm Audio Processor",
         version: "1.0.0",
         endpoints: {
           "POST /metadata": "Upload audio file to extract metadata",

@@ -1,6 +1,6 @@
 # Cloudflare Workers Example
 
-This example demonstrates how to use TagLib WASM in Cloudflare Workers for serverless audio metadata processing.
+This example demonstrates how to use `taglib-wasm` in Cloudflare Workers for serverless audio metadata processing.
 
 ## Files
 
@@ -84,7 +84,7 @@ npm install
 ### 2. Build WASM Module
 
 ```bash
-# Build the TagLib WASM module
+# Build the taglib-wasm module
 npm run build:wasm
 ```
 

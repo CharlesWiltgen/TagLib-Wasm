@@ -5,7 +5,7 @@
 import { TagLib } from "../mod.ts";
 
 async function testWithRealFile() {
-  console.log("🎵 Testing TagLib WASM with real audio file...");
+  console.log("🎵 Testing taglib-wasm with real audio file...");
 
   try {
     // Initialize TagLib

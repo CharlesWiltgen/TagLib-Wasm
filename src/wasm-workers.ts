@@ -8,7 +8,7 @@ import type { TagLibConfig, TagLibModule } from "./types.ts";
 export type { TagLibModule };
 
 /**
- * Default configuration for TagLib WASM module in Workers environment
+ * Default configuration for taglib-wasm module in Workers environment
  * Reduced memory limits to fit within Workers constraints
  */
 const DEFAULT_WORKERS_CONFIG: Required<TagLibConfig> = {
@@ -50,7 +50,7 @@ export async function loadTagLibModuleForWorkers(
     printErr: mergedConfig.debug ? console.error : () => {},
     onRuntimeInitialized: () => {
       if (mergedConfig.debug) {
-        console.log("TagLib WASM module initialized in Workers");
+        console.log("taglib-wasm module initialized in Workers");
       }
     },
     // Workers-specific settings
@@ -69,7 +69,7 @@ export async function loadTagLibModuleForWorkers(
     const TagLibWASM = await createWorkersCompatibleModule();
 
     if (typeof TagLibWASM !== "function") {
-      throw new Error("Failed to load TagLib WASM module for Workers");
+      throw new Error("Failed to load taglib-wasm module for Workers");
     }
 
     const wasmInstance = await TagLibWASM(moduleConfig);
@@ -92,7 +92,7 @@ export async function loadTagLibModuleForWorkers(
     return wasmInstance as TagLibModule;
   } catch (error) {
     throw new Error(
-      `Failed to load TagLib WASM for Workers: ${(error as Error).message}`,
+      `Failed to load taglib-wasm for Workers: ${(error as Error).message}`,
     );
   }
 }
