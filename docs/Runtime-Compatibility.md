@@ -106,7 +106,7 @@ Each runtime has different file system capabilities:
 | ----------- | --------------------------- | -------- | ----------------------------- |
 | **Deno**    | Sandboxed, permission-based | High     | Server-side, CLI tools        |
 | **Bun**     | Full access                 | Medium   | Server-side, build tools      |
-| **Node.js** | Full access                 | Medium   | Server-side, traditional apps |
+| **Node.js** | Full access                 | Medium   | Server-side, classic apps     |
 | **Browser** | Limited (File API only)     | High     | Client-side, web apps         |
 
 ### Performance Characteristics
