@@ -5,6 +5,7 @@
 import type {
   AudioFormat,
   AudioProperties,
+  BitrateControlMode,
   ExtendedTag,
   FieldMapping,
   Picture,
@@ -12,7 +13,11 @@ import type {
   Tag,
   TagLibConfig,
 } from "./types.ts";
-import { METADATA_MAPPINGS } from "./types.ts";
+import { 
+  BITRATE_CONTROL_MODE_NAMES,
+  BITRATE_CONTROL_MODE_VALUES,
+  METADATA_MAPPINGS 
+} from "./types.ts";
 import {
   cStringToJS,
   jsToCString,
@@ -166,6 +171,150 @@ export class AudioFile {
   setTrack(track: number): void {
     if (this.tagPtr === 0) return;
     this.module._taglib_tag_set_track(this.tagPtr, track);
+  }
+
+  /**
+   * Get all properties as a PropertyMap
+   */
+  properties(): PropertyMap {
+    const jsonPtr = this.module._taglib_file_properties_json(this.fileId);
+    if (jsonPtr === 0) return {};
+    
+    const jsonStr = cStringToJS(this.module, jsonPtr);
+    try {
+      return JSON.parse(jsonStr);
+    } catch {
+      return {};
+    }
+  }
+
+  /**
+   * Set properties from a PropertyMap
+   */
+  setProperties(properties: PropertyMap): boolean {
+    const jsonStr = JSON.stringify(properties);
+    const jsonPtr = jsToCString(this.module, jsonStr);
+    try {
+      return this.module._taglib_file_set_properties_json(this.fileId, jsonPtr) !== 0;
+    } finally {
+      this.module._free(jsonPtr);
+    }
+  }
+
+  /**
+   * Get a specific property value
+   */
+  getProperty(key: string): string[] | undefined {
+    const keyPtr = jsToCString(this.module, key);
+    try {
+      const valuePtr = this.module._taglib_file_get_property(this.fileId, keyPtr);
+      if (valuePtr === 0) return undefined;
+      
+      const value = cStringToJS(this.module, valuePtr);
+      return value ? [value] : undefined;
+    } finally {
+      this.module._free(keyPtr);
+    }
+  }
+
+  /**
+   * Set a specific property value
+   */
+  setProperty(key: string, values: string | string[]): boolean {
+    const value = Array.isArray(values) ? values[0] : values;
+    if (!value) return false;
+    
+    const keyPtr = jsToCString(this.module, key);
+    const valuePtr = jsToCString(this.module, value);
+    try {
+      return this.module._taglib_file_set_property(this.fileId, keyPtr, valuePtr) !== 0;
+    } finally {
+      this.module._free(keyPtr);
+      this.module._free(valuePtr);
+    }
+  }
+
+  /**
+   * Check if this is an MP4 file
+   */
+  isMP4(): boolean {
+    return this.module._taglib_file_is_mp4(this.fileId) !== 0;
+  }
+
+  /**
+   * Get MP4-specific item (for custom atoms)
+   */
+  getMP4Item(key: string): string | undefined {
+    if (!this.isMP4()) return undefined;
+    
+    const keyPtr = jsToCString(this.module, key);
+    try {
+      const valuePtr = this.module._taglib_mp4_get_item(this.fileId, keyPtr);
+      if (valuePtr === 0) return undefined;
+      
+      return cStringToJS(this.module, valuePtr);
+    } finally {
+      this.module._free(keyPtr);
+    }
+  }
+
+  /**
+   * Set MP4-specific item (for custom atoms)
+   */
+  setMP4Item(key: string, value: string): boolean {
+    if (!this.isMP4()) return false;
+    
+    const keyPtr = jsToCString(this.module, key);
+    const valuePtr = jsToCString(this.module, value);
+    try {
+      return this.module._taglib_mp4_set_item(this.fileId, keyPtr, valuePtr) !== 0;
+    } finally {
+      this.module._free(keyPtr);
+      this.module._free(valuePtr);
+    }
+  }
+
+  /**
+   * Remove MP4-specific item
+   */
+  removeMP4Item(key: string): boolean {
+    if (!this.isMP4()) return false;
+    
+    const keyPtr = jsToCString(this.module, key);
+    try {
+      return this.module._taglib_mp4_remove_item(this.fileId, keyPtr) !== 0;
+    } finally {
+      this.module._free(keyPtr);
+    }
+  }
+
+  /**
+   * Get bitrate control mode (MP4/M4A specific)
+   * Reads from the 'acbf' atom
+   */
+  getBitrateControlMode(): BitrateControlMode | undefined {
+    if (!this.isMP4()) return undefined;
+    
+    const value = this.getMP4Item("acbf");
+    if (!value) return undefined;
+    
+    const numValue = parseInt(value, 10);
+    if (isNaN(numValue) || numValue < 0 || numValue > 3) return undefined;
+    
+    return BITRATE_CONTROL_MODE_NAMES[numValue];
+  }
+
+  /**
+   * Set bitrate control mode (MP4/M4A specific)
+   * Writes to the 'acbf' atom
+   */
+  setBitrateControlMode(mode: BitrateControlMode): boolean {
+    if (!this.isMP4()) return false;
+    
+    const numValue = BITRATE_CONTROL_MODE_VALUES[mode];
+    if (numValue === undefined) return false;
+    
+    return this.setMP4Item("acbf", numValue.toString());
   }
 
   /**
