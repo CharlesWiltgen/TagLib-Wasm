@@ -86,15 +86,15 @@ export async function loadTagLibModuleJSR(
   // Create memory
   const memory = new WebAssembly.Memory({ initial: 256, maximum: 4096 });
   
-  // Create heap views
-  let HEAP8: Int8Array;
-  let HEAPU8: Uint8Array;
-  let HEAP16: Int16Array;
-  let HEAPU16: Uint16Array;
-  let HEAP32: Int32Array;
-  let HEAPU32: Uint32Array;
-  let HEAPF32: Float32Array;
-  let HEAPF64: Float64Array;
+  // Create heap views (initialized after memory is created)
+  let HEAP8!: Int8Array;
+  let HEAPU8!: Uint8Array;
+  let HEAP16!: Int16Array;
+  let HEAPU16!: Uint16Array;
+  let HEAP32!: Int32Array;
+  let HEAPU32!: Uint32Array;
+  let HEAPF32!: Float32Array;
+  let HEAPF64!: Float64Array;
   
   function updateMemoryViews() {
     const buffer = memory.buffer;
