@@ -5,7 +5,7 @@
 `taglib-wasm` is designed to be **TagLib for JavaScript/TypeScript** platforms — specifically Deno, Node.js, Bun, web browsers, and Cloudflare Workers. It does this by leveraging technologies including [TagLib](https://taglib.org/) itself, [Emscripten](https://emscripten.org/), and [Wasm](https://webassembly.org/) ([WebAssembly](https://webassembly.org/)).
 
 > [!NOTE]
-> I’m personally using this to solve a problem for another project I’m creating, but this project is still very much a baby. You may experience tantrums at this stage of `taglib-wasm`’s development.
+> I recently created this to support another project I’m creating, but it’s still very new. You’re likely to experience some surprises at this stage of `taglib-wasm`’s development, but I’m extremely moditivated to help address them.
 
 ## Why?
 
@@ -36,11 +36,13 @@ import { TagLib } from "jsr:@charleswiltgen/taglib-wasm";
 ```bash
 npm install taglib-wasm
 ```
+
 ### Bun
 
 ```bash
 bun add taglib-wasm
 ```
+
 ## 🚀 Quick Start
 
 ### Deno
