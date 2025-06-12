@@ -2,7 +2,7 @@
  * @fileoverview Systematic test of all audio formats with debug information
  */
 
-import { TagLib } from "../mod.ts";
+import { TagLib, AudioFile } from "../mod.ts";
 
 interface TestFile {
   name: string;
@@ -14,37 +14,37 @@ interface TestFile {
 const TEST_FILES: TestFile[] = [
   {
     name: "WAV (simplest format)",
-    path: "./test-files/wav/kiss-snippet.wav",
+    path: "./tests/test-files/wav/kiss-snippet.wav",
     format: "wav",
     expectedFormat: "WAV",
   },
   {
     name: "MP3 (most common)",
-    path: "./test-files/mp3/kiss-snippet.mp3",
+    path: "./tests/test-files/mp3/kiss-snippet.mp3",
     format: "mp3",
     expectedFormat: "MP3",
   },
   {
     name: "FLAC (lossless)",
-    path: "./test-files/flac/kiss-snippet.flac",
+    path: "./tests/test-files/flac/kiss-snippet.flac",
     format: "flac",
     expectedFormat: "FLAC",
   },
   {
     name: "OGG (Vorbis)",
-    path: "./test-files/ogg/kiss-snippet.ogg",
+    path: "./tests/test-files/ogg/kiss-snippet.ogg",
     format: "ogg",
     expectedFormat: "OGG",
   },
   {
     name: "M4A (MP4 audio)",
-    path: "./test-files/mp4/kiss-snippet.m4a",
+    path: "./tests/test-files/mp4/kiss-snippet.m4a",
     format: "mp4",
     expectedFormat: "MP4",
   },
 ];
 
-async function testFile(testFile: TestFile, taglib: TagLib): Promise<boolean> {
+async function testFile(testFile: TestFile): Promise<boolean> {
   console.log(`\n🔍 Testing ${testFile.name}...`);
   console.log(`📁 File: ${testFile.path}`);
 
@@ -65,7 +65,7 @@ async function testFile(testFile: TestFile, taglib: TagLib): Promise<boolean> {
 
     // Attempt to open with TagLib
     console.log(`🎵 Opening with TagLib...`);
-    const file = taglib.openFile(audioData);
+    const file = new AudioFile(audioData);
 
     if (file.isValid()) {
       console.log(`✅ SUCCESS: File loaded successfully!`);
@@ -113,11 +113,11 @@ async function runSystematicTests() {
   try {
     // Initialize TagLib
     console.log("🚀 Initializing TagLib WASM...");
-    const taglib = await TagLib.initialize({ debug: true });
+    await TagLib.initialize({ debug: true });
     console.log("✅ TagLib initialized successfully\n");
 
     // Test basic module functionality
-    const module = taglib.getModule();
+    const module = TagLib.getModule();
     console.log("🔧 Testing basic WASM functions...");
     const testPtr = module._malloc(1024);
     console.log(`📍 malloc(1024) = ${testPtr}`);
@@ -128,7 +128,7 @@ async function runSystematicTests() {
     const results: { [key: string]: boolean } = {};
 
     for (const testFileConfig of TEST_FILES) {
-      const success = await testFile(testFileConfig, taglib);
+      const success = await testFile(testFileConfig);
       results[testFileConfig.format] = success;
     }
 

@@ -5,7 +5,7 @@
 `taglib-wasm` is designed to be **TagLib for JavaScript/TypeScript** platforms — specifically Deno, Node.js, Bun, web browsers, and Cloudflare Workers. It does this by leveraging technologies including [TagLib](https://taglib.org/) itself, [Emscripten](https://emscripten.org/), and [Wasm](https://webassembly.org/) ([WebAssembly](https://webassembly.org/)).
 
 > [!NOTE]
-> I recently created this to support another project I’m creating, but it’s still very new. You’re likely to experience some surprises at this stage of `taglib-wasm`’s development, but I’m extremely moditivated to help address them.
+> This project is a baby, and tou’re likely to experience some surprises at this stage of its development. I’m extremely moditivated to help address them, though.
 
 ## Why?
 
@@ -22,6 +22,7 @@ In the process of building a utility to improve the metadata of my music collect
 - **✅ Zero dependencies** – Self-contained WASM bundle
 - **✅ Memory efficient** – In-memory processing without filesystem access
 - **✅ Production ready** – Growing test suite helps ensure safety and reliability
+- **🆕 Multiple API styles** – Choose between Simple (3 functions), Auto (zero-config), Fluent (chaining), or Traditional APIs
 
 ## 📦 Installation
 
@@ -45,7 +46,73 @@ bun add taglib-wasm
 
 ## 🚀 Quick Start
 
-### Deno
+### Simple API (NEW! 🎉)
+
+Inspired by [go-taglib](https://github.com/sentriz/go-taglib)'s excellent developer experience:
+
+```typescript
+import { readProperties, readTags, writeTags } from "taglib-wasm/simple";
+
+// Read tags - just one function call!
+const tags = await readTags("song.mp3");
+console.log(tags.title, tags.artist, tags.album);
+
+// Write tags - simple as can be
+await writeTags("song.mp3", {
+  title: "New Title",
+  artist: "New Artist",
+  album: "New Album",
+});
+
+// Read audio properties
+const props = await readProperties("song.mp3");
+console.log(`Duration: ${props.length}s, Bitrate: ${props.bitrate} kbps`);
+```
+
+### Auto-Initializing API
+
+Zero configuration required:
+
+```typescript
+import { TagLib } from "taglib-wasm/auto";
+
+// No initialization needed - just use it!
+const file = await TagLib.openFile("song.mp3");
+console.log(file.tag().title);
+file.dispose();
+
+// Or use the convenient withFile helper (auto-dispose)
+import { withFile } from "taglib-wasm/auto";
+
+const metadata = await withFile("song.mp3", (file) => ({
+  title: file.tag().title,
+  duration: file.audioProperties().length,
+}));
+```
+
+### Fluent API
+
+For those who love method chaining:
+
+```typescript
+import { TagLib } from "taglib-wasm/fluent";
+
+// Chain operations fluently
+await TagLib
+  .fromFile("song.mp3")
+  .setTitle("Fluent Title")
+  .setArtist("Fluent Artist")
+  .setAlbum("Fluent Album")
+  .save();
+
+// Quick one-liners
+const tags = await TagLib.read("song.mp3");
+const props = await TagLib.properties("song.mp3");
+```
+
+### Traditional API
+
+Full control when you need it:
 
 ```typescript
 import { TagLib } from "jsr:@charleswiltgen/taglib-wasm";
