@@ -22,7 +22,7 @@ In the process of building a utility to improve the metadata of my music collect
 - **✅ Zero dependencies** – Self-contained WASM bundle
 - **✅ Memory efficient** – In-memory processing without filesystem access
 - **✅ Production ready** – Growing test suite helps ensure safety and reliability
-- **🆕 Multiple API styles** – Choose between Simple (3 functions), Auto (zero-config), Fluent (chaining), or Traditional APIs
+- **🆕 Two API styles** – Choose between Simple (3 functions) or Core (full control) APIs
 
 ## 📦 Installation
 
@@ -69,48 +69,8 @@ const props = await readProperties("song.mp3");
 console.log(`Duration: ${props.length}s, Bitrate: ${props.bitrate} kbps`);
 ```
 
-### Auto-Initializing API
 
-Zero configuration required:
-
-```typescript
-import { TagLib } from "taglib-wasm/auto";
-
-// No initialization needed - just use it!
-const file = await TagLib.openFile("song.mp3");
-console.log(file.tag().title);
-file.dispose();
-
-// Or use the convenient withFile helper (auto-dispose)
-import { withFile } from "taglib-wasm/auto";
-
-const metadata = await withFile("song.mp3", (file) => ({
-  title: file.tag().title,
-  duration: file.audioProperties().length,
-}));
-```
-
-### Fluent API
-
-For those who love method chaining:
-
-```typescript
-import { TagLib } from "taglib-wasm/fluent";
-
-// Chain operations fluently
-await TagLib
-  .fromFile("song.mp3")
-  .setTitle("Fluent Title")
-  .setArtist("Fluent Artist")
-  .setAlbum("Fluent Album")
-  .save();
-
-// Quick one-liners
-const tags = await TagLib.read("song.mp3");
-const props = await TagLib.properties("song.mp3");
-```
-
-### Traditional API
+### Core API
 
 Full control when you need it:
 
