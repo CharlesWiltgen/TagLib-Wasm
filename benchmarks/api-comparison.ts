@@ -80,7 +80,7 @@ async function benchmark(
 }
 
 async function runBenchmarks() {
-  console.log("🏁 TagLib WASM API Performance Benchmarks");
+  console.log("🏁 taglib-wasm API Performance Benchmarks");
   console.log("=" .repeat(50));
   console.log(`📊 Test file: ${TEST_FILE}`);
   console.log(`🔢 Iterations per test: 100`);

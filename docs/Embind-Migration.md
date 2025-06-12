@@ -202,4 +202,4 @@ async function newExample() {
 2. **Module Size**: Embind adds ~50-100KB to the WASM binary
 3. **No Raw Pointers**: Direct pointer manipulation is no longer possible (by design)
 
-The new Embind API makes TagLib WASM much more pleasant to use while maintaining all the functionality of the original implementation.
+The new Embind API makes `taglib-wasm` much more pleasant to use while maintaining all the functionality of the original implementation.

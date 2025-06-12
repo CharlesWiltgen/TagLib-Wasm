@@ -1,5 +1,5 @@
 /**
- * @fileoverview JSR-compatible module exports for TagLib WASM
+ * @fileoverview JSR-compatible module exports for taglib-wasm
  *
  * This version uses JSR-compatible WASM loading that doesn't depend on
  * Emscripten's generated JavaScript file.

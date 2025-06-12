@@ -33,5 +33,15 @@
   },
   "[javascriptreact]": {
     "editor.defaultFormatter": "denoland.vscode-deno"
-  }
+  },
+
+  // Suppress GitHub Actions warnings for NPM_TOKEN context access
+  "github-actions.diagnostics.ignore": [
+    {
+      "code": "context-access-might-be-invalid",
+      "paths": [
+        ".github/workflows/publish-everywhere.yml"
+      ]
+    }
+  ]
 }

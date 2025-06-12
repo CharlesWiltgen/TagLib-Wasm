@@ -1,5 +1,5 @@
 /**
- * @fileoverview Main module exports for TagLib WASM
+ * @fileoverview Main module exports for taglib-wasm
  *
  * TagLib v2.1 compiled to WebAssembly with TypeScript bindings
  * for universal audio metadata handling.

@@ -1,6 +1,6 @@
 # Implementation Guide
 
-This document provides detailed technical information about the TagLib WASM implementation.
+This document provides detailed technical information about the `taglib-wasm` implementation.
 
 ## 🏗️ Architecture Overview
 
