@@ -1,5 +1,5 @@
 /**
- * @fileoverview Simplified API for TagLib WASM matching go-taglib's interface
+ * @fileoverview Simplified API for taglib-wasm matching go-taglib's interface
  * 
  * This module provides a dead-simple API for reading and writing audio metadata,
  * inspired by go-taglib's excellent developer experience.

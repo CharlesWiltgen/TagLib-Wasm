@@ -1,5 +1,5 @@
 /**
- * @fileoverview Fluent API for TagLib WASM with method chaining
+ * @fileoverview Fluent API for taglib-wasm with method chaining
  * 
  * This module provides a fluent, chainable API for working with audio metadata,
  * making common operations more concise and readable.

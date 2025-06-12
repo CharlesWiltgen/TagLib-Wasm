@@ -1,5 +1,5 @@
 /**
- * @fileoverview Tests for TagLib WASM bindings
+ * @fileoverview Tests for taglib-wasm bindings
  */
 
 import { assertEquals, assertExists } from "@std/assert";

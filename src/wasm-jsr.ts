@@ -74,7 +74,7 @@ export interface TagLibModule {
 }
 
 /**
- * Load TagLib WASM module for JSR
+ * Load taglib-wasm module for JSR
  */
 export async function loadTagLibModuleJSR(
   config?: TagLibConfig,

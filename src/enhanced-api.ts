@@ -2,7 +2,7 @@
  * Enhanced API patterns inspired by node-taglib
  *
  * This file demonstrates potential API improvements that could be added
- * to TagLib WASM to improve developer experience.
+ * to taglib-wasm to improve developer experience.
  */
 
 import type { AudioFile, TagLibConfig } from "./types";

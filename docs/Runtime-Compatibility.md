@@ -1,6 +1,6 @@
 # Runtime Compatibility
 
-TagLib WASM is designed to work seamlessly across all major JavaScript runtimes. This document outlines the specific features and considerations for each runtime.
+`taglib-wasm` is designed to work seamlessly across all major JavaScript runtimes. This document outlines the specific features and considerations for each runtime.
 
 ## 🟢 Supported Runtimes
 
@@ -239,4 +239,4 @@ const taglib = await TagLib.initialize(config);
 
 ---
 
-This universal compatibility ensures TagLib WASM can be used in any modern JavaScript environment, from servers to browsers to edge computing platforms.
+This universal compatibility ensures `taglib-wasm` can be used in any modern JavaScript environment, from servers to browsers to edge computing platforms.

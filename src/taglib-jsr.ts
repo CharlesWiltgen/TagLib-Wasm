@@ -65,7 +65,7 @@ export class TagLibJSR {
   }
 
   /**
-   * Initialize TagLib WASM module
+   * Initialize taglib-wasm module
    */
   static async initialize(config?: TagLibConfig): Promise<void> {
     const instance = TagLibJSR.getInstance();
