@@ -1,6 +1,6 @@
 {
   "name": "taglib-wasm",
-  "version": "0.2.2",
+  "version": "0.2.6",
   "description": "TagLib compiled to WebAssembly with TypeScript bindings for universal audio metadata handling",
   "main": "index.ts",
   "types": "index.ts",
