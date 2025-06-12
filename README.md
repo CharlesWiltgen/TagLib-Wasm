@@ -46,7 +46,7 @@ bun add taglib-wasm
 
 ## 🚀 Quick Start
 
-### Simple API (NEW! 🎉)
+### Simple API
 
 Inspired by [go-taglib](https://github.com/sentriz/go-taglib)'s excellent developer experience:
 
@@ -117,7 +117,7 @@ Full control when you need it:
 ```typescript
 import { TagLib } from "jsr:@charleswiltgen/taglib-wasm";
 
-// Initialize TagLib WASM
+// Initialize taglib-wasm
 const taglib = await TagLib.initialize();
 
 // Load audio file from buffer
@@ -154,7 +154,7 @@ file.dispose();
 ```typescript
 import { TagLib } from "taglib-wasm";
 
-// Initialize TagLib WASM
+// Initialize taglib-wasm
 const taglib = await TagLib.initialize();
 
 // Load from file system (Bun's native file API)
@@ -192,7 +192,7 @@ file.dispose();
 import { TagLib } from "taglib-wasm";
 import { readFile } from "fs/promises";
 
-// Initialize TagLib WASM
+// Initialize taglib-wasm
 const taglib = await TagLib.initialize();
 
 // Load audio file from filesystem
@@ -229,7 +229,7 @@ file.dispose();
 ```typescript
 import { TagLib } from "taglib-wasm";
 
-// Initialize TagLib WASM
+// Initialize taglib-wasm
 const taglib = await TagLib.initialize();
 
 // Load from file input or fetch
@@ -272,7 +272,7 @@ export default {
   async fetch(request: Request): Promise<Response> {
     if (request.method === "POST") {
       try {
-        // Initialize TagLib WASM
+        // Initialize taglib-wasm
         const taglib = await TagLib.initialize({
           memory: { initial: 8 * 1024 * 1024 }, // 8MB for Workers
         });
@@ -331,7 +331,7 @@ All formats are **fully tested and working**:
 
 ## 🎯 Automatic Tag Mapping
 
-TagLib WASM supports **automatic tag mapping** so you don’t have to worry about how the same tag is stored differently in different audio container formats.
+`taglib-wasm` supports **automatic tag mapping** so you don’t have to worry about how the same tag is stored differently in different audio container formats.
 
 ### AcoustID example
 
@@ -546,7 +546,7 @@ interface TagLibConfig {
 
 ## 🌐 Runtime Compatibility
 
-TagLib WASM works seamlessly across all major JavaScript runtimes:
+`taglib-wasm` works seamlessly across all major JavaScript runtimes:
 
 | Runtime     | Status  | Installation                      | Performance | TypeScript |
 | ----------- | ------- | --------------------------------- | ----------- | ---------- |

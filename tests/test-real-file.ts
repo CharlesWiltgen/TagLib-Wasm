@@ -5,7 +5,7 @@
 import { TagLib } from "../mod.ts";
 
 async function testWithRealFile() {
-  console.log("🎵 Testing TagLib WASM with real MP3 file...");
+  console.log("🎵 Testing taglib-wasm with real MP3 file...");
 
   try {
     // Initialize TagLib
@@ -41,7 +41,7 @@ async function testWithRealFile() {
         // Test setting tags
         console.log("✏️  Setting new tags...");
         file.setTitle("Test Song from Deno");
-        file.setArtist("TagLib WASM Test");
+        file.setArtist("taglib-wasm Test");
         file.setAlbum("Test Album");
         file.setYear(2025);
         file.setTrack(1);
@@ -59,7 +59,7 @@ async function testWithRealFile() {
         file.dispose();
         console.log("🧹 File disposed");
 
-        console.log("🎉 ALL TESTS PASSED! TagLib WASM is fully functional!");
+        console.log("🎉 ALL TESTS PASSED! taglib-wasm is fully functional!");
       } else {
         console.log("❌ File is not valid");
       }

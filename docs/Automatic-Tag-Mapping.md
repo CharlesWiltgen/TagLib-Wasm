@@ -1,6 +1,6 @@
 # Automatic Tag Mapping Handling
 
-TagLib WASM provides a **format-agnostic metadata system** that automatically handles storing advanced fields like AcoustID fingerprints in the correct location for each audio format.
+`taglib-wasm` provides a **format-agnostic metadata system** that automatically handles storing advanced fields like AcoustID fingerprints in the correct location for each audio format.
 
 ## 🎯 The Problem
 
@@ -22,10 +22,10 @@ if (format === "MP3") {
 
 ## ✅ The Solution
 
-TagLib WASM provides a **single API** that works across all formats:
+`taglib-wasm` provides a **single API** that works across all formats:
 
 ```typescript
-// The TagLib WASM way: Format-agnostic metadata
+// The taglib-wasm way: Format-agnostic metadata
 file.setAcoustidFingerprint(fingerprint);
 // ↑ This automatically stores correctly for ANY format!
 ```

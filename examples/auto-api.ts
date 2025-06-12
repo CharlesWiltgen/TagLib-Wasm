@@ -1,7 +1,7 @@
 #!/usr/bin/env -S deno run --allow-read
 
 /**
- * Auto-initialization API Examples for TagLib WASM
+ * Auto-initialization API Examples for taglib-wasm
  * 
  * This demonstrates the zero-config auto-initializing API that removes
  * the need for explicit initialization.
@@ -10,7 +10,7 @@
 import { TagLib, withFile } from "../src/auto.ts";
 
 async function demonstrateAutoAPI() {
-  console.log("🎵 TagLib WASM - Auto-initialization API Examples");
+  console.log("🎵 taglib-wasm - Auto-initialization API Examples");
   console.log("=".repeat(50));
   
   const testFile = "./tests/test-files/mp3/kiss-snippet.mp3";
@@ -58,7 +58,7 @@ async function demonstrateAutoAPI() {
   
   await withFile(testFile, file => {
     file.setTitle("Auto API Demo");
-    file.setArtist("TagLib WASM Auto");
+    file.setArtist("taglib-wasm Auto");
     file.setAlbum("Zero Config Album");
     file.save();
     

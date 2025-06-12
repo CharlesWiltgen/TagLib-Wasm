@@ -1,5 +1,5 @@
 /**
- * @fileoverview TypeScript type definitions for TagLib WASM
+ * @fileoverview TypeScript type definitions for taglib-wasm
  */
 
 // Re-export commonly used classes from other modules

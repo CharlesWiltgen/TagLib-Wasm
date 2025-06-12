@@ -5,7 +5,7 @@
 import type { TagLibConfig } from "./types.ts";
 
 /**
- * Emscripten module interface for TagLib WASM
+ * Emscripten module interface for taglib-wasm
  */
 export interface TagLibModule {
   // Emscripten standard properties
@@ -96,7 +96,7 @@ export interface TagLibModule {
 }
 
 /**
- * Default configuration for TagLib WASM module
+ * Default configuration for taglib-wasm module
  */
 const DEFAULT_CONFIG: Required<TagLibConfig> = {
   memory: {
@@ -156,7 +156,7 @@ export async function loadTagLibModule(
     printErr: mergedConfig.debug ? console.error : () => {},
     onRuntimeInitialized: () => {
       if (mergedConfig.debug) {
-        console.log("TagLib WASM module initialized");
+        console.log("taglib-wasm module initialized");
       }
     },
   };
@@ -213,7 +213,7 @@ export async function loadTagLibModule(
     }
 
     if (typeof TagLibWASM !== "function") {
-      throw new Error("Failed to load TagLib WASM module");
+      throw new Error("Failed to load taglib-wasm module");
     }
 
     const wasmInstance = await TagLibWASM(moduleConfig);
@@ -236,7 +236,7 @@ export async function loadTagLibModule(
 
     return wasmInstance as TagLibModule;
   } catch (error) {
-    throw new Error(`Failed to load TagLib WASM: ${(error as Error).message}`);
+    throw new Error(`Failed to load taglib-wasm: ${(error as Error).message}`);
   }
 }
 

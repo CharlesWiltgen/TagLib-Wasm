@@ -5,7 +5,7 @@
 import { TagLib } from "../mod.ts";
 
 async function testWithSampleFile() {
-  console.log("🧪 Testing TagLib WASM with sample data...");
+  console.log("🧪 Testing taglib-wasm with sample data...");
 
   try {
     // Initialize TagLib
@@ -13,7 +13,7 @@ async function testWithSampleFile() {
       debug: true,
     });
 
-    console.log("✅ TagLib WASM module loaded successfully");
+    console.log("✅ taglib-wasm module loaded successfully");
 
     // For now, just test that we can get the module
     const module = taglib.getModule();

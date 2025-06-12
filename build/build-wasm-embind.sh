@@ -108,4 +108,4 @@ ls -lh taglib.js | awk '{print $5}'
 echo -n "WebAssembly: "
 ls -lh taglib.wasm | awk '{print $5}'
 
-echo -e "${GREEN}✓ TagLib WASM module built successfully with Embind!${NC}"
+echo -e "${GREEN}✓ taglib-wasm module built successfully with Embind!${NC}"

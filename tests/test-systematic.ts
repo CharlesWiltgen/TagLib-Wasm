@@ -84,8 +84,8 @@ async function testFile(testFile: TestFile): Promise<boolean> {
 
       // Test tag writing
       console.log(`✏️  Testing tag writing...`);
-      file.setTitle("Test Title from TagLib WASM");
-      file.setArtist("TagLib WASM Test");
+      file.setTitle("Test Title from taglib-wasm");
+      file.setArtist("taglib-wasm Test");
 
       const newTags = file.tag();
       console.log(`🏷️  New tags:`, newTags);
@@ -107,12 +107,12 @@ async function testFile(testFile: TestFile): Promise<boolean> {
 }
 
 async function runSystematicTests() {
-  console.log("🎵 TagLib WASM - Systematic Format Testing");
+  console.log("🎵 taglib-wasm - Systematic Format Testing");
   console.log("=".repeat(50));
 
   try {
     // Initialize TagLib
-    console.log("🚀 Initializing TagLib WASM...");
+    console.log("🚀 Initializing taglib-wasm...");
     await TagLib.initialize({ debug: true });
     console.log("✅ TagLib initialized successfully\n");
 
@@ -150,7 +150,7 @@ async function runSystematicTests() {
     console.log(`\n🎯 Overall: ${passedTests}/${totalTests} formats working`);
 
     if (passedTests === totalTests) {
-      console.log("🎉 ALL TESTS PASSED! TagLib WASM is fully functional!");
+      console.log("🎉 ALL TESTS PASSED! taglib-wasm is fully functional!");
     } else if (passedTests > 0) {
       console.log("⚠️  PARTIAL SUCCESS: Some formats working");
     } else {
