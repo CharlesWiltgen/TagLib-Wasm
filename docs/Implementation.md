@@ -2,98 +2,102 @@
 
 This document provides detailed technical information about the `taglib-wasm` implementation.
 
+> **Note**: This project has been migrated from a C-style wrapper with manual memory management to use Emscripten's Embind for cleaner, more maintainable bindings. The current implementation leverages Embind's automatic memory management and direct object access capabilities.
+
 ## 🏗️ Architecture Overview
 
 The project consists of three main layers:
 
 1. **TagLib C++ Library** (`lib/taglib/`) - The original TagLib v2.1 source
-2. **C++ WASM Wrapper** (`build/build-wasm.sh`) - Custom C functions that bridge TagLib to WASM
+2. **C++ Wasm Wrapper** (`build/build-wasm.sh`) - Embind-based C++ bindings for Wasm
 3. **TypeScript API** (`src/`) - Modern JavaScript/TypeScript interface
 
 ## 🔧 Key Technical Solutions
 
-### Memory Management: The Critical Discovery
+### Emscripten Embind Integration
 
-The most important implementation detail is **proper memory management between JavaScript and WASM**:
+The project uses **Emscripten's Embind** to create JavaScript bindings for TagLib's C++ API. This provides:
 
-#### ❌ What Doesn't Work
-
-```typescript
-// Manual memory allocation + copying causes data corruption
-const ptr = module._malloc(buffer.length);
-module.HEAPU8.set(buffer, ptr); // ← This corrupts data!
-```
-
-#### ✅ What Works
-
-```typescript
-// Emscripten's allocate() function works reliably
-const ptr = module.allocate(buffer, module.ALLOC_NORMAL);
-```
-
-**Why**: The manual approach suffers from memory synchronization issues between the JavaScript and WASM memory spaces. Emscripten's `allocate()` function handles this synchronization correctly.
-
-**Impact**: This fix enabled all audio formats to load successfully. Before this, all files appeared as corrupted data (zeros) to the C++ code.
+- **Automatic memory management** - No manual memory allocation/deallocation needed
+- **Direct object access** - JavaScript can work with C++ objects naturally
+- **Type safety** - Strong typing between C++ and JavaScript
+- **Clean API** - No need for C-style wrapper functions
 
 ### C++ Wrapper Design
 
-The C++ wrapper (`build/build-wasm.sh`) bridges TagLib's object-oriented C++ API to C functions suitable for WASM:
+The C++ wrapper (`build/build-wasm.sh`) uses Embind to expose TagLib's classes directly:
 
-#### Object Lifetime Management
+#### Class Bindings
 
 ```cpp
-// Global storage for C++ objects
-std::map<int, std::unique_ptr<TagLib::FileRef>> g_files;
-std::map<int, std::unique_ptr<TagLib::ByteVectorStream>> g_streams;
-int g_next_id = 1;
-
-// C function that returns an ID instead of a pointer
-extern "C" int taglib_file_new_from_buffer(const char* data, int size) {
-    auto buffer = TagLib::ByteVector(data, size);
-    auto stream = std::make_unique<TagLib::ByteVectorStream>(buffer);
-    auto fileRef = std::make_unique<TagLib::FileRef>(stream.get());
+// Expose TagLib classes to JavaScript using Embind
+EMSCRIPTEN_BINDINGS(taglib_bindings) {
+    // ByteVectorStream for in-memory file processing
+    class_<ByteVectorStream>("ByteVectorStream")
+        .constructor<const std::string&>()
+        .function("name", &ByteVectorStream::name)
+        .function("readBlock", &ByteVectorStream::readBlock)
+        .function("seek", &ByteVectorStream::seek);
     
-    int id = g_next_id++;
-    g_streams[id] = std::move(stream);
-    g_files[id] = std::move(fileRef);
-    return id;
+    // FileRef - main entry point for file operations
+    class_<FileRef>("FileRef")
+        .constructor<ByteVectorStream*>()
+        .function("isValid", &FileRef::isValid)
+        .function("save", &FileRef::save)
+        .function("file", &FileRef::file, allow_raw_pointers())
+        .function("tag", &FileRef::tag, allow_raw_pointers())
+        .function("audioProperties", &FileRef::audioProperties, allow_raw_pointers());
+    
+    // Tag class for metadata operations
+    class_<Tag>("Tag")
+        .function("title", &Tag::title)
+        .function("artist", &Tag::artist)
+        .function("album", &Tag::album)
+        .function("setTitle", &Tag::setTitle)
+        .function("setArtist", &Tag::setArtist)
+        .function("setAlbum", &Tag::setAlbum);
 }
 ```
 
 #### Memory-Based File Processing
 
 ```cpp
-// Uses ByteVectorStream for in-memory processing
-TagLib::ByteVector buffer(data, size);
-auto stream = std::make_unique<TagLib::ByteVectorStream>(buffer);
-auto fileRef = std::make_unique<TagLib::FileRef>(stream.get());
+// ByteVectorStream wrapper for in-memory processing
+class ByteVectorStream : public TagLib::IOStream {
+    TagLib::ByteVector data;
+public:
+    ByteVectorStream(const std::string& buffer) 
+        : data(buffer.data(), buffer.size()) {}
+    
+    // IOStream implementation for memory-based operations
+    TagLib::ByteVector readBlock(size_t length) override;
+    void writeBlock(const TagLib::ByteVector &data) override;
+    void seek(long offset, Position p = Beginning) override;
+};
 ```
 
-This enables processing audio files entirely in memory without filesystem access.
-
-#### Format Detection and Fallback
+#### Format Detection
 
 ```cpp
-// Try FileRef first (auto-detection)
-auto fileRef = std::make_unique<TagLib::FileRef>(stream.get());
-
-if (fileRef->isNull() || !fileRef->file()) {
-    // Fallback: manual format detection
-    std::string format = detectFileFormat(data, size);
+// Automatic format detection helper
+std::string detectFormat(const std::string& data) {
+    if (data.size() < 12) return "";
     
-    TagLib::File* specificFile = nullptr;
-    if (format == "mp3") {
-        specificFile = new TagLib::MPEG::File(stream.get());
-    } else if (format == "flac") {
-        specificFile = new TagLib::FLAC::File(stream.get());
-    }
-    // ... handle other formats
+    // Check magic bytes for each format
+    if (data.substr(0, 4) == "RIFF" && data.substr(8, 4) == "WAVE") return "wav";
+    if (data[0] == 'I' && data[1] == 'D' && data[2] == '3') return "mp3";
+    if (data[0] == (char)0xFF && (data[1] & 0xE0) == 0xE0) return "mp3";
+    if (data.substr(0, 4) == "fLaC") return "flac";
+    if (data.substr(0, 4) == "OggS") return "ogg";
+    if (data.substr(4, 4) == "ftyp") return "mp4";
+    
+    return "";
 }
 ```
 
 ### TypeScript API Design
 
-The TypeScript layer (`src/`) provides a modern async API:
+The TypeScript layer (`src/`) provides a modern async API that wraps the Embind-exposed classes:
 
 #### Module Initialization
 
@@ -106,27 +110,51 @@ class TagLib {
 }
 ```
 
-#### Safe Object Disposal
+#### Safe Object Management
 
 ```typescript
 class AudioFile {
+  private stream?: any;  // ByteVectorStream instance
+  private fileRef?: any; // FileRef instance
+  
+  constructor(module: TagLibModule, buffer: Uint8Array) {
+    // Convert buffer to string for Embind
+    const dataStr = Array.from(buffer)
+      .map(byte => String.fromCharCode(byte))
+      .join('');
+    
+    // Create C++ objects via Embind
+    this.stream = new module.ByteVectorStream(dataStr);
+    this.fileRef = new module.FileRef(this.stream);
+  }
+  
   dispose(): void {
-    if (this.fileId !== 0) {
-      this.module._taglib_file_delete(this.fileId);
-      this.fileId = 0;
-    }
+    // Embind objects are automatically cleaned up
+    // when JavaScript references are garbage collected
+    this.stream = undefined;
+    this.fileRef = undefined;
   }
 }
 ```
 
-#### String Handling
+#### Type-Safe Tag Access
 
 ```typescript
-function jsToCString(module: TagLibModule, str: string): number {
-  const encoder = new TextEncoder();
-  const bytes = encoder.encode(str + "\0");
-  return module.allocate(bytes, module.ALLOC_NORMAL); // ← Using allocate()
+// TypeScript interfaces match C++ API
+interface Tags {
+  title?: string;
+  artist?: string;
+  album?: string;
+  // ... other properties
 }
+
+// Direct access to C++ objects through Embind
+const tag = this.fileRef.tag();
+const tags: Tags = {
+  title: tag.title(),
+  artist: tag.artist(),
+  album: tag.album(),
+};
 ```
 
 ## 📦 Build System
@@ -139,17 +167,22 @@ The build script (`build/build-wasm.sh`) uses specific Emscripten settings:
 emcc \
   # Memory settings
   -s ALLOW_MEMORY_GROWTH=1 \
-  -s INITIAL_MEMORY=16777216 \
-  -s MAXIMUM_MEMORY=268435456 \
+  -s MAXIMUM_MEMORY=1GB \
+  -s STACK_SIZE=1MB \
   
-  # Export settings  
-  -s EXPORTED_RUNTIME_METHODS='["allocate","ALLOC_NORMAL",...]' \
-  -s EXPORTED_FUNCTIONS='["_taglib_file_new_from_buffer",...]' \
+  # Embind and runtime exports
+  --bind \
+  -s EXPORTED_RUNTIME_METHODS='["FS","UTF8ToString","stringToUTF8","lengthBytesUTF8"]' \
   
   # Module settings
   -s MODULARIZE=1 \
   -s EXPORT_NAME="TagLibWASM" \
-  -s ENVIRONMENT='web,node'
+  -s ENVIRONMENT='web,webview,node,shell' \
+  
+  # Optimization
+  -O3 \
+  --closure 1 \
+  -s ASSERTIONS=0
 ```
 
 ### TagLib Configuration
@@ -210,21 +243,29 @@ test-files/
 
 ## 🔍 Debugging Tips
 
-### Memory Corruption Issues
+### Embind Object Issues
 
-If you see data corruption (files appearing as zeros):
+If you encounter "undefined is not a function" errors:
 
-1. Check that you're using `allocate()` not `malloc() + HEAPU8.set()`
-2. Verify WASM module is fully initialized before use
-3. Check that memory isn't freed too early
+1. Ensure the Wasm module is fully initialized before creating objects
+2. Check that Embind classes are properly exposed in C++
+3. Verify the `--bind` flag is used in Emscripten compilation
 
-### Function Export Issues
+### Memory Issues
 
-If functions are "not defined":
+With Embind, memory is managed automatically, but watch for:
 
-1. Verify function is in EXPORTED_FUNCTIONS list
-2. Check C function signature matches TypeScript interface
-3. Ensure WASM module loaded successfully
+1. Large file buffers that may exceed browser memory limits
+2. Keeping references to disposed objects
+3. String conversion overhead for large binary data
+
+### Type Conversion Issues
+
+If data appears corrupted:
+
+1. Check binary-to-string conversion for file buffers
+2. Verify UTF-8 encoding for text strings
+3. Ensure proper handling of null/undefined values
 
 ### Build Issues
 
@@ -246,9 +287,10 @@ If Emscripten build fails:
 
 ### Memory Management
 
-- Use `dispose()` to free C++ objects promptly
-- Consider object pooling for frequent operations
+- Embind handles memory automatically for most cases
+- Call `dispose()` to explicitly release large objects early
 - Monitor memory usage with browser dev tools
+- Be mindful of string conversion overhead for large buffers
 
 ### File Size Optimization
 
@@ -275,4 +317,4 @@ If Emscripten build fails:
 
 ---
 
-This implementation represents a complete, production-ready WebAssembly port of TagLib with modern TypeScript bindings. The key discoveries around memory management and C++ wrapper design should be preserved for future development.
+This implementation represents a complete, production-ready WebAssembly port of TagLib with modern TypeScript bindings. The migration to Embind has significantly simplified the codebase while maintaining full functionality and improving maintainability.
