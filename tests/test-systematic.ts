@@ -65,13 +65,14 @@ async function testFile(testFile: TestFile): Promise<boolean> {
 
     // Attempt to open with TagLib
     console.log(`🎵 Opening with TagLib...`);
-    const file = new AudioFile(audioData);
+    const taglib = await TagLib.getInstance();
+    const file = await taglib.openFile(audioData.buffer);
 
     if (file.isValid()) {
       console.log(`✅ SUCCESS: File loaded successfully!`);
 
       // Test format detection
-      const detectedFormat = file.format();
+      const detectedFormat = file.getFormat();
       console.log(`📄 Detected format: ${detectedFormat}`);
 
       // Test basic properties
@@ -84,11 +85,18 @@ async function testFile(testFile: TestFile): Promise<boolean> {
 
       // Test tag writing
       console.log(`✏️  Testing tag writing...`);
-      file.setTitle("Test Title from taglib-wasm");
-      file.setArtist("taglib-wasm Test");
+      const tag = file.tag();
+      tag.setTitle("Test Title from taglib-wasm");
+      tag.setArtist("taglib-wasm Test");
 
       const newTags = file.tag();
-      console.log(`🏷️  New tags:`, newTags);
+      console.log(`🏷️  New tags:`, {
+        title: newTags.title,
+        artist: newTags.artist,
+        album: newTags.album,
+        year: newTags.year,
+        track: newTags.track,
+      });
 
       // Clean up
       file.dispose();
@@ -114,15 +122,8 @@ async function runSystematicTests() {
     // Initialize TagLib
     console.log("🚀 Initializing taglib-wasm...");
     await TagLib.initialize({ debug: true });
+    const taglib = await TagLib.getInstance();
     console.log("✅ TagLib initialized successfully\n");
-
-    // Test basic module functionality
-    const module = TagLib.getModule();
-    console.log("🔧 Testing basic WASM functions...");
-    const testPtr = module._malloc(1024);
-    console.log(`📍 malloc(1024) = ${testPtr}`);
-    module._free(testPtr);
-    console.log("🧹 Memory freed successfully");
 
     // Run tests for each format
     const results: { [key: string]: boolean } = {};

@@ -3,12 +3,13 @@
  */
 
 import { assertEquals, assertExists } from "@std/assert";
-import { TagLib } from "../src/mod.ts";
+import { TagLib } from "../mod.ts";
 
 Deno.test("TagLib initialization", async () => {
   // Note: This test will fail until WASM build is complete
   try {
-    const taglib = await TagLib.initialize();
+    await TagLib.initialize();
+    const taglib = await TagLib.getInstance();
     assertExists(taglib);
   } catch (error) {
     console.log(
@@ -28,7 +29,8 @@ Deno.test("TagLib configuration", async () => {
   };
 
   try {
-    const taglib = await TagLib.initialize(config);
+    await TagLib.initialize(config);
+    const taglib = await TagLib.getInstance();
     assertExists(taglib);
   } catch (error) {
     console.log(

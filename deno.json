@@ -11,7 +11,6 @@
     "include": [
       "mod.ts",
       "src/taglib-jsr.ts",
-      "src/wasm-jsr.ts",
       "src/types.ts",
       "src/simple-jsr.ts",
       "build/taglib.wasm",
