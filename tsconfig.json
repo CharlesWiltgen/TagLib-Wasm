@@ -6,7 +6,7 @@
     "allowImportingTsExtensions": false,
     "lib": ["ES2020", "DOM"],
     "outDir": "./dist",
-    "rootDir": "./src",
+    "rootDir": "./",
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
@@ -17,6 +17,6 @@
     "removeComments": false,
     "preserveConstEnums": true
   },
-  "include": ["src/**/*"],
+  "include": ["index.ts", "src/**/*"],
   "exclude": ["node_modules", "dist", "lib", "build", "examples", "tests"]
 }
