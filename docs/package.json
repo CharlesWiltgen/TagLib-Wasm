@@ -8,8 +8,8 @@
     "preview": "vuepress preview ."
   },
   "devDependencies": {
-    "@vuepress/bundler-vite": "2.0.0-rc.22",
-    "@vuepress/theme-default": "2.0.0-rc.22", 
-    "vuepress": "2.0.0-rc.22"
+    "@vuepress/bundler-vite": "2.0.0-rc.9",
+    "@vuepress/theme-default": "2.0.0-rc.9", 
+    "vuepress": "2.0.0-rc.9"
   }
 }
