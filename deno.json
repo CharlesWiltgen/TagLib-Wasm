@@ -10,9 +10,11 @@
   "publish": {
     "include": [
       "mod.ts",
+      "src/taglib.ts",
       "src/taglib-jsr.ts",
       "src/types.ts",
       "src/simple-jsr.ts",
+      "src/wasm-jsr.ts",
       "build/taglib.wasm",
       "README.md",
       "LICENSE",
