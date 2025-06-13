@@ -1,606 +1,254 @@
+import type { TagLibModule, WasmModule } from "./wasm.ts";
+import type { AudioProperties, FileType, PropertyMap, Tag as BasicTag } from "./types.ts";
+
+// Extended Tag interface with setters
+export interface Tag extends BasicTag {
+  setTitle(value: string): void;
+  setArtist(value: string): void;
+  setAlbum(value: string): void;
+  setComment(value: string): void;
+  setGenre(value: string): void;
+  setYear(value: number): void;
+  setTrack(value: number): void;
+}
+
+export interface AudioFile {
+  getFormat(): FileType;
+  tag(): Tag;
+  audioProperties(): AudioProperties | null;
+  properties(): PropertyMap;
+  setProperties(properties: PropertyMap): void;
+  getProperty(key: string): string | undefined;
+  setProperty(key: string, value: string): void;
+  isMP4(): boolean;
+  getMP4Item(key: string): string | undefined;
+  setMP4Item(key: string, value: string): void;
+  removeMP4Item(key: string): void;
+  save(): boolean;
+  isValid(): boolean;
+  dispose(): void;
+}
+
 /**
- * @fileoverview Main TagLib API wrapper
+ * Audio file wrapper using Embind API
  */
+export class AudioFileImpl implements AudioFile {
+  private fileHandle: any;
+  private cachedTag: Tag | null = null;
+  private cachedAudioProperties: AudioProperties | null = null;
 
-import type {
-  AudioFormat,
-  AudioProperties,
-  BitrateControlMode,
-  ExtendedTag,
-  FieldMapping,
-  Picture,
-  PropertyMap,
-  Tag,
-  TagLibConfig,
-} from "./types.ts";
-import { 
-  BITRATE_CONTROL_MODE_NAMES,
-  BITRATE_CONTROL_MODE_VALUES,
-  METADATA_MAPPINGS 
-} from "./types.ts";
-import {
-  cStringToJS,
-  jsToCString,
-  loadTagLibModule,
-  type TagLibModule,
-} from "./wasm.ts";
-
-/**
- * Represents an audio file with metadata and properties
- */
-export class AudioFile {
-  private module: TagLibModule;
-  private fileId: number;
-  private tagPtr: number;
-  private propsPtr: number;
-
-  constructor(module: TagLibModule, fileId: number) {
-    this.module = module;
-    this.fileId = fileId;
-    this.tagPtr = module._taglib_file_tag(fileId);
-    this.propsPtr = module._taglib_file_audioproperties(fileId);
+  constructor(
+    private module: TagLibModule,
+    fileHandle: any,
+  ) {
+    this.fileHandle = fileHandle;
   }
 
   /**
-   * Check if the file is valid and was loaded successfully
+   * Get file format
    */
-  isValid(): boolean {
-    return this.module._taglib_file_is_valid(this.fileId) !== 0;
+  getFormat(): FileType {
+    return this.fileHandle.getFormat() as FileType;
   }
 
   /**
-   * Get the file format
-   */
-  format(): AudioFormat {
-    const formatPtr = this.module._taglib_file_format(this.fileId);
-    if (formatPtr === 0) return "MP3"; // fallback
-    const formatStr = cStringToJS(this.module, formatPtr);
-    return formatStr as AudioFormat;
-  }
-
-  /**
-   * Get basic tag information
+   * Get tag object for reading/writing metadata
    */
   tag(): Tag {
-    if (this.tagPtr === 0) return {};
-
-    const title = this.module._taglib_tag_title(this.tagPtr);
-    const artist = this.module._taglib_tag_artist(this.tagPtr);
-    const album = this.module._taglib_tag_album(this.tagPtr);
-    const comment = this.module._taglib_tag_comment(this.tagPtr);
-    const genre = this.module._taglib_tag_genre(this.tagPtr);
-    const year = this.module._taglib_tag_year(this.tagPtr);
-    const track = this.module._taglib_tag_track(this.tagPtr);
-
+    const tagWrapper = this.fileHandle.getTag();
+    if (!tagWrapper) {
+      throw new Error("Failed to get tag from file");
+    }
+    
     return {
-      title: title ? cStringToJS(this.module, title) : undefined,
-      artist: artist ? cStringToJS(this.module, artist) : undefined,
-      album: album ? cStringToJS(this.module, album) : undefined,
-      comment: comment ? cStringToJS(this.module, comment) : undefined,
-      genre: genre ? cStringToJS(this.module, genre) : undefined,
-      year: year || undefined,
-      track: track || undefined,
+      title: tagWrapper.title(),
+      artist: tagWrapper.artist(),
+      album: tagWrapper.album(),
+      comment: tagWrapper.comment(),
+      genre: tagWrapper.genre(),
+      year: tagWrapper.year(),
+      track: tagWrapper.track(),
+      
+      setTitle: (value: string) => tagWrapper.setTitle(value),
+      setArtist: (value: string) => tagWrapper.setArtist(value),
+      setAlbum: (value: string) => tagWrapper.setAlbum(value),
+      setComment: (value: string) => tagWrapper.setComment(value),
+      setGenre: (value: string) => tagWrapper.setGenre(value),
+      setYear: (value: number) => tagWrapper.setYear(value),
+      setTrack: (value: number) => tagWrapper.setTrack(value),
     };
   }
 
   /**
-   * Get audio properties (duration, bitrate, etc.)
+   * Get audio properties
    */
   audioProperties(): AudioProperties | null {
-    if (this.propsPtr === 0) return null;
-
-    const length = this.module._taglib_audioproperties_length(this.propsPtr);
-    const bitrate = this.module._taglib_audioproperties_bitrate(this.propsPtr);
-    const sampleRate = this.module._taglib_audioproperties_samplerate(
-      this.propsPtr,
-    );
-    const channels = this.module._taglib_audioproperties_channels(
-      this.propsPtr,
-    );
-
-    return {
-      length,
-      bitrate,
-      sampleRate,
-      channels,
-      format: this.format(),
-    };
-  }
-
-  /**
-   * Set the title tag
-   */
-  setTitle(title: string): void {
-    if (this.tagPtr === 0) return;
-    const titlePtr = jsToCString(this.module, title);
-    this.module._taglib_tag_set_title(this.tagPtr, titlePtr);
-    this.module._free(titlePtr);
-  }
-
-  /**
-   * Set the artist tag
-   */
-  setArtist(artist: string): void {
-    if (this.tagPtr === 0) return;
-    const artistPtr = jsToCString(this.module, artist);
-    this.module._taglib_tag_set_artist(this.tagPtr, artistPtr);
-    this.module._free(artistPtr);
-  }
-
-  /**
-   * Set the album tag
-   */
-  setAlbum(album: string): void {
-    if (this.tagPtr === 0) return;
-    const albumPtr = jsToCString(this.module, album);
-    this.module._taglib_tag_set_album(this.tagPtr, albumPtr);
-    this.module._free(albumPtr);
-  }
-
-  /**
-   * Set the comment tag
-   */
-  setComment(comment: string): void {
-    if (this.tagPtr === 0) return;
-    const commentPtr = jsToCString(this.module, comment);
-    this.module._taglib_tag_set_comment(this.tagPtr, commentPtr);
-    this.module._free(commentPtr);
-  }
-
-  /**
-   * Set the genre tag
-   */
-  setGenre(genre: string): void {
-    if (this.tagPtr === 0) return;
-    const genrePtr = jsToCString(this.module, genre);
-    this.module._taglib_tag_set_genre(this.tagPtr, genrePtr);
-    this.module._free(genrePtr);
-  }
-
-  /**
-   * Set the year tag
-   */
-  setYear(year: number): void {
-    if (this.tagPtr === 0) return;
-    this.module._taglib_tag_set_year(this.tagPtr, year);
-  }
-
-  /**
-   * Set the track number tag
-   */
-  setTrack(track: number): void {
-    if (this.tagPtr === 0) return;
-    this.module._taglib_tag_set_track(this.tagPtr, track);
+    if (!this.cachedAudioProperties) {
+      const propsWrapper = this.fileHandle.getAudioProperties();
+      if (!propsWrapper) {
+        return null;
+      }
+      
+      this.cachedAudioProperties = {
+        length: propsWrapper.lengthInSeconds(),
+        bitrate: propsWrapper.bitrate(),
+        sampleRate: propsWrapper.sampleRate(),
+        channels: propsWrapper.channels(),
+      };
+    }
+    
+    return this.cachedAudioProperties;
   }
 
   /**
    * Get all properties as a PropertyMap
    */
   properties(): PropertyMap {
-    const jsonPtr = this.module._taglib_file_properties_json(this.fileId);
-    if (jsonPtr === 0) return {};
+    const jsObj = this.fileHandle.getProperties();
+    const result: PropertyMap = {};
     
-    const jsonStr = cStringToJS(this.module, jsonPtr);
-    try {
-      return JSON.parse(jsonStr);
-    } catch {
-      return {};
+    // Convert from Emscripten val to plain object
+    const keys = Object.keys(jsObj);
+    for (const key of keys) {
+      result[key] = jsObj[key];
     }
+    
+    return result;
   }
 
   /**
    * Set properties from a PropertyMap
    */
-  setProperties(properties: PropertyMap): boolean {
-    const jsonStr = JSON.stringify(properties);
-    const jsonPtr = jsToCString(this.module, jsonStr);
-    try {
-      return this.module._taglib_file_set_properties_json(this.fileId, jsonPtr) !== 0;
-    } finally {
-      this.module._free(jsonPtr);
-    }
+  setProperties(properties: PropertyMap): void {
+    this.fileHandle.setProperties(properties);
   }
 
   /**
-   * Get a specific property value
+   * Get a single property value
    */
-  getProperty(key: string): string[] | undefined {
-    const keyPtr = jsToCString(this.module, key);
-    try {
-      const valuePtr = this.module._taglib_file_get_property(this.fileId, keyPtr);
-      if (valuePtr === 0) return undefined;
-      
-      const value = cStringToJS(this.module, valuePtr);
-      return value ? [value] : undefined;
-    } finally {
-      this.module._free(keyPtr);
-    }
+  getProperty(key: string): string | undefined {
+    const value = this.fileHandle.getProperty(key);
+    return value === "" ? undefined : value;
   }
 
   /**
-   * Set a specific property value
+   * Set a single property value
    */
-  setProperty(key: string, values: string | string[]): boolean {
-    const value = Array.isArray(values) ? values[0] : values;
-    if (!value) return false;
-    
-    const keyPtr = jsToCString(this.module, key);
-    const valuePtr = jsToCString(this.module, value);
-    try {
-      return this.module._taglib_file_set_property(this.fileId, keyPtr, valuePtr) !== 0;
-    } finally {
-      this.module._free(keyPtr);
-      this.module._free(valuePtr);
-    }
+  setProperty(key: string, value: string): void {
+    this.fileHandle.setProperty(key, value);
   }
 
   /**
    * Check if this is an MP4 file
    */
   isMP4(): boolean {
-    return this.module._taglib_file_is_mp4(this.fileId) !== 0;
+    return this.fileHandle.isMP4();
   }
 
   /**
-   * Get MP4-specific item (for custom atoms)
+   * Get MP4-specific item
    */
   getMP4Item(key: string): string | undefined {
-    if (!this.isMP4()) return undefined;
-    
-    const keyPtr = jsToCString(this.module, key);
-    try {
-      const valuePtr = this.module._taglib_mp4_get_item(this.fileId, keyPtr);
-      if (valuePtr === 0) return undefined;
-      
-      return cStringToJS(this.module, valuePtr);
-    } finally {
-      this.module._free(keyPtr);
+    if (!this.isMP4()) {
+      throw new Error("Not an MP4 file");
     }
+    const value = this.fileHandle.getMP4Item(key);
+    return value === "" ? undefined : value;
   }
 
   /**
-   * Set MP4-specific item (for custom atoms)
+   * Set MP4-specific item
    */
-  setMP4Item(key: string, value: string): boolean {
-    if (!this.isMP4()) return false;
-    
-    const keyPtr = jsToCString(this.module, key);
-    const valuePtr = jsToCString(this.module, value);
-    try {
-      return this.module._taglib_mp4_set_item(this.fileId, keyPtr, valuePtr) !== 0;
-    } finally {
-      this.module._free(keyPtr);
-      this.module._free(valuePtr);
+  setMP4Item(key: string, value: string): void {
+    if (!this.isMP4()) {
+      throw new Error("Not an MP4 file");
     }
+    this.fileHandle.setMP4Item(key, value);
   }
 
   /**
    * Remove MP4-specific item
    */
-  removeMP4Item(key: string): boolean {
-    if (!this.isMP4()) return false;
-    
-    const keyPtr = jsToCString(this.module, key);
-    try {
-      return this.module._taglib_mp4_remove_item(this.fileId, keyPtr) !== 0;
-    } finally {
-      this.module._free(keyPtr);
+  removeMP4Item(key: string): void {
+    if (!this.isMP4()) {
+      throw new Error("Not an MP4 file");
     }
-  }
-
-  /**
-   * Get bitrate control mode (MP4/M4A specific)
-   * Reads from the 'acbf' atom
-   */
-  getBitrateControlMode(): BitrateControlMode | undefined {
-    if (!this.isMP4()) return undefined;
-    
-    const value = this.getMP4Item("acbf");
-    if (!value) return undefined;
-    
-    const numValue = parseInt(value, 10);
-    if (isNaN(numValue) || numValue < 0 || numValue > 3) return undefined;
-    
-    return BITRATE_CONTROL_MODE_NAMES[numValue];
-  }
-
-  /**
-   * Set bitrate control mode (MP4/M4A specific)
-   * Writes to the 'acbf' atom
-   */
-  setBitrateControlMode(mode: BitrateControlMode): boolean {
-    if (!this.isMP4()) return false;
-    
-    const numValue = BITRATE_CONTROL_MODE_VALUES[mode];
-    if (numValue === undefined) return false;
-    
-    return this.setMP4Item("acbf", numValue.toString());
+    this.fileHandle.removeMP4Item(key);
   }
 
   /**
    * Save changes to the file
    */
   save(): boolean {
-    return this.module._taglib_file_save(this.fileId) !== 0;
+    // Clear caches since values may have changed
+    this.cachedTag = null;
+    this.cachedAudioProperties = null;
+    
+    return this.fileHandle.save();
   }
 
   /**
-   * Get extended metadata with format-agnostic field names
+   * Check if the file is valid
    */
-  extendedTag(): ExtendedTag {
-    // Get basic tags first
-    const basicTag = this.tag();
-
-    // TODO: Implement automatic tag mapping reading via PropertyMap
-    // For now, return basic tags with placeholder for advanced fields
-    return {
-      ...basicTag,
-      // Advanced fields would be populated by PropertyMap reading
-      acoustidFingerprint: undefined,
-      acoustidId: undefined,
-      musicbrainzTrackId: undefined,
-      musicbrainzReleaseId: undefined,
-      musicbrainzArtistId: undefined,
-      musicbrainzReleaseGroupId: undefined,
-      albumArtist: undefined,
-      composer: undefined,
-      discNumber: undefined,
-      totalTracks: undefined,
-      totalDiscs: undefined,
-      bpm: undefined,
-      compilation: undefined,
-      titleSort: undefined,
-      artistSort: undefined,
-      albumSort: undefined,
-      // ReplayGain fields
-      replayGainTrackGain: undefined,
-      replayGainTrackPeak: undefined,
-      replayGainAlbumGain: undefined,
-      replayGainAlbumPeak: undefined,
-      // Apple Sound Check
-      appleSoundCheck: undefined,
-    };
+  isValid(): boolean {
+    return this.fileHandle.isValid();
   }
 
   /**
-   * Set extended metadata using format-agnostic field names
-   * The library automatically maps fields to the correct format-specific storage
-   */
-  setExtendedTag(tag: Partial<ExtendedTag>): void {
-    // Set basic tags using existing methods
-    if (tag.title !== undefined) this.setTitle(tag.title);
-    if (tag.artist !== undefined) this.setArtist(tag.artist);
-    if (tag.album !== undefined) this.setAlbum(tag.album);
-    if (tag.comment !== undefined) this.setComment(tag.comment);
-    if (tag.genre !== undefined) this.setGenre(tag.genre);
-    if (tag.year !== undefined) this.setYear(tag.year);
-    if (tag.track !== undefined) this.setTrack(tag.track);
-
-    // TODO: Implement automatic tag mapping writing via PropertyMap
-    // For fields like acoustidFingerprint, acoustidId, etc.
-  }
-
-  /**
-   * Set AcoustID fingerprint (format-agnostic)
-   * Automatically stores in the correct location for each format:
-   * - MP3: TXXX frame with "Acoustid Fingerprint" description
-   * - FLAC/OGG: ACOUSTID_FINGERPRINT Vorbis comment
-   * - MP4: ----:com.apple.iTunes:Acoustid Fingerprint atom
-   */
-  setAcoustidFingerprint(fingerprint: string): void {
-    // TODO: Implement format-specific storage
-    console.warn(
-      "setAcoustidFingerprint: Advanced metadata not yet implemented",
-    );
-  }
-
-  /**
-   * Get AcoustID fingerprint (format-agnostic)
-   */
-  getAcoustidFingerprint(): string | undefined {
-    // TODO: Implement format-specific reading
-    return undefined;
-  }
-
-  /**
-   * Set AcoustID UUID (format-agnostic)
-   * Automatically stores in the correct location for each format:
-   * - MP3: TXXX frame with "Acoustid Id" description
-   * - FLAC/OGG: ACOUSTID_ID Vorbis comment
-   * - MP4: ----:com.apple.iTunes:Acoustid Id atom
-   */
-  setAcoustidId(id: string): void {
-    // TODO: Implement format-specific storage
-    console.warn("setAcoustidId: Advanced metadata not yet implemented");
-  }
-
-  /**
-   * Get AcoustID UUID (format-agnostic)
-   */
-  getAcoustidId(): string | undefined {
-    // TODO: Implement format-specific reading
-    return undefined;
-  }
-
-  /**
-   * Set MusicBrainz Track ID (format-agnostic)
-   */
-  setMusicBrainzTrackId(id: string): void {
-    // TODO: Implement format-specific storage
-    console.warn(
-      "setMusicBrainzTrackId: Advanced metadata not yet implemented",
-    );
-  }
-
-  /**
-   * Get MusicBrainz Track ID (format-agnostic)
-   */
-  getMusicBrainzTrackId(): string | undefined {
-    // TODO: Implement format-specific reading
-    return undefined;
-  }
-
-  /**
-   * Set ReplayGain track gain (format-agnostic)
-   * Automatically stores in the correct location for each format:
-   * - MP3: TXXX frame with "ReplayGain_Track_Gain" description
-   * - FLAC/OGG: REPLAYGAIN_TRACK_GAIN Vorbis comment
-   * - MP4: ----:com.apple.iTunes:replaygain_track_gain atom
-   */
-  setReplayGainTrackGain(gain: string): void {
-    // TODO: Implement format-specific storage
-    console.warn(
-      "setReplayGainTrackGain: Advanced metadata not yet implemented",
-    );
-  }
-
-  /**
-   * Get ReplayGain track gain (format-agnostic)
-   */
-  getReplayGainTrackGain(): string | undefined {
-    // TODO: Implement format-specific reading
-    return undefined;
-  }
-
-  /**
-   * Set ReplayGain track peak (format-agnostic)
-   */
-  setReplayGainTrackPeak(peak: string): void {
-    // TODO: Implement format-specific storage
-    console.warn(
-      "setReplayGainTrackPeak: Advanced metadata not yet implemented",
-    );
-  }
-
-  /**
-   * Get ReplayGain track peak (format-agnostic)
-   */
-  getReplayGainTrackPeak(): string | undefined {
-    // TODO: Implement format-specific reading
-    return undefined;
-  }
-
-  /**
-   * Set ReplayGain album gain (format-agnostic)
-   */
-  setReplayGainAlbumGain(gain: string): void {
-    // TODO: Implement format-specific storage
-    console.warn(
-      "setReplayGainAlbumGain: Advanced metadata not yet implemented",
-    );
-  }
-
-  /**
-   * Get ReplayGain album gain (format-agnostic)
-   */
-  getReplayGainAlbumGain(): string | undefined {
-    // TODO: Implement format-specific reading
-    return undefined;
-  }
-
-  /**
-   * Set ReplayGain album peak (format-agnostic)
-   */
-  setReplayGainAlbumPeak(peak: string): void {
-    // TODO: Implement format-specific storage
-    console.warn(
-      "setReplayGainAlbumPeak: Advanced metadata not yet implemented",
-    );
-  }
-
-  /**
-   * Get ReplayGain album peak (format-agnostic)
-   */
-  getReplayGainAlbumPeak(): string | undefined {
-    // TODO: Implement format-specific reading
-    return undefined;
-  }
-
-  /**
-   * Set Apple Sound Check normalization data (format-agnostic)
-   * Automatically stores in the correct location for each format:
-   * - MP3: TXXX frame with "iTunNORM" description
-   * - FLAC/OGG: ITUNNORM Vorbis comment
-   * - MP4: ----:com.apple.iTunes:iTunNORM atom
-   */
-  setAppleSoundCheck(iTunNORM: string): void {
-    // TODO: Implement format-specific storage
-    console.warn("setAppleSoundCheck: Advanced metadata not yet implemented");
-  }
-
-  /**
-   * Get Apple Sound Check normalization data (format-agnostic)
-   */
-  getAppleSoundCheck(): string | undefined {
-    // TODO: Implement format-specific reading
-    return undefined;
-  }
-
-  /**
-   * Clean up resources
+   * Free resources
    */
   dispose(): void {
-    if (this.fileId !== 0) {
-      this.module._taglib_file_delete(this.fileId);
-      this.fileId = 0;
+    if (this.fileHandle) {
+      // Embind will handle cleanup when the object goes out of scope
+      // But we can help by clearing our references
+      this.fileHandle = null;
+      this.cachedTag = null;
+      this.cachedAudioProperties = null;
     }
   }
 }
 
 /**
- * Main TagLib class for creating and managing audio files
+ * Main TagLib interface using Embind
  */
 export class TagLib {
   private module: TagLibModule;
 
-  private constructor(module: TagLibModule) {
-    this.module = module;
+  constructor(module: WasmModule) {
+    this.module = module as TagLibModule;
   }
 
   /**
-   * Initialize TagLib with optional configuration
+   * Open a file from a buffer
    */
-  static async initialize(config?: TagLibConfig): Promise<TagLib> {
-    const module = await loadTagLibModule(config);
-    return new TagLib(module);
-  }
-
-  /**
-   * Open an audio file from a buffer
-   */
-  openFile(buffer: Uint8Array): AudioFile {
-    if (!this.module.HEAPU8) {
-      throw new Error("WASM module not properly initialized - missing HEAPU8");
+  async openFile(buffer: ArrayBuffer): Promise<AudioFile> {
+    // Convert ArrayBuffer to string for Embind
+    const uint8Array = new Uint8Array(buffer);
+    const binaryString = Array.from(uint8Array, byte => String.fromCharCode(byte)).join('');
+    
+    // Create a new FileHandle
+    const fileHandle = this.module.createFileHandle();
+    
+    // Load the buffer
+    const success = fileHandle.loadFromBuffer(binaryString);
+    if (!success) {
+      throw new Error("Failed to load file from buffer");
     }
-
-    // Use Emscripten's allocate function for proper memory management
-    const dataPtr = this.module.allocate(buffer, this.module.ALLOC_NORMAL);
-
-    const fileId = this.module._taglib_file_new_from_buffer(
-      dataPtr,
-      buffer.length,
-    );
-
-    if (fileId === 0) {
-      // Don't free memory immediately to debug reuse issue
-      console.log(
-        `DEBUG: File creation failed, not freeing memory at ${dataPtr}`,
-      );
-      throw new Error(
-        "Failed to open audio file - invalid format or corrupted data",
-      );
-    }
-
-    // Free the temporary buffer copy (TagLib has made its own copy in ByteVector)
-    this.module._free(dataPtr);
-
-    return new AudioFile(this.module, fileId);
+    
+    return new AudioFileImpl(this.module, fileHandle);
   }
 
   /**
-   * Get the underlying WASM module (for advanced usage)
+   * Get version information
    */
-  getModule(): TagLibModule {
-    return this.module;
+  version(): string {
+    return "2.1.0"; // TagLib version we're using
   }
+}
+
+/**
+ * Create a TagLib instance
+ */
+export async function createTagLib(module: WasmModule): Promise<TagLib> {
+  return new TagLib(module);
 }
