@@ -225,15 +225,19 @@ export class TagLib {
    * Open a file from a buffer
    */
   async openFile(buffer: ArrayBuffer): Promise<AudioFile> {
-    // Convert ArrayBuffer to string for Embind
+    // Check if Embind is available
+    if (!this.module.createFileHandle) {
+      throw new Error("TagLib module not properly initialized - createFileHandle not found");
+    }
+    
+    // Convert ArrayBuffer to Uint8Array for Embind
     const uint8Array = new Uint8Array(buffer);
-    const binaryString = Array.from(uint8Array, byte => String.fromCharCode(byte)).join('');
     
     // Create a new FileHandle
     const fileHandle = this.module.createFileHandle();
     
-    // Load the buffer
-    const success = fileHandle.loadFromBuffer(binaryString);
+    // Load the buffer - Embind should handle Uint8Array conversion
+    const success = fileHandle.loadFromBuffer(uint8Array);
     if (!success) {
       throw new Error("Failed to load file from buffer");
     }

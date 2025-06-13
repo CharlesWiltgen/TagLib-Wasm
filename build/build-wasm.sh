@@ -61,8 +61,10 @@ emcc "$BUILD_DIR/taglib_wasm.cpp" \
   -s MAXIMUM_MEMORY=1GB \
   -s EXPORTED_RUNTIME_METHODS='["allocate", "getValue", "setValue", "UTF8ToString", "stringToUTF8", "lengthBytesUTF8", "ALLOC_NORMAL"]' \
   -s NO_FILESYSTEM=1 \
-  -s ENVIRONMENT='web,webview,worker,node' \
-  -s EXPORT_ES6=0 \
+  -s ENVIRONMENT='web,webview,worker' \
+  -s USE_ES6_IMPORT_META=1 \
+  -s USE_NODE_SHIMS=0 \
+  -s EXPORT_ES6=1 \
   -s SINGLE_FILE=0 \
   -s STACK_SIZE=1MB \
   -s ASSERTIONS=0 \

@@ -20,6 +20,12 @@ export type {
 } from "./src/types.ts";
 export type { TagLibModule, WasmModule } from "./src/wasm.ts";
 
-// Re-export the module loader
-import createTagLibModule from "./build/taglib.js";
-export { createTagLibModule };
+/**
+ * Load the TagLib WASM module
+ */
+export async function loadTagLibModule(): Promise<TagLibModule> {
+  // Now that we're using ES6 modules, we can use dynamic import directly
+  const { default: createTagLibModule } = await import("./build/taglib.js");
+  const module = await createTagLibModule();
+  return module as TagLibModule;
+}
