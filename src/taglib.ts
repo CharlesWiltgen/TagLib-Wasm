@@ -1,4 +1,4 @@
-import type { TagLibModule, WasmModule } from "./wasm.ts";
+import type { TagLibModule, WasmModule } from "./wasm-jsr.ts";
 import type { AudioProperties, FileType, PropertyMap, Tag as BasicTag } from "./types.ts";
 
 // Extended Tag interface with setters
