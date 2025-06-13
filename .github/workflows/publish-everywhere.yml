@@ -146,18 +146,48 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
+          # Always use main branch to ensure we have the latest fixes
+          ref: main
           submodules: false
       - uses: denoland/setup-deno@v2
         with:
           deno-version: v2.x
 
-      - name: Update version (if manual)
-        if: github.event_name == 'workflow_dispatch'
+      - name: Update version
         run: |
-          sed -i 's/"version": "[^"]*"/"version": "${{ github.event.inputs.version }}"/' deno.json
-          git config --local user.email "action@github.com"
-          git config --local user.name "GitHub Action"
-          git add deno.json
-          git commit -m "chore: update version to ${{ github.event.inputs.version }}" || true
+          # Determine version from event
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            VERSION="${{ github.event.inputs.version }}"
+          else
+            VERSION="${{ github.event.release.tag_name }}"
+          fi
+          
+          # Update deno.json version
+          sed -i "s/\"version\": \"[^\"]*\"/\"version\": \"$VERSION\"/" deno.json
+          
+          # Show updated version
+          echo "Publishing JSR version: $VERSION"
+          grep version deno.json
 
-      - run: deno publish
+      - name: Validate build artifacts
+        run: |
+          # Check that WASM file exists
+          if [ ! -f "build/taglib.wasm" ]; then
+            echo "Error: build/taglib.wasm not found. Building..."
+            # Try to build the WASM file
+            if [ -x "build/build-wasm.sh" ]; then
+              cd build && ./build-wasm.sh && cd ..
+            else
+              echo "Error: Cannot build WASM file. build-wasm.sh not found or not executable."
+              exit 1
+            fi
+          fi
+          
+          # Verify WASM file exists after build attempt
+          ls -la build/taglib.wasm
+
+      - name: Type check before publishing
+        run: deno check mod.ts
+
+      - name: Publish to JSR
+        run: deno publish --allow-dirty
