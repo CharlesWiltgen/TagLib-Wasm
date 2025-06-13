@@ -58,7 +58,7 @@ export async function readTags(file: string | Uint8Array | ArrayBuffer | File): 
   const taglib = await ensureInitialized();
   const audioData = await readFileData(file);
   
-  const audioFile = await taglib.openFile(audioData.buffer);
+  const audioFile = await taglib.openFile(audioData.buffer as ArrayBuffer);
   try {
     if (!audioFile.isValid()) {
       throw new Error('Invalid audio file');
@@ -81,7 +81,7 @@ export async function writeTags(
   const taglib = await ensureInitialized();
   const audioData = await readFileData(file);
   
-  const audioFile = await taglib.openFile(audioData.buffer);
+  const audioFile = await taglib.openFile(audioData.buffer as ArrayBuffer);
   try {
     if (!audioFile.isValid()) {
       throw new Error('Invalid audio file');
@@ -118,7 +118,7 @@ export async function readProperties(file: string | Uint8Array | ArrayBuffer | F
   const taglib = await ensureInitialized();
   const audioData = await readFileData(file);
   
-  const audioFile = await taglib.openFile(audioData.buffer);
+  const audioFile = await taglib.openFile(audioData.buffer as ArrayBuffer);
   try {
     if (!audioFile.isValid()) {
       throw new Error('Invalid audio file');
@@ -156,7 +156,7 @@ export async function isValidAudioFile(file: string | Uint8Array | ArrayBuffer |
     const taglib = await ensureInitialized();
     const audioData = await readFileData(file);
     
-    const audioFile = await taglib.openFile(audioData.buffer);
+    const audioFile = await taglib.openFile(audioData.buffer as ArrayBuffer);
     const valid = audioFile.isValid();
     audioFile.dispose();
     
@@ -173,7 +173,7 @@ export async function getFormat(file: string | Uint8Array | ArrayBuffer | File):
   const taglib = await ensureInitialized();
   const audioData = await readFileData(file);
   
-  const audioFile = await taglib.openFile(audioData.buffer);
+  const audioFile = await taglib.openFile(audioData.buffer as ArrayBuffer);
   try {
     if (!audioFile.isValid()) {
       return undefined;
