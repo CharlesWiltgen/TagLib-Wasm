@@ -7,6 +7,11 @@ export type { TagLibModule } from "./wasm-jsr.ts";
 // Note: AudioFile is not needed for JSR exports
 
 /**
+ * Supported file types
+ */
+export type FileType = "MP3" | "MP4" | "FLAC" | "OGG" | "OPUS" | "WAV" | "AIFF" | "UNKNOWN";
+
+/**
  * Audio format types supported by TagLib
  */
 export type AudioFormat =
@@ -40,8 +45,6 @@ export interface AudioProperties {
   readonly sampleRate: number;
   /** Number of audio channels */
   readonly channels: number;
-  /** Audio format */
-  readonly format: AudioFormat;
 }
 
 /**

@@ -5,17 +5,21 @@
  * for universal audio metadata handling.
  */
 
-export { AudioFile, TagLib } from "./src/taglib.ts";
+export { AudioFileImpl as AudioFile, TagLib, createTagLib } from "./src/taglib.ts";
 export type {
   AudioFormat,
   AudioProperties,
   ExtendedTag,
   FieldMapping,
-  METADATA_MAPPINGS,
+  FileType,
   Picture,
   PictureType,
   PropertyMap,
   Tag,
   TagLibConfig,
 } from "./src/types.ts";
-export type { TagLibModule } from "./src/wasm.ts";
+export type { TagLibModule, WasmModule } from "./src/wasm.ts";
+
+// Re-export the module loader
+import createTagLibModule from "./build/taglib.js";
+export { createTagLibModule };
