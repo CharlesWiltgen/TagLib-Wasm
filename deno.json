@@ -14,6 +14,7 @@
       "src/taglib-jsr.ts",
       "src/types.ts",
       "src/simple-jsr.ts",
+      "src/wasm.ts",
       "src/wasm-jsr.ts",
       "build/taglib.wasm",
       "README.md",
