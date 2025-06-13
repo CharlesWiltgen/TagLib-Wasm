@@ -9,16 +9,16 @@ export {
   AudioFileJSR as AudioFile,
   TagLibJSR as TagLib,
 } from "./src/taglib-jsr.ts";
+export type { Tag } from "./src/taglib-jsr.ts";
 export type {
   AudioFormat,
   AudioProperties,
   ExtendedTag,
   FieldMapping,
-  METADATA_MAPPINGS,
   Picture,
   PictureType,
   PropertyMap,
-  Tag,
   TagLibConfig,
 } from "./src/types.ts";
-export type { TagLibModule } from "./src/wasm-jsr.ts";
+export { METADATA_MAPPINGS } from "./src/types.ts";
+export type { TagLibModule } from "./src/wasm.ts";
