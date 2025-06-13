@@ -2,26 +2,21 @@
  * @fileoverview JSR-compatible simple API (uses taglib-jsr.ts instead of taglib.ts)
  */
 
-import { TagLib, AudioFileJSR } from "./taglib-jsr.ts";
+import { TagLibJSR, AudioFileJSR } from "./taglib-jsr.ts";
 import type { AudioProperties, Tag } from "./types.ts";
 
-// Track initialization state
-let initialized = false;
+// Track TagLib instance
+let taglib: TagLibJSR | null = null;
 
 /**
  * Ensure TagLib is initialized
  */
-async function ensureInitialized(): Promise<void> {
-  if (!initialized) {
-    await TagLib.initialize({
-      debug: false,
-      memory: {
-        initial: 16 * 1024 * 1024, // 16MB default
-        maximum: 64 * 1024 * 1024, // 64MB max
-      },
-    });
-    initialized = true;
+async function ensureInitialized(): Promise<TagLibJSR> {
+  if (!taglib) {
+    await TagLibJSR.initialize();
+    taglib = await TagLibJSR.getInstance();
   }
+  return taglib;
 }
 
 /**
@@ -60,18 +55,18 @@ async function readFileData(file: string | Uint8Array | ArrayBuffer | File): Pro
  * Read metadata tags from an audio file
  */
 export async function readTags(file: string | Uint8Array | ArrayBuffer | File): Promise<Tag> {
-  await ensureInitialized();
+  const taglib = await ensureInitialized();
   const audioData = await readFileData(file);
   
-  const audioFile = new AudioFileJSR(audioData);
+  const audioFile = await taglib.openFile(audioData.buffer);
   try {
     if (!audioFile.isValid()) {
       throw new Error('Invalid audio file');
     }
     
-    return audioFile.getTag();
+    return audioFile.tag();
   } finally {
-    audioFile.destroy();
+    audioFile.dispose();
   }
 }
 
@@ -83,28 +78,36 @@ export async function writeTags(
   tags: Partial<Tag>, 
   options?: number
 ): Promise<Uint8Array> {
-  await ensureInitialized();
+  const taglib = await ensureInitialized();
   const audioData = await readFileData(file);
   
-  const audioFile = new AudioFileJSR(audioData);
+  const audioFile = await taglib.openFile(audioData.buffer);
   try {
     if (!audioFile.isValid()) {
       throw new Error('Invalid audio file');
     }
     
-    // Set the tags using the JSR API
-    audioFile.setTag(tags);
+    // Set the tags
+    const tag = audioFile.tag();
+    if (tags.title !== undefined) tag.setTitle(tags.title);
+    if (tags.artist !== undefined) tag.setArtist(tags.artist);
+    if (tags.album !== undefined) tag.setAlbum(tags.album);
+    if (tags.comment !== undefined) tag.setComment(tags.comment);
+    if (tags.genre !== undefined) tag.setGenre(tags.genre);
+    if (tags.year !== undefined) tag.setYear(tags.year);
+    if (tags.track !== undefined) tag.setTrack(tags.track);
     
-    // Save changes - note that in JSR version, save() returns Uint8Array
-    const savedData = audioFile.save();
+    // Save changes
+    const success = audioFile.save();
+    if (!success) {
+      throw new Error('Failed to save tags');
+    }
     
-    // The JSR implementation currently returns an empty array as a placeholder
-    // For now, we'll return the original data since the actual save implementation
-    // would need to extract the modified data from WASM
-    // TODO: Update when JSR save() is fully implemented
+    // TODO: Return the modified file data
+    // For now, return the original data
     return audioData;
   } finally {
-    audioFile.destroy();
+    audioFile.dispose();
   }
 }
 
@@ -112,18 +115,22 @@ export async function writeTags(
  * Read audio properties from a file
  */
 export async function readProperties(file: string | Uint8Array | ArrayBuffer | File): Promise<AudioProperties> {
-  await ensureInitialized();
+  const taglib = await ensureInitialized();
   const audioData = await readFileData(file);
   
-  const audioFile = new AudioFileJSR(audioData);
+  const audioFile = await taglib.openFile(audioData.buffer);
   try {
     if (!audioFile.isValid()) {
       throw new Error('Invalid audio file');
     }
     
-    return audioFile.getAudioProperties();
+    const props = audioFile.audioProperties();
+    if (!props) {
+      throw new Error('Failed to read audio properties');
+    }
+    return props;
   } finally {
-    audioFile.destroy();
+    audioFile.dispose();
   }
 }
 
@@ -146,12 +153,12 @@ export const DiscNumber = "discnumber";
  */
 export async function isValidAudioFile(file: string | Uint8Array | ArrayBuffer | File): Promise<boolean> {
   try {
-    await ensureInitialized();
+    const taglib = await ensureInitialized();
     const audioData = await readFileData(file);
     
-    const audioFile = new AudioFileJSR(audioData);
+    const audioFile = await taglib.openFile(audioData.buffer);
     const valid = audioFile.isValid();
-    audioFile.destroy();
+    audioFile.dispose();
     
     return valid;
   } catch {
@@ -163,10 +170,10 @@ export async function isValidAudioFile(file: string | Uint8Array | ArrayBuffer |
  * Get the audio format of a file
  */
 export async function getFormat(file: string | Uint8Array | ArrayBuffer | File): Promise<string | undefined> {
-  await ensureInitialized();
+  const taglib = await ensureInitialized();
   const audioData = await readFileData(file);
   
-  const audioFile = new AudioFileJSR(audioData);
+  const audioFile = await taglib.openFile(audioData.buffer);
   try {
     if (!audioFile.isValid()) {
       return undefined;
@@ -174,7 +181,7 @@ export async function getFormat(file: string | Uint8Array | ArrayBuffer | File):
     
     return audioFile.getFormat();
   } finally {
-    audioFile.destroy();
+    audioFile.dispose();
   }
 }
 
