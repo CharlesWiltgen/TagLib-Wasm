@@ -12,7 +12,7 @@ on:
 
 jobs:
   test:
-    name: "Run tests"
+    name: "Publish everywhere"
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
