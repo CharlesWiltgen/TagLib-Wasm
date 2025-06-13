@@ -21,4 +21,4 @@ export type {
   TagLibConfig,
 } from "./src/types.ts";
 export { METADATA_MAPPINGS } from "./src/types.ts";
-export type { TagLibModule } from "./src/wasm.ts";
+// TagLibModule type export removed for JSR compatibility
