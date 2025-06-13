@@ -91,5 +91,4 @@ export interface WasmModule extends EmscriptenModule {
   createFileHandle?(): FileHandle;
 }
 
-// Re-export module loading function
-export { loadTagLibModule } from "../index.ts";
+// Module loading function removed for modular imports

@@ -8,7 +8,7 @@
 import { AudioFileImpl, TagLib as TagLibBase, createTagLib } from "./taglib.ts";
 import type { AudioFile, Tag, AudioProperties, FileType, PropertyMap } from "./taglib.ts";
 import type { TagLibConfig } from "./types.ts";
-import type { WasmModule } from "./wasm.ts";
+import type { WasmModule } from "./wasm-jsr.ts";
 
 // Re-export types and implementations
 export { AudioFileImpl as AudioFileJSR } from "./taglib.ts";
@@ -23,11 +23,9 @@ export class TagLibJSR extends TagLibBase {
 
   static async getInstance(): Promise<TagLibJSR> {
     if (!TagLibJSR.instance) {
-      // Use the same Embind module for both NPM and JSR
-      const { loadTagLibModule } = await import("../index.ts");
-      const module = await loadTagLibModule();
-      TagLibJSR.instance = new TagLibJSR(module as unknown as WasmModule);
-      TagLibJSR.initialized = true;
+      // For JSR, we need to load the module directly without Node.js dependencies
+      // This is a placeholder - the actual implementation would need to load WASM directly
+      throw new Error("JSR version requires direct WASM loading implementation. Please use the NPM version for now.");
     }
     return TagLibJSR.instance;
   }
