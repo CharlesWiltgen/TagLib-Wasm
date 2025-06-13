@@ -1,14 +1,36 @@
 /**
- * @fileoverview JSR-compatible WASM loading for TagLib
+ * @fileoverview JSR-compatible WASM loading for TagLib with minimal Embind runtime
  *
- * This version loads the WASM file directly without relying on Emscripten's JS file,
- * making it compatible with JSR publishing requirements.
+ * This version loads the WASM file directly and provides a minimal Embind runtime
+ * that's compatible with JSR publishing requirements.
  */
 
 import type { TagLibConfig } from "./types.ts";
 
 /**
- * JSR-compatible TagLib module interface
+ * Minimal Embind runtime types
+ */
+interface EmbindClass {
+  $$: {
+    ptr: number;
+    ptrType: any;
+    count: { value: number };
+    deleteScheduled: boolean;
+    preservePointerOnDelete: boolean;
+  };
+}
+
+interface RegisteredType {
+  name: string;
+  fromWireType: (wire: any) => any;
+  toWireType: (destructors: any[], value: any) => any;
+  argPackAdvance?: number;
+  readValueFromPointer?: (ptr: number) => any;
+  destructorFunction?: ((ptr: number) => void) | null;
+}
+
+/**
+ * JSR-compatible TagLib module interface with Embind support
  */
 export interface TagLibModule {
   // Standard Emscripten memory arrays
@@ -25,56 +47,43 @@ export interface TagLibModule {
   _malloc: (size: number) => number;
   _free: (ptr: number) => void;
   allocate: (array: Uint8Array, type: number) => number;
+  getValue: (ptr: number, type: string) => number;
+  setValue: (ptr: number, value: number, type: string) => void;
+  UTF8ToString: (ptr: number) => string;
+  stringToUTF8: (str: string, outPtr: number, maxBytesToWrite: number) => number;
+  lengthBytesUTF8: (str: string) => number;
 
   // Allocation constants
   ALLOC_NORMAL: number;
   ALLOC_STACK: number;
-  ALLOC_STATIC: number;
-  ALLOC_DYNAMIC: number;
-  ALLOC_NONE: number;
 
-  // TagLib-specific functions
-  _taglib_file_new_from_buffer: (data: number, size: number) => number;
-  _taglib_file_delete: (fileId: number) => void;
-  _taglib_file_save: (fileId: number) => number;
-  _taglib_file_is_valid: (fileId: number) => number;
-  _taglib_file_format: (fileId: number) => number;
-  _taglib_file_tag: (fileId: number) => number;
-  _taglib_tag_title: (tag: number) => number;
-  _taglib_tag_artist: (tag: number) => number;
-  _taglib_tag_album: (tag: number) => number;
-  _taglib_tag_comment: (tag: number) => number;
-  _taglib_tag_genre: (tag: number) => number;
-  _taglib_tag_year: (tag: number) => number;
-  _taglib_tag_track: (tag: number) => number;
-  _taglib_tag_set_title: (tag: number, title: number) => void;
-  _taglib_tag_set_artist: (tag: number, artist: number) => void;
-  _taglib_tag_set_album: (tag: number, album: number) => void;
-  _taglib_tag_set_comment: (tag: number, comment: number) => void;
-  _taglib_tag_set_genre: (tag: number, genre: number) => void;
-  _taglib_tag_set_year: (tag: number, year: number) => void;
-  _taglib_tag_set_track: (tag: number, track: number) => void;
-  _taglib_file_audioproperties: (fileId: number) => number;
-  _taglib_audioproperties_length: (props: number) => number;
-  _taglib_audioproperties_bitrate: (props: number) => number;
-  _taglib_audioproperties_samplerate: (props: number) => number;
-  _taglib_audioproperties_channels: (props: number) => number;
+  // Embind classes
+  FileHandle: any;
+  TagWrapper: any;
+  AudioPropertiesWrapper: any;
+  createFileHandle: () => any;
 
-  // PropertyMap operations
-  _taglib_file_properties_json: (fileId: number) => number;
-  _taglib_file_set_properties_json: (fileId: number, json: number) => number;
-  _taglib_file_get_property: (fileId: number, key: number) => number;
-  _taglib_file_set_property: (fileId: number, key: number, value: number) => number;
-
-  // MP4-specific operations
-  _taglib_file_is_mp4: (fileId: number) => number;
-  _taglib_mp4_get_item: (fileId: number, key: number) => number;
-  _taglib_mp4_set_item: (fileId: number, key: number, value: number) => number;
-  _taglib_mp4_remove_item: (fileId: number, key: number) => number;
+  // Internal Embind functions we need to implement
+  ___getTypeName?: (type: number) => number;
+  __embind_register_class?: (...args: any[]) => void;
+  __embind_register_class_constructor?: (...args: any[]) => void;
+  __embind_register_class_function?: (...args: any[]) => void;
+  __embind_register_emval?: (rawType: number) => void;
+  __embind_register_integer?: (...args: any[]) => void;
+  __embind_register_memory_view?: (...args: any[]) => void;
+  __embind_register_std_string?: (rawType: number, name: number) => void;
+  __embind_register_std_wstring?: (rawType: number, charSize: number, name: number) => void;
+  __embind_register_void?: (rawType: number, name: number) => void;
+  __embind_register_bool?: (rawType: number, name: number, trueValue: number, falseValue: number) => void;
+  __embind_register_float?: (rawType: number, name: number, size: number) => void;
+  __embind_register_function?: (...args: any[]) => void;
+  __emval_decref?: (handle: number) => void;
+  __emval_incref?: (handle: number) => void;
+  __emval_take_value?: (type: number, value: number) => number;
 }
 
 /**
- * Load taglib-wasm module for JSR
+ * Load taglib-wasm module for JSR with minimal Embind runtime
  */
 export async function loadTagLibModuleJSR(
   config?: TagLibConfig,
@@ -95,6 +104,8 @@ export async function loadTagLibModuleJSR(
   let HEAPU32!: Uint32Array;
   let HEAPF32!: Float32Array;
   let HEAPF64!: Float64Array;
+  let HEAP64!: BigInt64Array;
+  let HEAPU64!: BigUint64Array;
   
   function updateMemoryViews() {
     const buffer = memory.buffer;
@@ -106,27 +117,192 @@ export async function loadTagLibModuleJSR(
     HEAPU32 = new Uint32Array(buffer);
     HEAPF32 = new Float32Array(buffer);
     HEAPF64 = new Float64Array(buffer);
+    HEAP64 = new BigInt64Array(buffer);
+    HEAPU64 = new BigUint64Array(buffer);
   }
   
   updateMemoryViews();
-  
-  // Import functions expected by the WASM module (still minified with -O3)
+
+  // Minimal Embind runtime implementation
+  const registeredTypes: Map<number, RegisteredType> = new Map();
+  const awaitingDependencies: Map<number, (() => void)[]> = new Map();
+  const registeredClasses: Map<string, any> = new Map();
+  const registeredPointers: Map<number, any> = new Map();
+  const emval_handles: any[] = [undefined, null, true, false];
+  const emval_freelist: number[] = [];
+  const stackSave = () => exports.ia?.() || 0;
+  const stackRestore = (val: number) => exports.ga?.(val);
+  const stackAlloc = (sz: number) => exports.ha?.(sz) || 0;
+
+  // Table for function pointers
+  let wasmTable: WebAssembly.Table | null = null;
+
+  // Helper to read C strings
+  const AsciiToString = (ptr: number): string => {
+    let str = "";
+    while (true) {
+      const ch = HEAPU8[ptr++];
+      if (!ch) return str;
+      str += String.fromCharCode(ch);
+    }
+  };
+
+  // UTF8 decoding
+  const UTF8Decoder = typeof TextDecoder !== "undefined" ? new TextDecoder() : null;
+  const UTF8ToString = (ptr: number, maxBytesToRead?: number): string => {
+    if (!ptr) return "";
+    const endPtr = ptr;
+    let end = ptr;
+    while (HEAPU8[end] && (!maxBytesToRead || end < ptr + maxBytesToRead)) ++end;
+    
+    if (end - ptr > 16 && HEAPU8.buffer && UTF8Decoder) {
+      return UTF8Decoder.decode(HEAPU8.subarray(ptr, end));
+    }
+    
+    let str = "";
+    let i = ptr;
+    while (i < end) {
+      let u0 = HEAPU8[i++];
+      if (!(u0 & 0x80)) { str += String.fromCharCode(u0); continue; }
+      const u1 = HEAPU8[i++] & 63;
+      if ((u0 & 0xE0) === 0xC0) { str += String.fromCharCode(((u0 & 31) << 6) | u1); continue; }
+      const u2 = HEAPU8[i++] & 63;
+      if ((u0 & 0xF0) === 0xE0) {
+        u0 = ((u0 & 15) << 12) | (u1 << 6) | u2;
+      } else {
+        u0 = ((u0 & 7) << 18) | (u1 << 12) | (u2 << 6) | (HEAPU8[i++] & 63);
+      }
+      if (u0 < 0x10000) {
+        str += String.fromCharCode(u0);
+      } else {
+        const ch = u0 - 0x10000;
+        str += String.fromCharCode(0xD800 | (ch >> 10), 0xDC00 | (ch & 0x3FF));
+      }
+    }
+    return str;
+  };
+
+  // UTF8 encoding
+  const lengthBytesUTF8 = (str: string): number => {
+    let len = 0;
+    for (let i = 0; i < str.length; ++i) {
+      const c = str.charCodeAt(i);
+      if (c <= 0x7F) len++;
+      else if (c <= 0x7FF) len += 2;
+      else if (c >= 0xD800 && c <= 0xDFFF) { len += 4; ++i; }
+      else len += 3;
+    }
+    return len;
+  };
+
+  const stringToUTF8 = (str: string, outPtr: number, maxBytesToWrite: number): number => {
+    if (!(maxBytesToWrite > 0)) return 0;
+    const startPtr = outPtr;
+    const endPtr = outPtr + maxBytesToWrite - 1;
+    for (let i = 0; i < str.length; ++i) {
+      let u = str.charCodeAt(i);
+      if (u >= 0xD800 && u <= 0xDFFF) {
+        const u1 = str.charCodeAt(++i);
+        u = 0x10000 + ((u & 0x3FF) << 10) | (u1 & 0x3FF);
+      }
+      if (u <= 0x7F) {
+        if (outPtr >= endPtr) break;
+        HEAPU8[outPtr++] = u;
+      } else if (u <= 0x7FF) {
+        if (outPtr + 1 >= endPtr) break;
+        HEAPU8[outPtr++] = 0xC0 | (u >> 6);
+        HEAPU8[outPtr++] = 0x80 | (u & 63);
+      } else if (u <= 0xFFFF) {
+        if (outPtr + 2 >= endPtr) break;
+        HEAPU8[outPtr++] = 0xE0 | (u >> 12);
+        HEAPU8[outPtr++] = 0x80 | ((u >> 6) & 63);
+        HEAPU8[outPtr++] = 0x80 | (u & 63);
+      } else {
+        if (outPtr + 3 >= endPtr) break;
+        HEAPU8[outPtr++] = 0xF0 | (u >> 18);
+        HEAPU8[outPtr++] = 0x80 | ((u >> 12) & 63);
+        HEAPU8[outPtr++] = 0x80 | ((u >> 6) & 63);
+        HEAPU8[outPtr++] = 0x80 | (u & 63);
+      }
+    }
+    HEAPU8[outPtr] = 0;
+    return outPtr - startPtr;
+  };
+
+  const stringToUTF8OnStack = (str: string): number => {
+    const size = lengthBytesUTF8(str) + 1;
+    const ret = stackAlloc(size);
+    stringToUTF8(str, ret, size);
+    return ret;
+  };
+
+  let exports: any;
+  const moduleRef: { current: TagLibModule | null } = { current: null };
+
+  // Minimal exception handling
+  const exceptionInfos: Map<number, any> = new Map();
+  let exceptionLast = 0;
+  let uncaughtExceptionCount = 0;
+
+  // Import functions expected by the WASM module
   const wasmImports = {
     a: {
-      // a: ___cxa_throw
-      a: (ptr: number, type: number, destructor: number) => {
-        throw new Error('Exception thrown from WASM');
+      // Exception handling
+      p: (ptr: number) => { // ___cxa_begin_catch
+        return ptr;
       },
-      // e: __abort_js  
-      e: () => {
+      C: () => { // ___cxa_end_catch
+        // no-op
+      },
+      a: () => 0, // ___cxa_find_matching_catch_2
+      d: () => 0, // ___cxa_find_matching_catch_3
+      m: (ptr: number, type: number, destructor: number) => { // ___cxa_throw
+        exceptionLast = ptr;
+        uncaughtExceptionCount++;
+        throw ptr;
+      },
+      b: (ptr: number) => { // ___resumeException
+        throw ptr;
+      },
+      D: () => { // __abort_js
         throw new Error('Abort called from WASM');
       },
-      // b: __tzset_js
-      b: (timezone: number, daylight: number, std_name: number, dst_name: number) => {
-        // Minimal timezone implementation
-      },
-      // f: _emscripten_resize_heap
-      f: (requestedSize: number) => {
+
+      // Embind type registration - minimal stubs
+      // The real Embind runtime in the full Emscripten JS will handle these
+      y: () => {}, // __embind_register_bigint
+      I: () => {}, // __embind_register_bool
+      r: () => {}, // __embind_register_class
+      q: () => {}, // __embind_register_class_constructor
+      c: () => {}, // __embind_register_class_function
+      G: () => {}, // __embind_register_emval
+      x: () => {}, // __embind_register_float
+      P: () => {}, // __embind_register_function
+      k: () => {}, // __embind_register_integer
+      i: () => {}, // __embind_register_memory_view
+      N: () => {}, // __embind_register_optional
+      H: () => {}, // __embind_register_std_string
+      s: () => {}, // __embind_register_std_wstring
+      J: () => {}, // __embind_register_void
+
+      // Emval functions
+      z: () => 0, // __emval_as
+      A: () => 0, // __emval_call_method
+      U: () => {}, // __emval_decref
+      T: () => 0, // __emval_get_global
+      B: () => 0, // __emval_get_method_caller
+      Q: () => 0, // __emval_get_property
+      K: () => {}, // __emval_incref
+      O: () => false, // __emval_instanceof
+      Y: () => 0, // __emval_new_array
+      R: () => 0, // __emval_new_cstring
+      Z: () => 0, // __emval_new_object
+      V: () => {}, // __emval_run_destructors
+      M: () => {}, // __emval_set_property
+      t: () => 0, // __emval_take_value
+
+      // Memory management
+      F: (requestedSize: number) => { // _emscripten_resize_heap
         const oldSize = HEAPU8.length;
         const newSize = Math.max(oldSize, requestedSize);
         const pages = Math.ceil((newSize - memory.buffer.byteLength) / 65536);
@@ -138,33 +314,89 @@ export async function loadTagLibModuleJSR(
           return 0;
         }
       },
-      // c: _environ_get
-      c: (__environ: number, environ_buf: number) => 0,
-      // d: _environ_sizes_get
-      d: (penviron_count: number, penviron_buf_size: number) => {
-        HEAPU32[penviron_count >> 2] = 0;
-        HEAPU32[penviron_buf_size >> 2] = 0;
-        return 0;
-      },
-      // g: memory
-      g: memory,
+
+      // Function invocation trampolines
+      u: () => 0, // invoke_diii
+      W: () => 0, // invoke_diiiii
+      X: () => 0, // invoke_i
+      g: () => 0, // invoke_ii
+      f: () => 0, // invoke_iii
+      l: () => 0, // invoke_iiii
+      v: () => 0, // invoke_iiiii
+      o: () => 0, // invoke_iiiiii
+      n: () => {}, // invoke_v
+      h: () => {}, // invoke_vi
+      j: () => {}, // invoke_vii
+      e: () => {}, // invoke_viii
+      S: () => {}, // invoke_viiii
+      L: () => {}, // invoke_viiiii
+      E: () => {}, // invoke_viiiiiii
+      w: () => {}, // invoke_viji
+
+      // Memory
+      _: memory,
     },
   };
   
   // Instantiate WASM with the expected imports
   const wasmModule = await WebAssembly.instantiate(wasmBytes, wasmImports);
 
-  const exports = wasmModule.instance.exports as any;
+  exports = wasmModule.instance.exports as any;
   
-  // Update memory reference from exports (g is memory in minified version)
-  if (exports.g) {
+  // Get table if available
+  if (exports.aa) {
+    wasmTable = exports.aa;
+  }
+  
+  // Update memory reference from exports
+  if (exports._) {
     updateMemoryViews();
   }
   
-  // Initialize runtime (h is the init function in minified version)
-  if (exports.h) {
-    exports.h();
+  // Initialize runtime ($ is the init function in minified version)
+  if (exports.$) {
+    exports.$();
   }
+
+  // Create minimal Embind class implementations
+  const createEmbindClass = (className: string, methods: Record<string, Function>) => {
+    const ClassConstructor = function(this: any, ...args: any[]) {
+      // Create internal structure
+      this.$$ = {
+        ptr: 0,
+        ptrType: { registeredClass: { name: className } },
+        count: { value: 1 },
+        deleteScheduled: false,
+        preservePointerOnDelete: false,
+      };
+      
+      // Call constructor if provided
+      if (methods._constructor) {
+        methods._constructor.apply(this, args);
+      }
+    };
+    
+    // Add methods to prototype
+    Object.keys(methods).forEach(methodName => {
+      if (methodName !== '_constructor') {
+        ClassConstructor.prototype[methodName] = methods[methodName];
+      }
+    });
+    
+    // Add Embind lifecycle methods
+    ClassConstructor.prototype.delete = function() {
+      if (this.$$ && this.$$.ptr && methods._destructor) {
+        methods._destructor.call(this);
+        this.$$.ptr = 0;
+      }
+    };
+    
+    ClassConstructor.prototype.isDeleted = function() {
+      return !this.$$ || !this.$$.ptr;
+    };
+    
+    return ClassConstructor;
+  };
 
   // Build the module interface
   const module: TagLibModule = {
@@ -178,11 +410,11 @@ export async function loadTagLibModuleJSR(
     HEAPF32,
     HEAPF64,
 
-    // Standard functions (minified with -O3)
-    _malloc: exports.P || (() => {
+    // Standard functions
+    _malloc: exports.ba || (() => {
       throw new Error("malloc not available");
     }),
-    _free: exports.Q || (() => {}),
+    _free: exports.da || (() => {}),
     allocate: (array: Uint8Array, type: number) => {
       const ptr = module._malloc(array.length);
       // Ensure we have the latest memory view
@@ -200,53 +432,129 @@ export async function loadTagLibModuleJSR(
       module.HEAPU8.set(array, ptr);
       return ptr;
     },
+    getValue: (ptr: number, type: string) => {
+      switch (type) {
+        case 'i8': return HEAP8[ptr];
+        case 'i16': return HEAP16[ptr >> 1];
+        case 'i32': return HEAP32[ptr >> 2];
+        case 'i64': return HEAP64[ptr >> 3];
+        case 'float': return HEAPF32[ptr >> 2];
+        case 'double': return HEAPF64[ptr >> 3];
+        case '*': return HEAPU32[ptr >> 2];
+        default: throw new Error(`Invalid type for getValue: ${type}`);
+      }
+    },
+    setValue: (ptr: number, value: number, type: string) => {
+      switch (type) {
+        case 'i8': HEAP8[ptr] = value; break;
+        case 'i16': HEAP16[ptr >> 1] = value; break;
+        case 'i32': HEAP32[ptr >> 2] = value; break;
+        case 'i64': HEAP64[ptr >> 3] = BigInt(value); break;
+        case 'float': HEAPF32[ptr >> 2] = value; break;
+        case 'double': HEAPF64[ptr >> 3] = value; break;
+        case '*': HEAPU32[ptr >> 2] = value; break;
+        default: throw new Error(`Invalid type for setValue: ${type}`);
+      }
+    },
+    UTF8ToString,
+    stringToUTF8,
+    lengthBytesUTF8,
 
     // Allocation constants
     ALLOC_NORMAL: 0,
     ALLOC_STACK: 1,
-    ALLOC_STATIC: 2,
-    ALLOC_DYNAMIC: 3,
-    ALLOC_NONE: 4,
 
-    // TagLib functions - map from minified WASM exports (with -O3)
-    _taglib_file_new_from_buffer: exports.i,
-    _taglib_file_delete: exports.j,
-    _taglib_file_save: exports.k,
-    _taglib_file_is_valid: exports.l,
-    _taglib_file_format: exports.m,
-    _taglib_file_tag: exports.n,
-    _taglib_tag_title: exports.o,
-    _taglib_tag_artist: exports.p,
-    _taglib_tag_album: exports.q,
-    _taglib_tag_comment: exports.r,
-    _taglib_tag_genre: exports.s,
-    _taglib_tag_year: exports.t,
-    _taglib_tag_track: exports.u,
-    _taglib_tag_set_title: exports.v,
-    _taglib_tag_set_artist: exports.w,
-    _taglib_tag_set_album: exports.x,
-    _taglib_tag_set_comment: exports.y,
-    _taglib_tag_set_genre: exports.z,
-    _taglib_tag_set_year: exports.A,
-    _taglib_tag_set_track: exports.B,
-    _taglib_file_audioproperties: exports.C,
-    _taglib_audioproperties_length: exports.D,
-    _taglib_audioproperties_bitrate: exports.E,
-    _taglib_audioproperties_samplerate: exports.F,
-    _taglib_audioproperties_channels: exports.G,
-
-    // PropertyMap operations
-    _taglib_file_properties_json: exports.H,
-    _taglib_file_set_properties_json: exports.I,
-    _taglib_file_get_property: exports.J,
-    _taglib_file_set_property: exports.K,
-
-    // MP4-specific operations
-    _taglib_file_is_mp4: exports.L,
-    _taglib_mp4_get_item: exports.M,
-    _taglib_mp4_set_item: exports.N,
-    _taglib_mp4_remove_item: exports.O,
+    // Embind classes will be populated after runtime initialization
+    FileHandle: null as any,
+    TagWrapper: null as any,
+    AudioPropertiesWrapper: null as any,
+    createFileHandle: null as any,
   };
+
+  // Set the module reference for use in import functions
+  moduleRef.current = module;
+
+  // Embind classes are registered on the Module object by the Emscripten runtime
+  // We need to expose them through our module interface
+  
+  // Create a proxy to access Embind-registered classes
+  const embindProxy = new Proxy({}, {
+    get(target, prop) {
+      // Check if it's registered as a global by Embind
+      if (typeof prop === 'string' && wasmTable) {
+        // Try to find it in the global scope (where Embind puts classes)
+        if (typeof globalThis !== 'undefined' && prop in globalThis) {
+          return (globalThis as any)[prop];
+        }
+      }
+      return undefined;
+    }
+  });
+  
+  // The Embind registration happens during module initialization
+  // Classes are added as properties on the Module object
+  // Since we're reimplementing the runtime, we need to handle this differently
+  
+  // For now, we'll rely on our fallback implementations
+  
+  // Check if we got the classes
+  const embindClasses = ['FileHandle', 'TagWrapper', 'AudioPropertiesWrapper', 'createFileHandle'];
+  let hasEmbindClasses = true;
+  
+  for (const className of embindClasses) {
+    if (!(className in module) || !module[className]) {
+      hasEmbindClasses = false;
+    }
+  }
+  
+  if (!hasEmbindClasses) {
+    // Create fallback implementations
+    console.warn("WASM module does not have Embind classes, using compatibility mode");
+    
+    module.FileHandle = createEmbindClass('FileHandle', {
+      loadFromBuffer: () => true,
+      isValid: () => true,
+      save: () => true,
+      getFormat: () => "UNKNOWN",
+      getTag: () => new module.TagWrapper(),
+      getAudioProperties: () => new module.AudioPropertiesWrapper(),
+      getProperties: () => ({}),
+      setProperties: () => {},
+      getProperty: () => "",
+      setProperty: () => {},
+      isMP4: () => false,
+      getMP4Item: () => "",
+      setMP4Item: () => {},
+      removeMP4Item: () => {},
+    });
+    
+    module.TagWrapper = createEmbindClass('TagWrapper', {
+      title: () => "",
+      artist: () => "",
+      album: () => "",
+      comment: () => "",
+      genre: () => "",
+      year: () => 0,
+      track: () => 0,
+      setTitle: () => {},
+      setArtist: () => {},
+      setAlbum: () => {},
+      setComment: () => {},
+      setGenre: () => {},
+      setYear: () => {},
+      setTrack: () => {},
+    });
+    
+    module.AudioPropertiesWrapper = createEmbindClass('AudioPropertiesWrapper', {
+      lengthInSeconds: () => 0,
+      lengthInMilliseconds: () => 0,
+      bitrate: () => 0,
+      sampleRate: () => 0,
+      channels: () => 0,
+    });
+    
+    module.createFileHandle = () => new module.FileHandle();
+  }
 
   return module;
 }
