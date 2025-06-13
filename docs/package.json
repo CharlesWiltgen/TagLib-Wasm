@@ -8,9 +8,10 @@
     "preview": "vuepress preview ."
   },
   "devDependencies": {
-    "vuepress": "2.0.0-rc.18",
-    "@vuepress/bundler-vite": "2.0.0-rc.18",
-    "@vuepress/theme-default": "2.0.0-rc.18",
+    "vuepress": "next",
+    "@vuepress/bundler-vite": "next",
+    "@vuepress/theme-default": "next",
+    "@vuepress/helper": "next",
     "sass": "^1.80.0"
   }
 }
