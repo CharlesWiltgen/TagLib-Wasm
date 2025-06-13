@@ -2,7 +2,35 @@
  * @fileoverview WebAssembly module interface types for Emscripten
  */
 
-import type { EmscriptenModule } from "./types.ts";
+// Basic Emscripten module interface
+export interface EmscriptenModule {
+  // Memory
+  HEAP8: Int8Array;
+  HEAP16: Int16Array;
+  HEAP32: Int32Array;
+  HEAPU8: Uint8Array;
+  HEAPU16: Uint16Array;
+  HEAPU32: Uint32Array;
+  HEAPF32: Float32Array;
+  HEAPF64: Float64Array;
+  
+  // Memory management
+  _malloc(size: number): number;
+  _free(ptr: number): void;
+  allocate?(data: number[] | Uint8Array, allocator: number): number;
+  ALLOC_NORMAL?: number;
+  
+  // String conversion
+  ccall?(ident: string, returnType: string, argTypes: string[], args: any[]): any;
+  cwrap?(ident: string, returnType: string, argTypes: string[]): (...args: any[]) => any;
+  
+  // File system (if enabled)
+  FS?: any;
+  
+  // Runtime
+  then?(callback: (module: EmscriptenModule) => void): void;
+  onRuntimeInitialized?: () => void;
+}
 
 // Embind class interfaces
 export interface FileHandle {
