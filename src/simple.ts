@@ -35,15 +35,11 @@ let cachedTagLib: TagLib | null = null;
  */
 async function getTagLib(): Promise<TagLib> {
   if (!cachedTagLib) {
-    cachedTagLib = await TagLib.initialize({
-      debug: false,
-      memory: {
-        initial: 16 * 1024 * 1024, // 16MB default
-        maximum: 64 * 1024 * 1024, // 64MB max
-      },
-    });
+    // Import from mod.ts for Deno compatibility
+    const { TagLib } = await import("../mod.ts");
+    cachedTagLib = await TagLib.getInstance();
   }
-  return cachedTagLib;
+  return cachedTagLib as TagLib;
 }
 
 /**
@@ -106,7 +102,7 @@ export async function readTags(file: string | Uint8Array | ArrayBuffer | File): 
   const taglib = await getTagLib();
   const audioData = await readFileData(file);
   
-  const audioFile = taglib.openFile(audioData);
+  const audioFile = await taglib.openFile(audioData.buffer);
   try {
     if (!audioFile.isValid()) {
       throw new Error('Invalid audio file');
@@ -148,20 +144,21 @@ export async function writeTags(
   const taglib = await getTagLib();
   const audioData = await readFileData(file);
   
-  const audioFile = taglib.openFile(audioData);
+  const audioFile = await taglib.openFile(audioData.buffer);
   try {
     if (!audioFile.isValid()) {
       throw new Error('Invalid audio file');
     }
     
-    // Write each tag if defined
-    if (tags.title !== undefined) audioFile.setTitle(tags.title);
-    if (tags.artist !== undefined) audioFile.setArtist(tags.artist);
-    if (tags.album !== undefined) audioFile.setAlbum(tags.album);
-    if (tags.comment !== undefined) audioFile.setComment(tags.comment);
-    if (tags.genre !== undefined) audioFile.setGenre(tags.genre);
-    if (tags.year !== undefined) audioFile.setYear(tags.year);
-    if (tags.track !== undefined) audioFile.setTrack(tags.track);
+    // Get the tag object and write each tag if defined
+    const tag = audioFile.tag();
+    if (tags.title !== undefined) tag.setTitle(tags.title);
+    if (tags.artist !== undefined) tag.setArtist(tags.artist);
+    if (tags.album !== undefined) tag.setAlbum(tags.album);
+    if (tags.comment !== undefined) tag.setComment(tags.comment);
+    if (tags.genre !== undefined) tag.setGenre(tags.genre);
+    if (tags.year !== undefined) tag.setYear(tags.year);
+    if (tags.track !== undefined) tag.setTrack(tags.track);
     
     // Save changes to in-memory buffer
     if (!audioFile.save()) {
@@ -194,7 +191,7 @@ export async function readProperties(file: string | Uint8Array | ArrayBuffer | F
   const taglib = await getTagLib();
   const audioData = await readFileData(file);
   
-  const audioFile = taglib.openFile(audioData);
+  const audioFile = await taglib.openFile(audioData.buffer);
   try {
     if (!audioFile.isValid()) {
       throw new Error('Invalid audio file');
@@ -247,7 +244,7 @@ export async function isValidAudioFile(file: string | Uint8Array | ArrayBuffer |
     const taglib = await getTagLib();
     const audioData = await readFileData(file);
     
-    const audioFile = taglib.openFile(audioData);
+    const audioFile = await taglib.openFile(audioData.buffer);
     const valid = audioFile.isValid();
     audioFile.dispose();
     
@@ -273,13 +270,13 @@ export async function getFormat(file: string | Uint8Array | ArrayBuffer | File):
   const taglib = await getTagLib();
   const audioData = await readFileData(file);
   
-  const audioFile = taglib.openFile(audioData);
+  const audioFile = await taglib.openFile(audioData.buffer);
   try {
     if (!audioFile.isValid()) {
       return undefined;
     }
     
-    return audioFile.format();
+    return audioFile.getFormat();
   } finally {
     audioFile.dispose();
   }
