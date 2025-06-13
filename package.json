@@ -24,6 +24,8 @@
     "test": "deno run --allow-read tests/test-systematic.ts",
     "test:bun": "bun run tests/test-systematic.ts",
     "test:node": "node --loader ts-node/esm tests/test-systematic.ts",
+    "docs:dev": "cd docs && npm install && npm run dev",
+    "docs:build": "cd docs && npm install && npm run build",
     "update-taglib": "./scripts/update-taglib.sh",
     "release": "./scripts/release.sh",
     "publish:npm": "echo 'Use GitHub Actions workflow for publishing'",
