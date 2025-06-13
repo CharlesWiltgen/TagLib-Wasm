@@ -77,6 +77,9 @@ jobs:
           # Verify WASM file exists after build attempt
           ls -la build/taglib.wasm
 
+      - name: Cache dependencies
+        run: deno cache mod.ts
+
       - name: Type check before publishing
         run: deno check mod.ts
 
