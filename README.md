@@ -384,8 +384,7 @@ build/
 ├── taglib.js       # Generated Emscripten JavaScript
 └── taglib.wasm     # Compiled WebAssembly module
 
-tests/              # Test files and sample audio files
-tests/              # Test suite
+tests/              # Test suite and sample audio files
 examples/           # Usage examples for different runtimes
 ├── deno/           # Deno-specific examples
 ├── bun/            # Bun-specific examples
