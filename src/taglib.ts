@@ -12,6 +12,9 @@ export interface Tag extends BasicTag {
   setTrack(value: number): void;
 }
 
+// Re-export types for JSR
+export type { AudioProperties, FileType, PropertyMap } from "./types.ts";
+
 export interface AudioFile {
   getFormat(): FileType;
   tag(): Tag;
