@@ -542,3 +542,6 @@ export class AudioFileJSR {
     this.cleanup();
   }
 }
+
+// Export alias for compatibility with simple-jsr.ts
+export { TagLibJSR as TagLib };
