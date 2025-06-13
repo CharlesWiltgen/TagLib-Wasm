@@ -1,17 +1,14 @@
 # taglib-wasm
 
-[TagLib](https://taglib.org/) is the most robust, de-facto standard for reading and editing metadata tags (Title, Album, Artist, etc.) in all popular audio formats. See [“Goals & Features”](https://taglib.org/) for the reasons TagLib is so great.
+This is the Wasm version of [**TagLib**](https://taglib.org/), the most robust, de-facto standard for reading and editing metadata tags (Title, Album, Artist, etc.) in all popular audio formats. `taglib-wasm` exists because the JavaScipt/TypeScipt ecosystem had no battle-tested audio tagging library that supports reading and writing music metadata to all popular audio formats — until now!
 
-`taglib-wasm` is designed to be **TagLib for JavaScript/TypeScript** platforms — specifically Deno, Node.js, Bun, web browsers, and Cloudflare Workers. It does this by leveraging technologies including [TagLib](https://taglib.org/) itself, [Emscripten](https://emscripten.org/), and [Wasm](https://webassembly.org/) ([WebAssembly](https://webassembly.org/)).
+`taglib-wasm` stands on the shoulders of giants, including [TagLib](https://taglib.org/) itself, [Emscripten](https://emscripten.org/), and [Wasm](https://webassembly.org/) ([WebAssembly](https://webassembly.org/)).
 
-> [!NOTE]
-> This project is a baby, and you’re likely to experience some surprises at this stage of its development. I’m extremely moditivated to help address them, though.
+`taglib-wasm` aspires to be a universal solution for **JavaScript/TypeScript** platforms — Deno, Node.js, Bun, web browsers, and Cloudflare Workers. Note: This project is a baby, and you’re likely to experience some surprises at this stage of its development. I’m extremely motivated to help address them, since I’ll also be depending on this project.
 
-## Why?
+## 🤔 Why?
 
-In the process of building a utility to improve the metadata of my music collection, I discovered that the JavaScipt/TypeScipt ecosystem had no battle-tested audio tagging library that supports reading and writing music metadata to all popular audio formats.
-
-[`mp3tag.js`](https://mp3tag.js.org/) is mature and active, but only supports MP3 files and ID3 tags. TagLib was an ideal choice from a maturity and capabilities point of view, but wrappers like `node-taglib` appeared to be dormant, and I wanted to avoid making users install platform-specific dependencies whenever possible.
+Because there’s nothing like it. [`mp3tag.js`](https://mp3tag.js.org/) is mature and active, but only supports MP3 files and ID3 tags. TagLib was an ideal choice from a maturity and capabilities point of view, but wrappers like `node-taglib` appeared to be dormant, and I wanted to avoid making users install platform-specific dependencies whenever possible.
 
 ## 🎯 Features
 
@@ -36,6 +33,13 @@ import { TagLib } from "jsr:@charleswiltgen/taglib-wasm";
 
 ```bash
 npm install taglib-wasm
+```
+
+**Note:** The NPM package ships TypeScript source files. Use a TypeScript loader like [`tsx`](https://github.com/privatenumber/tsx):
+
+```bash
+npm install --save-dev tsx
+npx tsx your-script.ts
 ```
 
 ### Bun
@@ -281,14 +285,13 @@ export default {
 
 ## 📋 Supported Formats
 
-All formats are **fully tested and working**:
+`tag-wasm` is designed to support all formats supported by TagLib:
 
-- ✅ **MP3** – ID3v2 and ID3v1 tags
-- ✅ **MP4/M4A** – Standard MPEG (iTunes-compatible) metadata atoms
-- ✅ **FLAC** – Vorbis comments and audio properties
-- ✅ **OGG Vorbis** – Vorbis comments
-- ✅ **WAV** – INFO chunk metadata
-- 🔄 **Additional formats**: Opus, APE, MPC, WavPack, TrueAudio, and more
+- ✅ **.m4a (.mp4)** – Standard MPEG-4/AAC metadata for AAC and Apple Lossless audio
+- ✅ **.mp3** – ID3v2 and ID3v1 tags
+- ✅ **.flac** – Vorbis comments and audio properties
+- ✅ **.wav** – INFO chunk metadata
+- ✅ **Legacy formats**: Opus, APE, MPC, WavPack, TrueAudio, and more
 
 ## 🎯 Automatic Tag Mapping
 
