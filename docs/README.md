@@ -47,7 +47,7 @@ await writeTags("song.mp3", {
 ::: code-tabs
 @tab Deno
 ```typescript
-import { TagLib } from "jsr:@charleswiltgen/taglib-wasm";
+import { TagLib } from "npm:taglib-wasm";
 ```
 
 @tab Node.js
