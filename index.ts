@@ -6,6 +6,7 @@
  */
 
 export { AudioFileImpl as AudioFile, TagLib, createTagLib } from "./src/taglib.ts";
+export { readTags, writeTags, readProperties } from "./src/simple.ts";
 export type {
   AudioFormat,
   AudioProperties,

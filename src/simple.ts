@@ -35,9 +35,9 @@ let cachedTagLib: TagLib | null = null;
  */
 async function getTagLib(): Promise<TagLib> {
   if (!cachedTagLib) {
-    // Import from mod.ts for Deno compatibility
-    const { TagLib } = await import("../mod.ts");
-    cachedTagLib = await TagLib.getInstance();
+    // Use the NPM version for compatibility
+    const { TagLib } = await import("./taglib.ts");
+    cachedTagLib = await TagLib.initialize();
   }
   return cachedTagLib as TagLib;
 }
@@ -165,9 +165,8 @@ export async function writeTags(
       throw new Error('Failed to save changes');
     }
     
-    // Note: In a real implementation, we'd need to get the modified buffer
-    // For now, return the original as taglib-wasm doesn't expose the modified buffer yet
-    return audioData;
+    // Get the modified buffer after saving
+    return audioFile.getFileBuffer();
   } finally {
     audioFile.dispose();
   }
