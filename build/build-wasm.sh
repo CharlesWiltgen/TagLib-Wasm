@@ -26,6 +26,7 @@ echo "📦 Configuring TagLib with Emscripten..."
 # Configure TagLib with CMake for Emscripten
 emcmake cmake "$TAGLIB_DIR" \
   -DCMAKE_WARN_DEPRECATED=OFF \
+  -DCMAKE_CXX_FLAGS="-Wno-character-conversion" \
   -DCMAKE_BUILD_TYPE=Release \
   -DBUILD_SHARED_LIBS=OFF \
   -DBUILD_TESTING=OFF \
