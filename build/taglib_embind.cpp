@@ -387,6 +387,16 @@ private:
         
         return "unknown";
     }
+    
+public:
+    // Get the current file buffer after modifications
+    std::string getBuffer() const {
+        if (stream && stream->data()) {
+            const TagLib::ByteVector* data = stream->data();
+            return std::string(data->data(), data->size());
+        }
+        return "";
+    }
 };
 
 EMSCRIPTEN_BINDINGS(taglib) {
@@ -406,7 +416,8 @@ EMSCRIPTEN_BINDINGS(taglib) {
         .function("setMP4Item", &FileHandle::setMP4Item)
         .function("removeMP4Item", &FileHandle::removeMP4Item)
         .function("getTag", &FileHandle::getTag)
-        .function("getAudioProperties", &FileHandle::getAudioProperties);
+        .function("getAudioProperties", &FileHandle::getAudioProperties)
+        .function("getBuffer", &FileHandle::getBuffer);
     
     // TagWrapper class
     class_<TagWrapper>("TagWrapper")
