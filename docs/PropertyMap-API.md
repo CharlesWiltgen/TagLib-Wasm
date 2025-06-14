@@ -1,34 +1,36 @@
-# Automatic Tag Mapping Handling
+# Extended Metadata with PropertyMap API
 
-`taglib-wasm` provides a **format-agnostic metadata system** that automatically handles storing advanced fields like AcoustID fingerprints in the correct location for each audio format.
+`taglib-wasm` provides a **PropertyMap API** for handling extended metadata fields beyond the basic tags (title, artist, album, etc.). This allows you to access format-specific fields and custom metadata.
 
-## 🎯 The Problem
+## 🎯 The PropertyMap API
 
-Different audio formats store the same metadata in completely different ways:
-
-```typescript
-// The developer pain: Format-specific metadata handling
-if (format === "MP3") {
-  // Store in ID3v2 TXXX frame with specific description
-  file.setId3v2Frame("TXXX", "Acoustid Fingerprint", fingerprint);
-} else if (format === "FLAC") {
-  // Store as Vorbis comment
-  file.setVorbisComment("ACOUSTID_FINGERPRINT", fingerprint);
-} else if (format === "MP4") {
-  // Store as freeform atom with reverse-DNS naming
-  file.setMp4Atom("----:com.apple.iTunes:Acoustid Fingerprint", fingerprint);
-}
-```
-
-## ✅ The Solution
-
-`taglib-wasm` provides a **single API** that works across all formats:
+The PropertyMap API provides a unified interface for reading and writing extended metadata:
 
 ```typescript
-// The taglib-wasm way: Format-agnostic metadata
-file.setAcoustidFingerprint(fingerprint);
-// ↑ This automatically stores correctly for ANY format!
+// Read all properties
+const properties = file.properties();
+console.log(properties); // { ALBUMARTIST: ["Various Artists"], BPM: ["120"], ... }
+
+// Get a specific property
+const acoustidId = file.getProperty("ACOUSTID_ID");
+
+// Set a property
+file.setProperty("ACOUSTID_FINGERPRINT", fingerprint);
+
+// Set multiple properties at once
+file.setProperties({
+  ALBUMARTIST: ["Various Artists"],
+  COMPOSER: ["Composer Name"],
+  BPM: ["120"]
+});
 ```
+
+## 📝 Important Notes
+
+- Property keys are typically uppercase (e.g., "ALBUMARTIST", "REPLAYGAIN_TRACK_GAIN")
+- Property values in `setProperties()` must be arrays of strings
+- Property keys may vary by format - check existing properties with `file.properties()`
+- For MP4-specific metadata, use the `setMP4Item()` method
 
 ## 📋 Format-Specific Storage Reference
 
