@@ -60,7 +60,15 @@ async function demonstrateReplayGainAndSoundCheck() {
 
       // Show current ReplayGain and Sound Check data
       console.log("\\n🎚️  Current Volume Normalization Metadata:");
-      const currentTags = file.extendedTag();
+      // Get properties to check for volume normalization metadata
+      const properties = file.properties();
+      const currentTags = {
+        replayGainTrackGain: file.getProperty("REPLAYGAIN_TRACK_GAIN"),
+        replayGainTrackPeak: file.getProperty("REPLAYGAIN_TRACK_PEAK"),
+        replayGainAlbumGain: file.getProperty("REPLAYGAIN_ALBUM_GAIN"),
+        replayGainAlbumPeak: file.getProperty("REPLAYGAIN_ALBUM_PEAK"),
+        appleSoundCheck: format === "M4A" ? file.getMP4Item("----:com.apple.iTunes:iTunNORM") : undefined
+      };
       console.log(
         `  ReplayGain Track Gain: ${
           currentTags.replayGainTrackGain || "(none)"
@@ -88,12 +96,17 @@ async function demonstrateReplayGainAndSoundCheck() {
       // Demonstrate format-agnostic field setting
       console.log(`\\n✏️  Setting normalization metadata (format-agnostic)...`);
 
-      // These calls will automatically use the correct storage method for each format
-      file.setReplayGainTrackGain(replayGainData.trackGain);
-      file.setReplayGainTrackPeak(replayGainData.trackPeak);
-      file.setReplayGainAlbumGain(replayGainData.albumGain);
-      file.setReplayGainAlbumPeak(replayGainData.albumPeak);
-      file.setAppleSoundCheck(appleSoundCheckData);
+      // Using PropertyMap API for volume normalization metadata
+      // Note: Property keys may vary by format
+      file.setProperty("REPLAYGAIN_TRACK_GAIN", replayGainData.trackGain);
+      file.setProperty("REPLAYGAIN_TRACK_PEAK", replayGainData.trackPeak);
+      file.setProperty("REPLAYGAIN_ALBUM_GAIN", replayGainData.albumGain);
+      file.setProperty("REPLAYGAIN_ALBUM_PEAK", replayGainData.albumPeak);
+      
+      // Apple Sound Check may require special handling for MP4
+      if (format === "M4A") {
+        file.setMP4Item("----:com.apple.iTunes:iTunNORM", appleSoundCheckData);
+      }
 
       // Show where these would be stored for this format
       console.log(`\\n📋 Format-specific storage for ${format}:`);
@@ -214,18 +227,21 @@ function showNormalizationMappingTable() {
 
   console.log("\\n💡 Usage Examples:");
   console.log("```typescript");
-  console.log("// ReplayGain - Single API works for ALL formats!");
-  console.log('file.setReplayGainTrackGain("-6.54 dB");');
-  console.log('file.setReplayGainTrackPeak("0.987654");');
+  console.log("// ReplayGain - Using PropertyMap API");
+  console.log('file.setProperty("REPLAYGAIN_TRACK_GAIN", "-6.54 dB");');
+  console.log('file.setProperty("REPLAYGAIN_TRACK_PEAK", "0.987654");');
   console.log("");
-  console.log("// Apple Sound Check");
-  console.log('file.setAppleSoundCheck("00000150 00000150 00000150...");');
+  console.log("// Apple Sound Check for MP4 files");
+  console.log('if (file.isMP4()) {');
+  console.log('  file.setMP4Item("----:com.apple.iTunes:iTunNORM", "00000150 00000150 00000150...");');
+  console.log('}');
   console.log("");
-  console.log("// Bulk setting via extendedTag");
-  console.log("file.setExtendedTag({");
-  console.log('  replayGainTrackGain: "-6.54 dB",');
-  console.log('  replayGainTrackPeak: "0.987654",');
-  console.log('  appleSoundCheck: "00000150...",');
+  console.log("// Bulk setting using setProperties");
+  console.log("file.setProperties({");
+  console.log('  REPLAYGAIN_TRACK_GAIN: ["-6.54 dB"],');
+  console.log('  REPLAYGAIN_TRACK_PEAK: ["0.987654"],');
+  console.log('  REPLAYGAIN_ALBUM_GAIN: ["-8.12 dB"],');
+  console.log('  REPLAYGAIN_ALBUM_PEAK: ["0.995432"],');
   console.log("});");
   console.log("```");
 
