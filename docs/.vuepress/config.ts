@@ -29,10 +29,6 @@ export default defineUserConfig({
         link: '/API.md',
       },
       {
-        text: 'JSR',
-        link: 'https://jsr.io/@charleswiltgen/taglib-wasm',
-      },
-      {
         text: 'NPM',
         link: 'https://www.npmjs.com/package/taglib-wasm',
       },
@@ -51,7 +47,6 @@ export default defineUserConfig({
         {
           text: 'Core Concepts',
           children: [
-            '/Automatic-Tag-Mapping.md',
             '/Runtime-Compatibility.md',
             '/Performance.md',
             '/Error-Handling.md',
@@ -63,6 +58,7 @@ export default defineUserConfig({
             '/Implementation.md',
             '/Troubleshooting.md',
             '/Publishing.md',
+            '/Cloudflare-Workers.md',
           ],
         },
       ],
@@ -71,13 +67,13 @@ export default defineUserConfig({
           text: 'Documentation',
           children: [
             '/API.md',
-            '/Automatic-Tag-Mapping.md',
             '/Runtime-Compatibility.md',
             '/Performance.md',
             '/Error-Handling.md',
             '/Implementation.md',
             '/Troubleshooting.md',
             '/Publishing.md',
+            '/Cloudflare-Workers.md',
           ],
         },
       ],

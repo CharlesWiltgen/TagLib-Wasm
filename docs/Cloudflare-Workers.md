@@ -1,0 +1,586 @@
+# Cloudflare Workers
+
+`taglib-wasm` is fully compatible with Cloudflare Workers, enabling serverless audio metadata processing at the edge. This guide covers setup, deployment, and best practices for using taglib-wasm in Workers.
+
+## Overview
+
+Cloudflare Workers provide a serverless execution environment that runs on Cloudflare's global edge network. With taglib-wasm, you can process audio metadata without managing servers, scaling automatically to handle millions of requests.
+
+### Key Benefits
+
+- **Global Edge Deployment**: Process audio files close to your users
+- **Automatic Scaling**: Handle traffic spikes without configuration
+- **Cost Effective**: Pay only for what you use
+- **No Cold Starts**: Workers stay warm for instant response times
+- **Built-in Security**: HTTPS, DDoS protection, and rate limiting
+
+## Installation
+
+In your Workers project:
+
+```bash
+npm install taglib-wasm
+```
+
+## Basic Setup
+
+### 1. Create a Worker
+
+```typescript
+// src/index.ts
+import { TagLib } from 'taglib-wasm';
+
+export default {
+  async fetch(request: Request): Promise<Response> {
+    // Initialize TagLib (cached after first call)
+    const taglib = await TagLib.initialize({
+      // Reduce memory for Workers environment
+      memory: {
+        initial: 16 * 1024 * 1024, // 16MB
+        maximum: 128 * 1024 * 1024, // 128MB
+      },
+    });
+
+    // Handle different routes
+    const url = new URL(request.url);
+    
+    if (url.pathname === '/metadata' && request.method === 'POST') {
+      return handleMetadata(request, taglib);
+    }
+    
+    return new Response('Audio Metadata Service', {
+      headers: { 'content-type': 'text/plain' },
+    });
+  },
+};
+
+async function handleMetadata(request: Request, taglib: TagLib): Promise<Response> {
+  try {
+    // Get audio data from request
+    const audioData = new Uint8Array(await request.arrayBuffer());
+    
+    // Open and process file
+    const file = taglib.openFile(audioData);
+    if (!file) {
+      return new Response('Invalid audio file', { status: 400 });
+    }
+    
+    // Extract metadata
+    const metadata = {
+      tag: {
+        title: file.tag.title,
+        artist: file.tag.artist,
+        album: file.tag.album,
+        year: file.tag.year,
+        track: file.tag.track,
+        genre: file.tag.genre,
+        comment: file.tag.comment,
+      },
+      audioProperties: {
+        length: file.audioProperties.length,
+        bitrate: file.audioProperties.bitrate,
+        sampleRate: file.audioProperties.sampleRate,
+        channels: file.audioProperties.channels,
+      },
+      format: file.format,
+    };
+    
+    // Clean up
+    file.dispose();
+    
+    return new Response(JSON.stringify(metadata), {
+      headers: {
+        'content-type': 'application/json',
+        'access-control-allow-origin': '*',
+      },
+    });
+  } catch (error) {
+    return new Response(JSON.stringify({ error: error.message }), {
+      status: 500,
+      headers: { 'content-type': 'application/json' },
+    });
+  }
+}
+```
+
+### 2. Configure wrangler.toml
+
+```toml
+name = "audio-metadata-service"
+main = "src/index.ts"
+compatibility_date = "2024-01-01"
+
+[build]
+command = "npm run build"
+
+# Optional: Bundle Wasm files
+[[rules]]
+type = "Data"
+globs = ["**/*.wasm"]
+fallthrough = true
+```
+
+### 3. Deploy
+
+```bash
+# Deploy to Cloudflare
+wrangler deploy
+
+# Test locally
+wrangler dev
+```
+
+## Advanced Features
+
+### Batch Processing
+
+Process multiple files in a single request:
+
+```typescript
+interface BatchRequest {
+  files: Array<{
+    name: string;
+    data: string; // base64 encoded
+  }>;
+}
+
+async function handleBatch(request: Request, taglib: TagLib): Promise<Response> {
+  const { files } = await request.json<BatchRequest>();
+  
+  const results = await Promise.all(
+    files.map(async (file) => {
+      try {
+        const audioData = Uint8Array.from(atob(file.data), c => c.charCodeAt(0));
+        const tagFile = taglib.openFile(audioData);
+        
+        if (!tagFile) {
+          return { name: file.name, error: 'Invalid file' };
+        }
+        
+        const metadata = {
+          name: file.name,
+          title: tagFile.tag.title,
+          artist: tagFile.tag.artist,
+          duration: tagFile.audioProperties.length,
+        };
+        
+        tagFile.dispose();
+        return metadata;
+      } catch (error) {
+        return { name: file.name, error: error.message };
+      }
+    })
+  );
+  
+  return new Response(JSON.stringify(results), {
+    headers: { 'content-type': 'application/json' },
+  });
+}
+```
+
+### Using Workers KV for Caching
+
+Cache processed metadata to reduce processing time:
+
+```typescript
+interface Env {
+  METADATA_CACHE: KVNamespace;
+}
+
+export default {
+  async fetch(request: Request, env: Env): Promise<Response> {
+    const taglib = await TagLib.initialize();
+    
+    // Generate cache key from file content
+    const audioData = new Uint8Array(await request.arrayBuffer());
+    const hashBuffer = await crypto.subtle.digest('SHA-256', audioData);
+    const cacheKey = Array.from(new Uint8Array(hashBuffer))
+      .map(b => b.toString(16).padStart(2, '0'))
+      .join('');
+    
+    // Check cache
+    const cached = await env.METADATA_CACHE.get(cacheKey, 'json');
+    if (cached) {
+      return new Response(JSON.stringify(cached), {
+        headers: { 'content-type': 'application/json', 'x-cache': 'hit' },
+      });
+    }
+    
+    // Process file
+    const file = taglib.openFile(audioData);
+    const metadata = extractMetadata(file);
+    file.dispose();
+    
+    // Cache for 1 hour
+    await env.METADATA_CACHE.put(cacheKey, JSON.stringify(metadata), {
+      expirationTtl: 3600,
+    });
+    
+    return new Response(JSON.stringify(metadata), {
+      headers: { 'content-type': 'application/json', 'x-cache': 'miss' },
+    });
+  },
+};
+```
+
+### Durable Objects Integration
+
+Use Durable Objects for stateful processing:
+
+```typescript
+export class AudioProcessor {
+  private taglib: TagLib | null = null;
+  
+  async fetch(request: Request): Promise<Response> {
+    // Initialize once per Durable Object instance
+    if (!this.taglib) {
+      this.taglib = await TagLib.initialize();
+    }
+    
+    // Process request with persistent TagLib instance
+    const audioData = new Uint8Array(await request.arrayBuffer());
+    const file = this.taglib.openFile(audioData);
+    
+    // ... process file ...
+    
+    file.dispose();
+    return new Response(JSON.stringify(metadata));
+  }
+}
+```
+
+## Performance Optimization
+
+### Memory Management
+
+Workers have memory constraints. Optimize your usage:
+
+```typescript
+const taglib = await TagLib.initialize({
+  memory: {
+    initial: 16 * 1024 * 1024,  // Start with 16MB
+    maximum: 128 * 1024 * 1024, // Cap at 128MB
+  },
+});
+
+// Process files in chunks for large batches
+async function processBatch(files: File[], taglib: TagLib) {
+  const CHUNK_SIZE = 10;
+  const results = [];
+  
+  for (let i = 0; i < files.length; i += CHUNK_SIZE) {
+    const chunk = files.slice(i, i + CHUNK_SIZE);
+    const chunkResults = await Promise.all(
+      chunk.map(file => processFile(file, taglib))
+    );
+    results.push(...chunkResults);
+    
+    // Optional: Force garbage collection between chunks
+    if (global.gc) global.gc();
+  }
+  
+  return results;
+}
+```
+
+### Request Size Limits
+
+Workers have request size limits. Handle large files appropriately:
+
+```typescript
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+
+export default {
+  async fetch(request: Request): Promise<Response> {
+    // Check Content-Length header
+    const contentLength = request.headers.get('content-length');
+    if (contentLength && parseInt(contentLength) > MAX_FILE_SIZE) {
+      return new Response('File too large', { status: 413 });
+    }
+    
+    // Process file
+    // ...
+  },
+};
+```
+
+## Error Handling
+
+Implement comprehensive error handling:
+
+```typescript
+class AudioMetadataError extends Error {
+  constructor(message: string, public statusCode: number = 500) {
+    super(message);
+    this.name = 'AudioMetadataError';
+  }
+}
+
+async function handleRequest(request: Request): Promise<Response> {
+  try {
+    const taglib = await TagLib.initialize();
+    
+    // Validate request
+    if (request.method !== 'POST') {
+      throw new AudioMetadataError('Method not allowed', 405);
+    }
+    
+    const contentType = request.headers.get('content-type');
+    if (!contentType?.includes('application/octet-stream')) {
+      throw new AudioMetadataError('Invalid content type', 400);
+    }
+    
+    // Process audio
+    const audioData = new Uint8Array(await request.arrayBuffer());
+    const file = taglib.openFile(audioData);
+    
+    if (!file) {
+      throw new AudioMetadataError('Invalid audio file', 400);
+    }
+    
+    const metadata = extractMetadata(file);
+    file.dispose();
+    
+    return new Response(JSON.stringify(metadata), {
+      headers: { 'content-type': 'application/json' },
+    });
+    
+  } catch (error) {
+    if (error instanceof AudioMetadataError) {
+      return new Response(
+        JSON.stringify({ error: error.message }),
+        { status: error.statusCode }
+      );
+    }
+    
+    // Log unexpected errors
+    console.error('Unexpected error:', error);
+    
+    return new Response(
+      JSON.stringify({ error: 'Internal server error' }),
+      { status: 500 }
+    );
+  }
+}
+```
+
+## Security Best Practices
+
+### Input Validation
+
+Always validate and sanitize inputs:
+
+```typescript
+function validateAudioData(data: Uint8Array): void {
+  // Check minimum size
+  if (data.length < 100) {
+    throw new Error('File too small to be valid audio');
+  }
+  
+  // Check maximum size
+  if (data.length > 50 * 1024 * 1024) { // 50MB
+    throw new Error('File too large');
+  }
+  
+  // Optional: Check file signatures
+  const signatures = {
+    mp3: [0xFF, 0xFB], // MP3
+    flac: [0x66, 0x4C, 0x61, 0x43], // fLaC
+    ogg: [0x4F, 0x67, 0x67, 0x53], // OggS
+  };
+  
+  // Validate against known signatures
+  // ...
+}
+```
+
+### Rate Limiting
+
+Implement rate limiting to prevent abuse:
+
+```typescript
+interface Env {
+  RATE_LIMITER: DurableObjectNamespace;
+}
+
+export default {
+  async fetch(request: Request, env: Env): Promise<Response> {
+    // Get client identifier
+    const clientId = request.headers.get('cf-connecting-ip') || 'unknown';
+    
+    // Check rate limit
+    const limiterId = env.RATE_LIMITER.idFromName(clientId);
+    const limiter = env.RATE_LIMITER.get(limiterId);
+    
+    const allowed = await limiter.fetch(request).then(r => r.json());
+    if (!allowed) {
+      return new Response('Rate limit exceeded', { status: 429 });
+    }
+    
+    // Process request
+    // ...
+  },
+};
+```
+
+### CORS Configuration
+
+Configure CORS for browser access:
+
+```typescript
+function corsHeaders(request: Request): Headers {
+  const headers = new Headers({
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type',
+    'Access-Control-Max-Age': '86400',
+  });
+  
+  // Optional: Restrict to specific origins
+  const origin = request.headers.get('Origin');
+  if (origin && isAllowedOrigin(origin)) {
+    headers.set('Access-Control-Allow-Origin', origin);
+  }
+  
+  return headers;
+}
+```
+
+## Testing
+
+### Local Development
+
+```bash
+# Start local dev server
+wrangler dev
+
+# Test with curl
+curl -X POST http://localhost:8787/metadata \
+  --data-binary @test.mp3 \
+  --header "Content-Type: application/octet-stream"
+```
+
+### Unit Testing
+
+```typescript
+// test/worker.test.ts
+import { unstable_dev } from 'wrangler';
+import type { UnstableDevWorker } from 'wrangler';
+
+describe('Audio Metadata Worker', () => {
+  let worker: UnstableDevWorker;
+
+  beforeAll(async () => {
+    worker = await unstable_dev('src/index.ts', {
+      experimental: { disableExperimentalWarning: true },
+    });
+  });
+
+  afterAll(async () => {
+    await worker.stop();
+  });
+
+  it('should extract metadata from MP3', async () => {
+    const audioData = await fs.readFile('test.mp3');
+    const response = await worker.fetch('/metadata', {
+      method: 'POST',
+      body: audioData,
+    });
+
+    const metadata = await response.json();
+    expect(metadata.format).toBe('MP3');
+    expect(metadata.tag.title).toBeDefined();
+  });
+});
+```
+
+## Deployment
+
+### Production Checklist
+
+- [ ] Configure custom domain
+- [ ] Set up monitoring and alerts
+- [ ] Implement rate limiting
+- [ ] Enable caching where appropriate
+- [ ] Configure error logging
+- [ ] Set up CI/CD pipeline
+- [ ] Test with production-like data
+
+### Environment Variables
+
+```toml
+# wrangler.toml
+[vars]
+MAX_FILE_SIZE = "10485760" # 10MB in bytes
+CACHE_TTL = "3600" # 1 hour in seconds
+
+[env.production]
+[env.production.vars]
+DEBUG = "false"
+ALLOWED_ORIGINS = "https://example.com,https://app.example.com"
+
+[env.staging]
+[env.staging.vars]
+DEBUG = "true"
+ALLOWED_ORIGINS = "*"
+```
+
+## Examples
+
+Complete working examples are available in the [examples/workers](https://github.com/CharlesWiltgen/taglib-wasm/tree/main/examples/workers) directory:
+
+- `audio-processor.ts` - Full-featured metadata extraction service
+- `wrangler.toml` - Production-ready configuration
+- `README.md` - Detailed setup instructions
+
+## Limitations
+
+### Workers Environment
+
+- **Memory**: 128MB limit per request
+- **CPU Time**: 50ms (free) or 30s (paid) per request
+- **Request Size**: 100MB maximum
+- **Response Size**: 100MB maximum
+- **Subrequests**: 50 per request
+
+### taglib-wasm Specific
+
+- Files must be fully loaded into memory
+- No streaming support (Workers limitation)
+- Single-threaded execution
+- No persistent storage (use KV/R2/D1)
+
+## Troubleshooting
+
+### Common Issues
+
+**Wasm module fails to load**
+```typescript
+// Ensure Wasm is properly bundled
+import wasmModule from 'taglib-wasm/taglib.wasm';
+
+// Or fetch from KV/R2 if stored separately
+const wasmBinary = await env.KV.get('taglib.wasm', 'arrayBuffer');
+```
+
+**Memory allocation errors**
+```typescript
+// Reduce initial memory allocation
+const taglib = await TagLib.initialize({
+  memory: { initial: 8 * 1024 * 1024 } // 8MB
+});
+```
+
+**Timeout errors**
+```typescript
+// Process smaller batches
+// Implement pagination for large requests
+// Use Durable Objects for long-running tasks
+```
+
+## Resources
+
+- [Cloudflare Workers Documentation](https://developers.cloudflare.com/workers/)
+- [Wrangler CLI Reference](https://developers.cloudflare.com/workers/cli-wrangler/)
+- [Workers Examples](https://github.com/cloudflare/workers-sdk/tree/main/templates)
+- [taglib-wasm Repository](https://github.com/CharlesWiltgen/taglib-wasm)
