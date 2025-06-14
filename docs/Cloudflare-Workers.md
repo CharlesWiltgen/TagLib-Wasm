@@ -28,11 +28,11 @@ npm install taglib-wasm
 
 ```typescript
 // src/index.ts
-import { TagLib } from 'taglib-wasm';
+import { TagLib } from 'taglib-wasm/workers';
 
 export default {
   async fetch(request: Request): Promise<Response> {
-    // Initialize TagLib (cached after first call)
+    // Initialize TagLib with Workers-specific configuration
     const taglib = await TagLib.initialize({
       // Reduce memory for Workers environment
       memory: {
@@ -183,13 +183,17 @@ async function handleBatch(request: Request, taglib: TagLib): Promise<Response> 
 Cache processed metadata to reduce processing time:
 
 ```typescript
+import { TagLib } from 'taglib-wasm/workers';
+
 interface Env {
   METADATA_CACHE: KVNamespace;
 }
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
-    const taglib = await TagLib.initialize();
+    const taglib = await TagLib.initialize({
+      memory: { initial: 16 * 1024 * 1024, maximum: 64 * 1024 * 1024 }
+    });
     
     // Generate cache key from file content
     const audioData = new Uint8Array(await request.arrayBuffer());
@@ -228,13 +232,17 @@ export default {
 Use Durable Objects for stateful processing:
 
 ```typescript
+import { TagLib } from 'taglib-wasm/workers';
+
 export class AudioProcessor {
   private taglib: TagLib | null = null;
   
   async fetch(request: Request): Promise<Response> {
     // Initialize once per Durable Object instance
     if (!this.taglib) {
-      this.taglib = await TagLib.initialize();
+      this.taglib = await TagLib.initialize({
+        memory: { initial: 16 * 1024 * 1024, maximum: 128 * 1024 * 1024 }
+      });
     }
     
     // Process request with persistent TagLib instance
@@ -249,22 +257,130 @@ export class AudioProcessor {
 }
 ```
 
-## Performance Optimization
+## Memory Configuration
 
-### Memory Management
+Cloudflare Workers have specific memory constraints that differ from other JavaScript runtimes. The `TagLibConfig` interface allows you to customize memory allocation for optimal performance in the Workers environment.
 
-Workers have memory constraints. Optimize your usage:
+### Configuration Options
 
 ```typescript
+interface TagLibConfig {
+  memory?: {
+    initial?: number; // Initial memory size in bytes (default: 16MB)
+    maximum?: number; // Maximum memory size in bytes (default: 256MB)
+  };
+  debug?: boolean; // Enable debug output (default: false)
+}
+```
+
+### When to Adjust Memory Settings
+
+The default configuration works well for most use cases, but you may need to adjust memory settings when:
+
+1. **Processing Large Files**: Increase memory for files over 10MB
+2. **High Concurrency**: Reduce memory to handle more concurrent requests
+3. **Memory Pressure**: Workers approaching the 128MB limit
+4. **Batch Processing**: Optimize for multiple files in sequence
+
+### Configuration Examples
+
+#### Small Files / High Concurrency
+```typescript
+// Optimize for many small files (< 5MB each)
 const taglib = await TagLib.initialize({
   memory: {
-    initial: 16 * 1024 * 1024,  // Start with 16MB
-    maximum: 128 * 1024 * 1024, // Cap at 128MB
+    initial: 8 * 1024 * 1024,   // 8MB initial
+    maximum: 32 * 1024 * 1024,  // 32MB maximum
   },
 });
+```
 
-// Process files in chunks for large batches
-async function processBatch(files: File[], taglib: TagLib) {
+#### Large Files / Low Concurrency
+```typescript
+// Optimize for large files (10-50MB)
+const taglib = await TagLib.initialize({
+  memory: {
+    initial: 32 * 1024 * 1024,   // 32MB initial
+    maximum: 128 * 1024 * 1024,  // 128MB maximum (Workers limit)
+  },
+});
+```
+
+#### Debug Mode
+```typescript
+// Enable debug output for troubleshooting
+const taglib = await TagLib.initialize({
+  memory: {
+    initial: 16 * 1024 * 1024,
+    maximum: 64 * 1024 * 1024,
+  },
+  debug: true, // Logs initialization and memory usage
+});
+```
+
+### Memory Usage Guidelines
+
+| File Size | Recommended Initial | Recommended Maximum | Notes |
+|-----------|-------------------|-------------------|--------|
+| < 1MB     | 4MB              | 16MB             | Minimal overhead |
+| 1-5MB     | 8MB              | 32MB             | Default for most APIs |
+| 5-10MB    | 16MB             | 64MB             | Standard configuration |
+| 10-25MB   | 32MB             | 96MB             | Large file handling |
+| 25-50MB   | 48MB             | 128MB            | Maximum for Workers |
+
+### Important Considerations
+
+1. **Workers Memory Limit**: Cloudflare Workers have a hard limit of 128MB per request
+2. **Memory Growth**: WebAssembly memory can grow but cannot shrink during execution
+3. **Initialization Cost**: Higher initial memory means slower first-time initialization
+4. **Concurrent Requests**: Each request gets its own memory allocation
+
+### Best Practices
+
+1. **Start Small**: Begin with lower memory settings and increase if needed
+2. **Monitor Usage**: Use the debug flag to understand actual memory consumption
+3. **Cache Instances**: Reuse TagLib instances across requests when possible
+4. **Profile First**: Test with your actual file sizes before optimizing
+
+```typescript
+// Production configuration with error handling
+export async function initializeTagLib(fileSize?: number) {
+  // Dynamic configuration based on file size
+  const config: TagLibConfig = {
+    memory: {
+      initial: Math.min(fileSize ? fileSize * 2 : 16 * 1024 * 1024, 32 * 1024 * 1024),
+      maximum: Math.min(fileSize ? fileSize * 4 : 64 * 1024 * 1024, 128 * 1024 * 1024),
+    },
+    debug: process.env.NODE_ENV === 'development',
+  };
+  
+  try {
+    return await TagLib.initialize(config);
+  } catch (error) {
+    console.error('Failed to initialize TagLib:', error);
+    // Fallback to minimal configuration
+    return await TagLib.initialize({
+      memory: { initial: 8 * 1024 * 1024, maximum: 32 * 1024 * 1024 },
+    });
+  }
+}
+```
+
+## Performance Optimization
+
+### Batch Processing
+
+Process multiple files efficiently in Workers:
+
+```typescript
+import { TagLib } from 'taglib-wasm/workers';
+
+// Process files in chunks to manage memory
+async function processBatch(files: File[]): Promise<any[]> {
+  const taglib = await TagLib.initialize({
+    memory: { initial: 16 * 1024 * 1024, maximum: 64 * 1024 * 1024 }
+  });
+  
   const CHUNK_SIZE = 10;
   const results = [];
   
@@ -309,6 +425,8 @@ export default {
 Implement comprehensive error handling:
 
 ```typescript
+import { TagLib } from 'taglib-wasm/workers';
+
 class AudioMetadataError extends Error {
   constructor(message: string, public statusCode: number = 500) {
     super(message);
@@ -318,7 +436,9 @@ class AudioMetadataError extends Error {
 
 async function handleRequest(request: Request): Promise<Response> {
   try {
-    const taglib = await TagLib.initialize();
+    const taglib = await TagLib.initialize({
+      memory: { initial: 16 * 1024 * 1024, maximum: 64 * 1024 * 1024 }
+    });
     
     // Validate request
     if (request.method !== 'POST') {
