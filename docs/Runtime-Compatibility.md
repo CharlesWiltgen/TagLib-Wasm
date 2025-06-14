@@ -88,6 +88,33 @@ const audioData = new Uint8Array(await response.arrayBuffer());
 const tagFile = taglib.openFile(audioData);
 ```
 
+### ✅ Cloudflare Workers
+
+- **Status**: Fully supported
+- **Installation**: `npm install taglib-wasm`
+- **Features**:
+  - Edge computing
+  - Automatic scaling
+  - Global deployment
+  - KV/R2/D1 integration
+- **File Loading**: Request body or fetch from storage
+- **Documentation**: See [Cloudflare Workers Guide](/Cloudflare-Workers.md)
+
+```typescript
+export default {
+  async fetch(request: Request): Promise<Response> {
+    const taglib = await TagLib.initialize();
+    const audioData = new Uint8Array(await request.arrayBuffer());
+    const file = taglib.openFile(audioData);
+    
+    // Process metadata...
+    
+    file.dispose();
+    return new Response(JSON.stringify(metadata));
+  },
+};
+```
+
 ## 🔧 Runtime-Specific Features
 
 ### Memory Management
@@ -108,6 +135,7 @@ Each runtime has different file system capabilities:
 | **Bun**     | Full access                 | Medium   | Server-side, build tools      |
 | **Node.js** | Full access                 | Medium   | Server-side, classic apps     |
 | **Browser** | Limited (File API only)     | High     | Client-side, web apps         |
+| **Workers** | None (Request/KV/R2 only)   | High     | Edge computing, APIs          |
 
 ### Performance Characteristics
 
@@ -115,6 +143,7 @@ Each runtime has different file system capabilities:
 | ----------- | --------- | ---------------- | ------------ | ---------- |
 | **Bun**     | Very Fast | Excellent        | Low          | Native     |
 | **Deno**    | Fast      | Excellent        | Medium       | Native     |
+| **Workers** | Very Fast | Excellent        | Low          | Native     |
 | **Node.js** | Medium    | Good             | Medium       | Via loader |
 | **Browser** | Fast      | Good             | Medium       | Via build  |
 
@@ -127,6 +156,7 @@ Each runtime has different file system capabilities:
 | **Node.js** | npm             | `npm install taglib-wasm`                                  |
 | **Node.js** | yarn            | `yarn add taglib-wasm`                                     |
 | **Node.js** | pnpm            | `pnpm add taglib-wasm`                                     |
+| **Workers** | npm             | `npm install taglib-wasm`                                  |
 | **Browser** | CDN             | `<script type="module" src="...">`                         |
 
 ## 🧪 Testing Across Runtimes
@@ -177,6 +207,13 @@ npm test
 - No direct file system access (security limitation)
 - WASM files must be served with correct MIME type
 - May require additional build configuration
+
+#### Cloudflare Workers
+
+- 128MB memory limit per request
+- 50ms CPU time (free tier) or 30s (paid tier)
+- No file system access
+- Request/response size limited to 100MB
 
 ## 💡 Best Practices
 
