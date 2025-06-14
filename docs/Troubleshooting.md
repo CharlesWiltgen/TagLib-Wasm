@@ -22,8 +22,8 @@ This guide helps resolve common issues when using taglib-wasm.
 **Solutions**:
 
 ```typescript
-// Deno - Use JSR import
-import { TagLib } from "jsr:@charleswiltgen/taglib-wasm"; // ✅
+// Deno - Use npm specifier
+import { TagLib } from "npm:taglib-wasm"; // ✅
 
 // Node.js - Install from NPM first
 // npm install taglib-wasm
@@ -135,7 +135,7 @@ try {
 **Problem**: JSR import not working.
 
 ```bash
-# Error: Module not found "jsr:@charleswiltgen/taglib-wasm"
+# Error: Module not found "taglib-wasm"
 ```
 
 **Solution**:
@@ -148,7 +148,7 @@ deno upgrade
 deno cache --reload mod.ts
 
 # Specify version explicitly
-import { TagLib } from "jsr:@charleswiltgen/taglib-wasm@1.0.0";
+import { TagLib } from "npm:taglib-wasm@0.2.7";
 ```
 
 ### Node.js Installation Fails
