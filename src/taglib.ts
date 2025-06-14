@@ -28,6 +28,7 @@ export interface AudioFile {
   setMP4Item(key: string, value: string): void;
   removeMP4Item(key: string): void;
   save(): boolean;
+  getFileBuffer(): Uint8Array;
   isValid(): boolean;
   dispose(): void;
 }
@@ -191,6 +192,23 @@ export class AudioFileImpl implements AudioFile {
   }
 
   /**
+   * Get the current file buffer after modifications
+   */
+  getFileBuffer(): Uint8Array {
+    const bufferString = this.fileHandle.getBuffer();
+    if (!bufferString) {
+      return new Uint8Array(0);
+    }
+    
+    // Convert string to Uint8Array
+    const buffer = new Uint8Array(bufferString.length);
+    for (let i = 0; i < bufferString.length; i++) {
+      buffer[i] = bufferString.charCodeAt(i);
+    }
+    return buffer;
+  }
+
+  /**
    * Check if the file is valid
    */
   isValid(): boolean {
@@ -219,6 +237,16 @@ export class TagLib {
 
   constructor(module: WasmModule) {
     this.module = module as TagLibModule;
+  }
+
+  /**
+   * Initialize TagLib with default configuration
+   */
+  static async initialize(): Promise<TagLib> {
+    // Use the loadTagLibModule function
+    const { loadTagLibModule } = await import("../index.ts");
+    const module = await loadTagLibModule();
+    return new TagLib(module);
   }
 
   /**

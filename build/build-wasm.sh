@@ -51,8 +51,8 @@ echo "🔗 Compiling WASM module with Embind..."
 emcc "$BUILD_DIR/taglib_wasm.cpp" \
   -I"$CMAKE_BUILD_DIR/install/include" \
   -I"$CMAKE_BUILD_DIR/install/include/taglib" \
-  -L"$CMAKE_BUILD_DIR/install/lib" \
-  -ltag \
+  "$CMAKE_BUILD_DIR/install/lib/libtag.a" \
+  "$CMAKE_BUILD_DIR/install/lib/libtag_c.a" \
   -o "$OUTPUT_DIR/taglib.js" \
   -s WASM=1 \
   -s MODULARIZE=1 \
@@ -61,9 +61,7 @@ emcc "$BUILD_DIR/taglib_wasm.cpp" \
   -s MAXIMUM_MEMORY=1GB \
   -s EXPORTED_RUNTIME_METHODS='["allocate", "getValue", "setValue", "UTF8ToString", "stringToUTF8", "lengthBytesUTF8", "ALLOC_NORMAL"]' \
   -s NO_FILESYSTEM=1 \
-  -s ENVIRONMENT='web,webview,worker' \
-  -s USE_ES6_IMPORT_META=1 \
-  -s USE_NODE_SHIMS=0 \
+  -s ENVIRONMENT='web,worker,node' \
   -s EXPORT_ES6=1 \
   -s SINGLE_FILE=0 \
   -s STACK_SIZE=1MB \
