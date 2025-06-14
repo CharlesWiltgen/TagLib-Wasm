@@ -21,6 +21,9 @@ export type {
 } from "./src/types.ts";
 export type { TagLibModule, WasmModule } from "./src/wasm.ts";
 
+// Import the type for use in this file
+import type { TagLibModule } from "./src/wasm.ts";
+
 /**
  * Load the TagLib WASM module
  */
