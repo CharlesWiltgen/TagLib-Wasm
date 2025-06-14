@@ -97,16 +97,15 @@ console.log(`Duration: ${props.length}s`);
 console.log(`Bitrate: ${props.bitrate} kbps`);
 
 // Write metadata
-file.setTitle("New Title");
-file.setArtist("New Artist");
-file.setAlbum("New Album");
+const tag = file.tag();
+tag.setTitle("New Title");
+tag.setArtist("New Artist");
+tag.setAlbum("New Album");
+
+// Save changes
+file.save();
 
 console.log("Updated tags:", file.tag());
-
-// Automatic tag mapping (format-agnostic)
-file.setAcoustidFingerprint("AQADtMmybfGO8NCNEESLnzHyXNOHeHnG...");
-file.setAcoustidId("e7359e88-f1f7-41ed-b9f6-16e58e906997");
-file.setMusicBrainzTrackId("f4d1b6b8-8c1e-4d9a-9f2a-1234567890ab");
 
 // Clean up
 file.dispose();
@@ -137,16 +136,15 @@ console.log(`Duration: ${props.length}s`);
 console.log(`Bitrate: ${props.bitrate} kbps`);
 
 // Write metadata
-file.setTitle("New Title");
-file.setArtist("New Artist");
-file.setAlbum("New Album");
+const tag = file.tag();
+tag.setTitle("New Title");
+tag.setArtist("New Artist");
+tag.setAlbum("New Album");
+
+// Save changes
+file.save();
 
 console.log("Updated tags:", file.tag());
-
-// Automatic tag mapping (format-agnostic)
-file.setAcoustidFingerprint("AQADtMmybfGO8NCNEESLnzHyXNOHeHnG...");
-file.setAcoustidId("e7359e88-f1f7-41ed-b9f6-16e58e906997");
-file.setMusicBrainzTrackId("f4d1b6b8-8c1e-4d9a-9f2a-1234567890ab");
 
 // Clean up
 file.dispose();
@@ -174,16 +172,15 @@ console.log(`Duration: ${props.length}s`);
 console.log(`Bitrate: ${props.bitrate} kbps`);
 
 // Write metadata
-file.setTitle("New Title");
-file.setArtist("New Artist");
-file.setAlbum("New Album");
+const tag = file.tag();
+tag.setTitle("New Title");
+tag.setArtist("New Artist");
+tag.setAlbum("New Album");
+
+// Save changes
+file.save();
 
 console.log("Updated tags:", file.tag());
-
-// Automatic tag mapping (format-agnostic)
-file.setAcoustidFingerprint("AQADtMmybfGO8NCNEESLnzHyXNOHeHnG...");
-file.setAcoustidId("e7359e88-f1f7-41ed-b9f6-16e58e906997");
-file.setMusicBrainzTrackId("f4d1b6b8-8c1e-4d9a-9f2a-1234567890ab");
 
 // Clean up
 file.dispose();
@@ -213,16 +210,15 @@ console.log(`Duration: ${props.length}s`);
 console.log(`Bitrate: ${props.bitrate} kbps`);
 
 // Write metadata
-file.setTitle("New Title");
-file.setArtist("New Artist");
-file.setAlbum("New Album");
+const tag = file.tag();
+tag.setTitle("New Title");
+tag.setArtist("New Artist");
+tag.setAlbum("New Album");
+
+// Save changes
+file.save();
 
 console.log("Updated tags:", file.tag());
-
-// Automatic tag mapping (format-agnostic)
-file.setAcoustidFingerprint("AQADtMmybfGO8NCNEESLnzHyXNOHeHnG...");
-file.setAcoustidId("e7359e88-f1f7-41ed-b9f6-16e58e906997");
-file.setMusicBrainzTrackId("f4d1b6b8-8c1e-4d9a-9f2a-1234567890ab");
 
 // Clean up
 file.dispose();
@@ -250,16 +246,15 @@ console.log(`Duration: ${props.length}s`);
 console.log(`Bitrate: ${props.bitrate} kbps`);
 
 // Write metadata
-file.setTitle("New Title");
-file.setArtist("New Artist");
-file.setAlbum("New Album");
+const tag = file.tag();
+tag.setTitle("New Title");
+tag.setArtist("New Artist");
+tag.setAlbum("New Album");
+
+// Save changes
+file.save();
 
 console.log("Updated tags:", file.tag());
-
-// Automatic tag mapping (format-agnostic)
-file.setAcoustidFingerprint("AQADtMmybfGO8NCNEESLnzHyXNOHeHnG...");
-file.setAcoustidId("e7359e88-f1f7-41ed-b9f6-16e58e906997");
-file.setMusicBrainzTrackId("f4d1b6b8-8c1e-4d9a-9f2a-1234567890ab");
 
 // Clean up
 file.dispose();
@@ -330,43 +325,39 @@ export default {
 - ✅ **.wav** – INFO chunk metadata
 - ✅ **Legacy formats**: Opus, APE, MPC, WavPack, TrueAudio, and more
 
-## 🎯 Automatic Tag Mapping
+## 🎯 Extended Metadata with PropertyMap
 
 `taglib-wasm` supports **automatic tag mapping** so you don’t have to worry about how the same tag is stored differently in different audio container formats.
 
 ### AcoustID example
 
 ```typescript
-// Single API works for ALL formats (MP3, FLAC, OGG, MP4)
-file.setAcoustidFingerprint("AQADtMmybfGO8NCNEESLnzHyXNOHeHnG...");
-file.setAcoustidId("e7359e88-f1f7-41ed-b9f6-16e58e906997");
+// Using PropertyMap API to set extended metadata
+file.setProperty("ACOUSTID_FINGERPRINT", "AQADtMmybfGO8NCNEESLnzHyXNOHeHnG...");
+file.setProperty("ACOUSTID_ID", "e7359e88-f1f7-41ed-b9f6-16e58e906997");
 
-// Automatically stores in format-specific locations:
-// • MP3: TXXX frames with proper descriptions
-// • FLAC/OGG: ACOUSTID_FINGERPRINT and ACOUSTID_ID Vorbis comments
-// • MP4: ----:com.apple.iTunes:Acoustid... freeform atoms
+// Note: Property keys may vary by format
+// Use file.properties() to see all available properties
+file.save(); // Don't forget to save!
 ```
 
 ### MusicBrainz example
 
 ```typescript
-// Professional music database integration
-file.setMusicBrainzTrackId("f4d1b6b8-8c1e-4d9a-9f2a-1234567890ab");
-file.setMusicBrainzReleaseId("a1b2c3d4-e5f6-7890-abcd-ef1234567890");
-file.setMusicBrainzArtistId("12345678-90ab-cdef-1234-567890abcdef");
+// MusicBrainz metadata using PropertyMap
+file.setProperty("MUSICBRAINZ_TRACKID", "f4d1b6b8-8c1e-4d9a-9f2a-1234567890ab");
+file.setProperty("MUSICBRAINZ_ALBUMID", "a1b2c3d4-e5f6-7890-abcd-ef1234567890");
+file.setProperty("MUSICBRAINZ_ARTISTID", "12345678-90ab-cdef-1234-567890abcdef");
 ```
 
 ### Volume example
 
 ```typescript
-// ReplayGain support (automatic format mapping)
-file.setReplayGainTrackGain("-6.54 dB");
-file.setReplayGainTrackPeak("0.987654");
-file.setReplayGainAlbumGain("-8.12 dB");
-file.setReplayGainAlbumPeak("0.995432");
-
-// Apple Sound Check support
-file.setAppleSoundCheck("00000150 00000150 00000150 00000150...");
+// ReplayGain volume normalization
+file.setProperty("REPLAYGAIN_TRACK_GAIN", "-6.54 dB");
+file.setProperty("REPLAYGAIN_TRACK_PEAK", "0.987654");
+file.setProperty("REPLAYGAIN_ALBUM_GAIN", "-8.12 dB");
+file.setProperty("REPLAYGAIN_ALBUM_PEAK", "0.995432");
 ```
 
 ### Extended fields
@@ -485,51 +476,61 @@ class TagLib {
 class AudioFile {
   // Validation
   isValid(): boolean;
-  format(): string;
+  getFormat(): string;
 
   // Properties
   audioProperties(): AudioProperties;
-  tag(): TagData;
 
-  // Tag Writing
-  setTitle(title: string): void;
-  setArtist(artist: string): void;
-  setAlbum(album: string): void;
-  setComment(comment: string): void;
-  setGenre(genre: string): void;
-  setYear(year: number): void;
-  setTrack(track: number): void;
+  // Tag Access (returns Tag object with getters and setters)
+  tag(): Tag;
+
+  // PropertyMap API for extended metadata
+  properties(): PropertyMap;
+  setProperties(properties: PropertyMap): void;
+  getProperty(key: string): string | undefined;
+  setProperty(key: string, value: string): void;
+
+  // MP4-specific methods
+  isMP4(): boolean;
+  getMP4Item(key: string): string | undefined;
+  setMP4Item(key: string, value: string): void;
+  removeMP4Item(key: string): void;
 
   // File Operations
   save(): boolean;
+  getFileBuffer(): Uint8Array;
   dispose(): void;
-
-  // Automatic Tag Mapping (Format-Agnostic)
-  extendedTag(): ExtendedTag;
-  setExtendedTag(tag: Partial<ExtendedTag>): void;
-
-  // AcoustID Integration
-  setAcoustidFingerprint(fingerprint: string): void;
-  getAcoustidFingerprint(): string | undefined;
-  setAcoustidId(id: string): void;
-  getAcoustidId(): string | undefined;
-
-  // MusicBrainz Integration
-  setMusicBrainzTrackId(id: string): void;
-  getMusicBrainzTrackId(): string | undefined;
-
-  // Volume Normalization
-  setReplayGainTrackGain(gain: string): void;
-  getReplayGainTrackGain(): string | undefined;
-  setReplayGainTrackPeak(peak: string): void;
-  getReplayGainTrackPeak(): string | undefined;
-  setReplayGainAlbumGain(gain: string): void;
-  getReplayGainAlbumGain(): string | undefined;
-  setReplayGainAlbumPeak(peak: string): void;
-  getReplayGainAlbumPeak(): string | undefined;
-  setAppleSoundCheck(iTunNORM: string): void;
-  getAppleSoundCheck(): string | undefined;
 }
+```
+
+### Tag interface
+
+```typescript
+interface Tag {
+  // Basic metadata (getters)
+  title: string;
+  artist: string;
+  album: string;
+  comment: string;
+  genre: string;
+  year: number;
+  track: number;
+
+  // Setters
+  setTitle(value: string): void;
+  setArtist(value: string): void;
+  setAlbum(value: string): void;
+  setComment(value: string): void;
+  setGenre(value: string): void;
+  setYear(value: number): void;
+  setTrack(value: number): void;
+}
+```
+
+### PropertyMap type
+
+```typescript
+type PropertyMap = { [key: string]: string[] };
 ```
 
 ## 🎛️ Configuration
