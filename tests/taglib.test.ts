@@ -1,3 +1,5 @@
+/// <reference lib="deno.ns" />
+
 /**
  * @fileoverview Consolidated test suite for taglib-wasm
  * Combines format testing, API testing, and edge cases with proper Deno test assertions
@@ -7,7 +9,8 @@
  */
 
 import { assertEquals, assertExists, assert, assertThrows } from "https://deno.land/std@0.224.0/assert/mod.ts";
-import { TagLib, AudioFile } from "../mod.ts";
+import { TagLib } from "../src/mod.ts";
+import type { AudioFile } from "../src/mod.ts";
 import { readTags, writeTags, readProperties, getFormat, isValidAudioFile } from "../src/simple.ts";
 import { TagLibWorkers, processAudioMetadata } from "../src/workers.ts";
 import { isCloudflareWorkers } from "../src/wasm-workers.ts";
@@ -34,28 +37,27 @@ const EXPECTED_FORMATS = {
 // Initialization Tests
 // =============================================================================
 
-Deno.test("TagLib: Debug Initialization", async () => {
-  // Test initialization with debug flag
-  await TagLib.initialize({ debug: true });
-  const taglib = await TagLib.getInstance();
-  assertExists(taglib, "TagLib instance should exist after debug init");
+Deno.test("TagLib: Initialization", async () => {
+  // Test initialization
+  const taglib = await TagLib.initialize();
+  assertExists(taglib, "TagLib instance should exist after init");
 });
 
 // =============================================================================
 // Core API Tests
 // =============================================================================
 
-Deno.test("Core API: Initialization", async () => {
-  const taglib = await TagLib.getInstance();
+Deno.test("Core API: Basic Operations", async () => {
+  const taglib = await TagLib.initialize();
   assertExists(taglib, "TagLib instance should exist");
   
-  // Test singleton pattern
-  const taglib2 = await TagLib.getInstance();
-  assertEquals(taglib, taglib2, "Should return same instance");
+  // Test version method
+  const version = taglib.version();
+  assertEquals(version, "2.1.0", "Should return correct TagLib version");
 });
 
 Deno.test("Core API: Format Detection", async () => {
-  const taglib = await TagLib.getInstance();
+  const taglib = await TagLib.initialize();
   
   for (const [format, path] of Object.entries(TEST_FILES)) {
     const audioData = await Deno.readFile(path);
@@ -70,7 +72,7 @@ Deno.test("Core API: Format Detection", async () => {
 });
 
 Deno.test("Core API: Audio Properties", async () => {
-  const taglib = await TagLib.getInstance();
+  const taglib = await TagLib.initialize();
   const audioData = await Deno.readFile(TEST_FILES.mp3);
   const file = await taglib.openFile(audioData.buffer);
   
@@ -85,7 +87,7 @@ Deno.test("Core API: Audio Properties", async () => {
 });
 
 Deno.test("Core API: Tag Reading", async () => {
-  const taglib = await TagLib.getInstance();
+  const taglib = await TagLib.initialize();
   const audioData = await Deno.readFile(TEST_FILES.mp3);
   const file = await taglib.openFile(audioData.buffer);
   
@@ -103,7 +105,7 @@ Deno.test("Core API: Tag Reading", async () => {
 });
 
 Deno.test("Core API: Tag Writing", async () => {
-  const taglib = await TagLib.getInstance();
+  const taglib = await TagLib.initialize();
   const audioData = await Deno.readFile(TEST_FILES.mp3);
   const file = await taglib.openFile(audioData.buffer);
   
@@ -131,7 +133,7 @@ Deno.test("Core API: Tag Writing", async () => {
 });
 
 Deno.test("Core API: Extended Tag Support", async () => {
-  const taglib = await TagLib.getInstance();
+  const taglib = await TagLib.initialize();
   const audioData = await Deno.readFile(TEST_FILES.mp3);
   const file = await taglib.openFile(audioData.buffer);
   
@@ -146,7 +148,7 @@ Deno.test("Core API: Extended Tag Support", async () => {
 });
 
 Deno.test("Core API: Memory Management", async () => {
-  const taglib = await TagLib.getInstance();
+  const taglib = await TagLib.initialize();
   
   // Test multiple file operations
   for (let i = 0; i < 10; i++) {
@@ -254,7 +256,7 @@ Deno.test("Error Handling: Non-existent File", async () => {
 });
 
 Deno.test("Error Handling: Invalid Audio Data", async () => {
-  const taglib = await TagLib.getInstance();
+  const taglib = await TagLib.initialize();
   const invalidData = new Uint8Array([0, 1, 2, 3, 4, 5]);
   
   try {
@@ -270,7 +272,7 @@ Deno.test("Error Handling: Invalid Audio Data", async () => {
 });
 
 Deno.test("Error Handling: Empty Buffer", async () => {
-  const taglib = await TagLib.getInstance();
+  const taglib = await TagLib.initialize();
   const emptyData = new Uint8Array(0);
   
   try {
@@ -307,7 +309,7 @@ Deno.test("Workers API: Module Structure", async () => {
 // =============================================================================
 
 Deno.test("Performance: Format Processing Speed", async () => {
-  const taglib = await TagLib.getInstance();
+  const taglib = await TagLib.initialize();
   const results: Record<string, number> = {};
   
   for (const [format, path] of Object.entries(TEST_FILES)) {
@@ -334,7 +336,7 @@ Deno.test("Performance: API Comparison", async () => {
   
   // Core API timing
   const coreStart = performance.now();
-  const taglib = await TagLib.getInstance();
+  const taglib = await TagLib.initialize();
   const file = await taglib.openFile(audioData.buffer);
   file.tag();
   file.dispose();
@@ -369,7 +371,7 @@ Deno.test("Format Tests: File Headers", async () => {
   for (const [format, path] of Object.entries(TEST_FILES)) {
     const audioData = await Deno.readFile(path);
     const header = Array.from(audioData.slice(0, 4))
-      .map((b) => b.toString(16).padStart(2, "0"))
+      .map((b: number) => b.toString(16).padStart(2, "0"))
       .join(" ");
     
     if (format === "mp3") {
@@ -391,7 +393,7 @@ Deno.test("Format Tests: File Headers", async () => {
 });
 
 Deno.test("Format Tests: Systematic All Formats", async () => {
-  const taglib = await TagLib.getInstance();
+  const taglib = await TagLib.initialize();
   const results: Record<string, boolean> = {};
   
   console.log("\n🎵 Systematic Format Testing");
