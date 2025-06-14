@@ -6,8 +6,8 @@
 
 ### ✅ Deno 2.0+
 
-- **Status**: Fully supported and recommended
-- **Installation**: `import { TagLib } from "jsr:@charleswiltgen/taglib-wasm"`
+- **Status**: Fully supported via npm specifier
+- **Installation**: `import { TagLib } from "npm:taglib-wasm"`
 - **Features**:
   - Native TypeScript support
   - Built-in Web APIs
@@ -16,7 +16,7 @@
 - **File Loading**: `Deno.readFile()`
 
 ```typescript
-import { TagLib } from "./mod.ts";
+import { TagLib } from "npm:taglib-wasm";
 
 const taglib = await TagLib.initialize();
 const audioData = await Deno.readFile("song.mp3");
@@ -122,7 +122,7 @@ Each runtime has different file system capabilities:
 
 | Runtime     | Package Manager | Command                                                    |
 | ----------- | --------------- | ---------------------------------------------------------- |
-| **Deno**    | JSR             | `import { TagLib } from "jsr:@charleswiltgen/taglib-wasm"` |
+| **Deno**    | npm specifier   | `import { TagLib } from "npm:taglib-wasm"` |
 | **Bun**     | bun             | `bun add taglib-wasm`                                      |
 | **Node.js** | npm             | `npm install taglib-wasm`                                  |
 | **Node.js** | yarn            | `yarn add taglib-wasm`                                     |

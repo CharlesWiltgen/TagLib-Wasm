@@ -46,7 +46,7 @@ file.save();
 
 | Runtime | Support | Package |
 |---------|---------|---------|
-| Deno | ✅ Native | `jsr:@charleswiltgen/taglib-wasm` |
+| Deno | ✅ Native | `npm:taglib-wasm` |
 | Node.js | ✅ Full | `npm install taglib-wasm` |
 | Bun | ✅ Native | `bun add taglib-wasm` |
 | Browsers | ✅ Full | CDN or bundler |
