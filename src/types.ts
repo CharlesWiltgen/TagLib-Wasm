@@ -304,6 +304,11 @@ export interface PropertyMap {
 }
 
 /**
+ * Re-export TagName type from constants
+ */
+export type { TagName } from "./constants.ts";
+
+/**
  * Picture/artwork data
  */
 export interface Picture {

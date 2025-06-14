@@ -7,6 +7,7 @@
 
 export { AudioFileImpl as AudioFile, TagLib, createTagLib } from "./src/taglib.ts";
 export { readTags, writeTags, readProperties } from "./src/simple.ts";
+export { Tags, FormatMappings, isValidTagName, getAllTagNames } from "./src/constants.ts";
 export type {
   AudioFormat,
   AudioProperties,
@@ -18,6 +19,7 @@ export type {
   PropertyMap,
   Tag,
   TagLibConfig,
+  TagName,
 } from "./src/types.ts";
 export type { TagLibModule, WasmModule } from "./src/wasm.ts";
 
