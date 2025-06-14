@@ -21,9 +21,10 @@
     "build:wasm": "./build/build-wasm.sh",
     "build:ts": "tsc",
     "build": "npm run build:wasm && npm run build:ts",
-    "test": "deno run --allow-read tests/test-systematic.ts",
-    "test:bun": "bun run tests/test-systematic.ts",
-    "test:node": "node --loader ts-node/esm tests/test-systematic.ts",
+    "test": "deno test --allow-read tests/taglib.test.ts",
+    "test:bun": "bun test tests/taglib.test.ts",
+    "test:node": "node --loader ts-node/esm --test tests/taglib.test.ts",
+    "test:watch": "deno test --allow-read --watch tests/taglib.test.ts",
     "docs:dev": "cd docs && npm install && npm run dev",
     "docs:build": "cd docs && npm install && npm run build",
     "update-taglib": "./scripts/update-taglib.sh",
@@ -67,8 +68,7 @@
   "devDependencies": {
     "@types/emscripten": "^1.39.6",
     "@types/node": "^20.0.0",
-    "typescript": "^5.0.0",
-    "jest": "^29.0.0"
+    "typescript": "^5.0.0"
   },
   "peerDependencies": {
     "typescript": ">=4.5.0"
