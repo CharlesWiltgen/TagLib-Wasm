@@ -1,9 +1,12 @@
 /**
  * @fileoverview Consolidated test suite for taglib-wasm
  * Combines format testing, API testing, and edge cases with proper Deno test assertions
+ * 
+ * Run with: deno test --allow-read tests/taglib.test.ts
+ * Or: npm test
  */
 
-import { assertEquals, assertExists, assert, assertThrows } from "@std/assert";
+import { assertEquals, assertExists, assert, assertThrows } from "https://deno.land/std@0.224.0/assert/mod.ts";
 import { TagLib, AudioFile } from "../mod.ts";
 import { readTags, writeTags, readProperties, getFormat, isValidAudioFile } from "../src/simple.ts";
 import { TagLibWorkers, processAudioMetadata } from "../src/workers.ts";
@@ -26,6 +29,17 @@ const EXPECTED_FORMATS = {
   ogg: "OGG",
   m4a: "MP4",
 } as const;
+
+// =============================================================================
+// Initialization Tests
+// =============================================================================
+
+Deno.test("TagLib: Debug Initialization", async () => {
+  // Test initialization with debug flag
+  await TagLib.initialize({ debug: true });
+  const taglib = await TagLib.getInstance();
+  assertExists(taglib, "TagLib instance should exist after debug init");
+});
 
 // =============================================================================
 // Core API Tests
@@ -112,6 +126,21 @@ Deno.test("Core API: Tag Writing", async () => {
   assertEquals(updatedTags.track, 1, "Track should be updated");
   assertEquals(updatedTags.genre, "Test Genre", "Genre should be updated");
   assertEquals(updatedTags.comment, "Test Comment", "Comment should be updated");
+  
+  file.dispose();
+});
+
+Deno.test("Core API: Extended Tag Support", async () => {
+  const taglib = await TagLib.getInstance();
+  const audioData = await Deno.readFile(TEST_FILES.mp3);
+  const file = await taglib.openFile(audioData.buffer);
+  
+  // Test extended tags (if supported by the format)
+  const tags = file.tag();
+  assertExists(tags, "Should have tags object");
+  
+  // Note: Extended tag support depends on the underlying WASM implementation
+  // For now, we just verify the basic tag interface works
   
   file.dispose();
 });
@@ -322,6 +351,102 @@ Deno.test("Performance: API Comparison", async () => {
   // Both should complete in reasonable time
   assert(coreTime < 1000, "Core API should be fast");
   assert(simpleTime < 1000, "Simple API should be fast");
+});
+
+// =============================================================================
+// Format-Specific Tests (from test-systematic.ts)
+// =============================================================================
+
+Deno.test("Format Tests: File Headers", async () => {
+  const expectedHeaders: Record<string, string> = {
+    wav: "52 49 46 46", // RIFF
+    mp3: "ff fb", // MP3 sync word (may also be ID3)
+    flac: "66 4c 61 43", // fLaC
+    ogg: "4f 67 67 53", // OggS
+    m4a: "00 00 00" // MP4/M4A (variable)
+  };
+  
+  for (const [format, path] of Object.entries(TEST_FILES)) {
+    const audioData = await Deno.readFile(path);
+    const header = Array.from(audioData.slice(0, 4))
+      .map((b) => b.toString(16).padStart(2, "0"))
+      .join(" ");
+    
+    if (format === "mp3") {
+      // MP3 files may start with ID3 tag
+      assert(
+        header.startsWith("ff fb") || header.startsWith("49 44 33"),
+        `${format} should have valid header`
+      );
+    } else if (format === "m4a") {
+      // M4A has variable header, just check it's not empty
+      assert(audioData.length > 0, `${format} should have content`);
+    } else {
+      assert(
+        header.startsWith(expectedHeaders[format]),
+        `${format} should have expected header: ${expectedHeaders[format]}, got ${header}`
+      );
+    }
+  }
+});
+
+Deno.test("Format Tests: Systematic All Formats", async () => {
+  const taglib = await TagLib.getInstance();
+  const results: Record<string, boolean> = {};
+  
+  console.log("\n🎵 Systematic Format Testing");
+  console.log("=".repeat(50));
+  
+  for (const [format, path] of Object.entries(TEST_FILES)) {
+    console.log(`\n🔍 Testing ${format.toUpperCase()} format...`);
+    
+    try {
+      // Read file
+      const audioData = await Deno.readFile(path);
+      console.log(`📊 File size: ${audioData.length} bytes`);
+      
+      // Open with TagLib
+      const file = await taglib.openFile(audioData.buffer);
+      
+      if (file.isValid()) {
+        console.log(`✅ SUCCESS: ${format} loaded successfully`);
+        
+        // Test all operations
+        const detectedFormat = file.getFormat();
+        const props = file.audioProperties();
+        const tags = file.tag();
+        
+        console.log(`📄 Format: ${detectedFormat}`);
+        console.log(`🎧 Properties: ${props.length}s, ${props.bitrate}kbps, ${props.sampleRate}Hz`);
+        console.log(`🏷️  Tags: "${tags.title || '(empty)'}" by ${tags.artist || '(empty)'}`);
+        
+        results[format] = true;
+        file.dispose();
+      } else {
+        console.log(`❌ FAILED: ${format} is not valid`);
+        results[format] = false;
+      }
+    } catch (error) {
+      console.log(`❌ ERROR: ${(error as Error).message}`);
+      results[format] = false;
+    }
+  }
+  
+  // Summary
+  console.log("\n" + "=".repeat(50));
+  console.log("📋 Test Results Summary:");
+  
+  let passedTests = 0;
+  const totalTests = Object.keys(results).length;
+  
+  for (const [format, success] of Object.entries(results)) {
+    if (success) passedTests++;
+    const status = success ? "✅ PASS" : "❌ FAIL";
+    console.log(`${status} ${format.toUpperCase()}`);
+  }
+  
+  console.log(`\n🎯 Overall: ${passedTests}/${totalTests} formats working`);
+  assertEquals(passedTests, totalTests, "All formats should be working");
 });
 
 // =============================================================================
