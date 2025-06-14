@@ -55,11 +55,10 @@ import { TagLib } from "npm:taglib-wasm";
 npm install taglib-wasm
 ```
 
-**Requires Node.js v22.6.0 or later** (LTS recommended)
+The package uses TypeScript. You have two options:
 
-The package ships TypeScript source files. You have two options:
+#### Option 1: Use Node’s native TypeScript support
 
-**Option 1: Native TypeScript (experimental)**
 ```bash
 # Node.js 22.6.0+ with experimental flag
 node --experimental-strip-types your-script.ts
@@ -68,7 +67,8 @@ node --experimental-strip-types your-script.ts
 node your-script.ts
 ```
 
-**Option 2: TypeScript loader** (recommended for production)
+#### Option 2: TypeScript loader (recommended for production)
+
 ```bash
 npm install --save-dev tsx
 npx tsx your-script.ts
@@ -84,17 +84,17 @@ bun add taglib-wasm
 
 ### Simple API
 
-Inspired by [go-taglib](https://github.com/sentriz/go-taglib)’s excellent
-developer experience:
+This was inspired by [go-taglib](https://github.com/sentriz/go-taglib), a
+similar project for Go created at about the same time.
 
 ```typescript
 import { readProperties, readTags, writeTags } from "taglib-wasm/simple";
 
-// Read tags - just one function call!
+// Read tags
 const tags = await readTags("song.mp3");
 console.log(tags.title, tags.artist, tags.album);
 
-// Write tags - simple as can be
+// Write tags
 await writeTags("song.mp3", {
   title: "New Title",
   artist: "New Artist",
@@ -108,7 +108,7 @@ console.log(`Duration: ${props.length}s, Bitrate: ${props.bitrate} kbps`);
 
 ### Core API
 
-Full control when you need it:
+The Core API provides full control for more advanced applications.
 
 ```typescript
 import { TagLib } from "taglib-wasm";
@@ -302,7 +302,8 @@ export default {
   async fetch(request: Request): Promise<Response> {
     if (request.method === "POST") {
       try {
-        // Initialize taglib-wasm
+        // Initialize taglib-wasm with Workers-specific configuration
+        // See docs/Cloudflare-Workers.md for memory configuration details
         const taglib = await TagLib.initialize({
           memory: { initial: 8 * 1024 * 1024 }, // 8MB for Workers
         });
@@ -481,7 +482,7 @@ npm test
 # ✅ MP3  - ID3v1/v2 tag support
 # ✅ FLAC - Vorbis comments and properties
 # ✅ OGG  - Vorbis comments
-# ✅ M4A  - iTunes-compatible metadata atoms
+# ✅ M4A  - MPEG-4 (AAC and Apple Lossless) metadata
 ```
 
 ## 🔧 Technical Implementation
@@ -581,21 +582,9 @@ interface Tag {
 type PropertyMap = { [key: string]: string[] };
 ```
 
-## 🎛️ Configuration
-
-```typescript
-interface TagLibConfig {
-  memory?: {
-    initial?: number; // Initial memory size (default: 16MB)
-    maximum?: number; // Maximum memory size (default: 256MB)
-  };
-  debug?: boolean; // Enable debug output
-}
-```
-
 ## 🌐 Runtime Compatibility
 
-`taglib-wasm` works seamlessly across all major JavaScript runtimes:
+`taglib-wasm` works across all major JavaScript runtimes:
 
 | Runtime     | Status  | Installation              | Performance | TypeScript |
 | ----------- | ------- | ------------------------- | ----------- | ---------- |
@@ -609,21 +598,15 @@ detailed runtime information**
 
 ## 🚧 Known Limitations
 
-- **File Writing**: Saves only affect in-memory representation (no filesystem
+- **File Writing** – Saves only affect in-memory representation (no filesystem
   persistence)
-- **Large Files**: Memory usage scales with file size (entire file loaded into
+- **Large Files** – Memory usage scales with file size (entire file loaded into
   memory)
-- **Concurrent Access**: Not thread-safe (JavaScript single-threaded nature)
+- **Concurrent Access** – Not thread-safe (JavaScript single-threaded nature)
 
 ## 🤝 Contributing
 
-Contributions welcome! Areas of interest:
-
-- Additional format support (DSF, DSDIFF, etc.)
-- Advanced metadata implementation (PropertyMap integration)
-- Performance optimizations
-- Runtime-specific optimizations
-- Documentation improvements
+Contributions welcome!
 
 ## 📄 License
 
