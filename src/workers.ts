@@ -165,11 +165,13 @@ export class AudioFileWorkers {
   }
 
   /**
-   * Save changes to the file (read-only in Workers context)
-   * Note: This would require returning modified buffer data
+   * Save changes to the file
+   * Note: In Workers context, this saves to the in-memory buffer only
    */
   save(): boolean {
-    console.warn("save(): File saving not implemented in Workers context");
+    if (this.fileId !== 0) {
+      return this.module._taglib_file_save(this.fileId) !== 0;
+    }
     return false;
   }
 
@@ -273,8 +275,18 @@ export class TagLibWorkers {
     }
 
     // Use Emscripten's allocate function for proper memory management
-    const dataPtr = this.module.allocate(buffer, this.module.ALLOC_NORMAL);
+    let dataPtr: number;
+    if (this.module.allocate && this.module.ALLOC_NORMAL !== undefined) {
+      dataPtr = this.module.allocate(buffer, this.module.ALLOC_NORMAL);
+    } else {
+      dataPtr = this.module._malloc(buffer.length);
+      this.module.HEAPU8.set(buffer, dataPtr);
+    }
 
+    if (!this.module._taglib_file_new_from_buffer) {
+      throw new Error("Workers API requires C-style functions. Use Core API instead.");
+    }
+    
     const fileId = this.module._taglib_file_new_from_buffer(
       dataPtr,
       buffer.length,
