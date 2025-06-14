@@ -34,37 +34,38 @@ async function demonstrateAdvancedMetadata() {
       console.log(`\n📁 Processing ${format} file: ${path}`);
 
       const audioData = await Deno.readFile(path);
-      const file = taglib.openFile(audioData);
+      const file = await taglib.openFile(audioData);
 
       if (!file.isValid()) {
         console.log(`❌ Failed to load ${format} file`);
         continue;
       }
 
-      // Show current extended metadata
+      // Show current extended metadata using PropertyMap
       console.log("\n🏷️  Current Extended Metadata:");
-      const currentTags = file.extendedTag();
+      const properties = file.properties();
       console.log(
         `  AcoustID Fingerprint: ${
-          currentTags.acoustidFingerprint || "(none)"
+          file.getProperty("ACOUSTID_FINGERPRINT") || "(none)"
         }`,
       );
-      console.log(`  AcoustID ID: ${currentTags.acoustidId || "(none)"}`);
+      console.log(`  AcoustID ID: ${file.getProperty("ACOUSTID_ID") || "(none)"}`);
       console.log(
-        `  MusicBrainz Track ID: ${currentTags.musicbrainzTrackId || "(none)"}`,
+        `  MusicBrainz Track ID: ${file.getProperty("MUSICBRAINZ_TRACKID") || "(none)"}`,
       );
-      console.log(`  Album Artist: ${currentTags.albumArtist || "(none)"}`);
-      console.log(`  Composer: ${currentTags.composer || "(none)"}`);
+      console.log(`  Album Artist: ${file.getProperty("ALBUMARTIST") || "(none)"}`);
+      console.log(`  Composer: ${file.getProperty("COMPOSER") || "(none)"}`);
 
       // Demonstrate format-agnostic field setting
       console.log("\n✏️  Setting automatic tag mapping (format-agnostic)...");
 
-      // These calls will automatically use the correct storage method for each format
-      file.setAcoustidFingerprint(
+      // Using PropertyMap API for extended metadata
+      // Note: Property keys may vary by format
+      file.setProperty("ACOUSTID_FINGERPRINT",
         "AQADtMmybfGO8NCNEESLnzHyXNOHeHnG4wccz9DR_gGNT_",
       );
-      file.setAcoustidId("e7359e88-f1f7-41ed-b9f6-16e58e906997");
-      file.setMusicBrainzTrackId("f4d1b6b8-8c1e-4d9a-9f2a-1234567890ab");
+      file.setProperty("ACOUSTID_ID", "e7359e88-f1f7-41ed-b9f6-16e58e906997");
+      file.setProperty("MUSICBRAINZ_TRACKID", "f4d1b6b8-8c1e-4d9a-9f2a-1234567890ab");
 
       // Show where these would be stored for this format
       console.log(`\n📋 Format-specific storage for ${format}:`);
@@ -169,7 +170,7 @@ function showMetadataMappingTable() {
   console.log("```typescript");
   console.log("// This single call works for ALL formats!");
   console.log(
-    'file.setAcoustidFingerprint("AQADtMmybfGO8NCNEESLnzHyXNOHeHnG...");',
+    'file.setProperty("ACOUSTID_FINGERPRINT", "AQADtMmybfGO8NCNEESLnzHyXNOHeHnG...");',
   );
   console.log("");
   console.log("// Automatically stores as:");
