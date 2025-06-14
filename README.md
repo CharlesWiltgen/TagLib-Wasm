@@ -1,25 +1,45 @@
 # taglib-wasm
 
-This is the Wasm version of [**TagLib**](https://taglib.org/), the most robust, de-facto standard for reading and editing metadata tags (Title, Album, Artist, etc.) in all popular audio formats. `taglib-wasm` exists because the JavaScipt/TypeScipt ecosystem had no battle-tested audio tagging library that supports reading and writing music metadata to all popular audio formats — until now!
+This is the Wasm version of [**TagLib**](https://taglib.org/), the most robust,
+de-facto standard for reading and editing metadata tags (Title, Album, Artist,
+etc.) in all popular audio formats. `taglib-wasm` exists because the
+JavaScipt/TypeScipt ecosystem had no battle-tested audio tagging library that
+supports reading and writing music metadata to all popular audio formats — until
+now!
 
-`taglib-wasm` stands on the shoulders of giants, including [TagLib](https://taglib.org/) itself, [Emscripten](https://emscripten.org/), and [Wasm](https://webassembly.org/) ([WebAssembly](https://webassembly.org/)).
+`taglib-wasm` stands on the shoulders of giants, including
+[TagLib](https://taglib.org/) itself, [Emscripten](https://emscripten.org/), and
+[Wasm](https://webassembly.org/) ([WebAssembly](https://webassembly.org/)).
 
-`taglib-wasm` aspires to be a universal solution for **JavaScript/TypeScript** platforms — Deno, Node.js, Bun, web browsers, and Cloudflare Workers. Note: This project is a baby, and you’re likely to experience some surprises at this stage of its development. I’m extremely motivated to help address them, since I’ll also be depending on this project.
+`taglib-wasm` aspires to be a universal solution for **JavaScript/TypeScript**
+platforms — Deno, Node.js, Bun, web browsers, and Cloudflare Workers. Note: This
+project is a baby, and you’re likely to experience some surprises at this stage
+of its development. I’m extremely motivated to help address them, since I’ll
+also be depending on this project.
 
 ## 🤔 Why?
 
-Because there’s nothing like it. [`mp3tag.js`](https://mp3tag.js.org/) is mature and active, but only supports MP3 files and ID3 tags. TagLib was an ideal choice from a maturity and capabilities point of view, but wrappers like `node-taglib` appeared to be dormant, and I wanted to avoid making users install platform-specific dependencies whenever possible.
+Because there’s nothing like it. [`mp3tag.js`](https://mp3tag.js.org/) is mature
+and active, but only supports MP3 files and ID3 tags. TagLib was an ideal choice
+from a maturity and capabilities point of view, but wrappers like `node-taglib`
+appeared to be dormant, and I wanted to avoid making users install
+platform-specific dependencies whenever possible.
 
 ## 🎯 Features
 
-- **✅ Universal compatibility** – Works with Deno, Node.js, Bun, web browsers, and Cloudflare Workers
+- **✅ Universal compatibility** – Works with Deno, Node.js, Bun, web browsers,
+  and Cloudflare Workers
 - **✅ TypeScript first** – Complete type definitions and modern API
-- **✅ Full audio format support** – Supports all audio formats supported by TagLib
-- **✅ Format abstraction** – `taglib-wasm` deals with how tags are read from/written to in different file formats
+- **✅ Full audio format support** – Supports all audio formats supported by
+  TagLib
+- **✅ Format abstraction** – `taglib-wasm` deals with how tags are read
+  from/written to in different file formats
 - **✅ Zero dependencies** – Self-contained WASM bundle
 - **✅ Memory efficient** – In-memory processing without filesystem access
-- **✅ Production ready** – Growing test suite helps ensure safety and reliability
-- **🆕 Two API styles** – Choose between Simple (3 functions) or Core (full control) APIs
+- **✅ Production ready** – Growing test suite helps ensure safety and
+  reliability
+- **🆕 Two API styles** – Choose between Simple (3 functions) or Core (full
+  control) APIs
 
 ## 📦 Installation
 
@@ -35,8 +55,20 @@ import { TagLib } from "npm:taglib-wasm";
 npm install taglib-wasm
 ```
 
-**Note:** The NPM package ships TypeScript source files. Use a TypeScript loader like [`tsx`](https://github.com/privatenumber/tsx):
+**Requires Node.js v22.6.0 or later** (LTS recommended)
 
+The package ships TypeScript source files. You have two options:
+
+**Option 1: Native TypeScript (experimental)**
+```bash
+# Node.js 22.6.0+ with experimental flag
+node --experimental-strip-types your-script.ts
+
+# Node.js 23.6.0+ (no flag needed)
+node your-script.ts
+```
+
+**Option 2: TypeScript loader** (recommended for production)
 ```bash
 npm install --save-dev tsx
 npx tsx your-script.ts
@@ -52,7 +84,8 @@ bun add taglib-wasm
 
 ### Simple API
 
-Inspired by [go-taglib](https://github.com/sentriz/go-taglib)’s excellent developer experience:
+Inspired by [go-taglib](https://github.com/sentriz/go-taglib)’s excellent
+developer experience:
 
 ```typescript
 import { readProperties, readTags, writeTags } from "taglib-wasm/simple";
@@ -112,6 +145,42 @@ file.dispose();
 ```
 
 ## Platform examples
+
+### Deno
+
+```typescript
+import { TagLib } from "npm:taglib-wasm";
+
+// Initialize taglib-wasm
+const taglib = await TagLib.initialize();
+
+// Load audio file from filesystem
+const audioData = await Deno.readFile("song.mp3");
+const file = taglib.openFile(audioData);
+
+// Read metadata
+const tags = file.tag();
+const props = file.audioProperties();
+
+console.log(`Title: ${tags.title}`);
+console.log(`Artist: ${tags.artist}`);
+console.log(`Duration: ${props.length}s`);
+console.log(`Bitrate: ${props.bitrate} kbps`);
+
+// Write metadata
+const tag = file.tag();
+tag.setTitle("New Title");
+tag.setArtist("New Artist");
+tag.setAlbum("New Album");
+
+// Save changes
+file.save();
+
+console.log("Updated tags:", file.tag());
+
+// Clean up
+file.dispose();
+```
 
 ### Node.js
 
@@ -224,42 +293,6 @@ console.log("Updated tags:", file.tag());
 file.dispose();
 ```
 
-### Deno
-
-```typescript
-import { TagLib } from "npm:taglib-wasm";
-
-// Initialize taglib-wasm
-const taglib = await TagLib.initialize();
-
-// Load audio file from filesystem
-const audioData = await Deno.readFile("song.mp3");
-const file = taglib.openFile(audioData);
-
-// Read metadata
-const tags = file.tag();
-const props = file.audioProperties();
-
-console.log(`Title: ${tags.title}`);
-console.log(`Artist: ${tags.artist}`);
-console.log(`Duration: ${props.length}s`);
-console.log(`Bitrate: ${props.bitrate} kbps`);
-
-// Write metadata
-const tag = file.tag();
-tag.setTitle("New Title");
-tag.setArtist("New Artist");
-tag.setAlbum("New Album");
-
-// Save changes
-file.save();
-
-console.log("Updated tags:", file.tag());
-
-// Clean up
-file.dispose();
-```
-
 ### Cloudflare Workers
 
 ```typescript
@@ -319,15 +352,18 @@ export default {
 
 `tag-wasm` is designed to support all formats supported by TagLib:
 
-- ✅ **.m4a (.mp4)** – Standard MPEG-4/AAC metadata for AAC and Apple Lossless audio
+- ✅ **.m4a (.mp4)** – Standard MPEG-4/AAC metadata for AAC and Apple Lossless
+  audio
 - ✅ **.mp3** – ID3v2 and ID3v1 tags
 - ✅ **.flac** – Vorbis comments and audio properties
 - ✅ **.wav** – INFO chunk metadata
-- ✅ **Legacy formats**: Opus, APE, MPC, WavPack, TrueAudio, and more
+- ✅ **Legacy formats** – Opus, APE, MPC, WavPack, TrueAudio, and more
 
 ## 🎯 Extended Metadata with PropertyMap
 
-`taglib-wasm` provides a **PropertyMap API** for accessing extended metadata beyond the basic tags. This allows you to read and write format-specific fields and custom metadata.
+`taglib-wasm` provides a **PropertyMap API** for accessing extended metadata
+beyond the basic tags. This allows you to read and write format-specific fields
+and custom metadata.
 
 ### AcoustID example
 
@@ -347,7 +383,10 @@ file.save(); // Don't forget to save!
 // MusicBrainz metadata using PropertyMap
 file.setProperty("MUSICBRAINZ_TRACKID", "f4d1b6b8-8c1e-4d9a-9f2a-1234567890ab");
 file.setProperty("MUSICBRAINZ_ALBUMID", "a1b2c3d4-e5f6-7890-abcd-ef1234567890");
-file.setProperty("MUSICBRAINZ_ARTISTID", "12345678-90ab-cdef-1234-567890abcdef");
+file.setProperty(
+  "MUSICBRAINZ_ARTISTID",
+  "12345678-90ab-cdef-1234-567890abcdef",
+);
 ```
 
 ### Volume example
@@ -449,16 +488,22 @@ npm test
 
 ### Key architecture decisions
 
-1. **Memory Management**: Uses Emscripten's `allocate()` for reliable JS↔WASM data transfer
-2. **Buffer-Based Processing**: `TagLib::ByteVectorStream` enables in-memory file processing
+1. **Memory Management**: Uses Emscripten's `allocate()` for reliable JS↔WASM
+   data transfer
+2. **Buffer-Based Processing**: `TagLib::ByteVectorStream` enables in-memory
+   file processing
 3. **C++ Wrapper**: Custom C functions bridge TagLib's C++ API to WASM exports
-4. **Type Safety**: Complete TypeScript definitions for all audio formats and metadata
+4. **Type Safety**: Complete TypeScript definitions for all audio formats and
+   metadata
 
 ### Critical implementation details
 
-- **ByteVectorStream**: Enables processing audio files from memory buffers without filesystem
-- **ID-based Object Management**: C++ objects managed via integer IDs for memory safety
-- **Emscripten allocate()**: Ensures proper memory synchronization between JS and WASM
+- **ByteVectorStream**: Enables processing audio files from memory buffers
+  without filesystem
+- **ID-based Object Management**: C++ objects managed via integer IDs for memory
+  safety
+- **Emscripten allocate()**: Ensures proper memory synchronization between JS
+  and WASM
 - **UTF-8 String Handling**: Proper encoding for international metadata
 
 ## 📚 API Reference
@@ -552,19 +597,22 @@ interface TagLibConfig {
 
 `taglib-wasm` works seamlessly across all major JavaScript runtimes:
 
-| Runtime     | Status  | Installation                      | Performance | TypeScript |
-| ----------- | ------- | --------------------------------- | ----------- | ---------- |
-| **Deno**    | ✅ Full | `npm:taglib-wasm` | Excellent   | Native     |
-| **Bun**     | ✅ Full | `bun add taglib-wasm`             | Excellent   | Native     |
-| **Node.js** | ✅ Full | `npm install taglib-wasm`         | Good        | Via loader |
-| **Browser** | ✅ Full | CDN/bundler                       | Good        | Via build  |
+| Runtime     | Status  | Installation              | Performance | TypeScript |
+| ----------- | ------- | ------------------------- | ----------- | ---------- |
+| **Deno**    | ✅ Full | `npm:taglib-wasm`         | Excellent   | Native     |
+| **Bun**     | ✅ Full | `bun add taglib-wasm`     | Excellent   | Native     |
+| **Node.js** | ✅ Full | `npm install taglib-wasm` | Good        | Native/tsx |
+| **Browser** | ✅ Full | CDN/bundler               | Good        | Via build  |
 
-**📖 See [docs/Runtime-Compatibility.md](docs/Runtime-Compatibility.md) for detailed runtime information**
+**📖 See [docs/Runtime-Compatibility.md](docs/Runtime-Compatibility.md) for
+detailed runtime information**
 
 ## 🚧 Known Limitations
 
-- **File Writing**: Saves only affect in-memory representation (no filesystem persistence)
-- **Large Files**: Memory usage scales with file size (entire file loaded into memory)
+- **File Writing**: Saves only affect in-memory representation (no filesystem
+  persistence)
+- **Large Files**: Memory usage scales with file size (entire file loaded into
+  memory)
 - **Concurrent Access**: Not thread-safe (JavaScript single-threaded nature)
 
 ## 🤝 Contributing
@@ -580,7 +628,8 @@ Contributions welcome! Areas of interest:
 ## 📄 License
 
 - **This project**: MIT License (see [LICENSE](LICENSE))
-- **TagLib library**: LGPL/MPL dual license (see [lib/taglib/COPYING.LGPL](lib/taglib/COPYING.LGPL))
+- **TagLib library**: LGPL/MPL dual license (see
+  [lib/taglib/COPYING.LGPL](lib/taglib/COPYING.LGPL))
 
 ## 🙏 Acknowledgments
 
