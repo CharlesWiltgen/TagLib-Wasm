@@ -32,6 +32,9 @@
     "publish:npm": "echo 'Use GitHub Actions workflow for publishing'",
     "publish:github": "echo 'Use GitHub Actions workflow for publishing'"
   },
+  "engines": {
+    "node": ">=22.6.0"
+  },
   "keywords": [
     "taglib",
     "webassembly",
