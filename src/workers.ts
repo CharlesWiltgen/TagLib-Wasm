@@ -28,22 +28,22 @@ export class AudioFileWorkers {
   constructor(module: TagLibModule, fileId: number) {
     this.module = module;
     this.fileId = fileId;
-    this.tagPtr = module._taglib_file_tag(fileId);
-    this.propsPtr = module._taglib_file_audioproperties(fileId);
+    this.tagPtr = module._taglib_file_tag?.(fileId) || 0;
+    this.propsPtr = module._taglib_file_audioproperties?.(fileId) || 0;
   }
 
   /**
    * Check if the file is valid and was loaded successfully
    */
   isValid(): boolean {
-    return this.module._taglib_file_is_valid(this.fileId) !== 0;
+    return this.module._taglib_file_is_valid?.(this.fileId) !== 0;
   }
 
   /**
    * Get the file format
    */
   format(): AudioFormat {
-    const formatPtr = this.module._taglib_file_format(this.fileId);
+    const formatPtr = this.module._taglib_file_format?.(this.fileId) || 0;
     if (formatPtr === 0) return "MP3"; // fallback
     const formatStr = cStringToJS(this.module, formatPtr);
     return formatStr as AudioFormat;
@@ -55,13 +55,13 @@ export class AudioFileWorkers {
   tag(): Tag {
     if (this.tagPtr === 0) return {};
 
-    const title = this.module._taglib_tag_title(this.tagPtr);
-    const artist = this.module._taglib_tag_artist(this.tagPtr);
-    const album = this.module._taglib_tag_album(this.tagPtr);
-    const comment = this.module._taglib_tag_comment(this.tagPtr);
-    const genre = this.module._taglib_tag_genre(this.tagPtr);
-    const year = this.module._taglib_tag_year(this.tagPtr);
-    const track = this.module._taglib_tag_track(this.tagPtr);
+    const title = this.module._taglib_tag_title?.(this.tagPtr) || 0;
+    const artist = this.module._taglib_tag_artist?.(this.tagPtr) || 0;
+    const album = this.module._taglib_tag_album?.(this.tagPtr) || 0;
+    const comment = this.module._taglib_tag_comment?.(this.tagPtr) || 0;
+    const genre = this.module._taglib_tag_genre?.(this.tagPtr) || 0;
+    const year = this.module._taglib_tag_year?.(this.tagPtr) || 0;
+    const track = this.module._taglib_tag_track?.(this.tagPtr) || 0;
 
     return {
       title: title ? cStringToJS(this.module, title) : undefined,
@@ -80,14 +80,14 @@ export class AudioFileWorkers {
   audioProperties(): AudioProperties | null {
     if (this.propsPtr === 0) return null;
 
-    const length = this.module._taglib_audioproperties_length(this.propsPtr);
-    const bitrate = this.module._taglib_audioproperties_bitrate(this.propsPtr);
-    const sampleRate = this.module._taglib_audioproperties_samplerate(
+    const length = this.module._taglib_audioproperties_length?.(this.propsPtr) || 0;
+    const bitrate = this.module._taglib_audioproperties_bitrate?.(this.propsPtr) || 0;
+    const sampleRate = this.module._taglib_audioproperties_samplerate?.(
       this.propsPtr,
-    );
-    const channels = this.module._taglib_audioproperties_channels(
+    ) || 0;
+    const channels = this.module._taglib_audioproperties_channels?.(
       this.propsPtr,
-    );
+    ) || 0;
 
     return {
       length,
@@ -104,7 +104,7 @@ export class AudioFileWorkers {
   setTitle(title: string): void {
     if (this.tagPtr === 0) return;
     const titlePtr = jsToCString(this.module, title);
-    this.module._taglib_tag_set_title(this.tagPtr, titlePtr);
+    this.module._taglib_tag_set_title?.(this.tagPtr, titlePtr);
     this.module._free(titlePtr);
   }
 
@@ -114,7 +114,7 @@ export class AudioFileWorkers {
   setArtist(artist: string): void {
     if (this.tagPtr === 0) return;
     const artistPtr = jsToCString(this.module, artist);
-    this.module._taglib_tag_set_artist(this.tagPtr, artistPtr);
+    this.module._taglib_tag_set_artist?.(this.tagPtr, artistPtr);
     this.module._free(artistPtr);
   }
 
@@ -124,7 +124,7 @@ export class AudioFileWorkers {
   setAlbum(album: string): void {
     if (this.tagPtr === 0) return;
     const albumPtr = jsToCString(this.module, album);
-    this.module._taglib_tag_set_album(this.tagPtr, albumPtr);
+    this.module._taglib_tag_set_album?.(this.tagPtr, albumPtr);
     this.module._free(albumPtr);
   }
 
@@ -134,7 +134,7 @@ export class AudioFileWorkers {
   setComment(comment: string): void {
     if (this.tagPtr === 0) return;
     const commentPtr = jsToCString(this.module, comment);
-    this.module._taglib_tag_set_comment(this.tagPtr, commentPtr);
+    this.module._taglib_tag_set_comment?.(this.tagPtr, commentPtr);
     this.module._free(commentPtr);
   }
 
@@ -144,7 +144,7 @@ export class AudioFileWorkers {
   setGenre(genre: string): void {
     if (this.tagPtr === 0) return;
     const genrePtr = jsToCString(this.module, genre);
-    this.module._taglib_tag_set_genre(this.tagPtr, genrePtr);
+    this.module._taglib_tag_set_genre?.(this.tagPtr, genrePtr);
     this.module._free(genrePtr);
   }
 
@@ -153,7 +153,7 @@ export class AudioFileWorkers {
    */
   setYear(year: number): void {
     if (this.tagPtr === 0) return;
-    this.module._taglib_tag_set_year(this.tagPtr, year);
+    this.module._taglib_tag_set_year?.(this.tagPtr, year);
   }
 
   /**
@@ -161,7 +161,7 @@ export class AudioFileWorkers {
    */
   setTrack(track: number): void {
     if (this.tagPtr === 0) return;
-    this.module._taglib_tag_set_track(this.tagPtr, track);
+    this.module._taglib_tag_set_track?.(this.tagPtr, track);
   }
 
   /**
@@ -170,9 +170,18 @@ export class AudioFileWorkers {
    */
   save(): boolean {
     if (this.fileId !== 0) {
-      return this.module._taglib_file_save(this.fileId) !== 0;
+      return this.module._taglib_file_save?.(this.fileId) !== 0;
     }
     return false;
+  }
+
+  /**
+   * Get the current file buffer after modifications
+   * Note: This is not implemented in the Workers API
+   */
+  getFileBuffer(): Uint8Array {
+    console.warn("getFileBuffer() is not implemented in Workers API. Use Core API for this functionality.");
+    return new Uint8Array(0);
   }
 
   /**
@@ -226,7 +235,7 @@ export class AudioFileWorkers {
    */
   dispose(): void {
     if (this.fileId !== 0) {
-      this.module._taglib_file_delete(this.fileId);
+      this.module._taglib_file_delete?.(this.fileId);
       this.fileId = 0;
     }
   }

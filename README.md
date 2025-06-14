@@ -327,7 +327,7 @@ export default {
 
 ## 🎯 Extended Metadata with PropertyMap
 
-`taglib-wasm` supports **automatic tag mapping** so you don’t have to worry about how the same tag is stored differently in different audio container formats.
+`taglib-wasm` provides a **PropertyMap API** for accessing extended metadata beyond the basic tags. This allows you to read and write format-specific fields and custom metadata.
 
 ### AcoustID example
 
@@ -363,21 +363,24 @@ file.setProperty("REPLAYGAIN_ALBUM_PEAK", "0.995432");
 ### Extended fields
 
 ```typescript
-// Advanced metadata fields
-file.setExtendedTag({
-  albumArtist: "Various Artists",
-  composer: "Composer Name",
-  bpm: 120,
-  compilation: true,
-  discNumber: 1,
-  totalTracks: 12,
-  // Volume normalization
-  replayGainTrackGain: "-6.54 dB",
-  appleSoundCheck: "00000150...",
-});
-```
+// Using PropertyMap to set multiple properties at once
+const properties = file.properties(); // Get current properties
 
-**📖 See [docs/Automatic-Tag-Mapping.md](docs/Automatic-Tag-Mapping.md) for complete documentation**
+// Set extended metadata
+file.setProperties({
+  ALBUMARTIST: ["Various Artists"],
+  COMPOSER: ["Composer Name"],
+  BPM: ["120"],
+  COMPILATION: ["1"],
+  DISCNUMBER: ["1"],
+  TRACKTOTAL: ["12"],
+  // Note: Property keys vary by format
+});
+
+// Or set individual properties
+file.setProperty("ALBUMARTIST", "Various Artists");
+file.setProperty("COMPOSER", "Composer Name");
+```
 
 ## 🏗️ Development
 
