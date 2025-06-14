@@ -545,6 +545,57 @@ try {
    }
    ```
 
+## Tag Constants
+
+taglib-wasm provides type-safe tag constants for better IDE support and code readability:
+
+### Using Tag Constants
+
+```typescript
+import { Tags } from "taglib-wasm";
+
+// Read properties using constants
+const properties = file.properties();
+const title = properties[Tags.Title]?.[0];
+const albumArtist = properties[Tags.AlbumArtist]?.[0];
+const musicBrainzId = properties[Tags.MusicBrainzArtistId]?.[0];
+
+// Write properties using constants
+file.setProperties({
+  [Tags.Title]: ["My Song"],
+  [Tags.AlbumArtist]: ["Various Artists"],
+  [Tags.Bpm]: ["128"],
+  [Tags.MusicBrainzTrackId]: ["12345678-90ab-cdef-1234-567890abcdef"]
+});
+```
+
+### Tag Validation
+
+```typescript
+import { isValidTagName, getAllTagNames } from "taglib-wasm";
+
+// Check if a tag name is valid
+isValidTagName("TITLE"); // true
+isValidTagName("INVALID_TAG"); // false
+
+// Get all available tag names
+const allTags = getAllTagNames();
+console.log(`Available tags: ${allTags.length}`);
+```
+
+### Available Constants
+
+The `Tags` object provides constants for all standard tag names:
+
+- **Basic Tags**: `Title`, `Artist`, `Album`, `Date`, `Genre`, `Comment`, `TrackNumber`
+- **Extended Tags**: `AlbumArtist`, `Composer`, `Bpm`, `Copyright`, `Performer`
+- **MusicBrainz**: `MusicBrainzArtistId`, `MusicBrainzAlbumId`, `MusicBrainzTrackId`
+- **ReplayGain**: `TrackGain`, `TrackPeak`, `AlbumGain`, `AlbumPeak`
+- **Sorting**: `TitleSort`, `ArtistSort`, `AlbumSort`, `AlbumArtistSort`
+- And many more...
+
+See [Tag Name Constants](Tag-Name-Constants.md) for the complete reference.
+
 ## Memory Management
 
 ### Automatic Cleanup

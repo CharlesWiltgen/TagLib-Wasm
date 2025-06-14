@@ -144,6 +144,38 @@ console.log("Updated tags:", file.tag());
 file.dispose();
 ```
 
+### Tag Constants
+
+taglib-wasm provides type-safe tag constants with IDE autocomplete:
+
+```typescript
+import { Tags } from "taglib-wasm";
+
+// Use constants for better type safety and autocomplete
+const properties = file.properties();
+
+// Read properties
+const title = properties[Tags.Title]?.[0];
+const albumArtist = properties[Tags.AlbumArtist]?.[0];
+const musicBrainzId = properties[Tags.MusicBrainzArtistId]?.[0];
+
+// Write properties
+file.setProperties({
+  [Tags.Title]: ["My Song"],
+  [Tags.AlbumArtist]: ["Various Artists"],
+  [Tags.Bpm]: ["128"]
+});
+
+// All constants provide IDE autocomplete
+Tags.Title         // → "TITLE"
+Tags.Artist        // → "ARTIST"
+Tags.AlbumArtist   // → "ALBUMARTIST"
+Tags.TrackGain     // → "REPLAYGAIN_TRACK_GAIN"
+// ... and many more
+```
+
+See [Tag Name Constants](docs/Tag-Name-Constants.md) for the complete list of available tags and format-specific mappings.
+
 ## Platform examples
 
 ### Deno
@@ -369,9 +401,14 @@ and custom metadata.
 ### AcoustID example
 
 ```typescript
-// Using PropertyMap API to set extended metadata
+import { Tags } from "taglib-wasm";
+
+// Using PropertyMap API to set extended metadata with tag constants
+file.setProperty(Tags.AcoustidFingerprint, "AQADtMmybfGO8NCNEESLnzHyXNOHeHnG...");
+file.setProperty(Tags.AcoustidId, "e7359e88-f1f7-41ed-b9f6-16e58e906997");
+
+// Or using string property names
 file.setProperty("ACOUSTID_FINGERPRINT", "AQADtMmybfGO8NCNEESLnzHyXNOHeHnG...");
-file.setProperty("ACOUSTID_ID", "e7359e88-f1f7-41ed-b9f6-16e58e906997");
 
 // Note: Property keys may vary by format
 // Use file.properties() to see all available properties
@@ -381,11 +418,11 @@ file.save(); // Don't forget to save!
 ### MusicBrainz example
 
 ```typescript
-// MusicBrainz metadata using PropertyMap
-file.setProperty("MUSICBRAINZ_TRACKID", "f4d1b6b8-8c1e-4d9a-9f2a-1234567890ab");
-file.setProperty("MUSICBRAINZ_ALBUMID", "a1b2c3d4-e5f6-7890-abcd-ef1234567890");
+// MusicBrainz metadata using PropertyMap with tag constants
+file.setProperty(Tags.MusicBrainzTrackId, "f4d1b6b8-8c1e-4d9a-9f2a-1234567890ab");
+file.setProperty(Tags.MusicBrainzAlbumId, "a1b2c3d4-e5f6-7890-abcd-ef1234567890");
 file.setProperty(
-  "MUSICBRAINZ_ARTISTID",
+  Tags.MusicBrainzArtistId,
   "12345678-90ab-cdef-1234-567890abcdef",
 );
 ```
@@ -393,11 +430,11 @@ file.setProperty(
 ### Volume example
 
 ```typescript
-// ReplayGain volume normalization
-file.setProperty("REPLAYGAIN_TRACK_GAIN", "-6.54 dB");
-file.setProperty("REPLAYGAIN_TRACK_PEAK", "0.987654");
-file.setProperty("REPLAYGAIN_ALBUM_GAIN", "-8.12 dB");
-file.setProperty("REPLAYGAIN_ALBUM_PEAK", "0.995432");
+// ReplayGain volume normalization with tag constants
+file.setProperty(Tags.TrackGain, "-6.54 dB");
+file.setProperty(Tags.TrackPeak, "0.987654");
+file.setProperty(Tags.AlbumGain, "-8.12 dB");
+file.setProperty(Tags.AlbumPeak, "0.995432");
 ```
 
 ### Extended fields
@@ -406,20 +443,20 @@ file.setProperty("REPLAYGAIN_ALBUM_PEAK", "0.995432");
 // Using PropertyMap to set multiple properties at once
 const properties = file.properties(); // Get current properties
 
-// Set extended metadata
+// Set extended metadata with tag constants
 file.setProperties({
-  ALBUMARTIST: ["Various Artists"],
-  COMPOSER: ["Composer Name"],
-  BPM: ["120"],
-  COMPILATION: ["1"],
-  DISCNUMBER: ["1"],
-  TRACKTOTAL: ["12"],
+  [Tags.AlbumArtist]: ["Various Artists"],
+  [Tags.Composer]: ["Composer Name"],
+  [Tags.Bpm]: ["120"],
+  [Tags.Compilation]: ["1"],
+  [Tags.DiscNumber]: ["1"],
+  [Tags.TrackTotal]: ["12"],
   // Note: Property keys vary by format
 });
 
 // Or set individual properties
-file.setProperty("ALBUMARTIST", "Various Artists");
-file.setProperty("COMPOSER", "Composer Name");
+file.setProperty(Tags.AlbumArtist, "Various Artists");
+file.setProperty(Tags.Composer, "Composer Name");
 ```
 
 ## 🏗️ Development
@@ -581,6 +618,13 @@ interface Tag {
 ```typescript
 type PropertyMap = { [key: string]: string[] };
 ```
+
+## 📖 Additional Documentation
+
+- [**Tag Name Constants**](docs/Tag-Name-Constants.md) - Comprehensive reference for standard tag names and cross-format mapping
+- [**Automatic Tag Mapping**](docs/Automatic-Tag-Mapping.md) - How taglib-wasm handles format-specific tag differences
+- [**Implementation Details**](docs/Implementation.md) - Technical details about the Wasm implementation
+- [**Runtime Compatibility**](docs/Runtime-Compatibility.md) - Platform-specific setup and considerations
 
 ## 🌐 Runtime Compatibility
 

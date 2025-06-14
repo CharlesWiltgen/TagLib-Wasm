@@ -12,7 +12,7 @@
  * - WAV: INFO chunk fields
  */
 
-import { TagLib } from "../index.ts";
+import { TagLib, Tags } from "../index.ts";
 import { METADATA_MAPPINGS } from "../src/types.ts";
 
 async function demonstrateAdvancedMetadata() {
@@ -46,26 +46,25 @@ async function demonstrateAdvancedMetadata() {
       const properties = file.properties();
       console.log(
         `  AcoustID Fingerprint: ${
-          file.getProperty("ACOUSTID_FINGERPRINT") || "(none)"
+          properties[Tags.AcoustidFingerprint]?.[0] || "(none)"
         }`,
       );
-      console.log(`  AcoustID ID: ${file.getProperty("ACOUSTID_ID") || "(none)"}`);
+      console.log(`  AcoustID ID: ${properties[Tags.AcoustidId]?.[0] || "(none)"}`);
       console.log(
-        `  MusicBrainz Track ID: ${file.getProperty("MUSICBRAINZ_TRACKID") || "(none)"}`,
+        `  MusicBrainz Track ID: ${properties[Tags.MusicBrainzTrackId]?.[0] || "(none)"}`,
       );
-      console.log(`  Album Artist: ${file.getProperty("ALBUMARTIST") || "(none)"}`);
-      console.log(`  Composer: ${file.getProperty("COMPOSER") || "(none)"}`);
+      console.log(`  Album Artist: ${properties[Tags.AlbumArtist]?.[0] || "(none)"}`);
+      console.log(`  Composer: ${properties[Tags.Composer]?.[0] || "(none)"}`);
 
       // Demonstrate format-agnostic field setting
       console.log("\n✏️  Setting automatic tag mapping (format-agnostic)...");
 
-      // Using PropertyMap API for extended metadata
-      // Note: Property keys may vary by format
-      file.setProperty("ACOUSTID_FINGERPRINT",
+      // Using PropertyMap API for extended metadata with tag constants
+      file.setProperty(Tags.AcoustidFingerprint,
         "AQADtMmybfGO8NCNEESLnzHyXNOHeHnG4wccz9DR_gGNT_",
       );
-      file.setProperty("ACOUSTID_ID", "e7359e88-f1f7-41ed-b9f6-16e58e906997");
-      file.setProperty("MUSICBRAINZ_TRACKID", "f4d1b6b8-8c1e-4d9a-9f2a-1234567890ab");
+      file.setProperty(Tags.AcoustidId, "e7359e88-f1f7-41ed-b9f6-16e58e906997");
+      file.setProperty(Tags.MusicBrainzTrackId, "f4d1b6b8-8c1e-4d9a-9f2a-1234567890ab");
 
       // Show where these would be stored for this format
       console.log(`\n📋 Format-specific storage for ${format}:`);
@@ -170,13 +169,16 @@ function showMetadataMappingTable() {
   console.log("```typescript");
   console.log("// This single call works for ALL formats!");
   console.log(
-    'file.setProperty("ACOUSTID_FINGERPRINT", "AQADtMmybfGO8NCNEESLnzHyXNOHeHnG...");',
+    'file.setProperty(Tags.AcoustidFingerprint, "AQADtMmybfGO8NCNEESLnzHyXNOHeHnG...");',
   );
   console.log("");
   console.log("// Automatically stores as:");
   console.log("// • MP3: TXXX frame with 'Acoustid Fingerprint' description");
   console.log("// • FLAC: ACOUSTID_FINGERPRINT Vorbis comment");
   console.log("// • MP4: ----:com.apple.iTunes:Acoustid Fingerprint atom");
+  console.log("");
+  console.log("// Or using string property names:");
+  console.log('file.setProperty("ACOUSTID_FINGERPRINT", "...");');
   console.log("```");
 }
 
