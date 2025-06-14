@@ -119,6 +119,26 @@ file.setReplayGainTrackGain("-6.54 dB");
 file.setReplayGainTrackPeak("0.987654");
 ```
 
+### Using Tag Constants
+
+For better type safety and IDE autocomplete, use the `Tags` constants:
+
+```typescript
+import { Tags } from "taglib-wasm";
+
+// Read properties with constants
+const properties = file.properties();
+const title = properties[Tags.Title]?.[0];
+const albumArtist = properties[Tags.AlbumArtist]?.[0];
+
+// Write properties with constants
+file.setProperties({
+  [Tags.Title]: ["My Song"],
+  [Tags.AlbumArtist]: ["Various Artists"],
+  [Tags.Bpm]: ["120"]
+});
+```
+
 ## Platform Examples
 
 ### Node.js
