@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.2] - 2025-01-14
+
+### Added
+- Type-safe tag constants with IDE autocomplete support
+- `Tags` const object with PascalCase property names (e.g., `Tags.Title`, `Tags.AlbumArtist`)
+- Helper functions for tag validation (`isValidTagName`, `getAllTagNames`)
+- Format mapping reference showing how tags map across audio formats
+- Tag constants example demonstrating usage (`examples/tag-constants.ts`)
+- Comprehensive tag name constants documentation (`docs/Tag-Name-Constants.md`)
+
+### Changed
+- Updated all documentation to show tag constants usage
+- Enhanced PropertyMap examples with type-safe access patterns
+
+### Documentation
+- Added Tag Constants section to README.md
+- Updated API documentation with tag constants information
+- Enhanced quick start guide with constants examples
+- Updated automatic tag mapping example to use constants
+
+## [0.3.1] - 2025-01-12
+
 ### Added
 - Comprehensive API documentation (`docs/API.md`)
 - Error handling guide (`docs/Error-Handling.md`)
@@ -21,7 +43,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Outdated Embind migration documents
 - Duplicate platform examples in README
 
-## [1.0.0] - 2024-12-08
+## [0.3.0] - 2025-01-10
 
 ### Added
 - Production-ready WebAssembly port of TagLib v2.1
@@ -43,37 +65,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Detailed documentation
 
 ### Published
-- JSR: `@charleswiltgen/taglib-wasm`
 - NPM: `taglib-wasm`
-
-## [0.9.0] - 2024-12-01 (Pre-release)
-
-### Added
-- Initial WebAssembly compilation of TagLib
-- Basic tag reading and writing
-- Audio properties extraction
-- Support for major audio formats
-- TypeScript bindings
-- Basic test suite
-
-### Changed
-- Migrated from C-style API to cleaner TypeScript wrapper
-- Improved memory management with Emscripten's allocate()
-
-### Fixed
-- Memory corruption issues with buffer allocation
-- UTF-8 string encoding problems
-- Format detection reliability
-
-## [0.5.0] - 2024-11-15 (Alpha)
-
-### Added
-- Initial proof of concept
-- TagLib compilation to WebAssembly
-- Basic MP3 ID3 tag reading
-- Simple Node.js example
-
-### Known Issues
-- Limited format support
-- Memory leaks with some operations
-- No TypeScript support
