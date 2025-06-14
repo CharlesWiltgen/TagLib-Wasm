@@ -1,6 +1,6 @@
 # Publishing Guide
 
-This document explains how to publish `taglib-wasm` to both JSR (JavaScript Registry) and NPM with only the essential runtime components.
+This document explains how to publish `taglib-wasm` to NPM with only the essential runtime components.
 
 ## 📦 Essential Components
 
@@ -30,54 +30,13 @@ Only these components are published to registries:
 
 1. **Build the WASM module:**
    ```bash
-   deno task build:wasm
+   npm run build:wasm
    ```
 
 2. **Verify essential files exist:**
    ```bash
    ls -la build/taglib.wasm build/taglib.js src/
    ```
-
-### JSR Publishing (Deno)
-
-**First time setup:**
-
-```bash
-# Login to JSR (one-time setup)
-deno publish --dry-run  # This will prompt for authentication
-```
-
-**Publishing:**
-
-```bash
-# Publish to JSR (JavaScript Registry)
-deno publish
-
-# Or via npm script
-npm run publish:jsr
-```
-
-**JSR Configuration** (`deno.json`):
-
-- **Package name**: `@charleswiltgen/taglib-wasm`
-- **Entry point**: `./mod.ts` (JSR-compatible version)
-- **Includes**: TypeScript source + WASM files only (excludes Emscripten JS)
-
-**Installation**:
-
-```typescript
-import { TagLib } from "jsr:@charleswiltgen/taglib-wasm";
-
-// Initialize for JSR
-await TagLib.initialize();
-const audioFile = new AudioFile(audioData);
-```
-
-**JSR Version Notes:**
-
-- Uses direct WASM loading without Emscripten's JavaScript file
-- Compatible with JSR's static analysis requirements
-- Provides same API but uses `TagLibJSR` and `AudioFileJSR` internally
 
 ### NPM Publishing
 
@@ -132,13 +91,6 @@ bun add @charleswiltgen/taglib-wasm --registry=https://npm.pkg.github.com/
 2. Set environment variable: `export GITHUB_TOKEN=your_token_here`
 3. Or configure `.npmrc` with your token
 
-### Publish to All Registries
-
-```bash
-# Publish to NPM + GitHub Packages + JSR
-npm run publish:all
-```
-
 ## 📋 What Gets Published
 
 ### Included Files
@@ -146,7 +98,6 @@ npm run publish:all
 ```
 Published Package:
 ├── src/
-│   ├── mod.ts          # Main exports
 │   ├── taglib.ts       # Core API
 │   ├── types.ts        # Type definitions
 │   └── wasm.ts         # WASM interface
@@ -156,116 +107,83 @@ Published Package:
 ├── lib/taglib/
 │   ├── COPYING.LGPL    # TagLib license
 │   └── COPYING.MPL     # TagLib license
+├── index.ts            # Main exports
 ├── README.md           # Documentation
-├── LICENSE             # MIT license
 └── package.json        # Package metadata
 ```
 
-### Excluded Files
+### Excluded from Publication
 
-The following development files are **NOT** published:
+These files are **NOT** included in the published package:
 
-```
-❌ Not Published:
-├── .git/               # Git repository
-├── tests/              # Test files and sample audio
-├── tests/              # Test suite
-├── examples/           # Usage examples
-├── build/build-wasm.sh # Build scripts
-├── lib/taglib/         # Full TagLib source (except licenses)
-├── CLAUDE.md           # Development notes
-├── IMPLEMENTATION.md   # Implementation details
-└── *.ts (test files)   # Test scripts
-```
+- **Development files**: Test files, scripts, build tools
+- **Documentation**: `/docs` folder (available on GitHub)
+- **Examples**: `/examples` folder (available on GitHub)
+- **TagLib C++ source**: `/lib/taglib` (except licenses)
+- **Build artifacts**: CMake files, object files
+- **Git files**: `.git`, `.gitignore`, `.gitmodules`
 
-## 🔍 Verification
+## 🔧 Version Management
 
-### Check Package Contents
+### Updating Version
 
-**NPM**:
+**Manual version update:**
 
 ```bash
-npm pack --dry-run
+# Update version in package.json
+npm version patch  # or minor/major
+
+# This updates version in package.json and creates a git tag
 ```
 
-**JSR**:
+**Important**: Always ensure versions match between:
+- `package.json` - NPM package version
+
+## 🚀 CI/CD Publishing
+
+The project uses GitHub Actions for automated publishing:
+
+1. **Create a GitHub Release**:
+   - Tag version should match package version (e.g., `v0.1.0`)
+   - This triggers automatic publishing to NPM and GitHub Packages
+
+2. **Manual workflow dispatch**:
+   - Go to Actions → "Publish to NPM and GitHub Packages"
+   - Click "Run workflow"
+   - Enter version to publish
+
+## 📝 Pre-Publishing Checklist
+
+Before publishing a new version:
+
+- [ ] Run tests: `npm test`
+- [ ] Build WASM: `npm run build:wasm`
+- [ ] Build TypeScript: `npm run build:ts`
+- [ ] Update version in `package.json`
+- [ ] Update CHANGELOG.md (if exists)
+- [ ] Commit changes: `git commit -m "chore: bump version"`
+- [ ] Create git tag: `git tag v0.1.0`
+- [ ] Push changes: `git push && git push --tags`
+
+## 🔑 Required Secrets
+
+For CI/CD publishing, configure these GitHub repository secrets:
+
+- `NPM_TOKEN` - NPM authentication token
+- GitHub Package Registry uses `GITHUB_TOKEN` (automatically provided)
+
+## 🎯 Quick Commands
 
 ```bash
-deno publish --dry-run
+# Local development build
+npm run build
+
+# Run tests
+npm test
+
+# Manual NPM publish
+npm publish
+
+# Manual GitHub Packages publish
+npm run publish:github
 ```
-
-### Test Installation
-
-**From NPM**:
-
-```bash
-# Test in a temporary directory
-mkdir /tmp/test-npm && cd /tmp/test-npm
-npm init -y
-npm install taglib-wasm
-node -e "console.log(require('taglib-wasm'))"
-```
-
-**From JSR**:
-
-```bash
-# Test with Deno
-deno eval "import { TagLib } from 'jsr:@charleswiltgen/taglib-wasm'; console.log(TagLib)"
-```
-
-## 📈 Version Management
-
-### Bump Version
-
-1. **Update version** in both `package.json` and `deno.json`
-2. **Commit changes**:
-   ```bash
-   git add package.json deno.json
-   git commit -m "Bump version to X.Y.Z"
-   git tag vX.Y.Z
-   git push origin main --tags
-   ```
-3. **Publish**:
-   ```bash
-   npm run publish:all
-   ```
-
-### Version Consistency
-
-Ensure both files have the same version:
-
-- `package.json` → `"version": "X.Y.Z"`
-- `deno.json` → `"version": "X.Y.Z"`
-
-## 🚨 Important Notes
-
-### Runtime Compatibility
-
-- **JSR**: TypeScript files work directly in Deno
-- **NPM**: TypeScript files work in Node.js/Bun with loaders
-- **Browser**: Requires bundler (Vite, Webpack, etc.)
-
-### WASM File Access
-
-The WASM files (`build/taglib.wasm` and `build/taglib.js`) are included in the published packages and loaded automatically by the TypeScript API.
-
-### Size Considerations
-
-- **Package size**: ~350KB (mostly WASM)
-- **Core files**: TypeScript source is <50KB
-- **WASM module**: ~300KB compiled TagLib
-
-## 🎯 Publishing Checklist
-
-Before publishing:
-
-- [ ] WASM module built (`build/taglib.wasm` exists)
-- [ ] Tests passing (`npm test`)
-- [ ] Version bumped in both `package.json` and `deno.json`
-- [ ] Changes committed and tagged
-- [ ] README updated with new features
-- [ ] Dry-run successful (`npm pack --dry-run` and `deno publish --dry-run`)
-
----
-
-This streamlined publishing process ensures only the essential runtime components reach end users while keeping the development repository clean and organized.

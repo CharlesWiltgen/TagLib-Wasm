@@ -26,7 +26,7 @@ Because there’s nothing like it. [`mp3tag.js`](https://mp3tag.js.org/) is matu
 ### Deno
 
 ```typescript
-import { TagLib } from "jsr:@charleswiltgen/taglib-wasm";
+import { TagLib } from "npm:taglib-wasm";
 ```
 
 ### Node.js
@@ -78,13 +78,13 @@ console.log(`Duration: ${props.length}s, Bitrate: ${props.bitrate} kbps`);
 Full control when you need it:
 
 ```typescript
-import { TagLib } from "jsr:@charleswiltgen/taglib-wasm";
+import { TagLib } from "taglib-wasm";
 
 // Initialize taglib-wasm
 const taglib = await TagLib.initialize();
 
 // Load audio file from buffer
-const audioData = await Deno.readFile("song.mp3");
+const audioData = await readFile("song.mp3"); // Node.js/Bun: fs.readFile, Deno: Deno.readFile
 const file = taglib.openFile(audioData);
 
 // Read metadata
@@ -201,6 +201,43 @@ const taglib = await TagLib.initialize();
 const fileInput = document.querySelector('input[type="file"]');
 const audioFile = fileInput.files[0];
 const audioData = new Uint8Array(await audioFile.arrayBuffer());
+const file = taglib.openFile(audioData);
+
+// Read metadata
+const tags = file.tag();
+const props = file.audioProperties();
+
+console.log(`Title: ${tags.title}`);
+console.log(`Artist: ${tags.artist}`);
+console.log(`Duration: ${props.length}s`);
+console.log(`Bitrate: ${props.bitrate} kbps`);
+
+// Write metadata
+file.setTitle("New Title");
+file.setArtist("New Artist");
+file.setAlbum("New Album");
+
+console.log("Updated tags:", file.tag());
+
+// Automatic tag mapping (format-agnostic)
+file.setAcoustidFingerprint("AQADtMmybfGO8NCNEESLnzHyXNOHeHnG...");
+file.setAcoustidId("e7359e88-f1f7-41ed-b9f6-16e58e906997");
+file.setMusicBrainzTrackId("f4d1b6b8-8c1e-4d9a-9f2a-1234567890ab");
+
+// Clean up
+file.dispose();
+```
+
+### Deno
+
+```typescript
+import { TagLib } from "npm:taglib-wasm";
+
+// Initialize taglib-wasm
+const taglib = await TagLib.initialize();
+
+// Load audio file from filesystem
+const audioData = await Deno.readFile("song.mp3");
 const file = taglib.openFile(audioData);
 
 // Read metadata
@@ -513,7 +550,7 @@ interface TagLibConfig {
 
 | Runtime     | Status  | Installation                      | Performance | TypeScript |
 | ----------- | ------- | --------------------------------- | ----------- | ---------- |
-| **Deno**    | ✅ Full | `jsr:@charleswiltgen/taglib-wasm` | Excellent   | Native     |
+| **Deno**    | ✅ Full | `npm:taglib-wasm` | Excellent   | Native     |
 | **Bun**     | ✅ Full | `bun add taglib-wasm`             | Excellent   | Native     |
 | **Node.js** | ✅ Full | `npm install taglib-wasm`         | Good        | Via loader |
 | **Browser** | ✅ Full | CDN/bundler                       | Good        | Via build  |
