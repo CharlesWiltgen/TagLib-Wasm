@@ -1,4 +1,6 @@
-# taglib-wasm
+# TagLib-Wasm
+
+> TagLib for TypeScript platforms: Deno, Node.js, Bun, browsers, and Cloudflare Workers
 
 This is the Wasm version of [**TagLib**](https://taglib.org/), the most robust,
 de-facto standard for reading and editing metadata tags (Title, Album, Artist,
@@ -34,7 +36,7 @@ platform-specific dependencies whenever possible.
   TagLib
 - **✅ Format abstraction** – `taglib-wasm` deals with how tags are read
   from/written to in different file formats
-- **✅ Zero dependencies** – Self-contained WASM bundle
+- **✅ Zero dependencies** – Self-contained Wasm bundle
 - **✅ Memory efficient** – In-memory processing without filesystem access
 - **✅ Production ready** – Growing test suite helps ensure safety and
   reliability
@@ -471,7 +473,7 @@ file.setProperty(Tags.Composer, "Composer Name");
 git clone <repository>
 cd taglib-wasm
 
-# Build WASM module
+# Build Wasm module
 deno task build:wasm
 
 # Run tests
@@ -485,7 +487,7 @@ src/
 ├── mod.ts          # Main module exports
 ├── taglib.ts       # Core TagLib and AudioFile classes
 ├── types.ts        # TypeScript type definitions
-└── wasm.ts         # WASM module interface and utilities
+└── wasm.ts         # Wasm module interface and utilities
 
 build/
 ├── build-wasm.sh   # Complete build script with C++ wrapper
@@ -526,11 +528,11 @@ npm test
 
 ### Key architecture decisions
 
-1. **Memory Management**: Uses Emscripten's `allocate()` for reliable JS↔WASM
+1. **Memory Management**: Uses Emscripten's `allocate()` for reliable JS↔Wasm
    data transfer
 2. **Buffer-Based Processing**: `TagLib::ByteVectorStream` enables in-memory
    file processing
-3. **C++ Wrapper**: Custom C functions bridge TagLib's C++ API to WASM exports
+3. **C++ Wrapper**: Custom C functions bridge TagLib's C++ API to Wasm exports
 4. **Type Safety**: Complete TypeScript definitions for all audio formats and
    metadata
 
@@ -541,7 +543,7 @@ npm test
 - **ID-based Object Management**: C++ objects managed via integer IDs for memory
   safety
 - **Emscripten allocate()**: Ensures proper memory synchronization between JS
-  and WASM
+  and Wasm
 - **UTF-8 String Handling**: Proper encoding for international metadata
 
 ## 📚 API Reference

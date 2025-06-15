@@ -23,7 +23,7 @@ const DEFAULT_WORKERS_CONFIG: Required<TagLibConfig> = {
  * Load and initialize the TagLib WebAssembly module for Cloudflare Workers
  *
  * @param wasmBinary - The WebAssembly binary as Uint8Array
- * @param config - Optional configuration for the WASM module
+ * @param config - Optional configuration for the Wasm module
  * @returns Promise resolving to initialized TagLib module
  *
  * @example
@@ -66,13 +66,13 @@ export async function loadTagLibModuleForWorkers(
   try {
     // For Workers, we need to use a modified version of the Emscripten output
     // that doesn't include Node.js/CommonJS dependencies
-    const TagLibWASM = await createWorkersCompatibleModule();
+    const TagLibWasm = await createWorkersCompatibleModule();
 
-    if (typeof TagLibWASM !== "function") {
+    if (typeof TagLibWasm !== "function") {
       throw new Error("Failed to load taglib-wasm module for Workers");
     }
 
-    const wasmInstance = await TagLibWASM(moduleConfig);
+    const wasmInstance = await TagLibWasm(moduleConfig);
 
     // Ensure proper memory arrays are set up
     if (!wasmInstance.HEAPU8) {
@@ -99,7 +99,7 @@ export async function loadTagLibModuleForWorkers(
 
 /**
  * Create a Workers-compatible version of the Emscripten module
- * This function loads the WASM module without Node.js/CommonJS dependencies
+ * This function loads the Wasm module without Node.js/CommonJS dependencies
  */
 async function createWorkersCompatibleModule(): Promise<any> {
   // In a real Workers environment, you would typically:
@@ -115,8 +115,8 @@ async function createWorkersCompatibleModule(): Promise<any> {
   } catch (error) {
     // If that fails, provide a fallback implementation
     throw new Error(
-      "Workers-compatible WASM module not available. " +
-        "Please build with Workers target or use a bundler that supports WASM modules. " +
+      "Workers-compatible Wasm module not available. " +
+        "Please build with Workers target or use a bundler that supports Wasm modules. " +
         `Original error: ${(error as Error).message}`,
     );
   }

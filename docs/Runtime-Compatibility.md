@@ -11,7 +11,7 @@
 - **Features**:
   - Native TypeScript support
   - Built-in Web APIs
-  - Excellent WASM performance
+  - Excellent Wasm performance
   - Security sandbox
 - **File Loading**: `Deno.readFile()`
 
@@ -30,7 +30,7 @@ const file = taglib.openFile(audioData);
 - **Features**:
   - Native TypeScript support
   - Fast startup and execution
-  - Excellent WASM performance
+  - Excellent Wasm performance
   - Node.js compatibility
 - **File Loading**: `Bun.file().arrayBuffer()`
 
@@ -49,7 +49,7 @@ const file = taglib.openFile(new Uint8Array(audioData));
 - **Features**:
   - Mature ecosystem
   - Extensive package support
-  - Good WASM performance
+  - Good Wasm performance
 - **File Loading**: `fs.readFile()` or `fs.promises.readFile()`
 
 ```typescript
@@ -121,7 +121,7 @@ export default {
 
 All runtimes use the same memory management approach:
 
-- Emscripten's `allocate()` for JS↔WASM data transfer
+- Emscripten's `allocate()` for JS↔Wasm data transfer
 - Automatic garbage collection for JavaScript objects
 - Manual disposal required for C++ objects: `file.dispose()`
 
@@ -139,7 +139,7 @@ Each runtime has different file system capabilities:
 
 ### Performance Characteristics
 
-| Runtime     | Startup   | WASM Performance | Memory Usage | TypeScript |
+| Runtime     | Startup   | Wasm Performance | Memory Usage | TypeScript |
 | ----------- | --------- | ---------------- | ------------ | ---------- |
 | **Bun**     | Very Fast | Excellent        | Low          | Native     |
 | **Deno**    | Fast      | Excellent        | Medium       | Native     |
@@ -200,12 +200,12 @@ npm test
 #### Node.js
 
 - Requires TypeScript loader for direct .ts execution
-- Older versions (<18) may have limited WASM support
+- Older versions (<18) may have limited Wasm support
 
 #### Browser
 
 - No direct file system access (security limitation)
-- WASM files must be served with correct MIME type
+- Wasm files must be served with correct MIME type
 - May require additional build configuration
 
 #### Cloudflare Workers

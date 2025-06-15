@@ -176,7 +176,7 @@ emcc \
   
   # Module settings
   -s MODULARIZE=1 \
-  -s EXPORT_NAME="TagLibWASM" \
+  -s EXPORT_NAME="TagLibWasm" \
   -s ENVIRONMENT='web,webview,node,shell' \
   
   # Optimization
@@ -204,7 +204,7 @@ emcmake cmake "$TAGLIB_DIR" \
 
 The test suite (`test-systematic.ts`) validates:
 
-1. **File Loading**: Can the WASM module load the file?
+1. **File Loading**: Can the Wasm module load the file?
 2. **Format Detection**: Is the format correctly identified?
 3. **Audio Properties**: Are bitrate, sample rate, etc. correct?
 4. **Tag Reading**: Can existing tags be read?
@@ -294,7 +294,7 @@ If Emscripten build fails:
 
 ### File Size Optimization
 
-- WASM bundle: ~800KB (optimized)
+- Wasm bundle: ~800KB (optimized)
 - Supports tree-shaking for unused formats
 - Consider format-specific builds for size-critical applications
 
@@ -310,10 +310,10 @@ If Emscripten build fails:
 
 ### Performance Optimizations
 
-1. **Lazy Loading**: Load WASM module on first use
+1. **Lazy Loading**: Load Wasm module on first use
 2. **Memory Pooling**: Reuse allocated buffers
 3. **Batch Processing**: Process multiple files efficiently
-4. **Compression**: Compress WASM binary further
+4. **Compression**: Compress Wasm binary further
 
 ---
 

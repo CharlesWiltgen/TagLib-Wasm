@@ -560,21 +560,21 @@ const { TagLib } = await import('taglib-wasm');
 
 ### Browser Issues
 
-**Problem**: CORS errors when loading WASM.
+**Problem**: CORS errors when loading Wasm.
 
 ```typescript
 // 1. Serve with correct headers
 // Content-Type: application/wasm
 // Access-Control-Allow-Origin: *
 
-// 2. Use base64 embedded WASM
+// 2. Use base64 embedded Wasm
 const wasmBase64 = "AGFzbQEAAAA...";
 const wasmBytes = Uint8Array.from(
   atob(wasmBase64),
   c => c.charCodeAt(0)
 );
 
-// 3. Bundle WASM with webpack/vite
+// 3. Bundle Wasm with webpack/vite
 // Configure bundler to handle .wasm files
 ```
 
@@ -643,7 +643,7 @@ function traceMethod(obj: any, method: string) {
 }
 ```
 
-### Inspect WASM Memory
+### Inspect Wasm Memory
 
 ```typescript
 // Get memory view
@@ -651,7 +651,7 @@ const module = taglib.getModule();
 const memory = module.HEAPU8;
 
 // Check memory usage
-console.log(`WASM memory size: ${memory.length / 1024 / 1024}MB`);
+console.log(`Wasm memory size: ${memory.length / 1024 / 1024}MB`);
 
 // Find string in memory
 function findString(str: string): number[] {
@@ -724,9 +724,9 @@ async function validateAudioFile(path: string) {
 
 ## FAQ
 
-### Q: Why is the WASM file so large?
+### Q: Why is the Wasm file so large?
 
-**A**: The WASM file (~2MB) includes the entire TagLib library with support for all audio formats. This is a one-time download that gets cached by browsers.
+**A**: The Wasm file (~2MB) includes the entire TagLib library with support for all audio formats. This is a one-time download that gets cached by browsers.
 
 ### Q: Can I reduce the bundle size?
 

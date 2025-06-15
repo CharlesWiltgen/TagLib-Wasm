@@ -175,7 +175,7 @@ file->setProperties(propertyMap);
 1. **Extend C++ Wrapper**: Add PropertyMap access functions
 2. **Implement Field Writers**: Format-specific writing logic
 3. **Implement Field Readers**: Format-specific reading logic
-4. **Add WASM Exports**: Export new C++ functions to JavaScript
+4. **Add Wasm Exports**: Export new C++ functions to JavaScript
 5. **Complete TypeScript Integration**: Wire up API methods to C++ calls
 
 ## 🎯 Benefits
