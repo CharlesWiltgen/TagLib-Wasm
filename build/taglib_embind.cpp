@@ -130,8 +130,20 @@ private:
 public:
     FileHandle() = default;
     
-    bool loadFromBuffer(const std::string& data) {
+    bool loadFromBuffer(const val& jsBuffer) {
         try {
+            // Get the buffer length
+            unsigned int length = jsBuffer["length"].as<unsigned int>();
+            
+            // Create a vector to hold the data
+            std::vector<char> data(length);
+            
+            // Copy data from JavaScript typed array to C++ vector
+            // This preserves binary data without any encoding conversions
+            for (unsigned int i = 0; i < length; i++) {
+                data[i] = jsBuffer[i].as<unsigned char>();
+            }
+            
             // Create ByteVector from the buffer
             TagLib::ByteVector buffer(data.data(), data.size());
             
@@ -148,7 +160,7 @@ public:
             
             // If FileRef failed, try specific file types based on format detection
             stream->seek(0, TagLib::IOStream::Beginning);
-            std::string format = detectFormat(data);
+            std::string format = detectFormat(std::string(data.data(), data.size()));
             
             if (format == "mp3") {
                 file.reset(new TagLib::MPEG::File(stream.get()));
@@ -390,12 +402,23 @@ private:
     
 public:
     // Get the current file buffer after modifications
-    std::string getBuffer() const {
+    val getBuffer() const {
         if (stream && stream->data()) {
             const TagLib::ByteVector* data = stream->data();
-            return std::string(data->data(), data->size());
+            
+            // Create a JavaScript Uint8Array with the binary data
+            val uint8Array = val::global("Uint8Array").new_(data->size());
+            
+            // Copy the data directly to preserve binary integrity
+            for (size_t i = 0; i < data->size(); i++) {
+                uint8Array.set(i, static_cast<unsigned char>((*data)[i]));
+            }
+            
+            return uint8Array;
         }
-        return "";
+        
+        // Return an empty Uint8Array if no data
+        return val::global("Uint8Array").new_(0);
     }
 };
 

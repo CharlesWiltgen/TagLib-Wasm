@@ -348,16 +348,12 @@ export class AudioFileImpl implements AudioFile {
 
   /** @inheritdoc */
   getFileBuffer(): Uint8Array {
-    const bufferString = this.fileHandle.getBuffer();
-    if (!bufferString) {
+    const buffer = this.fileHandle.getBuffer();
+    if (!buffer) {
       return new Uint8Array(0);
     }
 
-    // Convert string to Uint8Array
-    const buffer = new Uint8Array(bufferString.length);
-    for (let i = 0; i < bufferString.length; i++) {
-      buffer[i] = bufferString.charCodeAt(i);
-    }
+    // The buffer is already a Uint8Array from the C++ side
     return buffer;
   }
 
