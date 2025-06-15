@@ -146,7 +146,12 @@ export async function readTags(
   const taglib = await getTagLib();
   const audioData = await readFileData(file);
 
-  const audioFile = await taglib.openFile(audioData.buffer as ArrayBuffer);
+  // Ensure we pass the correct slice of the buffer
+  const buffer = audioData.buffer.slice(
+    audioData.byteOffset,
+    audioData.byteOffset + audioData.byteLength
+  );
+  const audioFile = await taglib.openFile(buffer);
   try {
     if (!audioFile.isValid()) {
       throw new InvalidFormatError(
@@ -191,7 +196,12 @@ export async function writeTags(
   const taglib = await getTagLib();
   const audioData = await readFileData(file);
 
-  const audioFile = await taglib.openFile(audioData.buffer as ArrayBuffer);
+  // Ensure we pass the correct slice of the buffer
+  const buffer = audioData.buffer.slice(
+    audioData.byteOffset,
+    audioData.byteOffset + audioData.byteLength
+  );
+  const audioFile = await taglib.openFile(buffer);
   try {
     if (!audioFile.isValid()) {
       throw new InvalidFormatError(
@@ -245,7 +255,12 @@ export async function readProperties(
   const taglib = await getTagLib();
   const audioData = await readFileData(file);
 
-  const audioFile = await taglib.openFile(audioData.buffer as ArrayBuffer);
+  // Ensure we pass the correct slice of the buffer
+  const buffer = audioData.buffer.slice(
+    audioData.byteOffset,
+    audioData.byteOffset + audioData.byteLength
+  );
+  const audioFile = await taglib.openFile(buffer);
   try {
     if (!audioFile.isValid()) {
       throw new InvalidFormatError(
@@ -314,7 +329,12 @@ export async function isValidAudioFile(
     const taglib = await getTagLib();
     const audioData = await readFileData(file);
 
-    const audioFile = await taglib.openFile(audioData.buffer as ArrayBuffer);
+    // Ensure we pass the correct slice of the buffer
+  const buffer = audioData.buffer.slice(
+    audioData.byteOffset,
+    audioData.byteOffset + audioData.byteLength
+  );
+  const audioFile = await taglib.openFile(buffer);
     const valid = audioFile.isValid();
     audioFile.dispose();
 
@@ -342,7 +362,12 @@ export async function getFormat(
   const taglib = await getTagLib();
   const audioData = await readFileData(file);
 
-  const audioFile = await taglib.openFile(audioData.buffer as ArrayBuffer);
+  // Ensure we pass the correct slice of the buffer
+  const buffer = audioData.buffer.slice(
+    audioData.byteOffset,
+    audioData.byteOffset + audioData.byteLength
+  );
+  const audioFile = await taglib.openFile(buffer);
   try {
     if (!audioFile.isValid()) {
       return undefined;
