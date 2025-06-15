@@ -677,9 +677,18 @@ Contributions welcome.
 
 ## 📄 License
 
-- **This project**: MIT License (see [LICENSE](LICENSE))
-- **TagLib library**: LGPL/MPL dual license (see
-  [lib/taglib/COPYING.LGPL](lib/taglib/COPYING.LGPL))
+This project uses dual licensing:
+
+- **TypeScript/JavaScript code**: MIT License (see [LICENSE](LICENSE))
+- **WebAssembly binary (taglib.wasm)**: LGPL-2.1-or-later (inherited from TagLib)
+
+The TagLib library is dual-licensed under LGPL/MPL. When compiled to WebAssembly,
+the resulting binary must comply with LGPL requirements. This means:
+- You can use taglib-wasm in commercial projects
+- If you modify the TagLib C++ code, you must share those changes
+- You must provide a way for users to relink with a modified TagLib
+
+For details, see [lib/taglib/COPYING.LGPL](lib/taglib/COPYING.LGPL)
 
 ## 🙏 Acknowledgments
 
