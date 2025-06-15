@@ -1,6 +1,7 @@
 # taglib-wasm API Reference
 
-Complete API documentation for taglib-wasm, a WebAssembly port of TagLib for JavaScript/TypeScript.
+Complete API documentation for taglib-wasm, a WebAssembly port of TagLib for
+JavaScript/TypeScript.
 
 ## Table of Contents
 
@@ -18,14 +19,15 @@ Complete API documentation for taglib-wasm, a WebAssembly port of TagLib for Jav
 
 ## Simple API
 
-The Simple API provides the easiest way to read and write audio metadata. All functions accept either a file path (string) or a buffer (Uint8Array).
+The Simple API provides the easiest way to read and write audio metadata. All
+functions accept either a file path (string) or a buffer (Uint8Array).
 
 ### readTags()
 
 Read metadata tags from an audio file.
 
 ```typescript
-function readTags(input: string | Uint8Array): Promise<Tags>
+function readTags(input: string | Uint8Array): Promise<Tags>;
 ```
 
 #### Parameters
@@ -67,8 +69,8 @@ Write metadata tags to an audio file.
 ```typescript
 function writeTags(
   input: string | Uint8Array,
-  tags: Partial<Tags>
-): Promise<Uint8Array>
+  tags: Partial<Tags>,
+): Promise<Uint8Array>;
 ```
 
 #### Parameters
@@ -99,7 +101,7 @@ await Deno.writeFile("song-updated.mp3", modifiedFile);
 Read audio properties from a file.
 
 ```typescript
-function readProperties(input: string | Uint8Array): Promise<Properties>
+function readProperties(input: string | Uint8Array): Promise<Properties>;
 ```
 
 #### Parameters
@@ -112,10 +114,10 @@ Promise resolving to a `Properties` object:
 
 ```typescript
 interface Properties {
-  length: number;      // Duration in seconds
-  bitrate: number;     // Bitrate in kbps
-  sampleRate: number;  // Sample rate in Hz
-  channels: number;    // Number of channels (1=mono, 2=stereo)
+  length: number; // Duration in seconds
+  bitrate: number; // Bitrate in kbps
+  sampleRate: number; // Sample rate in Hz
+  channels: number; // Number of channels (1=mono, 2=stereo)
 }
 ```
 
@@ -152,10 +154,10 @@ static async initialize(config?: TagLibConfig): Promise<TagLib>
 ```typescript
 interface TagLibConfig {
   memory?: {
-    initial?: number;  // Initial memory size in bytes (default: 16MB)
-    maximum?: number;  // Maximum memory size in bytes (default: 256MB)
+    initial?: number; // Initial memory size in bytes (default: 16MB)
+    maximum?: number; // Maximum memory size in bytes (default: 256MB)
   };
-  debug?: boolean;     // Enable debug output (default: false)
+  debug?: boolean; // Enable debug output (default: false)
 }
 ```
 
@@ -168,7 +170,7 @@ const taglib = await TagLib.initialize();
 // Custom memory configuration
 const taglib = await TagLib.initialize({
   memory: {
-    initial: 8 * 1024 * 1024,   // 8MB
+    initial: 8 * 1024 * 1024, // 8MB
     maximum: 128 * 1024 * 1024, // 128MB
   },
   debug: true,
@@ -248,10 +250,10 @@ Returns:
 
 ```typescript
 interface AudioProperties {
-  length: number;      // Duration in seconds
-  bitrate: number;     // Bitrate in kbps
-  sampleRate: number;  // Sample rate in Hz
-  channels: number;    // Number of channels
+  length: number; // Duration in seconds
+  bitrate: number; // Bitrate in kbps
+  sampleRate: number; // Sample rate in Hz
+  channels: number; // Number of channels
 }
 ```
 
@@ -410,7 +412,8 @@ save(): boolean
 
 Returns `true` if successful, `false` otherwise.
 
-**Note**: This modifies the in-memory representation only. To persist changes, you need to write the buffer to disk.
+**Note**: This modifies the in-memory representation only. To persist changes,
+you need to write the buffer to disk.
 
 ##### toBuffer()
 
@@ -430,7 +433,8 @@ Clean up resources and free memory.
 dispose(): void
 ```
 
-**Important**: Always call `dispose()` when done with a file to prevent memory leaks.
+**Important**: Always call `dispose()` when done with a file to prevent memory
+leaks.
 
 ### Types and Interfaces
 
@@ -467,12 +471,13 @@ import { TagLib } from "taglib-wasm/workers";
 // Initialize with Workers-specific config
 const taglib = await TagLib.initialize({
   memory: {
-    initial: 8 * 1024 * 1024,  // 8MB (Workers limit)
+    initial: 8 * 1024 * 1024, // 8MB (Workers limit)
   },
 });
 ```
 
-The Workers API is identical to the Core API but with optimizations for the Workers runtime environment.
+The Workers API is identical to the Core API but with optimizations for the
+Workers runtime environment.
 
 ## Error Handling
 
@@ -547,7 +552,8 @@ try {
 
 ## Tag Constants
 
-taglib-wasm provides type-safe tag constants for better IDE support and code readability:
+taglib-wasm provides type-safe tag constants for better IDE support and code
+readability:
 
 ### Using Tag Constants
 
@@ -565,14 +571,14 @@ file.setProperties({
   [Tags.Title]: ["My Song"],
   [Tags.AlbumArtist]: ["Various Artists"],
   [Tags.Bpm]: ["128"],
-  [Tags.MusicBrainzTrackId]: ["12345678-90ab-cdef-1234-567890abcdef"]
+  [Tags.MusicBrainzTrackId]: ["12345678-90ab-cdef-1234-567890abcdef"],
 });
 ```
 
 ### Tag Validation
 
 ```typescript
-import { isValidTagName, getAllTagNames } from "taglib-wasm";
+import { getAllTagNames, isValidTagName } from "taglib-wasm";
 
 // Check if a tag name is valid
 isValidTagName("TITLE"); // true
@@ -587,9 +593,11 @@ console.log(`Available tags: ${allTags.length}`);
 
 The `Tags` object provides constants for all standard tag names:
 
-- **Basic Tags**: `Title`, `Artist`, `Album`, `Date`, `Genre`, `Comment`, `TrackNumber`
+- **Basic Tags**: `Title`, `Artist`, `Album`, `Date`, `Genre`, `Comment`,
+  `TrackNumber`
 - **Extended Tags**: `AlbumArtist`, `Composer`, `Bpm`, `Copyright`, `Performer`
-- **MusicBrainz**: `MusicBrainzArtistId`, `MusicBrainzAlbumId`, `MusicBrainzTrackId`
+- **MusicBrainz**: `MusicBrainzArtistId`, `MusicBrainzAlbumId`,
+  `MusicBrainzTrackId`
 - **ReplayGain**: `TrackGain`, `TrackPeak`, `AlbumGain`, `AlbumPeak`
 - **Sorting**: `TitleSort`, `ArtistSort`, `AlbumSort`, `AlbumArtistSort`
 - And many more...
@@ -633,8 +641,8 @@ const taglib = await TagLib.initialize({
 // Large files (> 50MB)
 const taglib = await TagLib.initialize({
   memory: {
-    initial: 32 * 1024 * 1024,   // 32MB
-    maximum: 256 * 1024 * 1024,  // 256MB
+    initial: 32 * 1024 * 1024, // 32MB
+    maximum: 256 * 1024 * 1024, // 256MB
   },
 });
 
@@ -666,28 +674,28 @@ import { TagLib } from "taglib-wasm";
 async function processAudioFile(filePath: string) {
   // Initialize TagLib
   const taglib = await TagLib.initialize();
-  
+
   try {
     // Read file
     const buffer = await Deno.readFile(filePath);
     const file = taglib.openFile(buffer);
-    
+
     // Validate
     if (!file.isValid()) {
       throw new Error("Invalid audio file");
     }
-    
+
     // Read current metadata
     console.log("Current tags:", file.tag());
     console.log("Format:", file.format());
     console.log("Properties:", file.audioProperties());
-    
+
     // Update metadata
     file.setTitle("New Title");
     file.setArtist("New Artist");
     file.setAlbum("New Album");
     file.setYear(2024);
-    
+
     // Add extended metadata
     file.setExtendedTag({
       albumArtist: "Various Artists",
@@ -695,11 +703,11 @@ async function processAudioFile(filePath: string) {
       bpm: 120,
       replayGainTrackGain: "-6.5 dB",
     });
-    
+
     // Add identifiers
     file.setAcoustidFingerprint("AQADtMmybfGO8NCN...");
     file.setMusicBrainzTrackId("f4d1b6b8-8c1e-4d9a-9f2a-1234567890ab");
-    
+
     // Save changes
     if (file.save()) {
       // Write modified file
@@ -709,7 +717,7 @@ async function processAudioFile(filePath: string) {
     } else {
       console.error("Failed to save changes");
     }
-    
+
     // Clean up
     file.dispose();
   } catch (error) {

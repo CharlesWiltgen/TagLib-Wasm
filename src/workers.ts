@@ -1,5 +1,11 @@
 /**
  * @fileoverview Cloudflare Workers-specific TagLib API
+ *
+ * This module provides a specialized API for using TagLib in Cloudflare Workers
+ * and other edge computing environments where the standard Emscripten module
+ * loading may not work. It uses C-style function exports for compatibility.
+ *
+ * @module taglib-wasm/workers
  */
 
 import type {
@@ -17,7 +23,24 @@ import {
 } from "./wasm-workers.ts";
 
 /**
- * Represents an audio file with metadata and properties (Workers-compatible)
+ * Represents an audio file with metadata and properties (Workers-compatible).
+ * This implementation uses C-style function calls for Cloudflare Workers compatibility.
+ *
+ * @example
+ * ```typescript
+ * const file = taglib.openFile(audioBuffer);
+ *
+ * // Get metadata
+ * const tag = file.tag();
+ * console.log(tag.title);
+ *
+ * // Modify metadata
+ * file.setTitle("New Title");
+ * file.save();
+ *
+ * // Clean up
+ * file.dispose();
+ * ```
  */
 export class AudioFileWorkers {
   private module: TagLibModule;
@@ -33,14 +56,16 @@ export class AudioFileWorkers {
   }
 
   /**
-   * Check if the file is valid and was loaded successfully
+   * Check if the file is valid and was loaded successfully.
+   * @returns true if the file is valid and can be processed
    */
   isValid(): boolean {
     return this.module._taglib_file_is_valid?.(this.fileId) !== 0;
   }
 
   /**
-   * Get the file format
+   * Get the file format.
+   * @returns Audio format (e.g., "MP3", "FLAC", "OGG")
    */
   format(): AudioFormat {
     const formatPtr = this.module._taglib_file_format?.(this.fileId) || 0;
@@ -50,7 +75,8 @@ export class AudioFileWorkers {
   }
 
   /**
-   * Get basic tag information
+   * Get basic tag information.
+   * @returns Object containing title, artist, album, etc.
    */
   tag(): Tag {
     if (this.tagPtr === 0) return {};
@@ -75,13 +101,16 @@ export class AudioFileWorkers {
   }
 
   /**
-   * Get audio properties (duration, bitrate, etc.)
+   * Get audio properties (duration, bitrate, etc.).
+   * @returns Audio properties or null if unavailable
    */
   audioProperties(): AudioProperties | null {
     if (this.propsPtr === 0) return null;
 
-    const length = this.module._taglib_audioproperties_length?.(this.propsPtr) || 0;
-    const bitrate = this.module._taglib_audioproperties_bitrate?.(this.propsPtr) || 0;
+    const length =
+      this.module._taglib_audioproperties_length?.(this.propsPtr) || 0;
+    const bitrate =
+      this.module._taglib_audioproperties_bitrate?.(this.propsPtr) || 0;
     const sampleRate = this.module._taglib_audioproperties_samplerate?.(
       this.propsPtr,
     ) || 0;
@@ -99,7 +128,8 @@ export class AudioFileWorkers {
   }
 
   /**
-   * Set the title tag
+   * Set the title tag.
+   * @param title - New title value
    */
   setTitle(title: string): void {
     if (this.tagPtr === 0) return;
@@ -109,7 +139,8 @@ export class AudioFileWorkers {
   }
 
   /**
-   * Set the artist tag
+   * Set the artist tag.
+   * @param artist - New artist value
    */
   setArtist(artist: string): void {
     if (this.tagPtr === 0) return;
@@ -119,7 +150,8 @@ export class AudioFileWorkers {
   }
 
   /**
-   * Set the album tag
+   * Set the album tag.
+   * @param album - New album value
    */
   setAlbum(album: string): void {
     if (this.tagPtr === 0) return;
@@ -129,7 +161,8 @@ export class AudioFileWorkers {
   }
 
   /**
-   * Set the comment tag
+   * Set the comment tag.
+   * @param comment - New comment value
    */
   setComment(comment: string): void {
     if (this.tagPtr === 0) return;
@@ -139,7 +172,8 @@ export class AudioFileWorkers {
   }
 
   /**
-   * Set the genre tag
+   * Set the genre tag.
+   * @param genre - New genre value
    */
   setGenre(genre: string): void {
     if (this.tagPtr === 0) return;
@@ -149,7 +183,8 @@ export class AudioFileWorkers {
   }
 
   /**
-   * Set the year tag
+   * Set the year tag.
+   * @param year - Release year
    */
   setYear(year: number): void {
     if (this.tagPtr === 0) return;
@@ -157,7 +192,8 @@ export class AudioFileWorkers {
   }
 
   /**
-   * Set the track number tag
+   * Set the track number tag.
+   * @param track - Track number
    */
   setTrack(track: number): void {
     if (this.tagPtr === 0) return;
@@ -165,8 +201,9 @@ export class AudioFileWorkers {
   }
 
   /**
-   * Save changes to the file
-   * Note: In Workers context, this saves to the in-memory buffer only
+   * Save changes to the file.
+   * Note: In Workers context, this saves to the in-memory buffer only.
+   * @returns true if save was successful
    */
   save(): boolean {
     if (this.fileId !== 0) {
@@ -176,16 +213,22 @@ export class AudioFileWorkers {
   }
 
   /**
-   * Get the current file buffer after modifications
-   * Note: This is not implemented in the Workers API
+   * Get the current file buffer after modifications.
+   * Note: This is not implemented in the Workers API.
+   * @returns Empty Uint8Array (not implemented)
+   * @deprecated Use the Core API for this functionality
    */
   getFileBuffer(): Uint8Array {
-    console.warn("getFileBuffer() is not implemented in Workers API. Use Core API for this functionality.");
+    console.warn(
+      "getFileBuffer() is not implemented in Workers API. Use Core API for this functionality.",
+    );
     return new Uint8Array(0);
   }
 
   /**
-   * Get extended metadata with format-agnostic field names
+   * Get extended metadata with format-agnostic field names.
+   * Note: Currently returns only basic fields in Workers API.
+   * @returns Extended tag object with basic fields populated
    */
   extendedTag(): ExtendedTag {
     const basicTag = this.tag();
@@ -218,7 +261,9 @@ export class AudioFileWorkers {
   }
 
   /**
-   * Set extended metadata using format-agnostic field names
+   * Set extended metadata using format-agnostic field names.
+   * Note: Currently only supports basic fields in Workers API.
+   * @param tag - Partial extended tag object with fields to update
    */
   setExtendedTag(tag: Partial<ExtendedTag>): void {
     if (tag.title !== undefined) this.setTitle(tag.title);
@@ -231,7 +276,8 @@ export class AudioFileWorkers {
   }
 
   /**
-   * Clean up resources
+   * Clean up resources.
+   * Always call this when done to prevent memory leaks.
    */
   dispose(): void {
     if (this.fileId !== 0) {
@@ -242,7 +288,22 @@ export class AudioFileWorkers {
 }
 
 /**
- * Main TagLib class for Cloudflare Workers
+ * Main TagLib class for Cloudflare Workers.
+ * Provides methods to initialize the library and open audio files
+ * in edge computing environments.
+ *
+ * @example
+ * ```typescript
+ * import wasmBinary from "../build/taglib.wasm";
+ *
+ * // Initialize TagLib
+ * const taglib = await TagLibWorkers.initialize(wasmBinary);
+ *
+ * // Process audio file
+ * const file = taglib.openFile(audioBuffer);
+ * const metadata = file.tag();
+ * file.dispose();
+ * ```
  */
 export class TagLibWorkers {
   private module: TagLibModule;
@@ -276,7 +337,19 @@ export class TagLibWorkers {
   }
 
   /**
-   * Open an audio file from a buffer
+   * Open an audio file from a buffer.
+   *
+   * @param buffer - Audio file data as Uint8Array
+   * @returns AudioFileWorkers instance
+   * @throws {Error} If Wasm module is not initialized
+   * @throws {Error} If file format is invalid or unsupported
+   * @throws {Error} If Workers API C-style functions are not available
+   *
+   * @example
+   * ```typescript
+   * const audioData = new Uint8Array(await request.arrayBuffer());
+   * const file = taglib.openFile(audioData);
+   * ```
    */
   openFile(buffer: Uint8Array): AudioFileWorkers {
     if (!this.module.HEAPU8) {
@@ -293,9 +366,11 @@ export class TagLibWorkers {
     }
 
     if (!this.module._taglib_file_new_from_buffer) {
-      throw new Error("Workers API requires C-style functions. Use Core API instead.");
+      throw new Error(
+        "Workers API requires C-style functions. Use Core API instead.",
+      );
     }
-    
+
     const fileId = this.module._taglib_file_new_from_buffer(
       dataPtr,
       buffer.length,
@@ -317,7 +392,8 @@ export class TagLibWorkers {
   }
 
   /**
-   * Get the underlying Wasm module (for advanced usage)
+   * Get the underlying Wasm module for advanced usage.
+   * @returns The initialized TagLib Wasm module
    */
   getModule(): TagLibModule {
     return this.module;
@@ -362,5 +438,9 @@ export async function processAudioMetadata(
   }
 }
 
-// Export types for convenience
+/**
+ * Re-export commonly used types for convenience.
+ * These types define the structure of metadata, audio properties,
+ * and configuration options.
+ */
 export type { AudioFormat, AudioProperties, ExtendedTag, Tag, TagLibConfig };

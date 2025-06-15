@@ -1,6 +1,7 @@
 # Performance Guide
 
-This guide covers performance optimization techniques and best practices for taglib-wasm.
+This guide covers performance optimization techniques and best practices for
+taglib-wasm.
 
 ## Table of Contents
 
@@ -24,24 +25,24 @@ const taglib = await TagLib.initialize();
 // Medium files (10-50MB)
 const taglib = await TagLib.initialize({
   memory: {
-    initial: 32 * 1024 * 1024,   // 32MB
-    maximum: 128 * 1024 * 1024,  // 128MB
+    initial: 32 * 1024 * 1024, // 32MB
+    maximum: 128 * 1024 * 1024, // 128MB
   },
 });
 
 // Large files (> 50MB)
 const taglib = await TagLib.initialize({
   memory: {
-    initial: 64 * 1024 * 1024,   // 64MB
-    maximum: 256 * 1024 * 1024,  // 256MB
+    initial: 64 * 1024 * 1024, // 64MB
+    maximum: 256 * 1024 * 1024, // 256MB
   },
 });
 
 // Memory-constrained environments (e.g., Cloudflare Workers)
 const taglib = await TagLib.initialize({
   memory: {
-    initial: 8 * 1024 * 1024,    // 8MB
-    maximum: 8 * 1024 * 1024,    // Fixed size
+    initial: 8 * 1024 * 1024, // 8MB
+    maximum: 8 * 1024 * 1024, // Fixed size
   },
 });
 ```
@@ -60,7 +61,7 @@ function estimateMemoryUsage(fileSizeMB: number): number {
   const baseOverhead = 4; // MB
   const fileOverhead = fileSizeMB * 2;
   const peakOverhead = fileSizeMB * 3;
-  
+
   return {
     minimum: baseOverhead + fileOverhead,
     peak: baseOverhead + peakOverhead,
@@ -80,12 +81,12 @@ Reuse TagLib instances for better performance:
 class TagLibPool {
   private instance: TagLib | null = null;
   private initPromise: Promise<TagLib> | null = null;
-  
+
   async getInstance(): Promise<TagLib> {
     if (this.instance) {
       return this.instance;
     }
-    
+
     if (!this.initPromise) {
       this.initPromise = TagLib.initialize({
         memory: {
@@ -94,7 +95,7 @@ class TagLibPool {
         },
       });
     }
-    
+
     this.instance = await this.initPromise;
     return this.instance;
   }
@@ -155,25 +156,25 @@ class LazyAudioFile {
   private file: AudioFile;
   private _tags?: TagData;
   private _props?: AudioProperties;
-  
+
   constructor(file: AudioFile) {
     this.file = file;
   }
-  
+
   get tags(): TagData {
     if (!this._tags) {
       this._tags = this.file.tag();
     }
     return this._tags;
   }
-  
+
   get properties(): AudioProperties {
     if (!this._props) {
       this._props = this.file.audioProperties();
     }
     return this._props;
   }
-  
+
   dispose() {
     this.file.dispose();
   }
@@ -188,35 +189,35 @@ Only update changed fields:
 class SmartTagger {
   private original: TagData;
   private file: AudioFile;
-  
+
   constructor(file: AudioFile) {
     this.file = file;
     this.original = file.tag();
   }
-  
+
   updateTags(updates: Partial<TagData>) {
     let hasChanges = false;
-    
+
     if (updates.title && updates.title !== this.original.title) {
       this.file.setTitle(updates.title);
       hasChanges = true;
     }
-    
+
     if (updates.artist && updates.artist !== this.original.artist) {
       this.file.setArtist(updates.artist);
       hasChanges = true;
     }
-    
+
     if (updates.album && updates.album !== this.original.album) {
       this.file.setAlbum(updates.album);
       hasChanges = true;
     }
-    
+
     // Only save if there were changes
     if (hasChanges) {
       return this.file.save();
     }
-    
+
     return true;
   }
 }
@@ -232,11 +233,11 @@ Best for memory-constrained environments:
 async function processSequentially(files: string[]) {
   const taglib = await TagLib.initialize();
   const results = [];
-  
+
   for (const filePath of files) {
     const buffer = await Deno.readFile(filePath);
     const file = taglib.openFile(buffer);
-    
+
     try {
       const result = {
         path: filePath,
@@ -247,13 +248,13 @@ async function processSequentially(files: string[]) {
     } finally {
       file.dispose();
     }
-    
+
     // Optional: Force garbage collection between files
     if (globalThis.gc) {
       globalThis.gc();
     }
   }
-  
+
   return results;
 }
 ```
@@ -270,20 +271,20 @@ async function processInParallel(files: string[], concurrency = 4) {
       maximum: 512 * 1024 * 1024, // Larger for parallel processing
     },
   });
-  
+
   // Process in chunks
   const chunks = [];
   for (let i = 0; i < files.length; i += concurrency) {
     chunks.push(files.slice(i, i + concurrency));
   }
-  
+
   const results = [];
   for (const chunk of chunks) {
     const chunkResults = await Promise.all(
       chunk.map(async (filePath) => {
         const buffer = await Deno.readFile(filePath);
         const file = taglib.openFile(buffer);
-        
+
         try {
           return {
             path: filePath,
@@ -293,12 +294,12 @@ async function processInParallel(files: string[], concurrency = 4) {
         } finally {
           file.dispose();
         }
-      })
+      }),
     );
-    
+
     results.push(...chunkResults);
   }
-  
+
   return results;
 }
 ```
@@ -310,21 +311,20 @@ For very large collections:
 ```typescript
 async function* streamProcess(files: string[]) {
   const taglib = await TagLib.initialize();
-  
+
   for (const filePath of files) {
     try {
       const buffer = await Deno.readFile(filePath);
       const file = taglib.openFile(buffer);
-      
+
       const result = {
         path: filePath,
         tags: file.tag(),
         properties: file.audioProperties(),
       };
-      
+
       file.dispose();
       yield result;
-      
     } catch (error) {
       yield {
         path: filePath,
@@ -352,7 +352,7 @@ const buffer = await Deno.readFile(path); // Efficient native read
 // Use Workers for CPU-intensive tasks
 const worker = new Worker(
   new URL("./tag-worker.ts", import.meta.url).href,
-  { type: "module" }
+  { type: "module" },
 );
 
 worker.postMessage({ cmd: "process", buffer });
@@ -373,27 +373,27 @@ self.onmessage = async (e) => {
 ### Node.js Optimizations
 
 ```typescript
-import { Worker } from 'worker_threads';
-import { createReadStream } from 'fs';
-import { pipeline } from 'stream/promises';
+import { Worker } from "worker_threads";
+import { createReadStream } from "fs";
+import { pipeline } from "stream/promises";
 
 // Use streams for large files
 async function processLargeFile(path: string) {
   const chunks: Buffer[] = [];
   const stream = createReadStream(path);
-  
-  stream.on('data', (chunk) => chunks.push(chunk));
+
+  stream.on("data", (chunk) => chunks.push(chunk));
   await new Promise((resolve, reject) => {
-    stream.on('end', resolve);
-    stream.on('error', reject);
+    stream.on("end", resolve);
+    stream.on("error", reject);
   });
-  
+
   const buffer = Buffer.concat(chunks);
   return processBuffer(new Uint8Array(buffer));
 }
 
 // Use Worker threads
-const worker = new Worker('./tag-worker.js');
+const worker = new Worker("./tag-worker.js");
 worker.postMessage({ buffer });
 ```
 
@@ -401,7 +401,7 @@ worker.postMessage({ buffer });
 
 ```typescript
 // Use Web Workers
-const worker = new Worker('tag-worker.js');
+const worker = new Worker("tag-worker.js");
 
 // Process file uploads efficiently
 async function handleFileUpload(file: File) {
@@ -409,23 +409,23 @@ async function handleFileUpload(file: File) {
   if (file.size > 50 * 1024 * 1024) { // > 50MB
     const reader = file.stream().getReader();
     const chunks: Uint8Array[] = [];
-    
+
     while (true) {
       const { done, value } = await reader.read();
       if (done) break;
       chunks.push(value);
     }
-    
+
     const buffer = new Uint8Array(
-      chunks.reduce((acc, chunk) => acc + chunk.length, 0)
+      chunks.reduce((acc, chunk) => acc + chunk.length, 0),
     );
-    
+
     let offset = 0;
     for (const chunk of chunks) {
       buffer.set(chunk, offset);
       offset += chunk.length;
     }
-    
+
     return buffer;
   } else {
     // Small files can be read at once
@@ -453,38 +453,38 @@ export default {
     // Initialize once per request
     const taglib = await TagLib.initialize({
       memory: {
-        initial: 8 * 1024 * 1024,  // 8MB limit
-        maximum: 8 * 1024 * 1024,  // Fixed size
+        initial: 8 * 1024 * 1024, // 8MB limit
+        maximum: 8 * 1024 * 1024, // Fixed size
       },
     });
-    
+
     // Stream response for large files
     const { readable, writable } = new TransformStream();
     const writer = writable.getWriter();
-    
+
     // Process in background
     (async () => {
       try {
         const buffer = new Uint8Array(await request.arrayBuffer());
         const file = taglib.openFile(buffer);
-        
+
         const metadata = {
           tags: file.tag(),
           properties: file.audioProperties(),
         };
-        
+
         file.dispose();
-        
+
         await writer.write(
-          new TextEncoder().encode(JSON.stringify(metadata))
+          new TextEncoder().encode(JSON.stringify(metadata)),
         );
       } finally {
         await writer.close();
       }
     })();
-    
+
     return new Response(readable, {
-      headers: { 'Content-Type': 'application/json' },
+      headers: { "Content-Type": "application/json" },
     });
   },
 };
@@ -497,32 +497,32 @@ export default {
 ```typescript
 class PerformanceMonitor {
   private metrics = new Map<string, number[]>();
-  
+
   async measure<T>(
     name: string,
-    operation: () => Promise<T>
+    operation: () => Promise<T>,
   ): Promise<T> {
     const start = performance.now();
-    
+
     try {
       return await operation();
     } finally {
       const duration = performance.now() - start;
-      
+
       if (!this.metrics.has(name)) {
         this.metrics.set(name, []);
       }
       this.metrics.get(name)!.push(duration);
     }
   }
-  
+
   getStats(name: string) {
     const times = this.metrics.get(name) || [];
     if (times.length === 0) return null;
-    
+
     const sorted = [...times].sort((a, b) => a - b);
     const sum = sorted.reduce((a, b) => a + b, 0);
-    
+
     return {
       count: times.length,
       min: sorted[0],
@@ -533,7 +533,7 @@ class PerformanceMonitor {
       p99: sorted[Math.floor(times.length * 0.99)],
     };
   }
-  
+
   report() {
     console.log("Performance Report:");
     for (const [name, _] of this.metrics) {
@@ -560,20 +560,20 @@ await monitor.measure("init", () => TagLib.initialize());
 const taglib = await TagLib.initialize();
 for (const file of testFiles) {
   const buffer = await Deno.readFile(file);
-  
+
   await monitor.measure("open", () => {
     const f = taglib.openFile(buffer);
     f.dispose();
     return Promise.resolve();
   });
-  
+
   await monitor.measure("read_tags", () => {
     const f = taglib.openFile(buffer);
     const tags = f.tag();
     f.dispose();
     return Promise.resolve(tags);
   });
-  
+
   await monitor.measure("write_tags", () => {
     const f = taglib.openFile(buffer);
     f.setTitle("New Title");
@@ -592,43 +592,43 @@ monitor.report();
 class MemoryProfiler {
   private baseline: number;
   private samples: Array<{ label: string; usage: number }> = [];
-  
+
   constructor() {
     this.baseline = this.getCurrentMemory();
   }
-  
+
   private getCurrentMemory(): number {
-    if (typeof process !== 'undefined' && process.memoryUsage) {
+    if (typeof process !== "undefined" && process.memoryUsage) {
       return process.memoryUsage().heapUsed;
     } else if (performance.memory) {
       return performance.memory.usedJSHeapSize;
     }
     return 0;
   }
-  
+
   sample(label: string) {
     const current = this.getCurrentMemory();
     const delta = current - this.baseline;
-    
+
     this.samples.push({
       label,
       usage: delta,
     });
-    
+
     return delta;
   }
-  
+
   report() {
     console.log("Memory Profile:");
     console.log(`Baseline: ${(this.baseline / 1024 / 1024).toFixed(2)}MB`);
-    
+
     for (const sample of this.samples) {
       const mb = sample.usage / 1024 / 1024;
-      const sign = mb >= 0 ? '+' : '';
+      const sign = mb >= 0 ? "+" : "";
       console.log(`${sample.label}: ${sign}${mb.toFixed(2)}MB`);
     }
-    
-    const peak = Math.max(...this.samples.map(s => s.usage));
+
+    const peak = Math.max(...this.samples.map((s) => s.usage));
     console.log(`\nPeak delta: +${(peak / 1024 / 1024).toFixed(2)}MB`);
   }
 }
@@ -727,20 +727,20 @@ if (executionTime > threshold) {
 class MetadataCache {
   private cache = new Map<string, { tags: Tags; timestamp: number }>();
   private maxAge = 3600000; // 1 hour
-  
+
   async getTags(path: string): Promise<Tags> {
     const cached = this.cache.get(path);
-    
+
     if (cached && Date.now() - cached.timestamp < this.maxAge) {
       return cached.tags;
     }
-    
+
     const tags = await readTags(path);
     this.cache.set(path, { tags, timestamp: Date.now() });
-    
+
     return tags;
   }
-  
+
   clear() {
     this.cache.clear();
   }

@@ -3,25 +3,30 @@
 All notable changes to taglib-wasm will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+and this project adheres to
+[Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
 ## [0.3.2] - 2025-01-14
 
 ### Added
+
 - Type-safe tag constants with IDE autocomplete support
-- `Tags` const object with PascalCase property names (e.g., `Tags.Title`, `Tags.AlbumArtist`)
+- `Tags` const object with PascalCase property names (e.g., `Tags.Title`,
+  `Tags.AlbumArtist`)
 - Helper functions for tag validation (`isValidTagName`, `getAllTagNames`)
 - Format mapping reference showing how tags map across audio formats
 - Tag constants example demonstrating usage (`examples/tag-constants.ts`)
 - Comprehensive tag name constants documentation (`docs/Tag-Name-Constants.md`)
 
 ### Changed
+
 - Updated all documentation to show tag constants usage
 - Enhanced PropertyMap examples with type-safe access patterns
 
 ### Documentation
+
 - Added Tag Constants section to README.md
 - Updated API documentation with tag constants information
 - Enhanced quick start guide with constants examples
@@ -30,22 +35,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.3.1] - 2025-01-12
 
 ### Added
+
 - Comprehensive API documentation (`docs/API.md`)
 - Error handling guide (`docs/Error-Handling.md`)
 - Performance optimization guide (`docs/Performance.md`)
 - Troubleshooting guide with FAQ (`docs/Troubleshooting.md`)
 
 ### Changed
+
 - Cleaned up README.md by removing duplicate examples
 - Improved Simple API documentation
 
 ### Removed
+
 - Outdated Embind migration documents
 - Duplicate platform examples in README
 
 ## [0.3.0] - 2025-01-10
 
 ### Added
+
 - Production-ready WebAssembly port of TagLib v2.1
 - Full support for MP3, MP4/M4A, FLAC, OGG Vorbis, and WAV formats
 - Simple API for easy tag reading/writing (3 functions)
@@ -65,4 +74,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Detailed documentation
 
 ### Published
+
 - NPM: `taglib-wasm`

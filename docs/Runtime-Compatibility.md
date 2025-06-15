@@ -1,6 +1,8 @@
 # Runtime Compatibility
 
-`taglib-wasm` is designed to work seamlessly across all major JavaScript runtimes. This document outlines the specific features and considerations for each runtime.
+`taglib-wasm` is designed to work seamlessly across all major JavaScript
+runtimes. This document outlines the specific features and considerations for
+each runtime.
 
 ## 🟢 Supported Runtimes
 
@@ -106,9 +108,9 @@ export default {
     const taglib = await TagLib.initialize();
     const audioData = new Uint8Array(await request.arrayBuffer());
     const file = taglib.openFile(audioData);
-    
+
     // Process metadata...
-    
+
     file.dispose();
     return new Response(JSON.stringify(metadata));
   },
@@ -129,13 +131,13 @@ All runtimes use the same memory management approach:
 
 Each runtime has different file system capabilities:
 
-| Runtime     | File System                 | Security | Best For                      |
-| ----------- | --------------------------- | -------- | ----------------------------- |
-| **Deno**    | Sandboxed, permission-based | High     | Server-side, CLI tools        |
-| **Bun**     | Full access                 | Medium   | Server-side, build tools      |
-| **Node.js** | Full access                 | Medium   | Server-side, classic apps     |
-| **Browser** | Limited (File API only)     | High     | Client-side, web apps         |
-| **Workers** | None (Request/KV/R2 only)   | High     | Edge computing, APIs          |
+| Runtime     | File System                 | Security | Best For                  |
+| ----------- | --------------------------- | -------- | ------------------------- |
+| **Deno**    | Sandboxed, permission-based | High     | Server-side, CLI tools    |
+| **Bun**     | Full access                 | Medium   | Server-side, build tools  |
+| **Node.js** | Full access                 | Medium   | Server-side, classic apps |
+| **Browser** | Limited (File API only)     | High     | Client-side, web apps     |
+| **Workers** | None (Request/KV/R2 only)   | High     | Edge computing, APIs      |
 
 ### Performance Characteristics
 
@@ -149,15 +151,15 @@ Each runtime has different file system capabilities:
 
 ## 📦 Installation Matrix
 
-| Runtime     | Package Manager | Command                                                    |
-| ----------- | --------------- | ---------------------------------------------------------- |
+| Runtime     | Package Manager | Command                                    |
+| ----------- | --------------- | ------------------------------------------ |
 | **Deno**    | npm specifier   | `import { TagLib } from "npm:taglib-wasm"` |
-| **Bun**     | bun             | `bun add taglib-wasm`                                      |
-| **Node.js** | npm             | `npm install taglib-wasm`                                  |
-| **Node.js** | yarn            | `yarn add taglib-wasm`                                     |
-| **Node.js** | pnpm            | `pnpm add taglib-wasm`                                     |
-| **Workers** | npm             | `npm install taglib-wasm`                                  |
-| **Browser** | CDN             | `<script type="module" src="...">`                         |
+| **Bun**     | bun             | `bun add taglib-wasm`                      |
+| **Node.js** | npm             | `npm install taglib-wasm`                  |
+| **Node.js** | yarn            | `yarn add taglib-wasm`                     |
+| **Node.js** | pnpm            | `pnpm add taglib-wasm`                     |
+| **Workers** | npm             | `npm install taglib-wasm`                  |
+| **Browser** | CDN             | `<script type="module" src="...">`         |
 
 ## 🧪 Testing Across Runtimes
 
@@ -276,4 +278,5 @@ const taglib = await TagLib.initialize(config);
 
 ---
 
-This universal compatibility ensures `taglib-wasm` can be used in any modern JavaScript environment, from servers to browsers to edge computing platforms.
+This universal compatibility ensures `taglib-wasm` can be used in any modern
+JavaScript environment, from servers to browsers to edge computing platforms.

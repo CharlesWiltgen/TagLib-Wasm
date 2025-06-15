@@ -9,7 +9,7 @@ The Simple API provides the easiest way to work with audio metadata:
 ### Reading Tags
 
 ```typescript
-import { readTags, readProperties } from "taglib-wasm/simple";
+import { readProperties, readTags } from "taglib-wasm/simple";
 
 // Read basic tags
 const tags = await readTags("song.mp3");
@@ -33,7 +33,7 @@ await writeTags("song.mp3", {
   artist: "New Artist",
   album: "New Album",
   year: 2024,
-  genre: "Electronic"
+  genre: "Electronic",
 });
 ```
 
@@ -49,7 +49,7 @@ const tags = await readTags(buffer);
 
 // Write to buffer
 const updatedBuffer = await writeTags(buffer, {
-  title: "Updated Title"
+  title: "Updated Title",
 });
 await writeFile("song-updated.mp3", updatedBuffer);
 ```
@@ -135,7 +135,7 @@ const albumArtist = properties[Tags.AlbumArtist]?.[0];
 file.setProperties({
   [Tags.Title]: ["My Song"],
   [Tags.AlbumArtist]: ["Various Artists"],
-  [Tags.Bpm]: ["120"]
+  [Tags.Bpm]: ["120"],
 });
 ```
 
@@ -175,8 +175,8 @@ const taglib = await TagLib.initialize();
 const file = taglib.openFile(audioData);
 
 // Display metadata
-document.getElementById('title').textContent = file.tag().title;
-document.getElementById('artist').textContent = file.tag().artist;
+document.getElementById("title").textContent = file.tag().title;
+document.getElementById("artist").textContent = file.tag().artist;
 
 file.dispose();
 ```
@@ -190,25 +190,25 @@ export default {
   async fetch(request: Request): Promise<Response> {
     if (request.method === "POST") {
       const taglib = await TagLib.initialize({
-        memory: { initial: 8 * 1024 * 1024 }
+        memory: { initial: 8 * 1024 * 1024 },
       });
-      
+
       const audioData = new Uint8Array(await request.arrayBuffer());
       const file = taglib.openFile(audioData);
-      
+
       const metadata = {
         title: file.tag().title,
         artist: file.tag().artist,
-        duration: file.audioProperties().length
+        duration: file.audioProperties().length,
       };
-      
+
       file.dispose();
-      
+
       return Response.json({ success: true, metadata });
     }
-    
+
     return new Response("Send POST with audio file", { status: 400 });
-  }
+  },
 };
 ```
 
@@ -219,13 +219,13 @@ Always handle potential errors:
 ```typescript
 try {
   const file = taglib.openFile(audioData);
-  
+
   if (!file.isValid()) {
     throw new Error("Invalid audio file format");
   }
-  
+
   // Process file...
-  
+
   file.dispose();
 } catch (error) {
   console.error("Error processing audio file:", error);
@@ -234,6 +234,8 @@ try {
 
 ## Next Steps
 
-- Explore [Automatic Tag Mapping](/Automatic-Tag-Mapping.md) for format-agnostic metadata
-- Learn about [Runtime Compatibility](/Runtime-Compatibility.md) for your platform
+- Explore [Automatic Tag Mapping](/Automatic-Tag-Mapping.md) for format-agnostic
+  metadata
+- Learn about [Runtime Compatibility](/Runtime-Compatibility.md) for your
+  platform
 - Check the [API Reference](/API.md) for all available methods
