@@ -5,6 +5,12 @@ import type {
   PropertyMap,
   Tag as BasicTag,
 } from "./types.ts";
+import {
+  InvalidFormatError,
+  MetadataError,
+  TagLibInitializationError,
+  UnsupportedFormatError,
+} from "./errors.ts";
 
 /**
  * Extended Tag interface with read/write capabilities for audio metadata.
@@ -202,7 +208,10 @@ export class AudioFileImpl implements AudioFile {
   tag(): Tag {
     const tagWrapper = this.fileHandle.getTag();
     if (!tagWrapper) {
-      throw new Error("Failed to get tag from file");
+      throw new MetadataError(
+        "read",
+        "Tag may be corrupted or format not fully supported"
+      );
     }
 
     return {
@@ -281,7 +290,11 @@ export class AudioFileImpl implements AudioFile {
   /** @inheritdoc */
   getMP4Item(key: string): string | undefined {
     if (!this.isMP4()) {
-      throw new Error("Not an MP4 file");
+      const format = this.getFormat();
+      throw new UnsupportedFormatError(
+        format,
+        ["MP4", "M4A"]
+      );
     }
     const value = this.fileHandle.getMP4Item(key);
     return value === "" ? undefined : value;
@@ -290,7 +303,11 @@ export class AudioFileImpl implements AudioFile {
   /** @inheritdoc */
   setMP4Item(key: string, value: string): void {
     if (!this.isMP4()) {
-      throw new Error("Not an MP4 file");
+      const format = this.getFormat();
+      throw new UnsupportedFormatError(
+        format,
+        ["MP4", "M4A"]
+      );
     }
     this.fileHandle.setMP4Item(key, value);
   }
@@ -298,7 +315,11 @@ export class AudioFileImpl implements AudioFile {
   /** @inheritdoc */
   removeMP4Item(key: string): void {
     if (!this.isMP4()) {
-      throw new Error("Not an MP4 file");
+      const format = this.getFormat();
+      throw new UnsupportedFormatError(
+        format,
+        ["MP4", "M4A"]
+      );
     }
     this.fileHandle.removeMP4Item(key);
   }
@@ -416,8 +437,9 @@ export class TagLib {
   async openFile(buffer: ArrayBuffer): Promise<AudioFile> {
     // Check if Embind is available
     if (!this.module.createFileHandle) {
-      throw new Error(
-        "TagLib module not properly initialized - createFileHandle not found",
+      throw new TagLibInitializationError(
+        "TagLib module not properly initialized: createFileHandle not found. " +
+          "Make sure the module is fully loaded before calling openFile."
       );
     }
 
@@ -430,7 +452,10 @@ export class TagLib {
     // Load the buffer - Embind should handle Uint8Array conversion
     const success = fileHandle.loadFromBuffer(uint8Array);
     if (!success) {
-      throw new Error("Failed to load file from buffer");
+      throw new InvalidFormatError(
+        "Failed to load audio file. File may be corrupted or in an unsupported format",
+        buffer.byteLength
+      );
     }
 
     return new AudioFileImpl(this.module, fileHandle);
@@ -463,3 +488,26 @@ export class TagLib {
 export async function createTagLib(module: WasmModule): Promise<TagLib> {
   return new TagLib(module);
 }
+
+/**
+ * Re-export error types for convenient error handling
+ */
+export {
+  EnvironmentError,
+  FileOperationError,
+  InvalidFormatError,
+  isEnvironmentError,
+  isFileOperationError,
+  isInvalidFormatError,
+  isMemoryError,
+  isMetadataError,
+  isTagLibError,
+  isUnsupportedFormatError,
+  MemoryError,
+  MetadataError,
+  SUPPORTED_FORMATS,
+  TagLibError,
+  TagLibErrorCode,
+  TagLibInitializationError,
+  UnsupportedFormatError,
+} from "./errors.ts";
