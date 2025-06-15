@@ -17,7 +17,8 @@
     "lib/taglib/COPYING*",
     "README.md",
     "LICENSE",
-    "NOTICE"
+    "NOTICE",
+    "CONTRIBUTING.md"
   ],
   "scripts": {
     "build:wasm": "./build/build-wasm.sh",
