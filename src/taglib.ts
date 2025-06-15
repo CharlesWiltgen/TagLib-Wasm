@@ -385,8 +385,11 @@ export class AudioFileImpl implements AudioFile {
   /** @inheritdoc */
   dispose(): void {
     if (this.fileHandle) {
-      // Embind will handle cleanup when the object goes out of scope
-      // But we can help by clearing our references
+      // Explicitly destroy the C++ object to free memory immediately
+      if (typeof this.fileHandle.destroy === 'function') {
+        this.fileHandle.destroy();
+      }
+      // Clear all references
       this.fileHandle = null;
       this.cachedTag = null;
       this.cachedAudioProperties = null;

@@ -14,6 +14,9 @@ import "./edge-cases.test.ts";
 // Error handling tests - Error messages and type guards
 import "./test-error-handling.ts";
 
+// Memory management tests
+import "./test-memory.ts";
+
 // Platform-specific tests
 if (typeof globalThis.Deno === "undefined") {
   // Workers tests only run in non-Deno environments
