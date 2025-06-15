@@ -21,6 +21,11 @@ import {
   loadTagLibModuleForWorkers,
   type TagLibModule,
 } from "./wasm-workers.ts";
+import {
+  EnvironmentError,
+  InvalidFormatError,
+  MemoryError,
+} from "./errors.ts";
 
 /**
  * Represents an audio file with metadata and properties (Workers-compatible).
@@ -353,7 +358,10 @@ export class TagLibWorkers {
    */
   openFile(buffer: Uint8Array): AudioFileWorkers {
     if (!this.module.HEAPU8) {
-      throw new Error("Wasm module not properly initialized - missing HEAPU8");
+      throw new MemoryError(
+        "Wasm module not properly initialized: missing HEAPU8. " +
+          "The module may not have loaded correctly in the Workers environment."
+      );
     }
 
     // Use Emscripten's allocate function for proper memory management
@@ -366,8 +374,10 @@ export class TagLibWorkers {
     }
 
     if (!this.module._taglib_file_new_from_buffer) {
-      throw new Error(
-        "Workers API requires C-style functions. Use Core API instead.",
+      throw new EnvironmentError(
+        "Workers",
+        "requires C-style functions which are not available. Use the Core API instead for this environment",
+        "C-style function exports"
       );
     }
 
@@ -377,11 +387,11 @@ export class TagLibWorkers {
     );
 
     if (fileId === 0) {
-      console.log(
-        `DEBUG: File creation failed, not freeing memory at ${dataPtr}`,
-      );
-      throw new Error(
-        "Failed to open audio file - invalid format or corrupted data",
+      // Free the allocated memory since file creation failed
+      this.module._free(dataPtr);
+      throw new InvalidFormatError(
+        "Failed to open audio file. File format may be invalid or not supported",
+        buffer.length
       );
     }
 

@@ -26,6 +26,12 @@
 
 import { TagLib } from "./taglib.ts";
 import type { AudioProperties, Tag } from "./types.ts";
+import {
+  EnvironmentError,
+  FileOperationError,
+  InvalidFormatError,
+  MetadataError,
+} from "./errors.ts";
 
 // Cached TagLib instance for auto-initialization
 let cachedTagLib: TagLib | null = null;
@@ -75,30 +81,51 @@ async function readFileData(
 
   // String path - read from filesystem
   if (typeof file === "string") {
-    // Deno
-    if (typeof Deno !== "undefined") {
-      return await Deno.readFile(file);
+    try {
+      // Deno
+      if (typeof Deno !== "undefined") {
+        return await Deno.readFile(file);
+      }
+
+      // Node.js
+      if (
+        typeof process !== "undefined" && process.versions &&
+        process.versions.node
+      ) {
+        const { readFile } = await import("fs/promises");
+        return new Uint8Array(await readFile(file));
+      }
+
+      // Bun
+      if (typeof (globalThis as any).Bun !== "undefined") {
+        const bunFile = (globalThis as any).Bun.file(file);
+        return new Uint8Array(await bunFile.arrayBuffer());
+      }
+    } catch (error) {
+      // Convert system file errors to FileOperationError
+      throw new FileOperationError(
+        "read",
+        (error as Error).message,
+        file
+      );
     }
 
-    // Node.js
-    if (
-      typeof process !== "undefined" && process.versions &&
-      process.versions.node
-    ) {
-      const { readFile } = await import("fs/promises");
-      return new Uint8Array(await readFile(file));
-    }
-
-    // Bun
-    if (typeof (globalThis as any).Bun !== "undefined") {
-      const bunFile = (globalThis as any).Bun.file(file);
-      return new Uint8Array(await bunFile.arrayBuffer());
-    }
-
-    throw new Error("File path reading not supported in this environment");
+    const env = typeof Deno !== "undefined" ? "Deno" :
+                typeof process !== "undefined" ? "Node.js" :
+                typeof (globalThis as any).Bun !== "undefined" ? "Bun" :
+                "Browser";
+    throw new EnvironmentError(
+      env,
+      "does not support file path reading",
+      "filesystem access"
+    );
   }
 
-  throw new Error("Invalid file input type");
+  const inputType = Object.prototype.toString.call(file);
+  throw new FileOperationError(
+    "read",
+    `Invalid file input type: ${inputType}. Expected string path, Uint8Array, ArrayBuffer, or File object.`
+  );
 }
 
 /**
@@ -119,10 +146,13 @@ export async function readTags(
   const taglib = await getTagLib();
   const audioData = await readFileData(file);
 
-  const audioFile = await taglib.openFile(audioData.buffer);
+  const audioFile = await taglib.openFile(audioData.buffer as ArrayBuffer);
   try {
     if (!audioFile.isValid()) {
-      throw new Error("Invalid audio file");
+      throw new InvalidFormatError(
+        "File may be corrupted or in an unsupported format",
+        audioData.length
+      );
     }
 
     return audioFile.tag();
@@ -161,10 +191,13 @@ export async function writeTags(
   const taglib = await getTagLib();
   const audioData = await readFileData(file);
 
-  const audioFile = await taglib.openFile(audioData.buffer);
+  const audioFile = await taglib.openFile(audioData.buffer as ArrayBuffer);
   try {
     if (!audioFile.isValid()) {
-      throw new Error("Invalid audio file");
+      throw new InvalidFormatError(
+        "File may be corrupted or in an unsupported format",
+        audioData.length
+      );
     }
 
     // Get the tag object and write each tag if defined
@@ -179,7 +212,10 @@ export async function writeTags(
 
     // Save changes to in-memory buffer
     if (!audioFile.save()) {
-      throw new Error("Failed to save changes");
+      throw new FileOperationError(
+        "save",
+        "Failed to save metadata changes. The file may be read-only or corrupted."
+      );
     }
 
     // Get the modified buffer after saving
@@ -209,15 +245,22 @@ export async function readProperties(
   const taglib = await getTagLib();
   const audioData = await readFileData(file);
 
-  const audioFile = await taglib.openFile(audioData.buffer);
+  const audioFile = await taglib.openFile(audioData.buffer as ArrayBuffer);
   try {
     if (!audioFile.isValid()) {
-      throw new Error("Invalid audio file");
+      throw new InvalidFormatError(
+        "File may be corrupted or in an unsupported format",
+        audioData.length
+      );
     }
 
     const props = audioFile.audioProperties();
     if (!props) {
-      throw new Error("Failed to read audio properties");
+      throw new MetadataError(
+        "read",
+        "File may not contain valid audio data",
+        "audioProperties"
+      );
     }
     return props;
   } finally {
@@ -271,7 +314,7 @@ export async function isValidAudioFile(
     const taglib = await getTagLib();
     const audioData = await readFileData(file);
 
-    const audioFile = await taglib.openFile(audioData.buffer);
+    const audioFile = await taglib.openFile(audioData.buffer as ArrayBuffer);
     const valid = audioFile.isValid();
     audioFile.dispose();
 
@@ -299,7 +342,7 @@ export async function getFormat(
   const taglib = await getTagLib();
   const audioData = await readFileData(file);
 
-  const audioFile = await taglib.openFile(audioData.buffer);
+  const audioFile = await taglib.openFile(audioData.buffer as ArrayBuffer);
   try {
     if (!audioFile.isValid()) {
       return undefined;

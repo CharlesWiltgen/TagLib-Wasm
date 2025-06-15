@@ -30,18 +30,18 @@ platform-specific dependencies whenever possible.
 
 ## 🎯 Features
 
-- **✅ Universal compatibility** – Works with Deno, Node.js, Bun, web browsers,
-  and Cloudflare Workers
+- **✅ Wide TS/JS runtime support** – Deno, Node.js, Bun, web browsers, and
+  Cloudflare Workers
 - **✅ TypeScript first** – Complete type definitions and modern API
 - **✅ Full audio format support** – Supports all audio formats supported by
   TagLib
-- **✅ Format abstraction** – `taglib-wasm` deals with how tags are read
-  from/written to in different file formats
+- **✅ Format abstraction** – Handles container format details automagically
+  when possible
 - **✅ Zero dependencies** – Self-contained Wasm bundle
 - **✅ Memory efficient** – In-memory processing without filesystem access
 - **✅ Production ready** – Growing test suite helps ensure safety and
   reliability
-- **🆕 Two API styles** – Choose between Simple (3 functions) or Core (full
+- **✅ Two API styles** – Choose between Simple (3 functions) or Core (full
   control) APIs
 
 ## 📦 Installation
@@ -385,6 +385,71 @@ export default {
 };
 ```
 
+## 🛡️ Error Handling
+
+taglib-wasm provides detailed error messages with context to help you debug issues quickly. All errors extend from `TagLibError` and include specific error codes for programmatic handling.
+
+### Error Types
+
+```typescript
+import {
+  InvalidFormatError,
+  UnsupportedFormatError,
+  FileOperationError,
+  isTagLibError,
+  TagLibErrorCode
+} from "taglib-wasm";
+
+try {
+  const file = await taglib.openFile(buffer);
+} catch (error) {
+  if (isTagLibError(error)) {
+    switch (error.code) {
+      case TagLibErrorCode.INVALID_FORMAT:
+        // Error includes buffer size and hints
+        console.error(error.message);
+        // "Invalid audio file format: File may be corrupted or in an unsupported format. 
+        //  Buffer size: 256 bytes. Audio files must be at least 1KB to contain valid headers."
+        break;
+        
+      case TagLibErrorCode.UNSUPPORTED_FORMAT:
+        // Error shows actual format and supported formats
+        console.error(error.message);
+        // "Unsupported audio format: APE. Supported formats: MP3, MP4, M4A, FLAC, OGG, WAV"
+        break;
+        
+      case TagLibErrorCode.FILE_OPERATION_FAILED:
+        // Error includes operation type and file path
+        console.error(error.message);
+        // "Failed to read file. Path: /path/to/file.mp3. No such file or directory"
+        break;
+    }
+  }
+}
+```
+
+### Using Type Guards
+
+```typescript
+import {
+  isInvalidFormatError,
+  isFileOperationError,
+  isEnvironmentError
+} from "taglib-wasm";
+
+try {
+  const tags = await readTags("song.mp3");
+} catch (error) {
+  if (isInvalidFormatError(error)) {
+    console.log(`Invalid file, size: ${error.bufferSize} bytes`);
+  } else if (isFileOperationError(error)) {
+    console.log(`${error.operation} operation failed for: ${error.path}`);
+  } else if (isEnvironmentError(error)) {
+    console.log(`${error.environment} environment needs: ${error.requiredFeature}`);
+  }
+}
+```
+
 ## 📋 Supported Formats
 
 `tag-wasm` is designed to support all formats supported by TagLib:
@@ -626,6 +691,47 @@ interface Tag {
 }
 ```
 
+### Error Handling
+
+`taglib-wasm` provides specific error types for better debugging and error handling:
+
+```typescript
+import { 
+  TagLib,
+  InvalidFormatError,
+  UnsupportedFormatError,
+  FileOperationError,
+  isTagLibError 
+} from "taglib-wasm";
+
+try {
+  const file = await taglib.openFile(buffer);
+  // Process file...
+} catch (error) {
+  if (error instanceof InvalidFormatError) {
+    console.error(`Invalid audio file: ${error.message}`);
+    console.error(`Buffer size: ${error.bufferSize} bytes`);
+  } else if (error instanceof UnsupportedFormatError) {
+    console.error(`Unsupported format: ${error.format}`);
+    console.error(`Supported formats: ${error.supportedFormats.join(", ")}`);
+  } else if (error instanceof FileOperationError) {
+    console.error(`File operation failed: ${error.operation}`);
+    console.error(`Path: ${error.path}`);
+  } else if (isTagLibError(error)) {
+    console.error(`TagLib error: ${error.code} - ${error.message}`);
+  }
+}
+```
+
+Error types include:
+- `TagLibInitializationError` - Wasm module initialization failures
+- `InvalidFormatError` - Invalid or corrupted file format
+- `UnsupportedFormatError` - Valid but unsupported format
+- `FileOperationError` - File read/write/save failures
+- `MetadataError` - Tag reading/writing failures
+- `MemoryError` - Wasm memory allocation issues
+- `EnvironmentError` - Runtime/environment compatibility issues
+
 ### PropertyMap type
 
 ```typescript
@@ -667,7 +773,7 @@ detailed runtime information**
 
 ## 🤝 Contributing
 
-Contributions welcome!
+Contributions welcome.
 
 ## 📄 License
 
