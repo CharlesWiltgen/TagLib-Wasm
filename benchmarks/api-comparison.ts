@@ -2,7 +2,7 @@
 
 /**
  * Performance benchmarks comparing Simple vs Core API styles
- * 
+ *
  * This benchmark measures:
  * - Initialization time
  * - Single file operations
@@ -11,7 +11,7 @@
  */
 
 import { TagLib as CoreTagLib } from "../index.ts";
-import { readTags, readProperties, writeTags } from "../src/simple.ts";
+import { readProperties, readTags, writeTags } from "../src/simple.ts";
 
 const TEST_FILE = "./tests/test-files/mp3/kiss-snippet.mp3";
 const TEST_FILES = [
@@ -36,37 +36,39 @@ async function benchmark(
   name: string,
   setup: () => Promise<void>,
   fn: () => Promise<void>,
-  iterations: number = 100
+  iterations: number = 100,
 ): Promise<BenchmarkResult> {
   // Setup
   const setupStart = performance.now();
   await setup();
   const initTime = performance.now() - setupStart;
-  
+
   // Warmup
   for (let i = 0; i < 5; i++) {
     await fn();
   }
-  
+
   // Benchmark
   const times: number[] = [];
   const memoryBefore = (performance as any).memory?.usedJSHeapSize;
-  
+
   for (let i = 0; i < iterations; i++) {
     const start = performance.now();
     await fn();
     times.push(performance.now() - start);
   }
-  
+
   const memoryAfter = (performance as any).memory?.usedJSHeapSize;
-  const memoryUsed = memoryAfter && memoryBefore ? memoryAfter - memoryBefore : undefined;
-  
+  const memoryUsed = memoryAfter && memoryBefore
+    ? memoryAfter - memoryBefore
+    : undefined;
+
   // Calculate stats
   const avgTime = times.reduce((a, b) => a + b, 0) / times.length;
   const minTime = Math.min(...times);
   const maxTime = Math.max(...times);
   const opsPerSecond = 1000 / avgTime;
-  
+
   return {
     name,
     initTime: initTime > 0 ? initTime : undefined,
@@ -88,75 +90,89 @@ const results: BenchmarkResult[] = [];
 
 // 1. Core API - Read Tags
 let coreTaglib: CoreTagLib | null = null;
-results.push(await benchmark(
-  "Core API - Read Tags",
-  async () => {
-    coreTaglib = await CoreTagLib.initialize();
-  },
-  async () => {
-    const file = coreTaglib!.openFile(fileData);
-    const tags = file.tag();
-    file.dispose();
-  }
-));
+results.push(
+  await benchmark(
+    "Core API - Read Tags",
+    async () => {
+      coreTaglib = await CoreTagLib.initialize();
+    },
+    async () => {
+      const file = coreTaglib!.openFile(fileData);
+      const tags = file.tag();
+      file.dispose();
+    },
+  ),
+);
 
 // 2. Simple API - Read Tags
-results.push(await benchmark(
-  "Simple API - Read Tags",
-  async () => {
-    // Auto-initializes on first use
-  },
-  async () => {
-    await readTags(fileData);
-  }
-));
+results.push(
+  await benchmark(
+    "Simple API - Read Tags",
+    async () => {
+      // Auto-initializes on first use
+    },
+    async () => {
+      await readTags(fileData);
+    },
+  ),
+);
 
 // 3. Core API - Full Operation
-results.push(await benchmark(
-  "Core API - Full Operation",
-  async () => {
-    // Already initialized
-  },
-  async () => {
-    const file = coreTaglib!.openFile(fileData);
-    const tags = file.tag();
-    const props = file.audioProperties();
-    file.setTitle("Benchmark Title");
-    file.setArtist("Benchmark Artist");
-    file.save();
-    file.dispose();
-  }
-));
+results.push(
+  await benchmark(
+    "Core API - Full Operation",
+    async () => {
+      // Already initialized
+    },
+    async () => {
+      const file = coreTaglib!.openFile(fileData);
+      const tags = file.tag();
+      const props = file.audioProperties();
+      file.setTitle("Benchmark Title");
+      file.setArtist("Benchmark Artist");
+      file.save();
+      file.dispose();
+    },
+  ),
+);
 
 // 4. Simple API - Full Operation
-results.push(await benchmark(
-  "Simple API - Full Operation",
-  async () => {},
-  async () => {
-    const tags = await readTags(fileData);
-    const props = await readProperties(fileData);
-    await writeTags(fileData, {
-      title: "Benchmark Title",
-      artist: "Benchmark Artist"
-    });
-  }
-));
+results.push(
+  await benchmark(
+    "Simple API - Full Operation",
+    async () => {},
+    async () => {
+      const tags = await readTags(fileData);
+      const props = await readProperties(fileData);
+      await writeTags(fileData, {
+        title: "Benchmark Title",
+        artist: "Benchmark Artist",
+      });
+    },
+  ),
+);
 
 // Print results
 console.log("\n📊 Benchmark Results:");
 console.log("-".repeat(100));
-console.log("| API Style                  | Init (ms) | Avg (ms) | Min (ms) | Max (ms) | Ops/sec | Memory (KB) |");
+console.log(
+  "| API Style                  | Init (ms) | Avg (ms) | Min (ms) | Max (ms) | Ops/sec | Memory (KB) |",
+);
 console.log("|".padEnd(100, "-"));
 
-results.forEach(result => {
+results.forEach((result) => {
   console.log(
     `| ${result.name.padEnd(26)} | ` +
-    `${(result.initTime ?? 0).toFixed(2).padStart(9)} | ` +
-    `${result.avgTime.toFixed(3).padStart(8)} | ` +
-    `${result.minTime.toFixed(3).padStart(8)} | ` +
-    `${result.maxTime.toFixed(3).padStart(8)} | ` +
-    `${result.opsPerSecond.toFixed(0).padStart(7)} | ` +
-    `${result.memoryUsed ? (result.memoryUsed / 1024).toFixed(0).padStart(11) : "N/A".padStart(11)} |`
+      `${(result.initTime ?? 0).toFixed(2).padStart(9)} | ` +
+      `${result.avgTime.toFixed(3).padStart(8)} | ` +
+      `${result.minTime.toFixed(3).padStart(8)} | ` +
+      `${result.maxTime.toFixed(3).padStart(8)} | ` +
+      `${result.opsPerSecond.toFixed(0).padStart(7)} | ` +
+      `${
+        result.memoryUsed
+          ? (result.memoryUsed / 1024).toFixed(0).padStart(11)
+          : "N/A".padStart(11)
+      } |`,
   );
 });
 console.log("-".repeat(100));
@@ -192,20 +208,42 @@ for (const file of TEST_FILES) {
 }
 const simpleBatchTime = performance.now() - batchStart2;
 
-console.log(`| Core API                   | ${coreBatchTime.toFixed(2).padStart(8)}ms |`);
-console.log(`| Simple API                 | ${simpleBatchTime.toFixed(2).padStart(8)}ms |`);
+console.log(
+  `| Core API                   | ${coreBatchTime.toFixed(2).padStart(8)}ms |`,
+);
+console.log(
+  `| Simple API                 | ${
+    simpleBatchTime.toFixed(2).padStart(8)
+  }ms |`,
+);
 console.log("-".repeat(70));
 
 // Analysis
 console.log("\n📈 Analysis:");
 
-const readTagsResults = results.filter(r => r.name.includes("Read Tags"));
-const fastestRead = readTagsResults.reduce((min, r) => r.avgTime < min.avgTime ? r : min);
-const slowestRead = readTagsResults.reduce((max, r) => r.avgTime > max.avgTime ? r : max);
+const readTagsResults = results.filter((r) => r.name.includes("Read Tags"));
+const fastestRead = readTagsResults.reduce((min, r) =>
+  r.avgTime < min.avgTime ? r : min
+);
+const slowestRead = readTagsResults.reduce((max, r) =>
+  r.avgTime > max.avgTime ? r : max
+);
 
-console.log(`\n🏆 Fastest tag reading: ${fastestRead.name} (${fastestRead.avgTime.toFixed(3)}ms avg)`);
-console.log(`🐌 Slowest tag reading: ${slowestRead.name} (${slowestRead.avgTime.toFixed(3)}ms avg)`);
-console.log(`⚡ Speed improvement: ${((slowestRead.avgTime / fastestRead.avgTime - 1) * 100).toFixed(1)}% faster`);
+console.log(
+  `\n🏆 Fastest tag reading: ${fastestRead.name} (${
+    fastestRead.avgTime.toFixed(3)
+  }ms avg)`,
+);
+console.log(
+  `🐌 Slowest tag reading: ${slowestRead.name} (${
+    slowestRead.avgTime.toFixed(3)
+  }ms avg)`,
+);
+console.log(
+  `⚡ Speed improvement: ${
+    ((slowestRead.avgTime / fastestRead.avgTime - 1) * 100).toFixed(1)
+  }% faster`,
+);
 
 // Recommendations
 console.log("\n💡 Recommendations:");

@@ -30,7 +30,9 @@ async function demonstrateBunUsage() {
 
     // Load a real file if available, otherwise show the API
     try {
-      const audioData = await Bun.file("./tests/test-files/mp3/kiss-snippet.mp3")
+      const audioData = await Bun.file(
+        "./tests/test-files/mp3/kiss-snippet.mp3",
+      )
         .arrayBuffer();
       const file = taglib.openFile(new Uint8Array(audioData));
 
@@ -76,17 +78,26 @@ async function demonstrateBunUsage() {
 
         // Demonstrate advanced metadata using PropertyMap
         console.log("\n🔬 Advanced Metadata (Using PropertyMap):");
-        file.setProperty("ACOUSTID_FINGERPRINT", "AQADtMmybfGO8NCNEESLnzHyXNOHeHnG...");
+        file.setProperty(
+          "ACOUSTID_FINGERPRINT",
+          "AQADtMmybfGO8NCNEESLnzHyXNOHeHnG...",
+        );
         file.setProperty("ACOUSTID_ID", "e7359e88-f1f7-41ed-b9f6-16e58e906997");
-        file.setProperty("MUSICBRAINZ_TRACKID", "f4d1b6b8-8c1e-4d9a-9f2a-1234567890ab");
+        file.setProperty(
+          "MUSICBRAINZ_TRACKID",
+          "f4d1b6b8-8c1e-4d9a-9f2a-1234567890ab",
+        );
 
         // ReplayGain properties
         file.setProperty("REPLAYGAIN_TRACK_GAIN", "-6.54 dB");
         file.setProperty("REPLAYGAIN_TRACK_PEAK", "0.987654");
-        
+
         // Apple Sound Check for MP4 files
         if (file.isMP4()) {
-          file.setMP4Item("----:com.apple.iTunes:iTunNORM", "00000150 00000150 00000150 00000150...");
+          file.setMP4Item(
+            "----:com.apple.iTunes:iTunNORM",
+            "00000150 00000150 00000150 00000150...",
+          );
         }
 
         console.log(

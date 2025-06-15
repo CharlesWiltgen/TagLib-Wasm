@@ -1,6 +1,8 @@
 # Introduction
 
-TagLib-Wasm brings the power of [TagLib](https://taglib.org/), the industry-standard audio metadata library, to JavaScript and TypeScript through WebAssembly.
+TagLib-Wasm brings the power of [TagLib](https://taglib.org/), the
+industry-standard audio metadata library, to JavaScript and TypeScript through
+WebAssembly.
 
 ## What is TagLib-Wasm?
 
@@ -29,12 +31,14 @@ file.setAcoustidId("12345678-90ab-cdef");
 Choose the API that fits your needs:
 
 **Simple API** - For quick tasks:
+
 ```typescript
 const tags = await readTags("song.mp3");
 await writeTags("song.mp3", { title: "New Title" });
 ```
 
 **Core API** - For full control:
+
 ```typescript
 const taglib = await TagLib.initialize();
 const file = taglib.openFile(audioData);
@@ -44,13 +48,13 @@ file.save();
 
 ### 🌐 Universal Runtime Support
 
-| Runtime | Support | Package |
-|---------|---------|---------|
-| Deno | ✅ Native | `npm:taglib-wasm` |
-| Node.js | ✅ Full | `npm install taglib-wasm` |
-| Bun | ✅ Native | `bun add taglib-wasm` |
-| Browsers | ✅ Full | CDN or bundler |
-| Cloudflare Workers | ✅ Full | `taglib-wasm/workers` |
+| Runtime            | Support   | Package                   |
+| ------------------ | --------- | ------------------------- |
+| Deno               | ✅ Native | `npm:taglib-wasm`         |
+| Node.js            | ✅ Full   | `npm install taglib-wasm` |
+| Bun                | ✅ Native | `bun add taglib-wasm`     |
+| Browsers           | ✅ Full   | CDN or bundler            |
+| Cloudflare Workers | ✅ Full   | `taglib-wasm/workers`     |
 
 ## When to Use TagLib-Wasm
 

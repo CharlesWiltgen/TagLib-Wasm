@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Package version to publish'
+        description: "Package version to publish"
         required: true
         type: string
 
@@ -95,7 +95,7 @@ jobs:
 
           # Remove publishConfig that points to npmjs
           sed -i '/"publishConfig":/,/}/d' package.json
-          
+
           # Debug: Show the modified package.json
           echo "Modified package.json:"
           cat package.json | jq .

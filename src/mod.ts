@@ -4,15 +4,15 @@
  */
 
 // Export from taglib.ts
-export { TagLib, AudioFileImpl, createTagLib } from "./taglib.ts";
-export type { Tag, AudioFile } from "./taglib.ts";  // Export the interfaces
+export { AudioFileImpl, createTagLib, TagLib } from "./taglib.ts";
+export type { AudioFile, Tag } from "./taglib.ts"; // Export the interfaces
 
 // Export from types.ts (except Tag to avoid conflict)
-export type { 
-  FileType, 
-  AudioProperties, 
+export type {
+  AudioProperties,
+  FileType,
   PropertyMap,
-  Tag as BasicTag  // Rename the basic Tag interface to avoid conflict
+  Tag as BasicTag, // Rename the basic Tag interface to avoid conflict
 } from "./types.ts";
 
 // Export from wasm.ts

@@ -1,5 +1,11 @@
 /**
  * @fileoverview TypeScript type definitions for taglib-wasm
+ *
+ * This module contains all the type definitions used throughout
+ * the taglib-wasm library, including metadata structures,
+ * audio properties, and format-specific mappings.
+ *
+ * @module taglib-wasm/types
  */
 
 // Re-export commonly used classes from other modules
@@ -7,12 +13,32 @@ export type { TagLibModule } from "./wasm.ts";
 // Note: AudioFile is not needed for JSR exports
 
 /**
- * Supported file types
+ * Supported file types detected by TagLib.
+ * "UNKNOWN" indicates the format could not be determined.
+ *
+ * @example
+ * ```typescript
+ * const file = await taglib.openFile(buffer);
+ * const format = file.getFormat();
+ * if (format === "MP3") {
+ *   // Handle MP3-specific features
+ * }
+ * ```
  */
-export type FileType = "MP3" | "MP4" | "FLAC" | "OGG" | "OPUS" | "WAV" | "AIFF" | "UNKNOWN";
+export type FileType =
+  | "MP3"
+  | "MP4"
+  | "FLAC"
+  | "OGG"
+  | "OPUS"
+  | "WAV"
+  | "AIFF"
+  | "UNKNOWN";
 
 /**
- * Audio format types supported by TagLib
+ * Audio format types supported by TagLib.
+ * More comprehensive than FileType, includes additional formats
+ * that TagLib can read but may have limited support.
  */
 export type AudioFormat =
   | "MP3"
@@ -34,7 +60,16 @@ export type AudioFormat =
   | "XM";
 
 /**
- * Audio properties containing technical information about the file
+ * Audio properties containing technical information about the file.
+ * All properties are read-only and represent the actual audio stream data.
+ *
+ * @example
+ * ```typescript
+ * const props = file.audioProperties();
+ * console.log(`Duration: ${props.length} seconds`);
+ * console.log(`Bitrate: ${props.bitrate} kbps`);
+ * console.log(`Sample rate: ${props.sampleRate} Hz`);
+ * ```
  */
 export interface AudioProperties {
   /** Length of the audio in seconds */
@@ -48,7 +83,20 @@ export interface AudioProperties {
 }
 
 /**
- * Basic metadata tags
+ * Basic metadata tags common to all audio formats.
+ * These are the standard fields supported by most audio files.
+ * All fields are optional as not all formats support all fields.
+ *
+ * @example
+ * ```typescript
+ * const tag: Tag = {
+ *   title: "Song Title",
+ *   artist: "Artist Name",
+ *   album: "Album Name",
+ *   year: 2025,
+ *   track: 5
+ * };
+ * ```
  */
 export interface Tag {
   /** Track title */
@@ -68,7 +116,21 @@ export interface Tag {
 }
 
 /**
- * Extended metadata with format-agnostic field names
+ * Extended metadata with format-agnostic field names.
+ * Includes advanced fields like MusicBrainz IDs, ReplayGain values,
+ * and other specialized metadata. Field availability depends on
+ * the audio format and existing metadata.
+ *
+ * @example
+ * ```typescript
+ * const extTag: ExtendedTag = {
+ *   ...basicTag,
+ *   albumArtist: "Various Artists",
+ *   musicbrainzTrackId: "123e4567-e89b-12d3-a456-426614174000",
+ *   replayGainTrackGain: "-6.54 dB",
+ *   bpm: 120
+ * };
+ * ```
  */
 export interface ExtendedTag extends Tag {
   /** AcoustID fingerprint (Chromaprint) */
@@ -120,7 +182,19 @@ export interface ExtendedTag extends Tag {
 }
 
 /**
- * Format-specific field mapping for automatic tag mapping
+ * Format-specific field mapping for automatic tag mapping.
+ * Defines how a metadata field maps to different audio formats.
+ * Used internally for format-agnostic metadata operations.
+ *
+ * @example
+ * ```typescript
+ * const artistMapping: FieldMapping = {
+ *   id3v2: { frame: "TPE1" },
+ *   vorbis: "ARTIST",
+ *   mp4: "©ART",
+ *   wav: "IART"
+ * };
+ * ```
  */
 export interface FieldMapping {
   /** MP3 ID3v2 mapping */
@@ -137,7 +211,19 @@ export interface FieldMapping {
 }
 
 /**
- * Complete metadata field mappings for all formats
+ * Complete metadata field mappings for all formats.
+ * This constant defines how each ExtendedTag field maps to
+ * format-specific metadata fields across different audio formats.
+ * Used for automatic tag mapping in format-agnostic operations.
+ *
+ * @example
+ * ```typescript
+ * // Get the ID3v2 frame for the artist field
+ * const artistFrame = METADATA_MAPPINGS.artist.id3v2?.frame; // "TPE1"
+ *
+ * // Get the Vorbis comment field for album artist
+ * const vorbisField = METADATA_MAPPINGS.albumArtist.vorbis; // "ALBUMARTIST"
+ * ```
  */
 export const METADATA_MAPPINGS: Record<keyof ExtendedTag, FieldMapping> = {
   // Basic fields (already handled by TagLib's standard API)
@@ -297,7 +383,18 @@ export const METADATA_MAPPINGS: Record<keyof ExtendedTag, FieldMapping> = {
 };
 
 /**
- * Extended metadata properties map
+ * Extended metadata properties map.
+ * A flexible key-value structure where each key can have multiple values.
+ * Used for accessing all metadata in a file, including non-standard fields.
+ *
+ * @example
+ * ```typescript
+ * const properties: PropertyMap = {
+ *   "ARTIST": ["Artist Name"],
+ *   "ALBUMARTIST": ["Album Artist"],
+ *   "MUSICBRAINZ_TRACKID": ["123e4567-e89b-12d3-a456-426614174000"]
+ * };
+ * ```
  */
 export interface PropertyMap {
   [key: string]: string[];
@@ -309,7 +406,18 @@ export interface PropertyMap {
 export type { TagName } from "./constants.ts";
 
 /**
- * Picture/artwork data
+ * Picture/artwork data embedded in audio files.
+ * Represents album art, artist photos, or other images.
+ *
+ * @example
+ * ```typescript
+ * const picture: Picture = {
+ *   mimeType: "image/jpeg",
+ *   data: new Uint8Array(imageBuffer),
+ *   type: PictureType.FrontCover,
+ *   description: "Album cover"
+ * };
+ * ```
  */
 export interface Picture {
   /** MIME type of the image */
@@ -323,7 +431,19 @@ export interface Picture {
 }
 
 /**
- * Picture types as defined by ID3v2 APIC frame
+ * Picture types as defined by ID3v2 APIC frame.
+ * Standard picture type codes used across different formats
+ * to categorize embedded images.
+ *
+ * @example
+ * ```typescript
+ * // Set front cover art
+ * const coverArt = {
+ *   type: PictureType.FrontCover,
+ *   mimeType: "image/jpeg",
+ *   data: imageData
+ * };
+ * ```
  */
 export enum PictureType {
   Other = 0,
@@ -350,16 +470,24 @@ export enum PictureType {
 }
 
 /**
- * Bitrate control modes for audio encoding (MP4/M4A specific)
+ * Bitrate control modes for audio encoding (MP4/M4A specific).
+ * Indicates how the audio was encoded in terms of bitrate management.
+ *
+ * - Constant: Fixed bitrate throughout the file
+ * - LongTermAverage: Average bitrate over time
+ * - VariableConstrained: Variable within limits
+ * - Variable: Fully variable bitrate
  */
-export type BitrateControlMode = 
+export type BitrateControlMode =
   | "Constant"
-  | "LongTermAverage" 
+  | "LongTermAverage"
   | "VariableConstrained"
   | "Variable";
 
 /**
- * Map of bitrate control mode names to their numeric values
+ * Map of bitrate control mode names to their numeric values.
+ * Used for converting between string representations and numeric codes
+ * stored in MP4/M4A files.
  */
 export const BITRATE_CONTROL_MODE_VALUES: Record<BitrateControlMode, number> = {
   Constant: 0,
@@ -369,7 +497,9 @@ export const BITRATE_CONTROL_MODE_VALUES: Record<BitrateControlMode, number> = {
 };
 
 /**
- * Map of numeric values to bitrate control mode names
+ * Map of numeric values to bitrate control mode names.
+ * Used for converting numeric codes from MP4/M4A files
+ * to human-readable string representations.
  */
 export const BITRATE_CONTROL_MODE_NAMES: Record<number, BitrateControlMode> = {
   0: "Constant",
@@ -379,7 +509,21 @@ export const BITRATE_CONTROL_MODE_NAMES: Record<number, BitrateControlMode> = {
 };
 
 /**
- * Configuration options for TagLib initialization
+ * Configuration options for TagLib initialization.
+ * Allows customization of memory limits and debug settings.
+ *
+ * @example
+ * ```typescript
+ * const config: TagLibConfig = {
+ *   memory: {
+ *     initial: 16 * 1024 * 1024,  // 16MB
+ *     maximum: 64 * 1024 * 1024   // 64MB
+ *   },
+ *   debug: true
+ * };
+ *
+ * const taglib = await TagLibWorkers.initialize(wasmBinary, config);
+ * ```
  */
 export interface TagLibConfig {
   /** Memory allocation settings */

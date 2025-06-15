@@ -13,20 +13,29 @@ export interface EmscriptenModule {
   HEAPU32: Uint32Array;
   HEAPF32: Float32Array;
   HEAPF64: Float64Array;
-  
+
   // Memory management
   _malloc(size: number): number;
   _free(ptr: number): void;
   allocate?(data: number[] | Uint8Array, allocator: number): number;
   ALLOC_NORMAL?: number;
-  
+
   // String conversion
-  ccall?(ident: string, returnType: string, argTypes: string[], args: any[]): any;
-  cwrap?(ident: string, returnType: string, argTypes: string[]): (...args: any[]) => any;
-  
+  ccall?(
+    ident: string,
+    returnType: string,
+    argTypes: string[],
+    args: any[],
+  ): any;
+  cwrap?(
+    ident: string,
+    returnType: string,
+    argTypes: string[],
+  ): (...args: any[]) => any;
+
   // File system (if enabled)
   FS?: any;
-  
+
   // Runtime
   then?(callback: (module: EmscriptenModule) => void): void;
   onRuntimeInitialized?: () => void;
@@ -80,10 +89,10 @@ export interface TagLibModule extends EmscriptenModule {
   FileHandle: new () => FileHandle;
   TagWrapper: new () => TagWrapper;
   AudioPropertiesWrapper: new () => AudioPropertiesWrapper;
-  
+
   // Embind functions
   createFileHandle(): FileHandle;
-  
+
   // C-style functions (optional - used by Workers API)
   _taglib_file_new_from_buffer?(ptr: number, size: number): number;
   _taglib_file_delete?(fileId: number): void;
@@ -92,7 +101,7 @@ export interface TagLibModule extends EmscriptenModule {
   _taglib_file_tag?(fileId: number): number;
   _taglib_file_audioproperties?(fileId: number): number;
   _taglib_file_save?(fileId: number): number;
-  
+
   _taglib_tag_title?(tagPtr: number): number;
   _taglib_tag_artist?(tagPtr: number): number;
   _taglib_tag_album?(tagPtr: number): number;
@@ -100,7 +109,7 @@ export interface TagLibModule extends EmscriptenModule {
   _taglib_tag_genre?(tagPtr: number): number;
   _taglib_tag_year?(tagPtr: number): number;
   _taglib_tag_track?(tagPtr: number): number;
-  
+
   _taglib_tag_set_title?(tagPtr: number, titlePtr: number): void;
   _taglib_tag_set_artist?(tagPtr: number, artistPtr: number): void;
   _taglib_tag_set_album?(tagPtr: number, albumPtr: number): void;
@@ -108,7 +117,7 @@ export interface TagLibModule extends EmscriptenModule {
   _taglib_tag_set_genre?(tagPtr: number, genrePtr: number): void;
   _taglib_tag_set_year?(tagPtr: number, year: number): void;
   _taglib_tag_set_track?(tagPtr: number, track: number): void;
-  
+
   _taglib_audioproperties_length?(propsPtr: number): number;
   _taglib_audioproperties_bitrate?(propsPtr: number): number;
   _taglib_audioproperties_samplerate?(propsPtr: number): number;
