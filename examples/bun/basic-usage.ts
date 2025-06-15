@@ -24,17 +24,14 @@ async function demonstrateBunUsage() {
     const taglib = await TagLib.initialize();
     console.log("✅ TagLib initialized successfully");
 
-    // For this example, we'll create a minimal MP3 buffer
-    // In real usage, you'd load from file: const audioData = await Bun.file("song.mp3").arrayBuffer();
+    // For this example, we'll load a test file
     console.log("\n📁 Loading audio file...");
 
     // Load a real file if available, otherwise show the API
     try {
-      const audioData = await Bun.file(
+      const file = await taglib.open(
         "./tests/test-files/mp3/kiss-snippet.mp3",
-      )
-        .arrayBuffer();
-      const file = taglib.openFile(new Uint8Array(audioData));
+      );
 
       if (file.isValid()) {
         console.log("✅ File loaded successfully");
@@ -115,17 +112,14 @@ async function demonstrateBunUsage() {
       console.log("\n💡 Bun File Loading Examples:");
       console.log("```typescript");
       console.log("// Load from file system");
-      console.log(
-        "const audioData = await Bun.file('song.mp3').arrayBuffer();",
-      );
-      console.log("const file = taglib.openFile(new Uint8Array(audioData));");
+      console.log("const file = await taglib.open('song.mp3');");
       console.log("");
-      console.log("// Load from URL");
+      console.log("// Load from buffer (e.g., from URL)");
       console.log(
         "const response = await fetch('https://example.com/song.mp3');",
       );
       console.log("const audioData = await response.arrayBuffer();");
-      console.log("const file = taglib.openFile(new Uint8Array(audioData));");
+      console.log("const file = await taglib.open(new Uint8Array(audioData));");
       console.log("");
       console.log("// Read/write metadata");
       console.log("const tags = file.tag();");

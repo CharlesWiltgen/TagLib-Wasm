@@ -8,6 +8,7 @@ JavaScript/TypeScript.
 - [Simple API](#simple-api)
   - [readTags()](#readtags)
   - [writeTags()](#writetags)
+  - [updateTags()](#updatetags)
   - [readProperties()](#readproperties)
 - [Core API](#core-api)
   - [TagLib Class](#taglib-class)
@@ -20,19 +21,20 @@ JavaScript/TypeScript.
 ## Simple API
 
 The Simple API provides the easiest way to read and write audio metadata. All
-functions accept either a file path (string) or a buffer (Uint8Array).
+functions accept file paths (string), buffers (Uint8Array), ArrayBuffers, or
+File objects.
 
 ### readTags()
 
 Read metadata tags from an audio file.
 
 ```typescript
-function readTags(input: string | Uint8Array): Promise<Tags>;
+function readTags(input: string | Uint8Array | ArrayBuffer | File): Promise<Tags>;
 ```
 
 #### Parameters
 
-- `input`: File path (string) or audio data (Uint8Array)
+- `input`: File path (string), audio data (Uint8Array/ArrayBuffer), or File object
 
 #### Returns
 
@@ -53,13 +55,21 @@ interface Tags {
 #### Example
 
 ```typescript
-// From file path
+// From file path (Node.js/Deno/Bun only)
 const tags = await readTags("song.mp3");
 console.log(tags.title, tags.artist);
 
 // From buffer
 const buffer = await Deno.readFile("song.mp3");
 const tags = await readTags(buffer);
+
+// From ArrayBuffer
+const arrayBuffer = await fetch("song.mp3").then(r => r.arrayBuffer());
+const tags = await readTags(arrayBuffer);
+
+// From File object (browsers)
+const file = document.getElementById("file-input").files[0];
+const tags = await readTags(file);
 ```
 
 ### writeTags()
@@ -68,14 +78,14 @@ Write metadata tags to an audio file.
 
 ```typescript
 function writeTags(
-  input: string | Uint8Array,
+  input: string | Uint8Array | ArrayBuffer | File,
   tags: Partial<Tags>,
 ): Promise<Uint8Array>;
 ```
 
 #### Parameters
 
-- `input`: File path (string) or audio data (Uint8Array)
+- `input`: File path (string), audio data (Uint8Array/ArrayBuffer), or File object
 - `tags`: Object containing tags to write (partial update supported)
 
 #### Returns
@@ -85,7 +95,7 @@ Promise resolving to the modified audio file as Uint8Array.
 #### Example
 
 ```typescript
-// Update specific tags
+// Update specific tags from file path
 const modifiedFile = await writeTags("song.mp3", {
   title: "New Title",
   artist: "New Artist",
@@ -94,6 +104,51 @@ const modifiedFile = await writeTags("song.mp3", {
 
 // Write the modified file
 await Deno.writeFile("song-updated.mp3", modifiedFile);
+
+// From File object (browsers)
+const file = document.getElementById("file-input").files[0];
+const modifiedFile = await writeTags(file, {
+  title: "New Title",
+  artist: "New Artist",
+});
+```
+
+### updateTags()
+
+Update metadata tags on a file and save it to a new location.
+
+```typescript
+function updateTags(
+  inputPath: string,
+  outputPath: string,
+  tags: Partial<Tags>,
+): Promise<void>;
+```
+
+#### Parameters
+
+- `inputPath`: Path to the input audio file
+- `outputPath`: Path where the modified file will be saved
+- `tags`: Object containing tags to update (partial update supported)
+
+#### Returns
+
+Promise that resolves when the file has been successfully saved.
+
+#### Example
+
+```typescript
+// Update tags and save to new file
+await updateTags("song.mp3", "song-updated.mp3", {
+  title: "New Title",
+  artist: "New Artist",
+  year: 2024,
+});
+
+// Update tags in place
+await updateTags("song.mp3", "song.mp3", {
+  genre: "Electronic",
+});
 ```
 
 ### readProperties()
@@ -101,12 +156,12 @@ await Deno.writeFile("song-updated.mp3", modifiedFile);
 Read audio properties from a file.
 
 ```typescript
-function readProperties(input: string | Uint8Array): Promise<Properties>;
+function readProperties(input: string | Uint8Array | ArrayBuffer | File): Promise<Properties>;
 ```
 
 #### Parameters
 
-- `input`: File path (string) or audio data (Uint8Array)
+- `input`: File path (string), audio data (Uint8Array/ArrayBuffer), or File object
 
 #### Returns
 
@@ -177,9 +232,48 @@ const taglib = await TagLib.initialize({
 });
 ```
 
+#### taglib.open()
+
+Open an audio file from various input sources.
+
+```typescript
+open(input: string | ArrayBuffer | Uint8Array | File): Promise<AudioFile>
+```
+
+##### Parameters
+
+- `input`: File path (string), audio data (ArrayBuffer/Uint8Array), or File object
+
+##### Returns
+
+Promise resolving to an `AudioFile` instance.
+
+##### Throws
+
+- Error if the file format is not supported or the file is corrupted
+
+##### Example
+
+```typescript
+// From file path (Node.js/Deno/Bun only)
+const file = await taglib.open("song.mp3");
+
+// From buffer
+const audioData = await Deno.readFile("song.mp3");
+const file = await taglib.open(audioData);
+
+// From ArrayBuffer
+const arrayBuffer = await fetch("song.mp3").then(r => r.arrayBuffer());
+const file = await taglib.open(arrayBuffer);
+
+// From File object (browsers)
+const fileInput = document.getElementById("file-input").files[0];
+const file = await taglib.open(fileInput);
+```
+
 #### taglib.openFile()
 
-Open an audio file from a buffer.
+Open an audio file from a buffer (legacy method, use `open()` instead).
 
 ```typescript
 openFile(buffer: Uint8Array): AudioFile
@@ -202,6 +296,52 @@ An `AudioFile` instance.
 ```typescript
 const audioData = await Deno.readFile("song.mp3");
 const file = taglib.openFile(audioData);
+```
+
+#### taglib.updateFile()
+
+Update tags on a file and save it to a new location.
+
+```typescript
+updateFile(inputPath: string, outputPath: string, tags: Partial<Tags>): Promise<void>
+```
+
+##### Parameters
+
+- `inputPath`: Path to the input audio file
+- `outputPath`: Path where the modified file will be saved
+- `tags`: Tags to update (partial update supported)
+
+##### Example
+
+```typescript
+await taglib.updateFile("song.mp3", "song-updated.mp3", {
+  title: "New Title",
+  artist: "New Artist",
+});
+```
+
+#### taglib.copyWithTags()
+
+Create a copy of a file with updated tags.
+
+```typescript
+copyWithTags(inputPath: string, outputPath: string, tags: Partial<Tags>): Promise<void>
+```
+
+##### Parameters
+
+- `inputPath`: Path to the source audio file
+- `outputPath`: Path where the copy will be saved
+- `tags`: Tags to set on the copy
+
+##### Example
+
+```typescript
+await taglib.copyWithTags("original.mp3", "copy.mp3", {
+  title: "Copy of Original",
+  comment: "This is a copy",
+});
 ```
 
 #### taglib.getModule()
@@ -413,7 +553,29 @@ save(): boolean
 Returns `true` if successful, `false` otherwise.
 
 **Note**: This modifies the in-memory representation only. To persist changes,
-you need to write the buffer to disk.
+you need to write the buffer to disk or use `saveToFile()`.
+
+##### saveToFile()
+
+Save the modified audio file directly to disk.
+
+```typescript
+saveToFile(path: string): Promise<void>
+```
+
+##### Parameters
+
+- `path`: File path where the audio file will be saved
+
+##### Example
+
+```typescript
+const file = await taglib.open("song.mp3");
+file.setTitle("New Title");
+file.setArtist("New Artist");
+await file.saveToFile("song-updated.mp3");
+file.dispose();
+```
 
 ##### toBuffer()
 
@@ -676,9 +838,8 @@ async function processAudioFile(filePath: string) {
   const taglib = await TagLib.initialize();
 
   try {
-    // Read file
-    const buffer = await Deno.readFile(filePath);
-    const file = taglib.openFile(buffer);
+    // Open file directly from path
+    const file = await taglib.open(filePath);
 
     // Validate
     if (!file.isValid()) {
@@ -708,15 +869,10 @@ async function processAudioFile(filePath: string) {
     file.setAcoustidFingerprint("AQADtMmybfGO8NCN...");
     file.setMusicBrainzTrackId("f4d1b6b8-8c1e-4d9a-9f2a-1234567890ab");
 
-    // Save changes
-    if (file.save()) {
-      // Write modified file
-      const outputPath = filePath.replace(/\.(\w+)$/, "-modified.$1");
-      await Deno.writeFile(outputPath, file.toBuffer());
-      console.log("Saved to:", outputPath);
-    } else {
-      console.error("Failed to save changes");
-    }
+    // Save changes to a new file
+    const outputPath = filePath.replace(/\.(\w+)$/, "-modified.$1");
+    await file.saveToFile(outputPath);
+    console.log("Saved to:", outputPath);
 
     // Clean up
     file.dispose();
@@ -727,4 +883,14 @@ async function processAudioFile(filePath: string) {
 
 // Usage
 await processAudioFile("song.mp3");
+
+// Alternative: Using the simple API
+import { updateTags } from "taglib-wasm/simple";
+
+await updateTags("song.mp3", "song-modified.mp3", {
+  title: "New Title",
+  artist: "New Artist",
+  album: "New Album",
+  year: 2024,
+});
 ```

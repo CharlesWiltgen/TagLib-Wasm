@@ -11,6 +11,8 @@ import {
   TagLibInitializationError,
   UnsupportedFormatError,
 } from "./errors.ts";
+import { readFileData } from "./utils/file.ts";
+import { writeFileData } from "./utils/write.ts";
 
 /**
  * Extended Tag interface with read/write capabilities for audio metadata.
@@ -18,7 +20,7 @@ import {
  *
  * @example
  * ```typescript
- * const file = await taglib.openFile(buffer);
+ * const file = await taglib.open("song.mp3");
  * const tag = file.tag();
  *
  * // Read metadata
@@ -54,7 +56,7 @@ export interface Tag extends BasicTag {
  *
  * @example
  * ```typescript
- * const file = await taglib.openFile(audioBuffer);
+ * const file = await taglib.open("song.mp3");
  *
  * // Check if valid
  * if (!file.isValid()) {
@@ -168,6 +170,14 @@ export interface AudioFile {
   getFileBuffer(): Uint8Array;
 
   /**
+   * Save all changes to a file on disk.
+   * This first saves changes to the in-memory buffer, then writes to the specified path.
+   * @param path - Optional file path. If not provided, saves to the original path (if opened from a file).
+   * @throws {Error} If no path is available or write fails
+   */
+  saveToFile(path?: string): Promise<void>;
+
+  /**
    * Check if the file was loaded successfully and is valid.
    * @returns true if the file is valid and can be processed
    */
@@ -185,18 +195,21 @@ export interface AudioFile {
  * Wraps the native TagLib C++ FileHandle object.
  *
  * @internal This class is not meant to be instantiated directly.
- * Use TagLib.openFile() to create instances.
+ * Use TagLib.open() to create instances.
  */
 export class AudioFileImpl implements AudioFile {
   private fileHandle: any;
   private cachedTag: Tag | null = null;
   private cachedAudioProperties: AudioProperties | null = null;
+  private sourcePath?: string;
 
   constructor(
     private module: TagLibModule,
     fileHandle: any,
+    sourcePath?: string,
   ) {
     this.fileHandle = fileHandle;
+    this.sourcePath = sourcePath;
   }
 
   /** @inheritdoc */
@@ -349,6 +362,26 @@ export class AudioFileImpl implements AudioFile {
   }
 
   /** @inheritdoc */
+  async saveToFile(path?: string): Promise<void> {
+    // Determine the target path
+    const targetPath = path || this.sourcePath;
+    if (!targetPath) {
+      throw new Error(
+        "No file path available. Either provide a path or open the file from a path."
+      );
+    }
+
+    // First save to in-memory buffer
+    if (!this.save()) {
+      throw new Error("Failed to save changes to in-memory buffer");
+    }
+
+    // Get the updated buffer and write to file
+    const buffer = this.getFileBuffer();
+    await writeFileData(targetPath, buffer);
+  }
+
+  /** @inheritdoc */
   isValid(): boolean {
     return this.fileHandle.isValid();
   }
@@ -380,7 +413,7 @@ export class AudioFileImpl implements AudioFile {
  * const taglib = new TagLib(module);
  *
  * // Open and process a file
- * const file = await taglib.openFile(audioBuffer);
+ * const file = await taglib.open("song.mp3");
  * const tag = file.tag();
  * console.log(`Title: ${tag.title}`);
  * file.dispose();
@@ -402,7 +435,7 @@ export class TagLib {
    * @example
    * ```typescript
    * const taglib = await TagLib.initialize();
-   * const file = await taglib.openFile(buffer);
+   * const file = await taglib.open("song.mp3");
    * ```
    */
   static async initialize(): Promise<TagLib> {
@@ -413,35 +446,52 @@ export class TagLib {
   }
 
   /**
-   * Open an audio file from a buffer.
+   * Open an audio file from various sources.
    * Automatically detects the file format based on content.
    *
-   * @param buffer - Audio file data as ArrayBuffer or typed array
+   * @param input - File path (string), ArrayBuffer, Uint8Array, or File object
    * @returns Promise resolving to AudioFile instance
    * @throws {Error} If the file format is invalid or unsupported
    * @throws {Error} If the module is not properly initialized
    *
    * @example
    * ```typescript
+   * // From file path
+   * const file = await taglib.open("song.mp3");
+   *
    * // From ArrayBuffer
-   * const file = await taglib.openFile(arrayBuffer);
+   * const file = await taglib.open(arrayBuffer);
    *
    * // From Uint8Array
-   * const uint8Array = new Uint8Array(buffer);
-   * const file = await taglib.openFile(uint8Array.buffer);
+   * const file = await taglib.open(uint8Array);
+   *
+   * // From File object (browser)
+   * const file = await taglib.open(fileObject);
    *
    * // Remember to dispose when done
    * file.dispose();
    * ```
    */
-  async openFile(buffer: ArrayBuffer): Promise<AudioFile> {
+  async open(input: string | ArrayBuffer | Uint8Array | File): Promise<AudioFile> {
     // Check if Embind is available
     if (!this.module.createFileHandle) {
       throw new TagLibInitializationError(
         "TagLib module not properly initialized: createFileHandle not found. " +
-          "Make sure the module is fully loaded before calling openFile."
+          "Make sure the module is fully loaded before calling open."
       );
     }
+
+    // Track the source path if input is a string
+    const sourcePath = typeof input === "string" ? input : undefined;
+
+    // Read file data if input is a path or File object
+    const audioData = await readFileData(input);
+    
+    // Ensure we pass the correct slice of the buffer
+    const buffer = audioData.buffer.slice(
+      audioData.byteOffset,
+      audioData.byteOffset + audioData.byteLength
+    );
 
     // Convert ArrayBuffer to Uint8Array for Embind
     const uint8Array = new Uint8Array(buffer);
@@ -458,7 +508,86 @@ export class TagLib {
       );
     }
 
-    return new AudioFileImpl(this.module, fileHandle);
+    return new AudioFileImpl(this.module, fileHandle, sourcePath);
+  }
+
+  /**
+   * Update tags in a file and save changes to disk in one operation.
+   * This is a convenience method that opens, modifies, saves, and closes the file.
+   *
+   * @param path - File path to update
+   * @param tags - Object containing tags to update
+   * @throws {Error} If file operations fail
+   *
+   * @example
+   * ```typescript
+   * await taglib.updateFile("song.mp3", {
+   *   title: "New Title",
+   *   artist: "New Artist"
+   * });
+   * ```
+   */
+  async updateFile(path: string, tags: Partial<BasicTag>): Promise<void> {
+    const file = await this.open(path);
+    try {
+      const tag = file.tag();
+      
+      // Apply tag updates
+      if (tags.title !== undefined) tag.setTitle(tags.title);
+      if (tags.artist !== undefined) tag.setArtist(tags.artist);
+      if (tags.album !== undefined) tag.setAlbum(tags.album);
+      if (tags.year !== undefined) tag.setYear(tags.year);
+      if (tags.track !== undefined) tag.setTrack(tags.track);
+      if (tags.genre !== undefined) tag.setGenre(tags.genre);
+      if (tags.comment !== undefined) tag.setComment(tags.comment);
+      
+      // Save to file
+      await file.saveToFile();
+    } finally {
+      file.dispose();
+    }
+  }
+
+  /**
+   * Copy a file with new tags.
+   * Opens the source file, applies new tags, and saves to a new location.
+   *
+   * @param sourcePath - Source file path
+   * @param destPath - Destination file path
+   * @param tags - Object containing tags to apply
+   * @throws {Error} If file operations fail
+   *
+   * @example
+   * ```typescript
+   * await taglib.copyWithTags("original.mp3", "copy.mp3", {
+   *   title: "Copy of Song",
+   *   comment: "This is a copy"
+   * });
+   * ```
+   */
+  async copyWithTags(
+    sourcePath: string,
+    destPath: string,
+    tags: Partial<BasicTag>
+  ): Promise<void> {
+    const file = await this.open(sourcePath);
+    try {
+      const tag = file.tag();
+      
+      // Apply tag updates
+      if (tags.title !== undefined) tag.setTitle(tags.title);
+      if (tags.artist !== undefined) tag.setArtist(tags.artist);
+      if (tags.album !== undefined) tag.setAlbum(tags.album);
+      if (tags.year !== undefined) tag.setYear(tags.year);
+      if (tags.track !== undefined) tag.setTrack(tags.track);
+      if (tags.genre !== undefined) tag.setGenre(tags.genre);
+      if (tags.comment !== undefined) tag.setComment(tags.comment);
+      
+      // Save to new location
+      await file.saveToFile(destPath);
+    } finally {
+      file.dispose();
+    }
   }
 
   /**

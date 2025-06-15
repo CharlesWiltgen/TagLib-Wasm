@@ -91,14 +91,20 @@ This was inspired by [go-taglib](https://github.com/sentriz/go-taglib), a
 similar project for Go created at about the same time.
 
 ```typescript
-import { readProperties, readTags, writeTags } from "taglib-wasm/simple";
+import { readProperties, readTags, writeTags, updateTags } from "taglib-wasm/simple";
 
 // Read tags
 const tags = await readTags("song.mp3");
 console.log(tags.title, tags.artist, tags.album);
 
-// Write tags
-await writeTags("song.mp3", {
+// Write tags (returns modified buffer)
+const buffer = await writeTags("song.mp3", {
+  title: "New Title",
+  artist: "New Artist"
+});
+
+// Or update file in-place (simpler)
+await updateTags("song.mp3", {
   title: "New Title",
   artist: "New Artist",
   album: "New Album",
@@ -119,9 +125,9 @@ import { TagLib } from "taglib-wasm";
 // Initialize taglib-wasm
 const taglib = await TagLib.initialize();
 
-// Load audio file from buffer
-const audioData = await readFile("song.mp3"); // Node.js/Bun: fs.readFile, Deno: Deno.readFile
-const file = taglib.openFile(audioData);
+// Load audio file (can pass file path or buffer)
+const file = await taglib.open("song.mp3");  // Direct file path (simpler)
+// Or from buffer: const file = await taglib.open(buffer);
 
 // Read metadata
 const tags = file.tag();
@@ -138,13 +144,24 @@ tag.setTitle("New Title");
 tag.setArtist("New Artist");
 tag.setAlbum("New Album");
 
-// Save changes
-file.save();
-
-console.log("Updated tags:", file.tag());
+// Save changes back to file
+await file.saveToFile();  // Saves to original path
+// Or save to a new file: await file.saveToFile("new-song.mp3");
 
 // Clean up
 file.dispose();
+
+// Convenience methods for common operations
+await taglib.updateFile("song.mp3", {
+  title: "Updated Title",
+  artist: "Updated Artist"
+});
+
+// Copy file with new tags
+await taglib.copyWithTags("original.mp3", "copy.mp3", {
+  title: "Copy of Song",
+  comment: "This is a copy"
+});
 ```
 
 ### Tag Constants
@@ -190,9 +207,9 @@ import { TagLib } from "npm:taglib-wasm";
 // Initialize taglib-wasm
 const taglib = await TagLib.initialize();
 
-// Load audio file from filesystem
-const audioData = await Deno.readFile("song.mp3");
-const file = taglib.openFile(audioData);
+// Load audio file (can pass file path or buffer)
+const file = await taglib.open("song.mp3");  // Direct file path (simpler)
+// Or from buffer: const file = await taglib.open(await Deno.readFile("song.mp3"));
 
 // Read metadata
 const tags = file.tag();
@@ -227,9 +244,9 @@ import { readFile } from "fs/promises";
 // Initialize taglib-wasm
 const taglib = await TagLib.initialize();
 
-// Load audio file from filesystem
-const audioData = await readFile("song.mp3");
-const file = taglib.openFile(audioData);
+// Load audio file (can pass file path or buffer)
+const file = await taglib.open("song.mp3");  // Direct file path (simpler)
+// Or from buffer: const file = await taglib.open(await readFile("song.mp3"));
 
 // Read metadata
 const tags = file.tag();
@@ -263,9 +280,9 @@ import { TagLib } from "taglib-wasm";
 // Initialize taglib-wasm
 const taglib = await TagLib.initialize();
 
-// Load from file system (Bun's native file API)
-const audioData = await Bun.file("song.mp3").arrayBuffer();
-const file = taglib.openFile(new Uint8Array(audioData));
+// Load audio file (can pass file path or buffer)
+const file = await taglib.open("song.mp3");  // Direct file path (simpler)
+// Or from buffer: const file = await taglib.open(new Uint8Array(await Bun.file("song.mp3").arrayBuffer()));
 
 // Read metadata
 const tags = file.tag();
@@ -303,7 +320,7 @@ const taglib = await TagLib.initialize();
 const fileInput = document.querySelector('input[type="file"]');
 const audioFile = fileInput.files[0];
 const audioData = new Uint8Array(await audioFile.arrayBuffer());
-const file = taglib.openFile(audioData);
+const file = await taglib.open(audioData);  // Browser requires buffer
 
 // Read metadata
 const tags = file.tag();
@@ -346,7 +363,7 @@ export default {
 
         // Get audio data from request
         const audioData = new Uint8Array(await request.arrayBuffer());
-        const file = taglib.openFile(audioData);
+        const file = await taglib.open(audioData);  // Workers require buffer
 
         // Read metadata
         const tags = file.tag();
@@ -401,7 +418,7 @@ import {
 } from "taglib-wasm";
 
 try {
-  const file = await taglib.openFile(buffer);
+  const file = await taglib.open(buffer);
 } catch (error) {
   if (isTagLibError(error)) {
     switch (error.code) {
@@ -629,8 +646,10 @@ npm test
 ```typescript
 class TagLib {
   static async initialize(config?: TagLibConfig): Promise<TagLib>;
-  openFile(buffer: Uint8Array): AudioFile;
-  getModule(): TagLibModule;
+  open(input: string | ArrayBuffer | Uint8Array | File): Promise<AudioFile>;
+  updateFile(path: string, tags: Partial<Tag>): Promise<void>;
+  copyWithTags(sourcePath: string, destPath: string, tags: Partial<Tag>): Promise<void>;
+  version(): string;
 }
 ```
 
@@ -663,6 +682,7 @@ class AudioFile {
   // File Operations
   save(): boolean;
   getFileBuffer(): Uint8Array;
+  saveToFile(path?: string): Promise<void>;
   dispose(): void;
 }
 ```
@@ -691,46 +711,51 @@ interface Tag {
 }
 ```
 
+### Simple API Functions
+
+```typescript
+// Read operations
+async function readTags(file: string | Uint8Array | ArrayBuffer | File): Promise<Tag>;
+async function readProperties(file: string | Uint8Array | ArrayBuffer | File): Promise<AudioProperties>;
+
+// Write operations
+async function writeTags(
+  file: string | Uint8Array | ArrayBuffer | File,
+  tags: Partial<Tag>,
+  options?: number
+): Promise<Uint8Array>;
+
+async function updateTags(
+  file: string,
+  tags: Partial<Tag>,
+  options?: number
+): Promise<void>;
+
+// Validation
+async function isValidAudioFile(file: string | Uint8Array | ArrayBuffer | File): Promise<boolean>;
+async function getFileFormat(file: string | Uint8Array | ArrayBuffer | File): Promise<string | null>;
+```
+
 ### Error Handling
 
 `taglib-wasm` provides specific error types for better debugging and error handling:
 
 ```typescript
-import { 
-  TagLib,
-  InvalidFormatError,
-  UnsupportedFormatError,
-  FileOperationError,
-  isTagLibError 
-} from "taglib-wasm";
+import { InvalidFormatError, isTagLibError } from "taglib-wasm";
 
 try {
-  const file = await taglib.openFile(buffer);
+  const file = await taglib.open("song.mp3");
   // Process file...
 } catch (error) {
   if (error instanceof InvalidFormatError) {
-    console.error(`Invalid audio file: ${error.message}`);
-    console.error(`Buffer size: ${error.bufferSize} bytes`);
-  } else if (error instanceof UnsupportedFormatError) {
-    console.error(`Unsupported format: ${error.format}`);
-    console.error(`Supported formats: ${error.supportedFormats.join(", ")}`);
-  } else if (error instanceof FileOperationError) {
-    console.error(`File operation failed: ${error.operation}`);
-    console.error(`Path: ${error.path}`);
+    console.error("Invalid audio file:", error.message);
   } else if (isTagLibError(error)) {
-    console.error(`TagLib error: ${error.code} - ${error.message}`);
+    console.error("TagLib error:", error.code, error.message);
   }
 }
 ```
 
-Error types include:
-- `TagLibInitializationError` - Wasm module initialization failures
-- `InvalidFormatError` - Invalid or corrupted file format
-- `UnsupportedFormatError` - Valid but unsupported format
-- `FileOperationError` - File read/write/save failures
-- `MetadataError` - Tag reading/writing failures
-- `MemoryError` - Wasm memory allocation issues
-- `EnvironmentError` - Runtime/environment compatibility issues
+**📖 See [docs/Error-Handling.md](docs/Error-Handling.md) for complete error type reference and handling strategies**
 
 ### PropertyMap type
 
@@ -740,6 +765,7 @@ type PropertyMap = { [key: string]: string[] };
 
 ## 📖 Additional Documentation
 
+- [**Error Handling Guide**](docs/Error-Handling.md) - Complete error type reference and handling strategies
 - [**Tag Name Constants**](docs/Tag-Name-Constants.md) - Comprehensive reference
   for standard tag names and cross-format mapping
 - [**Automatic Tag Mapping**](docs/Automatic-Tag-Mapping.md) - How taglib-wasm
