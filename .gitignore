@@ -152,6 +152,9 @@ tests/test-files/*/*.mp4
 # Test files backup
 test-files-backup.zip
 
+# Build artifacts (CMake)
+build/taglib-build/
+
 # But keep the directory structure and documentation
 !tests/test-files/README.md
 !tests/test-files/*/
