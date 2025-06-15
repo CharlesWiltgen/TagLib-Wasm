@@ -16,8 +16,7 @@ async function main() {
     console.log("✅ TagLib initialized successfully");
 
     // Example: Load an audio file (you'll need to provide your own file)
-    // const audioData = await Deno.readFile("path/to/your/audio/file.mp3");
-    // const file = taglib.openFile(audioData);
+    // const file = await taglib.open("path/to/your/audio/file.mp3");
 
     // if (file.isValid()) {
     //   console.log("📁 File loaded successfully");

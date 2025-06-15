@@ -18,7 +18,7 @@ export type { TagLibModule } from "./wasm.ts";
  *
  * @example
  * ```typescript
- * const file = await taglib.openFile(buffer);
+ * const file = await taglib.open(buffer);
  * const format = file.getFormat();
  * if (format === "MP3") {
  *   // Handle MP3-specific features

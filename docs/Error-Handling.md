@@ -677,3 +677,83 @@ if (error) {
   throw new Error(error);
 }
 ```
+
+
+## Detailed Error Types
+
+`taglib-wasm` provides specific error types for better debugging and error handling:
+
+### Complete Error Type Reference
+
+```typescript
+import { 
+  TagLib,
+  TagLibError,
+  TagLibInitializationError,
+  InvalidFormatError,
+  UnsupportedFormatError,
+  FileOperationError,
+  MetadataError,
+  MemoryError,
+  EnvironmentError,
+  isTagLibError 
+} from "taglib-wasm";
+```
+
+#### Error Types and Their Properties
+
+**TagLibInitializationError**
+- Thrown when the Wasm module fails to initialize
+- Properties: `code`, `context`
+
+**InvalidFormatError**
+- Thrown when a file is corrupted or invalid
+- Properties: `code`, `bufferSize`
+
+**UnsupportedFormatError**
+- Thrown when a file format is valid but not supported
+- Properties: `code`, `format`, `supportedFormats`
+
+**FileOperationError**
+- Thrown when file read/write operations fail
+- Properties: `code`, `operation`, `path`
+
+**MetadataError**
+- Thrown when tag reading/writing fails
+- Properties: `code`, `field`
+
+**MemoryError**
+- Thrown when Wasm memory allocation fails
+- Properties: `code`, `requestedSize`, `availableSize`
+
+**EnvironmentError**
+- Thrown when runtime environment is incompatible
+- Properties: `code`, `environment`, `requirement`
+
+### Using Type Guards
+
+The `isTagLibError` type guard helps identify any taglib-wasm error:
+
+```typescript
+try {
+  const file = await taglib.open("song.mp3");
+  // Process file...
+} catch (error) {
+  if (error instanceof InvalidFormatError) {
+    console.error(`Invalid audio file: ${error.message}`);
+    console.error(`Buffer size: ${error.bufferSize} bytes`);
+  } else if (error instanceof UnsupportedFormatError) {
+    console.error(`Unsupported format: ${error.format}`);
+    console.error(`Supported formats: ${error.supportedFormats.join(", ")}`);
+  } else if (error instanceof FileOperationError) {
+    console.error(`File operation failed: ${error.operation}`);
+    console.error(`Path: ${error.path}`);
+  } else if (isTagLibError(error)) {
+    // Catches any other taglib-wasm specific error
+    console.error(`TagLib error: ${error.code} - ${error.message}`);
+  } else {
+    // Non-taglib error (e.g., network error, permission denied)
+    console.error(`Unexpected error: ${error}`);
+  }
+}
+```

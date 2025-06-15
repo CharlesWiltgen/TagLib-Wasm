@@ -64,7 +64,7 @@ async function testWorkersCompatibility() {
         const audioData = await Deno.readFile(testAudioPath);
         console.log(`   Audio file loaded: ${audioData.length} bytes`);
 
-        const file = taglib.openFile(audioData);
+        const file = taglib.open(audioData);
         console.log(`   ✓ File opened successfully`);
         console.log(`   Valid: ${file.isValid()}`);
         console.log(`   Format: ${file.format()}`);

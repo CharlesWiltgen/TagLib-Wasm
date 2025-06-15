@@ -203,7 +203,7 @@ Deno.test("Input Validation: Too small buffers", async () => {
     const smallBuffer = new Uint8Array(size);
     
     await assertRejects(
-      async () => await taglib.openFile(smallBuffer.buffer),
+      async () => await taglib.open(smallBuffer.buffer),
       InvalidFormatError,
       new RegExp(`${size} bytes.*at least 1KB`),
       `Should reject ${size} byte buffer with helpful message`
@@ -216,14 +216,14 @@ Deno.test("Input Validation: Null and undefined inputs", async () => {
   
   // Test Core API
   await assertRejects(
-    async () => await taglib.openFile(null as any),
+    async () => await taglib.open(null as any),
     Error,
     /null|undefined|invalid/i,
     "Core API should reject null input"
   );
   
   await assertRejects(
-    async () => await taglib.openFile(undefined as any),
+    async () => await taglib.open(undefined as any),
     Error,
     /null|undefined|invalid/i,
     "Core API should reject undefined input"
@@ -272,7 +272,7 @@ Deno.test("Input Validation: Empty buffers", async () => {
   const emptyBuffer = new Uint8Array(0);
   
   await assertRejects(
-    async () => await taglib.openFile(emptyBuffer.buffer),
+    async () => await taglib.open(emptyBuffer.buffer),
     InvalidFormatError,
     /0 bytes.*at least 1KB/,
     "Should reject empty buffer with size info"
@@ -282,7 +282,7 @@ Deno.test("Input Validation: Empty buffers", async () => {
   const emptyArrayBuffer = new ArrayBuffer(0);
   
   await assertRejects(
-    async () => await taglib.openFile(emptyArrayBuffer),
+    async () => await taglib.open(emptyArrayBuffer),
     InvalidFormatError,
     /0 bytes.*at least 1KB/,
     "Should reject empty ArrayBuffer"
@@ -298,7 +298,7 @@ Deno.test("Input Validation: Non-audio data", async () => {
   paddedText.set(textData);
   
   await assertRejects(
-    async () => await taglib.openFile(paddedText.buffer),
+    async () => await taglib.open(paddedText.buffer),
     InvalidFormatError,
     /Invalid audio.*corrupted/,
     "Should reject text data as invalid audio"
@@ -311,7 +311,7 @@ Deno.test("Input Validation: Non-audio data", async () => {
   }
   
   await assertRejects(
-    async () => await taglib.openFile(randomData.buffer),
+    async () => await taglib.open(randomData.buffer),
     InvalidFormatError,
     /Invalid audio.*corrupted/,
     "Should reject random data as invalid audio"
@@ -322,7 +322,7 @@ Deno.test("Input Validation: Non-audio data", async () => {
   pngData.set([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]); // PNG header
   
   await assertRejects(
-    async () => await taglib.openFile(pngData.buffer),
+    async () => await taglib.open(pngData.buffer),
     InvalidFormatError,
     /Invalid audio.*corrupted/,
     "Should reject image data as invalid audio"
@@ -338,7 +338,7 @@ Deno.test("Audio Properties: Invalid values handling", async () => {
   
   // We'll use a valid file and check that properties are reasonable
   const audioData = await Deno.readFile(TEST_MP3);
-  const file = await taglib.openFile(audioData.buffer);
+  const file = await taglib.open(audioData.buffer);
   
   try {
     const props = file.audioProperties();
@@ -408,7 +408,7 @@ Deno.test("Audio Properties: Corrupted header handling", async () => {
   
   // File might open but properties could be invalid
   try {
-    const file = await taglib.openFile(corruptedMP3.buffer);
+    const file = await taglib.open(corruptedMP3.buffer);
     const props = file.audioProperties();
     
     // If we get here, properties should at least be safe values
