@@ -6,7 +6,7 @@ This document explains how to publish `taglib-wasm` to NPM with only the essenti
 
 Only these components are published to registries:
 
-### 1. **WASM TagLib**
+### 1. **Wasm TagLib**
 
 - `build/taglib.wasm` - Compiled TagLib WebAssembly module
 - `build/taglib.js` - Emscripten-generated JavaScript glue code
@@ -16,7 +16,7 @@ Only these components are published to registries:
 - `index.ts` - NPM main module exports
 - `src/taglib.ts` - Core TagLib and AudioFile classes
 - `src/types.ts` - TypeScript type definitions
-- `src/wasm.ts` - WASM module interface and utilities
+- `src/wasm.ts` - Wasm module interface and utilities
 
 ### 3. **Documentation & Licensing**
 
@@ -28,7 +28,7 @@ Only these components are published to registries:
 
 ### Prerequisites
 
-1. **Build the WASM module:**
+1. **Build the Wasm module:**
    ```bash
    npm run build:wasm
    ```
@@ -52,7 +52,7 @@ npm run publish:npm
 
 - **Package name**: `taglib-wasm`
 - **Entry point**: `index.ts`
-- **Includes**: TypeScript source + WASM files
+- **Includes**: TypeScript source + Wasm files
 
 **Installation**:
 
@@ -76,7 +76,7 @@ npm run publish:github
 - **Package name**: `@charleswiltgen/taglib-wasm`
 - **Registry**: `https://npm.pkg.github.com/`
 - **Entry point**: `index.ts`
-- **Includes**: TypeScript source + WASM files
+- **Includes**: TypeScript source + Wasm files
 
 **Installation**:
 
@@ -100,7 +100,7 @@ Published Package:
 ├── src/
 │   ├── taglib.ts       # Core API
 │   ├── types.ts        # Type definitions
-│   └── wasm.ts         # WASM interface
+│   └── wasm.ts         # Wasm interface
 ├── build/
 │   ├── taglib.wasm     # Compiled WebAssembly
 │   └── taglib.js       # Emscripten glue code
@@ -157,7 +157,7 @@ The project uses GitHub Actions for automated publishing:
 Before publishing a new version:
 
 - [ ] Run tests: `npm test`
-- [ ] Build WASM: `npm run build:wasm`
+- [ ] Build Wasm: `npm run build:wasm`
 - [ ] Build TypeScript: `npm run build:ts`
 - [ ] Update version in `package.json`
 - [ ] Update CHANGELOG.md (if exists)

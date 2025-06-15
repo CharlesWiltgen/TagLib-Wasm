@@ -252,10 +252,10 @@ export class TagLibWorkers {
   }
 
   /**
-   * Initialize TagLib for Workers with WASM binary
+   * Initialize TagLib for Workers with Wasm binary
    *
    * @param wasmBinary - The WebAssembly binary as Uint8Array
-   * @param config - Optional configuration for the WASM module
+   * @param config - Optional configuration for the Wasm module
    *
    * @example
    * ```typescript
@@ -280,7 +280,7 @@ export class TagLibWorkers {
    */
   openFile(buffer: Uint8Array): AudioFileWorkers {
     if (!this.module.HEAPU8) {
-      throw new Error("WASM module not properly initialized - missing HEAPU8");
+      throw new Error("Wasm module not properly initialized - missing HEAPU8");
     }
 
     // Use Emscripten's allocate function for proper memory management
@@ -317,7 +317,7 @@ export class TagLibWorkers {
   }
 
   /**
-   * Get the underlying WASM module (for advanced usage)
+   * Get the underlying Wasm module (for advanced usage)
    */
   getModule(): TagLibModule {
     return this.module;
