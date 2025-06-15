@@ -1,31 +1,39 @@
 # Implementation Guide
 
-This document provides detailed technical information about the `taglib-wasm` implementation.
+This document provides detailed technical information about the `taglib-wasm`
+implementation.
 
-> **Note**: This project has been migrated from a C-style wrapper with manual memory management to use Emscripten's Embind for cleaner, more maintainable bindings. The current implementation leverages Embind's automatic memory management and direct object access capabilities.
+> **Note**: This project has been migrated from a C-style wrapper with manual
+> memory management to use Emscripten's Embind for cleaner, more maintainable
+> bindings. The current implementation leverages Embind's automatic memory
+> management and direct object access capabilities.
 
 ## 🏗️ Architecture Overview
 
 The project consists of three main layers:
 
 1. **TagLib C++ Library** (`lib/taglib/`) - The original TagLib v2.1 source
-2. **C++ Wasm Wrapper** (`build/build-wasm.sh`) - Embind-based C++ bindings for Wasm
+2. **C++ Wasm Wrapper** (`build/build-wasm.sh`) - Embind-based C++ bindings for
+   Wasm
 3. **TypeScript API** (`src/`) - Modern JavaScript/TypeScript interface
 
 ## 🔧 Key Technical Solutions
 
 ### Emscripten Embind Integration
 
-The project uses **Emscripten's Embind** to create JavaScript bindings for TagLib's C++ API. This provides:
+The project uses **Emscripten's Embind** to create JavaScript bindings for
+TagLib's C++ API. This provides:
 
-- **Automatic memory management** - No manual memory allocation/deallocation needed
+- **Automatic memory management** - No manual memory allocation/deallocation
+  needed
 - **Direct object access** - JavaScript can work with C++ objects naturally
 - **Type safety** - Strong typing between C++ and JavaScript
 - **Clean API** - No need for C-style wrapper functions
 
 ### C++ Wrapper Design
 
-The C++ wrapper (`build/build-wasm.sh`) uses Embind to expose TagLib's classes directly:
+The C++ wrapper (`build/build-wasm.sh`) uses Embind to expose TagLib's classes
+directly:
 
 #### Class Bindings
 
@@ -97,7 +105,8 @@ std::string detectFormat(const std::string& data) {
 
 ### TypeScript API Design
 
-The TypeScript layer (`src/`) provides a modern async API that wraps the Embind-exposed classes:
+The TypeScript layer (`src/`) provides a modern async API that wraps the
+Embind-exposed classes:
 
 #### Module Initialization
 
@@ -114,20 +123,20 @@ class TagLib {
 
 ```typescript
 class AudioFile {
-  private stream?: any;  // ByteVectorStream instance
+  private stream?: any; // ByteVectorStream instance
   private fileRef?: any; // FileRef instance
-  
+
   constructor(module: TagLibModule, buffer: Uint8Array) {
     // Convert buffer to string for Embind
     const dataStr = Array.from(buffer)
-      .map(byte => String.fromCharCode(byte))
-      .join('');
-    
+      .map((byte) => String.fromCharCode(byte))
+      .join("");
+
     // Create C++ objects via Embind
     this.stream = new module.ByteVectorStream(dataStr);
     this.fileRef = new module.FileRef(this.stream);
   }
-  
+
   dispose(): void {
     // Embind objects are automatically cleaned up
     // when JavaScript references are garbage collected
@@ -317,4 +326,7 @@ If Emscripten build fails:
 
 ---
 
-This implementation represents a complete, production-ready WebAssembly port of TagLib with modern TypeScript bindings. The migration to Embind has significantly simplified the codebase while maintaining full functionality and improving maintainability.
+This implementation represents a complete, production-ready WebAssembly port of
+TagLib with modern TypeScript bindings. The migration to Embind has
+significantly simplified the codebase while maintaining full functionality and
+improving maintainability.

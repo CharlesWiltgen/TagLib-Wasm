@@ -1,6 +1,6 @@
 /**
  * @fileoverview Manual test for Cloudflare Workers compatibility (simulated environment)
- * 
+ *
  * This is a utility script for manual testing, not part of the main test suite.
  * Run manually with: deno run --allow-read tests/test-workers.ts
  */

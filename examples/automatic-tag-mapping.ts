@@ -49,22 +49,32 @@ async function demonstrateAdvancedMetadata() {
           properties[Tags.AcoustidFingerprint]?.[0] || "(none)"
         }`,
       );
-      console.log(`  AcoustID ID: ${properties[Tags.AcoustidId]?.[0] || "(none)"}`);
       console.log(
-        `  MusicBrainz Track ID: ${properties[Tags.MusicBrainzTrackId]?.[0] || "(none)"}`,
+        `  AcoustID ID: ${properties[Tags.AcoustidId]?.[0] || "(none)"}`,
       );
-      console.log(`  Album Artist: ${properties[Tags.AlbumArtist]?.[0] || "(none)"}`);
+      console.log(
+        `  MusicBrainz Track ID: ${
+          properties[Tags.MusicBrainzTrackId]?.[0] || "(none)"
+        }`,
+      );
+      console.log(
+        `  Album Artist: ${properties[Tags.AlbumArtist]?.[0] || "(none)"}`,
+      );
       console.log(`  Composer: ${properties[Tags.Composer]?.[0] || "(none)"}`);
 
       // Demonstrate format-agnostic field setting
       console.log("\n✏️  Setting automatic tag mapping (format-agnostic)...");
 
       // Using PropertyMap API for extended metadata with tag constants
-      file.setProperty(Tags.AcoustidFingerprint,
+      file.setProperty(
+        Tags.AcoustidFingerprint,
         "AQADtMmybfGO8NCNEESLnzHyXNOHeHnG4wccz9DR_gGNT_",
       );
       file.setProperty(Tags.AcoustidId, "e7359e88-f1f7-41ed-b9f6-16e58e906997");
-      file.setProperty(Tags.MusicBrainzTrackId, "f4d1b6b8-8c1e-4d9a-9f2a-1234567890ab");
+      file.setProperty(
+        Tags.MusicBrainzTrackId,
+        "f4d1b6b8-8c1e-4d9a-9f2a-1234567890ab",
+      );
 
       // Show where these would be stored for this format
       console.log(`\n📋 Format-specific storage for ${format}:`);

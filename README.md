@@ -1,6 +1,7 @@
 # TagLib-Wasm
 
-> TagLib for TypeScript platforms: Deno, Node.js, Bun, browsers, and Cloudflare Workers
+> TagLib for TypeScript platforms: Deno, Node.js, Bun, browsers, and Cloudflare
+> Workers
 
 This is the Wasm version of [**TagLib**](https://taglib.org/), the most robust,
 de-facto standard for reading and editing metadata tags (Title, Album, Artist,
@@ -165,18 +166,19 @@ const musicBrainzId = properties[Tags.MusicBrainzArtistId]?.[0];
 file.setProperties({
   [Tags.Title]: ["My Song"],
   [Tags.AlbumArtist]: ["Various Artists"],
-  [Tags.Bpm]: ["128"]
+  [Tags.Bpm]: ["128"],
 });
 
 // All constants provide IDE autocomplete
-Tags.Title         // → "TITLE"
-Tags.Artist        // → "ARTIST"
-Tags.AlbumArtist   // → "ALBUMARTIST"
-Tags.TrackGain     // → "REPLAYGAIN_TRACK_GAIN"
+Tags.Title; // → "TITLE"
+Tags.Artist; // → "ARTIST"
+Tags.AlbumArtist; // → "ALBUMARTIST"
+Tags.TrackGain; // → "REPLAYGAIN_TRACK_GAIN"
 // ... and many more
 ```
 
-See [Tag Name Constants](docs/Tag-Name-Constants.md) for the complete list of available tags and format-specific mappings.
+See [Tag Name Constants](docs/Tag-Name-Constants.md) for the complete list of
+available tags and format-specific mappings.
 
 ## Platform examples
 
@@ -406,7 +408,10 @@ and custom metadata.
 import { Tags } from "taglib-wasm";
 
 // Using PropertyMap API to set extended metadata with tag constants
-file.setProperty(Tags.AcoustidFingerprint, "AQADtMmybfGO8NCNEESLnzHyXNOHeHnG...");
+file.setProperty(
+  Tags.AcoustidFingerprint,
+  "AQADtMmybfGO8NCNEESLnzHyXNOHeHnG...",
+);
 file.setProperty(Tags.AcoustidId, "e7359e88-f1f7-41ed-b9f6-16e58e906997");
 
 // Or using string property names
@@ -421,8 +426,14 @@ file.save(); // Don't forget to save!
 
 ```typescript
 // MusicBrainz metadata using PropertyMap with tag constants
-file.setProperty(Tags.MusicBrainzTrackId, "f4d1b6b8-8c1e-4d9a-9f2a-1234567890ab");
-file.setProperty(Tags.MusicBrainzAlbumId, "a1b2c3d4-e5f6-7890-abcd-ef1234567890");
+file.setProperty(
+  Tags.MusicBrainzTrackId,
+  "f4d1b6b8-8c1e-4d9a-9f2a-1234567890ab",
+);
+file.setProperty(
+  Tags.MusicBrainzAlbumId,
+  "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+);
 file.setProperty(
   Tags.MusicBrainzArtistId,
   "12345678-90ab-cdef-1234-567890abcdef",
@@ -623,10 +634,14 @@ type PropertyMap = { [key: string]: string[] };
 
 ## 📖 Additional Documentation
 
-- [**Tag Name Constants**](docs/Tag-Name-Constants.md) - Comprehensive reference for standard tag names and cross-format mapping
-- [**Automatic Tag Mapping**](docs/Automatic-Tag-Mapping.md) - How taglib-wasm handles format-specific tag differences
-- [**Implementation Details**](docs/Implementation.md) - Technical details about the Wasm implementation
-- [**Runtime Compatibility**](docs/Runtime-Compatibility.md) - Platform-specific setup and considerations
+- [**Tag Name Constants**](docs/Tag-Name-Constants.md) - Comprehensive reference
+  for standard tag names and cross-format mapping
+- [**Automatic Tag Mapping**](docs/Automatic-Tag-Mapping.md) - How taglib-wasm
+  handles format-specific tag differences
+- [**Implementation Details**](docs/Implementation.md) - Technical details about
+  the Wasm implementation
+- [**Runtime Compatibility**](docs/Runtime-Compatibility.md) - Platform-specific
+  setup and considerations
 
 ## 🌐 Runtime Compatibility
 

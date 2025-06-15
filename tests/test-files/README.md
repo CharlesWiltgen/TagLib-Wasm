@@ -1,6 +1,7 @@
 # Test Audio Files
 
-This directory contains sample audio files for testing `taglib-wasm` functionality.
+This directory contains sample audio files for testing `taglib-wasm`
+functionality.
 
 ## Directory Structure
 

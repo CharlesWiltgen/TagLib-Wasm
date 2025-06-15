@@ -1,6 +1,7 @@
 # Cloudflare Workers Example
 
-This example demonstrates how to use `taglib-wasm` in Cloudflare Workers for serverless audio metadata processing.
+This example demonstrates how to use `taglib-wasm` in Cloudflare Workers for
+serverless audio metadata processing.
 
 ## Files
 
@@ -26,8 +27,7 @@ Returns service information and available endpoints.
 
 Upload an audio file and get its metadata.
 
-**Request**: Binary audio file in request body
-**Response**:
+**Request**: Binary audio file in request body **Response**:
 
 ```json
 {
@@ -215,7 +215,8 @@ The Worker supports all formats that TagLib supports:
 
 ## Performance Considerations
 
-- **Memory Limits**: Workers have 128MB memory limit, reduced WASM heap accordingly
+- **Memory Limits**: Workers have 128MB memory limit, reduced WASM heap
+  accordingly
 - **CPU Time**: 50ms for free tier, 30 seconds for paid plans
 - **File Size**: Recommend limiting uploads to 10MB or less
 - **Concurrent Processing**: Workers handle multiple requests efficiently

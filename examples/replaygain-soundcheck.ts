@@ -67,7 +67,9 @@ async function demonstrateReplayGainAndSoundCheck() {
         replayGainTrackPeak: file.getProperty("REPLAYGAIN_TRACK_PEAK"),
         replayGainAlbumGain: file.getProperty("REPLAYGAIN_ALBUM_GAIN"),
         replayGainAlbumPeak: file.getProperty("REPLAYGAIN_ALBUM_PEAK"),
-        appleSoundCheck: format === "M4A" ? file.getMP4Item("----:com.apple.iTunes:iTunNORM") : undefined
+        appleSoundCheck: format === "M4A"
+          ? file.getMP4Item("----:com.apple.iTunes:iTunNORM")
+          : undefined,
       };
       console.log(
         `  ReplayGain Track Gain: ${
@@ -102,7 +104,7 @@ async function demonstrateReplayGainAndSoundCheck() {
       file.setProperty("REPLAYGAIN_TRACK_PEAK", replayGainData.trackPeak);
       file.setProperty("REPLAYGAIN_ALBUM_GAIN", replayGainData.albumGain);
       file.setProperty("REPLAYGAIN_ALBUM_PEAK", replayGainData.albumPeak);
-      
+
       // Apple Sound Check may require special handling for MP4
       if (format === "M4A") {
         file.setMP4Item("----:com.apple.iTunes:iTunNORM", appleSoundCheckData);
@@ -232,9 +234,11 @@ function showNormalizationMappingTable() {
   console.log('file.setProperty("REPLAYGAIN_TRACK_PEAK", "0.987654");');
   console.log("");
   console.log("// Apple Sound Check for MP4 files");
-  console.log('if (file.isMP4()) {');
-  console.log('  file.setMP4Item("----:com.apple.iTunes:iTunNORM", "00000150 00000150 00000150...");');
-  console.log('}');
+  console.log("if (file.isMP4()) {");
+  console.log(
+    '  file.setMP4Item("----:com.apple.iTunes:iTunNORM", "00000150 00000150 00000150...");',
+  );
+  console.log("}");
   console.log("");
   console.log("// Bulk setting using setProperties");
   console.log("file.setProperties({");
