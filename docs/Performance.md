@@ -52,7 +52,7 @@ Understanding memory usage helps optimize performance:
 
 ```typescript
 // Memory usage breakdown:
-// - Base WASM module: ~2-4MB
+// - Base Wasm module: ~2-4MB
 // - Per file overhead: ~2x file size
 // - Peak usage during save: ~3x file size
 
@@ -433,7 +433,7 @@ async function handleFileUpload(file: File) {
   }
 }
 
-// Cache WASM module
+// Cache Wasm module
 let cachedModule: TagLib | null = null;
 
 async function getCachedTagLib(): Promise<TagLib> {

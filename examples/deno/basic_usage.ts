@@ -45,7 +45,7 @@ async function main() {
   } catch (error) {
     console.error("❌ Error:", error.message);
     console.log(
-      "📝 Note: Make sure to build the WASM module first with 'deno task build:wasm'",
+      "📝 Note: Make sure to build the Wasm module first with 'deno task build:wasm'",
     );
   }
 }

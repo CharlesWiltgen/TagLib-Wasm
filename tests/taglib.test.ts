@@ -141,7 +141,7 @@ Deno.test("Core API: Extended Tag Support", async () => {
   const tags = file.tag();
   assertExists(tags, "Should have tags object");
   
-  // Note: Extended tag support depends on the underlying WASM implementation
+  // Note: Extended tag support depends on the underlying Wasm implementation
   // For now, we just verify the basic tag interface works
   
   file.dispose();
@@ -212,7 +212,7 @@ Deno.test("Simple API: Tag Writing", async () => {
   assert(modifiedBuffer.length > 0, "Modified buffer should have content");
   
   // Note: Current implementation returns original buffer, not modified
-  // This is a known limitation that needs to be fixed in the WASM layer
+  // This is a known limitation that needs to be fixed in the Wasm layer
   // For now, just verify the buffer was returned
   assert(modifiedBuffer.length > 0, "Should return a buffer");
 });

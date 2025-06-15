@@ -8,7 +8,7 @@ export { AudioFileImpl as AudioFile, TagLib, createTagLib } from "./src/taglib.t
 export type { AudioFormat, AudioProperties, ExtendedTag, FieldMapping, FileType, Picture, PictureType, PropertyMap, Tag, TagLibConfig, } from "./src/types.ts";
 export type { TagLibModule, WasmModule } from "./src/wasm.ts";
 /**
- * Load the TagLib WASM module
+ * Load the TagLib Wasm module
  */
 export declare function loadTagLibModule(): Promise<TagLibModule>;
 //# sourceMappingURL=index.d.ts.map

@@ -42,14 +42,14 @@ emmake make -j$(nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 4)
 echo "📋 Installing TagLib..."
 emmake make install
 
-echo "🌐 Creating WASM bindings with Embind..."
+echo "🌐 Creating Wasm bindings with Embind..."
 
 # Use the Embind wrapper
 cp "$BUILD_DIR/taglib_embind.cpp" "$BUILD_DIR/taglib_wasm.cpp"
 
-echo "🔗 Compiling WASM module with Embind..."
+echo "🔗 Compiling Wasm module with Embind..."
 
-# Compile the WASM module with Embind
+# Compile the Wasm module with Embind
 emcc "$BUILD_DIR/taglib_wasm.cpp" \
   -I"$CMAKE_BUILD_DIR/install/include" \
   -I"$CMAKE_BUILD_DIR/install/include/taglib" \

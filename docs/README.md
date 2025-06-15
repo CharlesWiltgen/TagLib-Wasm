@@ -1,6 +1,6 @@
 ---
 home: true
-heroText: TagLib-WASM
+heroText: TagLib-Wasm
 tagline: TagLib compiled to WebAssembly with TypeScript bindings for universal audio metadata handling
 actions:
   - text: Get Started
@@ -19,7 +19,7 @@ features:
   - title: Format Abstraction
     details: Automatic tag mapping handles format-specific differences transparently
   - title: Zero Dependencies
-    details: Self-contained WASM bundle with no external dependencies
+    details: Self-contained Wasm bundle with no external dependencies
   - title: Battle-Tested
     details: Built on TagLib, the de-facto standard for audio metadata since 2002
 footer: MIT Licensed | Copyright © 2024 Charles Wiltgen
@@ -61,7 +61,7 @@ bun add taglib-wasm
 ```
 :::
 
-## Why TagLib-WASM?
+## Why TagLib-Wasm?
 
 The JavaScript/TypeScript ecosystem lacked a robust, universal solution for reading and writing audio metadata across all popular formats. Existing solutions were either:
 
@@ -70,4 +70,4 @@ The JavaScript/TypeScript ecosystem lacked a robust, universal solution for read
 - **Incomplete** (missing write support or advanced features)
 - **Unmaintained** (dormant projects)
 
-TagLib-WASM solves these problems by bringing the power of TagLib – the industry-standard C++ audio metadata library – to JavaScript via WebAssembly.
+TagLib-Wasm solves these problems by bringing the power of TagLib – the industry-standard C++ audio metadata library – to JavaScript via WebAssembly.
