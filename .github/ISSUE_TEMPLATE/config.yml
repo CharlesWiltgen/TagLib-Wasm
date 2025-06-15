@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: 💬 Discussions
+    url: https://github.com/CharlesWiltgen/taglib-wasm/discussions
+    about: Ask questions and discuss ideas with the community
+  - name: 📚 Documentation
+    url: https://github.com/CharlesWiltgen/taglib-wasm#readme
+    about: Check the documentation for usage examples and API reference
