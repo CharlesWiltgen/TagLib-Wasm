@@ -6,7 +6,7 @@
  */
 export { AudioFileImpl as AudioFile, TagLib, createTagLib } from "./src/taglib.ts";
 /**
- * Load the TagLib WASM module
+ * Load the TagLib Wasm module
  */
 export async function loadTagLibModule() {
     // Now that we're using ES6 modules, we can use dynamic import directly

@@ -1,10 +1,10 @@
 # Introduction
 
-TagLib-WASM brings the power of [TagLib](https://taglib.org/), the industry-standard audio metadata library, to JavaScript and TypeScript through WebAssembly.
+TagLib-Wasm brings the power of [TagLib](https://taglib.org/), the industry-standard audio metadata library, to JavaScript and TypeScript through WebAssembly.
 
-## What is TagLib-WASM?
+## What is TagLib-Wasm?
 
-TagLib-WASM is a WebAssembly port of TagLib that enables you to:
+TagLib-Wasm is a WebAssembly port of TagLib that enables you to:
 
 - **Read and write** audio metadata tags (title, artist, album, etc.)
 - **Support all major formats** including MP3, FLAC, MP4/M4A, OGG, and WAV
@@ -52,9 +52,9 @@ file.save();
 | Browsers | ✅ Full | CDN or bundler |
 | Cloudflare Workers | ✅ Full | `taglib-wasm/workers` |
 
-## When to Use TagLib-WASM
+## When to Use TagLib-Wasm
 
-TagLib-WASM is ideal when you need to:
+TagLib-Wasm is ideal when you need to:
 
 - Build music library managers or media players
 - Process audio files in batch operations

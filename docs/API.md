@@ -646,7 +646,7 @@ const taglib = await TagLib.initialize({
 
 ### Memory Usage Guidelines
 
-- Base overhead: ~2-4MB for WASM module
+- Base overhead: ~2-4MB for Wasm module
 - Per-file overhead: ~2x file size (for processing)
 - Recommended initial memory: 16MB for most use cases
 - Maximum memory: Set based on largest expected file size × 2

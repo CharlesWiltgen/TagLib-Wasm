@@ -38,7 +38,7 @@ bun add taglib-wasm
 
 ### Memory Requirements
 
-TagLib-WASM requires WebAssembly support with sufficient memory:
+TagLib-Wasm requires WebAssembly support with sufficient memory:
 
 - **Default**: 16MB initial, 256MB maximum
 - **Cloudflare Workers**: 8MB recommended initial size
@@ -59,7 +59,7 @@ Tested on:
 
 ## TypeScript Configuration
 
-For TypeScript projects, TagLib-WASM includes complete type definitions:
+For TypeScript projects, TagLib-Wasm includes complete type definitions:
 
 ```json
 {
@@ -80,7 +80,7 @@ Verify your installation:
 import { TagLib } from "taglib-wasm";
 
 const taglib = await TagLib.initialize();
-console.log("TagLib-WASM initialized successfully!");
+console.log("TagLib-Wasm initialized successfully!");
 ```
 
 ## Next Steps
