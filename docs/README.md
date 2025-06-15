@@ -28,14 +28,14 @@ footer: MIT Licensed | Copyright © 2024 Charles Wiltgen
 ## Quick Example
 
 ```typescript
-import { readTags, writeTags } from "taglib-wasm/simple";
+import { readTags, updateTags } from "taglib-wasm/simple";
 
 // Read tags - just one function call!
 const tags = await readTags("song.mp3");
 console.log(tags.title, tags.artist, tags.album);
 
-// Write tags - simple as can be
-await writeTags("song.mp3", {
+// Update tags in-place - even simpler!
+await updateTags("song.mp3", {
   title: "New Title",
   artist: "New Artist",
   album: "New Album",

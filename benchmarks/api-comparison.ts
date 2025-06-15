@@ -97,7 +97,7 @@ results.push(
       coreTaglib = await CoreTagLib.initialize();
     },
     async () => {
-      const file = coreTaglib!.openFile(fileData);
+      const file = coreTaglib!.open(fileData);
       const tags = file.tag();
       file.dispose();
     },
@@ -125,7 +125,7 @@ results.push(
       // Already initialized
     },
     async () => {
-      const file = coreTaglib!.openFile(fileData);
+      const file = coreTaglib!.open(fileData);
       const tags = file.tag();
       const props = file.audioProperties();
       file.setTitle("Benchmark Title");
@@ -186,7 +186,7 @@ const batchStart1 = performance.now();
 for (const file of TEST_FILES) {
   try {
     const data = await Deno.readFile(file);
-    const audioFile = coreTaglib!.openFile(data);
+    const audioFile = coreTaglib!.open(data);
     audioFile.tag();
     audioFile.audioProperties();
     audioFile.dispose();

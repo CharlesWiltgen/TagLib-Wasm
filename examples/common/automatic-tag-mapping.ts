@@ -33,8 +33,7 @@ async function demonstrateAdvancedMetadata() {
     for (const { path, format } of testFiles) {
       console.log(`\n📁 Processing ${format} file: ${path}`);
 
-      const audioData = await Deno.readFile(path);
-      const file = await taglib.openFile(audioData);
+      const file = await taglib.open(path);
 
       if (!file.isValid()) {
         console.log(`❌ Failed to load ${format} file`);

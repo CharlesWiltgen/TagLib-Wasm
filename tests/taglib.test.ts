@@ -72,7 +72,7 @@ Deno.test("Core API: Format Detection", async () => {
 
   for (const [format, path] of Object.entries(TEST_FILES)) {
     const audioData = await Deno.readFile(path);
-    const file = await taglib.openFile(audioData.buffer);
+    const file = await taglib.open(audioData.buffer);
 
     assertEquals(file.isValid(), true, `${format} file should be valid`);
     assertEquals(
@@ -88,7 +88,7 @@ Deno.test("Core API: Format Detection", async () => {
 Deno.test("Core API: Audio Properties", async () => {
   const taglib = await TagLib.initialize();
   const audioData = await Deno.readFile(TEST_FILES.mp3);
-  const file = await taglib.openFile(audioData.buffer);
+  const file = await taglib.open(audioData.buffer);
 
   const props = file.audioProperties();
   assertExists(props, "Should have audio properties");
@@ -103,7 +103,7 @@ Deno.test("Core API: Audio Properties", async () => {
 Deno.test("Core API: Tag Reading", async () => {
   const taglib = await TagLib.initialize();
   const audioData = await Deno.readFile(TEST_FILES.mp3);
-  const file = await taglib.openFile(audioData.buffer);
+  const file = await taglib.open(audioData.buffer);
 
   const tags = file.tag();
   assertExists(tags, "Should have tags");
@@ -121,7 +121,7 @@ Deno.test("Core API: Tag Reading", async () => {
 Deno.test("Core API: Tag Writing", async () => {
   const taglib = await TagLib.initialize();
   const audioData = await Deno.readFile(TEST_FILES.mp3);
-  const file = await taglib.openFile(audioData.buffer);
+  const file = await taglib.open(audioData.buffer);
 
   // Set new tags
   const tag = file.tag();
@@ -153,7 +153,7 @@ Deno.test("Core API: Tag Writing", async () => {
 Deno.test("Core API: Extended Tag Support", async () => {
   const taglib = await TagLib.initialize();
   const audioData = await Deno.readFile(TEST_FILES.mp3);
-  const file = await taglib.openFile(audioData.buffer);
+  const file = await taglib.open(audioData.buffer);
 
   // Test extended tags (if supported by the format)
   const tags = file.tag();
@@ -171,7 +171,7 @@ Deno.test("Core API: Memory Management", async () => {
   // Test multiple file operations
   for (let i = 0; i < 10; i++) {
     const audioData = await Deno.readFile(TEST_FILES.mp3);
-    const file = await taglib.openFile(audioData.buffer);
+    const file = await taglib.open(audioData.buffer);
     assert(file.isValid(), `File ${i} should be valid`);
     file.dispose();
   }
@@ -288,7 +288,7 @@ Deno.test("Error Handling: Invalid Audio Data", async () => {
   const invalidData = new Uint8Array([0, 1, 2, 3, 4, 5]);
 
   try {
-    const file = await taglib.openFile(invalidData.buffer);
+    const file = await taglib.open(invalidData.buffer);
     // If it doesn't throw, check if it's marked as invalid
     assertEquals(file.isValid(), false, "Invalid data should not be valid");
     file.dispose();
@@ -307,7 +307,7 @@ Deno.test("Error Handling: Empty Buffer", async () => {
   const emptyData = new Uint8Array(0);
 
   try {
-    const file = await taglib.openFile(emptyData.buffer);
+    const file = await taglib.open(emptyData.buffer);
     // If it doesn't throw, check if it's marked as invalid
     assertEquals(file.isValid(), false, "Empty buffer should not be valid");
     file.dispose();
@@ -356,7 +356,7 @@ Deno.test("Performance: Format Processing Speed", async () => {
   for (const [format, path] of Object.entries(TEST_FILES)) {
     const start = performance.now();
     const audioData = await Deno.readFile(path);
-    const file = await taglib.openFile(audioData.buffer);
+    const file = await taglib.open(audioData.buffer);
 
     file.tag();
     file.audioProperties();
@@ -378,7 +378,7 @@ Deno.test("Performance: API Comparison", async () => {
   // Core API timing
   const coreStart = performance.now();
   const taglib = await TagLib.initialize();
-  const file = await taglib.openFile(audioData.buffer);
+  const file = await taglib.open(audioData.buffer);
   file.tag();
   file.dispose();
   const coreTime = performance.now() - coreStart;
@@ -451,7 +451,7 @@ Deno.test("Format Tests: Systematic All Formats", async () => {
       console.log(`📊 File size: ${audioData.length} bytes`);
 
       // Open with TagLib
-      const file = await taglib.openFile(audioData.buffer);
+      const file = await taglib.open(audioData.buffer);
 
       if (file.isValid()) {
         console.log(`✅ SUCCESS: ${format} loaded successfully`);

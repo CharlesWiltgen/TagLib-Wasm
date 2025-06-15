@@ -30,7 +30,7 @@ Deno.test("error messages include helpful context", async () => {
   const tinyBuffer = new Uint8Array(100);
   
   await assertRejects(
-    async () => await taglib.openFile(tinyBuffer.buffer),
+    async () => await taglib.open(tinyBuffer.buffer),
     InvalidFormatError,
     /100 bytes.*at least 1KB/,
     "Should include buffer size and helpful hint about minimum size"
@@ -44,7 +44,7 @@ Deno.test("error messages include helpful context", async () => {
   }
   
   await assertRejects(
-    async () => await taglib.openFile(corruptedBuffer.buffer),
+    async () => await taglib.open(corruptedBuffer.buffer),
     InvalidFormatError,
     /Buffer size: 4\.9 KB/,
     "Should show human-readable size and suggest corruption"
@@ -64,7 +64,7 @@ Deno.test("format-specific errors provide clear guidance", async () => {
     ...new Array(2048).fill(0) // Padding
   ]);
   
-  const file = await taglib.openFile(mp3Buffer.buffer);
+  const file = await taglib.open(mp3Buffer.buffer);
   
   try {
     // Try to use MP4-specific method on MP3 file
@@ -141,7 +141,7 @@ Deno.test("error type guards work correctly", async () => {
   const taglib = await TagLib.initialize();
   
   try {
-    await taglib.openFile(new Uint8Array(50).buffer);
+    await taglib.open(new Uint8Array(50).buffer);
   } catch (error) {
     assertEquals(isTagLibError(error), true, "Should be a TagLibError");
     assertEquals(isInvalidFormatError(error), true, "Should be InvalidFormatError");
@@ -187,7 +187,7 @@ Deno.test("error codes enable programmatic error handling", async () => {
   const taglib = await TagLib.initialize();
   
   try {
-    await taglib.openFile(new Uint8Array(10).buffer);
+    await taglib.open(new Uint8Array(10).buffer);
   } catch (error) {
     if (isTagLibError(error)) {
       switch (error.code) {

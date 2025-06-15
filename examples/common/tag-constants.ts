@@ -18,10 +18,9 @@ async function demonstrateTagConstants() {
     const taglib = await TagLib.initialize();
 
     // Load a test file
-    const audioData = await Deno.readFile(
+    const file = await taglib.open(
       "./tests/test-files/mp3/kiss-snippet.mp3",
     );
-    const file = await taglib.openFile(audioData);
 
     if (!file.isValid()) {
       throw new Error("Failed to load audio file");
