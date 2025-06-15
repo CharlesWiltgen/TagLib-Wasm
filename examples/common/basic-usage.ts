@@ -33,10 +33,7 @@ async function demonstrateBasicUsage() {
     const audioFilePath = "./tests/test-files/mp3/kiss-snippet.mp3";
     console.log(`📁 Loading audio file: ${audioFilePath}`);
 
-    const audioData = await Deno.readFile(audioFilePath);
-    console.log(`📊 File size: ${audioData.length} bytes`);
-
-    const file = await taglib.openFile(audioData);
+    const file = await taglib.open(audioFilePath);
 
     if (!file.isValid()) {
       throw new Error("Failed to load audio file");
@@ -131,8 +128,7 @@ async function demonstrateBatchProcessing() {
 
     for (const filePath of testFiles) {
       try {
-        const audioData = await Deno.readFile(filePath);
-        const file = await taglib.openFile(audioData);
+        const file = await taglib.open(filePath);
 
         if (file.isValid()) {
           const props = file.audioProperties();

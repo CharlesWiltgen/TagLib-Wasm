@@ -12,7 +12,7 @@
  * import { TagLib } from "taglib-wasm";
  *
  * const taglib = await TagLib.initialize();
- * const file = await taglib.openFile(audioBuffer);
+ * const file = await taglib.open(audioBuffer);
  * const tag = file.tag();
  * console.log(tag.title);
  * file.dispose();

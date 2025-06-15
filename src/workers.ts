@@ -329,7 +329,7 @@ export class TagLibWorkers {
    * import wasmBinary from "../build/taglib.wasm";
    *
    * const taglib = await TagLibWorkers.initialize(wasmBinary);
-   * const file = taglib.openFile(audioBuffer);
+   * const file = taglib.open(audioBuffer);
    * const metadata = file.tag();
    * ```
    */
@@ -353,10 +353,10 @@ export class TagLibWorkers {
    * @example
    * ```typescript
    * const audioData = new Uint8Array(await request.arrayBuffer());
-   * const file = taglib.openFile(audioData);
+   * const file = taglib.open(audioData);
    * ```
    */
-  openFile(buffer: Uint8Array): AudioFileWorkers {
+  open(buffer: Uint8Array): AudioFileWorkers {
     if (!this.module.HEAPU8) {
       throw new MemoryError(
         "Wasm module not properly initialized: missing HEAPU8. " +
@@ -402,6 +402,16 @@ export class TagLibWorkers {
   }
 
   /**
+   * @deprecated Use `open()` instead. This method will be removed in the next major version.
+   * Open an audio file from a buffer (backward compatibility).
+   * @param buffer Audio file data as Uint8Array
+   * @returns Audio file instance
+   */
+  openFile(buffer: Uint8Array): AudioFileWorkers {
+    return this.open(buffer);
+  }
+
+  /**
    * Get the underlying Wasm module for advanced usage.
    * @returns The initialized TagLib Wasm module
    */
@@ -435,7 +445,7 @@ export async function processAudioMetadata(
   { tag: Tag; properties: AudioProperties | null; format: AudioFormat }
 > {
   const taglib = await TagLibWorkers.initialize(wasmBinary, config);
-  const file = taglib.openFile(audioData);
+  const file = taglib.open(audioData);
 
   try {
     const tag = file.tag();
