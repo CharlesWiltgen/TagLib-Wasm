@@ -420,6 +420,14 @@ public:
         // Return an empty Uint8Array if no data
         return val::global("Uint8Array").new_(0);
     }
+    
+    // Explicitly destroy all resources
+    void destroy() {
+        // Reset unique_ptrs to release memory immediately
+        file.reset();
+        fileRef.reset();
+        stream.reset();
+    }
 };
 
 EMSCRIPTEN_BINDINGS(taglib) {
@@ -440,7 +448,8 @@ EMSCRIPTEN_BINDINGS(taglib) {
         .function("removeMP4Item", &FileHandle::removeMP4Item)
         .function("getTag", &FileHandle::getTag)
         .function("getAudioProperties", &FileHandle::getAudioProperties)
-        .function("getBuffer", &FileHandle::getBuffer);
+        .function("getBuffer", &FileHandle::getBuffer)
+        .function("destroy", &FileHandle::destroy);
     
     // TagWrapper class
     class_<TagWrapper>("TagWrapper")
