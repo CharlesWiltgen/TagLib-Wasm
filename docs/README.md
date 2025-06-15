@@ -44,30 +44,36 @@ await writeTags("song.mp3", {
 
 ## Installation
 
-::: code-tabs
-@tab Deno
+::: code-tabs @tab Deno
+
 ```typescript
 import { TagLib } from "npm:taglib-wasm";
 ```
 
 @tab Node.js
+
 ```bash
 npm install taglib-wasm
 ```
 
 @tab Bun
+
 ```bash
 bun add taglib-wasm
 ```
+
 :::
 
 ## Why TagLib-Wasm?
 
-The JavaScript/TypeScript ecosystem lacked a robust, universal solution for reading and writing audio metadata across all popular formats. Existing solutions were either:
+The JavaScript/TypeScript ecosystem lacked a robust, universal solution for
+reading and writing audio metadata across all popular formats. Existing
+solutions were either:
 
 - **Limited to specific formats** (e.g., MP3-only)
 - **Platform-specific** (requiring native dependencies)
 - **Incomplete** (missing write support or advanced features)
 - **Unmaintained** (dormant projects)
 
-TagLib-Wasm solves these problems by bringing the power of TagLib – the industry-standard C++ audio metadata library – to JavaScript via WebAssembly.
+TagLib-Wasm solves these problems by bringing the power of TagLib – the
+industry-standard C++ audio metadata library – to JavaScript via WebAssembly.

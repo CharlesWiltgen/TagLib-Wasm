@@ -141,7 +141,7 @@ export function cStringToJS(module: TagLibModule, ptr: number): string {
 export function jsToCString(module: TagLibModule, str: string): number {
   const encoder = new TextEncoder();
   const bytes = encoder.encode(str + "\0");
-  
+
   // Use allocate if available, otherwise use _malloc
   if (module.allocate && module.ALLOC_NORMAL !== undefined) {
     return module.allocate(bytes, module.ALLOC_NORMAL);

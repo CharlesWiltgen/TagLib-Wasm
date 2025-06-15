@@ -1,6 +1,7 @@
 # Publishing Guide
 
-This document explains how to publish `taglib-wasm` to NPM with only the essential runtime components.
+This document explains how to publish `taglib-wasm` to NPM with only the
+essential runtime components.
 
 ## 📦 Essential Components
 
@@ -137,6 +138,7 @@ npm version patch  # or minor/major
 ```
 
 **Important**: Always ensure versions match between:
+
 - `package.json` - NPM package version
 
 ## 🚀 CI/CD Publishing

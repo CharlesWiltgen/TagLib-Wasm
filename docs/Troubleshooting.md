@@ -62,7 +62,7 @@ async function initWithRetry() {
     { memory: { initial: 8 * 1024 * 1024 } },
     {}, // Default config
   ];
-  
+
   for (const config of configs) {
     try {
       return await TagLib.initialize(config);
@@ -70,7 +70,7 @@ async function initWithRetry() {
       console.warn(`Failed with config:`, config);
     }
   }
-  
+
   throw new Error("Failed to initialize with any configuration");
 }
 ```
@@ -84,10 +84,10 @@ async function initWithRetry() {
 ```typescript
 // 1. Verify file format
 function getFileExtension(filename: string): string {
-  return filename.split('.').pop()?.toLowerCase() || '';
+  return filename.split(".").pop()?.toLowerCase() || "";
 }
 
-const supportedFormats = ['mp3', 'mp4', 'm4a', 'flac', 'ogg', 'wav'];
+const supportedFormats = ["mp3", "mp4", "m4a", "flac", "ogg", "wav"];
 const ext = getFileExtension(filename);
 
 if (!supportedFormats.includes(ext)) {
@@ -97,22 +97,22 @@ if (!supportedFormats.includes(ext)) {
 // 2. Check file magic numbers
 function detectFormat(buffer: Uint8Array): string {
   const magic = Array.from(buffer.slice(0, 8));
-  
+
   // MP3
   if (magic[0] === 0xFF && (magic[1] & 0xE0) === 0xE0) {
     return "MP3";
   }
-  
+
   // ID3v2
   if (magic[0] === 0x49 && magic[1] === 0x44 && magic[2] === 0x33) {
     return "MP3";
   }
-  
+
   // FLAC
-  if (magic.slice(0, 4).join(',') === '102,76,97,67') {
+  if (magic.slice(0, 4).join(",") === "102,76,97,67") {
     return "FLAC";
   }
-  
+
   // Add more format checks...
   return "UNKNOWN";
 }
@@ -212,8 +212,8 @@ declare module "taglib-wasm" {
 // 1. Increase memory limits
 const taglib = await TagLib.initialize({
   memory: {
-    initial: 64 * 1024 * 1024,   // 64MB
-    maximum: 512 * 1024 * 1024,  // 512MB
+    initial: 64 * 1024 * 1024, // 64MB
+    maximum: 512 * 1024 * 1024, // 512MB
   },
 });
 
@@ -221,7 +221,7 @@ const taglib = await TagLib.initialize({
 async function processLargeFiles(files: string[]) {
   for (const file of files) {
     await processFile(file);
-    
+
     // Force garbage collection if available
     if (globalThis.gc) {
       globalThis.gc();
@@ -235,7 +235,7 @@ function checkMemory() {
     const used = performance.memory.usedJSHeapSize;
     const limit = performance.memory.jsHeapSizeLimit;
     const percentage = (used / limit) * 100;
-    
+
     if (percentage > 80) {
       console.warn(`High memory usage: ${percentage.toFixed(1)}%`);
     }
@@ -262,24 +262,24 @@ try {
 // 2. Use locks for concurrent access
 class FileLock {
   private locks = new Map<string, Promise<void>>();
-  
+
   async withLock<T>(
     key: string,
-    operation: () => Promise<T>
+    operation: () => Promise<T>,
   ): Promise<T> {
     // Wait for existing lock
     while (this.locks.has(key)) {
       await this.locks.get(key);
     }
-    
+
     // Create new lock
     let unlock: () => void;
-    const lock = new Promise<void>(resolve => {
+    const lock = new Promise<void>((resolve) => {
       unlock = resolve;
     });
-    
+
     this.locks.set(key, lock);
-    
+
     try {
       return await operation();
     } finally {
@@ -300,18 +300,18 @@ class FileLock {
 // 1. Sanitize strings before setting
 function sanitizeString(str: string): string {
   // Remove null bytes
-  str = str.replace(/\0/g, '');
-  
+  str = str.replace(/\0/g, "");
+
   // Remove control characters except newlines
-  str = str.replace(/[\x00-\x08\x0B-\x0C\x0E-\x1F\x7F]/g, '');
-  
+  str = str.replace(/[\x00-\x08\x0B-\x0C\x0E-\x1F\x7F]/g, "");
+
   // Ensure valid UTF-8
   try {
-    return new TextDecoder('utf-8', { fatal: true })
+    return new TextDecoder("utf-8", { fatal: true })
       .decode(new TextEncoder().encode(str));
   } catch {
     // Fallback to ASCII
-    return str.replace(/[^\x20-\x7E\n]/g, '?');
+    return str.replace(/[^\x20-\x7E\n]/g, "?");
   }
 }
 
@@ -319,13 +319,13 @@ function sanitizeString(str: string): string {
 file.setTitle(sanitizeString(userInput));
 
 // 2. Handle different encodings
-function decodeString(bytes: Uint8Array, encoding = 'utf-8'): string {
+function decodeString(bytes: Uint8Array, encoding = "utf-8"): string {
   try {
     return new TextDecoder(encoding).decode(bytes);
   } catch {
     // Try other encodings
-    const encodings = ['utf-8', 'iso-8859-1', 'windows-1252'];
-    
+    const encodings = ["utf-8", "iso-8859-1", "windows-1252"];
+
     for (const enc of encodings) {
       try {
         return new TextDecoder(enc).decode(bytes);
@@ -333,9 +333,9 @@ function decodeString(bytes: Uint8Array, encoding = 'utf-8'): string {
         continue;
       }
     }
-    
+
     // Fallback
-    return Array.from(bytes, b => String.fromCharCode(b)).join('');
+    return Array.from(bytes, (b) => String.fromCharCode(b)).join("");
   }
 }
 ```
@@ -366,13 +366,13 @@ function cleanMP3Tags(buffer: Uint8Array): Uint8Array {
   // This is handled internally by TagLib
   const taglib = await TagLib.initialize();
   const file = taglib.openFile(buffer);
-  
+
   if (file.isValid()) {
     // Re-save to clean up
     file.save();
     return file.toBuffer();
   }
-  
+
   return buffer;
 }
 ```
@@ -388,17 +388,17 @@ function cleanMP3Tags(buffer: Uint8Array): Uint8Array {
 const file = taglib.openFile(m4aBuffer);
 
 // These map to iTunes-compatible atoms
-file.setTitle("Title");        // ©nam
-file.setArtist("Artist");      // ©ART
-file.setAlbum("Album");        // ©alb
-file.setComment("Comment");    // ©cmt
-file.setGenre("Genre");        // ©gen
+file.setTitle("Title"); // ©nam
+file.setArtist("Artist"); // ©ART
+file.setAlbum("Album"); // ©alb
+file.setComment("Comment"); // ©cmt
+file.setGenre("Genre"); // ©gen
 
 // For custom atoms
 file.setExtendedTag({
-  albumArtist: "Album Artist",  // aART
-  composer: "Composer",         // ©wrt
-  compilation: true,            // cpil
+  albumArtist: "Album Artist", // aART
+  composer: "Composer", // ©wrt
+  compilation: true, // cpil
 });
 ```
 
@@ -436,24 +436,24 @@ file.setArtist(newArtist || existing.artist);
 // 1. Track disposals
 class DisposalTracker {
   private active = new Set<string>();
-  
+
   track(id: string, file: AudioFile): AudioFile {
     this.active.add(id);
-    
+
     // Wrap dispose
     const originalDispose = file.dispose.bind(file);
     file.dispose = () => {
       originalDispose();
       this.active.delete(id);
     };
-    
+
     return file;
   }
-  
+
   getActiveCount(): number {
     return this.active.size;
   }
-  
+
   getActiveIds(): string[] {
     return Array.from(this.active);
   }
@@ -464,7 +464,7 @@ class AutoDispose {
   static async withFile<T>(
     taglib: TagLib,
     buffer: Uint8Array,
-    operation: (file: AudioFile) => T | Promise<T>
+    operation: (file: AudioFile) => T | Promise<T>,
   ): Promise<T> {
     const file = taglib.openFile(buffer);
     try {
@@ -479,7 +479,7 @@ class AutoDispose {
 const result = await AutoDispose.withFile(
   taglib,
   buffer,
-  (file) => file.tag()
+  (file) => file.tag(),
 );
 ```
 
@@ -494,7 +494,7 @@ const result = await AutoDispose.withFile(
 // ❌ Recursive
 async function processRecursive(files: string[], index = 0) {
   if (index >= files.length) return;
-  
+
   await processFile(files[index]);
   await processRecursive(files, index + 1); // Stack grows
 }
@@ -551,11 +551,11 @@ if (readPerm.state !== "granted") {
 
 ```javascript
 // For CommonJS compatibility
-import { createRequire } from 'module';
+import { createRequire } from "module";
 const require = createRequire(import.meta.url);
 
 // Or use dynamic import
-const { TagLib } = await import('taglib-wasm');
+const { TagLib } = await import("taglib-wasm");
 ```
 
 ### Browser Issues
@@ -571,7 +571,7 @@ const { TagLib } = await import('taglib-wasm');
 const wasmBase64 = "AGFzbQEAAAA...";
 const wasmBytes = Uint8Array.from(
   atob(wasmBase64),
-  c => c.charCodeAt(0)
+  (c) => c.charCodeAt(0),
 );
 
 // 3. Bundle Wasm with webpack/vite
@@ -587,26 +587,26 @@ const wasmBytes = Uint8Array.from(
 export default {
   async fetch(request: Request): Promise<Response> {
     // Check file size first
-    const contentLength = request.headers.get('content-length');
-    const sizeMB = parseInt(contentLength || '0') / 1024 / 1024;
-    
+    const contentLength = request.headers.get("content-length");
+    const sizeMB = parseInt(contentLength || "0") / 1024 / 1024;
+
     if (sizeMB > 5) {
-      return new Response('File too large for Workers', { 
-        status: 413 
+      return new Response("File too large for Workers", {
+        status: 413,
       });
     }
-    
+
     // Use minimal memory
     const taglib = await TagLib.initialize({
-      memory: { initial: 8 * 1024 * 1024 } // 8MB max
+      memory: { initial: 8 * 1024 * 1024 }, // 8MB max
     });
-    
+
     // Process and dispose immediately
     const buffer = new Uint8Array(await request.arrayBuffer());
     const file = taglib.openFile(buffer);
     const tags = file.tag();
     file.dispose();
-    
+
     return Response.json(tags);
   },
 };
@@ -657,7 +657,7 @@ console.log(`Wasm memory size: ${memory.length / 1024 / 1024}MB`);
 function findString(str: string): number[] {
   const bytes = new TextEncoder().encode(str);
   const positions = [];
-  
+
   for (let i = 0; i < memory.length - bytes.length; i++) {
     let match = true;
     for (let j = 0; j < bytes.length; j++) {
@@ -668,7 +668,7 @@ function findString(str: string): number[] {
     }
     if (match) positions.push(i);
   }
-  
+
   return positions;
 }
 ```
@@ -682,42 +682,41 @@ async function validateAudioFile(path: string) {
     path,
     exists: false,
     size: 0,
-    format: 'unknown',
+    format: "unknown",
     valid: false,
     readable: false,
     writable: false,
     errors: [] as string[],
   };
-  
+
   try {
     // Check file exists
     const stat = await Deno.stat(path);
     report.exists = true;
     report.size = stat.size;
-    
+
     // Read file
     const buffer = await Deno.readFile(path);
     report.readable = true;
-    
+
     // Open with taglib
     const taglib = await TagLib.initialize();
     const file = taglib.openFile(buffer);
-    
+
     report.valid = file.isValid();
     report.format = file.format();
-    
+
     // Try to read tags
     const tags = file.tag();
-    
+
     // Try to save
     report.writable = file.save();
-    
+
     file.dispose();
-    
   } catch (error) {
     report.errors.push(error.message);
   }
-  
+
   return report;
 }
 ```
@@ -726,30 +725,37 @@ async function validateAudioFile(path: string) {
 
 ### Q: Why is the Wasm file so large?
 
-**A**: The Wasm file (~2MB) includes the entire TagLib library with support for all audio formats. This is a one-time download that gets cached by browsers.
+**A**: The Wasm file (~2MB) includes the entire TagLib library with support for
+all audio formats. This is a one-time download that gets cached by browsers.
 
 ### Q: Can I reduce the bundle size?
 
-**A**: Currently no, but future versions may offer format-specific builds. For now, the universal build ensures maximum compatibility.
+**A**: Currently no, but future versions may offer format-specific builds. For
+now, the universal build ensures maximum compatibility.
 
 ### Q: Why doesn't save() write to disk?
 
-**A**: taglib-wasm operates entirely in memory for security and compatibility. Use `file.toBuffer()` and write the result to disk using your platform's file API.
+**A**: taglib-wasm operates entirely in memory for security and compatibility.
+Use `file.toBuffer()` and write the result to disk using your platform's file
+API.
 
 ### Q: How do I handle non-ASCII characters?
 
-**A**: taglib-wasm uses UTF-8 throughout. Ensure your strings are properly encoded:
+**A**: taglib-wasm uses UTF-8 throughout. Ensure your strings are properly
+encoded:
 
 ```typescript
 // Correct UTF-8 handling
-file.setTitle("日本語タイトル");    // Japanese
-file.setArtist("Künstler");        // German
+file.setTitle("日本語タイトル"); // Japanese
+file.setArtist("Künstler"); // German
 file.setAlbum("Álbum en Español"); // Spanish
 ```
 
 ### Q: Can I process files larger than available memory?
 
-**A**: No, taglib-wasm requires the entire file in memory. For very large files, consider:
+**A**: No, taglib-wasm requires the entire file in memory. For very large files,
+consider:
+
 - Increasing memory limits
 - Processing on a server with more RAM
 - Using streaming solutions for read-only operations
@@ -757,6 +763,7 @@ file.setAlbum("Álbum en Español"); // Spanish
 ### Q: Why do some tags not appear in certain players?
 
 **A**: Different players support different metadata standards:
+
 - iTunes: Prefers MP4 atoms
 - Windows Media Player: Prefers ID3v2.3
 - VLC: Supports everything
@@ -765,11 +772,13 @@ taglib-wasm writes standard-compliant tags that should work everywhere.
 
 ### Q: Is taglib-wasm thread-safe?
 
-**A**: JavaScript is single-threaded, so thread safety isn't a concern. However, avoid concurrent operations on the same file instance.
+**A**: JavaScript is single-threaded, so thread safety isn't a concern. However,
+avoid concurrent operations on the same file instance.
 
 ### Q: How do I report bugs?
 
 **A**: Please include:
+
 1. taglib-wasm version
 2. Runtime (Deno/Node/Browser/Workers)
 3. File format and size

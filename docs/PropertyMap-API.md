@@ -1,10 +1,13 @@
 # Extended Metadata with PropertyMap API
 
-`taglib-wasm` provides a **PropertyMap API** for handling extended metadata fields beyond the basic tags (title, artist, album, etc.). This allows you to access format-specific fields and custom metadata.
+`taglib-wasm` provides a **PropertyMap API** for handling extended metadata
+fields beyond the basic tags (title, artist, album, etc.). This allows you to
+access format-specific fields and custom metadata.
 
 ## 🎯 The PropertyMap API
 
-The PropertyMap API provides a unified interface for reading and writing extended metadata:
+The PropertyMap API provides a unified interface for reading and writing
+extended metadata:
 
 ```typescript
 // Read all properties
@@ -21,18 +24,22 @@ file.setProperty("ACOUSTID_FINGERPRINT", fingerprint);
 file.setProperties({
   ALBUMARTIST: ["Various Artists"],
   COMPOSER: ["Composer Name"],
-  BPM: ["120"]
+  BPM: ["120"],
 });
 ```
 
 ## 📝 Important Notes
 
-- Property keys are typically uppercase (e.g., "ALBUMARTIST", "REPLAYGAIN_TRACK_GAIN")
+- Property keys are typically uppercase (e.g., "ALBUMARTIST",
+  "REPLAYGAIN_TRACK_GAIN")
 - Property values in `setProperties()` must be arrays of strings
-- Property keys may vary by format - check existing properties with `file.properties()`
+- Property keys may vary by format - check existing properties with
+  `file.properties()`
 - For MP4-specific metadata, use the `setMP4Item()` method
-- Use the `Tags` constants for type-safe access: `file.properties()[Tags.AlbumArtist]`
-- See [Tag Name Constants](./Tag-Name-Constants.md) for a comprehensive list of standard property names and format-specific mappings
+- Use the `Tags` constants for type-safe access:
+  `file.properties()[Tags.AlbumArtist]`
+- See [Tag Name Constants](./Tag-Name-Constants.md) for a comprehensive list of
+  standard property names and format-specific mappings
 
 ## 📋 Format-Specific Storage Reference
 
@@ -138,7 +145,8 @@ export const METADATA_MAPPINGS: Record<keyof ExtendedTag, FieldMapping> = {
 
 ### Format Detection
 
-The library automatically detects the audio format and uses the appropriate storage method:
+The library automatically detects the audio format and uses the appropriate
+storage method:
 
 1. **Format Detection**: Determine if file is MP3, FLAC, OGG, MP4, etc.
 2. **Mapping Lookup**: Find the correct field mapping for that format
@@ -146,7 +154,8 @@ The library automatically detects the audio format and uses the appropriate stor
 
 ### TagLib PropertyMap Integration
 
-Advanced metadata uses TagLib's `PropertyMap` system for format-agnostic field access:
+Advanced metadata uses TagLib's `PropertyMap` system for format-agnostic field
+access:
 
 ```cpp
 // C++ implementation (conceptual)
@@ -183,7 +192,8 @@ file->setProperties(propertyMap);
 ### For Developers
 
 - **Single API**: One method call works for all formats
-- **No Format Knowledge**: Don't need to know ID3 frame names, Vorbis fields, etc.
+- **No Format Knowledge**: Don't need to know ID3 frame names, Vorbis fields,
+  etc.
 - **Consistent Behavior**: Same API regardless of audio format
 - **Type Safety**: Full TypeScript support with auto-completion
 
@@ -204,4 +214,7 @@ file->setProperties(propertyMap);
 
 ---
 
-This automatic tag mapping system represents **professional-grade audio metadata handling** that works seamlessly across all major audio formats. The format-agnostic approach eliminates the complexity of dealing with different metadata systems while ensuring proper, standards-compliant storage.
+This automatic tag mapping system represents **professional-grade audio metadata
+handling** that works seamlessly across all major audio formats. The
+format-agnostic approach eliminates the complexity of dealing with different
+metadata systems while ensuring proper, standards-compliant storage.

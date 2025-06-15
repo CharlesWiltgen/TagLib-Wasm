@@ -2,18 +2,20 @@
 
 ## Package Managers
 
-::: code-tabs
-@tab Deno
+::: code-tabs @tab Deno
+
 ```typescript
 import { TagLib } from "npm:taglib-wasm";
 ```
 
 @tab Node.js
+
 ```bash
 npm install taglib-wasm
 ```
 
-**Note:** The NPM package ships TypeScript source files. Use a TypeScript loader like [`tsx`](https://github.com/privatenumber/tsx):
+**Note:** The NPM package ships TypeScript source files. Use a TypeScript loader
+like [`tsx`](https://github.com/privatenumber/tsx):
 
 ```bash
 npm install --save-dev tsx
@@ -21,17 +23,20 @@ npx tsx your-script.ts
 ```
 
 @tab Bun
+
 ```bash
 bun add taglib-wasm
 ```
 
 @tab Browsers
+
 ```html
 <!-- Use a bundler like Vite, Webpack, or Parcel -->
 <script type="module">
-  import { TagLib } from 'taglib-wasm';
+  import { TagLib } from "taglib-wasm";
 </script>
 ```
+
 :::
 
 ## Runtime Requirements
@@ -47,11 +52,13 @@ TagLib-Wasm requires WebAssembly support with sufficient memory:
 ### Browser Compatibility
 
 Requires modern browser with:
+
 - WebAssembly support
 - ES2020 features
 - `async`/`await` support
 
 Tested on:
+
 - Chrome 90+
 - Firefox 89+
 - Safari 14.1+
@@ -86,4 +93,5 @@ console.log("TagLib-Wasm initialized successfully!");
 ## Next Steps
 
 - Continue to [Quick Start](./quick-start.md) to write your first code
-- See [Runtime Compatibility](/Runtime-Compatibility.md) for platform-specific details
+- See [Runtime Compatibility](/Runtime-Compatibility.md) for platform-specific
+  details
