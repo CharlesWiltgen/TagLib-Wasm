@@ -46,6 +46,36 @@ export {
 } from "./src/taglib.ts";
 
 /**
+ * Error types for proper error handling and debugging.
+ * @see {@link TagLibError} - Base error class for all TagLib errors
+ * @see {@link TagLibInitializationError} - Wasm initialization failures
+ * @see {@link InvalidFormatError} - Invalid or corrupted file format
+ * @see {@link UnsupportedFormatError} - Valid but unsupported format
+ * @see {@link FileOperationError} - File read/write/save failures
+ * @see {@link MetadataError} - Tag reading/writing failures
+ * @see {@link MemoryError} - Wasm memory allocation issues
+ * @see {@link EnvironmentError} - Runtime/environment issues
+ */
+export {
+  EnvironmentError,
+  FileOperationError,
+  InvalidFormatError,
+  isEnvironmentError,
+  isFileOperationError,
+  isInvalidFormatError,
+  isMemoryError,
+  isMetadataError,
+  isTagLibError,
+  isUnsupportedFormatError,
+  MemoryError,
+  MetadataError,
+  SUPPORTED_FORMATS,
+  TagLibError,
+  TagLibInitializationError,
+  UnsupportedFormatError,
+} from "./src/errors.ts";
+
+/**
  * Simple API exports for easy tag reading and writing.
  * @see {@link readTags} - Read metadata from audio files
  * @see {@link writeTags} - Write metadata to audio files

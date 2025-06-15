@@ -3,6 +3,7 @@
  */
 
 import type { TagLibConfig, TagLibModule } from "./types.ts";
+import { TagLibInitializationError } from "./errors.ts";
 
 // Re-export TagLibModule for convenience
 export type { TagLibModule };
@@ -69,7 +70,10 @@ export async function loadTagLibModuleForWorkers(
     const TagLibWasm = await createWorkersCompatibleModule();
 
     if (typeof TagLibWasm !== "function") {
-      throw new Error("Failed to load taglib-wasm module for Workers");
+      throw new TagLibInitializationError(
+        "Failed to load taglib-wasm module for Workers. " +
+          "The module may not be properly bundled for the Workers environment.",
+      );
     }
 
     const wasmInstance = await TagLibWasm(moduleConfig);
@@ -91,8 +95,12 @@ export async function loadTagLibModuleForWorkers(
 
     return wasmInstance as TagLibModule;
   } catch (error) {
-    throw new Error(
+    if (error instanceof TagLibInitializationError) {
+      throw error;
+    }
+    throw new TagLibInitializationError(
       `Failed to load taglib-wasm for Workers: ${(error as Error).message}`,
+      error as Error,
     );
   }
 }
@@ -114,10 +122,11 @@ async function createWorkersCompatibleModule(): Promise<any> {
     return wasmModule.default || wasmModule;
   } catch (error) {
     // If that fails, provide a fallback implementation
-    throw new Error(
+    throw new TagLibInitializationError(
       "Workers-compatible Wasm module not available. " +
         "Please build with Workers target or use a bundler that supports Wasm modules. " +
         `Original error: ${(error as Error).message}`,
+      error as Error,
     );
   }
 }
