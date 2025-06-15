@@ -159,8 +159,10 @@ test-files-backup.zip
 # Development tools
 mise.toml
 .claude/
-# Uncomment to ignore VSCode settings:
-# .vscode/
+# VS Code settings (ignore all except helpful contributor files)
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
 
 # NPM and publishing
 .npmrc.local
