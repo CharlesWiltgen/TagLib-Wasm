@@ -91,7 +91,12 @@ This was inspired by [go-taglib](https://github.com/sentriz/go-taglib), a
 similar project for Go created at about the same time.
 
 ```typescript
-import { readProperties, readTags, writeTags, updateTags } from "taglib-wasm/simple";
+import {
+  readProperties,
+  readTags,
+  updateTags,
+  writeTags,
+} from "taglib-wasm/simple";
 
 // Read tags
 const tags = await readTags("song.mp3");
@@ -100,7 +105,7 @@ console.log(tags.title, tags.artist, tags.album);
 // Write tags (returns modified buffer)
 const buffer = await writeTags("song.mp3", {
   title: "New Title",
-  artist: "New Artist"
+  artist: "New Artist",
 });
 
 // Or update file in-place (simpler)
@@ -126,7 +131,7 @@ import { TagLib } from "taglib-wasm";
 const taglib = await TagLib.initialize();
 
 // Load audio file (can pass file path or buffer)
-const file = await taglib.open("song.mp3");  // Direct file path (simpler)
+const file = await taglib.open("song.mp3"); // Direct file path (simpler)
 // Or from buffer: const file = await taglib.open(buffer);
 
 // Read metadata
@@ -145,7 +150,7 @@ tag.setArtist("New Artist");
 tag.setAlbum("New Album");
 
 // Save changes back to file
-await file.saveToFile();  // Saves to original path
+await file.saveToFile(); // Saves to original path
 // Or save to a new file: await file.saveToFile("new-song.mp3");
 
 // Clean up
@@ -154,13 +159,13 @@ file.dispose();
 // Convenience methods for common operations
 await taglib.updateFile("song.mp3", {
   title: "Updated Title",
-  artist: "Updated Artist"
+  artist: "Updated Artist",
 });
 
 // Copy file with new tags
 await taglib.copyWithTags("original.mp3", "copy.mp3", {
   title: "Copy of Song",
-  comment: "This is a copy"
+  comment: "This is a copy",
 });
 ```
 
@@ -208,7 +213,7 @@ import { TagLib } from "npm:taglib-wasm";
 const taglib = await TagLib.initialize();
 
 // Load audio file (can pass file path or buffer)
-const file = await taglib.open("song.mp3");  // Direct file path (simpler)
+const file = await taglib.open("song.mp3"); // Direct file path (simpler)
 // Or from buffer: const file = await taglib.open(await Deno.readFile("song.mp3"));
 
 // Read metadata
@@ -245,7 +250,7 @@ import { readFile } from "fs/promises";
 const taglib = await TagLib.initialize();
 
 // Load audio file (can pass file path or buffer)
-const file = await taglib.open("song.mp3");  // Direct file path (simpler)
+const file = await taglib.open("song.mp3"); // Direct file path (simpler)
 // Or from buffer: const file = await taglib.open(await readFile("song.mp3"));
 
 // Read metadata
@@ -281,7 +286,7 @@ import { TagLib } from "taglib-wasm";
 const taglib = await TagLib.initialize();
 
 // Load audio file (can pass file path or buffer)
-const file = await taglib.open("song.mp3");  // Direct file path (simpler)
+const file = await taglib.open("song.mp3"); // Direct file path (simpler)
 // Or from buffer: const file = await taglib.open(new Uint8Array(await Bun.file("song.mp3").arrayBuffer()));
 
 // Read metadata
@@ -320,7 +325,7 @@ const taglib = await TagLib.initialize();
 const fileInput = document.querySelector('input[type="file"]');
 const audioFile = fileInput.files[0];
 const audioData = new Uint8Array(await audioFile.arrayBuffer());
-const file = await taglib.open(audioData);  // Browser requires buffer
+const file = await taglib.open(audioData); // Browser requires buffer
 
 // Read metadata
 const tags = file.tag();
@@ -363,7 +368,7 @@ export default {
 
         // Get audio data from request
         const audioData = new Uint8Array(await request.arrayBuffer());
-        const file = await taglib.open(audioData);  // Workers require buffer
+        const file = await taglib.open(audioData); // Workers require buffer
 
         // Read metadata
         const tags = file.tag();
@@ -404,68 +409,27 @@ export default {
 
 ## 🛡️ Error Handling
 
-taglib-wasm provides detailed error messages with context to help you debug issues quickly. All errors extend from `TagLibError` and include specific error codes for programmatic handling.
-
-### Error Types
+taglib-wasm provides detailed error messages with context to help you debug
+issues quickly. All errors extend from `TagLibError` and include specific error
+codes for programmatic handling.
 
 ```typescript
-import {
-  InvalidFormatError,
-  UnsupportedFormatError,
-  FileOperationError,
-  isTagLibError,
-  TagLibErrorCode
-} from "taglib-wasm";
+import { InvalidFormatError, isTagLibError } from "taglib-wasm";
 
 try {
-  const file = await taglib.open(buffer);
+  const file = await taglib.open("song.mp3");
+  // Process file...
 } catch (error) {
-  if (isTagLibError(error)) {
-    switch (error.code) {
-      case TagLibErrorCode.INVALID_FORMAT:
-        // Error includes buffer size and hints
-        console.error(error.message);
-        // "Invalid audio file format: File may be corrupted or in an unsupported format. 
-        //  Buffer size: 256 bytes. Audio files must be at least 1KB to contain valid headers."
-        break;
-        
-      case TagLibErrorCode.UNSUPPORTED_FORMAT:
-        // Error shows actual format and supported formats
-        console.error(error.message);
-        // "Unsupported audio format: APE. Supported formats: MP3, MP4, M4A, FLAC, OGG, WAV"
-        break;
-        
-      case TagLibErrorCode.FILE_OPERATION_FAILED:
-        // Error includes operation type and file path
-        console.error(error.message);
-        // "Failed to read file. Path: /path/to/file.mp3. No such file or directory"
-        break;
-    }
+  if (error instanceof InvalidFormatError) {
+    console.error("Invalid audio file:", error.message);
+  } else if (isTagLibError(error)) {
+    console.error("TagLib error:", error.code, error.message);
   }
 }
 ```
 
-### Using Type Guards
-
-```typescript
-import {
-  isInvalidFormatError,
-  isFileOperationError,
-  isEnvironmentError
-} from "taglib-wasm";
-
-try {
-  const tags = await readTags("song.mp3");
-} catch (error) {
-  if (isInvalidFormatError(error)) {
-    console.log(`Invalid file, size: ${error.bufferSize} bytes`);
-  } else if (isFileOperationError(error)) {
-    console.log(`${error.operation} operation failed for: ${error.path}`);
-  } else if (isEnvironmentError(error)) {
-    console.log(`${error.environment} environment needs: ${error.requiredFeature}`);
-  }
-}
-```
+**📖 See [docs/Error-Handling.md](docs/Error-Handling.md) for complete error
+type reference and handling strategies**
 
 ## 📋 Supported Formats
 
@@ -621,158 +585,70 @@ npm test
 
 ### Key architecture decisions
 
-1. **Memory Management**: Uses Emscripten's `allocate()` for reliable JS↔Wasm
-   data transfer
-2. **Buffer-Based Processing**: `TagLib::ByteVectorStream` enables in-memory
-   file processing
-3. **C++ Wrapper**: Custom C functions bridge TagLib's C++ API to Wasm exports
-4. **Type Safety**: Complete TypeScript definitions for all audio formats and
-   metadata
+- **[Emscripten Embind](https://emscripten.org/docs/porting/connecting_cpp_and_javascript/embind.html)**
+  – Uses Embind for direct C++ class bindings instead of a C/C++ wrapper
+- **Memory Management** – Uses Emscripten's `allocate()` for reliable JS↔Wasm
+  data transfer
+- **Buffer-Based Processing** – `TagLib::ByteVectorStream` enables in-memory
+  file processing
+- **Type Safety** – Complete TypeScript definitions for all audio formats and
+  metadata
+
+### Why Emscripten Embind over C++ wrapper?
+
+#### Traditional C/C++ wrapper approach
+
+- Manual memory management for every string/array transfer
+- Explicit conversion functions for each data type
+- Flattened API losing object-oriented structure
+- More error-prone pointer manipulation
+
+#### Emscripten Embind
+
+- Automatic memory management with smart pointers
+- Direct class method exposure maintaining TagLib's design
+- Built-in UTF-8 string handling
+- Cleaner, more maintainable codebase
 
 ### Critical implementation details
 
-- **ByteVectorStream**: Enables processing audio files from memory buffers
+- **ByteVectorStream** – Enables processing audio files from memory buffers
   without filesystem
-- **ID-based Object Management**: C++ objects managed via integer IDs for memory
-  safety
-- **Emscripten allocate()**: Ensures proper memory synchronization between JS
+- **Embind Class Bindings** – Direct exposure of TagLib C++ classes to
+  JavaScript
+- **Emscripten allocate()** – Ensures proper memory synchronization between JS
   and Wasm
-- **UTF-8 String Handling**: Proper encoding for international metadata
+- **UTF-8 String Handling** – Automatic encoding via Embind's std::string
+  support
 
 ## 📚 API Reference
 
-### TagLib class
+Complete API documentation is available in the
+[**API Reference Guide**](docs/API-Reference.md), which covers:
 
-```typescript
-class TagLib {
-  static async initialize(config?: TagLibConfig): Promise<TagLib>;
-  open(input: string | ArrayBuffer | Uint8Array | File): Promise<AudioFile>;
-  updateFile(path: string, tags: Partial<Tag>): Promise<void>;
-  copyWithTags(sourcePath: string, destPath: string, tags: Partial<Tag>): Promise<void>;
-  version(): string;
-}
-```
+- **TagLib class** – Main entry point and initialization
+- **AudioFile class** – File operations and metadata access
+- **Tag interface** – Basic metadata getters and setters
+- **Simple API** – Convenience functions for common operations
+- **PropertyMap** – Extended metadata access
+- **Type definitions** – All TypeScript types and interfaces
 
-### AudioFile class
-
-```typescript
-class AudioFile {
-  // Validation
-  isValid(): boolean;
-  getFormat(): string;
-
-  // Properties
-  audioProperties(): AudioProperties;
-
-  // Tag Access (returns Tag object with getters and setters)
-  tag(): Tag;
-
-  // PropertyMap API for extended metadata
-  properties(): PropertyMap;
-  setProperties(properties: PropertyMap): void;
-  getProperty(key: string): string | undefined;
-  setProperty(key: string, value: string): void;
-
-  // MP4-specific methods
-  isMP4(): boolean;
-  getMP4Item(key: string): string | undefined;
-  setMP4Item(key: string, value: string): void;
-  removeMP4Item(key: string): void;
-
-  // File Operations
-  save(): boolean;
-  getFileBuffer(): Uint8Array;
-  saveToFile(path?: string): Promise<void>;
-  dispose(): void;
-}
-```
-
-### Tag interface
-
-```typescript
-interface Tag {
-  // Basic metadata (getters)
-  title: string;
-  artist: string;
-  album: string;
-  comment: string;
-  genre: string;
-  year: number;
-  track: number;
-
-  // Setters
-  setTitle(value: string): void;
-  setArtist(value: string): void;
-  setAlbum(value: string): void;
-  setComment(value: string): void;
-  setGenre(value: string): void;
-  setYear(value: number): void;
-  setTrack(value: number): void;
-}
-```
-
-### Simple API Functions
-
-```typescript
-// Read operations
-async function readTags(file: string | Uint8Array | ArrayBuffer | File): Promise<Tag>;
-async function readProperties(file: string | Uint8Array | ArrayBuffer | File): Promise<AudioProperties>;
-
-// Write operations
-async function writeTags(
-  file: string | Uint8Array | ArrayBuffer | File,
-  tags: Partial<Tag>,
-  options?: number
-): Promise<Uint8Array>;
-
-async function updateTags(
-  file: string,
-  tags: Partial<Tag>,
-  options?: number
-): Promise<void>;
-
-// Validation
-async function isValidAudioFile(file: string | Uint8Array | ArrayBuffer | File): Promise<boolean>;
-async function getFileFormat(file: string | Uint8Array | ArrayBuffer | File): Promise<string | null>;
-```
-
-### Error Handling
-
-`taglib-wasm` provides specific error types for better debugging and error handling:
-
-```typescript
-import { InvalidFormatError, isTagLibError } from "taglib-wasm";
-
-try {
-  const file = await taglib.open("song.mp3");
-  // Process file...
-} catch (error) {
-  if (error instanceof InvalidFormatError) {
-    console.error("Invalid audio file:", error.message);
-  } else if (isTagLibError(error)) {
-    console.error("TagLib error:", error.code, error.message);
-  }
-}
-```
-
-**📖 See [docs/Error-Handling.md](docs/Error-Handling.md) for complete error type reference and handling strategies**
-
-### PropertyMap type
-
-```typescript
-type PropertyMap = { [key: string]: string[] };
-```
+See the [**API Reference Guide**](docs/API-Reference.md) for detailed method
+signatures, parameters, and examples.
 
 ## 📖 Additional Documentation
 
-- [**Error Handling Guide**](docs/Error-Handling.md) - Complete error type reference and handling strategies
-- [**Tag Name Constants**](docs/Tag-Name-Constants.md) - Comprehensive reference
+- [**API Reference**](docs/API-Reference.md) – Complete API documentation with
+  method signatures and examples
+- [**Error Handling Guide**](docs/Error-Handling.md) – Complete error type
+  reference and handling strategies
+- [**Tag Name Constants**](docs/Tag-Name-Constants.md) – Comprehensive reference
   for standard tag names and cross-format mapping
-- [**Automatic Tag Mapping**](docs/Automatic-Tag-Mapping.md) - How taglib-wasm
+- [**Automatic Tag Mapping**](docs/Automatic-Tag-Mapping.md) – How taglib-wasm
   handles format-specific tag differences
-- [**Implementation Details**](docs/Implementation.md) - Technical details about
+- [**Implementation Details**](docs/Implementation.md) – Technical details about
   the Wasm implementation
-- [**Runtime Compatibility**](docs/Runtime-Compatibility.md) - Platform-specific
+- [**Runtime Compatibility**](docs/Runtime-Compatibility.md) – Platform-specific
   setup and considerations
 
 ## 🌐 Runtime Compatibility
@@ -791,11 +667,9 @@ detailed runtime information**
 
 ## 🚧 Known Limitations
 
-- **File Writing** – Saves only affect in-memory representation (no filesystem
-  persistence)
-- **Large Files** – Memory usage scales with file size (entire file loaded into
-  memory)
-- **Concurrent Access** – Not thread-safe (JavaScript single-threaded nature)
+- **Memory Usage** – Entire file must be loaded into memory (may be an issue for very large files)
+- **Concurrent Access** – Not thread-safe (JavaScript single-threaded nature mitigates this)
+- **Cloudflare Workers** – Limited to 128MB memory per request; files larger than ~100MB may fail
 
 ## 🤝 Contributing
 
