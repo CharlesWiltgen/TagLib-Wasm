@@ -221,7 +221,7 @@
   
   <script type="module">
     // Import taglib-wasm modules
-    import { readPictures, applyPictures, addPicture, getPictureMetadata } from '../../src/simple.ts';
+    import { readPictures, applyPictures, addPicture, getPictureMetadata } from '../../src/simple';
     import { 
       pictureToDataURL, 
       dataURLToPicture,
@@ -229,8 +229,8 @@
       canvasToPicture,
       displayPicture,
       createPictureGallery
-    } from '../../src/web-utils.ts';
-    import { PictureType } from '../../src/types.ts';
+    } from '../../src/web-utils';
+    import { PictureType } from '../../src/types';
     
     // Global state
     let currentAudioBuffer = null;
