@@ -2,7 +2,7 @@
  * @fileoverview Tests for enhanced error handling with context
  */
 
-import { assertEquals, assertRejects } from "jsr:@std/assert@^1.0.0";
+import { assertEquals, assertRejects, assertThrows } from "jsr:@std/assert@^1.0.0";
 import { TagLib } from "../src/taglib.ts";
 import { readTags, writeTags, readProperties } from "../src/simple.ts";
 import {
@@ -57,26 +57,23 @@ Deno.test("error messages include helpful context", async () => {
 Deno.test("format-specific errors provide clear guidance", async () => {
   const taglib = await TagLib.initialize();
   
-  // Create a valid MP3 file buffer (minimal ID3v2 header)
-  const mp3Buffer = new Uint8Array([
-    0x49, 0x44, 0x33, 0x04, 0x00, 0x00, // ID3v2.4 header
-    0x00, 0x00, 0x00, 0x00, // Size
-    ...new Array(2048).fill(0) // Padding
-  ]);
+  // Use a real MP3 file for testing
+  const mp3Buffer = await Deno.readFile("tests/test-files/mp3/kiss-snippet.mp3");
   
   const file = await taglib.open(mp3Buffer.buffer);
   
   try {
-    // Try to use MP4-specific method on MP3 file
-    await assertRejects(
-      async () => file.getMP4Item("----:com.apple.iTunes:iTunNORM"),
+    // Test getMP4Item - should throw synchronously, not async
+    assertThrows(
+      () => file.getMP4Item("----:com.apple.iTunes:iTunNORM"),
       UnsupportedFormatError,
       /MP3.*MP4, M4A/,
       "Should show actual format and supported formats"
     );
     
-    await assertRejects(
-      async () => file.setMP4Item("test", "value"),
+    // Test setMP4Item - should throw synchronously, not async
+    assertThrows(
+      () => file.setMP4Item("test", "value"),
       UnsupportedFormatError,
       /MP3.*MP4, M4A/,
       "Should show actual format and supported formats"
