@@ -3,7 +3,7 @@ name: Publish to NPM/GitHub
 on:
   push:
     tags:
-      - 'v*'
+      - "v*"
   release:
     types: [created]
   workflow_dispatch:
@@ -38,7 +38,7 @@ jobs:
         with:
           node-version: 20
           registry-url: https://registry.npmjs.org/
-      
+
       - run: npm install
 
       - name: Extract version
@@ -134,7 +134,7 @@ jobs:
         with:
           node-version: 20
           registry-url: https://npm.pkg.github.com/
-      
+
       - run: npm install
 
       - name: Debug npm config

@@ -59,24 +59,27 @@ export async function readFileData(
       throw new FileOperationError(
         "read",
         (error as Error).message,
-        file
+        file,
       );
     }
 
-    const env = typeof Deno !== "undefined" ? "Deno" :
-                typeof process !== "undefined" ? "Node.js" :
-                typeof (globalThis as any).Bun !== "undefined" ? "Bun" :
-                "Browser";
+    const env = typeof Deno !== "undefined"
+      ? "Deno"
+      : typeof process !== "undefined"
+      ? "Node.js"
+      : typeof (globalThis as any).Bun !== "undefined"
+      ? "Bun"
+      : "Browser";
     throw new EnvironmentError(
       env,
       "does not support file path reading",
-      "filesystem access"
+      "filesystem access",
     );
   }
 
   const inputType = Object.prototype.toString.call(file);
   throw new FileOperationError(
     "read",
-    `Invalid file input type: ${inputType}. Expected string path, Uint8Array, ArrayBuffer, or File object.`
+    `Invalid file input type: ${inputType}. Expected string path, Uint8Array, ArrayBuffer, or File object.`,
   );
 }

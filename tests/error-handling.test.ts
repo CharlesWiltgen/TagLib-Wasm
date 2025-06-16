@@ -2,22 +2,26 @@
  * @fileoverview Tests for enhanced error handling with context
  */
 
-import { assertEquals, assertRejects, assertThrows } from "jsr:@std/assert@^1.0.0";
-import { TagLib } from "../src/taglib.ts";
-import { readTags, writeTags, readProperties } from "../src/simple.ts";
 import {
-  InvalidFormatError,
-  UnsupportedFormatError,
-  FileOperationError,
-  MetadataError,
-  TagLibInitializationError,
+  assertEquals,
+  assertRejects,
+  assertThrows,
+} from "jsr:@std/assert@^1.0.0";
+import { TagLib } from "../src/taglib.ts";
+import { readProperties, readTags, writeTags } from "../src/simple.ts";
+import {
   EnvironmentError,
-  isInvalidFormatError,
-  isUnsupportedFormatError,
+  FileOperationError,
+  InvalidFormatError,
   isFileOperationError,
+  isInvalidFormatError,
   isMetadataError,
   isTagLibError,
+  isUnsupportedFormatError,
+  MetadataError,
   TagLibErrorCode,
+  TagLibInitializationError,
+  UnsupportedFormatError,
 } from "../src/errors.ts";
 
 /**
@@ -25,29 +29,29 @@ import {
  */
 Deno.test("error messages include helpful context", async () => {
   const taglib = await TagLib.initialize();
-  
+
   // Test with a tiny buffer
   const tinyBuffer = new Uint8Array(100);
-  
+
   await assertRejects(
     async () => await taglib.open(tinyBuffer.buffer),
     InvalidFormatError,
     "100 bytes",
-    "Should include buffer size and helpful hint about minimum size"
+    "Should include buffer size and helpful hint about minimum size",
   );
-  
+
   // Test with larger corrupted data
   const corruptedBuffer = new Uint8Array(5000);
   // Fill with random invalid data that won't match any file signature
   for (let i = 0; i < corruptedBuffer.length; i++) {
     corruptedBuffer[i] = (i * 17 + 123) % 256;
   }
-  
+
   await assertRejects(
     async () => await taglib.open(corruptedBuffer.buffer),
     InvalidFormatError,
     "Buffer size: 4.9 KB",
-    "Should show human-readable size and suggest corruption"
+    "Should show human-readable size and suggest corruption",
   );
 });
 
@@ -56,27 +60,29 @@ Deno.test("error messages include helpful context", async () => {
  */
 Deno.test("format-specific errors provide clear guidance", async () => {
   const taglib = await TagLib.initialize();
-  
+
   // Use a real MP3 file for testing
-  const mp3Buffer = await Deno.readFile("tests/test-files/mp3/kiss-snippet.mp3");
-  
+  const mp3Buffer = await Deno.readFile(
+    "tests/test-files/mp3/kiss-snippet.mp3",
+  );
+
   const file = await taglib.open(mp3Buffer.buffer);
-  
+
   try {
     // Test getMP4Item - should throw synchronously, not async
     assertThrows(
       () => file.getMP4Item("----:com.apple.iTunes:iTunNORM"),
       UnsupportedFormatError,
       "MP3",
-      "Should show actual format and supported formats"
+      "Should show actual format and supported formats",
     );
-    
+
     // Test setMP4Item - should throw synchronously, not async
     assertThrows(
       () => file.setMP4Item("test", "value"),
       UnsupportedFormatError,
       "MP3",
-      "Should show actual format and supported formats"
+      "Should show actual format and supported formats",
     );
   } finally {
     file.dispose();
@@ -92,15 +98,15 @@ Deno.test("file operation errors include operation context", async () => {
     async () => await readTags("/non/existent/file.mp3"),
     FileOperationError,
     "read",
-    "Should include operation type and file path"
+    "Should include operation type and file path",
   );
-  
+
   // Test invalid input type
   await assertRejects(
     async () => await readTags(123 as any),
     FileOperationError,
     "Invalid file input type",
-    "Should show the actual input type"
+    "Should show the actual input type",
   );
 });
 
@@ -112,17 +118,17 @@ Deno.test("environment errors indicate missing features", async () => {
   const originalDeno = (globalThis as any).Deno;
   const originalProcess = (globalThis as any).process;
   const originalBun = (globalThis as any).Bun;
-  
+
   try {
     delete (globalThis as any).Deno;
     delete (globalThis as any).process;
     delete (globalThis as any).Bun;
-    
+
     await assertRejects(
       async () => await readTags("test.mp3"),
       EnvironmentError,
       "Browser",
-      "Should identify environment and required feature"
+      "Should identify environment and required feature",
     );
   } finally {
     if (originalDeno) (globalThis as any).Deno = originalDeno;
@@ -136,17 +142,29 @@ Deno.test("environment errors indicate missing features", async () => {
  */
 Deno.test("error type guards work correctly", async () => {
   const taglib = await TagLib.initialize();
-  
+
   try {
     await taglib.open(new Uint8Array(50).buffer);
   } catch (error) {
     assertEquals(isTagLibError(error), true, "Should be a TagLibError");
-    assertEquals(isInvalidFormatError(error), true, "Should be InvalidFormatError");
-    assertEquals(isUnsupportedFormatError(error), false, "Should not be UnsupportedFormatError");
-    
+    assertEquals(
+      isInvalidFormatError(error),
+      true,
+      "Should be InvalidFormatError",
+    );
+    assertEquals(
+      isUnsupportedFormatError(error),
+      false,
+      "Should not be UnsupportedFormatError",
+    );
+
     if (isInvalidFormatError(error)) {
       assertEquals(error.bufferSize, 50, "Should have buffer size");
-      assertEquals(error.code, TagLibErrorCode.INVALID_FORMAT, "Should have correct error code");
+      assertEquals(
+        error.code,
+        TagLibErrorCode.INVALID_FORMAT,
+        "Should have correct error code",
+      );
     }
   }
 });
@@ -157,20 +175,53 @@ Deno.test("error type guards work correctly", async () => {
 Deno.test("metadata errors include field context", async () => {
   // Create a minimal but valid WAV file
   const wavHeader = new Uint8Array([
-    0x52, 0x49, 0x46, 0x46, // "RIFF"
-    0x24, 0x08, 0x00, 0x00, // File size - 8
-    0x57, 0x41, 0x56, 0x45, // "WAVE"
-    0x66, 0x6D, 0x74, 0x20, // "fmt "
-    0x10, 0x00, 0x00, 0x00, // Subchunk1Size
-    0x01, 0x00, 0x02, 0x00, // AudioFormat, NumChannels
-    0x44, 0xAC, 0x00, 0x00, // SampleRate (44100)
-    0x10, 0xB1, 0x02, 0x00, // ByteRate
-    0x04, 0x00, 0x10, 0x00, // BlockAlign, BitsPerSample
-    0x64, 0x61, 0x74, 0x61, // "data"
-    0x00, 0x08, 0x00, 0x00, // Subchunk2Size
-    ...new Array(2048).fill(0) // Audio data
+    0x52,
+    0x49,
+    0x46,
+    0x46, // "RIFF"
+    0x24,
+    0x08,
+    0x00,
+    0x00, // File size - 8
+    0x57,
+    0x41,
+    0x56,
+    0x45, // "WAVE"
+    0x66,
+    0x6D,
+    0x74,
+    0x20, // "fmt "
+    0x10,
+    0x00,
+    0x00,
+    0x00, // Subchunk1Size
+    0x01,
+    0x00,
+    0x02,
+    0x00, // AudioFormat, NumChannels
+    0x44,
+    0xAC,
+    0x00,
+    0x00, // SampleRate (44100)
+    0x10,
+    0xB1,
+    0x02,
+    0x00, // ByteRate
+    0x04,
+    0x00,
+    0x10,
+    0x00, // BlockAlign, BitsPerSample
+    0x64,
+    0x61,
+    0x74,
+    0x61, // "data"
+    0x00,
+    0x08,
+    0x00,
+    0x00, // Subchunk2Size
+    ...new Array(2048).fill(0), // Audio data
   ]);
-  
+
   const props = await readProperties(wavHeader);
   // WAV files should return valid properties
   assertEquals(typeof props.length, "number", "Should have duration");
@@ -182,7 +233,7 @@ Deno.test("metadata errors include field context", async () => {
  */
 Deno.test("error codes enable programmatic error handling", async () => {
   const taglib = await TagLib.initialize();
-  
+
   try {
     await taglib.open(new Uint8Array(10).buffer);
   } catch (error) {

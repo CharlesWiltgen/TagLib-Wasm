@@ -84,7 +84,7 @@ export interface AudioPropertiesWrapper {
   channels(): number;
 }
 
-export interface TagLibModule extends Omit<EmscriptenModule, 'then'> {
+export interface TagLibModule extends Omit<EmscriptenModule, "then"> {
   // Embind classes
   FileHandle: new () => FileHandle;
   TagWrapper: new () => TagWrapper;
