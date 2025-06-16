@@ -36,11 +36,10 @@ fi
 echo "📥 Pulling latest changes..."
 git pull origin main
 
-# Update version in package.json and deno.json
+# Update version in package.json
 echo "📝 Updating version to $VERSION..."
 sed -i.bak "s/\"version\": \"[^\"]*\"/\"version\": \"$VERSION\"/" package.json
-sed -i.bak "s/\"version\": \"[^\"]*\"/\"version\": \"$VERSION\"/" deno.json
-rm package.json.bak deno.json.bak
+rm package.json.bak
 
 # Run tests
 echo "🧪 Running tests..."
