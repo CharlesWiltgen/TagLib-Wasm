@@ -13,19 +13,19 @@ import {
   assertEquals,
   assertExists,
   assertThrows,
-} from "https://deno.land/std@0.224.0/assert/mod";
-import { TagLib } from "../src/mod";
-import type { AudioFile } from "../src/mod";
+} from "https://deno.land/std@0.224.0/assert/mod.ts";
+import { TagLib } from "../src/mod.ts";
+import type { AudioFile } from "../src/mod.ts";
 import {
   getFormat,
   isValidAudioFile,
   readProperties,
   readTags,
   writeTags,
-} from "../src/simple";
-import { processAudioMetadata, TagLibWorkers } from "../src/workers";
-import { isCloudflareWorkers } from "../src/wasm-workers";
-import { TEST_FILES, EXPECTED_FORMATS } from "./test-utils";
+} from "../src/simple.ts";
+import { processAudioMetadata, TagLibWorkers } from "../src/workers.ts";
+import { isCloudflareWorkers } from "../src/wasm-workers.ts";
+import { TEST_FILES, EXPECTED_FORMATS } from "./test-utils.ts";
 
 // =============================================================================
 // Initialization Tests

@@ -8,8 +8,8 @@
 import {
   isCloudflareWorkers,
   loadTagLibModuleForWorkers,
-} from "../src/wasm-workers";
-import { processAudioMetadata, TagLibWorkers } from "../src/workers";
+} from "../src/wasm-workers.ts";
+import { processAudioMetadata, TagLibWorkers } from "../src/workers.ts";
 
 async function testWorkersCompatibility() {
   console.log("🧪 Testing Cloudflare Workers compatibility...\n");

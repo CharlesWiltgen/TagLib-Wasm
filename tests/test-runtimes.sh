@@ -7,7 +7,7 @@ echo "=============================================="
 # Create a simple test file
 cat > runtime-test.ts << 'EOF'
 // Simple runtime test
-import { readTags, readProperties, getFormat } from "./src/simple";
+import { readTags, readProperties, getFormat } from "./src/simple.ts";
 
 const testFile = "./tests/test-files/mp3/kiss-snippet.mp3";
 

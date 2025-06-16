@@ -12,8 +12,8 @@
  * - Web browser integration
  */
 
-import { TagLib } from "../src/taglib";
-import { PictureType } from "../src/types";
+import { TagLib } from "../src/taglib.ts";
+import { PictureType } from "../src/types.ts";
 import { 
   readPictures, 
   applyPictures, 
@@ -24,7 +24,7 @@ import {
   findPictureByType,
   replacePictureByType,
   getPictureMetadata
-} from "../src/simple";
+} from "../src/simple.ts";
 import {
   exportCoverArt,
   importCoverArt,
@@ -32,7 +32,7 @@ import {
   copyCoverArt,
   findCoverArtFiles,
   loadPictureFromFile
-} from "../src/file-utils";
+} from "../src/file-utils.ts";
 
 // Helper to load an image file
 async function loadImage(path: string): Promise<Uint8Array> {

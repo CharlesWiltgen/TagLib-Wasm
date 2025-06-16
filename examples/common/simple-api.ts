@@ -14,10 +14,10 @@ import {
   readProperties,
   readTags,
   writeTags,
-} from "../src/simple";
+} from "../src/simple.ts";
 
 // For go-taglib style constants
-import * as taglib from "../../src/simple";
+import * as taglib from "../../src/simple.ts";
 
 async function demonstrateSimpleAPI() {
   console.log("🎵 taglib-wasm - Simple API Examples");

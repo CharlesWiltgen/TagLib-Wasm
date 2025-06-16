@@ -7,7 +7,7 @@
  * for type-safe property access with IDE autocomplete.
  */
 
-import { getAllTagNames, isValidTagName, TagLib, Tags } from "../../index";
+import { getAllTagNames, isValidTagName, TagLib, Tags } from "../../index.ts";
 
 async function demonstrateTagConstants() {
   console.log("🏷️  taglib-wasm - Tag Constants Example");
