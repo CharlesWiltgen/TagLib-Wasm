@@ -4,6 +4,7 @@ import type {
   FileType,
   PropertyMap,
   Tag as BasicTag,
+  Picture,
 } from "./types.ts";
 import {
   InvalidFormatError,
@@ -184,10 +185,155 @@ export interface AudioFile {
   isValid(): boolean;
 
   /**
+   * Get all pictures/cover art from the audio file.
+   * @returns Array of Picture objects
+   */
+  getPictures(): Picture[];
+
+  /**
+   * Set pictures/cover art in the audio file (replaces all existing).
+   * @param pictures - Array of Picture objects to set
+   */
+  setPictures(pictures: Picture[]): void;
+
+  /**
+   * Add a single picture to the audio file.
+   * @param picture - Picture object to add
+   */
+  addPicture(picture: Picture): void;
+
+  /**
+   * Remove all pictures from the audio file.
+   */
+  removePictures(): void;
+
+  /**
    * Release all resources associated with this file.
    * Always call this when done to prevent memory leaks.
    */
   dispose(): void;
+
+  // Extended metadata helper methods
+
+  /**
+   * Get MusicBrainz Track ID.
+   * @returns MusicBrainz Track ID or undefined if not set
+   */
+  getMusicBrainzTrackId(): string | undefined;
+
+  /**
+   * Set MusicBrainz Track ID.
+   * @param id - MusicBrainz Track ID (UUID format)
+   */
+  setMusicBrainzTrackId(id: string): void;
+
+  /**
+   * Get MusicBrainz Release ID.
+   * @returns MusicBrainz Release ID or undefined if not set
+   */
+  getMusicBrainzReleaseId(): string | undefined;
+
+  /**
+   * Set MusicBrainz Release ID.
+   * @param id - MusicBrainz Release ID (UUID format)
+   */
+  setMusicBrainzReleaseId(id: string): void;
+
+  /**
+   * Get MusicBrainz Artist ID.
+   * @returns MusicBrainz Artist ID or undefined if not set
+   */
+  getMusicBrainzArtistId(): string | undefined;
+
+  /**
+   * Set MusicBrainz Artist ID.
+   * @param id - MusicBrainz Artist ID (UUID format)
+   */
+  setMusicBrainzArtistId(id: string): void;
+
+  /**
+   * Get AcoustID fingerprint.
+   * @returns AcoustID fingerprint or undefined if not set
+   */
+  getAcoustIdFingerprint(): string | undefined;
+
+  /**
+   * Set AcoustID fingerprint.
+   * @param fingerprint - AcoustID fingerprint
+   */
+  setAcoustIdFingerprint(fingerprint: string): void;
+
+  /**
+   * Get AcoustID ID.
+   * @returns AcoustID ID or undefined if not set
+   */
+  getAcoustIdId(): string | undefined;
+
+  /**
+   * Set AcoustID ID.
+   * @param id - AcoustID ID
+   */
+  setAcoustIdId(id: string): void;
+
+  /**
+   * Get ReplayGain track gain.
+   * @returns ReplayGain track gain (e.g., "-6.54 dB") or undefined
+   */
+  getReplayGainTrackGain(): string | undefined;
+
+  /**
+   * Set ReplayGain track gain.
+   * @param gain - ReplayGain track gain (e.g., "-6.54 dB")
+   */
+  setReplayGainTrackGain(gain: string): void;
+
+  /**
+   * Get ReplayGain track peak.
+   * @returns ReplayGain track peak (0.0-1.0) or undefined
+   */
+  getReplayGainTrackPeak(): string | undefined;
+
+  /**
+   * Set ReplayGain track peak.
+   * @param peak - ReplayGain track peak (0.0-1.0)
+   */
+  setReplayGainTrackPeak(peak: string): void;
+
+  /**
+   * Get ReplayGain album gain.
+   * @returns ReplayGain album gain (e.g., "-7.89 dB") or undefined
+   */
+  getReplayGainAlbumGain(): string | undefined;
+
+  /**
+   * Set ReplayGain album gain.
+   * @param gain - ReplayGain album gain (e.g., "-7.89 dB")
+   */
+  setReplayGainAlbumGain(gain: string): void;
+
+  /**
+   * Get ReplayGain album peak.
+   * @returns ReplayGain album peak (0.0-1.0) or undefined
+   */
+  getReplayGainAlbumPeak(): string | undefined;
+
+  /**
+   * Set ReplayGain album peak.
+   * @param peak - ReplayGain album peak (0.0-1.0)
+   */
+  setReplayGainAlbumPeak(peak: string): void;
+
+  /**
+   * Get Apple Sound Check normalization data.
+   * @returns Apple Sound Check data (iTunNORM) or undefined
+   */
+  getAppleSoundCheck(): string | undefined;
+
+  /**
+   * Set Apple Sound Check normalization data.
+   * @param data - Apple Sound Check data (iTunNORM format)
+   */
+  setAppleSoundCheck(data: string): void;
 }
 
 /**
@@ -383,6 +529,55 @@ export class AudioFileImpl implements AudioFile {
   }
 
   /** @inheritdoc */
+  getPictures(): Picture[] {
+    const picturesArray = this.fileHandle.getPictures();
+    const pictures: Picture[] = [];
+    
+    // Convert from Emscripten array to TypeScript array
+    for (let i = 0; i < picturesArray.length; i++) {
+      const pic = picturesArray[i];
+      pictures.push({
+        mimeType: pic.mimeType,
+        data: pic.data,
+        type: pic.type,
+        description: pic.description
+      });
+    }
+    
+    return pictures;
+  }
+
+  /** @inheritdoc */
+  setPictures(pictures: Picture[]): void {
+    // Convert TypeScript array to format expected by C++
+    const picturesArray = pictures.map(pic => ({
+      mimeType: pic.mimeType,
+      data: pic.data,
+      type: pic.type,
+      description: pic.description || ""
+    }));
+    
+    this.fileHandle.setPictures(picturesArray);
+  }
+
+  /** @inheritdoc */
+  addPicture(picture: Picture): void {
+    const pic = {
+      mimeType: picture.mimeType,
+      data: picture.data,
+      type: picture.type,
+      description: picture.description || ""
+    };
+    
+    this.fileHandle.addPicture(pic);
+  }
+
+  /** @inheritdoc */
+  removePictures(): void {
+    this.fileHandle.removePictures();
+  }
+
+  /** @inheritdoc */
   dispose(): void {
     if (this.fileHandle) {
       // Explicitly destroy the C++ object to free memory immediately
@@ -393,6 +588,129 @@ export class AudioFileImpl implements AudioFile {
       this.fileHandle = null;
       this.cachedTag = null;
       this.cachedAudioProperties = null;
+    }
+  }
+
+  // Extended metadata implementations
+
+  /** @inheritdoc */
+  getMusicBrainzTrackId(): string | undefined {
+    const value = this.getProperty("MUSICBRAINZ_TRACKID");
+    return value || undefined;
+  }
+
+  /** @inheritdoc */
+  setMusicBrainzTrackId(id: string): void {
+    this.setProperty("MUSICBRAINZ_TRACKID", id);
+  }
+
+  /** @inheritdoc */
+  getMusicBrainzReleaseId(): string | undefined {
+    const value = this.getProperty("MUSICBRAINZ_ALBUMID");
+    return value || undefined;
+  }
+
+  /** @inheritdoc */
+  setMusicBrainzReleaseId(id: string): void {
+    this.setProperty("MUSICBRAINZ_ALBUMID", id);
+  }
+
+  /** @inheritdoc */
+  getMusicBrainzArtistId(): string | undefined {
+    const value = this.getProperty("MUSICBRAINZ_ARTISTID");
+    return value || undefined;
+  }
+
+  /** @inheritdoc */
+  setMusicBrainzArtistId(id: string): void {
+    this.setProperty("MUSICBRAINZ_ARTISTID", id);
+  }
+
+  /** @inheritdoc */
+  getAcoustIdFingerprint(): string | undefined {
+    const value = this.getProperty("ACOUSTID_FINGERPRINT");
+    return value || undefined;
+  }
+
+  /** @inheritdoc */
+  setAcoustIdFingerprint(fingerprint: string): void {
+    this.setProperty("ACOUSTID_FINGERPRINT", fingerprint);
+  }
+
+  /** @inheritdoc */
+  getAcoustIdId(): string | undefined {
+    const value = this.getProperty("ACOUSTID_ID");
+    return value || undefined;
+  }
+
+  /** @inheritdoc */
+  setAcoustIdId(id: string): void {
+    this.setProperty("ACOUSTID_ID", id);
+  }
+
+  /** @inheritdoc */
+  getReplayGainTrackGain(): string | undefined {
+    const value = this.getProperty("REPLAYGAIN_TRACK_GAIN");
+    return value || undefined;
+  }
+
+  /** @inheritdoc */
+  setReplayGainTrackGain(gain: string): void {
+    this.setProperty("REPLAYGAIN_TRACK_GAIN", gain);
+  }
+
+  /** @inheritdoc */
+  getReplayGainTrackPeak(): string | undefined {
+    const value = this.getProperty("REPLAYGAIN_TRACK_PEAK");
+    return value || undefined;
+  }
+
+  /** @inheritdoc */
+  setReplayGainTrackPeak(peak: string): void {
+    this.setProperty("REPLAYGAIN_TRACK_PEAK", peak);
+  }
+
+  /** @inheritdoc */
+  getReplayGainAlbumGain(): string | undefined {
+    const value = this.getProperty("REPLAYGAIN_ALBUM_GAIN");
+    return value || undefined;
+  }
+
+  /** @inheritdoc */
+  setReplayGainAlbumGain(gain: string): void {
+    this.setProperty("REPLAYGAIN_ALBUM_GAIN", gain);
+  }
+
+  /** @inheritdoc */
+  getReplayGainAlbumPeak(): string | undefined {
+    const value = this.getProperty("REPLAYGAIN_ALBUM_PEAK");
+    return value || undefined;
+  }
+
+  /** @inheritdoc */
+  setReplayGainAlbumPeak(peak: string): void {
+    this.setProperty("REPLAYGAIN_ALBUM_PEAK", peak);
+  }
+
+  /** @inheritdoc */
+  getAppleSoundCheck(): string | undefined {
+    // Apple Sound Check is stored differently in MP4 files
+    if (this.isMP4()) {
+      return this.getMP4Item("iTunNORM");
+    }
+    // For other formats, it might be in properties
+    const value = this.getProperty("ITUNESOUNDCHECK");
+    return value || undefined;
+  }
+
+  /** @inheritdoc */
+  setAppleSoundCheck(data: string): void {
+    // Apple Sound Check is stored differently in MP4 files
+    if (this.isMP4()) {
+      this.setMP4Item("iTunNORM", data);
+    } else {
+      // For other formats, store in properties
+      this.setProperty("ITUNESOUNDCHECK", data);
     }
   }
 }

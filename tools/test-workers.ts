@@ -2,7 +2,7 @@
  * @fileoverview Manual test for Cloudflare Workers compatibility (simulated environment)
  *
  * This is a utility script for manual testing, not part of the main test suite.
- * Run manually with: deno run --allow-read tests/test-workers.ts
+ * Run manually with: deno run --allow-read tools/test-workers.ts
  */
 
 import {
@@ -22,7 +22,7 @@ async function testWorkersCompatibility() {
   try {
     // Load WASM binary
     console.log("2. Loading WASM binary...");
-    const wasmPath = new URL("./build/taglib.wasm", import.meta.url).pathname;
+    const wasmPath = new URL("../build/taglib.wasm", import.meta.url).pathname;
     const wasmBinary = await Deno.readFile(wasmPath);
     console.log(`   ✓ WASM binary loaded: ${wasmBinary.length} bytes\n`);
 
@@ -58,7 +58,7 @@ async function testWorkersCompatibility() {
 
       // Test with actual audio file
       console.log("5. Testing with audio file...");
-      const testAudioPath = "./test-files/mp3/kiss-snippet.mp3";
+      const testAudioPath = "../tests/test-files/mp3/kiss-snippet.mp3";
 
       try {
         const audioData = await Deno.readFile(testAudioPath);
