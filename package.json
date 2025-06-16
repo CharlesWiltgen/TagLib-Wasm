@@ -41,7 +41,7 @@
     "test:extended": "deno test --allow-read --allow-write tests/extended-metadata.test.ts",
     "test:multi-runtime": "./tests/test-runtimes.sh",
     "test:bun": "bun test tests/index.test.ts",
-    "test:node": "node --loader ts-node/esm --test tests/index.test.ts",
+    "test:node": "tsx --test tests/index.test.ts",
     "test:watch": "deno test --allow-read --allow-write --watch tests/",
     "test:coverage": "deno test --allow-read --allow-write --coverage=coverage tests/ && deno coverage coverage",
     "docs:dev": "cd docs && npm install && npm run dev",
@@ -93,6 +93,7 @@
     "@types/emscripten": "^1.39.6",
     "@types/node": "^20.0.0",
     "esbuild": "^0.25.5",
+    "tsx": "^4.20.3",
     "typescript": "^5.0.0"
   },
   "peerDependencies": {
