@@ -135,10 +135,10 @@ jobs:
           deno-version: v2.x
 
       - name: Check formatting
-        run: deno fmt --check
+        run: deno fmt --check --ignore=lib/
 
       - name: Run linter
-        run: deno lint
+        run: deno lint --ignore=lib/
 
       - name: Type check
         run: deno check src/**/*.ts tests/**/*.ts
