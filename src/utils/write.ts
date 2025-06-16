@@ -3,7 +3,7 @@
  * Provides cross-runtime support for writing files
  */
 
-import { EnvironmentError, FileOperationError } from "../errors";
+import { EnvironmentError, FileOperationError } from "../errors.ts";
 
 /**
  * Write data to a file across different runtimes.

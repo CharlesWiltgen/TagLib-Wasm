@@ -3,9 +3,9 @@
  * Combines tests from test-pictures.ts and test-cover-art-helpers.ts
  */
 
-import { assertEquals, assertExists, assert } from "https://deno.land/std@0.224.0/assert/mod";
-import { TagLib } from "../src/taglib";
-import { readFileData } from "../src/utils/file";
+import { assertEquals, assertExists, assert } from "https://deno.land/std@0.224.0/assert/mod.ts";
+import { TagLib } from "../src/taglib.ts";
+import { readFileData } from "../src/utils/file.ts";
 import { 
   readPictures, 
   applyPictures, 
@@ -16,7 +16,7 @@ import {
   findPictureByType,
   replacePictureByType,
   getPictureMetadata
-} from "../src/simple";
+} from "../src/simple.ts";
 import {
   exportCoverArt,
   importCoverArt,
@@ -24,11 +24,11 @@ import {
   copyCoverArt,
   loadPictureFromFile,
   savePictureToFile
-} from "../src/file-utils";
+} from "../src/file-utils.ts";
 import {
   pictureToDataURL,
   dataURLToPicture,
-} from "../src/web-utils";
+} from "../src/web-utils.ts";
 import {
   TEST_FILES,
   RED_PNG,
@@ -37,7 +37,7 @@ import {
   createTestImages,
   cleanupTestImages,
   PictureType
-} from "./test-utils";
+} from "./test-utils.ts";
 
 // =============================================================================
 // Core Picture API Tests

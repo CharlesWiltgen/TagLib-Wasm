@@ -43,7 +43,7 @@ export {
   AudioFileImpl as AudioFile,
   createTagLib,
   TagLib,
-} from "./src/taglib";
+} from "./src/taglib.ts";
 
 /**
  * Error types for proper error handling and debugging.
@@ -73,7 +73,7 @@ export {
   TagLibError,
   TagLibInitializationError,
   UnsupportedFormatError,
-} from "./src/errors";
+} from "./src/errors.ts";
 
 /**
  * Simple API exports for easy tag reading and writing.
@@ -105,7 +105,7 @@ export {
   isValidAudioFile,
   getFormat,
   clearTags
-} from "./src/simple";
+} from "./src/simple.ts";
 
 /**
  * Constants and utilities for tag name validation.
@@ -119,7 +119,7 @@ export {
   getAllTagNames,
   isValidTagName,
   Tags,
-} from "./src/constants";
+} from "./src/constants.ts";
 /**
  * File I/O utilities for cover art operations.
  * @see {@link exportCoverArt} - Export cover art to file
@@ -136,7 +136,7 @@ export {
   savePictureToFile,
   copyCoverArt,
   findCoverArtFiles
-} from "./src/file-utils";
+} from "./src/file-utils.ts";
 
 /**
  * Web browser utilities for cover art operations.
@@ -153,7 +153,7 @@ export {
   displayPicture,
   createPictureDownloadURL,
   createPictureGallery
-} from "./src/web-utils";
+} from "./src/web-utils.ts";
 
 /**
  * Type exports for TypeScript users.
@@ -176,22 +176,22 @@ export type {
   Tag,
   TagLibConfig,
   TagName,
-} from "./src/types";
+} from "./src/types.ts";
 
 /**
  * Enum exports
  */
-export { PictureType } from "./src/types";
+export { PictureType } from "./src/types.ts";
 
 /**
  * Wasm module types for advanced usage.
  * @see {@link TagLibModule} - Full TagLib Wasm module interface
  * @see {@link WasmModule} - Base Emscripten module interface
  */
-export type { TagLibModule, WasmModule } from "./src/wasm";
+export type { TagLibModule, WasmModule } from "./src/wasm.ts";
 
 // Import the type for use in this file
-import type { TagLibModule } from "./src/wasm";
+import type { TagLibModule } from "./src/wasm.ts";
 
 /**
  * Load the TagLib Wasm module.
@@ -216,5 +216,5 @@ export async function loadTagLibModule(): Promise<TagLibModule> {
   // Now that we're using ES6 modules, we can use dynamic import directly
   const { default: createTagLibModule } = await import("./build/taglib-wrapper.js");
   const module = await createTagLibModule();
-  return Promise.resolve(module as TagLibModule);
+  return module as TagLibModule;
 }
