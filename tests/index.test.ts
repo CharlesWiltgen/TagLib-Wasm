@@ -1,6 +1,6 @@
 /**
  * @fileoverview Comprehensive test suite for taglib-wasm
- * 
+ *
  * This file imports and runs all test modules to ensure complete coverage.
  * Individual test files can still be run separately for focused testing.
  */

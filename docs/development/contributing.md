@@ -1,10 +1,12 @@
 # Contributing to taglib-wasm
 
-Thank you for your interest in contributing to taglib-wasm! This document provides guidelines and instructions for contributing.
+Thank you for your interest in contributing to taglib-wasm! This document
+provides guidelines and instructions for contributing.
 
 ## 🤝 Code of Conduct
 
-Be respectful and constructive in all interactions. We're here to build great software together.
+Be respectful and constructive in all interactions. We're here to build great
+software together.
 
 ## 🚀 Getting Started
 
@@ -99,6 +101,7 @@ npm run test:watch
 - Include edge cases for new features
 
 Example test:
+
 ```typescript
 Deno.test("feature description", async () => {
   const taglib = await TagLib.initialize();
@@ -158,6 +161,7 @@ Use the Conventional Commits specification:
 ```
 
 #### Types
+
 - `feat`: New feature
 - `fix`: Bug fix
 - `docs`: Documentation changes
@@ -168,6 +172,7 @@ Use the Conventional Commits specification:
 - `perf`: Performance improvements
 
 #### Examples
+
 ```
 feat: add FLAC metadata support
 fix: resolve memory leak in dispose method
@@ -200,6 +205,7 @@ If you modify the C++ wrapper (`build/taglib_embind.cpp`):
 ### When to Update Docs
 
 Update documentation when you:
+
 - Add new features
 - Change API behavior
 - Fix confusing aspects
@@ -223,21 +229,21 @@ Update documentation when you:
 ### Issue Template
 
 ```markdown
-**Description**
-Clear description of the issue
+**Description** Clear description of the issue
 
 **Steps to Reproduce**
+
 1. Code example
 2. Expected behavior
 3. Actual behavior
 
 **Environment**
+
 - taglib-wasm version:
 - Runtime: [Deno/Node.js/Browser]
 - OS:
 
-**Additional Context**
-Error messages, logs, etc.
+**Additional Context** Error messages, logs, etc.
 ```
 
 ## 🚀 Pull Request Process
@@ -252,20 +258,24 @@ Error messages, logs, etc.
 
 ```markdown
 ## Description
+
 Brief description of changes
 
 ## Type of Change
+
 - [ ] Bug fix
 - [ ] New feature
 - [ ] Breaking change
 - [ ] Documentation update
 
 ## Testing
+
 - [ ] All tests pass
 - [ ] Added new tests
 - [ ] Tested on [Deno/Node.js/Bun/Browser]
 
 ## Checklist
+
 - [ ] Follows code style
 - [ ] Updated documentation
 - [ ] Added to CHANGELOG (if applicable)
@@ -290,4 +300,5 @@ This uses git subtree to update `lib/taglib/`.
 
 ## 🙏 Thank You!
 
-Your contributions make taglib-wasm better for everyone. We appreciate your time and effort!
+Your contributions make taglib-wasm better for everyone. We appreciate your time
+and effort!

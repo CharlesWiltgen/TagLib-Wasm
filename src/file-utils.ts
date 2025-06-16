@@ -19,11 +19,11 @@
 import type { Picture } from "./types.ts";
 import { PictureType } from "./types.ts";
 import {
-  readPictures,
   applyPictures,
-  setCoverArt,
   getCoverArt,
+  readPictures,
   replacePictureByType,
+  setCoverArt,
 } from "./simple.ts";
 import { readFileData } from "./utils/file.ts";
 import { writeFileData } from "./utils/write.ts";
@@ -53,7 +53,7 @@ export async function exportCoverArt(
   if (!coverData) {
     throw new Error(`No cover art found in: ${audioPath}`);
   }
-  
+
   await writeFileData(imagePath, coverData);
 }
 
@@ -82,12 +82,12 @@ export async function exportPictureByType(
   type: PictureType,
 ): Promise<void> {
   const pictures = await readPictures(audioPath);
-  const picture = pictures.find(pic => pic.type === type);
-  
+  const picture = pictures.find((pic) => pic.type === type);
+
   if (!picture) {
     throw new Error(`No picture of type ${type} found in: ${audioPath}`);
   }
-  
+
   await writeFileData(imagePath, picture.data);
 }
 
@@ -117,13 +117,13 @@ export async function exportAllPictures(
 ): Promise<string[]> {
   const pictures = await readPictures(audioPath);
   const exportedPaths: string[] = [];
-  
+
   // Ensure directory ends with separator
-  const dir = outputDir.endsWith('/') ? outputDir : outputDir + '/';
-  
+  const dir = outputDir.endsWith("/") ? outputDir : outputDir + "/";
+
   for (let i = 0; i < pictures.length; i++) {
     const picture = pictures[i];
-    
+
     // Determine filename
     let filename: string;
     if (options.nameFormat) {
@@ -131,36 +131,36 @@ export async function exportAllPictures(
     } else {
       // Default naming: type-index.ext
       const typeNames: Record<number, string> = {
-        [PictureType.FrontCover]: 'front-cover',
-        [PictureType.BackCover]: 'back-cover',
-        [PictureType.LeafletPage]: 'leaflet',
-        [PictureType.Media]: 'media',
-        [PictureType.LeadArtist]: 'lead-artist',
-        [PictureType.Artist]: 'artist',
-        [PictureType.Conductor]: 'conductor',
-        [PictureType.Band]: 'band',
-        [PictureType.Composer]: 'composer',
-        [PictureType.Lyricist]: 'lyricist',
-        [PictureType.RecordingLocation]: 'recording-location',
-        [PictureType.DuringRecording]: 'during-recording',
-        [PictureType.DuringPerformance]: 'during-performance',
-        [PictureType.MovieScreenCapture]: 'screen-capture',
-        [PictureType.ColouredFish]: 'fish',
-        [PictureType.Illustration]: 'illustration',
-        [PictureType.BandLogo]: 'band-logo',
-        [PictureType.PublisherLogo]: 'publisher-logo',
+        [PictureType.FrontCover]: "front-cover",
+        [PictureType.BackCover]: "back-cover",
+        [PictureType.LeafletPage]: "leaflet",
+        [PictureType.Media]: "media",
+        [PictureType.LeadArtist]: "lead-artist",
+        [PictureType.Artist]: "artist",
+        [PictureType.Conductor]: "conductor",
+        [PictureType.Band]: "band",
+        [PictureType.Composer]: "composer",
+        [PictureType.Lyricist]: "lyricist",
+        [PictureType.RecordingLocation]: "recording-location",
+        [PictureType.DuringRecording]: "during-recording",
+        [PictureType.DuringPerformance]: "during-performance",
+        [PictureType.MovieScreenCapture]: "screen-capture",
+        [PictureType.ColouredFish]: "fish",
+        [PictureType.Illustration]: "illustration",
+        [PictureType.BandLogo]: "band-logo",
+        [PictureType.PublisherLogo]: "publisher-logo",
       };
-      
-      const typeName = typeNames[picture.type] || 'other';
-      const ext = picture.mimeType.split('/')[1] || 'jpg';
+
+      const typeName = typeNames[picture.type] || "other";
+      const ext = picture.mimeType.split("/")[1] || "jpg";
       filename = `${typeName}-${i + 1}.${ext}`;
     }
-    
+
     const fullPath = dir + filename;
     await writeFileData(fullPath, picture.data);
     exportedPaths.push(fullPath);
   }
-  
+
   return exportedPaths;
 }
 
@@ -190,22 +190,22 @@ export async function importCoverArt(
   } = {},
 ): Promise<void> {
   const imageData = await readFileData(imagePath);
-  
+
   // Detect MIME type from file extension if not provided
   let mimeType = options.mimeType;
   if (!mimeType) {
-    const ext = imagePath.split('.').pop()?.toLowerCase();
+    const ext = imagePath.split(".").pop()?.toLowerCase();
     const mimeTypes: Record<string, string> = {
-      'jpg': 'image/jpeg',
-      'jpeg': 'image/jpeg',
-      'png': 'image/png',
-      'gif': 'image/gif',
-      'webp': 'image/webp',
-      'bmp': 'image/bmp',
+      "jpg": "image/jpeg",
+      "jpeg": "image/jpeg",
+      "png": "image/png",
+      "gif": "image/gif",
+      "webp": "image/webp",
+      "bmp": "image/bmp",
     };
-    mimeType = mimeTypes[ext || ''] || 'image/jpeg';
+    mimeType = mimeTypes[ext || ""] || "image/jpeg";
   }
-  
+
   const modifiedBuffer = await setCoverArt(audioPath, imageData, mimeType);
   await writeFileData(audioPath, modifiedBuffer);
 }
@@ -243,29 +243,29 @@ export async function importPictureWithType(
   } = {},
 ): Promise<void> {
   const imageData = await readFileData(imagePath);
-  
+
   // Detect MIME type from file extension if not provided
   let mimeType = options.mimeType;
   if (!mimeType) {
-    const ext = imagePath.split('.').pop()?.toLowerCase();
+    const ext = imagePath.split(".").pop()?.toLowerCase();
     const mimeTypes: Record<string, string> = {
-      'jpg': 'image/jpeg',
-      'jpeg': 'image/jpeg',
-      'png': 'image/png',
-      'gif': 'image/gif',
-      'webp': 'image/webp',
-      'bmp': 'image/bmp',
+      "jpg": "image/jpeg",
+      "jpeg": "image/jpeg",
+      "png": "image/png",
+      "gif": "image/gif",
+      "webp": "image/webp",
+      "bmp": "image/bmp",
     };
-    mimeType = mimeTypes[ext || ''] || 'image/jpeg';
+    mimeType = mimeTypes[ext || ""] || "image/jpeg";
   }
-  
+
   const picture: Picture = {
     mimeType,
     data: imageData,
     type,
     description: options.description,
   };
-  
+
   const modifiedBuffer = await replacePictureByType(audioPath, picture);
   await writeFileData(audioPath, modifiedBuffer);
 }
@@ -282,7 +282,7 @@ export async function importPictureWithType(
  * ```typescript
  * const frontCover = await loadPictureFromFile("cover.jpg");
  * const backCover = await loadPictureFromFile("back.png", PictureType.BackCover);
- * 
+ *
  * const modifiedBuffer = await applyPictures("song.mp3", [frontCover, backCover]);
  * ```
  */
@@ -295,27 +295,27 @@ export async function loadPictureFromFile(
   } = {},
 ): Promise<Picture> {
   const data = await readFileData(imagePath);
-  
+
   // Detect MIME type from file extension if not provided
   let mimeType = options.mimeType;
   if (!mimeType) {
-    const ext = imagePath.split('.').pop()?.toLowerCase();
+    const ext = imagePath.split(".").pop()?.toLowerCase();
     const mimeTypes: Record<string, string> = {
-      'jpg': 'image/jpeg',
-      'jpeg': 'image/jpeg',
-      'png': 'image/png',
-      'gif': 'image/gif',
-      'webp': 'image/webp',
-      'bmp': 'image/bmp',
+      "jpg": "image/jpeg",
+      "jpeg": "image/jpeg",
+      "png": "image/png",
+      "gif": "image/gif",
+      "webp": "image/webp",
+      "bmp": "image/bmp",
     };
-    mimeType = mimeTypes[ext || ''] || 'image/jpeg';
+    mimeType = mimeTypes[ext || ""] || "image/jpeg";
   }
-  
+
   return {
     mimeType,
     data,
     type,
-    description: options.description || imagePath.split('/').pop(),
+    description: options.description || imagePath.split("/").pop(),
   };
 }
 
@@ -354,7 +354,7 @@ export async function savePictureToFile(
  * ```typescript
  * // Copy cover art from one file to another
  * await copyCoverArt("album/track01.mp3", "album/track02.mp3");
- * 
+ *
  * // Copy all pictures
  * await copyCoverArt("source.mp3", "target.mp3", { copyAll: true });
  * ```
@@ -380,12 +380,18 @@ export async function copyCoverArt(
     if (!coverData) {
       throw new Error(`No cover art found in: ${sourcePath}`);
     }
-    
+
     // Find the MIME type from the source
     const pictures = await readPictures(sourcePath);
-    const coverPicture = pictures.find(p => p.type === PictureType.FrontCover) || pictures[0];
-    
-    const modifiedBuffer = await setCoverArt(targetPath, coverData, coverPicture.mimeType);
+    const coverPicture = pictures.find((p) =>
+      p.type === PictureType.FrontCover
+    ) || pictures[0];
+
+    const modifiedBuffer = await setCoverArt(
+      targetPath,
+      coverData,
+      coverPicture.mimeType,
+    );
     await writeFileData(targetPath, modifiedBuffer);
   }
 }
@@ -414,14 +420,22 @@ export async function findCoverArtFiles(
   folder?: string;
   [key: string]: string | undefined;
 }> {
-  const dir = audioPath.substring(0, audioPath.lastIndexOf('/') + 1);
+  const dir = audioPath.substring(0, audioPath.lastIndexOf("/") + 1);
   const commonNames = [
-    'cover', 'front', 'folder', 'album', 'artwork',
-    'Cover', 'Front', 'Folder', 'Album', 'Artwork',
+    "cover",
+    "front",
+    "folder",
+    "album",
+    "artwork",
+    "Cover",
+    "Front",
+    "Folder",
+    "Album",
+    "Artwork",
   ];
-  const extensions = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
+  const extensions = ["jpg", "jpeg", "png", "gif", "webp"];
   const found: Record<string, string> = {};
-  
+
   // Check for common front cover names
   for (const name of commonNames) {
     for (const ext of extensions) {
@@ -430,9 +444,11 @@ export async function findCoverArtFiles(
         // Try to read a single byte to check if file exists
         const data = await readFileData(path);
         if (data.length > 0) {
-          if (!found.front && ['cover', 'front', 'Cover', 'Front'].includes(name)) {
+          if (
+            !found.front && ["cover", "front", "Cover", "Front"].includes(name)
+          ) {
             found.front = path;
-          } else if (!found.folder && ['folder', 'Folder'].includes(name)) {
+          } else if (!found.folder && ["folder", "Folder"].includes(name)) {
             found.folder = path;
           } else {
             found[name.toLowerCase()] = path;
@@ -444,9 +460,9 @@ export async function findCoverArtFiles(
       }
     }
   }
-  
+
   // Check for back cover
-  const backNames = ['back', 'Back', 'back-cover', 'Back-Cover'];
+  const backNames = ["back", "Back", "back-cover", "Back-Cover"];
   for (const name of backNames) {
     for (const ext of extensions) {
       const path = `${dir}${name}.${ext}`;
@@ -462,6 +478,6 @@ export async function findCoverArtFiles(
     }
     if (found.back) break;
   }
-  
+
   return found;
 }

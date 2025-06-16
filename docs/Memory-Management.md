@@ -1,22 +1,24 @@
 # Memory Management
 
-This guide explains how taglib-wasm manages memory and best practices for optimal performance.
+This guide explains how taglib-wasm manages memory and best practices for
+optimal performance.
 
 ## Memory Usage Patterns
 
 ### Base Memory Requirements
+
 - **Wasm Module**: ~2-4MB (loaded once)
 - **Per File**: ~2x file size during processing
 - **Peak Usage**: ~3x file size during save operations
 
 ### Memory Usage by Operation
 
-| Operation | Memory Usage | Duration |
-|-----------|--------------|----------|
-| Loading file | 2x file size | Until dispose() |
-| Reading tags | No additional | Instant |
-| Writing tags | No additional | Instant |
-| Saving file | 3x file size | During save() |
+| Operation    | Memory Usage  | Duration        |
+| ------------ | ------------- | --------------- |
+| Loading file | 2x file size  | Until dispose() |
+| Reading tags | No additional | Instant         |
+| Writing tags | No additional | Instant         |
+| Saving file  | 3x file size  | During save()   |
 
 ## Explicit Memory Management
 
@@ -37,6 +39,7 @@ try {
 ### What dispose() Does
 
 As of v0.3.6+, `dispose()`:
+
 1. Explicitly destroys the C++ object, freeing Wasm heap memory immediately
 2. Clears all JavaScript references
 3. Prevents memory accumulation in long-running applications
@@ -69,7 +72,7 @@ for (const file of files) {
 
 // Bad: Loading all at once
 const audioFiles = await Promise.all(
-  files.map(f => taglib.open(f))
+  files.map((f) => taglib.open(f)),
 ); // Risk of memory exhaustion
 ```
 
@@ -97,7 +100,11 @@ For files larger than 100MB:
 // Check file size before processing
 const stats = await Deno.stat(filePath);
 if (stats.size > 100 * 1024 * 1024) {
-  console.warn(`Large file (${(stats.size / 1024 / 1024).toFixed(1)}MB), processing may be slow`);
+  console.warn(
+    `Large file (${
+      (stats.size / 1024 / 1024).toFixed(1)
+    }MB), processing may be slow`,
+  );
 }
 ```
 
@@ -107,7 +114,8 @@ if (stats.size > 100 * 1024 * 1024) {
 
 **Problem**: Not calling dispose() leads to memory accumulation.
 
-**Solution**: Always use try-finally or the Simple API which handles disposal automatically.
+**Solution**: Always use try-finally or the Simple API which handles disposal
+automatically.
 
 ### 2. Out of Memory Errors
 
@@ -119,7 +127,8 @@ if (stats.size > 100 * 1024 * 1024) {
 
 **Problem**: Browsers have lower memory limits than Node.js.
 
-**Solution**: 
+**Solution**:
+
 - Use smaller batch sizes in browsers
 - Consider streaming approaches for very large files
 - Monitor memory usage and provide user feedback
@@ -138,7 +147,8 @@ console.log(tags.title);
 
 ## Performance Tips
 
-1. **Reuse TagLib Instance**: The TagLib instance can be reused for multiple files
+1. **Reuse TagLib Instance**: The TagLib instance can be reused for multiple
+   files
 2. **Dispose Early**: Call dispose() as soon as you're done with a file
 3. **Batch Wisely**: Balance between memory usage and performance
 4. **Monitor Production**: Add memory monitoring in production applications
@@ -151,10 +161,10 @@ import { TagLib } from "taglib-wasm";
 async function processMusicLibrary(files: string[]) {
   const taglib = await TagLib.initialize();
   const batchSize = 10;
-  
+
   for (let i = 0; i < files.length; i += batchSize) {
     const batch = files.slice(i, i + batchSize);
-    
+
     await Promise.all(batch.map(async (file) => {
       const audio = await taglib.open(file);
       try {
@@ -165,7 +175,7 @@ async function processMusicLibrary(files: string[]) {
         audio.dispose();
       }
     }));
-    
+
     // Optional: Log memory usage after each batch
     if (taglib.module.HEAP8) {
       const heapMB = taglib.module.HEAP8.byteLength / 1024 / 1024;

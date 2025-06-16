@@ -87,24 +87,24 @@ export {
  * @see {@link getCoverArt} - Get primary cover art data
  * @see {@link setCoverArt} - Set primary cover art
  */
-export { 
-  readProperties, 
-  readTags, 
-  applyTags,
-  updateTags,
-  writeTags,  // Deprecated but exported for backward compatibility
-  readPictures,
-  applyPictures,
+export {
   addPicture,
+  applyPictures,
+  applyTags,
   clearPictures,
-  getCoverArt,
-  setCoverArt,
+  clearTags,
   findPictureByType,
-  replacePictureByType,
+  getCoverArt,
+  getFormat,
   getPictureMetadata,
   isValidAudioFile,
-  getFormat,
-  clearTags
+  readPictures,
+  readProperties,
+  readTags,
+  replacePictureByType,
+  setCoverArt,
+  updateTags,
+  writeTags, // Deprecated but exported for backward compatibility
 } from "./src/simple.ts";
 
 /**
@@ -127,15 +127,15 @@ export {
  * @see {@link copyCoverArt} - Copy cover art between files
  */
 export {
+  copyCoverArt,
+  exportAllPictures,
   exportCoverArt,
   exportPictureByType,
-  exportAllPictures,
+  findCoverArtFiles,
   importCoverArt,
   importPictureWithType,
   loadPictureFromFile,
   savePictureToFile,
-  copyCoverArt,
-  findCoverArtFiles
 } from "./src/file-utils.ts";
 
 /**
@@ -145,14 +145,14 @@ export {
  * @see {@link displayPicture} - Display picture in HTML img element
  */
 export {
-  pictureToDataURL,
-  dataURLToPicture,
-  setCoverArtFromCanvas,
   canvasToPicture,
-  imageFileToPicture,
-  displayPicture,
   createPictureDownloadURL,
-  createPictureGallery
+  createPictureGallery,
+  dataURLToPicture,
+  displayPicture,
+  imageFileToPicture,
+  pictureToDataURL,
+  setCoverArtFromCanvas,
 } from "./src/web-utils.ts";
 
 /**
@@ -214,7 +214,9 @@ import type { TagLibModule } from "./src/wasm.ts";
  */
 export async function loadTagLibModule(): Promise<TagLibModule> {
   // Now that we're using ES6 modules, we can use dynamic import directly
-  const { default: createTagLibModule } = await import("./build/taglib-wrapper.js");
+  const { default: createTagLibModule } = await import(
+    "./build/taglib-wrapper.js"
+  );
   const module = await createTagLibModule();
   return module as TagLibModule;
 }

@@ -1,6 +1,8 @@
 # Platform-Specific Examples
 
-This guide shows how to use taglib-wasm in different JavaScript runtime environments. Each platform has slightly different requirements and best practices.
+This guide shows how to use taglib-wasm in different JavaScript runtime
+environments. Each platform has slightly different requirements and best
+practices.
 
 ## Deno
 
@@ -44,11 +46,13 @@ file.dispose();
 
 - Use `Deno.readFile()` for reading files as Uint8Array
 - Use `Deno.writeFile()` for saving modified buffers
-- Permissions: `--allow-read` and `--allow-write` are required for file operations
+- Permissions: `--allow-read` and `--allow-write` are required for file
+  operations
 
 ## Node.js
 
-Node.js requires the TypeScript loader (tsx) or native TypeScript support (Node.js 22.6+):
+Node.js requires the TypeScript loader (tsx) or native TypeScript support
+(Node.js 22.6+):
 
 ```typescript
 import { TagLib } from "taglib-wasm";
@@ -189,43 +193,43 @@ file.dispose();
 ```html
 <!DOCTYPE html>
 <html>
-<head>
+  <head>
     <title>Audio Metadata Editor</title>
-</head>
-<body>
+  </head>
+  <body>
     <input type="file" id="fileInput" accept="audio/*">
     <div id="metadata"></div>
-    
+
     <script type="module">
-        import { TagLib } from 'taglib-wasm';
-        
-        const fileInput = document.getElementById('fileInput');
-        const metadataDiv = document.getElementById('metadata');
-        
-        fileInput.addEventListener('change', async (event) => {
-            const file = event.target.files[0];
-            if (!file) return;
-            
-            const taglib = await TagLib.initialize();
-            const audioData = new Uint8Array(await file.arrayBuffer());
-            const audioFile = await taglib.open(audioData);
-            
-            const tags = audioFile.tag();
-            const props = audioFile.audioProperties();
-            
-            metadataDiv.innerHTML = `
+      import { TagLib } from "taglib-wasm";
+
+      const fileInput = document.getElementById("fileInput");
+      const metadataDiv = document.getElementById("metadata");
+
+      fileInput.addEventListener("change", async (event) => {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const taglib = await TagLib.initialize();
+        const audioData = new Uint8Array(await file.arrayBuffer());
+        const audioFile = await taglib.open(audioData);
+
+        const tags = audioFile.tag();
+        const props = audioFile.audioProperties();
+
+        metadataDiv.innerHTML = `
                 <h3>Metadata:</h3>
-                <p>Title: ${tags.title || 'Unknown'}</p>
-                <p>Artist: ${tags.artist || 'Unknown'}</p>
-                <p>Album: ${tags.album || 'Unknown'}</p>
+                <p>Title: ${tags.title || "Unknown"}</p>
+                <p>Artist: ${tags.artist || "Unknown"}</p>
+                <p>Album: ${tags.album || "Unknown"}</p>
                 <p>Duration: ${props.length}s</p>
                 <p>Bitrate: ${props.bitrate} kbps</p>
             `;
-            
-            audioFile.dispose();
-        });
+
+        audioFile.dispose();
+      });
     </script>
-</body>
+  </body>
 </html>
 ```
 
@@ -293,7 +297,8 @@ export default {
 - Configure memory limits (Workers have 128MB limit)
 - Always load from ArrayBuffer (no file system)
 - Consider using Durable Objects for caching
-- See [Cloudflare Workers Guide](../Cloudflare-Workers.md) for detailed configuration
+- See [Cloudflare Workers Guide](../Cloudflare-Workers.md) for detailed
+  configuration
 
 ## Electron
 
@@ -308,10 +313,10 @@ import { readFile } from "fs/promises";
 async function getMetadata(filePath: string) {
   const taglib = await TagLib.initialize();
   const file = await taglib.open(filePath);
-  
+
   const tags = file.tag();
   const props = file.audioProperties();
-  
+
   const metadata = {
     title: tags.title,
     artist: tags.artist,
@@ -319,13 +324,13 @@ async function getMetadata(filePath: string) {
     duration: props.length,
     bitrate: props.bitrate,
   };
-  
+
   file.dispose();
   return metadata;
 }
 
 // IPC handler
-ipcMain.handle('get-metadata', async (event, filePath) => {
+ipcMain.handle("get-metadata", async (event, filePath) => {
   return await getMetadata(filePath);
 });
 ```
@@ -334,7 +339,7 @@ ipcMain.handle('get-metadata', async (event, filePath) => {
 
 ```typescript
 // With nodeIntegration: true
-const { TagLib } = require('taglib-wasm');
+const { TagLib } = require("taglib-wasm");
 
 // Or with preload script
 const metadata = await window.api.getMetadata(filePath);
@@ -349,14 +354,14 @@ const metadata = await window.api.getMetadata(filePath);
 
 ## Performance Tips by Platform
 
-| Platform | Best Practice | Notes |
-|----------|--------------|-------|
-| **Deno** | Use file paths directly | Fastest file I/O |
-| **Node.js** | Use streams for large files | Good for batch processing |
-| **Bun** | Use Bun.file() API | Optimized native performance |
-| **Browser** | Process in Web Workers | Prevents UI blocking |
-| **Workers** | Minimize memory usage | 128MB limit per request |
-| **Electron** | Use main process for I/O | Better performance than renderer |
+| Platform     | Best Practice               | Notes                            |
+| ------------ | --------------------------- | -------------------------------- |
+| **Deno**     | Use file paths directly     | Fastest file I/O                 |
+| **Node.js**  | Use streams for large files | Good for batch processing        |
+| **Bun**      | Use Bun.file() API          | Optimized native performance     |
+| **Browser**  | Process in Web Workers      | Prevents UI blocking             |
+| **Workers**  | Minimize memory usage       | 128MB limit per request          |
+| **Electron** | Use main process for I/O    | Better performance than renderer |
 
 ## Common Patterns
 
@@ -372,9 +377,9 @@ const files = await glob("music/**/*.mp3");
 for (const filePath of files) {
   const file = await taglib.open(filePath);
   const tags = file.tag();
-  
+
   console.log(`${filePath}: ${tags.artist} - ${tags.title}`);
-  
+
   file.dispose();
 }
 ```
@@ -382,16 +387,19 @@ for (const filePath of files) {
 ### Progress Tracking (Browser)
 
 ```typescript
-async function processFiles(files: FileList, onProgress: (percent: number) => void) {
+async function processFiles(
+  files: FileList,
+  onProgress: (percent: number) => void,
+) {
   const taglib = await TagLib.initialize();
-  
+
   for (let i = 0; i < files.length; i++) {
     const file = files[i];
     const audioData = new Uint8Array(await file.arrayBuffer());
     const audioFile = await taglib.open(audioData);
-    
+
     // Process file...
-    
+
     audioFile.dispose();
     onProgress((i + 1) / files.length * 100);
   }
@@ -402,4 +410,5 @@ async function processFiles(files: FileList, onProgress: (percent: number) => vo
 
 - Check out the [Examples](./examples.md) for more code samples
 - Read the [API Reference](../API.md) for detailed documentation
-- See [Runtime Compatibility](../Runtime-Compatibility.md) for platform-specific details
+- See [Runtime Compatibility](../Runtime-Compatibility.md) for platform-specific
+  details

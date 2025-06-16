@@ -45,17 +45,20 @@ export async function writeFileData(
     throw new FileOperationError(
       "write",
       (error as Error).message,
-      path
+      path,
     );
   }
 
-  const env = typeof Deno !== "undefined" ? "Deno" :
-              typeof process !== "undefined" ? "Node.js" :
-              typeof (globalThis as any).Bun !== "undefined" ? "Bun" :
-              "Browser";
+  const env = typeof Deno !== "undefined"
+    ? "Deno"
+    : typeof process !== "undefined"
+    ? "Node.js"
+    : typeof (globalThis as any).Bun !== "undefined"
+    ? "Bun"
+    : "Browser";
   throw new EnvironmentError(
     env,
     "does not support file path writing",
-    "filesystem access"
+    "filesystem access",
   );
 }
