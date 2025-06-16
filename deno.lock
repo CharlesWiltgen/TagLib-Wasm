@@ -152,6 +152,7 @@
       "dependencies": [
         "npm:@types/emscripten@^1.39.6",
         "npm:@types/node@20",
+        "npm:esbuild@~0.25.5",
         "npm:typescript@5"
       ]
     }
