@@ -21,12 +21,12 @@
  * @example
  * ```typescript
  * // Using the Simple API
- * import { readTags, writeTags } from "taglib-wasm";
+ * import { readTags, applyTags } from "taglib-wasm";
  *
  * const tags = await readTags("song.mp3");
  * console.log(tags.artist);
  *
- * const modified = await writeTags("song.mp3", {
+ * const modified = await applyTags("song.mp3", {
  *   artist: "New Artist",
  *   album: "New Album"
  * });
@@ -78,10 +78,18 @@ export {
 /**
  * Simple API exports for easy tag reading and writing.
  * @see {@link readTags} - Read metadata from audio files
- * @see {@link writeTags} - Write metadata to audio files
+ * @see {@link applyTags} - Apply metadata changes and return modified buffer
+ * @see {@link updateTags} - Update metadata and save to disk
+ * @see {@link writeTags} - Deprecated alias for applyTags
  * @see {@link readProperties} - Read audio properties
  */
-export { readProperties, readTags, writeTags } from "./src/simple.ts";
+export { 
+  readProperties, 
+  readTags, 
+  applyTags,
+  updateTags,
+  writeTags  // Deprecated but exported for backward compatibility
+} from "./src/simple.ts";
 
 /**
  * Constants and utilities for tag name validation.
