@@ -446,7 +446,7 @@ Deno.test("Format Tests: Systematic All Formats", async () => {
 
         console.log(`📄 Format: ${detectedFormat}`);
         console.log(
-          `🎧 Properties: ${props.length}s, ${props.bitrate}kbps, ${props.sampleRate}Hz`,
+          `🎧 Properties: ${props?.length ?? 0}s, ${props?.bitrate ?? 0}kbps, ${props?.sampleRate ?? 0}Hz`,
         );
         console.log(
           `🏷️  Tags: "${tags.title || "(empty)"}" by ${
