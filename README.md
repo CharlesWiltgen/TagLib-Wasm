@@ -162,11 +162,13 @@ await setCoverArt("song.mp3", imageData, "image/jpeg");
 **[📖 View Full Documentation](https://charleswiltgen.github.io/taglib-wasm/)**
 
 ### Getting Started
+
 - [Installation Guide](https://charleswiltgen.github.io/taglib-wasm/guide/installation.html)
 - [Quick Start Tutorial](https://charleswiltgen.github.io/taglib-wasm/guide/quick-start.html)
 - [All Examples](https://charleswiltgen.github.io/taglib-wasm/guide/examples.html)
 
 ### Guides
+
 - [API Reference](https://charleswiltgen.github.io/taglib-wasm/API.html)
 - [Platform Examples](https://charleswiltgen.github.io/taglib-wasm/guide/platform-examples.html)
 - [Working with Cover Art](https://charleswiltgen.github.io/taglib-wasm/guide/cover-art.html)
@@ -174,6 +176,7 @@ await setCoverArt("song.mp3", imageData, "image/jpeg");
 - [Error Handling](https://charleswiltgen.github.io/taglib-wasm/Error-Handling.html)
 
 ### Development
+
 - [Testing Guide](https://charleswiltgen.github.io/taglib-wasm/development/testing.html)
 - [Future Improvements](https://charleswiltgen.github.io/taglib-wasm/development/improvements.html)
 - [Contributing](https://charleswiltgen.github.io/taglib-wasm/CONTRIBUTING.html)
@@ -199,10 +202,16 @@ Beyond basic tags, taglib-wasm supports extended metadata:
 import { Tags } from "taglib-wasm";
 
 // AcoustID fingerprints
-file.setProperty(Tags.AcoustidFingerprint, "AQADtMmybfGO8NCNEESLnzHyXNOHeHnG...");
+file.setProperty(
+  Tags.AcoustidFingerprint,
+  "AQADtMmybfGO8NCNEESLnzHyXNOHeHnG...",
+);
 
 // MusicBrainz IDs
-file.setProperty(Tags.MusicBrainzTrackId, "f4d1b6b8-8c1e-4d9a-9f2a-1234567890ab");
+file.setProperty(
+  Tags.MusicBrainzTrackId,
+  "f4d1b6b8-8c1e-4d9a-9f2a-1234567890ab",
+);
 
 // ReplayGain volume normalization
 file.setProperty(Tags.TrackGain, "-6.54 dB");
@@ -236,14 +245,14 @@ npm test
 
 `taglib-wasm` works across all major JavaScript runtimes:
 
-| Runtime            | Status  | Installation              | Notes                       |
-| ------------------ | ------- | ------------------------- | --------------------------- |
-| **Deno**           | ✅ Full | `npm:taglib-wasm`         | Native TypeScript           |
-| **Node.js**        | ✅ Full | `npm install taglib-wasm` | TypeScript via tsx          |
-| **Bun**            | ✅ Full | `bun add taglib-wasm`     | Native TypeScript           |
-| **Browser**        | ✅ Full | Via bundler               | Full API support            |
-| **Cloudflare Workers** | ✅ Full | `taglib-wasm/workers` | Memory-optimized build      |
-| **Electron**       | ✅ Full | `npm install taglib-wasm` | Main & renderer processes   |
+| Runtime                | Status  | Installation              | Notes                     |
+| ---------------------- | ------- | ------------------------- | ------------------------- |
+| **Deno**               | ✅ Full | `npm:taglib-wasm`         | Native TypeScript         |
+| **Node.js**            | ✅ Full | `npm install taglib-wasm` | TypeScript via tsx        |
+| **Bun**                | ✅ Full | `bun add taglib-wasm`     | Native TypeScript         |
+| **Browser**            | ✅ Full | Via bundler               | Full API support          |
+| **Cloudflare Workers** | ✅ Full | `taglib-wasm/workers`     | Memory-optimized build    |
+| **Electron**           | ✅ Full | `npm install taglib-wasm` | Main & renderer processes |
 
 ## 🚧 Known Limitations
 
@@ -256,14 +265,15 @@ npm test
 
 ## 🤝 Contributing
 
-Contributions are welcome! Please read our [Contributing Guide](CONTRIBUTING.md) for details on our code of conduct and the process for submitting pull requests.
+Contributions are welcome! Please read our [Contributing Guide](CONTRIBUTING.md)
+for details on our code of conduct and the process for submitting pull requests.
 
 ## 📄 License
 
 This project uses dual licensing:
 
-- **TypeScript/JavaScript code**: MIT License (see [LICENSE](LICENSE))
-- **WebAssembly binary (taglib.wasm)**: LGPL-2.1-or-later (inherited from
+- **TypeScript/JavaScript code** – MIT License (see [LICENSE](LICENSE))
+- **WebAssembly binary (taglib.wasm)** – LGPL-2.1-or-later (inherited from
   TagLib)
 
 The TagLib library is dual-licensed under LGPL/MPL. When compiled to

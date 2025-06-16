@@ -10,7 +10,7 @@ Only these components are published to registries:
 ### 1. **Wasm TagLib**
 
 - `build/taglib.wasm` - Compiled TagLib WebAssembly module
-- `build/taglib.js` - Emscripten-generated JavaScript glue code
+- `build/taglib-wrapper.js` - Emscripten-generated JavaScript wrapper
 
 ### 2. **TypeScript API**
 
@@ -36,7 +36,7 @@ Only these components are published to registries:
 
 2. **Verify essential files exist:**
    ```bash
-   ls -la build/taglib.wasm build/taglib.js src/
+   ls -la build/taglib.wasm build/taglib-wrapper.js src/
    ```
 
 ### NPM Publishing
