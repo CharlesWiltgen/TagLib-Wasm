@@ -13,6 +13,7 @@
  */
 
 import { TagLib } from "../../index.ts";
+import process from "node:process";
 
 async function demonstrateBunUsage() {
   console.log("🎵 taglib-wasm - Bun Runtime Example");

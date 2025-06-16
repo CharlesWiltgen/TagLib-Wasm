@@ -1,0 +1,11 @@
+{
+  "lint": {
+    "rules": {
+      "exclude": ["no-explicit-any"]
+    },
+    "exclude": ["lib/", "build/", "scripts/", "examples/", "tools/"]
+  },
+  "fmt": {
+    "exclude": ["lib/", "build/"]
+  }
+}
