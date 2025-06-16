@@ -18,8 +18,8 @@
  * - MP4: ----:com.apple.iTunes:iTunNORM atom
  */
 
-import { TagLib } from "../../index";
-import { METADATA_MAPPINGS } from "../../src/types";
+import { TagLib } from "../../index.ts";
+import { METADATA_MAPPINGS } from "../../src/types.ts";
 
 async function demonstrateReplayGainAndSoundCheck() {
   console.log("🔊 taglib-wasm - ReplayGain & Apple Sound Check Example");

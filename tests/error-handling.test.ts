@@ -3,8 +3,8 @@
  */
 
 import { assertEquals, assertRejects } from "jsr:@std/assert@^1.0.0";
-import { TagLib } from "../src/taglib";
-import { readTags, writeTags, readProperties } from "../src/simple";
+import { TagLib } from "../src/taglib.ts";
+import { readTags, writeTags, readProperties } from "../src/simple.ts";
 import {
   InvalidFormatError,
   UnsupportedFormatError,
@@ -18,7 +18,7 @@ import {
   isMetadataError,
   isTagLibError,
   TagLibErrorCode,
-} from "../src/errors";
+} from "../src/errors.ts";
 
 /**
  * Test error context and helpful messages
