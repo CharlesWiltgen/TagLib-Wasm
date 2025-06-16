@@ -19,3 +19,29 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+---
+
+ADDITIONAL LICENSING INFORMATION:
+
+This product includes software developed by Scott Wheeler and the TagLib 
+contributors (https://taglib.org/).
+
+The WebAssembly binary (build/taglib.wasm) contains compiled TagLib code
+which is licensed under LGPL-2.1-or-later. The original TagLib source code
+is located in lib/taglib/. See lib/taglib/COPYING.LGPL for the full LGPL
+license terms.
+
+LGPL COMPLIANCE:
+The WebAssembly binary is subject to LGPL requirements. This means:
+- You may use it in commercial applications
+- Modifications to TagLib must be shared under LGPL
+- You must enable users to relink with modified TagLib versions
+
+To rebuild the WebAssembly binary with a modified TagLib:
+1. Modify the TagLib source in lib/taglib/
+2. Run: npm run build:wasm
+3. The new binary will be in build/taglib.wasm
+
+For more information about LGPL compliance and dual licensing, see:
+https://github.com/CharlesWiltgen/taglib-wasm#licensing
