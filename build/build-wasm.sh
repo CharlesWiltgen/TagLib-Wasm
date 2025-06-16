@@ -55,7 +55,7 @@ emcc "$BUILD_DIR/taglib_wasm.cpp" \
   -I"$CMAKE_BUILD_DIR/install/include/taglib" \
   "$CMAKE_BUILD_DIR/install/lib/libtag.a" \
   "$CMAKE_BUILD_DIR/install/lib/libtag_c.a" \
-  -o "$OUTPUT_DIR/taglib.js" \
+  -o "$OUTPUT_DIR/taglib-wrapper.js" \
   -s WASM=1 \
   -s MODULARIZE=1 \
   -s EXPORT_NAME="createTagLibModule" \
@@ -78,12 +78,12 @@ echo "🔧 Applying Deno compatibility patch..."
 
 # Patch the generated JS file for Deno compatibility
 # Replace the problematic import("module") with a Deno-compatible version
-sed -i.bak 's/const{createRequire}=await import("module")/const{createRequire}=await(typeof Deno!=="undefined"?import("node:module"):import("module"))/' "$OUTPUT_DIR/taglib.js"
-rm "$OUTPUT_DIR/taglib.js.bak"
+sed -i.bak 's/const{createRequire}=await import("module")/const{createRequire}=await(typeof Deno!=="undefined"?import("node:module"):import("module"))/' "$OUTPUT_DIR/taglib-wrapper.js"
+rm "$OUTPUT_DIR/taglib-wrapper.js.bak"
 
 echo "✅ taglib-wasm build complete!"
 echo "📁 Output files:"
-echo "   - $OUTPUT_DIR/taglib.js"
+echo "   - $OUTPUT_DIR/taglib-wrapper.js"
 echo "   - $OUTPUT_DIR/taglib.wasm"
 
 # Clean up temporary files

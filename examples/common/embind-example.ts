@@ -5,7 +5,7 @@
  * compared to the previous C-style wrapper.
  */
 
-import createTagLibModule from "../../build/taglib.js";
+import createTagLibModule from "../../build/taglib-wrapper.js";
 
 async function main() {
   console.log("=== taglib-wasm Embind Example ===\n");

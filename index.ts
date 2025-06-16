@@ -214,7 +214,7 @@ import type { TagLibModule } from "./src/wasm.ts";
  */
 export async function loadTagLibModule(): Promise<TagLibModule> {
   // Now that we're using ES6 modules, we can use dynamic import directly
-  const { default: createTagLibModule } = await import("./build/taglib.js");
+  const { default: createTagLibModule } = await import("./build/taglib-wrapper.js");
   const module = await createTagLibModule();
   return module as TagLibModule;
 }
