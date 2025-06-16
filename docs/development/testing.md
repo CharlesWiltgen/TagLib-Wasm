@@ -1,6 +1,7 @@
 # Testing Guide
 
-This guide covers the taglib-wasm test suite, including how to run tests, write new tests, and maintain test quality.
+This guide covers the taglib-wasm test suite, including how to run tests, write
+new tests, and maintain test quality.
 
 ## Test Suite Overview
 
@@ -51,13 +52,13 @@ export const TEST_TAGS = {
     year: 2024,
     track: 1,
     genre: "Test Genre",
-    comment: "Test Comment"
+    comment: "Test Comment",
   },
   unicode: {
     title: "Unicode: 你好世界 🎵",
     artist: "Артист טֶסט",
-    album: "🎸 Heavy Metal 🤘"
-  }
+    album: "🎸 Heavy Metal 🤘",
+  },
 };
 
 // Helper functions
@@ -126,19 +127,22 @@ deno test --allow-read --allow-write tests/ --filter "Performance"
 Follow this pattern for consistency:
 
 ```typescript
-import { assertEquals, assertExists } from "https://deno.land/std@0.223.0/assert/mod.ts";
-import { TEST_FILES, TEST_TAGS, measureTime } from "./test-utils.ts";
+import {
+  assertEquals,
+  assertExists,
+} from "https://deno.land/std@0.223.0/assert/mod.ts";
+import { measureTime, TEST_FILES, TEST_TAGS } from "./test-utils.ts";
 
 Deno.test("Feature: Description", async () => {
   // Arrange
   const testData = await createTestFileWithMetadata("mp3", TEST_TAGS.basic);
-  
+
   // Act
   const result = await performOperation(testData);
-  
+
   // Assert
   assertEquals(result.expected, actual);
-  
+
   // Cleanup (if needed)
   await cleanup();
 });
@@ -150,7 +154,7 @@ Deno.test("Feature: Description", async () => {
    ```typescript
    // Good - uses shared test data
    const buffer = await Deno.readFile(TEST_FILES.mp3);
-   
+
    // Avoid - hardcoded paths
    const buffer = await Deno.readFile("./some/path/file.mp3");
    ```
@@ -204,7 +208,7 @@ When adding new features:
 ### Current Coverage Goals
 
 - ✅ Core functionality: 95%+ coverage
-- ✅ Picture API: 90%+ coverage  
+- ✅ Picture API: 90%+ coverage
 - ✅ Error handling: 85%+ coverage
 - 🚧 Extended metadata: 0% (not yet implemented)
 - **Target**: 90%+ overall coverage
@@ -232,7 +236,9 @@ open coverage/index.html
 The test suite includes real-world scenarios:
 
 ### Music Library Processing
+
 Simulates processing an album:
+
 ```typescript
 Deno.test("Integration: Music library processing", async () => {
   // Create album structure
@@ -242,7 +248,9 @@ Deno.test("Integration: Music library processing", async () => {
 ```
 
 ### Batch Operations
+
 Tests concurrent file processing:
+
 ```typescript
 Deno.test("Integration: Concurrent operations", async () => {
   // Process 20 files simultaneously
@@ -252,7 +260,9 @@ Deno.test("Integration: Concurrent operations", async () => {
 ```
 
 ### Cross-Format Operations
+
 Tests tag transfer between formats:
+
 ```typescript
 Deno.test("Integration: Cross-format tag transfer", async () => {
   // Read tags from MP3
@@ -318,16 +328,16 @@ jobs:
       - uses: actions/checkout@v3
       - uses: denoland/setup-deno@v1
       - uses: actions/setup-node@v3
-      
+
       - name: Install dependencies
         run: npm install
-        
+
       - name: Build WASM
         run: npm run build:wasm
-        
+
       - name: Run tests
         run: npm test
-        
+
       - name: Upload coverage
         uses: codecov/codecov-action@v3
 ```

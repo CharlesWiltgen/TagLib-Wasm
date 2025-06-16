@@ -5,19 +5,26 @@
 /**
  * List of audio formats supported by taglib-wasm
  */
-export const SUPPORTED_FORMATS = ['MP3', 'MP4', 'M4A', 'FLAC', 'OGG', 'WAV'] as const;
+export const SUPPORTED_FORMATS = [
+  "MP3",
+  "MP4",
+  "M4A",
+  "FLAC",
+  "OGG",
+  "WAV",
+] as const;
 
 /**
  * Error codes for programmatic error handling
  */
 export enum TagLibErrorCode {
-  INITIALIZATION_FAILED = 'INITIALIZATION_FAILED',
-  INVALID_FORMAT = 'INVALID_FORMAT',
-  UNSUPPORTED_FORMAT = 'UNSUPPORTED_FORMAT',
-  FILE_OPERATION_FAILED = 'FILE_OPERATION_FAILED',
-  METADATA_ERROR = 'METADATA_ERROR',
-  MEMORY_ERROR = 'MEMORY_ERROR',
-  ENVIRONMENT_ERROR = 'ENVIRONMENT_ERROR',
+  INITIALIZATION_FAILED = "INITIALIZATION_FAILED",
+  INVALID_FORMAT = "INVALID_FORMAT",
+  UNSUPPORTED_FORMAT = "UNSUPPORTED_FORMAT",
+  FILE_OPERATION_FAILED = "FILE_OPERATION_FAILED",
+  METADATA_ERROR = "METADATA_ERROR",
+  MEMORY_ERROR = "MEMORY_ERROR",
+  ENVIRONMENT_ERROR = "ENVIRONMENT_ERROR",
 }
 
 /**
@@ -27,10 +34,10 @@ export class TagLibError extends Error {
   constructor(
     message: string,
     public readonly code: TagLibErrorCode,
-    public readonly context?: Record<string, unknown>
+    public readonly context?: Record<string, unknown>,
   ) {
     super(message);
-    this.name = 'TagLibError';
+    this.name = "TagLibError";
     Object.setPrototypeOf(this, TagLibError.prototype);
   }
 }
@@ -41,11 +48,11 @@ export class TagLibError extends Error {
 export class TagLibInitializationError extends TagLibError {
   constructor(message: string, context?: Record<string, unknown>) {
     super(
-      createErrorMessage('Failed to initialize TagLib Wasm module', message),
+      createErrorMessage("Failed to initialize TagLib Wasm module", message),
       TagLibErrorCode.INITIALIZATION_FAILED,
-      context
+      context,
     );
-    this.name = 'TagLibInitializationError';
+    this.name = "TagLibInitializationError";
     Object.setPrototypeOf(this, TagLibInitializationError.prototype);
   }
 }
@@ -57,23 +64,25 @@ export class InvalidFormatError extends TagLibError {
   constructor(
     message: string,
     public readonly bufferSize?: number,
-    context?: Record<string, unknown>
+    context?: Record<string, unknown>,
   ) {
     const details = [`Invalid audio file format: ${message}`];
-    
+
     if (bufferSize !== undefined) {
       details.push(`Buffer size: ${formatFileSize(bufferSize)}`);
       if (bufferSize < 1024) {
-        details.push('Audio files must be at least 1KB to contain valid headers.');
+        details.push(
+          "Audio files must be at least 1KB to contain valid headers.",
+        );
       }
     }
-    
+
     super(
-      details.join('. '),
+      details.join(". "),
       TagLibErrorCode.INVALID_FORMAT,
-      { ...context, bufferSize }
+      { ...context, bufferSize },
     );
-    this.name = 'InvalidFormatError';
+    this.name = "InvalidFormatError";
     Object.setPrototypeOf(this, InvalidFormatError.prototype);
   }
 }
@@ -85,14 +94,16 @@ export class UnsupportedFormatError extends TagLibError {
   constructor(
     public readonly format: string,
     public readonly supportedFormats: readonly string[] = SUPPORTED_FORMATS,
-    context?: Record<string, unknown>
+    context?: Record<string, unknown>,
   ) {
     super(
-      `Unsupported audio format: ${format}. Supported formats: ${supportedFormats.join(', ')}`,
+      `Unsupported audio format: ${format}. Supported formats: ${
+        supportedFormats.join(", ")
+      }`,
       TagLibErrorCode.UNSUPPORTED_FORMAT,
-      { ...context, format, supportedFormats }
+      { ...context, format, supportedFormats },
     );
-    this.name = 'UnsupportedFormatError';
+    this.name = "UnsupportedFormatError";
     Object.setPrototypeOf(this, UnsupportedFormatError.prototype);
   }
 }
@@ -102,23 +113,23 @@ export class UnsupportedFormatError extends TagLibError {
  */
 export class FileOperationError extends TagLibError {
   constructor(
-    public readonly operation: 'read' | 'write' | 'save',
+    public readonly operation: "read" | "write" | "save",
     message: string,
     public readonly path?: string,
-    context?: Record<string, unknown>
+    context?: Record<string, unknown>,
   ) {
     const details = [`Failed to ${operation} file`];
     if (path) {
       details.push(`Path: ${path}`);
     }
     details.push(message);
-    
+
     super(
-      details.join('. '),
+      details.join(". "),
       TagLibErrorCode.FILE_OPERATION_FAILED,
-      { ...context, operation, path }
+      { ...context, operation, path },
     );
-    this.name = 'FileOperationError';
+    this.name = "FileOperationError";
     Object.setPrototypeOf(this, FileOperationError.prototype);
   }
 }
@@ -128,23 +139,23 @@ export class FileOperationError extends TagLibError {
  */
 export class MetadataError extends TagLibError {
   constructor(
-    public readonly operation: 'read' | 'write',
+    public readonly operation: "read" | "write",
     message: string,
     public readonly field?: string,
-    context?: Record<string, unknown>
+    context?: Record<string, unknown>,
   ) {
     const details = [`Failed to ${operation} metadata`];
     if (field) {
       details.push(`Field: ${field}`);
     }
     details.push(message);
-    
+
     super(
-      details.join('. '),
+      details.join(". "),
       TagLibErrorCode.METADATA_ERROR,
-      { ...context, operation, field }
+      { ...context, operation, field },
     );
-    this.name = 'MetadataError';
+    this.name = "MetadataError";
     Object.setPrototypeOf(this, MetadataError.prototype);
   }
 }
@@ -155,11 +166,11 @@ export class MetadataError extends TagLibError {
 export class MemoryError extends TagLibError {
   constructor(message: string, context?: Record<string, unknown>) {
     super(
-      createErrorMessage('Memory allocation failed', message),
+      createErrorMessage("Memory allocation failed", message),
       TagLibErrorCode.MEMORY_ERROR,
-      context
+      context,
     );
-    this.name = 'MemoryError';
+    this.name = "MemoryError";
     Object.setPrototypeOf(this, MemoryError.prototype);
   }
 }
@@ -172,19 +183,19 @@ export class EnvironmentError extends TagLibError {
     public readonly environment: string,
     message: string,
     public readonly requiredFeature?: string,
-    context?: Record<string, unknown>
+    context?: Record<string, unknown>,
   ) {
     const details = [`Environment '${environment}' ${message}`];
     if (requiredFeature) {
       details.push(`Required feature: ${requiredFeature}`);
     }
-    
+
     super(
-      details.join('. '),
+      details.join(". "),
       TagLibErrorCode.ENVIRONMENT_ERROR,
-      { ...context, environment, requiredFeature }
+      { ...context, environment, requiredFeature },
     );
-    this.name = 'EnvironmentError';
+    this.name = "EnvironmentError";
     Object.setPrototypeOf(this, EnvironmentError.prototype);
   }
 }
@@ -212,15 +223,21 @@ export function isTagLibError(error: unknown): error is TagLibError {
   return error instanceof TagLibError;
 }
 
-export function isInvalidFormatError(error: unknown): error is InvalidFormatError {
+export function isInvalidFormatError(
+  error: unknown,
+): error is InvalidFormatError {
   return error instanceof InvalidFormatError;
 }
 
-export function isUnsupportedFormatError(error: unknown): error is UnsupportedFormatError {
+export function isUnsupportedFormatError(
+  error: unknown,
+): error is UnsupportedFormatError {
   return error instanceof UnsupportedFormatError;
 }
 
-export function isFileOperationError(error: unknown): error is FileOperationError {
+export function isFileOperationError(
+  error: unknown,
+): error is FileOperationError {
   return error instanceof FileOperationError;
 }
 

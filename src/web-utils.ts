@@ -71,7 +71,7 @@ export function dataURLToPicture(
   }
 
   const [, mimeType, base64] = matches;
-  
+
   // Convert base64 to Uint8Array
   const binaryString = atob(base64);
   const data = new Uint8Array(binaryString.length);
@@ -108,14 +108,14 @@ export async function setCoverArtFromCanvas(
   file: string | Uint8Array | ArrayBuffer | File,
   canvas: HTMLCanvasElement,
   options: {
-    format?: 'image/jpeg' | 'image/png' | 'image/webp';
+    format?: "image/jpeg" | "image/png" | "image/webp";
     quality?: number;
     type?: PictureType;
     description?: string;
   } = {},
 ): Promise<Uint8Array> {
   const {
-    format = 'image/jpeg',
+    format = "image/jpeg",
     quality = 0.92,
     type = PictureType.FrontCover,
     description = "Front Cover",
@@ -123,10 +123,10 @@ export async function setCoverArtFromCanvas(
 
   // Convert canvas to data URL
   const dataURL = canvas.toDataURL(format, quality);
-  
+
   // Convert to Picture object
   const picture = dataURLToPicture(dataURL, type, description);
-  
+
   // Apply to file
   return applyPictures(file, [picture]);
 }
@@ -153,14 +153,14 @@ export async function setCoverArtFromCanvas(
 export async function canvasToPicture(
   canvas: HTMLCanvasElement,
   options: {
-    format?: 'image/jpeg' | 'image/png' | 'image/webp';
+    format?: "image/jpeg" | "image/png" | "image/webp";
     quality?: number;
     type?: PictureType;
     description?: string;
   } = {},
 ): Promise<Picture> {
   const {
-    format = 'image/jpeg',
+    format = "image/jpeg",
     quality = 0.92,
     type = PictureType.FrontCover,
     description,
@@ -217,7 +217,7 @@ export async function imageFileToPicture(
 ): Promise<Picture> {
   const arrayBuffer = await file.arrayBuffer();
   const data = new Uint8Array(arrayBuffer);
-  
+
   return {
     mimeType: file.type,
     data,
@@ -244,19 +244,19 @@ export function displayPicture(
   imgElement: HTMLImageElement,
 ): void {
   // Clean up previous object URL if any
-  if (imgElement.src.startsWith('blob:')) {
+  if (imgElement.src.startsWith("blob:")) {
     URL.revokeObjectURL(imgElement.src);
   }
 
   // Create blob and object URL
   const blob = new Blob([picture.data], { type: picture.mimeType });
   const objectURL = URL.createObjectURL(blob);
-  
+
   // Set the src
   imgElement.src = objectURL;
-  
+
   // Clean up object URL when image is no longer needed
-  imgElement.addEventListener('load', () => {
+  imgElement.addEventListener("load", () => {
     // Keep the URL alive for a bit to ensure image is rendered
     setTimeout(() => URL.revokeObjectURL(objectURL), 100);
   }, { once: true });
@@ -273,12 +273,12 @@ export function displayPicture(
  * ```typescript
  * const pictures = await readPictures("song.mp3");
  * const downloadUrl = createPictureDownloadURL(pictures[0], "cover.jpg");
- * 
+ *
  * const link = document.createElement('a');
  * link.href = downloadUrl;
  * link.download = "cover.jpg";
  * link.click();
- * 
+ *
  * // Clean up
  * URL.revokeObjectURL(downloadUrl);
  * ```
@@ -317,31 +317,31 @@ export async function createPictureGallery(
   } = {},
 ): Promise<void> {
   const pictures = await readPictures(file);
-  
+
   // Clear container
-  container.innerHTML = '';
-  
+  container.innerHTML = "";
+
   pictures.forEach((picture, index) => {
-    const wrapper = document.createElement('div');
-    wrapper.className = options.className || 'picture-item';
-    
-    const img = document.createElement('img');
+    const wrapper = document.createElement("div");
+    wrapper.className = options.className || "picture-item";
+
+    const img = document.createElement("img");
     displayPicture(picture, img);
     img.alt = picture.description || `Picture ${index + 1}`;
-    
+
     if (options.onClick) {
-      img.style.cursor = 'pointer';
-      img.addEventListener('click', () => options.onClick!(picture, index));
+      img.style.cursor = "pointer";
+      img.addEventListener("click", () => options.onClick!(picture, index));
     }
-    
+
     wrapper.appendChild(img);
-    
+
     if (options.includeDescription && picture.description) {
-      const caption = document.createElement('p');
+      const caption = document.createElement("p");
       caption.textContent = picture.description;
       wrapper.appendChild(caption);
     }
-    
+
     container.appendChild(wrapper);
   });
 }
