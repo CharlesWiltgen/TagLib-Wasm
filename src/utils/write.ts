@@ -4,6 +4,7 @@
  */
 
 import { EnvironmentError, FileOperationError } from "../errors.ts";
+import process from "node:process";
 
 /**
  * Write data to a file across different runtimes.

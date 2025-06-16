@@ -4,6 +4,7 @@
  */
 
 import { EnvironmentError, FileOperationError } from "../errors.ts";
+import process from "node:process";
 
 /**
  * Read a file's data from various sources.
