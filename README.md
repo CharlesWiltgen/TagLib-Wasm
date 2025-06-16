@@ -196,6 +196,91 @@ Tags.TrackGain; // → "REPLAYGAIN_TRACK_GAIN"
 See [Tag Name Constants](docs/Tag-Name-Constants.md) for the complete list of
 available tags and format-specific mappings.
 
+### Working with Cover Art
+
+taglib-wasm provides comprehensive support for reading, writing, and managing embedded pictures in audio files with both basic and advanced APIs.
+
+#### Quick Cover Art Operations
+
+```typescript
+import { getCoverArt, setCoverArt } from "taglib-wasm/simple";
+
+// Extract primary cover art (super simple!)
+const coverData = await getCoverArt("song.mp3");
+if (coverData) {
+  await Deno.writeFile("cover.jpg", coverData);
+}
+
+// Set cover art from image file
+const imageData = await Deno.readFile("new-cover.jpg");
+const modifiedBuffer = await setCoverArt("song.mp3", imageData, "image/jpeg");
+```
+
+#### File I/O Helpers
+
+```typescript
+import { exportCoverArt, importCoverArt, copyCoverArt } from "taglib-wasm/file-utils";
+
+// Export cover art to file (one-liner!)
+await exportCoverArt("song.mp3", "cover.jpg");
+
+// Import cover art from file (modifies audio file in place)
+await importCoverArt("song.mp3", "new-cover.jpg");
+
+// Copy cover art between files
+await copyCoverArt("source.mp3", "target.mp3");
+```
+
+#### Browser/Canvas Integration
+
+```typescript
+import { setCoverArtFromCanvas, pictureToDataURL } from "taglib-wasm/web-utils";
+
+// Display cover art in browser
+const pictures = await readPictures("song.mp3");
+const img = document.getElementById('coverArt');
+img.src = pictureToDataURL(pictures[0]);
+
+// Set cover art from HTML canvas
+const canvas = document.getElementById('myCanvas');
+const modifiedBuffer = await setCoverArtFromCanvas("song.mp3", canvas, {
+  format: 'image/jpeg',
+  quality: 0.9
+});
+```
+
+#### Complete Picture Management
+
+```typescript
+import { PictureType } from "taglib-wasm";
+import { readPictures, applyPictures, replacePictureByType } from "taglib-wasm/simple";
+
+// Read all pictures with metadata
+const pictures = await readPictures("song.mp3");
+for (const pic of pictures) {
+  console.log(`Type: ${PictureType[pic.type]}`);
+  console.log(`MIME: ${pic.mimeType}`);
+  console.log(`Size: ${pic.data.length} bytes`);
+  console.log(`Description: ${pic.description || 'none'}`);
+}
+
+// Replace specific picture type
+await replacePictureByType("song.mp3", {
+  mimeType: "image/png",
+  data: backCoverData,
+  type: PictureType.BackCover,
+  description: "Album back cover"
+});
+
+// Manage multiple artwork types
+await applyPictures("deluxe-album.mp3", [
+  { type: PictureType.FrontCover, mimeType: "image/jpeg", data: frontData },
+  { type: PictureType.BackCover, mimeType: "image/jpeg", data: backData },
+  { type: PictureType.Media, mimeType: "image/jpeg", data: cdData },
+  { type: PictureType.BandLogo, mimeType: "image/png", data: logoData }
+]);
+```
+
 ## Platform examples
 
 ### Deno

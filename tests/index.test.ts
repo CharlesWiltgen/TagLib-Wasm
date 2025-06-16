@@ -8,21 +8,20 @@
 // Core functionality tests
 import "./taglib.test.ts";
 
+// Picture/cover art functionality tests
+import "./picture-api.test.ts";
+
 // Edge case tests - Unicode handling and input validation
 import "./edge-cases.test.ts";
 
 // Error handling tests - Error messages and type guards
-import "./test-error-handling.ts";
+import "./error-handling.test.ts";
 
 // Memory management tests
-import "./test-memory.ts";
+import "./memory.test.ts";
 
-// Platform-specific tests
-if (typeof globalThis.Deno === "undefined") {
-  // Workers tests only run in non-Deno environments
-  // since they test Cloudflare Workers compatibility
-  console.log("Skipping workers tests in Deno environment");
-} else {
-  // For now, skip workers tests in Deno
-  // TODO: Add proper workers simulation for Deno
-}
+// Extended metadata tests - MusicBrainz, ReplayGain, AcoustID, Apple Sound Check
+import "./extended-metadata.test.ts";
+
+// Note: Workers tests (test-workers.ts) are manual utilities
+// Run manually with: deno run --allow-read tools/test-workers.ts
