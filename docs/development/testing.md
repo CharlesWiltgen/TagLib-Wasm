@@ -181,11 +181,11 @@ Deno.test("Feature: Description", async () => {
    console.log(`Operation took ${duration}ms`);
    ```
 
-5. **Document Limitations**
+5. **Document Fixed Issues**
    ```typescript
-   Deno.test("Unicode: Known limitation", async () => {
-     // TODO: Currently fails due to Unicode handling bug
-     // Test will be enabled when bug is fixed
+   Deno.test("Unicode: Works correctly", async () => {
+     // Unicode support was fixed in v0.3.12
+     // All Unicode characters now work correctly
    });
    ```
 

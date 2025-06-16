@@ -1,13 +1,6 @@
 /**
  * @fileoverview Edge case tests for taglib-wasm
  * Tests Unicode handling, input validation, and illegal audio properties
- * 
- * KNOWN LIMITATIONS:
- * - Writing non-ASCII Unicode characters (emoji, CJK, RTL text) to tags currently
- *   causes the audio file to become corrupted/invalid. This appears to be a 
- *   limitation in the TagLib Wasm implementation's string handling.
- * - These tests document the current behavior and will need to be updated
- *   when Unicode support is fixed.
  */
 
 import {
@@ -48,23 +41,14 @@ Deno.test("Unicode: Emoji in tags", async () => {
     genre: "🎼 Electronic",
   };
   
-  // KNOWN LIMITATION: Emoji and non-ASCII characters currently cause the file to become invalid
-  // This appears to be a limitation in the TagLib Wasm implementation
-  try {
-    const modifiedBuffer = await writeTags(audioData, emojiTags);
-    const readBack = await readTags(modifiedBuffer);
-    
-    assertEquals(readBack.title, emojiTags.title, "Should preserve emoji in title");
-    assertEquals(readBack.artist, emojiTags.artist, "Should preserve emoji in artist");
-    assertEquals(readBack.album, emojiTags.album, "Should preserve emoji in album");
-    assertEquals(readBack.comment, emojiTags.comment, "Should preserve emoji in comment");
-    assertEquals(readBack.genre, emojiTags.genre, "Should preserve emoji in genre");
-  } catch (error) {
-    // Currently fails with InvalidFormatError after writing emoji
-    assert(error instanceof Error, "Should throw an error");
-    assert(error.message.includes("Invalid audio file format"), 
-      "Known issue: Emoji in tags causes file corruption");
-  }
+  const modifiedBuffer = await writeTags(audioData, emojiTags);
+  const readBack = await readTags(modifiedBuffer);
+  
+  assertEquals(readBack.title, emojiTags.title, "Should preserve emoji in title");
+  assertEquals(readBack.artist, emojiTags.artist, "Should preserve emoji in artist");
+  assertEquals(readBack.album, emojiTags.album, "Should preserve emoji in album");
+  assertEquals(readBack.comment, emojiTags.comment, "Should preserve emoji in comment");
+  assertEquals(readBack.genre, emojiTags.genre, "Should preserve emoji in genre");
 });
 
 Deno.test("Unicode: CJK characters", async () => {
@@ -77,21 +61,13 @@ Deno.test("Unicode: CJK characters", async () => {
     comment: "Mixed: 中文/日本語/한글",
   };
   
-  // KNOWN LIMITATION: CJK characters currently cause the file to become invalid
-  try {
-    const modifiedBuffer = await writeTags(audioData, cjkTags);
-    const readBack = await readTags(modifiedBuffer);
+  const modifiedBuffer = await writeTags(audioData, cjkTags);
+  const readBack = await readTags(modifiedBuffer);
     
-    assertEquals(readBack.title, cjkTags.title, "Should preserve Chinese characters");
-    assertEquals(readBack.artist, cjkTags.artist, "Should preserve Japanese characters");
-    assertEquals(readBack.album, cjkTags.album, "Should preserve Korean characters");
-    assertEquals(readBack.comment, cjkTags.comment, "Should preserve mixed CJK");
-  } catch (error) {
-    // Currently fails with InvalidFormatError after writing CJK characters
-    assert(error instanceof Error, "Should throw an error");
-    // This is a known limitation - CJK characters cause file corruption
-    // Just verify we got an error, don't fail the test
-  }
+  assertEquals(readBack.title, cjkTags.title, "Should preserve Chinese characters");
+  assertEquals(readBack.artist, cjkTags.artist, "Should preserve Japanese characters");
+  assertEquals(readBack.album, cjkTags.album, "Should preserve Korean characters");
+  assertEquals(readBack.comment, cjkTags.comment, "Should preserve mixed CJK");
 });
 
 Deno.test("Unicode: RTL text (Arabic/Hebrew)", async () => {
@@ -103,20 +79,12 @@ Deno.test("Unicode: RTL text (Arabic/Hebrew)", async () => {
     album: "Mixed מעורב و مختلط",
   };
   
-  // KNOWN LIMITATION: RTL text currently causes the file to become invalid
-  try {
-    const modifiedBuffer = await writeTags(audioData, rtlTags);
-    const readBack = await readTags(modifiedBuffer);
-    
-    assertEquals(readBack.title, rtlTags.title, "Should preserve Arabic text");
-    assertEquals(readBack.artist, rtlTags.artist, "Should preserve Hebrew text");
-    assertEquals(readBack.album, rtlTags.album, "Should preserve mixed RTL/LTR");
-  } catch (error) {
-    // Currently fails with InvalidFormatError after writing RTL text
-    assert(error instanceof Error, "Should throw an error");
-    // This is a known limitation - RTL text causes file corruption
-    // Just verify we got an error, don't fail the test
-  }
+  const modifiedBuffer = await writeTags(audioData, rtlTags);
+  const readBack = await readTags(modifiedBuffer);
+  
+  assertEquals(readBack.title, rtlTags.title, "Should preserve Arabic text");
+  assertEquals(readBack.artist, rtlTags.artist, "Should preserve Hebrew text");
+  assertEquals(readBack.album, rtlTags.album, "Should preserve mixed RTL/LTR");
 });
 
 Deno.test("Unicode: Special Unicode characters", async () => {
@@ -174,20 +142,12 @@ Deno.test("Unicode: Mixed scripts and languages", async () => {
     album: "🌍 World 世界 мир عالم",
   };
   
-  // KNOWN LIMITATION: Mixed Unicode scripts currently cause the file to become invalid
-  try {
-    const modifiedBuffer = await writeTags(audioData, mixedTags);
-    const readBack = await readTags(modifiedBuffer);
-    
-    assertEquals(readBack.title, mixedTags.title, "Should preserve mixed scripts in title");
-    assertEquals(readBack.artist, mixedTags.artist, "Should preserve mixed scripts in artist");
-    assertEquals(readBack.album, mixedTags.album, "Should preserve mixed scripts in album");
-  } catch (error) {
-    // Currently fails with InvalidFormatError after writing mixed Unicode
-    assert(error instanceof Error, "Should throw an error");
-    // This is a known limitation - mixed Unicode causes file corruption
-    // Just verify we got an error, don't fail the test
-  }
+  const modifiedBuffer = await writeTags(audioData, mixedTags);
+  const readBack = await readTags(modifiedBuffer);
+  
+  assertEquals(readBack.title, mixedTags.title, "Should preserve mixed scripts in title");
+  assertEquals(readBack.artist, mixedTags.artist, "Should preserve mixed scripts in artist");
+  assertEquals(readBack.album, mixedTags.album, "Should preserve mixed scripts in album");
 });
 
 // =============================================================================

@@ -40,23 +40,23 @@ public:
     TagWrapper(TagLib::Tag* t) : tag(t) {}
     
     std::string title() const {
-        return tag ? tag->title().to8Bit(true) : "";
+        return tag ? tag->title().toCString(true) : "";
     }
     
     std::string artist() const {
-        return tag ? tag->artist().to8Bit(true) : "";
+        return tag ? tag->artist().toCString(true) : "";
     }
     
     std::string album() const {
-        return tag ? tag->album().to8Bit(true) : "";
+        return tag ? tag->album().toCString(true) : "";
     }
     
     std::string comment() const {
-        return tag ? tag->comment().to8Bit(true) : "";
+        return tag ? tag->comment().toCString(true) : "";
     }
     
     std::string genre() const {
-        return tag ? tag->genre().to8Bit(true) : "";
+        return tag ? tag->genre().toCString(true) : "";
     }
     
     unsigned int year() const {
@@ -252,9 +252,9 @@ public:
             for (const auto& prop : properties) {
                 val array = val::array();
                 for (const auto& value : prop.second) {
-                    array.call<void>("push", value.to8Bit(true));
+                    array.call<void>("push", std::string(value.toCString(true)));
                 }
-                obj.set(prop.first.to8Bit(true), array);
+                obj.set(std::string(prop.first.toCString(true)), array);
             }
         }
         
@@ -296,7 +296,7 @@ public:
         TagLib::String tagKey(key, TagLib::String::UTF8);
         
         if (properties.contains(tagKey) && !properties[tagKey].isEmpty()) {
-            return properties[tagKey].front().to8Bit(true);
+            return std::string(properties[tagKey].front().toCString(true));
         }
         
         return "";
@@ -332,7 +332,7 @@ public:
                 if (item.type() == TagLib::MP4::Item::Type::Int) {
                     return std::to_string(item.toInt());
                 } else if (item.type() == TagLib::MP4::Item::Type::StringList && !item.toStringList().isEmpty()) {
-                    return item.toStringList().front().to8Bit(true);
+                    return std::string(item.toStringList().front().toCString(true));
                 } else if (item.type() == TagLib::MP4::Item::Type::Bool) {
                     return item.toBool() ? "true" : "false";
                 } else if (item.type() == TagLib::MP4::Item::Type::Byte) {
@@ -459,9 +459,9 @@ public:
                         dynamic_cast<TagLib::ID3v2::AttachedPictureFrame*>(frame)) {
                         
                         val pictureObj = val::object();
-                        pictureObj.set("mimeType", pictureFrame->mimeType().to8Bit(true));
+                        pictureObj.set("mimeType", std::string(pictureFrame->mimeType().toCString(true)));
                         pictureObj.set("type", static_cast<int>(pictureFrame->type()));
-                        pictureObj.set("description", pictureFrame->description().to8Bit(true));
+                        pictureObj.set("description", std::string(pictureFrame->description().toCString(true)));
                         
                         // Convert picture data to Uint8Array
                         TagLib::ByteVector picData = pictureFrame->picture();
@@ -528,9 +528,9 @@ public:
             
             for (const auto& picture : pictureList) {
                 val pictureObj = val::object();
-                pictureObj.set("mimeType", picture->mimeType().to8Bit(true));
+                pictureObj.set("mimeType", std::string(picture->mimeType().toCString(true)));
                 pictureObj.set("type", static_cast<int>(picture->type()));
-                pictureObj.set("description", picture->description().to8Bit(true));
+                pictureObj.set("description", std::string(picture->description().toCString(true)));
                 
                 // Convert picture data to Uint8Array
                 TagLib::ByteVector picData = picture->data();
@@ -550,9 +550,9 @@ public:
                 
                 for (const auto& picture : pictureList) {
                     val pictureObj = val::object();
-                    pictureObj.set("mimeType", picture->mimeType().to8Bit(true));
+                    pictureObj.set("mimeType", std::string(picture->mimeType().toCString(true)));
                     pictureObj.set("type", static_cast<int>(picture->type()));
-                    pictureObj.set("description", picture->description().to8Bit(true));
+                    pictureObj.set("description", std::string(picture->description().toCString(true)));
                     
                     // Convert picture data to Uint8Array
                     TagLib::ByteVector picData = picture->data();
