@@ -55,6 +55,7 @@ export default defineUserConfig({
           children: [
             "/guide/cover-art.md",
             "/guide/examples.md",
+            "/guide/workers-setup.md",
           ],
         },
         {
@@ -79,8 +80,15 @@ export default defineUserConfig({
           children: [
             "/Implementation.md",
             "/Troubleshooting.md",
-            "/Publishing.md",
             "/Cloudflare-Workers.md",
+          ],
+        },
+        {
+          text: "Development",
+          children: [
+            "/development/testing.md",
+            "/development/improvements.md",
+            "/Publishing.md",
           ],
         },
       ],
