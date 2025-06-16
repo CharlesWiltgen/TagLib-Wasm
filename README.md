@@ -10,7 +10,7 @@
 [![Bun](https://img.shields.io/badge/Bun-000000?logo=bun&logoColor=white)](https://bun.sh/)
 [![Cloudflare Workers](https://img.shields.io/badge/Cloudflare%20Workers-F38020?logo=cloudflare&logoColor=white)](https://workers.cloudflare.com/)
 [![Electron](https://img.shields.io/badge/Electron-47848F?logo=electron&logoColor=white)](https://www.electronjs.org/)
-[![Browser](https://img.shields.io/badge/Browser-4285F4?logo=googlechrome&logoColor=white)]()
+[![Browsers](https://img.shields.io/badge/Browser-4285F4?logo=googlechrome&logoColor=white)]()
 
 **TagLib-Wasm** is the universal tagging library for TypeScript platforms: Deno,
 Node.js, Bun, Cloudflare Workers, Electron, and browsers. It’s the answer to the
