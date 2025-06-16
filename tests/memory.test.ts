@@ -4,8 +4,9 @@
 
 import { assertEquals } from "https://deno.land/std@0.210.0/assert/mod.ts";
 import { TagLib } from "../index.ts";
+import { TEST_FILES } from "./test-utils.ts";
 
-const TEST_FILE = new URL("./test-files/mp3/kiss-snippet.mp3", import.meta.url).pathname;
+const TEST_FILE = TEST_FILES.mp3;
 
 Deno.test("dispose() prevents memory accumulation", async () => {
   const taglib = await TagLib.initialize();
@@ -73,8 +74,8 @@ Deno.test("memory usage scales with file size", async () => {
   const taglib = await TagLib.initialize();
   
   const files = [
-    new URL("./test-files/wav/kiss-snippet.wav", import.meta.url).pathname,  // Larger
-    new URL("./test-files/mp3/kiss-snippet.mp3", import.meta.url).pathname,  // Smaller
+    TEST_FILES.wav,  // Larger
+    TEST_FILES.mp3,  // Smaller
   ];
   
   const getHeapSize = () => {

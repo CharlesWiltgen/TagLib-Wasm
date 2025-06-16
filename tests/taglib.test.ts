@@ -25,24 +25,7 @@ import {
 } from "../src/simple.ts";
 import { processAudioMetadata, TagLibWorkers } from "../src/workers.ts";
 import { isCloudflareWorkers } from "../src/wasm-workers.ts";
-
-// Test file paths
-const TEST_FILES = {
-  wav: "./tests/test-files/wav/kiss-snippet.wav",
-  mp3: "./tests/test-files/mp3/kiss-snippet.mp3",
-  flac: "./tests/test-files/flac/kiss-snippet.flac",
-  ogg: "./tests/test-files/ogg/kiss-snippet.ogg",
-  m4a: "./tests/test-files/mp4/kiss-snippet.m4a",
-} as const;
-
-// Expected format names
-const EXPECTED_FORMATS = {
-  wav: "WAV",
-  mp3: "MP3",
-  flac: "FLAC",
-  ogg: "OGG",
-  m4a: "MP4",
-} as const;
+import { TEST_FILES, EXPECTED_FORMATS } from "./test-utils.ts";
 
 // =============================================================================
 // Initialization Tests
@@ -557,4 +540,125 @@ Deno.test("Integration: All Formats", async () => {
       console.log(`Note: ${format} might not support tag writing`);
     }
   }
+});
+
+// ============================================================================
+// Integration Tests - Real-world scenarios
+// ============================================================================
+
+Deno.test("Integration: Music Library Processing", async () => {
+  const { applyTags, readTags, getCoverArt, setCoverArt } = await import("../src/simple.ts");
+  const { RED_PNG, createTestFiles, measureTime } = await import("./test-utils.ts");
+  
+  // Simulate processing a music library
+  const albumFiles = await createTestFiles(5, "mp3");
+  const albumMetadata = {
+    album: "Integration Test Album",
+    artist: "Test Artist",
+    year: 2024,
+    genre: "Electronic"
+  };
+  
+  // Process all tracks in "album"
+  const processedFiles = await Promise.all(
+    albumFiles.map(async (buffer, index) => {
+      // Set track-specific metadata
+      const trackTags = {
+        ...albumMetadata,
+        title: `Track ${index + 1}`,
+        track: index + 1
+      };
+      
+      // Apply tags
+      const tagged = await applyTags(buffer, trackTags);
+      
+      // Add cover art to first track, then copy to others
+      if (index === 0) {
+        return await setCoverArt(tagged, RED_PNG, "image/png");
+      } else {
+        // In real scenario, would copy from first track
+        return tagged;
+      }
+    })
+  );
+  
+  // Verify all files have consistent album metadata
+  for (let i = 0; i < processedFiles.length; i++) {
+    const tags = await readTags(processedFiles[i]);
+    assertEquals(tags.album, albumMetadata.album);
+    assertEquals(tags.artist, albumMetadata.artist);
+    assertEquals(tags.track, i + 1);
+  }
+});
+
+Deno.test("Integration: Batch Tag Updates", async () => {
+  const { applyTags, readTags } = await import("../src/simple.ts");
+  const { createTestFiles } = await import("./test-utils.ts");
+  
+  // Create test files
+  const files = await createTestFiles(10, "flac");
+  
+  // Batch update operation
+  const updates = {
+    genre: "Updated Genre",
+    year: 2025,
+    comment: "Batch updated"
+  };
+  
+  // Apply updates to all files
+  const updatedFiles = await Promise.all(
+    files.map(buffer => applyTags(buffer, updates))
+  );
+  
+  // Verify updates
+  for (const buffer of updatedFiles) {
+    const tags = await readTags(buffer);
+    assertEquals(tags.genre, updates.genre);
+    assertEquals(tags.year, updates.year);
+    assertEquals(tags.comment, updates.comment);
+  }
+});
+
+Deno.test("Integration: Cross-Format Tag Transfer", async () => {
+  const { readTags, applyTags } = await import("../src/simple.ts");
+  const { readFileData } = await import("../src/utils/file.ts");
+  const { TEST_TAGS } = await import("./test-utils.ts");
+  
+  // Read tags from one format
+  const sourceBuffer = await readFileData(TEST_FILES.mp3);
+  const sourceWithTags = await applyTags(sourceBuffer, TEST_TAGS.basic);
+  const sourceTags = await readTags(sourceWithTags);
+  
+  // Transfer to different format
+  const targetBuffer = await readFileData(TEST_FILES.flac);
+  const targetWithTags = await applyTags(targetBuffer, sourceTags);
+  
+  // Verify tags transferred correctly
+  const targetTags = await readTags(targetWithTags);
+  assertEquals(targetTags.title, sourceTags.title);
+  assertEquals(targetTags.artist, sourceTags.artist);
+  assertEquals(targetTags.album, sourceTags.album);
+});
+
+Deno.test("Integration: Performance - Concurrent Operations", async () => {
+  const taglib = await TagLib.initialize();
+  const { createTestFiles, measureTime } = await import("./test-utils.ts");
+  
+  const files = await createTestFiles(20, "mp3");
+  
+  // Measure concurrent processing time
+  const { timeMs } = await measureTime(async () => {
+    await Promise.all(
+      files.map(async buffer => {
+        const file = await taglib.open(buffer);
+        const tag = file.tag();
+        tag.setTitle(`Concurrent ${Math.random()}`);
+        file.save();
+        file.dispose();
+      })
+    );
+  });
+  
+  // Should handle concurrent operations efficiently
+  assert(timeMs < 1000, `Concurrent operations took ${timeMs}ms`);
 });

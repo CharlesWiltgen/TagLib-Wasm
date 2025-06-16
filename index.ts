@@ -82,13 +82,29 @@ export {
  * @see {@link updateTags} - Update metadata and save to disk
  * @see {@link writeTags} - Deprecated alias for applyTags
  * @see {@link readProperties} - Read audio properties
+ * @see {@link readPictures} - Read cover art/pictures
+ * @see {@link applyPictures} - Apply pictures to audio files
+ * @see {@link getCoverArt} - Get primary cover art data
+ * @see {@link setCoverArt} - Set primary cover art
  */
 export { 
   readProperties, 
   readTags, 
   applyTags,
   updateTags,
-  writeTags  // Deprecated but exported for backward compatibility
+  writeTags,  // Deprecated but exported for backward compatibility
+  readPictures,
+  applyPictures,
+  addPicture,
+  clearPictures,
+  getCoverArt,
+  setCoverArt,
+  findPictureByType,
+  replacePictureByType,
+  getPictureMetadata,
+  isValidAudioFile,
+  getFormat,
+  clearTags
 } from "./src/simple.ts";
 
 /**
@@ -104,6 +120,41 @@ export {
   isValidTagName,
   Tags,
 } from "./src/constants.ts";
+/**
+ * File I/O utilities for cover art operations.
+ * @see {@link exportCoverArt} - Export cover art to file
+ * @see {@link importCoverArt} - Import cover art from file
+ * @see {@link copyCoverArt} - Copy cover art between files
+ */
+export {
+  exportCoverArt,
+  exportPictureByType,
+  exportAllPictures,
+  importCoverArt,
+  importPictureWithType,
+  loadPictureFromFile,
+  savePictureToFile,
+  copyCoverArt,
+  findCoverArtFiles
+} from "./src/file-utils.ts";
+
+/**
+ * Web browser utilities for cover art operations.
+ * @see {@link pictureToDataURL} - Convert picture to data URL
+ * @see {@link setCoverArtFromCanvas} - Set cover art from HTML canvas
+ * @see {@link displayPicture} - Display picture in HTML img element
+ */
+export {
+  pictureToDataURL,
+  dataURLToPicture,
+  setCoverArtFromCanvas,
+  canvasToPicture,
+  imageFileToPicture,
+  displayPicture,
+  createPictureDownloadURL,
+  createPictureGallery
+} from "./src/web-utils.ts";
+
 /**
  * Type exports for TypeScript users.
  * These types define the structure of metadata, audio properties,
@@ -121,12 +172,16 @@ export type {
   FieldMapping,
   FileType,
   Picture,
-  PictureType,
   PropertyMap,
   Tag,
   TagLibConfig,
   TagName,
 } from "./src/types.ts";
+
+/**
+ * Enum exports
+ */
+export { PictureType } from "./src/types.ts";
 
 /**
  * Wasm module types for advanced usage.

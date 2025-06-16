@@ -25,7 +25,8 @@
  */
 
 import { TagLib } from "./taglib.ts";
-import type { AudioProperties, Tag } from "./types.ts";
+import type { AudioProperties, Tag, Picture } from "./types.ts";
+import { PictureType } from "./types.ts";
 import {
   FileOperationError,
   InvalidFormatError,
@@ -180,7 +181,7 @@ export async function updateTags(
   options?: number,
 ): Promise<void> {
   if (typeof file !== "string") {
-    throw new InvalidInputError("updateTags requires a file path string to save changes");
+    throw new Error("updateTags requires a file path string to save changes");
   }
 
   // Get the modified buffer
@@ -339,7 +340,320 @@ export async function clearTags(
 }
 
 /**
+ * Read cover art/pictures from an audio file
+ *
+ * @param file - File path, Uint8Array buffer, ArrayBuffer, or File object
+ * @returns Array of Picture objects containing cover art
+ *
+ * @example
+ * ```typescript
+ * const pictures = await readPictures("song.mp3");
+ * for (const pic of pictures) {
+ *   console.log(`Type: ${pic.type}, MIME: ${pic.mimeType}, Size: ${pic.data.length}`);
+ * }
+ * ```
+ */
+export async function readPictures(
+  file: string | Uint8Array | ArrayBuffer | File,
+): Promise<Picture[]> {
+  const taglib = await getTagLib();
+  const audioFile = await taglib.open(file);
+  try {
+    if (!audioFile.isValid()) {
+      throw new InvalidFormatError(
+        "File may be corrupted or in an unsupported format"
+      );
+    }
+
+    return audioFile.getPictures();
+  } finally {
+    audioFile.dispose();
+  }
+}
+
+/**
+ * Apply pictures/cover art to an audio file and return the modified buffer
+ *
+ * This function loads the file, replaces all existing pictures with the new ones,
+ * and returns the modified file as a buffer. The original file is not modified.
+ *
+ * @param file - File path, Uint8Array buffer, ArrayBuffer, or File object
+ * @param pictures - Array of Picture objects to set (replaces all existing)
+ * @returns Modified file buffer with new pictures applied
+ *
+ * @example
+ * ```typescript
+ * const coverArt = {
+ *   mimeType: "image/jpeg",
+ *   data: jpegData, // Uint8Array
+ *   type: PictureType.FrontCover,
+ *   description: "Album cover"
+ * };
+ * const modifiedBuffer = await applyPictures("song.mp3", [coverArt]);
+ * ```
+ */
+export async function applyPictures(
+  file: string | Uint8Array | ArrayBuffer | File,
+  pictures: Picture[],
+): Promise<Uint8Array> {
+  const taglib = await getTagLib();
+  const audioFile = await taglib.open(file);
+  try {
+    if (!audioFile.isValid()) {
+      throw new InvalidFormatError(
+        "File may be corrupted or in an unsupported format"
+      );
+    }
+
+    // Set the pictures
+    audioFile.setPictures(pictures);
+
+    // Save changes to in-memory buffer
+    if (!audioFile.save()) {
+      throw new FileOperationError(
+        "save",
+        "Failed to save picture changes. The file may be read-only or corrupted."
+      );
+    }
+
+    // Get the modified buffer after saving
+    return audioFile.getFileBuffer();
+  } finally {
+    audioFile.dispose();
+  }
+}
+
+/**
+ * Add a single picture to an audio file and return the modified buffer
+ *
+ * This function loads the file, adds the picture to existing ones,
+ * and returns the modified file as a buffer. The original file is not modified.
+ *
+ * @param file - File path, Uint8Array buffer, ArrayBuffer, or File object
+ * @param picture - Picture object to add
+ * @returns Modified file buffer with picture added
+ *
+ * @example
+ * ```typescript
+ * const backCover = {
+ *   mimeType: "image/png",
+ *   data: pngData, // Uint8Array
+ *   type: PictureType.BackCover,
+ *   description: "Back cover"
+ * };
+ * const modifiedBuffer = await addPicture("song.mp3", backCover);
+ * ```
+ */
+export async function addPicture(
+  file: string | Uint8Array | ArrayBuffer | File,
+  picture: Picture,
+): Promise<Uint8Array> {
+  const taglib = await getTagLib();
+  const audioFile = await taglib.open(file);
+  try {
+    if (!audioFile.isValid()) {
+      throw new InvalidFormatError(
+        "File may be corrupted or in an unsupported format"
+      );
+    }
+
+    // Add the picture
+    audioFile.addPicture(picture);
+
+    // Save changes to in-memory buffer
+    if (!audioFile.save()) {
+      throw new FileOperationError(
+        "save",
+        "Failed to save picture changes. The file may be read-only or corrupted."
+      );
+    }
+
+    // Get the modified buffer after saving
+    return audioFile.getFileBuffer();
+  } finally {
+    audioFile.dispose();
+  }
+}
+
+/**
+ * Clear all pictures from a file
+ *
+ * @param file - File path, Uint8Array buffer, ArrayBuffer, or File object
+ * @returns Modified file buffer with pictures removed
+ *
+ * @example
+ * ```typescript
+ * const cleanBuffer = await clearPictures("song.mp3");
+ * // Save cleanBuffer to remove all cover art
+ * ```
+ */
+export async function clearPictures(
+  file: string | Uint8Array | ArrayBuffer | File,
+): Promise<Uint8Array> {
+  return applyPictures(file, []);
+}
+
+/**
+ * Get the primary cover art from an audio file
+ *
+ * Returns the front cover if available, otherwise the first picture found.
+ * Returns null if no pictures are present.
+ *
+ * @param file - File path, Uint8Array buffer, ArrayBuffer, or File object
+ * @returns Primary cover art data or null
+ *
+ * @example
+ * ```typescript
+ * const coverArt = await getCoverArt("song.mp3");
+ * if (coverArt) {
+ *   console.log(`Cover art size: ${coverArt.length} bytes`);
+ * }
+ * ```
+ */
+export async function getCoverArt(
+  file: string | Uint8Array | ArrayBuffer | File,
+): Promise<Uint8Array | null> {
+  const pictures = await readPictures(file);
+  if (pictures.length === 0) {
+    return null;
+  }
+
+  // Try to find front cover first
+  const frontCover = pictures.find(pic => pic.type === PictureType.FrontCover);
+  if (frontCover) {
+    return frontCover.data;
+  }
+
+  // Return first picture if no front cover
+  return pictures[0].data;
+}
+
+/**
+ * Set the primary cover art for an audio file
+ *
+ * Replaces all existing pictures with a single front cover image.
+ *
+ * @param file - File path, Uint8Array buffer, ArrayBuffer, or File object
+ * @param imageData - Image data as Uint8Array
+ * @param mimeType - MIME type of the image (e.g., "image/jpeg", "image/png")
+ * @returns Modified file buffer with cover art set
+ *
+ * @example
+ * ```typescript
+ * const jpegData = await Deno.readFile("cover.jpg");
+ * const modifiedBuffer = await setCoverArt("song.mp3", jpegData, "image/jpeg");
+ * ```
+ */
+export async function setCoverArt(
+  file: string | Uint8Array | ArrayBuffer | File,
+  imageData: Uint8Array,
+  mimeType: string,
+): Promise<Uint8Array> {
+  const picture: Picture = {
+    mimeType,
+    data: imageData,
+    type: PictureType.FrontCover,
+    description: "Front Cover",
+  };
+  return applyPictures(file, [picture]);
+}
+
+/**
+ * Find a picture by its type
+ *
+ * @param pictures - Array of pictures to search
+ * @param type - Picture type to find
+ * @returns Picture matching the type or null
+ *
+ * @example
+ * ```typescript
+ * const pictures = await readPictures("song.mp3");
+ * const backCover = findPictureByType(pictures, PictureType.BackCover);
+ * if (backCover) {
+ *   console.log("Found back cover art");
+ * }
+ * ```
+ */
+export function findPictureByType(
+  pictures: Picture[],
+  type: PictureType,
+): Picture | null {
+  return pictures.find(pic => pic.type === type) || null;
+}
+
+/**
+ * Replace or add a picture of a specific type
+ *
+ * If a picture of the given type already exists, it will be replaced.
+ * Otherwise, the new picture will be added to the existing ones.
+ *
+ * @param file - File path, Uint8Array buffer, ArrayBuffer, or File object
+ * @param newPicture - Picture to add or replace
+ * @returns Modified file buffer with picture updated
+ *
+ * @example
+ * ```typescript
+ * const backCover: Picture = {
+ *   mimeType: "image/png",
+ *   data: pngData,
+ *   type: PictureType.BackCover,
+ *   description: "Back cover"
+ * };
+ * const modifiedBuffer = await replacePictureByType("song.mp3", backCover);
+ * ```
+ */
+export async function replacePictureByType(
+  file: string | Uint8Array | ArrayBuffer | File,
+  newPicture: Picture,
+): Promise<Uint8Array> {
+  const pictures = await readPictures(file);
+  
+  // Remove any existing picture of the same type
+  const filteredPictures = pictures.filter(pic => pic.type !== newPicture.type);
+  
+  // Add the new picture
+  filteredPictures.push(newPicture);
+  
+  return applyPictures(file, filteredPictures);
+}
+
+/**
+ * Get picture metadata without the actual image data
+ *
+ * Useful for checking what pictures are present without loading
+ * potentially large image data into memory.
+ *
+ * @param file - File path, Uint8Array buffer, ArrayBuffer, or File object
+ * @returns Array of picture metadata (type, mimeType, description, size)
+ *
+ * @example
+ * ```typescript
+ * const metadata = await getPictureMetadata("song.mp3");
+ * for (const info of metadata) {
+ *   console.log(`${info.description}: ${info.mimeType}, ${info.size} bytes`);
+ * }
+ * ```
+ */
+export async function getPictureMetadata(
+  file: string | Uint8Array | ArrayBuffer | File,
+): Promise<Array<{
+  type: PictureType;
+  mimeType: string;
+  description?: string;
+  size: number;
+}>> {
+  const pictures = await readPictures(file);
+  return pictures.map(pic => ({
+    type: pic.type,
+    mimeType: pic.mimeType,
+    description: pic.description,
+    size: pic.data.length,
+  }));
+}
+
+/**
  * Re-export commonly used types for convenience.
  * These types define the structure of metadata and audio properties.
  */
-export type { AudioProperties, Tag } from "./types.ts";
+export type { AudioProperties, Tag, Picture } from "./types.ts";
+export { PictureType } from "./types.ts";
