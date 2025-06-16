@@ -1,19 +1,27 @@
 {
   "name": "taglib-wasm",
-  "version": "0.3.8",
+  "version": "0.3.9",
   "description": "TagLib for TypeScript platforms: Deno, Node.js, Bun, Electron, browsers, and Cloudflare Workers",
   "main": "index.ts",
   "types": "index.ts",
   "exports": {
-    ".": "./index.ts",
-    "./workers": "./src/workers.ts",
-    "./simple": "./src/simple.ts"
+    ".": {
+      "types": "./index.ts",
+      "default": "./dist/index.js"
+    },
+    "./workers": {
+      "types": "./src/workers.ts",
+      "default": "./dist/src/workers.js"
+    },
+    "./simple": {
+      "types": "./src/simple.ts",
+      "default": "./dist/src/simple.js"
+    }
   },
   "files": [
     "index.ts",
     "src/**/*",
-    "build/taglib.wasm",
-    "build/taglib.js",
+    "dist/**/*",
     "lib/taglib/COPYING*",
     "README.md",
     "LICENSE",
@@ -23,7 +31,8 @@
   "scripts": {
     "build:wasm": "./build/build-wasm.sh",
     "build:ts": "tsc",
-    "build": "npm run build:wasm && npm run build:ts",
+    "postbuild": "node scripts/postbuild.js",
+    "build": "npm run build:wasm && npm run build:ts && npm run postbuild",
     "test": "deno test --allow-read --allow-write tests/",
     "test:all": "deno test --allow-read --allow-write tests/index.test.ts",
     "test:core": "deno test --allow-read --allow-write tests/taglib.test.ts",
@@ -41,6 +50,7 @@
     "docs:build": "cd docs && npm install && npm run build",
     "update-taglib": "./scripts/update-taglib.sh",
     "release": "./scripts/release.sh",
+    "prepublishOnly": "npm run build:ts && npm run postbuild",
     "publish:npm": "echo 'Use GitHub Actions workflow for publishing'",
     "publish:github": "echo 'Use GitHub Actions workflow for publishing'"
   },
