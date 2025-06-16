@@ -38,6 +38,8 @@ jobs:
         with:
           node-version: 20
           registry-url: https://registry.npmjs.org/
+      
+      - run: npm install
 
       - name: Extract version
         id: extract_version
@@ -132,6 +134,8 @@ jobs:
         with:
           node-version: 20
           registry-url: https://npm.pkg.github.com/
+      
+      - run: npm install
 
       - name: Debug npm config
         run: |
