@@ -84,19 +84,19 @@ export async function readTags(
 }
 
 /**
- * Write metadata tags to an audio file
+ * Apply metadata tags to an audio file and return the modified buffer
  *
- * Note: This modifies the in-memory representation only.
- * To persist changes, you need to get the modified buffer.
+ * This function loads the file, applies the tag changes, and returns
+ * the modified file as a buffer. The original file is not modified.
  *
  * @param file - File path, Uint8Array buffer, ArrayBuffer, or File object
- * @param tags - Object containing tags to write (undefined values are ignored)
+ * @param tags - Object containing tags to apply (undefined values are ignored)
  * @param options - Write options (currently unused, for go-taglib compatibility)
- * @returns Modified file buffer
+ * @returns Modified file buffer with new tags applied
  *
  * @example
  * ```typescript
- * const modifiedBuffer = await writeTags("song.mp3", {
+ * const modifiedBuffer = await applyTags("song.mp3", {
  *   title: "New Title",
  *   artist: "New Artist",
  *   album: "New Album",
@@ -105,7 +105,7 @@ export async function readTags(
  * // Save modifiedBuffer to file or use as needed
  * ```
  */
-export async function writeTags(
+export async function applyTags(
   file: string | Uint8Array | ArrayBuffer | File,
   tags: Partial<Tag>,
   options?: number,
@@ -145,25 +145,34 @@ export async function writeTags(
 }
 
 /**
+ * @deprecated Use `applyTags` instead. This alias will be removed in v1.0.0.
+ */
+export const writeTags = applyTags;
+
+/**
  * Update metadata tags in an audio file and save to disk
  *
- * This is a convenience function that combines writeTags and file writing.
- * It modifies the file in-place, updating the metadata and saving changes.
+ * This function modifies the file on disk by applying the specified tags
+ * and writing the changes back to the original file path.
  *
- * @param file - File path (must be a string for saving back to disk)
+ * @param file - File path as a string (required for disk operations)
  * @param tags - Object containing tags to write (undefined values are ignored)
  * @param options - Write options (currently unused, for go-taglib compatibility)
- * @throws {Error} If file path is not a string or write fails
+ * @throws {InvalidInputError} If file is not a string
+ * @throws {FileOperationError} If file write fails
+ * @returns Promise that resolves when the file has been updated on disk
  *
  * @example
  * ```typescript
+ * // Update tags and save to disk
  * await updateTags("song.mp3", {
  *   title: "New Title",
- *   artist: "New Artist",
- *   album: "New Album",
- *   year: 2025
+ *   artist: "New Artist"
  * });
+ * // File on disk now has updated tags
  * ```
+ *
+ * @see applyTags - For getting a modified buffer without writing to disk
  */
 export async function updateTags(
   file: string,
@@ -171,11 +180,11 @@ export async function updateTags(
   options?: number,
 ): Promise<void> {
   if (typeof file !== "string") {
-    throw new Error("updateTags requires a file path string to save changes");
+    throw new InvalidInputError("updateTags requires a file path string to save changes");
   }
 
   // Get the modified buffer
-  const modifiedBuffer = await writeTags(file, tags, options);
+  const modifiedBuffer = await applyTags(file, tags, options);
   
   // Write the buffer back to the file
   await writeFileData(file, modifiedBuffer);
