@@ -5,18 +5,23 @@
 [![License](https://img.shields.io/npm/l/taglib-wasm.svg)](https://github.com/CharlesWiltgen/taglib-wasm/blob/main/LICENSE)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-3178c6.svg?logo=typescript&logoColor=f5f5f5)](https://www.typescriptlang.org/)
 [![Built with Emscripten](https://img.shields.io/badge/Built%20with-Emscripten-4B9BFF.svg)](https://emscripten.org/)
-[![Platform Support](https://img.shields.io/badge/Platforms-Universal-orange.svg?logo=javascript&logoColor=f5f5f5)]()
+<br>[![Deno](https://img.shields.io/badge/Deno-000000?logo=deno&logoColor=white)](https://deno.land/)
+[![Node.js](https://img.shields.io/badge/Node.js-339933?logo=nodedotjs&logoColor=white)](https://nodejs.org/)
+[![Bun](https://img.shields.io/badge/Bun-000000?logo=bun&logoColor=white)](https://bun.sh/)
+[![Cloudflare Workers](https://img.shields.io/badge/Cloudflare%20Workers-F38020?logo=cloudflare&logoColor=white)](https://workers.cloudflare.com/)
+[![Electron](https://img.shields.io/badge/Electron-47848F?logo=electron&logoColor=white)](https://www.electronjs.org/)
+[![Browser](https://img.shields.io/badge/Browser-4285F4?logo=googlechrome&logoColor=white)]()
 
 **TagLib-Wasm** is the universal tagging library for TypeScript platforms: Deno,
-Node.js, Bun, Cloudflare Workers and browsers.
+Node.js, Bun, Cloudflare Workers, Electron, and browsers.
 
 > “What if [**TagLib**](https://taglib.org/), but TypeScript?”
 
 This project exists because the TypeScipt/JavaScript ecosystem had no
 battle-tested audio tagging library that supports reading and writing music
 metadata to all popular audio formats. It aspires to be a universal solution for
-all **TypeScript**-capable platforms — Deno, Node.js, Bun, Cloudflare Workers,
-and browsers.
+all **TypeScript**-capable platforms — Deno, Node.js, Bun, Electron, Cloudflare
+Workers, and browsers.
 
 TagLib-Wasm stands on the shoulders of giants, including
 [TagLib](https://taglib.org/) itself, [Emscripten](https://emscripten.org/), and
@@ -28,8 +33,8 @@ TagLib itself is legendary and a core dependency of many music apps.
 - **✅ Full audio format support** – Supports all audio formats supported by
   TagLib
 - **✅ TypeScript first** – Complete type definitions and modern API
-- **✅ Wide TS/JS runtime support** – Deno, Node.js, Bun, Cloudflare Workers,
-  and browsers
+- **✅ Wide TS/JS runtime support** – Deno, Node.js, Bun, Electron, Cloudflare
+  Workers, and browsers
 - **✅ Format abstraction** – Handles container format details automagically
   when possible
 - **✅ Zero dependencies** – Self-contained Wasm bundle
@@ -75,6 +80,22 @@ npx tsx your-script.ts
 
 ```bash
 bun add taglib-wasm
+```
+
+### Electron
+
+```bash
+npm install taglib-wasm
+```
+
+Works in both main and renderer processes:
+
+```typescript
+// Main process
+import { TagLib } from "taglib-wasm";
+
+// Renderer process (with nodeIntegration: true)
+const { TagLib } = require("taglib-wasm");
 ```
 
 ## 🚀 Quick Start
@@ -198,7 +219,8 @@ available tags and format-specific mappings.
 
 ### Working with Cover Art
 
-taglib-wasm provides comprehensive support for reading, writing, and managing embedded pictures in audio files with both basic and advanced APIs.
+taglib-wasm provides comprehensive support for reading, writing, and managing
+embedded pictures in audio files with both basic and advanced APIs.
 
 #### Quick Cover Art Operations
 
@@ -219,7 +241,11 @@ const modifiedBuffer = await setCoverArt("song.mp3", imageData, "image/jpeg");
 #### File I/O Helpers
 
 ```typescript
-import { exportCoverArt, importCoverArt, copyCoverArt } from "taglib-wasm/file-utils";
+import {
+  copyCoverArt,
+  exportCoverArt,
+  importCoverArt,
+} from "taglib-wasm/file-utils";
 
 // Export cover art to file (one-liner!)
 await exportCoverArt("song.mp3", "cover.jpg");
@@ -234,18 +260,18 @@ await copyCoverArt("source.mp3", "target.mp3");
 #### Browser/Canvas Integration
 
 ```typescript
-import { setCoverArtFromCanvas, pictureToDataURL } from "taglib-wasm/web-utils";
+import { pictureToDataURL, setCoverArtFromCanvas } from "taglib-wasm/web-utils";
 
 // Display cover art in browser
 const pictures = await readPictures("song.mp3");
-const img = document.getElementById('coverArt');
+const img = document.getElementById("coverArt");
 img.src = pictureToDataURL(pictures[0]);
 
 // Set cover art from HTML canvas
-const canvas = document.getElementById('myCanvas');
+const canvas = document.getElementById("myCanvas");
 const modifiedBuffer = await setCoverArtFromCanvas("song.mp3", canvas, {
-  format: 'image/jpeg',
-  quality: 0.9
+  format: "image/jpeg",
+  quality: 0.9,
 });
 ```
 
@@ -253,7 +279,11 @@ const modifiedBuffer = await setCoverArtFromCanvas("song.mp3", canvas, {
 
 ```typescript
 import { PictureType } from "taglib-wasm";
-import { readPictures, applyPictures, replacePictureByType } from "taglib-wasm/simple";
+import {
+  applyPictures,
+  readPictures,
+  replacePictureByType,
+} from "taglib-wasm/simple";
 
 // Read all pictures with metadata
 const pictures = await readPictures("song.mp3");
@@ -261,7 +291,7 @@ for (const pic of pictures) {
   console.log(`Type: ${PictureType[pic.type]}`);
   console.log(`MIME: ${pic.mimeType}`);
   console.log(`Size: ${pic.data.length} bytes`);
-  console.log(`Description: ${pic.description || 'none'}`);
+  console.log(`Description: ${pic.description || "none"}`);
 }
 
 // Replace specific picture type
@@ -269,7 +299,7 @@ await replacePictureByType("song.mp3", {
   mimeType: "image/png",
   data: backCoverData,
   type: PictureType.BackCover,
-  description: "Album back cover"
+  description: "Album back cover",
 });
 
 // Manage multiple artwork types
@@ -277,7 +307,7 @@ await applyPictures("deluxe-album.mp3", [
   { type: PictureType.FrontCover, mimeType: "image/jpeg", data: frontData },
   { type: PictureType.BackCover, mimeType: "image/jpeg", data: backData },
   { type: PictureType.Media, mimeType: "image/jpeg", data: cdData },
-  { type: PictureType.BandLogo, mimeType: "image/png", data: logoData }
+  { type: PictureType.BandLogo, mimeType: "image/png", data: logoData },
 ]);
 ```
 
