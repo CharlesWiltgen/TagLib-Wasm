@@ -4,7 +4,7 @@ import { viteBundler } from "@vuepress/bundler-vite";
 
 export default defineUserConfig({
   lang: "en-US",
-  title: "TagLib-WASM",
+  title: "TagLib-Wasm",
   description:
     "TagLib compiled to WebAssembly with TypeScript bindings for universal audio metadata handling",
 
@@ -30,6 +30,10 @@ export default defineUserConfig({
         link: "/API.md",
       },
       {
+        text: "Examples",
+        link: "/guide/examples.md",
+      },
+      {
         text: "NPM",
         link: "https://www.npmjs.com/package/taglib-wasm",
       },
@@ -43,14 +47,31 @@ export default defineUserConfig({
             "/guide/README.md",
             "/guide/installation.md",
             "/guide/quick-start.md",
+            "/guide/platform-examples.md",
+          ],
+        },
+        {
+          text: "Features",
+          children: [
+            "/guide/cover-art.md",
+            "/guide/examples.md",
           ],
         },
         {
           text: "Core Concepts",
           children: [
             "/Runtime-Compatibility.md",
+            "/Memory-Management.md",
             "/Performance.md",
             "/Error-Handling.md",
+          ],
+        },
+        {
+          text: "API Reference",
+          children: [
+            "/API.md",
+            "/Tag-Name-Constants.md",
+            "/PropertyMap-API.md",
           ],
         },
         {
@@ -68,7 +89,10 @@ export default defineUserConfig({
           text: "Documentation",
           children: [
             "/API.md",
+            "/Tag-Name-Constants.md",
+            "/PropertyMap-API.md",
             "/Runtime-Compatibility.md",
+            "/Memory-Management.md",
             "/Performance.md",
             "/Error-Handling.md",
             "/Implementation.md",
