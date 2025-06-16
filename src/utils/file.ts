@@ -3,7 +3,7 @@
  * Provides cross-runtime support for reading files from various sources
  */
 
-import { EnvironmentError, FileOperationError } from "../errors.ts";
+import { EnvironmentError, FileOperationError } from "../errors";
 
 /**
  * Read a file's data from various sources.

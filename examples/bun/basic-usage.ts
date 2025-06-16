@@ -12,7 +12,7 @@
  *   bun run examples/bun/basic_usage.ts
  */
 
-import { TagLib } from "../../index.ts";
+import { TagLib } from "../../index";
 
 async function demonstrateBunUsage() {
   console.log("🎵 taglib-wasm - Bun Runtime Example");

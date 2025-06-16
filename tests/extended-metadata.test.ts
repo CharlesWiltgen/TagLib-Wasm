@@ -4,15 +4,15 @@
  * Tests MusicBrainz IDs, ReplayGain, AcoustID, and other advanced metadata
  */
 
-import { assertEquals, assertExists } from "https://deno.land/std@0.223.0/assert/mod.ts";
-import { TagLib } from "../src/taglib.ts";
-import { readFileData } from "../src/utils/file.ts";
+import { assertEquals, assertExists } from "https://deno.land/std@0.223.0/assert/mod";
+import { TagLib } from "../src/taglib";
+import { readFileData } from "../src/utils/file";
 import { 
   TEST_FILES, 
   TEST_EXTENDED_METADATA,
   createTestFileWithMetadata,
   measureTime
-} from "./test-utils.ts";
+} from "./test-utils";
 
 Deno.test({
   name: "Extended Metadata - MusicBrainz IDs",

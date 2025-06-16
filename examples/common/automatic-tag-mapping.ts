@@ -12,8 +12,8 @@
  * - WAV: INFO chunk fields
  */
 
-import { TagLib, Tags } from "../../index.ts";
-import { METADATA_MAPPINGS } from "../../src/types.ts";
+import { TagLib, Tags } from "../../index";
+import { METADATA_MAPPINGS } from "../../src/types";
 
 async function demonstrateAdvancedMetadata() {
   console.log("🎵 taglib-wasm - Automatic Tag Mapping Example");
