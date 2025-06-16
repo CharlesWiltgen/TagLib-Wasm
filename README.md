@@ -161,12 +161,22 @@ await setCoverArt("song.mp3", imageData, "image/jpeg");
 
 **[📖 View Full Documentation](https://charleswiltgen.github.io/taglib-wasm/)**
 
-- [Getting Started Guide](https://charleswiltgen.github.io/taglib-wasm/guide/)
+### Getting Started
+- [Installation Guide](https://charleswiltgen.github.io/taglib-wasm/guide/installation.html)
+- [Quick Start Tutorial](https://charleswiltgen.github.io/taglib-wasm/guide/quick-start.html)
+- [All Examples](https://charleswiltgen.github.io/taglib-wasm/guide/examples.html)
+
+### Guides
 - [API Reference](https://charleswiltgen.github.io/taglib-wasm/API.html)
 - [Platform Examples](https://charleswiltgen.github.io/taglib-wasm/guide/platform-examples.html)
 - [Working with Cover Art](https://charleswiltgen.github.io/taglib-wasm/guide/cover-art.html)
+- [Cloudflare Workers Setup](https://charleswiltgen.github.io/taglib-wasm/guide/workers-setup.html)
 - [Error Handling](https://charleswiltgen.github.io/taglib-wasm/Error-Handling.html)
-- [All Examples](https://charleswiltgen.github.io/taglib-wasm/guide/examples.html)
+
+### Development
+- [Testing Guide](https://charleswiltgen.github.io/taglib-wasm/development/testing.html)
+- [Future Improvements](https://charleswiltgen.github.io/taglib-wasm/development/improvements.html)
+- [Contributing](https://charleswiltgen.github.io/taglib-wasm/CONTRIBUTING.html)
 
 ## 📋 Supported Formats
 
