@@ -77,7 +77,7 @@
     "acoustid"
   ],
   "author": "Charles Wiltgen <cwiltgen@gmail.com>",
-  "license": "(MIT AND LGPL-2.1-or-later)",
+  "license": "MIT + LGPL 2.1+",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/CharlesWiltgen/taglib-wasm.git"
