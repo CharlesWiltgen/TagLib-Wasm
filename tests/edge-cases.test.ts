@@ -16,17 +16,17 @@ import {
   assertExists,
   assertRejects,
   assertThrows,
-} from "https://deno.land/std@0.224.0/assert/mod";
-import { TagLib } from "../src/mod";
-import type { AudioFile } from "../src/mod";
-import { readTags, writeTags, readProperties } from "../src/simple";
+} from "https://deno.land/std@0.224.0/assert/mod.ts";
+import { TagLib } from "../src/mod.ts";
+import type { AudioFile } from "../src/mod.ts";
+import { readTags, writeTags, readProperties } from "../src/simple.ts";
 import {
   InvalidFormatError,
   FileOperationError,
   MetadataError,
   TagLibInitializationError,
-} from "../src/errors";
-import { TEST_FILES } from "./test-utils";
+} from "../src/errors.ts";
+import { TEST_FILES } from "./test-utils.ts";
 
 // Test data path - using an existing valid file as base
 const TEST_MP3 = TEST_FILES.mp3;
