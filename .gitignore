@@ -162,12 +162,12 @@ build/taglib-build/
 !tests/test-files/*/
 
 # Development tools
-mise.toml
 .claude/
 # VS Code settings (ignore all except helpful contributor files)
 .vscode/*
 !.vscode/settings.json
 !.vscode/extensions.json
+mise.toml
 
 # NPM and publishing
 .npmrc.local
@@ -175,5 +175,6 @@ mise.toml
 package.json.backup
 .npm-token
 .github-token
+CLAUDE.md
 CLAUDE.local.md
 BACKLOG.md
