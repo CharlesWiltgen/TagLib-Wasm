@@ -1,55 +1,42 @@
 # TagLib-Wasm
 
-[![npm version](https://img.shields.io/npm/v/taglib-wasm.svg)](https://www.npmjs.com/package/taglib-wasm)
+[![npm version](https://img.shields.io/npm/v/taglib-wasm.svg?logo=nodedotjs&logoColor=f5f5f5)](https://www.npmjs.com/package/taglib-wasm)
 [![npm downloads](https://img.shields.io/npm/dm/taglib-wasm.svg)](https://www.npmjs.com/package/taglib-wasm)
 [![License](https://img.shields.io/npm/l/taglib-wasm.svg)](https://github.com/CharlesWiltgen/taglib-wasm/blob/main/LICENSE)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-3178c6.svg)](https://www.typescriptlang.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-3178c6.svg?logo=typescript&logoColor=f5f5f5)](https://www.typescriptlang.org/)
 [![Built with Emscripten](https://img.shields.io/badge/Built%20with-Emscripten-4B9BFF.svg)](https://emscripten.org/)
-[![Platform Support](https://img.shields.io/badge/Platforms-Deno%20%7C%20Node.js%20%7C%20Bun%20%7C%20Browsers%20%7C%20Workers-brightgreen.svg)]()
+[![Platform Support](https://img.shields.io/badge/Platforms-Universal-orange.svg?logo=javascript&logoColor=f5f5f5)]()
 
-> TagLib for TypeScript platforms: Deno, Node.js, Bun, browsers, and Cloudflare
-> Workers
+**TagLib-Wasm** is the universal tagging library for TypeScript platforms: Deno,
+Node.js, Bun, Cloudflare Workers and browsers.
 
-This is the Wasm version of [**TagLib**](https://taglib.org/), the most robust,
-de-facto standard for reading and editing metadata tags (Title, Album, Artist,
-etc.) in all popular audio formats. `taglib-wasm` exists because the
-JavaScipt/TypeScipt ecosystem had no battle-tested audio tagging library that
-supports reading and writing music metadata to all popular audio formats — until
-now!
+> “What if [**TagLib**](https://taglib.org/), but TypeScript?”
 
-`taglib-wasm` stands on the shoulders of giants, including
+This project exists because the TypeScipt/JavaScript ecosystem had no
+battle-tested audio tagging library that supports reading and writing music
+metadata to all popular audio formats. It aspires to be a universal solution for
+all **TypeScript**-capable platforms — Deno, Node.js, Bun, Cloudflare Workers,
+and browsers.
+
+TagLib-Wasm stands on the shoulders of giants, including
 [TagLib](https://taglib.org/) itself, [Emscripten](https://emscripten.org/), and
 [Wasm](https://webassembly.org/) ([WebAssembly](https://webassembly.org/)).
-
-`taglib-wasm` aspires to be a universal solution for **JavaScript/TypeScript**
-platforms — Deno, Node.js, Bun, web browsers, and Cloudflare Workers. Note: This
-project is a baby, and you’re likely to experience some surprises at this stage
-of its development. I’m extremely motivated to help address them, since I’ll
-also be depending on this project.
-
-## 🤔 Why?
-
-Because there’s nothing like it. [`mp3tag.js`](https://mp3tag.js.org/) is mature
-and active, but only supports MP3 files and ID3 tags. TagLib was an ideal choice
-from a maturity and capabilities point of view, but wrappers like `node-taglib`
-appeared to be dormant, and I wanted to avoid making users install
-platform-specific dependencies whenever possible.
+TagLib itself is legendary and a core dependency of many music apps.
 
 ## 🎯 Features
 
-- **✅ Wide TS/JS runtime support** – Deno, Node.js, Bun, web browsers, and
-  Cloudflare Workers
-- **✅ TypeScript first** – Complete type definitions and modern API
 - **✅ Full audio format support** – Supports all audio formats supported by
   TagLib
+- **✅ TypeScript first** – Complete type definitions and modern API
+- **✅ Wide TS/JS runtime support** – Deno, Node.js, Bun, Cloudflare Workers,
+  and browsers
 - **✅ Format abstraction** – Handles container format details automagically
   when possible
 - **✅ Zero dependencies** – Self-contained Wasm bundle
-- **✅ Memory efficient** – In-memory processing without filesystem access
 - **✅ Production ready** – Growing test suite helps ensure safety and
   reliability
-- **✅ Two API styles** – Choose between Simple (3 functions) or Core (full
-  control) APIs
+- **✅ Two API styles** – Use the “Simple” API (3 functions), or the full “Core”
+  API for more advanced applications
 
 ## 📦 Installation
 
@@ -674,9 +661,12 @@ detailed runtime information**
 
 ## 🚧 Known Limitations
 
-- **Memory Usage** – Entire file must be loaded into memory (may be an issue for very large files)
-- **Concurrent Access** – Not thread-safe (JavaScript single-threaded nature mitigates this)
-- **Cloudflare Workers** – Limited to 128MB memory per request; files larger than ~100MB may fail
+- **Memory Usage** – Entire file must be loaded into memory (may be an issue for
+  very large files)
+- **Concurrent Access** – Not thread-safe (JavaScript single-threaded nature
+  mitigates this)
+- **Cloudflare Workers** – Limited to 128MB memory per request; files larger
+  than ~100MB may fail
 
 ## 🤝 Contributing
 
@@ -687,10 +677,13 @@ Contributions welcome.
 This project uses dual licensing:
 
 - **TypeScript/JavaScript code**: MIT License (see [LICENSE](LICENSE))
-- **WebAssembly binary (taglib.wasm)**: LGPL-2.1-or-later (inherited from TagLib)
+- **WebAssembly binary (taglib.wasm)**: LGPL-2.1-or-later (inherited from
+  TagLib)
 
-The TagLib library is dual-licensed under LGPL/MPL. When compiled to WebAssembly,
-the resulting binary must comply with LGPL requirements. This means:
+The TagLib library is dual-licensed under LGPL/MPL. When compiled to
+WebAssembly, the resulting binary must comply with LGPL requirements. This
+means:
+
 - You can use taglib-wasm in commercial projects
 - If you modify the TagLib C++ code, you must share those changes
 - You must provide a way for users to relink with a modified TagLib
