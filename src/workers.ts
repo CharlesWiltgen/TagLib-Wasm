@@ -128,7 +128,6 @@ export class AudioFileWorkers {
       bitrate,
       sampleRate,
       channels,
-      format: this.format(),
     };
   }
 

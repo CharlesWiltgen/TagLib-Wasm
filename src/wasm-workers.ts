@@ -100,7 +100,7 @@ export async function loadTagLibModuleForWorkers(
     }
     throw new TagLibInitializationError(
       `Failed to load taglib-wasm for Workers: ${(error as Error).message}`,
-      error as Error,
+      { error: (error as Error).message },
     );
   }
 }
@@ -126,7 +126,7 @@ async function createWorkersCompatibleModule(): Promise<any> {
       "Workers-compatible Wasm module not available. " +
         "Please build with Workers target or use a bundler that supports Wasm modules. " +
         `Original error: ${(error as Error).message}`,
-      error as Error,
+      { error: (error as Error).message },
     );
   }
 }
