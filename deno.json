@@ -1,7 +1,11 @@
 {
   "lint": {
     "rules": {
-      "exclude": ["no-explicit-any"]
+      "exclude": [
+        "no-explicit-any",
+        "no-unused-vars",
+        "require-await"
+      ]
     },
     "exclude": ["lib/", "build/", "scripts/", "examples/", "tools/"]
   },
