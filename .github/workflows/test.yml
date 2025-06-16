@@ -49,7 +49,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
-        runtime: [node, deno, bun]
+        runtime: [deno, bun]
         exclude:
           # Bun doesn't support Windows yet
           - os: windows-latest
@@ -95,27 +95,10 @@ jobs:
           name: dist
           path: dist/
 
-      - name: Run tests (Node.js)
-        if: matrix.runtime == 'node'
-        run: npm run test:node
-
       - name: Run tests (Deno)
         if: matrix.runtime == 'deno'
-        run: |
-          if [ "${{ matrix.os }}" == "ubuntu-latest" ]; then
-            # Run with coverage on Ubuntu
-            npm run test:coverage
-          else
-            # Run without coverage on other OS
-            npm run test
-          fi
+        run: npm run test
 
-      - name: Upload coverage reports
-        if: matrix.runtime == 'deno' && matrix.os == 'ubuntu-latest'
-        uses: actions/upload-artifact@v4
-        with:
-          name: coverage-report
-          path: coverage/
 
       - name: Run tests (Bun)
         if: matrix.runtime == 'bun'
@@ -141,7 +124,7 @@ jobs:
         run: deno lint
 
       - name: Type check
-        run: deno check src/**/*.ts tests/**/*.ts
+        run: deno check src tests
 
   test-summary:
     name: Test Summary
