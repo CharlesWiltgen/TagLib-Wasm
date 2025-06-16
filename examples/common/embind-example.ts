@@ -119,7 +119,7 @@ if (typeof window === "undefined") {
   main().catch(console.error);
 } else {
   // Browser environment
-  window.addEventListener("DOMContentLoaded", () => {
+  globalThis.addEventListener("DOMContentLoaded", () => {
     main().catch(console.error);
   });
 }
