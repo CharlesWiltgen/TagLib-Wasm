@@ -1,6 +1,9 @@
 name: Publish to NPM and GitHub Packages
 
 on:
+  push:
+    tags:
+      - 'v*'
   release:
     types: [created]
   workflow_dispatch:
@@ -36,6 +39,24 @@ jobs:
           node-version: 20
           registry-url: https://registry.npmjs.org/
 
+      - name: Extract version
+        id: extract_version
+        run: |
+          if [ "${{ github.event_name }}" == "push" ]; then
+            # Tag push - extract version from ref
+            VERSION="${GITHUB_REF#refs/tags/}"
+            echo "Triggered by tag push: $VERSION"
+          elif [ "${{ github.event_name }}" == "release" ]; then
+            # Release created
+            VERSION="${{ github.event.release.tag_name }}"
+            echo "Triggered by release: $VERSION"
+          elif [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            # Manual trigger
+            VERSION="${{ github.event.inputs.version }}"
+            echo "Triggered manually with version: $VERSION"
+          fi
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+
       - name: Update version (if manual)
         if: github.event_name == 'workflow_dispatch'
         run: |
@@ -50,7 +71,14 @@ jobs:
       - name: Check if specific version exists on npm
         id: check_npm
         run: |
-          PACKAGE_VERSION="${{ github.event_name == 'workflow_dispatch' && github.event.inputs.version || github.event.release.tag_name }}"
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            PACKAGE_VERSION="${{ github.event.inputs.version }}"
+          elif [ "${{ github.event_name }}" == "release" ]; then
+            PACKAGE_VERSION="${{ github.event.release.tag_name }}"
+          else
+            # For tag push events, extract from GITHUB_REF
+            PACKAGE_VERSION="${GITHUB_REF#refs/tags/}"
+          fi
           if npm view taglib-wasm@$PACKAGE_VERSION version 2>/dev/null; then
             echo "exists=true" >> $GITHUB_OUTPUT
             echo "Version $PACKAGE_VERSION already exists on npm"
@@ -115,7 +143,14 @@ jobs:
       - name: Check if specific version exists on GitHub Packages
         id: check_github
         run: |
-          PACKAGE_VERSION="${{ github.event_name == 'workflow_dispatch' && github.event.inputs.version || github.event.release.tag_name }}"
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            PACKAGE_VERSION="${{ github.event.inputs.version }}"
+          elif [ "${{ github.event_name }}" == "release" ]; then
+            PACKAGE_VERSION="${{ github.event.release.tag_name }}"
+          else
+            # For tag push events, extract from GITHUB_REF
+            PACKAGE_VERSION="${GITHUB_REF#refs/tags/}"
+          fi
           if npm view @charleswiltgen/taglib-wasm@$PACKAGE_VERSION version --registry=https://npm.pkg.github.com/ 2>/dev/null; then
             echo "exists=true" >> $GITHUB_OUTPUT
             echo "Version $PACKAGE_VERSION already exists on GitHub Packages"
