@@ -3,7 +3,6 @@
     "target": "ES2020",
     "module": "ESNext",
     "moduleResolution": "bundler",
-    "allowImportingTsExtensions": true,
     "lib": ["ES2020", "DOM"],
     "outDir": "./dist",
     "rootDir": "./",
@@ -17,6 +16,6 @@
     "removeComments": false,
     "preserveConstEnums": true
   },
-  "include": ["index.ts", "src/**/*"],
+  "include": ["index.ts", "src/**/*", "src/global.d.ts"],
   "exclude": ["node_modules", "dist", "lib", "build", "examples", "tests"]
 }

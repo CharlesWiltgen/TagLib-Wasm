@@ -21,9 +21,9 @@
  * ```
  */
 
-import type { Picture } from "./types.ts";
-import { PictureType } from "./types.ts";
-import { applyPictures, readPictures } from "./simple.ts";
+import type { Picture } from "./types";
+import { PictureType } from "./types";
+import { applyPictures, readPictures } from "./simple";
 
 /**
  * Convert a Picture object to a data URL for display in web browsers

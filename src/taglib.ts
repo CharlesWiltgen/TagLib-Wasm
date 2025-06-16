@@ -1,19 +1,19 @@
-import type { TagLibModule, WasmModule } from "./wasm.ts";
+import type { TagLibModule, WasmModule } from "./wasm";
 import type {
   AudioProperties,
   FileType,
   PropertyMap,
   Tag as BasicTag,
   Picture,
-} from "./types.ts";
+} from "./types";
 import {
   InvalidFormatError,
   MetadataError,
   TagLibInitializationError,
   UnsupportedFormatError,
-} from "./errors.ts";
-import { readFileData } from "./utils/file.ts";
-import { writeFileData } from "./utils/write.ts";
+} from "./errors";
+import { readFileData } from "./utils/file";
+import { writeFileData } from "./utils/write";
 
 /**
  * Extended Tag interface with read/write capabilities for audio metadata.
@@ -757,8 +757,8 @@ export class TagLib {
    */
   static async initialize(): Promise<TagLib> {
     // Use the loadTagLibModule function
-    const { loadTagLibModule } = await import("../index.ts");
-    const module = await loadTagLibModule();
+    const { loadTagLibModule } = await import("../index");
+    const module = await Promise.resolve(loadTagLibModule());
     return new TagLib(module);
   }
 
@@ -956,4 +956,4 @@ export {
   TagLibErrorCode,
   TagLibInitializationError,
   UnsupportedFormatError,
-} from "./errors.ts";
+} from "./errors";
