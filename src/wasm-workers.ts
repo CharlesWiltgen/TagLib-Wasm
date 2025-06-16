@@ -2,8 +2,8 @@
  * @fileoverview WebAssembly module interface for Cloudflare Workers
  */
 
-import type { TagLibConfig, TagLibModule } from "./types.ts";
-import { TagLibInitializationError } from "./errors.ts";
+import type { TagLibConfig, TagLibModule } from "./types";
+import { TagLibInitializationError } from "./errors";
 
 // Re-export TagLibModule for convenience
 export type { TagLibModule };
@@ -34,11 +34,12 @@ const DEFAULT_WORKERS_CONFIG: Required<TagLibConfig> = {
  * const taglib = await loadTagLibModuleForWorkers(wasmBinary);
  * ```
  */
-export async function loadTagLibModuleForWorkers(
+export function loadTagLibModuleForWorkers(
   wasmBinary: Uint8Array,
   config: TagLibConfig = {},
 ): Promise<TagLibModule> {
-  const mergedConfig = { ...DEFAULT_WORKERS_CONFIG, ...config };
+  return new Promise(async (resolve, reject) => {
+    const mergedConfig = { ...DEFAULT_WORKERS_CONFIG, ...config };
 
   // Create Emscripten module configuration for Workers
   const moduleConfig = {
@@ -93,16 +94,18 @@ export async function loadTagLibModuleForWorkers(
       }
     }
 
-    return wasmInstance as TagLibModule;
+    resolve(wasmInstance as TagLibModule);
   } catch (error) {
     if (error instanceof TagLibInitializationError) {
-      throw error;
+      reject(error);
+    } else {
+      reject(new TagLibInitializationError(
+        `Failed to load taglib-wasm for Workers: ${(error as Error).message}`,
+        error as Record<string, unknown>,
+      ));
     }
-    throw new TagLibInitializationError(
-      `Failed to load taglib-wasm for Workers: ${(error as Error).message}`,
-      error as Error,
-    );
   }
+  });
 }
 
 /**
@@ -126,7 +129,7 @@ async function createWorkersCompatibleModule(): Promise<any> {
       "Workers-compatible Wasm module not available. " +
         "Please build with Workers target or use a bundler that supports Wasm modules. " +
         `Original error: ${(error as Error).message}`,
-      error as Error,
+      error as Record<string, unknown>,
     );
   }
 }

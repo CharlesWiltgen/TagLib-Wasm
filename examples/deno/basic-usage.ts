@@ -2,7 +2,7 @@
  * @fileoverview Basic usage example for Deno
  */
 
-import { TagLib } from "../../mod.ts";
+import { TagLib } from "../../mod";
 
 async function main() {
   console.log("🎵 taglib-wasm Deno Example");

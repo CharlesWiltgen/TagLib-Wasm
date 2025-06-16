@@ -24,16 +24,16 @@
  * ```
  */
 
-import { TagLib } from "./taglib.ts";
-import type { AudioProperties, Tag, Picture } from "./types.ts";
-import { PictureType } from "./types.ts";
+import { TagLib } from "./taglib";
+import type { AudioProperties, Tag, Picture } from "./types";
+import { PictureType } from "./types";
 import {
   FileOperationError,
   InvalidFormatError,
   MetadataError,
-} from "./errors.ts";
-import { readFileData } from "./utils/file.ts";
-import { writeFileData } from "./utils/write.ts";
+} from "./errors";
+import { readFileData } from "./utils/file";
+import { writeFileData } from "./utils/write";
 
 // Cached TagLib instance for auto-initialization
 let cachedTagLib: TagLib | null = null;
@@ -48,7 +48,7 @@ let cachedTagLib: TagLib | null = null;
 async function getTagLib(): Promise<TagLib> {
   if (!cachedTagLib) {
     // Use the NPM version for compatibility
-    const { TagLib } = await import("./taglib.ts");
+    const { TagLib } = await import("./taglib");
     cachedTagLib = await TagLib.initialize();
   }
   return cachedTagLib as TagLib;
@@ -655,5 +655,5 @@ export async function getPictureMetadata(
  * Re-export commonly used types for convenience.
  * These types define the structure of metadata and audio properties.
  */
-export type { AudioProperties, Tag, Picture } from "./types.ts";
-export { PictureType } from "./types.ts";
+export type { AudioProperties, Tag, Picture } from "./types";
+export { PictureType } from "./types";
