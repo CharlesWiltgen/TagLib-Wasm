@@ -1,6 +1,6 @@
 {
   "name": "taglib-wasm",
-  "version": "0.3.10",
+  "version": "0.3.11",
   "description": "TagLib for TypeScript platforms: Deno, Node.js, Bun, Electron, browsers, and Cloudflare Workers",
   "main": "index.ts",
   "types": "index.ts",
