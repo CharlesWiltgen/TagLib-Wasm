@@ -2,7 +2,9 @@
 
 Comprehensive test suite for taglib-wasm covering all functionality.
 
-📚 **[View the full Testing Guide](https://charleswiltgen.github.io/taglib-wasm/development/testing.html)** in our documentation for detailed testing instructions.
+📚
+**[View the full Testing Guide](https://charleswiltgen.github.io/taglib-wasm/development/testing.html)**
+in our documentation for detailed testing instructions.
 
 ## Quick Start
 

@@ -29,12 +29,15 @@ File objects.
 Read metadata tags from an audio file.
 
 ```typescript
-function readTags(input: string | Uint8Array | ArrayBuffer | File): Promise<Tags>;
+function readTags(
+  input: string | Uint8Array | ArrayBuffer | File,
+): Promise<Tags>;
 ```
 
 #### Parameters
 
-- `input`: File path (string), audio data (Uint8Array/ArrayBuffer), or File object
+- `input`: File path (string), audio data (Uint8Array/ArrayBuffer), or File
+  object
 
 #### Returns
 
@@ -64,7 +67,7 @@ const buffer = await Deno.readFile("song.mp3");
 const tags = await readTags(buffer);
 
 // From ArrayBuffer
-const arrayBuffer = await fetch("song.mp3").then(r => r.arrayBuffer());
+const arrayBuffer = await fetch("song.mp3").then((r) => r.arrayBuffer());
 const tags = await readTags(arrayBuffer);
 
 // From File object (browsers)
@@ -85,7 +88,8 @@ function writeTags(
 
 #### Parameters
 
-- `input`: File path (string), audio data (Uint8Array/ArrayBuffer), or File object
+- `input`: File path (string), audio data (Uint8Array/ArrayBuffer), or File
+  object
 - `tags`: Object containing tags to write (partial update supported)
 
 #### Returns
@@ -156,12 +160,15 @@ await updateTags("song.mp3", "song.mp3", {
 Read audio properties from a file.
 
 ```typescript
-function readProperties(input: string | Uint8Array | ArrayBuffer | File): Promise<Properties>;
+function readProperties(
+  input: string | Uint8Array | ArrayBuffer | File,
+): Promise<Properties>;
 ```
 
 #### Parameters
 
-- `input`: File path (string), audio data (Uint8Array/ArrayBuffer), or File object
+- `input`: File path (string), audio data (Uint8Array/ArrayBuffer), or File
+  object
 
 #### Returns
 
@@ -242,7 +249,8 @@ open(input: string | ArrayBuffer | Uint8Array | File): Promise<AudioFile>
 
 ##### Parameters
 
-- `input`: File path (string), audio data (ArrayBuffer/Uint8Array), or File object
+- `input`: File path (string), audio data (ArrayBuffer/Uint8Array), or File
+  object
 
 ##### Returns
 
@@ -263,7 +271,7 @@ const audioData = await Deno.readFile("song.mp3");
 const file = await taglib.open(audioData);
 
 // From ArrayBuffer
-const arrayBuffer = await fetch("song.mp3").then(r => r.arrayBuffer());
+const arrayBuffer = await fetch("song.mp3").then((r) => r.arrayBuffer());
 const file = await taglib.open(arrayBuffer);
 
 // From File object (browsers)

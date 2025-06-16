@@ -1,14 +1,19 @@
 # Cloudflare Workers Setup
 
-This guide explains how to deploy taglib-wasm on Cloudflare Workers for serverless audio metadata processing.
+This guide explains how to deploy taglib-wasm on Cloudflare Workers for
+serverless audio metadata processing.
 
 ## Overview
 
-Cloudflare Workers provide a serverless execution environment that runs at the edge. With taglib-wasm, you can process audio metadata without managing servers, scaling automatically to handle any load.
+Cloudflare Workers provide a serverless execution environment that runs at the
+edge. With taglib-wasm, you can process audio metadata without managing servers,
+scaling automatically to handle any load.
 
 ## Example Worker
 
-A complete example is available in the [examples/workers](https://github.com/CharlesWiltgen/taglib-wasm/tree/main/examples/workers) directory.
+A complete example is available in the
+[examples/workers](https://github.com/CharlesWiltgen/taglib-wasm/tree/main/examples/workers)
+directory.
 
 ### Features
 
@@ -21,14 +26,17 @@ A complete example is available in the [examples/workers](https://github.com/Cha
 ## API Endpoints
 
 ### `GET /`
+
 Returns service information and available endpoints.
 
 ### `POST /metadata`
+
 Upload an audio file and get its metadata.
 
 **Request**: Binary audio file in request body
 
 **Response**:
+
 ```json
 {
   "success": true,
@@ -55,9 +63,11 @@ Upload an audio file and get its metadata.
 ```
 
 ### `POST /metadata/batch`
+
 Process multiple audio files in one request.
 
 **Request**:
+
 ```json
 [
   {
@@ -103,7 +113,8 @@ fallthrough = true
 
 #### Option A: Bundle with Worker (Recommended)
 
-The WASM file is bundled directly with your Worker code. This is the simplest approach:
+The WASM file is bundled directly with your Worker code. This is the simplest
+approach:
 
 ```bash
 # Build and deploy
@@ -207,27 +218,33 @@ const batchData = await Promise.all(
   })),
 );
 
-const batchResponse = await fetch("https://your-worker.workers.dev/metadata/batch", {
-  method: "POST",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify(batchData),
-});
+const batchResponse = await fetch(
+  "https://your-worker.workers.dev/metadata/batch",
+  {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(batchData),
+  },
+);
 const batchResult = await batchResponse.json();
 ```
 
 ## Performance Considerations
 
 ### Memory Limits
+
 - Workers have a 128MB memory limit
 - Reduce WASM heap size accordingly in your initialization
 - Consider streaming for very large files
 
 ### CPU Time
+
 - 50ms CPU time for free tier
 - 30 seconds for paid plans
 - Batch operations count towards single invocation limit
 
 ### File Size Recommendations
+
 - Limit uploads to 10MB or less for best performance
 - Use R2 for storing processed results if needed
 - Consider chunking for larger files
@@ -284,6 +301,7 @@ The Worker provides detailed error responses:
 ```
 
 Common errors:
+
 - Invalid audio format
 - Corrupted file data
 - Memory allocation failures
@@ -304,7 +322,13 @@ Common errors:
 
 ## Next Steps
 
-- Explore the [complete example](https://github.com/CharlesWiltgen/taglib-wasm/tree/main/examples/workers)
-- Read about [Cloudflare Workers limits](https://developers.cloudflare.com/workers/platform/limits/)
-- Learn about [Workers KV](https://developers.cloudflare.com/workers/runtime-apis/kv/) for metadata caching
-- Consider [Durable Objects](https://developers.cloudflare.com/workers/runtime-apis/durable-objects/) for stateful processing
+- Explore the
+  [complete example](https://github.com/CharlesWiltgen/taglib-wasm/tree/main/examples/workers)
+- Read about
+  [Cloudflare Workers limits](https://developers.cloudflare.com/workers/platform/limits/)
+- Learn about
+  [Workers KV](https://developers.cloudflare.com/workers/runtime-apis/kv/) for
+  metadata caching
+- Consider
+  [Durable Objects](https://developers.cloudflare.com/workers/runtime-apis/durable-objects/)
+  for stateful processing

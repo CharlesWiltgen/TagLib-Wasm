@@ -2,9 +2,9 @@ import type { TagLibModule, WasmModule } from "./wasm.ts";
 import type {
   AudioProperties,
   FileType,
+  Picture,
   PropertyMap,
   Tag as BasicTag,
-  Picture,
 } from "./types.ts";
 import {
   InvalidFormatError,
@@ -369,7 +369,7 @@ export class AudioFileImpl implements AudioFile {
     if (!tagWrapper) {
       throw new MetadataError(
         "read",
-        "Tag may be corrupted or format not fully supported"
+        "Tag may be corrupted or format not fully supported",
       );
     }
 
@@ -452,7 +452,7 @@ export class AudioFileImpl implements AudioFile {
       const format = this.getFormat();
       throw new UnsupportedFormatError(
         format,
-        ["MP4", "M4A"]
+        ["MP4", "M4A"],
       );
     }
     const value = this.fileHandle.getMP4Item(key);
@@ -465,7 +465,7 @@ export class AudioFileImpl implements AudioFile {
       const format = this.getFormat();
       throw new UnsupportedFormatError(
         format,
-        ["MP4", "M4A"]
+        ["MP4", "M4A"],
       );
     }
     this.fileHandle.setMP4Item(key, value);
@@ -477,7 +477,7 @@ export class AudioFileImpl implements AudioFile {
       const format = this.getFormat();
       throw new UnsupportedFormatError(
         format,
-        ["MP4", "M4A"]
+        ["MP4", "M4A"],
       );
     }
     this.fileHandle.removeMP4Item(key);
@@ -509,7 +509,7 @@ export class AudioFileImpl implements AudioFile {
     const targetPath = path || this.sourcePath;
     if (!targetPath) {
       throw new Error(
-        "No file path available. Either provide a path or open the file from a path."
+        "No file path available. Either provide a path or open the file from a path.",
       );
     }
 
@@ -532,7 +532,7 @@ export class AudioFileImpl implements AudioFile {
   getPictures(): Picture[] {
     const picturesArray = this.fileHandle.getPictures();
     const pictures: Picture[] = [];
-    
+
     // Convert from Emscripten array to TypeScript array
     for (let i = 0; i < picturesArray.length; i++) {
       const pic = picturesArray[i];
@@ -540,23 +540,23 @@ export class AudioFileImpl implements AudioFile {
         mimeType: pic.mimeType,
         data: pic.data,
         type: pic.type,
-        description: pic.description
+        description: pic.description,
       });
     }
-    
+
     return pictures;
   }
 
   /** @inheritdoc */
   setPictures(pictures: Picture[]): void {
     // Convert TypeScript array to format expected by C++
-    const picturesArray = pictures.map(pic => ({
+    const picturesArray = pictures.map((pic) => ({
       mimeType: pic.mimeType,
       data: pic.data,
       type: pic.type,
-      description: pic.description || ""
+      description: pic.description || "",
     }));
-    
+
     this.fileHandle.setPictures(picturesArray);
   }
 
@@ -566,9 +566,9 @@ export class AudioFileImpl implements AudioFile {
       mimeType: picture.mimeType,
       data: picture.data,
       type: picture.type,
-      description: picture.description || ""
+      description: picture.description || "",
     };
-    
+
     this.fileHandle.addPicture(pic);
   }
 
@@ -581,7 +581,7 @@ export class AudioFileImpl implements AudioFile {
   dispose(): void {
     if (this.fileHandle) {
       // Explicitly destroy the C++ object to free memory immediately
-      if (typeof this.fileHandle.destroy === 'function') {
+      if (typeof this.fileHandle.destroy === "function") {
         this.fileHandle.destroy();
       }
       // Clear all references
@@ -789,12 +789,14 @@ export class TagLib {
    * file.dispose();
    * ```
    */
-  async open(input: string | ArrayBuffer | Uint8Array | File): Promise<AudioFile> {
+  async open(
+    input: string | ArrayBuffer | Uint8Array | File,
+  ): Promise<AudioFile> {
     // Check if Embind is available
     if (!this.module.createFileHandle) {
       throw new TagLibInitializationError(
         "TagLib module not properly initialized: createFileHandle not found. " +
-          "Make sure the module is fully loaded before calling open."
+          "Make sure the module is fully loaded before calling open.",
       );
     }
 
@@ -803,11 +805,11 @@ export class TagLib {
 
     // Read file data if input is a path or File object
     const audioData = await readFileData(input);
-    
+
     // Ensure we pass the correct slice of the buffer
     const buffer = audioData.buffer.slice(
       audioData.byteOffset,
-      audioData.byteOffset + audioData.byteLength
+      audioData.byteOffset + audioData.byteLength,
     );
 
     // Convert ArrayBuffer to Uint8Array for Embind
@@ -821,7 +823,7 @@ export class TagLib {
     if (!success) {
       throw new InvalidFormatError(
         "Failed to load audio file. File may be corrupted or in an unsupported format",
-        buffer.byteLength
+        buffer.byteLength,
       );
     }
 
@@ -848,7 +850,7 @@ export class TagLib {
     const file = await this.open(path);
     try {
       const tag = file.tag();
-      
+
       // Apply tag updates
       if (tags.title !== undefined) tag.setTitle(tags.title);
       if (tags.artist !== undefined) tag.setArtist(tags.artist);
@@ -857,7 +859,7 @@ export class TagLib {
       if (tags.track !== undefined) tag.setTrack(tags.track);
       if (tags.genre !== undefined) tag.setGenre(tags.genre);
       if (tags.comment !== undefined) tag.setComment(tags.comment);
-      
+
       // Save to file
       await file.saveToFile();
     } finally {
@@ -885,12 +887,12 @@ export class TagLib {
   async copyWithTags(
     sourcePath: string,
     destPath: string,
-    tags: Partial<BasicTag>
+    tags: Partial<BasicTag>,
   ): Promise<void> {
     const file = await this.open(sourcePath);
     try {
       const tag = file.tag();
-      
+
       // Apply tag updates
       if (tags.title !== undefined) tag.setTitle(tags.title);
       if (tags.artist !== undefined) tag.setArtist(tags.artist);
@@ -899,7 +901,7 @@ export class TagLib {
       if (tags.track !== undefined) tag.setTrack(tags.track);
       if (tags.genre !== undefined) tag.setGenre(tags.genre);
       if (tags.comment !== undefined) tag.setComment(tags.comment);
-      
+
       // Save to new location
       await file.saveToFile(destPath);
     } finally {

@@ -1,6 +1,7 @@
 # Working with Cover Art
 
-taglib-wasm provides comprehensive support for reading, writing, and managing embedded pictures in audio files with both basic and advanced APIs.
+taglib-wasm provides comprehensive support for reading, writing, and managing
+embedded pictures in audio files with both basic and advanced APIs.
 
 ## Quick Cover Art Operations
 
@@ -101,7 +102,8 @@ await applyPictures("deluxe-album.mp3", [
 
 ## Picture Types
 
-taglib-wasm supports all standard picture types defined by ID3v2 and other formats:
+taglib-wasm supports all standard picture types defined by ID3v2 and other
+formats:
 
 - `PictureType.Other`
 - `PictureType.FileIcon`
@@ -127,10 +129,12 @@ taglib-wasm supports all standard picture types defined by ID3v2 and other forma
 
 ## Best Practices
 
-1. **Image Formats**: Use JPEG for photos and PNG for logos/artwork with transparency
+1. **Image Formats**: Use JPEG for photos and PNG for logos/artwork with
+   transparency
 2. **Image Size**: Keep cover art under 1MB for better performance
 3. **Resolution**: 600x600 pixels is a good standard for album art
-4. **Memory**: Remember to dispose of AudioFile objects after processing large images
+4. **Memory**: Remember to dispose of AudioFile objects after processing large
+   images
 5. **MIME Types**: Always specify the correct MIME type when setting pictures
 
 ## Format Support
@@ -148,26 +152,28 @@ Different audio formats have varying levels of picture support:
 Here's a complete example of managing album artwork:
 
 ```typescript
-import { readPictures, setCoverArt, PictureType } from "taglib-wasm/simple";
+import { PictureType, readPictures, setCoverArt } from "taglib-wasm/simple";
 import { readFile, writeFile } from "fs/promises";
 
 async function updateAlbumArt(audioFile: string, artworkFile: string) {
   // Read the new artwork
   const artworkData = await readFile(artworkFile);
-  
+
   // Check existing pictures
   const existingPictures = await readPictures(audioFile);
-  const hasCover = existingPictures.some(p => p.type === PictureType.FrontCover);
-  
+  const hasCover = existingPictures.some((p) =>
+    p.type === PictureType.FrontCover
+  );
+
   if (hasCover) {
     console.log("Replacing existing cover art...");
   } else {
     console.log("Adding new cover art...");
   }
-  
+
   // Set the new cover art
   const updatedBuffer = await setCoverArt(audioFile, artworkData, "image/jpeg");
-  
+
   // Save the updated file
   await writeFile(audioFile, updatedBuffer);
   console.log("Cover art updated successfully!");

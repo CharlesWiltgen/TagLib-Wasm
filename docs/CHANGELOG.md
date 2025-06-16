@@ -10,8 +10,10 @@ and this project adheres to
 
 ### Fixed
 
-- Fixed Unicode string handling - emoji, CJK characters, RTL text, and all Unicode characters now work correctly
-  - Changed C++ wrapper to use `toCString(true)` instead of `to8Bit(true)` for proper UTF-8 encoding
+- Fixed Unicode string handling - emoji, CJK characters, RTL text, and all
+  Unicode characters now work correctly
+  - Changed C++ wrapper to use `toCString(true)` instead of `to8Bit(true)` for
+    proper UTF-8 encoding
   - All Unicode edge case tests now pass
   - Critical fix for international users
 

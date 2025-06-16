@@ -25,7 +25,7 @@
  */
 
 import { TagLib } from "./taglib.ts";
-import type { AudioProperties, Tag, Picture } from "./types.ts";
+import type { AudioProperties, Picture, Tag } from "./types.ts";
 import { PictureType } from "./types.ts";
 import {
   FileOperationError,
@@ -74,7 +74,7 @@ export async function readTags(
   try {
     if (!audioFile.isValid()) {
       throw new InvalidFormatError(
-        "File may be corrupted or in an unsupported format"
+        "File may be corrupted or in an unsupported format",
       );
     }
 
@@ -116,7 +116,7 @@ export async function applyTags(
   try {
     if (!audioFile.isValid()) {
       throw new InvalidFormatError(
-        "File may be corrupted or in an unsupported format"
+        "File may be corrupted or in an unsupported format",
       );
     }
 
@@ -134,7 +134,7 @@ export async function applyTags(
     if (!audioFile.save()) {
       throw new FileOperationError(
         "save",
-        "Failed to save metadata changes. The file may be read-only or corrupted."
+        "Failed to save metadata changes. The file may be read-only or corrupted.",
       );
     }
 
@@ -186,7 +186,7 @@ export async function updateTags(
 
   // Get the modified buffer
   const modifiedBuffer = await applyTags(file, tags, options);
-  
+
   // Write the buffer back to the file
   await writeFileData(file, modifiedBuffer);
 }
@@ -213,7 +213,7 @@ export async function readProperties(
   try {
     if (!audioFile.isValid()) {
       throw new InvalidFormatError(
-        "File may be corrupted or in an unsupported format"
+        "File may be corrupted or in an unsupported format",
       );
     }
 
@@ -222,7 +222,7 @@ export async function readProperties(
       throw new MetadataError(
         "read",
         "File may not contain valid audio data",
-        "audioProperties"
+        "audioProperties",
       );
     }
     return props;
@@ -361,7 +361,7 @@ export async function readPictures(
   try {
     if (!audioFile.isValid()) {
       throw new InvalidFormatError(
-        "File may be corrupted or in an unsupported format"
+        "File may be corrupted or in an unsupported format",
       );
     }
 
@@ -401,7 +401,7 @@ export async function applyPictures(
   try {
     if (!audioFile.isValid()) {
       throw new InvalidFormatError(
-        "File may be corrupted or in an unsupported format"
+        "File may be corrupted or in an unsupported format",
       );
     }
 
@@ -412,7 +412,7 @@ export async function applyPictures(
     if (!audioFile.save()) {
       throw new FileOperationError(
         "save",
-        "Failed to save picture changes. The file may be read-only or corrupted."
+        "Failed to save picture changes. The file may be read-only or corrupted.",
       );
     }
 
@@ -453,7 +453,7 @@ export async function addPicture(
   try {
     if (!audioFile.isValid()) {
       throw new InvalidFormatError(
-        "File may be corrupted or in an unsupported format"
+        "File may be corrupted or in an unsupported format",
       );
     }
 
@@ -464,7 +464,7 @@ export async function addPicture(
     if (!audioFile.save()) {
       throw new FileOperationError(
         "save",
-        "Failed to save picture changes. The file may be read-only or corrupted."
+        "Failed to save picture changes. The file may be read-only or corrupted.",
       );
     }
 
@@ -519,7 +519,9 @@ export async function getCoverArt(
   }
 
   // Try to find front cover first
-  const frontCover = pictures.find(pic => pic.type === PictureType.FrontCover);
+  const frontCover = pictures.find((pic) =>
+    pic.type === PictureType.FrontCover
+  );
   if (frontCover) {
     return frontCover.data;
   }
@@ -578,7 +580,7 @@ export function findPictureByType(
   pictures: Picture[],
   type: PictureType,
 ): Picture | null {
-  return pictures.find(pic => pic.type === type) || null;
+  return pictures.find((pic) => pic.type === type) || null;
 }
 
 /**
@@ -607,13 +609,15 @@ export async function replacePictureByType(
   newPicture: Picture,
 ): Promise<Uint8Array> {
   const pictures = await readPictures(file);
-  
+
   // Remove any existing picture of the same type
-  const filteredPictures = pictures.filter(pic => pic.type !== newPicture.type);
-  
+  const filteredPictures = pictures.filter((pic) =>
+    pic.type !== newPicture.type
+  );
+
   // Add the new picture
   filteredPictures.push(newPicture);
-  
+
   return applyPictures(file, filteredPictures);
 }
 
@@ -636,14 +640,16 @@ export async function replacePictureByType(
  */
 export async function getPictureMetadata(
   file: string | Uint8Array | ArrayBuffer | File,
-): Promise<Array<{
-  type: PictureType;
-  mimeType: string;
-  description?: string;
-  size: number;
-}>> {
+): Promise<
+  Array<{
+    type: PictureType;
+    mimeType: string;
+    description?: string;
+    size: number;
+  }>
+> {
   const pictures = await readPictures(file);
-  return pictures.map(pic => ({
+  return pictures.map((pic) => ({
     type: pic.type,
     mimeType: pic.mimeType,
     description: pic.description,
@@ -655,5 +661,5 @@ export async function getPictureMetadata(
  * Re-export commonly used types for convenience.
  * These types define the structure of metadata and audio properties.
  */
-export type { AudioProperties, Tag, Picture } from "./types.ts";
+export type { AudioProperties, Picture, Tag } from "./types.ts";
 export { PictureType } from "./types.ts";
