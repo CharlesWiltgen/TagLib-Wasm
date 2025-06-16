@@ -4,6 +4,8 @@
 [![npm downloads](https://img.shields.io/npm/dm/taglib-wasm.svg)](https://www.npmjs.com/package/taglib-wasm)
 [![License](https://img.shields.io/npm/l/taglib-wasm.svg)](https://github.com/CharlesWiltgen/taglib-wasm/blob/main/LICENSE)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-3178c6.svg)](https://www.typescriptlang.org/)
+[![Built with Emscripten](https://img.shields.io/badge/Built%20with-Emscripten-4B9BFF.svg)](https://emscripten.org/)
+[![Platform Support](https://img.shields.io/badge/Platforms-Deno%20%7C%20Node.js%20%7C%20Bun%20%7C%20Browsers%20%7C%20Workers-brightgreen.svg)]()
 
 > TagLib for TypeScript platforms: Deno, Node.js, Bun, browsers, and Cloudflare
 > Workers
