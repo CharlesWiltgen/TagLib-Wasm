@@ -1,5 +1,10 @@
 # TagLib-Wasm
 
+[![npm version](https://img.shields.io/npm/v/taglib-wasm.svg)](https://www.npmjs.com/package/taglib-wasm)
+[![npm downloads](https://img.shields.io/npm/dm/taglib-wasm.svg)](https://www.npmjs.com/package/taglib-wasm)
+[![License](https://img.shields.io/npm/l/taglib-wasm.svg)](https://github.com/CharlesWiltgen/taglib-wasm/blob/main/LICENSE)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-3178c6.svg)](https://www.typescriptlang.org/)
+
 > TagLib for TypeScript platforms: Deno, Node.js, Bun, browsers, and Cloudflare
 > Workers
 
