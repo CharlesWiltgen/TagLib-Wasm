@@ -153,6 +153,7 @@
         "npm:@types/emscripten@^1.39.6",
         "npm:@types/node@20",
         "npm:esbuild@~0.25.5",
+        "npm:tsx@^4.20.3",
         "npm:typescript@5"
       ]
     }
