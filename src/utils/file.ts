@@ -4,7 +4,6 @@
  */
 
 import { EnvironmentError, FileOperationError } from "../errors.ts";
-import process from "node:process";
 
 /**
  * Read a file's data from various sources.
@@ -35,23 +34,37 @@ export async function readFileData(
 
   // String path - read from filesystem
   if (typeof file === "string") {
+    // Check environment support first
+    const hasDeno = typeof (globalThis as any).Deno !== "undefined";
+    const hasNode = typeof (globalThis as any).process !== "undefined" &&
+      (globalThis as any).process.versions &&
+      (globalThis as any).process.versions.node;
+    const hasBun = typeof (globalThis as any).Bun !== "undefined";
+
+    // If no runtime supports filesystem, throw EnvironmentError
+    if (!hasDeno && !hasNode && !hasBun) {
+      const env = "Browser";
+      throw new EnvironmentError(
+        env,
+        "does not support file path reading",
+        "filesystem access",
+      );
+    }
+
     try {
       // Deno
-      if (typeof Deno !== "undefined") {
-        return await Deno.readFile(file);
+      if (hasDeno) {
+        return await (globalThis as any).Deno.readFile(file);
       }
 
       // Node.js
-      if (
-        typeof process !== "undefined" && process.versions &&
-        process.versions.node
-      ) {
+      if (hasNode) {
         const { readFile } = await import("fs/promises");
         return new Uint8Array(await readFile(file));
       }
 
       // Bun
-      if (typeof (globalThis as any).Bun !== "undefined") {
+      if (hasBun) {
         const bunFile = (globalThis as any).Bun.file(file);
         return new Uint8Array(await bunFile.arrayBuffer());
       }
@@ -63,19 +76,6 @@ export async function readFileData(
         file,
       );
     }
-
-    const env = typeof Deno !== "undefined"
-      ? "Deno"
-      : typeof process !== "undefined"
-      ? "Node.js"
-      : typeof (globalThis as any).Bun !== "undefined"
-      ? "Bun"
-      : "Browser";
-    throw new EnvironmentError(
-      env,
-      "does not support file path reading",
-      "filesystem access",
-    );
   }
 
   const inputType = Object.prototype.toString.call(file);

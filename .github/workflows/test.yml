@@ -99,7 +99,6 @@ jobs:
         if: matrix.runtime == 'deno'
         run: npm run test
 
-
       - name: Run tests (Bun)
         if: matrix.runtime == 'bun'
         run: npm run test:bun
