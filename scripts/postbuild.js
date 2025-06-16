@@ -1,11 +1,11 @@
 #!/usr/bin/env node
 
 /**
- * Post-build script to copy WASM runtime files to dist directory
+ * Post-build script to copy runtime files to dist directory
  */
 
-import { existsSync, mkdirSync, copyFileSync } from 'fs';
-import { join, dirname } from 'path';
+import { existsSync, mkdirSync, copyFileSync, readdirSync, statSync } from 'fs';
+import { join, dirname, relative } from 'path';
 import { fileURLToPath } from 'url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -17,25 +17,63 @@ if (!existsSync(distDir)) {
   mkdirSync(distDir, { recursive: true });
 }
 
-// Files to copy from build to dist
-const filesToCopy = [
+// WASM files to copy from build to dist
+const wasmFiles = [
   'taglib-wrapper.js',
   'taglib-wrapper.d.ts',
   'taglib.wasm'
 ];
 
-console.log('📦 Copying WASM runtime files to dist...');
+console.log('📦 Copying runtime files to dist...');
 
-filesToCopy.forEach(file => {
+// Copy WASM files
+console.log('\n  🔧 WASM runtime files:');
+wasmFiles.forEach(file => {
   const src = join(rootDir, 'build', file);
   const dest = join(distDir, file);
   
   if (existsSync(src)) {
     copyFileSync(src, dest);
-    console.log(`  ✓ Copied ${file}`);
+    console.log(`    ✓ ${file}`);
   } else {
-    console.error(`  ✗ Source file not found: ${src}`);
+    console.error(`    ✗ ${file} (not found)`);
   }
 });
 
-console.log('✨ Post-build complete!');
+// Copy TypeScript source files
+console.log('\n  📄 TypeScript source files:');
+
+// Copy index.ts
+const indexSrc = join(rootDir, 'index.ts');
+const indexDest = join(distDir, 'index.ts');
+if (existsSync(indexSrc)) {
+  copyFileSync(indexSrc, indexDest);
+  console.log('    ✓ index.ts');
+}
+
+// Copy src directory recursively
+function copyDirectory(srcDir, destDir) {
+  if (!existsSync(destDir)) {
+    mkdirSync(destDir, { recursive: true });
+  }
+  
+  const entries = readdirSync(srcDir);
+  for (const entry of entries) {
+    const srcPath = join(srcDir, entry);
+    const destPath = join(destDir, entry);
+    const stat = statSync(srcPath);
+    
+    if (stat.isDirectory()) {
+      copyDirectory(srcPath, destPath);
+    } else if (entry.endsWith('.ts')) {
+      copyFileSync(srcPath, destPath);
+      console.log(`    ✓ ${relative(rootDir, srcPath)}`);
+    }
+  }
+}
+
+const srcDir = join(rootDir, 'src');
+const destSrcDir = join(distDir, 'src');
+copyDirectory(srcDir, destSrcDir);
+
+console.log('\n✨ Post-build complete!');

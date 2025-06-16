@@ -30,7 +30,7 @@
   ],
   "scripts": {
     "build:wasm": "./build/build-wasm.sh",
-    "build:ts": "tsc",
+    "build:ts": "tsc && node scripts/build-js.js",
     "postbuild": "node scripts/postbuild.js",
     "build": "npm run build:wasm && npm run build:ts && npm run postbuild",
     "test": "deno test --allow-read --allow-write tests/",
@@ -94,6 +94,7 @@
   "devDependencies": {
     "@types/emscripten": "^1.39.6",
     "@types/node": "^20.0.0",
+    "esbuild": "^0.25.5",
     "typescript": "^5.0.0"
   },
   "peerDependencies": {
