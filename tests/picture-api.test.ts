@@ -380,8 +380,12 @@ Deno.test("File Utils: exportAllPictures", async () => {
     
     const bufferWithPics = await applyPictures(testFile, pictures);
     
+    // Save buffer to temp file for exportAllPictures
+    const tempFilePath = `${tempDir}/temp-with-pics.flac`;
+    await Deno.writeFile(tempFilePath, bufferWithPics);
+    
     // Export all pictures
-    const exported = await exportAllPictures(bufferWithPics, outputDir);
+    const exported = await exportAllPictures(tempFilePath, outputDir);
     assertEquals(exported.length, 2);
     
     // Check default naming
@@ -395,7 +399,7 @@ Deno.test("File Utils: exportAllPictures", async () => {
     assertEquals(file2.length, BLUE_JPEG.length);
     
     // Test custom naming
-    const customExported = await exportAllPictures(bufferWithPics, outputDir, {
+    const customExported = await exportAllPictures(tempFilePath, outputDir, {
       nameFormat: (pic, index) => `custom-${index}.${pic.mimeType.split('/')[1]}`
     });
     

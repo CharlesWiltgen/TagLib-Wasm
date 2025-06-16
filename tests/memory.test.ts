@@ -66,7 +66,7 @@ Deno.test("dispose() can be called multiple times safely", async () => {
     audioFile.tag();
   } catch (e) {
     // Expected to fail, but shouldn't crash the process
-    console.log("Expected error after dispose:", e.message);
+    console.log("Expected error after dispose:", e instanceof Error ? e.message : String(e));
   }
 });
 
