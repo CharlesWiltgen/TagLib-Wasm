@@ -10,11 +10,16 @@
 #include <mp4file.h>
 #include <mp4tag.h>
 #include <mp4item.h>
+#include <mp4coverart.h>
 #include <flacfile.h>
+#include <flacpicture.h>
 #include <vorbisfile.h>
 #include <opusfile.h>
 #include <wavfile.h>
 #include <aifffile.h>
+#include <id3v2tag.h>
+#include <attachedpictureframe.h>
+#include <xiphcomment.h>
 #include <memory>
 #include <string>
 #include <vector>
@@ -118,6 +123,20 @@ public:
     int channels() const {
         return props ? props->channels() : 0;
     }
+};
+
+// Picture wrapper class for managing album art/cover images
+class PictureWrapper {
+public:
+    std::string mimeType;
+    val data;
+    int type;
+    std::string description;
+    
+    PictureWrapper() : type(3) {} // Default to FrontCover
+    
+    PictureWrapper(const std::string& mime, const val& imgData, int picType, const std::string& desc)
+        : mimeType(mime), data(imgData), type(picType), description(desc) {}
 };
 
 // Helper class to manage ByteVectorStream lifetime
@@ -421,6 +440,296 @@ public:
         return val::global("Uint8Array").new_(0);
     }
     
+    // Get all pictures from the audio file
+    val getPictures() const {
+        val pictures = val::array();
+        
+        if (!fileRef || !fileRef->file()) return pictures;
+        
+        TagLib::File* f = fileRef->file();
+        
+        // Handle MP3 files (ID3v2)
+        if (TagLib::MPEG::File* mpegFile = dynamic_cast<TagLib::MPEG::File*>(f)) {
+            if (mpegFile->hasID3v2Tag()) {
+                TagLib::ID3v2::Tag* id3v2Tag = mpegFile->ID3v2Tag();
+                const TagLib::ID3v2::FrameList& frameList = id3v2Tag->frameList("APIC");
+                
+                for (const auto& frame : frameList) {
+                    if (TagLib::ID3v2::AttachedPictureFrame* pictureFrame = 
+                        dynamic_cast<TagLib::ID3v2::AttachedPictureFrame*>(frame)) {
+                        
+                        val pictureObj = val::object();
+                        pictureObj.set("mimeType", pictureFrame->mimeType().to8Bit(true));
+                        pictureObj.set("type", static_cast<int>(pictureFrame->type()));
+                        pictureObj.set("description", pictureFrame->description().to8Bit(true));
+                        
+                        // Convert picture data to Uint8Array
+                        TagLib::ByteVector picData = pictureFrame->picture();
+                        val uint8Array = val::global("Uint8Array").new_(picData.size());
+                        for (size_t i = 0; i < picData.size(); i++) {
+                            uint8Array.set(i, static_cast<unsigned char>(picData[i]));
+                        }
+                        pictureObj.set("data", uint8Array);
+                        
+                        pictures.call<void>("push", pictureObj);
+                    }
+                }
+            }
+        }
+        // Handle MP4/M4A files
+        else if (TagLib::MP4::File* mp4File = dynamic_cast<TagLib::MP4::File*>(f)) {
+            if (mp4File->tag() && mp4File->tag()->contains("covr")) {
+                TagLib::MP4::Item coverItem = mp4File->tag()->item("covr");
+                if (coverItem.isValid() && coverItem.type() == TagLib::MP4::Item::Type::CoverArtList) {
+                    TagLib::MP4::CoverArtList coverList = coverItem.toCoverArtList();
+                    
+                    for (const auto& cover : coverList) {
+                        val pictureObj = val::object();
+                        
+                        // Determine MIME type from format
+                        std::string mimeType;
+                        switch (cover.format()) {
+                            case TagLib::MP4::CoverArt::JPEG:
+                                mimeType = "image/jpeg";
+                                break;
+                            case TagLib::MP4::CoverArt::PNG:
+                                mimeType = "image/png";
+                                break;
+                            case TagLib::MP4::CoverArt::BMP:
+                                mimeType = "image/bmp";
+                                break;
+                            case TagLib::MP4::CoverArt::GIF:
+                                mimeType = "image/gif";
+                                break;
+                            default:
+                                mimeType = "image/unknown";
+                        }
+                        
+                        pictureObj.set("mimeType", mimeType);
+                        pictureObj.set("type", 3); // FrontCover for MP4
+                        pictureObj.set("description", "");
+                        
+                        // Convert picture data to Uint8Array
+                        TagLib::ByteVector picData = cover.data();
+                        val uint8Array = val::global("Uint8Array").new_(picData.size());
+                        for (size_t i = 0; i < picData.size(); i++) {
+                            uint8Array.set(i, static_cast<unsigned char>(picData[i]));
+                        }
+                        pictureObj.set("data", uint8Array);
+                        
+                        pictures.call<void>("push", pictureObj);
+                    }
+                }
+            }
+        }
+        // Handle FLAC files
+        else if (TagLib::FLAC::File* flacFile = dynamic_cast<TagLib::FLAC::File*>(f)) {
+            const TagLib::List<TagLib::FLAC::Picture*>& pictureList = flacFile->pictureList();
+            
+            for (const auto& picture : pictureList) {
+                val pictureObj = val::object();
+                pictureObj.set("mimeType", picture->mimeType().to8Bit(true));
+                pictureObj.set("type", static_cast<int>(picture->type()));
+                pictureObj.set("description", picture->description().to8Bit(true));
+                
+                // Convert picture data to Uint8Array
+                TagLib::ByteVector picData = picture->data();
+                val uint8Array = val::global("Uint8Array").new_(picData.size());
+                for (size_t i = 0; i < picData.size(); i++) {
+                    uint8Array.set(i, static_cast<unsigned char>(picData[i]));
+                }
+                pictureObj.set("data", uint8Array);
+                
+                pictures.call<void>("push", pictureObj);
+            }
+        }
+        // Handle Ogg Vorbis/Opus files
+        else if (TagLib::Ogg::Vorbis::File* vorbisFile = dynamic_cast<TagLib::Ogg::Vorbis::File*>(f)) {
+            if (vorbisFile->tag()) {
+                const TagLib::List<TagLib::FLAC::Picture*>& pictureList = vorbisFile->tag()->pictureList();
+                
+                for (const auto& picture : pictureList) {
+                    val pictureObj = val::object();
+                    pictureObj.set("mimeType", picture->mimeType().to8Bit(true));
+                    pictureObj.set("type", static_cast<int>(picture->type()));
+                    pictureObj.set("description", picture->description().to8Bit(true));
+                    
+                    // Convert picture data to Uint8Array
+                    TagLib::ByteVector picData = picture->data();
+                    val uint8Array = val::global("Uint8Array").new_(picData.size());
+                    for (size_t i = 0; i < picData.size(); i++) {
+                        uint8Array.set(i, static_cast<unsigned char>(picData[i]));
+                    }
+                    pictureObj.set("data", uint8Array);
+                    
+                    pictures.call<void>("push", pictureObj);
+                }
+            }
+        }
+        
+        return pictures;
+    }
+    
+    // Set pictures in the audio file (replace all existing)
+    void setPictures(const val& pictures) {
+        if (!fileRef || !fileRef->file() || !pictures.isArray()) return;
+        
+        TagLib::File* f = fileRef->file();
+        int length = pictures["length"].as<int>();
+        
+        // Handle MP3 files (ID3v2)
+        if (TagLib::MPEG::File* mpegFile = dynamic_cast<TagLib::MPEG::File*>(f)) {
+            if (!mpegFile->hasID3v2Tag()) {
+                mpegFile->ID3v2Tag(true); // Create ID3v2 tag if it doesn't exist
+            }
+            
+            TagLib::ID3v2::Tag* id3v2Tag = mpegFile->ID3v2Tag();
+            
+            // Remove all existing APIC frames
+            id3v2Tag->removeFrames("APIC");
+            
+            // Add new pictures
+            for (int i = 0; i < length; i++) {
+                val picture = pictures[i];
+                
+                TagLib::ID3v2::AttachedPictureFrame* frame = new TagLib::ID3v2::AttachedPictureFrame();
+                
+                frame->setMimeType(TagLib::String(picture["mimeType"].as<std::string>(), TagLib::String::UTF8));
+                frame->setType(static_cast<TagLib::ID3v2::AttachedPictureFrame::Type>(picture["type"].as<int>()));
+                frame->setDescription(TagLib::String(picture["description"].as<std::string>(), TagLib::String::UTF8));
+                
+                // Convert Uint8Array to ByteVector
+                val data = picture["data"];
+                int dataLength = data["length"].as<int>();
+                std::vector<char> buffer(dataLength);
+                for (int j = 0; j < dataLength; j++) {
+                    buffer[j] = data[j].as<unsigned char>();
+                }
+                frame->setPicture(TagLib::ByteVector(buffer.data(), buffer.size()));
+                
+                id3v2Tag->addFrame(frame);
+            }
+        }
+        // Handle MP4/M4A files
+        else if (TagLib::MP4::File* mp4File = dynamic_cast<TagLib::MP4::File*>(f)) {
+            if (!mp4File->tag()) return;
+            
+            TagLib::MP4::Tag* tag = mp4File->tag();
+            TagLib::MP4::CoverArtList coverList;
+            
+            for (int i = 0; i < length; i++) {
+                val picture = pictures[i];
+                
+                // Determine format from MIME type
+                TagLib::MP4::CoverArt::Format format = TagLib::MP4::CoverArt::Unknown;
+                std::string mimeType = picture["mimeType"].as<std::string>();
+                
+                if (mimeType == "image/jpeg" || mimeType == "image/jpg") {
+                    format = TagLib::MP4::CoverArt::JPEG;
+                } else if (mimeType == "image/png") {
+                    format = TagLib::MP4::CoverArt::PNG;
+                } else if (mimeType == "image/bmp") {
+                    format = TagLib::MP4::CoverArt::BMP;
+                } else if (mimeType == "image/gif") {
+                    format = TagLib::MP4::CoverArt::GIF;
+                }
+                
+                // Convert Uint8Array to ByteVector
+                val data = picture["data"];
+                int dataLength = data["length"].as<int>();
+                std::vector<char> buffer(dataLength);
+                for (int j = 0; j < dataLength; j++) {
+                    buffer[j] = data[j].as<unsigned char>();
+                }
+                
+                TagLib::MP4::CoverArt coverArt(format, TagLib::ByteVector(buffer.data(), buffer.size()));
+                coverList.append(coverArt);
+            }
+            
+            if (!coverList.isEmpty()) {
+                tag->setItem("covr", TagLib::MP4::Item(coverList));
+            } else {
+                tag->removeItem("covr");
+            }
+        }
+        // Handle FLAC files
+        else if (TagLib::FLAC::File* flacFile = dynamic_cast<TagLib::FLAC::File*>(f)) {
+            // Remove all existing pictures
+            flacFile->removePictures();
+            
+            // Add new pictures
+            for (int i = 0; i < length; i++) {
+                val picture = pictures[i];
+                
+                TagLib::FLAC::Picture* flacPicture = new TagLib::FLAC::Picture();
+                
+                flacPicture->setMimeType(TagLib::String(picture["mimeType"].as<std::string>(), TagLib::String::UTF8));
+                flacPicture->setType(static_cast<TagLib::FLAC::Picture::Type>(picture["type"].as<int>()));
+                flacPicture->setDescription(TagLib::String(picture["description"].as<std::string>(), TagLib::String::UTF8));
+                
+                // Convert Uint8Array to ByteVector
+                val data = picture["data"];
+                int dataLength = data["length"].as<int>();
+                std::vector<char> buffer(dataLength);
+                for (int j = 0; j < dataLength; j++) {
+                    buffer[j] = data[j].as<unsigned char>();
+                }
+                flacPicture->setData(TagLib::ByteVector(buffer.data(), buffer.size()));
+                
+                flacFile->addPicture(flacPicture);
+            }
+        }
+        // Handle Ogg Vorbis files
+        else if (TagLib::Ogg::Vorbis::File* vorbisFile = dynamic_cast<TagLib::Ogg::Vorbis::File*>(f)) {
+            if (!vorbisFile->tag()) return;
+            
+            // Remove all existing pictures
+            vorbisFile->tag()->removeAllPictures();
+            
+            // Add new pictures
+            for (int i = 0; i < length; i++) {
+                val picture = pictures[i];
+                
+                TagLib::FLAC::Picture* flacPicture = new TagLib::FLAC::Picture();
+                
+                flacPicture->setMimeType(TagLib::String(picture["mimeType"].as<std::string>(), TagLib::String::UTF8));
+                flacPicture->setType(static_cast<TagLib::FLAC::Picture::Type>(picture["type"].as<int>()));
+                flacPicture->setDescription(TagLib::String(picture["description"].as<std::string>(), TagLib::String::UTF8));
+                
+                // Convert Uint8Array to ByteVector
+                val data = picture["data"];
+                int dataLength = data["length"].as<int>();
+                std::vector<char> buffer(dataLength);
+                for (int j = 0; j < dataLength; j++) {
+                    buffer[j] = data[j].as<unsigned char>();
+                }
+                flacPicture->setData(TagLib::ByteVector(buffer.data(), buffer.size()));
+                
+                vorbisFile->tag()->addPicture(flacPicture);
+            }
+        }
+    }
+    
+    // Add a single picture to the audio file
+    void addPicture(const val& picture) {
+        if (!fileRef || !fileRef->file()) return;
+        
+        // Get existing pictures
+        val existingPictures = getPictures();
+        
+        // Add the new picture
+        existingPictures.call<void>("push", picture);
+        
+        // Set all pictures
+        setPictures(existingPictures);
+    }
+    
+    // Remove all pictures from the audio file
+    void removePictures() {
+        val emptyArray = val::array();
+        setPictures(emptyArray);
+    }
+    
     // Explicitly destroy all resources
     void destroy() {
         // Reset unique_ptrs to release memory immediately
@@ -449,6 +758,10 @@ EMSCRIPTEN_BINDINGS(taglib) {
         .function("getTag", &FileHandle::getTag)
         .function("getAudioProperties", &FileHandle::getAudioProperties)
         .function("getBuffer", &FileHandle::getBuffer)
+        .function("getPictures", &FileHandle::getPictures)
+        .function("setPictures", &FileHandle::setPictures)
+        .function("addPicture", &FileHandle::addPicture)
+        .function("removePictures", &FileHandle::removePictures)
         .function("destroy", &FileHandle::destroy);
     
     // TagWrapper class
@@ -477,6 +790,14 @@ EMSCRIPTEN_BINDINGS(taglib) {
         .function("bitrate", &AudioPropertiesWrapper::bitrate)
         .function("sampleRate", &AudioPropertiesWrapper::sampleRate)
         .function("channels", &AudioPropertiesWrapper::channels);
+    
+    // PictureWrapper class
+    class_<PictureWrapper>("PictureWrapper")
+        .constructor<>()
+        .property("mimeType", &PictureWrapper::mimeType)
+        .property("data", &PictureWrapper::data)
+        .property("type", &PictureWrapper::type)
+        .property("description", &PictureWrapper::description);
     
     // Register shared_ptr for FileHandle
     register_vector<std::string>("StringVector");

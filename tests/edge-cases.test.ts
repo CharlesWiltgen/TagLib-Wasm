@@ -26,9 +26,10 @@ import {
   MetadataError,
   TagLibInitializationError,
 } from "../src/errors.ts";
+import { TEST_FILES } from "./test-utils.ts";
 
 // Test data path - using an existing valid file as base
-const TEST_MP3 = "./tests/test-files/mp3/kiss-snippet.mp3";
+const TEST_MP3 = TEST_FILES.mp3;
 
 // =============================================================================
 // Unicode and Special Characters Tests
@@ -363,9 +364,9 @@ Deno.test("Audio Properties: Invalid values handling", async () => {
 Deno.test("Audio Properties: Edge case values", async () => {
   // Test with different format files to check property handling
   const formats = [
-    { path: "./tests/test-files/wav/kiss-snippet.wav", format: "WAV" },
-    { path: "./tests/test-files/flac/kiss-snippet.flac", format: "FLAC" },
-    { path: "./tests/test-files/ogg/kiss-snippet.ogg", format: "OGG" },
+    { path: TEST_FILES.wav, format: "WAV" },
+    { path: TEST_FILES.flac, format: "FLAC" },
+    { path: TEST_FILES.ogg, format: "OGG" },
   ];
   
   for (const { path, format } of formats) {
