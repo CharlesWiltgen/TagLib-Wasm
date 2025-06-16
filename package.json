@@ -1,7 +1,7 @@
 {
   "name": "taglib-wasm",
   "version": "0.3.8",
-  "description": "TagLib for TypeScript platforms: Deno, Node.js, Bun, browsers, and Cloudflare Workers",
+  "description": "TagLib for TypeScript platforms: Deno, Node.js, Bun, Electron, browsers, and Cloudflare Workers",
   "main": "index.ts",
   "types": "index.ts",
   "exports": {
@@ -63,6 +63,7 @@
     "browser",
     "cloudflare",
     "workers",
+    "electron",
     "replaygain",
     "musicbrainz",
     "acoustid"
