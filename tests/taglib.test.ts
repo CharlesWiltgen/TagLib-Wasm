@@ -17,11 +17,11 @@ import {
 import { TagLib } from "../src/mod.ts";
 import type { AudioFile } from "../src/mod.ts";
 import {
+  applyTags,
   getFormat,
   isValidAudioFile,
   readProperties,
   readTags,
-  applyTags,
 } from "../src/simple.ts";
 import { processAudioMetadata, TagLibWorkers } from "../src/workers.ts";
 import { isCloudflareWorkers } from "../src/wasm-workers.ts";
