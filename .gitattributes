@@ -1,0 +1,2 @@
+# Exclude vendored TagLib C++ source from GitHub language statistics
+lib/** linguist-vendored
