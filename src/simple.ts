@@ -151,7 +151,6 @@ export async function applyTags(
   }
 }
 
-
 /**
  * Update metadata tags in an audio file and save to disk
  *

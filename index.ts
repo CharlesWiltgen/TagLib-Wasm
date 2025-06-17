@@ -103,7 +103,7 @@ export {
   readTags,
   replacePictureByType,
   setCoverArt,
-  updateTags
+  updateTags,
 } from "./src/simple.ts";
 
 /**
