@@ -106,7 +106,7 @@ const { TagLib } = require("taglib-wasm");
 ### Simple API (Recommended)
 
 ```typescript
-import { readTags, applyTags, updateTags } from "taglib-wasm/simple";
+import { applyTags, readTags, updateTags } from "taglib-wasm/simple";
 
 // Read tags - just one function call!
 const tags = await readTags("song.mp3");
@@ -199,7 +199,8 @@ const modifiedBuffer = await setCoverArt("song.mp3", imageData, "image/jpeg");
 - ✅ **.flac** – Vorbis comments and audio properties
 - ✅ **.ogg** – Ogg Vorbis format with full metadata support
 - ✅ **.wav** – INFO chunk metadata
-- ✅ **Additional formats** – Opus, APE, MPC, WavPack, TrueAudio, AIFF, WMA, and more
+- ✅ **Additional formats** – Opus, APE, MPC, WavPack, TrueAudio, AIFF, WMA, and
+  more
 
 ## 🎯 Key Features
 
