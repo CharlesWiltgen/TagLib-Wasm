@@ -6,7 +6,7 @@ import {
   assertEquals,
   assertRejects,
   assertThrows,
-} from "https://deno.land/std@0.224.0/assert/mod.ts";
+} from "https://deno.land/std@0.210.0/assert/mod.ts";
 import { TagLib } from "../src/taglib.ts";
 import { readProperties, readTags, writeTags } from "../src/simple.ts";
 import {
