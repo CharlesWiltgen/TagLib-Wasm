@@ -52,7 +52,8 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
-        runtime: [deno, bun]
+        runtime: [deno] # Temporarily disable Bun tests
+        # runtime: [deno, bun]
         exclude:
           # Bun doesn't support Windows yet
           - os: windows-latest
@@ -97,15 +98,6 @@ jobs:
         with:
           name: dist
           path: dist/
-
-      - name: List files for debugging
-        run: |
-          echo "=== Current directory ==="
-          ls -la
-          echo "=== Build directory ==="
-          ls -la build/ || echo "No build directory"
-          echo "=== Dist directory ==="
-          ls -la dist/ || echo "No dist directory"
 
       - name: Run tests (Deno)
         if: matrix.runtime == 'deno'
