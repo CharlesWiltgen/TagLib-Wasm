@@ -57,24 +57,41 @@ import { TagLib } from "npm:taglib-wasm";
 npm install taglib-wasm
 ```
 
-The package uses TypeScript. You have two options:
+**Requirements:** Node.js v22.6.0 or higher
 
-#### Option 1: Use Node’s native TypeScript support
+#### Using with TypeScript (.ts files)
+
+Two options for TypeScript:
+
+1. **Node's experimental TypeScript support**
 
 ```bash
 # Node.js 22.6.0+ with experimental flag
 node --experimental-strip-types your-script.ts
 
-# Node.js 23.6.0+ (no flag needed)
-node your-script.ts
+# Future versions may not need the flag
 ```
 
-#### Option 2: TypeScript loader (recommended for production)
+2. **TypeScript loader (recommended)**
 
 ```bash
 npm install --save-dev tsx
 npx tsx your-script.ts
 ```
+
+#### Using with JavaScript (.js files)
+
+```javascript
+// Use the pre-compiled JavaScript version
+import { TagLib } from "taglib-wasm";
+import { readTags, applyTags } from "taglib-wasm/simple";
+
+// Everything works the same as TypeScript
+const taglib = await TagLib.initialize();
+const tags = await readTags("song.mp3");
+```
+
+> **Note:** See our [full documentation](https://charleswiltgen.github.io/taglib-wasm/guide/installation.html) for details on Node.js experimental TypeScript support.
 
 ### Bun
 
