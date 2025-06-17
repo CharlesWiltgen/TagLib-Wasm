@@ -21,7 +21,7 @@
  * @example
  * ```typescript
  * // Using the Simple API
- * import { readTags, applyTags } from "taglib-wasm";
+ * import { readTags, applyTags } from "taglib-wasm/simple";
  *
  * const tags = await readTags("song.mp3");
  * console.log(tags.artist);

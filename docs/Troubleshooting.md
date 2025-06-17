@@ -356,7 +356,7 @@ const file = taglib.openFile(mp3Buffer);
 // (TagLib handles this internally)
 
 // 2. Handle both ID3v1 and ID3v2
-if (file.format() === "MP3") {
+if (file.getFormat() === "MP3") {
   // TagLib automatically handles both
   const tags = file.tag(); // Merged ID3v1 + ID3v2
 }
@@ -627,7 +627,7 @@ const originalOpen = taglib.openFile.bind(taglib);
 taglib.openFile = (buffer: Uint8Array) => {
   console.log(`Opening file, size: ${buffer.length}`);
   const file = originalOpen(buffer);
-  console.log(`File valid: ${file.isValid()}, format: ${file.format()}`);
+  console.log(`File valid: ${file.isValid()}, format: ${file.getFormat()}`);
   return file;
 };
 
@@ -704,7 +704,7 @@ async function validateAudioFile(path: string) {
     const file = taglib.openFile(buffer);
 
     report.valid = file.isValid();
-    report.format = file.format();
+    report.format = file.getFormat();
 
     // Try to read tags
     const tags = file.tag();
