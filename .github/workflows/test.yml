@@ -123,7 +123,7 @@ jobs:
         run: deno lint
 
       - name: Type check
-        run: deno check src tests
+        run: deno check ./src ./tests
 
   test-summary:
     name: Test Summary
