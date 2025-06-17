@@ -14,12 +14,29 @@ import { TagLib } from "npm:taglib-wasm";
 npm install taglib-wasm
 ```
 
-**Note:** The NPM package ships TypeScript source files. Use a TypeScript loader
-like [`tsx`](https://github.com/privatenumber/tsx):
+**Requirements:** Node.js v22.6.0 or higher
 
-```bash
+#### TypeScript Usage
+
+```typescript
+// Option 1: Node's experimental TypeScript support (v22.6.0+)
+node --experimental-strip-types your-script.ts
+
+// Option 2: TypeScript loader (recommended)
 npm install --save-dev tsx
 npx tsx your-script.ts
+```
+
+#### JavaScript Usage
+
+```javascript
+// The NPM package includes pre-compiled JavaScript
+import { TagLib } from "taglib-wasm";
+import { readTags, applyTags } from "taglib-wasm/simple";
+
+// Works the same as TypeScript
+const taglib = await TagLib.initialize();
+const tags = await readTags("song.mp3");
 ```
 
 @tab Bun
