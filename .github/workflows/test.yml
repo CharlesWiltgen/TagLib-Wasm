@@ -111,10 +111,27 @@ jobs:
         with:
           submodules: true
 
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
       - name: Setup Deno
         uses: denoland/setup-deno@v2
         with:
           deno-version: v2.x
+
+      - name: Cache dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.npm
+            node_modules
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
+      - name: Install dependencies
+        run: npm install
 
       - name: Check formatting
         run: deno fmt --check
