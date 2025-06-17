@@ -25,15 +25,22 @@ console.log(props);
 ### Writing Tags
 
 ```typescript
-import { writeTags } from "taglib-wasm/simple";
+import { applyTags, updateTags } from "taglib-wasm/simple";
 
-// Update specific tags
-await writeTags("song.mp3", {
+// Apply tags and get modified buffer (in-memory)
+const modifiedBuffer = await applyTags("song.mp3", {
   title: "New Title",
   artist: "New Artist",
   album: "New Album",
   year: 2024,
   genre: "Electronic",
+});
+// Save modifiedBuffer to file if needed
+
+// Or update tags directly on disk (requires file path)
+await updateTags("song.mp3", {
+  title: "New Title",
+  artist: "New Artist",
 });
 ```
 
@@ -41,14 +48,14 @@ await writeTags("song.mp3", {
 
 ```typescript
 import { readFile, writeFile } from "fs/promises";
-import { readTags, writeTags } from "taglib-wasm/simple";
+import { readTags, applyTags } from "taglib-wasm/simple";
 
 // Read from buffer
 const buffer = await readFile("song.mp3");
 const tags = await readTags(buffer);
 
-// Write to buffer
-const updatedBuffer = await writeTags(buffer, {
+// Apply tags to buffer
+const updatedBuffer = await applyTags(buffer, {
   title: "Updated Title",
 });
 await writeFile("song-updated.mp3", updatedBuffer);
@@ -69,7 +76,7 @@ const taglib = await TagLib.initialize();
 
 // Load audio file
 const audioData = await readFile("song.mp3");
-const file = taglib.openFile(new Uint8Array(audioData));
+const file = await taglib.open(new Uint8Array(audioData));
 
 // Check if file is valid
 if (!file.isValid()) {
@@ -149,13 +156,13 @@ import { readFile, writeFile } from "fs/promises";
 
 const taglib = await TagLib.initialize();
 const audioData = await readFile("input.mp3");
-const file = taglib.openFile(new Uint8Array(audioData));
+const file = await taglib.open(new Uint8Array(audioData));
 
 file.setTitle("Node.js Title");
 file.save();
 
-// Save to file if needed
-const updatedData = file.getFileData();
+// Get updated buffer after saving
+const updatedData = file.getFileBuffer();
 await writeFile("output.mp3", updatedData);
 
 file.dispose();
@@ -172,7 +179,7 @@ const audioFile = fileInput.files[0];
 const audioData = new Uint8Array(await audioFile.arrayBuffer());
 
 const taglib = await TagLib.initialize();
-const file = taglib.openFile(audioData);
+const file = await taglib.open(audioData);
 
 // Display metadata
 document.getElementById("title").textContent = file.tag().title;
@@ -194,7 +201,7 @@ export default {
       });
 
       const audioData = new Uint8Array(await request.arrayBuffer());
-      const file = taglib.openFile(audioData);
+      const file = await taglib.open(audioData);
 
       const metadata = {
         title: file.tag().title,

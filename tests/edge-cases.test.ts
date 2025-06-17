@@ -12,7 +12,7 @@ import {
 } from "https://deno.land/std@0.224.0/assert/mod.ts";
 import { TagLib } from "../src/mod.ts";
 import type { AudioFile } from "../src/mod.ts";
-import { readProperties, readTags, writeTags } from "../src/simple.ts";
+import { applyTags, readProperties, readTags } from "../src/simple.ts";
 import {
   FileOperationError,
   InvalidFormatError,
@@ -41,7 +41,7 @@ Deno.test("Unicode: Emoji in tags", async () => {
     genre: "🎼 Electronic",
   };
 
-  const modifiedBuffer = await writeTags(audioData, emojiTags);
+  const modifiedBuffer = await applyTags(audioData, emojiTags);
   const readBack = await readTags(modifiedBuffer);
 
   assertEquals(
@@ -81,7 +81,7 @@ Deno.test("Unicode: CJK characters", async () => {
     comment: "Mixed: 中文/日本語/한글",
   };
 
-  const modifiedBuffer = await writeTags(audioData, cjkTags);
+  const modifiedBuffer = await applyTags(audioData, cjkTags);
   const readBack = await readTags(modifiedBuffer);
 
   assertEquals(
@@ -111,7 +111,7 @@ Deno.test("Unicode: RTL text (Arabic/Hebrew)", async () => {
     album: "Mixed מעורב و مختلط",
   };
 
-  const modifiedBuffer = await writeTags(audioData, rtlTags);
+  const modifiedBuffer = await applyTags(audioData, rtlTags);
   const readBack = await readTags(modifiedBuffer);
 
   assertEquals(readBack.title, rtlTags.title, "Should preserve Arabic text");
@@ -129,7 +129,7 @@ Deno.test("Unicode: Special Unicode characters", async () => {
     comment: "Null\0Byte", // Note: null bytes might be stripped
   };
 
-  const modifiedBuffer = await writeTags(audioData, specialTags);
+  const modifiedBuffer = await applyTags(audioData, specialTags);
   const readBack = await readTags(modifiedBuffer);
 
   // Some characters might be normalized or stripped
@@ -152,7 +152,7 @@ Deno.test("Unicode: Very long strings", async () => {
 
   // This might succeed or fail depending on format limitations
   try {
-    const modifiedBuffer = await writeTags(audioData, longTags);
+    const modifiedBuffer = await applyTags(audioData, longTags);
     const readBack = await readTags(modifiedBuffer);
 
     // If it succeeds, verify data integrity
@@ -179,7 +179,7 @@ Deno.test("Unicode: Mixed scripts and languages", async () => {
     album: "🌍 World 世界 мир عالم",
   };
 
-  const modifiedBuffer = await writeTags(audioData, mixedTags);
+  const modifiedBuffer = await applyTags(audioData, mixedTags);
   const readBack = await readTags(modifiedBuffer);
 
   assertEquals(

@@ -21,7 +21,7 @@ import {
   isValidAudioFile,
   readProperties,
   readTags,
-  writeTags,
+  applyTags,
 } from "../src/simple.ts";
 import { processAudioMetadata, TagLibWorkers } from "../src/workers.ts";
 import { isCloudflareWorkers } from "../src/wasm-workers.ts";
@@ -203,7 +203,7 @@ Deno.test("Simple API: Tag Reading", async () => {
 });
 
 Deno.test("Simple API: Tag Writing", async () => {
-  const modifiedBuffer = await writeTags(TEST_FILES.mp3, {
+  const modifiedBuffer = await applyTags(TEST_FILES.mp3, {
     title: "Simple API Test",
     artist: "Test Suite",
     album: "Test Album",
@@ -512,11 +512,11 @@ Deno.test("Integration: Complete Workflow", async () => {
     artist: "Test Suite",
     year: 2024,
   };
-  const modifiedBuffer = await writeTags(TEST_FILES.mp3, newTags);
+  const modifiedBuffer = await applyTags(TEST_FILES.mp3, newTags);
 
   // 6. Verify buffer was returned (current limitation: returns original buffer)
   assert(modifiedBuffer.length > 0, "Should return a buffer");
-  // Note: Can't verify actual tag changes since writeTags returns original buffer
+  // Note: Modified buffer contains the updated tags
 });
 
 Deno.test("Integration: All Formats", async () => {
@@ -535,7 +535,7 @@ Deno.test("Integration: All Formats", async () => {
 
     // Write tags (except for formats that might not support writing)
     try {
-      const modified = await writeTags(path, { title: `${format} Test` });
+      const modified = await applyTags(path, { title: `${format} Test` });
       assert(modified.length > 0, `${format} should support writing`);
     } catch {
       // Some formats might not support writing, that's okay

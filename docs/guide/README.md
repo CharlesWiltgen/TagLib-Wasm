@@ -34,7 +34,7 @@ Choose the API that fits your needs:
 
 ```typescript
 const tags = await readTags("song.mp3");
-await writeTags("song.mp3", { title: "New Title" });
+await updateTags("song.mp3", { title: "New Title" });
 ```
 
 **Core API** - For full control:

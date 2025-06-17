@@ -267,7 +267,7 @@ export default {
           genre: tags.genre,
           duration: props.length,
           bitrate: props.bitrate,
-          format: file.format(),
+          format: file.getFormat(),
         };
 
         // Clean up

@@ -6,14 +6,20 @@
  *
  * @example
  * ```typescript
- * import { readTags, writeTags, readProperties } from "taglib-wasm/simple";
+ * import { readTags, applyTags, updateTags, readProperties } from "taglib-wasm/simple";
  *
  * // Read tags
  * const tags = await readTags("song.mp3");
  * console.log(tags.album);
  *
- * // Write tags
- * await writeTags("song.mp3", {
+ * // Apply tags (returns modified buffer)
+ * const modifiedBuffer = await applyTags("song.mp3", {
+ *   album: "New Album",
+ *   artist: "New Artist"
+ * });
+ *
+ * // Update tags on disk
+ * await updateTags("song.mp3", {
  *   album: "New Album",
  *   artist: "New Artist"
  * });
@@ -145,10 +151,6 @@ export async function applyTags(
   }
 }
 
-/**
- * @deprecated Use `applyTags` instead. This alias will be removed in v1.0.0.
- */
-export const writeTags = applyTags;
 
 /**
  * Update metadata tags in an audio file and save to disk
@@ -328,7 +330,7 @@ export async function getFormat(
 export async function clearTags(
   file: string | Uint8Array | ArrayBuffer | File,
 ): Promise<Uint8Array> {
-  return writeTags(file, {
+  return applyTags(file, {
     title: "",
     artist: "",
     album: "",
