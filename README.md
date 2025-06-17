@@ -4,29 +4,30 @@
 [![npm version](https://img.shields.io/npm/v/taglib-wasm.svg?logo=nodedotjs&logoColor=f5f5f5)](https://www.npmjs.com/package/taglib-wasm)
 [![npm downloads](https://img.shields.io/npm/dm/taglib-wasm.svg)](https://www.npmjs.com/package/taglib-wasm)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/CharlesWiltgen/taglib-wasm/blob/main/LICENSE)
-<br>[![TypeScript](https://img.shields.io/badge/TypeScript-5-3178c6.svg?logo=typescript&logoColor=f5f5f5)](https://www.typescriptlang.org/)
+<br>[![Built with](https://img.shields.io/badge/TypeScript-5-3178c6.svg?logo=typescript&logoColor=f5f5f5)](https://www.typescriptlang.org/)
 [![Built with Emscripten](https://img.shields.io/badge/Built%20with-Emscripten-4B9BFF.svg)](https://emscripten.org/)
+[![Built with WebAssembly](https://img.shields.io/badge/Built%20with-WebAssembly-654ff0.svg?logo=webassembly&logoColor=white)](https://webassembly.org/)
 [![Built with TagLib](https://img.shields.io/badge/Built%20with-TagLib-brightgreen.svg)](https://taglib.org/)
 <br>[![Deno](https://img.shields.io/badge/Deno-000000?logo=deno&logoColor=white)](https://deno.land/)
 [![Node.js](https://img.shields.io/badge/Node.js-339933?logo=nodedotjs&logoColor=white)](https://nodejs.org/)
 [![Bun](https://img.shields.io/badge/Bun-000000?logo=bun&logoColor=white)](https://bun.sh/)
 [![Cloudflare Workers](https://img.shields.io/badge/Cloudflare%20Workers-F38020?logo=cloudflare&logoColor=white)](https://workers.cloudflare.com/)
 [![Electron](https://img.shields.io/badge/Electron-47848F?logo=electron&logoColor=white)](https://www.electronjs.org/)
-[![Browsers](https://img.shields.io/badge/Browser-4285F4?logo=googlechrome&logoColor=white)]()
+[![Browsers](https://img.shields.io/badge/Browsers-E34C26?logo=html5&logoColor=white)](https://html.spec.whatwg.org/multipage/)
 
 TagLib-Wasm is the **universal tagging library for TypeScript/JavaScript**
-(TS|JS) platforms: Deno, Node.js, Bun, Cloudflare Workers, Electron, and
-browsers.
+(TS|JS) platforms: **Deno**, **Node.js**, **Bun**, **Cloudflare Workers**,
+**Electron**, and **browsers**.
 
 This project exists because the TS|JS ecosystem had no battle-tested audio
 tagging library that supports reading and writing music metadata to all popular
-audio formats. It aspires to be a universal solution for all TS|JS*-capable
+audio formats. It aspires to be a universal solution for all TS|JS-capable
 platforms — Deno, Node.js, Bun, Electron, Cloudflare Workers, and browsers.
 
 TagLib-Wasm stands on the shoulders of giants, including
 [TagLib](https://taglib.org/) itself, [Emscripten](https://emscripten.org/), and
 [Wasm](https://webassembly.org/) ([WebAssembly](https://webassembly.org/)).
-TagLib itself is legendary and a core dependency of many music apps.
+TagLib itself is legendary, and a core dependency of many music apps.
 
 ## 🎯 Features
 
@@ -57,43 +58,9 @@ import { TagLib } from "npm:taglib-wasm";
 npm install taglib-wasm
 ```
 
-**Requirements:** Node.js v22.6.0 or higher
-
-#### Using with TypeScript (.ts files)
-
-Two options for TypeScript:
-
-1. **Node's experimental TypeScript support**
-
-```bash
-# Node.js 22.6.0+ with experimental flag
-node --experimental-strip-types your-script.ts
-
-# Future versions may not need the flag
-```
-
-2. **TypeScript loader (recommended)**
-
-```bash
-npm install --save-dev tsx
-npx tsx your-script.ts
-```
-
-#### Using with JavaScript (.js files)
-
-```javascript
-// Use the pre-compiled JavaScript version
-import { TagLib } from "taglib-wasm";
-import { applyTags, readTags } from "taglib-wasm/simple";
-
-// Everything works the same as TypeScript
-const taglib = await TagLib.initialize();
-const tags = await readTags("song.mp3");
-```
-
-> **Note:** See our
-> [full documentation](https://charleswiltgen.github.io/taglib-wasm/guide/installation.html)
-> for details on Node.js experimental TypeScript support.
+> **Note:** Requires Node.js v22.6.0 or higher. If you want to use the
+> TypeScript version with Node.js, see the
+> [installation guide](https://charleswiltgen.github.io/taglib-wasm/guide/installation.html).
 
 ### Bun
 
@@ -119,7 +86,7 @@ const { TagLib } = require("taglib-wasm");
 
 ## 🚀 Quick Start
 
-### Simple API (Recommended)
+### Simple API
 
 ```typescript
 import { applyTags, readTags, updateTags } from "taglib-wasm/simple";
@@ -142,7 +109,10 @@ await updateTags("song.mp3", {
 });
 ```
 
-### Core API (Advanced)
+### Core API
+
+The full Core API might be a better choice for apps and utilities focused on
+advanced metadata management.
 
 ```typescript
 import { TagLib } from "taglib-wasm";
