@@ -103,8 +103,7 @@ export {
   readTags,
   replacePictureByType,
   setCoverArt,
-  updateTags,
-  writeTags, // Deprecated but exported for backward compatibility
+  updateTags
 } from "./src/simple.ts";
 
 /**
