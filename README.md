@@ -84,14 +84,16 @@ npx tsx your-script.ts
 ```javascript
 // Use the pre-compiled JavaScript version
 import { TagLib } from "taglib-wasm";
-import { readTags, applyTags } from "taglib-wasm/simple";
+import { applyTags, readTags } from "taglib-wasm/simple";
 
 // Everything works the same as TypeScript
 const taglib = await TagLib.initialize();
 const tags = await readTags("song.mp3");
 ```
 
-> **Note:** See our [full documentation](https://charleswiltgen.github.io/taglib-wasm/guide/installation.html) for details on Node.js experimental TypeScript support.
+> **Note:** See our
+> [full documentation](https://charleswiltgen.github.io/taglib-wasm/guide/installation.html)
+> for details on Node.js experimental TypeScript support.
 
 ### Bun
 
