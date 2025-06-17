@@ -138,18 +138,19 @@ dist/
 .pnp.*
 
 # Test audio files (keep structure but not the actual files)
-tests/test-files/*.mp3
-tests/test-files/*.flac
-tests/test-files/*.ogg
-tests/test-files/*.wav
-tests/test-files/*.m4a
-tests/test-files/*.mp4
-tests/test-files/*/*.mp3
-tests/test-files/*/*.flac
-tests/test-files/*/*.ogg
-tests/test-files/*/*.wav
-tests/test-files/*/*.m4a
-tests/test-files/*/*.mp4
+# Commented out to include test files in repository for CI
+# tests/test-files/*.mp3
+# tests/test-files/*.flac
+# tests/test-files/*.ogg
+# tests/test-files/*.wav
+# tests/test-files/*.m4a
+# tests/test-files/*.mp4
+# tests/test-files/*/*.mp3
+# tests/test-files/*/*.flac
+# tests/test-files/*/*.ogg
+# tests/test-files/*/*.wav
+# tests/test-files/*/*.m4a
+# tests/test-files/*/*.mp4
 
 # Test files backup
 test-files-backup.zip
