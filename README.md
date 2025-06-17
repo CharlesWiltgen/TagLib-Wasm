@@ -14,17 +14,14 @@
 [![Electron](https://img.shields.io/badge/Electron-47848F?logo=electron&logoColor=white)](https://www.electronjs.org/)
 [![Browsers](https://img.shields.io/badge/Browser-4285F4?logo=googlechrome&logoColor=white)]()
 
-**TagLib-Wasm** is the universal tagging library for TypeScript platforms: Deno,
-Node.js, Bun, Cloudflare Workers, Electron, and browsers. It’s the answer to the
-question:
+TagLib-Wasm is the **universal tagging library for TypeScript/JavaScript**
+(TS|JS) platforms: Deno, Node.js, Bun, Cloudflare Workers, Electron, and
+browsers.
 
-> “What if [**TagLib**](https://taglib.org/), but TypeScript?”
-
-This project exists because the TypeScipt/JavaScript ecosystem had no
-battle-tested audio tagging library that supports reading and writing music
-metadata to all popular audio formats. It aspires to be a universal solution for
-all **TypeScript**-capable platforms — Deno, Node.js, Bun, Electron, Cloudflare
-Workers, and browsers.
+This project exists because the TS|JS ecosystem had no battle-tested audio
+tagging library that supports reading and writing music metadata to all popular
+audio formats. It aspires to be a universal solution for all TS|JS*-capable
+platforms — Deno, Node.js, Bun, Electron, Cloudflare Workers, and browsers.
 
 TagLib-Wasm stands on the shoulders of giants, including
 [TagLib](https://taglib.org/) itself, [Emscripten](https://emscripten.org/), and
