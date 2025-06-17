@@ -125,14 +125,14 @@ audioFile.dispose();
 The `simple-api.ts` example demonstrates the high-level API:
 
 ```typescript
-import { readTags, writeTags } from "taglib-wasm/simple";
+import { readTags, applyTags } from "taglib-wasm/simple";
 
 // Read tags
 const metadata = await readTags(audioBuffer);
 console.log(metadata);
 
 // Write tags
-const modifiedBuffer = await writeTags(audioBuffer, {
+const modifiedBuffer = await applyTags(audioBuffer, {
   title: "New Title",
   artist: "New Artist",
   album: "New Album",
@@ -153,7 +153,7 @@ const tags = {
 };
 
 // TagLib automatically maps to the correct format-specific fields
-const modifiedBuffer = await writeTags(audioBuffer, tags);
+const modifiedBuffer = await applyTags(audioBuffer, tags);
 ```
 
 ## Import Paths

@@ -8,12 +8,12 @@
  */
 
 import {
+  applyTags,
   clearTags,
   getFormat,
   isValidAudioFile,
   readProperties,
   readTags,
-  writeTags,
 } from "../src/simple.ts";
 
 // For go-taglib style constants
@@ -61,11 +61,11 @@ async function demonstrateSimpleAPI() {
   const format = await getFormat(testFile);
   console.log(`File format: ${format}`);
 
-  // Example 6: Write tags (in-memory only)
-  console.log("\n✏️ Example 6: Writing tags");
+  // Example 6: Apply tags (in-memory only)
+  console.log("\n✏️ Example 6: Applying tags");
   console.log("Note: Changes are in-memory only");
 
-  const modifiedBuffer = await writeTags(testFile, {
+  const modifiedBuffer = await applyTags(testFile, {
     title: "Simple API Demo",
     artist: "taglib-wasm",
     album: "Examples Album",
@@ -74,7 +74,7 @@ async function demonstrateSimpleAPI() {
     genre: "Demo",
   });
 
-  console.log("Tags written successfully (in memory)");
+  console.log("Tags applied successfully (in memory)");
   console.log("Modified buffer size:", modifiedBuffer.length, "bytes");
 
   // Example 7: Clear all tags
@@ -182,7 +182,7 @@ async function demonstrateRealWorldUsage() {
 
   for (const file of filesToUpdate) {
     try {
-      await writeTags(file, {
+      await applyTags(file, {
         album: "Bulk Update Album",
         year: 2025,
         genre: "Updated",

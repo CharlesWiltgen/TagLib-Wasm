@@ -11,7 +11,7 @@
  */
 
 import { TagLib as CoreTagLib } from "../index.ts";
-import { readProperties, readTags, writeTags } from "../src/simple.ts";
+import { applyTags, readProperties, readTags } from "../src/simple.ts";
 
 const TEST_FILE = "./tests/test-files/mp3/kiss-snippet.mp3";
 const TEST_FILES = [
@@ -144,7 +144,7 @@ results.push(
     async () => {
       const tags = await readTags(fileData);
       const props = await readProperties(fileData);
-      await writeTags(fileData, {
+      await applyTags(fileData, {
         title: "Benchmark Title",
         artist: "Benchmark Artist",
       });
