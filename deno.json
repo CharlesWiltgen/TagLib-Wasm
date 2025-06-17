@@ -7,9 +7,9 @@
         "require-await"
       ]
     },
-    "exclude": ["lib/", "build/", "scripts/", "examples/", "tools/"]
+    "exclude": ["lib/", "build/", "scripts/", "examples/", "tools/", "docs/"]
   },
   "fmt": {
-    "exclude": ["lib/", "build/"]
+    "exclude": ["lib/", "build/", "docs/"]
   }
 }
