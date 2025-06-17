@@ -84,7 +84,7 @@ The Simple API provides clear error messages for common scenarios.
 ### Basic Error Handling
 
 ```typescript
-import { readProperties, readTags, writeTags } from "taglib-wasm/simple";
+import { readProperties, readTags, applyTags } from "taglib-wasm/simple";
 
 // Reading tags
 try {
@@ -102,7 +102,7 @@ try {
 
 // Writing tags
 try {
-  const modified = await writeTags("song.mp3", {
+  const modified = await applyTags("song.mp3", {
     title: "New Title",
     artist: "New Artist",
   });
@@ -214,7 +214,7 @@ async function processFileWithCleanup(buffer: Uint8Array) {
     }
 
     // Process
-    const format = file.format();
+    const format = file.getFormat();
     if (format === "UNKNOWN") {
       throw new Error("Unknown audio format");
     }
@@ -282,7 +282,7 @@ class BatchProcessor {
 
       // Read metadata
       const metadata = {
-        format: file.format(),
+        format: file.getFormat(),
         tags: file.tag(),
         properties: file.audioProperties(),
       };
@@ -533,7 +533,7 @@ async function safeReadMetadata(buffer: Uint8Array): Promise<SafeMetadata> {
         album: tags.album || defaults.album,
         year: tags.year || undefined,
         duration: props.length,
-        format: file.format(),
+        format: file.getFormat(),
       };
     } finally {
       file.dispose();

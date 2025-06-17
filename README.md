@@ -106,17 +106,23 @@ const { TagLib } = require("taglib-wasm");
 ### Simple API (Recommended)
 
 ```typescript
-import { readTags, updateTags } from "taglib-wasm/simple";
+import { readTags, applyTags, updateTags } from "taglib-wasm/simple";
 
 // Read tags - just one function call!
 const tags = await readTags("song.mp3");
 console.log(tags.title, tags.artist, tags.album);
 
-// Update tags in-place - even simpler!
-await updateTags("song.mp3", {
+// Apply tags and get modified buffer (in-memory)
+const modifiedBuffer = await applyTags("song.mp3", {
   title: "New Title",
   artist: "New Artist",
   album: "New Album",
+});
+
+// Or update tags on disk (requires file path)
+await updateTags("song.mp3", {
+  title: "New Title",
+  artist: "New Artist",
 });
 ```
 
@@ -156,7 +162,8 @@ if (coverData) {
 
 // Set new cover art
 const imageData = await Deno.readFile("new-cover.jpg");
-await setCoverArt("song.mp3", imageData, "image/jpeg");
+const modifiedBuffer = await setCoverArt("song.mp3", imageData, "image/jpeg");
+// Save modifiedBuffer to file if needed
 ```
 
 ## 📚 Documentation
@@ -187,12 +194,12 @@ await setCoverArt("song.mp3", imageData, "image/jpeg");
 
 `tag-wasm` is designed to support all formats supported by TagLib:
 
-- ✅ **.m4a (.mp4)** – Standard MPEG-4/AAC metadata for AAC and Apple Lossless
-  audio
 - ✅ **.mp3** – ID3v2 and ID3v1 tags
+- ✅ **.m4a/.mp4** – MPEG-4/AAC metadata for AAC and Apple Lossless audio
 - ✅ **.flac** – Vorbis comments and audio properties
+- ✅ **.ogg** – Ogg Vorbis format with full metadata support
 - ✅ **.wav** – INFO chunk metadata
-- ✅ **Legacy formats** – Opus, APE, MPC, WavPack, TrueAudio, and more
+- ✅ **Additional formats** – Opus, APE, MPC, WavPack, TrueAudio, AIFF, WMA, and more
 
 ## 🎯 Key Features
 

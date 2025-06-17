@@ -7,7 +7,7 @@ JavaScript/TypeScript.
 
 - [Simple API](#simple-api)
   - [readTags()](#readtags)
-  - [writeTags()](#writetags)
+  - [applyTags()](#applytags)
   - [updateTags()](#updatetags)
   - [readProperties()](#readproperties)
 - [Core API](#core-api)
@@ -31,7 +31,7 @@ Read metadata tags from an audio file.
 ```typescript
 function readTags(
   input: string | Uint8Array | ArrayBuffer | File,
-): Promise<Tags>;
+): Promise<Tag>;
 ```
 
 #### Parameters
@@ -41,10 +41,10 @@ function readTags(
 
 #### Returns
 
-Promise resolving to a `Tags` object:
+Promise resolving to a `Tag` object:
 
 ```typescript
-interface Tags {
+interface Tag {
   title?: string;
   artist?: string;
   album?: string;
@@ -75,22 +75,23 @@ const file = document.getElementById("file-input").files[0];
 const tags = await readTags(file);
 ```
 
-### writeTags()
+### applyTags()
 
-Write metadata tags to an audio file.
+Apply metadata tags to an audio file and return the modified buffer.
 
 ```typescript
-function writeTags(
+function applyTags(
   input: string | Uint8Array | ArrayBuffer | File,
   tags: Partial<Tags>,
+  options?: number,
 ): Promise<Uint8Array>;
 ```
 
 #### Parameters
 
-- `input`: File path (string), audio data (Uint8Array/ArrayBuffer), or File
-  object
-- `tags`: Object containing tags to write (partial update supported)
+- `input`: File path (string), audio data (Uint8Array/ArrayBuffer), or File object
+- `tags`: Object containing tags to apply (partial update supported, type `Partial<Tag>`)
+- `options`: Write options (optional, for go-taglib compatibility)
 
 #### Returns
 
@@ -100,18 +101,18 @@ Promise resolving to the modified audio file as Uint8Array.
 
 ```typescript
 // Update specific tags from file path
-const modifiedFile = await writeTags("song.mp3", {
+const modifiedBuffer = await applyTags("song.mp3", {
   title: "New Title",
   artist: "New Artist",
   year: 2024,
 });
 
 // Write the modified file
-await Deno.writeFile("song-updated.mp3", modifiedFile);
+await Deno.writeFile("song-updated.mp3", modifiedBuffer);
 
 // From File object (browsers)
 const file = document.getElementById("file-input").files[0];
-const modifiedFile = await writeTags(file, {
+const modifiedBuffer = await applyTags(file, {
   title: "New Title",
   artist: "New Artist",
 });
@@ -119,38 +120,39 @@ const modifiedFile = await writeTags(file, {
 
 ### updateTags()
 
-Update metadata tags on a file and save it to a new location.
+Update metadata tags in an audio file and save changes to disk.
 
 ```typescript
 function updateTags(
-  inputPath: string,
-  outputPath: string,
+  file: string,
   tags: Partial<Tags>,
+  options?: number,
 ): Promise<void>;
 ```
 
 #### Parameters
 
-- `inputPath`: Path to the input audio file
-- `outputPath`: Path where the modified file will be saved
-- `tags`: Object containing tags to update (partial update supported)
+- `file`: File path as a string (required for disk operations)
+- `tags`: Object containing tags to update (partial update supported, type `Partial<Tag>`)
+- `options`: Write options (optional, for go-taglib compatibility)
 
 #### Returns
 
-Promise that resolves when the file has been successfully saved.
+Promise that resolves when the file has been successfully updated on disk.
 
 #### Example
 
 ```typescript
-// Update tags and save to new file
-await updateTags("song.mp3", "song-updated.mp3", {
+// Update tags in place
+await updateTags("song.mp3", {
   title: "New Title",
   artist: "New Artist",
   year: 2024,
 });
+// File on disk now has updated tags
 
-// Update tags in place
-await updateTags("song.mp3", "song.mp3", {
+// Update only specific tags
+await updateTags("song.mp3", {
   genre: "Electronic",
 });
 ```
@@ -162,7 +164,7 @@ Read audio properties from a file.
 ```typescript
 function readProperties(
   input: string | Uint8Array | ArrayBuffer | File,
-): Promise<Properties>;
+): Promise<AudioProperties>;
 ```
 
 #### Parameters
@@ -172,10 +174,10 @@ function readProperties(
 
 #### Returns
 
-Promise resolving to a `Properties` object:
+Promise resolving to an `AudioProperties` object:
 
 ```typescript
-interface Properties {
+interface AudioProperties {
   length: number; // Duration in seconds
   bitrate: number; // Bitrate in kbps
   sampleRate: number; // Sample rate in Hz
@@ -374,12 +376,12 @@ Check if the file was loaded successfully.
 isValid(): boolean
 ```
 
-##### format()
+##### getFormat()
 
 Get the audio format of the file.
 
 ```typescript
-format(): string
+getFormat(): string
 ```
 
 Returns one of: `"MP3"`, `"MP4"`, `"FLAC"`, `"OGG"`, `"WAV"`, `"UNKNOWN"`
@@ -856,7 +858,7 @@ async function processAudioFile(filePath: string) {
 
     // Read current metadata
     console.log("Current tags:", file.tag());
-    console.log("Format:", file.format());
+    console.log("Format:", file.getFormat());
     console.log("Properties:", file.audioProperties());
 
     // Update metadata
