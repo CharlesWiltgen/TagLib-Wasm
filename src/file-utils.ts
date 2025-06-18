@@ -16,17 +16,17 @@
  * ```
  */
 
-import type { Picture } from "./types.ts";
-import { PictureType } from "./types.ts";
+import type { Picture } from "./types";
+import { PictureType } from "./types";
 import {
   applyPictures,
   getCoverArt,
   readPictures,
   replacePictureByType,
   setCoverArt,
-} from "./simple.ts";
-import { readFileData } from "./utils/file.ts";
-import { writeFileData } from "./utils/write.ts";
+} from "./simple";
+import { readFileData } from "./utils/file";
+import { writeFileData } from "./utils/write";
 
 /**
  * Export cover art from an audio file to an image file

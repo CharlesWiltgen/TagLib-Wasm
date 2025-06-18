@@ -1,34 +1,31 @@
 {
   "name": "taglib-wasm",
-  "version": "0.3.14",
+  "version": "0.3.15",
   "description": "TagLib for TypeScript platforms: Deno, Node.js, Bun, Electron, browsers, and Cloudflare Workers",
-  "main": "index.ts",
-  "types": "index.ts",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "exports": {
     ".": {
-      "types": "./index.ts",
+      "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     },
     "./workers": {
-      "types": "./src/workers.ts",
+      "types": "./dist/src/workers.d.ts",
       "default": "./dist/src/workers.js"
     },
     "./simple": {
-      "types": "./src/simple.ts",
+      "types": "./dist/src/simple.d.ts",
       "default": "./dist/src/simple.js"
     }
   },
   "files": [
-    "index.ts",
-    "src/**/*",
     "dist/**/*",
-    "lib/taglib/COPYING*",
     "README.md",
     "LICENSE"
   ],
   "scripts": {
     "build:wasm": "./build/build-wasm.sh",
-    "build:ts": "tsc && node scripts/build-js.js",
+    "build:ts": "tsc",
     "postbuild": "node scripts/postbuild.js",
     "build": "npm run build:wasm && npm run build:ts && npm run postbuild",
     "test": "deno test --allow-read --allow-write tests/",

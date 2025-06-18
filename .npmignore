@@ -1,0 +1,49 @@
+# Source files (only compiled output should be published)
+*.ts
+!dist/**/*.d.ts
+
+# Development files
+.vscode/
+.gitignore
+.gitattributes
+deno.json
+deno.lock
+mise.toml
+tsconfig.json
+CLAUDE.md
+CLAUDE.local.md
+BACKLOG.md
+
+# Build files
+build/
+scripts/
+lib/
+
+# Test files
+tests/
+coverage/
+
+# Documentation source
+docs/
+
+# Examples
+examples/
+
+# Git
+.git/
+.github/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Dependencies
+node_modules/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.swp
