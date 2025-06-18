@@ -40,40 +40,18 @@ wasmFiles.forEach((file) => {
   }
 });
 
-// Copy TypeScript source files
-console.log("\n  📄 TypeScript source files:");
+// No longer copying TypeScript source files - only compiled output should be in dist
 
-// Copy index.ts
-const indexSrc = join(rootDir, "index.ts");
-const indexDest = join(distDir, "index.ts");
-if (existsSync(indexSrc)) {
-  copyFileSync(indexSrc, indexDest);
-  console.log("    ✓ index.ts");
+// Fix imports for Deno compatibility
+console.log("\n🔧 Fixing imports for Deno compatibility...");
+try {
+  const { execSync } = await import("child_process");
+  execSync("node scripts/fix-imports.js", {
+    cwd: rootDir,
+    stdio: "inherit",
+  });
+} catch (error) {
+  console.error("❌ Failed to fix imports:", error.message);
 }
-
-// Copy src directory recursively
-function copyDirectory(srcDir, destDir) {
-  if (!existsSync(destDir)) {
-    mkdirSync(destDir, { recursive: true });
-  }
-
-  const entries = readdirSync(srcDir);
-  for (const entry of entries) {
-    const srcPath = join(srcDir, entry);
-    const destPath = join(destDir, entry);
-    const stat = statSync(srcPath);
-
-    if (stat.isDirectory()) {
-      copyDirectory(srcPath, destPath);
-    } else if (entry.endsWith(".ts")) {
-      copyFileSync(srcPath, destPath);
-      console.log(`    ✓ ${relative(rootDir, srcPath)}`);
-    }
-  }
-}
-
-const srcDir = join(rootDir, "src");
-const destSrcDir = join(distDir, "src");
-copyDirectory(srcDir, destSrcDir);
 
 console.log("\n✨ Post-build complete!");
