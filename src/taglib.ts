@@ -405,6 +405,9 @@ export class AudioFileImpl implements AudioFile {
         bitrate: propsWrapper.bitrate(),
         sampleRate: propsWrapper.sampleRate(),
         channels: propsWrapper.channels(),
+        bitsPerSample: propsWrapper.bitsPerSample(),
+        codec: propsWrapper.codec(),
+        isLossless: propsWrapper.isLossless(),
       };
     }
 

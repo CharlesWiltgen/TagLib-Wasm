@@ -82,6 +82,9 @@ export interface AudioPropertiesWrapper {
   bitrate(): number;
   sampleRate(): number;
   channels(): number;
+  bitsPerSample(): number;
+  codec(): string;
+  isLossless(): boolean;
 }
 
 export interface TagLibModule extends Omit<EmscriptenModule, "then"> {
