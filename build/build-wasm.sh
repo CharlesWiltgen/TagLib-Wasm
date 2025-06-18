@@ -74,12 +74,10 @@ emcc "$BUILD_DIR/taglib_wasm.cpp" \
   --no-entry \
   -O3
 
-echo "🔧 Applying Deno compatibility patch..."
+echo "🔧 Applying Deno compatibility patches..."
 
-# Patch the generated JS file for Deno compatibility
-# Replace the problematic import("module") with a Deno-compatible version
-sed -i.bak 's/const{createRequire}=await import("module")/const{createRequire}=await(typeof Deno!=="undefined"?import("node:module"):import("module"))/' "$OUTPUT_DIR/taglib-wrapper.js"
-rm "$OUTPUT_DIR/taglib-wrapper.js.bak"
+# Apply comprehensive Deno compatibility fixes
+node "$PROJECT_ROOT/scripts/fix-deno-compat.js"
 
 # Rename the WASM file to taglib.wasm
 mv "$OUTPUT_DIR/taglib-wrapper.wasm" "$OUTPUT_DIR/taglib.wasm"
