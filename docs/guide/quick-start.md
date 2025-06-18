@@ -241,8 +241,8 @@ try {
 
 ## Next Steps
 
-- Explore [Automatic Tag Mapping](/Automatic-Tag-Mapping.md) for format-agnostic
-  metadata
+- Explore [Tag Name Constants](/Tag-Name-Constants.md) for format-agnostic
+  metadata handling
 - Learn about [Runtime Compatibility](/Runtime-Compatibility.md) for your
   platform
 - Check the [API Reference](/API.md) for all available methods
