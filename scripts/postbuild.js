@@ -50,6 +50,13 @@ try {
     cwd: rootDir,
     stdio: "inherit",
   });
+  
+  // Apply Deno-specific patches to the distributed wrapper
+  console.log("🔧 Applying Deno compatibility patches to dist/taglib-wrapper.js...");
+  execSync("node scripts/fix-deno-compat-dist.js", {
+    cwd: rootDir,
+    stdio: "inherit",
+  });
 } catch (error) {
   console.error("❌ Failed to fix imports:", error.message);
 }
