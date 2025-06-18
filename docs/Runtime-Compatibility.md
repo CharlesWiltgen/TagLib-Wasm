@@ -44,7 +44,7 @@ const audioData = await Bun.file("song.mp3").arrayBuffer();
 const file = taglib.openFile(new Uint8Array(audioData));
 ```
 
-### ✅ Node.js 18+
+### ✅ Node.js 22.6.0+
 
 - **Status**: Fully supported
 - **Installation**: `npm install taglib-wasm`
