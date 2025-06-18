@@ -20,16 +20,16 @@ async function analyzeAudioFile(filePath: string) {
   try {
     // Read the file
     const fileData = await Deno.readFile(filePath);
-    
+
     // Initialize TagLib
     const taglib = await TagLib.initialize();
-    
+
     // Open the file
     const audioFile = await taglib.open(fileData, filePath);
-    
+
     // Get audio properties
     const properties = audioFile.audioProperties();
-    
+
     if (properties) {
       console.log("\n📊 Audio Properties:");
       console.log(`  Format: ${audioFile.getFormat()}`);
@@ -40,7 +40,7 @@ async function analyzeAudioFile(filePath: string) {
       console.log(`  Sample Rate: ${properties.sampleRate} Hz`);
       console.log(`  Channels: ${properties.channels}`);
       console.log(`  Bits per Sample: ${properties.bitsPerSample || "N/A"}`);
-      
+
       // Provide codec-specific information
       console.log("\n💡 Codec Information:");
       switch (properties.codec) {
@@ -50,7 +50,9 @@ async function analyzeAudioFile(filePath: string) {
           break;
         case "ALAC":
           console.log("  Apple Lossless Audio Codec - Lossless compression");
-          console.log("  Preserves original audio quality with ~50% size reduction");
+          console.log(
+            "  Preserves original audio quality with ~50% size reduction",
+          );
           break;
         case "MP3":
           console.log("  MPEG Layer 3 - Lossy compression");
@@ -73,7 +75,7 @@ async function analyzeAudioFile(filePath: string) {
           console.log("  Modern codec optimized for speech and music");
           break;
       }
-      
+
       // Quality assessment based on properties
       console.log("\n🎯 Quality Assessment:");
       if (properties.isLossless) {
@@ -98,10 +100,9 @@ async function analyzeAudioFile(filePath: string) {
     } else {
       console.log("❌ Could not read audio properties");
     }
-    
+
     // Clean up
     audioFile.dispose();
-    
   } catch (error) {
     console.error(`❌ Error: ${error.message}`);
   }
@@ -110,15 +111,23 @@ async function analyzeAudioFile(filePath: string) {
 // Main execution
 if (import.meta.main) {
   const args = Deno.args;
-  
+
   if (args.length === 0) {
-    console.log("Usage: deno run --allow-read examples/codec-detection.ts <audio-file>");
+    console.log(
+      "Usage: deno run --allow-read examples/codec-detection.ts <audio-file>",
+    );
     console.log("\nExample:");
-    console.log("  deno run --allow-read examples/codec-detection.ts music.mp3");
-    console.log("  deno run --allow-read examples/codec-detection.ts audio.m4a");
-    console.log("  deno run --allow-read examples/codec-detection.ts song.flac");
+    console.log(
+      "  deno run --allow-read examples/codec-detection.ts music.mp3",
+    );
+    console.log(
+      "  deno run --allow-read examples/codec-detection.ts audio.m4a",
+    );
+    console.log(
+      "  deno run --allow-read examples/codec-detection.ts song.flac",
+    );
     Deno.exit(1);
   }
-  
+
   await analyzeAudioFile(args[0]);
 }
