@@ -7,16 +7,23 @@
 #include <tbytevector.h>
 #include <tbytevectorstream.h>
 #include <mpegfile.h>
+#include <mpegproperties.h>
 #include <mp4file.h>
 #include <mp4tag.h>
 #include <mp4item.h>
 #include <mp4coverart.h>
+#include <mp4properties.h>
 #include <flacfile.h>
 #include <flacpicture.h>
+#include <flacproperties.h>
 #include <vorbisfile.h>
+#include <vorbisproperties.h>
 #include <opusfile.h>
+#include <opusproperties.h>
 #include <wavfile.h>
+#include <wavproperties.h>
 #include <aifffile.h>
+#include <aiffproperties.h>
 #include <id3v2tag.h>
 #include <attachedpictureframe.h>
 #include <xiphcomment.h>
@@ -99,10 +106,11 @@ public:
 class AudioPropertiesWrapper {
 private:
     TagLib::AudioProperties* props;
+    TagLib::File* file;
     
 public:
-    AudioPropertiesWrapper() : props(nullptr) {}
-    AudioPropertiesWrapper(TagLib::AudioProperties* p) : props(p) {}
+    AudioPropertiesWrapper() : props(nullptr), file(nullptr) {}
+    AudioPropertiesWrapper(TagLib::AudioProperties* p, TagLib::File* f) : props(p), file(f) {}
     
     int lengthInSeconds() const {
         return props ? props->lengthInSeconds() : 0;
@@ -122,6 +130,101 @@ public:
     
     int channels() const {
         return props ? props->channels() : 0;
+    }
+    
+    int bitsPerSample() const {
+        if (!props) return 0;
+        
+        // MP4/M4A files
+        if (TagLib::MP4::Properties* mp4Props = dynamic_cast<TagLib::MP4::Properties*>(props)) {
+            return mp4Props->bitsPerSample();
+        }
+        // FLAC files
+        else if (TagLib::FLAC::Properties* flacProps = dynamic_cast<TagLib::FLAC::Properties*>(props)) {
+            return flacProps->bitsPerSample();
+        }
+        // WAV files
+        else if (TagLib::RIFF::WAV::Properties* wavProps = dynamic_cast<TagLib::RIFF::WAV::Properties*>(props)) {
+            return wavProps->bitsPerSample();
+        }
+        // AIFF files
+        else if (TagLib::RIFF::AIFF::Properties* aiffProps = dynamic_cast<TagLib::RIFF::AIFF::Properties*>(props)) {
+            return aiffProps->bitsPerSample();
+        }
+        
+        return 0;
+    }
+    
+    std::string codec() const {
+        if (!props || !file) return "Unknown";
+        
+        // MP4/M4A files
+        if (TagLib::MP4::Properties* mp4Props = dynamic_cast<TagLib::MP4::Properties*>(props)) {
+            switch (mp4Props->codec()) {
+                case TagLib::MP4::Properties::AAC:
+                    return "AAC";
+                case TagLib::MP4::Properties::ALAC:
+                    return "ALAC";
+                default:
+                    return "Unknown";
+            }
+        }
+        // MP3 files
+        else if (dynamic_cast<TagLib::MPEG::File*>(file)) {
+            return "MP3";
+        }
+        // FLAC files
+        else if (dynamic_cast<TagLib::FLAC::File*>(file)) {
+            return "FLAC";
+        }
+        // OGG Vorbis files
+        else if (dynamic_cast<TagLib::Ogg::Vorbis::File*>(file)) {
+            return "Vorbis";
+        }
+        // OGG Opus files
+        else if (dynamic_cast<TagLib::Ogg::Opus::File*>(file)) {
+            return "Opus";
+        }
+        // WAV files
+        else if (TagLib::RIFF::WAV::File* wavFile = dynamic_cast<TagLib::RIFF::WAV::File*>(file)) {
+            // WAV can contain various codecs, but we'll report PCM for uncompressed
+            if (TagLib::RIFF::WAV::Properties* wavProps = dynamic_cast<TagLib::RIFF::WAV::Properties*>(props)) {
+                unsigned int format = wavProps->format();
+                if (format == 1) return "PCM";
+                else if (format == 3) return "IEEE Float";
+                else return "WAV";
+            }
+            return "WAV";
+        }
+        // AIFF files
+        else if (dynamic_cast<TagLib::RIFF::AIFF::File*>(file)) {
+            return "PCM"; // AIFF is typically uncompressed PCM
+        }
+        
+        return "Unknown";
+    }
+    
+    bool isLossless() const {
+        std::string codecName = codec();
+        
+        // Lossless codecs
+        if (codecName == "ALAC" ||      // Apple Lossless
+            codecName == "FLAC" ||      // Free Lossless Audio Codec
+            codecName == "PCM" ||       // Uncompressed PCM (WAV/AIFF)
+            codecName == "IEEE Float") {  // Uncompressed floating point
+            return true;
+        }
+        
+        // Lossy codecs
+        if (codecName == "AAC" ||       // Advanced Audio Coding
+            codecName == "MP3" ||       // MPEG Layer 3
+            codecName == "Vorbis" ||    // Ogg Vorbis
+            codecName == "Opus") {      // Opus
+            return false;
+        }
+        
+        // Unknown codec - assume lossy
+        return false;
     }
 };
 
@@ -221,7 +324,8 @@ public:
     
     AudioPropertiesWrapper getAudioProperties() {
         TagLib::AudioProperties* p = fileRef ? fileRef->audioProperties() : nullptr;
-        return AudioPropertiesWrapper(p);
+        TagLib::File* f = fileRef ? fileRef->file() : nullptr;
+        return AudioPropertiesWrapper(p, f);
     }
     
     TagLib::File* getFile() {
@@ -789,7 +893,10 @@ EMSCRIPTEN_BINDINGS(taglib) {
         .function("lengthInMilliseconds", &AudioPropertiesWrapper::lengthInMilliseconds)
         .function("bitrate", &AudioPropertiesWrapper::bitrate)
         .function("sampleRate", &AudioPropertiesWrapper::sampleRate)
-        .function("channels", &AudioPropertiesWrapper::channels);
+        .function("channels", &AudioPropertiesWrapper::channels)
+        .function("bitsPerSample", &AudioPropertiesWrapper::bitsPerSample)
+        .function("codec", &AudioPropertiesWrapper::codec)
+        .function("isLossless", &AudioPropertiesWrapper::isLossless);
     
     // PictureWrapper class
     class_<PictureWrapper>("PictureWrapper")
