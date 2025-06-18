@@ -152,6 +152,29 @@ const modifiedBuffer = await setCoverArt("song.mp3", imageData, "image/jpeg");
 // Save modifiedBuffer to file if needed
 ```
 
+### Codec Detection and Audio Properties
+
+```typescript
+import { readProperties } from "taglib-wasm/simple";
+
+// Get detailed audio properties including codec info
+const props = await readProperties("song.m4a");
+
+console.log(props.codec);        // "AAC" or "ALAC"
+console.log(props.isLossless);   // false for AAC, true for ALAC
+console.log(props.bitsPerSample); // 16 for most formats
+console.log(props.bitrate);       // 256 (kbps)
+console.log(props.sampleRate);    // 44100 (Hz)
+console.log(props.length);       // 180 (duration in seconds)
+```
+
+Supported codec detection:
+- **MP3** – Returns "MP3" (lossy)
+- **M4A/MP4** – Distinguishes between "AAC" (lossy) and "ALAC" (lossless)
+- **FLAC** – Returns "FLAC" (lossless)
+- **OGG** – Returns "Vorbis" (lossy) or "Opus" (lossy)
+- **WAV** – Returns "PCM" (uncompressed)
+
 ## 📚 Documentation
 
 **[📖 View Full Documentation](https://charleswiltgen.github.io/taglib-wasm/)**

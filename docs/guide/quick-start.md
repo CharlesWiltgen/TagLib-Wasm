@@ -19,7 +19,7 @@ console.log(tags);
 // Read audio properties
 const props = await readProperties("song.mp3");
 console.log(props);
-// Output: { length: 180, bitrate: 320, sampleRate: 44100, channels: 2 }
+// Output: { length: 180, bitrate: 320, sampleRate: 44100, channels: 2, codec: "MP3", isLossless: false, bitsPerSample: 16 }
 ```
 
 ### Writing Tags
@@ -95,6 +95,9 @@ console.log(`Album: ${tags.album}`);
 const props = file.audioProperties();
 console.log(`Duration: ${props.length} seconds`);
 console.log(`Bitrate: ${props.bitrate} kbps`);
+console.log(`Codec: ${props.codec}`);
+console.log(`Lossless: ${props.isLossless}`);
+console.log(`Bits per sample: ${props.bitsPerSample}`);
 
 // Update metadata
 file.setTitle("New Title");

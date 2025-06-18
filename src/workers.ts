@@ -124,6 +124,9 @@ export class AudioFileWorkers {
       bitrate,
       sampleRate,
       channels,
+      bitsPerSample: 0, // Not available in C API compatibility mode
+      codec: "Unknown", // Not available in C API compatibility mode
+      isLossless: false, // Not available in C API compatibility mode
     };
   }
 

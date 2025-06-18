@@ -182,6 +182,9 @@ interface AudioProperties {
   bitrate: number; // Bitrate in kbps
   sampleRate: number; // Sample rate in Hz
   channels: number; // Number of channels (1=mono, 2=stereo)
+  codec?: string; // Audio codec (e.g., "AAC", "ALAC", "MP3", "FLAC", "PCM", "Vorbis")
+  isLossless?: boolean; // True for lossless/uncompressed formats
+  bitsPerSample?: number; // Bit depth (e.g., 16, 24)
 }
 ```
 
