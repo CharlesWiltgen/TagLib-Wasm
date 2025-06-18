@@ -10,8 +10,8 @@
  * - Memory usage patterns
  */
 
-import { TagLib as CoreTagLib } from "../index.ts";
-import { applyTags, readProperties, readTags } from "../src/simple.ts";
+import { TagLib as CoreTagLib } from "../index";
+import { applyTags, readProperties, readTags } from "../src/simple";
 
 const TEST_FILE = "./tests/test-files/mp3/kiss-snippet.mp3";
 const TEST_FILES = [

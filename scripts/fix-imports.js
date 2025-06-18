@@ -16,7 +16,14 @@ function fixImportsInFile(filePath) {
   content = content.replace(
     /from\s+["'](\.[^"']+)["']/g,
     (match, importPath) => {
-      if (!importPath.endsWith(".js") && !importPath.endsWith(".json")) {
+      // Handle .ts.js case from esbuild
+      if (importPath.endsWith(".ts.js")) {
+        modified = true;
+        return `from "${importPath.replace(/\.ts\.js$/, '.js')}"`;
+      } else if (importPath.endsWith(".ts")) {
+        modified = true;
+        return `from "${importPath.replace(/\.ts$/, '')}.js"`;
+      } else if (!importPath.endsWith(".js") && !importPath.endsWith(".json")) {
         modified = true;
         return `from "${importPath}.js"`;
       }
@@ -28,7 +35,14 @@ function fixImportsInFile(filePath) {
   content = content.replace(
     /export\s+.*\s+from\s+["'](\.[^"']+)["']/g,
     (match, importPath) => {
-      if (!importPath.endsWith(".js") && !importPath.endsWith(".json")) {
+      // Handle .ts.js case from esbuild
+      if (importPath.endsWith(".ts.js")) {
+        modified = true;
+        return match.replace(/\.ts\.js/, '.js');
+      } else if (importPath.endsWith(".ts")) {
+        modified = true;
+        return match.replace(importPath, importPath.replace(/\.ts$/, '') + ".js");
+      } else if (!importPath.endsWith(".js") && !importPath.endsWith(".json")) {
         modified = true;
         return match.replace(importPath, importPath + ".js");
       }
@@ -40,7 +54,14 @@ function fixImportsInFile(filePath) {
   content = content.replace(
     /import\(["'](\.[^"']+)["']\)/g,
     (match, importPath) => {
-      if (!importPath.endsWith(".js") && !importPath.endsWith(".json")) {
+      // Handle .ts.js case from esbuild
+      if (importPath.endsWith(".ts.js")) {
+        modified = true;
+        return `import("${importPath.replace(/\.ts\.js$/, '.js')}")`;
+      } else if (importPath.endsWith(".ts")) {
+        modified = true;
+        return `import("${importPath.replace(/\.ts$/, '')}.js")`;
+      } else if (!importPath.endsWith(".js") && !importPath.endsWith(".json")) {
         modified = true;
         return `import("${importPath}.js")`;
       }

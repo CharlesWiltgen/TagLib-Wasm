@@ -36,7 +36,7 @@ try {
   // Build all src files (not bundled, just transpiled)
   console.log("  ⚡ Building src/**/*.js...");
   execSync(
-    `npx esbuild src/**/*.ts --outdir=dist/src --format=esm --platform=node --target=es2020`,
+    `npx esbuild src/*.ts src/**/*.ts --outdir=dist/src --format=esm --platform=node --target=es2020`,
     {
       cwd: rootDir,
       stdio: "inherit",
