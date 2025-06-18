@@ -16,17 +16,17 @@
  * ```
  */
 
-import type { Picture } from "./types";
-import { PictureType } from "./types";
+import type { Picture } from "./types.ts";
+import { PictureType } from "./types.ts";
 import {
   applyPictures,
   getCoverArt,
   readPictures,
   replacePictureByType,
   setCoverArt,
-} from "./simple";
-import { readFileData } from "./utils/file";
-import { writeFileData } from "./utils/write";
+} from "./simple.ts";
+import { readFileData } from "./utils/file.ts";
+import { writeFileData } from "./utils/write.ts";
 
 /**
  * Export cover art from an audio file to an image file
@@ -82,7 +82,7 @@ export async function exportPictureByType(
   type: PictureType,
 ): Promise<void> {
   const pictures = await readPictures(audioPath);
-  const picture = pictures.find((pic) => pic.type === type);
+  const picture = pictures.find((pic: Picture) => pic.type === type);
 
   if (!picture) {
     throw new Error(`No picture of type ${type} found in: ${audioPath}`);
@@ -383,7 +383,7 @@ export async function copyCoverArt(
 
     // Find the MIME type from the source
     const pictures = await readPictures(sourcePath);
-    const coverPicture = pictures.find((p) =>
+    const coverPicture = pictures.find((p: Picture) =>
       p.type === PictureType.FrontCover
     ) || pictures[0];
 

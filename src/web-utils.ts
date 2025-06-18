@@ -21,9 +21,9 @@
  * ```
  */
 
-import type { Picture } from "./types";
-import { PictureType } from "./types";
-import { applyPictures, readPictures } from "./simple";
+import type { Picture } from "./types.ts";
+import { PictureType } from "./types.ts";
+import { applyPictures, readPictures } from "./simple.ts";
 
 /**
  * Convert a Picture object to a data URL for display in web browsers
@@ -321,7 +321,7 @@ export async function createPictureGallery(
   // Clear container
   container.innerHTML = "";
 
-  pictures.forEach((picture, index) => {
+  pictures.forEach((picture: Picture, index: number) => {
     const wrapper = document.createElement("div");
     wrapper.className = options.className || "picture-item";
 

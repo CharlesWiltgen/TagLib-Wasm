@@ -2,8 +2,8 @@
  * @fileoverview WebAssembly module interface for Cloudflare Workers
  */
 
-import type { TagLibConfig, TagLibModule } from "./types";
-import { TagLibInitializationError } from "./errors";
+import type { TagLibConfig, TagLibModule } from "./types.ts";
+import { TagLibInitializationError } from "./errors.ts";
 
 // Re-export TagLibModule for convenience
 export type { TagLibModule };
