@@ -71,7 +71,9 @@ const taglib = await TagLib.initialize();
 const audioFile1 = await taglib.open("path/to/song.mp3");
 
 // From buffer (all environments)
-const buffer = await fs.readFile("song.mp3");
+// Node.js example:
+import { readFile } from "fs/promises";
+const buffer = await readFile("song.mp3");
 const audioFile2 = await taglib.open(buffer);
 
 // From browser File object
@@ -149,18 +151,30 @@ audioFile.dispose();
 
 ### Using the Simple API
 
-For basic read-only operations, use the Simple API:
+For basic operations without manual memory management:
 
 ```typescript
 // Deno
-import { readTags } from "npm:taglib-wasm/simple";
+import { readTags, applyTags, updateTags } from "npm:taglib-wasm/simple";
 
 // Node.js/Bun
-import { readTags } from "taglib-wasm/simple";
+import { readTags, applyTags, updateTags } from "taglib-wasm/simple";
 
-// No need to manage AudioFile instances
-const tags = await readTags(buffer);
+// Read tags - no need to manage AudioFile instances
+const tags = await readTags("song.mp3");
 console.log(tags); // { title, artist, album, year, ... }
+
+// Apply tags to get modified buffer
+const modifiedBuffer = await applyTags("song.mp3", {
+  title: "New Title",
+  artist: "New Artist"
+});
+
+// Update tags in-place (file path only)
+await updateTags("song.mp3", {
+  title: "New Title",
+  artist: "New Artist"
+});
 ```
 
 ### Advanced Metadata (PropertyMap)
@@ -168,7 +182,7 @@ console.log(tags); // { title, artist, album, year, ... }
 ```typescript
 const taglib = await TagLib.initialize();
 const audioFile = await taglib.open(buffer);
-const propMap = audioFile.properties(); // Note: properties(), not propertyMap()
+const propMap = audioFile.properties();
 
 // Read all properties
 const allProps = propMap.properties();
