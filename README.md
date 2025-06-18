@@ -178,7 +178,7 @@ const modifiedBuffer = await setCoverArt("song.mp3", imageData, "image/jpeg");
 
 ## 📋 Supported Formats
 
-`tag-wasm` is designed to support all formats supported by TagLib:
+`taglib-wasm` is designed to support all formats supported by TagLib:
 
 - ✅ **.mp3** – ID3v2 and ID3v1 tags
 - ✅ **.m4a/.mp4** – MPEG-4/AAC metadata for AAC and Apple Lossless audio
