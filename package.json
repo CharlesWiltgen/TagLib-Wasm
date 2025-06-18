@@ -1,6 +1,6 @@
 {
   "name": "taglib-wasm",
-  "version": "0.3.18",
+  "version": "0.3.19",
   "description": "TagLib for TypeScript platforms: Deno, Node.js, Bun, Electron, browsers, and Cloudflare Workers",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -45,6 +45,7 @@
     "test:deno-quick": "./scripts/quick-deno-test.ts",
     "test:deno-imports": "./scripts/test-deno-imports.sh",
     "test:amusic": "./scripts/test-with-amusic.sh",
+    "test:package": "./scripts/test-npm-package.sh",
     "docs:dev": "cd docs && npm install && npm run dev",
     "docs:build": "cd docs && npm install && npm run build",
     "update-taglib": "./scripts/update-taglib.sh",
