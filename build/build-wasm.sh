@@ -81,6 +81,13 @@ echo "🔧 Applying Deno compatibility patch..."
 sed -i.bak 's/const{createRequire}=await import("module")/const{createRequire}=await(typeof Deno!=="undefined"?import("node:module"):import("module"))/' "$OUTPUT_DIR/taglib-wrapper.js"
 rm "$OUTPUT_DIR/taglib-wrapper.js.bak"
 
+# Rename the WASM file to taglib.wasm
+mv "$OUTPUT_DIR/taglib-wrapper.wasm" "$OUTPUT_DIR/taglib.wasm"
+
+# Update the JS file to reference taglib.wasm instead of taglib-wrapper.wasm
+sed -i.bak 's/taglib-wrapper\.wasm/taglib.wasm/g' "$OUTPUT_DIR/taglib-wrapper.js"
+rm "$OUTPUT_DIR/taglib-wrapper.js.bak"
+
 echo "✅ taglib-wasm build complete!"
 echo "📁 Output files:"
 echo "   - $OUTPUT_DIR/taglib-wrapper.js"
