@@ -1,6 +1,6 @@
 {
   "name": "taglib-wasm",
-  "version": "0.3.15",
+  "version": "0.3.16",
   "description": "TagLib for TypeScript platforms: Deno, Node.js, Bun, Electron, browsers, and Cloudflare Workers",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -25,7 +25,7 @@
   ],
   "scripts": {
     "build:wasm": "./build/build-wasm.sh",
-    "build:ts": "tsc",
+    "build:ts": "tsc && node scripts/build-js.js",
     "postbuild": "node scripts/postbuild.js",
     "build": "npm run build:wasm && npm run build:ts && npm run postbuild",
     "test": "deno test --allow-read --allow-write tests/",

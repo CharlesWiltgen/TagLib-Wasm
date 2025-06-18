@@ -43,7 +43,7 @@ export {
   AudioFileImpl as AudioFile,
   createTagLib,
   TagLib,
-} from "./src/taglib";
+} from "./src/taglib.ts";
 
 /**
  * Error types for proper error handling and debugging.
@@ -73,7 +73,7 @@ export {
   TagLibError,
   TagLibInitializationError,
   UnsupportedFormatError,
-} from "./src/errors";
+} from "./src/errors.ts";
 
 /**
  * Simple API exports for easy tag reading and writing.
@@ -104,7 +104,7 @@ export {
   replacePictureByType,
   setCoverArt,
   updateTags,
-} from "./src/simple";
+} from "./src/simple.ts";
 
 /**
  * Constants and utilities for tag name validation.
@@ -118,7 +118,7 @@ export {
   getAllTagNames,
   isValidTagName,
   Tags,
-} from "./src/constants";
+} from "./src/constants.ts";
 /**
  * File I/O utilities for cover art operations.
  * @see {@link exportCoverArt} - Export cover art to file
@@ -135,7 +135,7 @@ export {
   importPictureWithType,
   loadPictureFromFile,
   savePictureToFile,
-} from "./src/file-utils";
+} from "./src/file-utils.ts";
 
 /**
  * Web browser utilities for cover art operations.
@@ -152,7 +152,7 @@ export {
   imageFileToPicture,
   pictureToDataURL,
   setCoverArtFromCanvas,
-} from "./src/web-utils";
+} from "./src/web-utils.ts";
 
 /**
  * Type exports for TypeScript users.
@@ -175,22 +175,22 @@ export type {
   Tag,
   TagLibConfig,
   TagName,
-} from "./src/types";
+} from "./src/types.ts";
 
 /**
  * Enum exports
  */
-export { PictureType } from "./src/types";
+export { PictureType } from "./src/types.ts";
 
 /**
  * Wasm module types for advanced usage.
  * @see {@link TagLibModule} - Full TagLib Wasm module interface
  * @see {@link WasmModule} - Base Emscripten module interface
  */
-export type { TagLibModule, WasmModule } from "./src/wasm";
+export type { TagLibModule, WasmModule } from "./src/wasm.ts";
 
 // Import the type for use in this file
-import type { TagLibModule } from "./src/wasm";
+import type { TagLibModule } from "./src/wasm.ts";
 
 /**
  * Load the TagLib Wasm module.

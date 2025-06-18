@@ -9,7 +9,7 @@
  */
 
 // Re-export commonly used classes from other modules
-export type { TagLibModule } from "./wasm";
+export type { TagLibModule } from "./wasm.ts";
 // Note: AudioFile is not needed for JSR exports
 
 /**
@@ -403,7 +403,7 @@ export interface PropertyMap {
 /**
  * Re-export TagName type from constants
  */
-export type { TagName } from "./constants";
+export type { TagName } from "./constants.ts";
 
 /**
  * Picture/artwork data embedded in audio files.

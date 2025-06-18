@@ -3,7 +3,7 @@
  * Provides cross-runtime support for writing files
  */
 
-import { EnvironmentError, FileOperationError } from "../errors";
+import { EnvironmentError, FileOperationError } from "../errors.ts";
 import process from "node:process";
 
 /**
