@@ -69,6 +69,8 @@ export type AudioFormat =
  * console.log(`Duration: ${props.length} seconds`);
  * console.log(`Bitrate: ${props.bitrate} kbps`);
  * console.log(`Sample rate: ${props.sampleRate} Hz`);
+ * console.log(`Codec: ${props.codec}`);
+ * console.log(`Is lossless: ${props.isLossless}`);
  * ```
  */
 export interface AudioProperties {
@@ -80,6 +82,12 @@ export interface AudioProperties {
   readonly sampleRate: number;
   /** Number of audio channels */
   readonly channels: number;
+  /** Bits per sample (0 if not applicable or unknown) */
+  readonly bitsPerSample: number;
+  /** Audio codec (e.g., "AAC", "ALAC", "MP3", "FLAC", "PCM") */
+  readonly codec: string;
+  /** Whether the audio is lossless (uncompressed or losslessly compressed) */
+  readonly isLossless: boolean;
 }
 
 /**
