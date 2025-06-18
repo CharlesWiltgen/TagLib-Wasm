@@ -89,5 +89,4 @@ Deno.test("codec detection", async (t) => {
       file.dispose();
     }
   });
-
 });
