@@ -155,10 +155,10 @@ For basic operations without manual memory management:
 
 ```typescript
 // Deno
-import { readTags, applyTags, updateTags } from "npm:taglib-wasm/simple";
+import { applyTags, readTags, updateTags } from "npm:taglib-wasm/simple";
 
 // Node.js/Bun
-import { readTags, applyTags, updateTags } from "taglib-wasm/simple";
+import { applyTags, readTags, updateTags } from "taglib-wasm/simple";
 
 // Read tags - no need to manage AudioFile instances
 const tags = await readTags("song.mp3");
@@ -167,13 +167,13 @@ console.log(tags); // { title, artist, album, year, ... }
 // Apply tags to get modified buffer
 const modifiedBuffer = await applyTags("song.mp3", {
   title: "New Title",
-  artist: "New Artist"
+  artist: "New Artist",
 });
 
 // Update tags in-place (file path only)
 await updateTags("song.mp3", {
   title: "New Title",
-  artist: "New Artist"
+  artist: "New Artist",
 });
 ```
 
