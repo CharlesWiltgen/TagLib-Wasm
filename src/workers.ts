@@ -14,14 +14,14 @@ import type {
   ExtendedTag,
   Tag,
   TagLibConfig,
-} from "./types.ts";
+} from "./types";
 import {
   cStringToJS,
   jsToCString,
   loadTagLibModuleForWorkers,
   type TagLibModule,
-} from "./wasm-workers.ts";
-import { EnvironmentError, InvalidFormatError, MemoryError } from "./errors.ts";
+} from "./wasm-workers";
+import { EnvironmentError, InvalidFormatError, MemoryError } from "./errors";
 
 /**
  * Represents an audio file with metadata and properties (Workers-compatible).
