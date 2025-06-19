@@ -2,7 +2,7 @@
   // Align with Deno fmt preferences
   "deno.enable": true,
   "deno.unstable": false,
-  
+
   // Deno uses deno.json, not tsconfig.json
   "deno.config": "./deno.json",
 
@@ -24,7 +24,7 @@
     "MD041": false, // Allow non-h1 first heading
     "MD022": false, // Headings should be surrounded by blank lines (deno fmt handles this)
     "MD032": false, // Lists should be surrounded by blank lines (deno fmt handles this)
-    "MD007": false  // Unordered list indentation (deno fmt handles this)
+    "MD007": false // Unordered list indentation (deno fmt handles this)
   },
 
   // Only lint files in the workspace
