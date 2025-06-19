@@ -8,7 +8,7 @@
  *
  * @example
  * ```typescript
- * // Using the Core API
+ * // Using the Full API
  * import { TagLib } from "taglib-wasm";
  *
  * const taglib = await TagLib.initialize();
@@ -34,7 +34,7 @@
  */
 
 /**
- * Core API exports for advanced usage with full control.
+ * Full API exports for advanced usage with full control.
  * @see {@link TagLib} - Main TagLib class
  * @see {@link AudioFile} - Audio file interface
  * @see {@link createTagLib} - Factory function for creating TagLib instances
@@ -210,7 +210,7 @@ export interface LoadTagLibOptions {
 /**
  * Load the TagLib Wasm module.
  * This function initializes the WebAssembly module and returns
- * the loaded module for use with the Core API.
+ * the loaded module for use with the Full API.
  *
  * @param config - Optional configuration for module initialization
  * @returns Promise resolving to the initialized TagLib module

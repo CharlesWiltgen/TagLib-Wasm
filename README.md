@@ -137,9 +137,9 @@ await updateTags("song.mp3", {
 });
 ```
 
-### Core API
+### Full API
 
-The full Core API might be a better choice for apps and utilities focused on
+The Full API might be a better choice for apps and utilities focused on
 advanced metadata management.
 
 ```typescript

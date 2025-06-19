@@ -54,8 +54,8 @@ async function bundle() {
 
 import { TagLib, readTags } from "./taglib-wasm-bundle.js";
 
-// Example 1: Using the Core API
-async function coreApiExample() {
+// Example 1: Using the TagLib API
+async function taglibApiExample() {
   // Initialize with embedded WASM
   const wasmBinary = await Deno.readFile("./taglib.wasm");
   const taglib = await TagLib.initialize({ wasmBinary });
@@ -81,7 +81,7 @@ async function simpleApiExample() {
 if (Deno.args[0] === "simple") {
   await simpleApiExample();
 } else {
-  await coreApiExample();
+  await taglibApiExample();
 }
 `;
 

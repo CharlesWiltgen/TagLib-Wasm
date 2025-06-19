@@ -10,7 +10,7 @@ JavaScript/TypeScript.
   - [applyTags()](#applytags)
   - [updateTags()](#updatetags)
   - [readProperties()](#readproperties)
-- [Core API](#core-api)
+- [Full API](#full-api)
   - [TagLib Class](#taglib-class)
   - [AudioFile Class](#audiofile-class)
   - [Types and Interfaces](#types-and-interfaces)
@@ -201,13 +201,13 @@ console.log(`Sample rate: ${props.sampleRate} Hz`);
 console.log(`Channels: ${props.channels}`);
 ```
 
-## Core API
+## Full API
 
-The Core API provides full control over audio metadata with advanced features.
+The Full API provides full control over audio metadata with advanced features.
 
 ### TagLib Class
 
-Main entry point for the Core API.
+Main entry point for the Full API.
 
 #### TagLib.initialize()
 
@@ -654,7 +654,7 @@ const taglib = await TagLib.initialize({
 });
 ```
 
-The Workers API is identical to the Core API but with optimizations for the
+The Workers API is identical to the Full API but with optimizations for the
 Workers runtime environment.
 
 ## Error Handling
@@ -793,9 +793,9 @@ The Simple API automatically manages memory:
 const tags = await readTags("song.mp3");
 ```
 
-### Manual Cleanup (Core API)
+### Manual Cleanup (Full API)
 
-With the Core API, you must manually dispose of files:
+With the Full API, you must manually dispose of files:
 
 ```typescript
 const file = taglib.openFile(buffer);

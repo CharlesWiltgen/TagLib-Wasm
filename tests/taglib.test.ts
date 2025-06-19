@@ -38,10 +38,10 @@ Deno.test("TagLib: Initialization", async () => {
 });
 
 // =============================================================================
-// Core API Tests
+// Full API Tests
 // =============================================================================
 
-Deno.test("Core API: Basic Operations", async () => {
+Deno.test("Full API: Basic Operations", async () => {
   const taglib = await TagLib.initialize();
   assertExists(taglib, "TagLib instance should exist");
 
@@ -50,7 +50,7 @@ Deno.test("Core API: Basic Operations", async () => {
   assertEquals(version, "2.1.0", "Should return correct TagLib version");
 });
 
-Deno.test("Core API: Format Detection", async () => {
+Deno.test("Full API: Format Detection", async () => {
   const taglib = await TagLib.initialize();
 
   for (const [format, path] of Object.entries(TEST_FILES)) {
@@ -68,7 +68,7 @@ Deno.test("Core API: Format Detection", async () => {
   }
 });
 
-Deno.test("Core API: Audio Properties", async () => {
+Deno.test("Full API: Audio Properties", async () => {
   const taglib = await TagLib.initialize();
   const audioData = await Deno.readFile(TEST_FILES.mp3);
   const file = await taglib.open(audioData.buffer);
@@ -83,7 +83,7 @@ Deno.test("Core API: Audio Properties", async () => {
   file.dispose();
 });
 
-Deno.test("Core API: Tag Reading", async () => {
+Deno.test("Full API: Tag Reading", async () => {
   const taglib = await TagLib.initialize();
   const audioData = await Deno.readFile(TEST_FILES.mp3);
   const file = await taglib.open(audioData.buffer);
@@ -101,7 +101,7 @@ Deno.test("Core API: Tag Reading", async () => {
   file.dispose();
 });
 
-Deno.test("Core API: Tag Writing", async () => {
+Deno.test("Full API: Tag Writing", async () => {
   const taglib = await TagLib.initialize();
   const audioData = await Deno.readFile(TEST_FILES.mp3);
   const file = await taglib.open(audioData.buffer);
@@ -133,7 +133,7 @@ Deno.test("Core API: Tag Writing", async () => {
   file.dispose();
 });
 
-Deno.test("Core API: Extended Tag Support", async () => {
+Deno.test("Full API: Extended Tag Support", async () => {
   const taglib = await TagLib.initialize();
   const audioData = await Deno.readFile(TEST_FILES.mp3);
   const file = await taglib.open(audioData.buffer);
@@ -148,7 +148,7 @@ Deno.test("Core API: Extended Tag Support", async () => {
   file.dispose();
 });
 
-Deno.test("Core API: Memory Management", async () => {
+Deno.test("Full API: Memory Management", async () => {
   const taglib = await TagLib.initialize();
 
   // Test multiple file operations
@@ -358,7 +358,7 @@ Deno.test("Performance: Format Processing Speed", async () => {
 Deno.test("Performance: API Comparison", async () => {
   const audioData = await Deno.readFile(TEST_FILES.mp3);
 
-  // Core API timing
+  // Full API timing
   const coreStart = performance.now();
   const taglib = await TagLib.initialize();
   const file = await taglib.open(audioData.buffer);
@@ -371,11 +371,11 @@ Deno.test("Performance: API Comparison", async () => {
   await readTags(TEST_FILES.mp3);
   const simpleTime = performance.now() - simpleStart;
 
-  console.log(`Core API: ${coreTime.toFixed(2)}ms`);
+  console.log(`Full API: ${coreTime.toFixed(2)}ms`);
   console.log(`Simple API: ${simpleTime.toFixed(2)}ms`);
 
   // Both should complete in reasonable time
-  assert(coreTime < 1000, "Core API should be fast");
+  assert(coreTime < 1000, "Full API should be fast");
   assert(simpleTime < 1000, "Simple API should be fast");
 });
 

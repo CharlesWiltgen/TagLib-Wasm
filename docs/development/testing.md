@@ -8,7 +8,7 @@ new tests, and maintain test quality.
 The test suite is comprehensive and covers all aspects of the library:
 
 - **Core functionality** - Basic operations, format support
-- **API coverage** - Core API, Simple API, Workers API
+- **API coverage** - Full API, Simple API, Workers API
 - **Edge cases** - Unicode, empty values, invalid inputs
 - **Error handling** - Error types, messages, recovery
 - **Memory management** - Cleanup, leak prevention
