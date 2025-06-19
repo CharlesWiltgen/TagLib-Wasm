@@ -2,6 +2,9 @@
   // Align with Deno fmt preferences
   "deno.enable": true,
   "deno.unstable": false,
+  
+  // Deno uses deno.json, not tsconfig.json
+  "deno.config": "./deno.json",
 
   // Markdown formatting to match deno fmt
   "[markdown]": {
@@ -23,6 +26,10 @@
     "MD032": false, // Lists should be surrounded by blank lines (deno fmt handles this)
     "MD007": false  // Unordered list indentation (deno fmt handles this)
   },
+
+  // Only lint files in the workspace
+  "markdownlint.run": "onType",
+  "markdownlint.focusMode": true,
 
   // Use Deno for TypeScript/JavaScript
   "[typescript]": {
