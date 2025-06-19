@@ -2,7 +2,7 @@
 
 /**
  * @fileoverview Synchronize version numbers between deno.json and package.json
- * 
+ *
  * Usage:
  *   deno run --allow-read --allow-write scripts/sync-version.ts patch
  *   deno run --allow-read --allow-write scripts/sync-version.ts minor
@@ -43,10 +43,14 @@ async function writeJsonFile(path: string, data: unknown): Promise<void> {
 /**
  * Parse semantic version string
  */
-function parseVersion(version: string): { major: number; minor: number; patch: number } {
+function parseVersion(
+  version: string,
+): { major: number; minor: number; patch: number } {
   const match = version.match(/^(\d+)\.(\d+)\.(\d+)$/);
   if (!match) {
-    throw new Error(`Invalid version format: ${version}. Expected: major.minor.patch`);
+    throw new Error(
+      `Invalid version format: ${version}. Expected: major.minor.patch`,
+    );
   }
   return {
     major: parseInt(match[1], 10),
@@ -58,9 +62,12 @@ function parseVersion(version: string): { major: number; minor: number; patch: n
 /**
  * Increment version based on type
  */
-function incrementVersion(version: string, type: "major" | "minor" | "patch"): string {
+function incrementVersion(
+  version: string,
+  type: "major" | "minor" | "patch",
+): string {
   const { major, minor, patch } = parseVersion(version);
-  
+
   switch (type) {
     case "major":
       return `${major + 1}.0.0`;
@@ -79,13 +86,13 @@ function incrementVersion(version: string, type: "major" | "minor" | "patch"): s
 async function checkVersions(): Promise<boolean> {
   const packageJson = await readJsonFile<PackageJson>(PACKAGE_JSON_PATH);
   const denoJson = await readJsonFile<DenoJson>(DENO_JSON_PATH);
-  
+
   const match = packageJson.version === denoJson.version;
-  
+
   console.log(`package.json version: ${packageJson.version}`);
   console.log(`deno.json version:    ${denoJson.version}`);
   console.log(`Status: ${match ? "✅ Versions match" : "❌ Versions differ"}`);
-  
+
   return match;
 }
 
@@ -95,21 +102,21 @@ async function checkVersions(): Promise<boolean> {
 async function updateVersion(newVersion: string): Promise<void> {
   // Validate version format
   parseVersion(newVersion);
-  
+
   // Read both files
   const packageJson = await readJsonFile<PackageJson>(PACKAGE_JSON_PATH);
   const denoJson = await readJsonFile<DenoJson>(DENO_JSON_PATH);
-  
+
   const oldVersion = packageJson.version;
-  
+
   // Update versions
   packageJson.version = newVersion;
   denoJson.version = newVersion;
-  
+
   // Write both files
   await writeJsonFile(PACKAGE_JSON_PATH, packageJson);
   await writeJsonFile(DENO_JSON_PATH, denoJson);
-  
+
   console.log(`✅ Updated version: ${oldVersion} → ${newVersion}`);
   console.log(`   Updated: package.json`);
   console.log(`   Updated: deno.json`);
@@ -120,7 +127,7 @@ async function updateVersion(newVersion: string): Promise<void> {
  */
 async function main() {
   const [command, arg] = Deno.args;
-  
+
   if (!command) {
     console.error("Usage: sync-version.ts <command> [argument]");
     console.error("Commands:");
@@ -131,7 +138,7 @@ async function main() {
     console.error("  check     - Check if versions match");
     Deno.exit(1);
   }
-  
+
   try {
     switch (command) {
       case "check": {
@@ -139,7 +146,7 @@ async function main() {
         Deno.exit(match ? 0 : 1);
         break;
       }
-      
+
       case "patch":
       case "minor":
       case "major": {
@@ -148,7 +155,7 @@ async function main() {
         await updateVersion(newVersion);
         break;
       }
-      
+
       case "set": {
         if (!arg) {
           console.error("Error: Version number required for 'set' command");
@@ -158,7 +165,7 @@ async function main() {
         await updateVersion(arg);
         break;
       }
-      
+
       default:
         console.error(`Unknown command: ${command}`);
         Deno.exit(1);

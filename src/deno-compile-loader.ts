@@ -1,6 +1,6 @@
 /**
  * @fileoverview Static module loader for Deno compile compatibility
- * 
+ *
  * This module provides a version of taglib-wasm that uses static imports
  * to ensure all dependencies are bundled during Deno compilation.
  */
@@ -9,7 +9,7 @@
 import createTagLibModule from "../build/taglib-wrapper.js";
 
 // Import types
-import type { TagLibModule, LoadTagLibOptions } from "../index.ts";
+import type { LoadTagLibOptions, TagLibModule } from "../index.ts";
 
 // Module state
 let cachedModule: TagLibModule | null = null;
@@ -17,21 +17,23 @@ let cachedModule: TagLibModule | null = null;
 /**
  * Loads and initializes the TagLib WebAssembly module using static imports.
  * This version ensures all dependencies are bundled during Deno compilation.
- * 
+ *
  * @param options - Optional configuration for module loading
  * @returns Promise resolving to initialized TagLib module
- * 
+ *
  * @example
  * ```typescript
  * // Basic usage in Deno compiled binary
  * const module = await loadTagLibModuleStatic();
- * 
+ *
  * // With embedded WASM binary
  * const wasmBinary = await Deno.readFile('./taglib.wasm');
  * const module = await loadTagLibModuleStatic({ wasmBinary });
  * ```
  */
-export async function loadTagLibModuleStatic(options?: LoadTagLibOptions): Promise<TagLibModule> {
+export async function loadTagLibModuleStatic(
+  options?: LoadTagLibOptions,
+): Promise<TagLibModule> {
   // Return cached module if available and no custom options
   if (cachedModule && !options) {
     return cachedModule;
@@ -47,7 +49,7 @@ export async function loadTagLibModuleStatic(options?: LoadTagLibOptions): Promi
   if (options?.wasmUrl) {
     // Use custom URL for WASM file
     moduleConfig.locateFile = (path: string) => {
-      if (path.endsWith('.wasm')) {
+      if (path.endsWith(".wasm")) {
         return options.wasmUrl!;
       }
       return path;
@@ -57,14 +59,16 @@ export async function loadTagLibModuleStatic(options?: LoadTagLibOptions): Promi
   try {
     // Create and initialize the module
     const module = await createTagLibModule(moduleConfig) as TagLibModule;
-    
+
     // Verify the module loaded correctly
     if (!module || !module.HEAPU8) {
       throw new Error("Module not initialized: missing HEAPU8");
     }
-    
+
     if (!module._malloc || !module.allocate) {
-      throw new Error("Module not initialized: missing memory allocation functions");
+      throw new Error(
+        "Module not initialized: missing memory allocation functions",
+      );
     }
 
     // Cache if using default configuration

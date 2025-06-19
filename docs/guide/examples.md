@@ -125,7 +125,7 @@ audioFile.dispose();
 The `simple-api.ts` example demonstrates the high-level API:
 
 ```typescript
-import { readTags, applyTags } from "taglib-wasm/simple";
+import { applyTags, readTags } from "taglib-wasm/simple";
 
 // Read tags
 const metadata = await readTags(audioBuffer);
