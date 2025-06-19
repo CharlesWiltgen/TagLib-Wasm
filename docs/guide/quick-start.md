@@ -61,9 +61,9 @@ const updatedBuffer = await applyTags(buffer, {
 await writeFile("song-updated.mp3", updatedBuffer);
 ```
 
-## Core API (Advanced)
+## Full API (Advanced)
 
-For more control, use the Core API:
+For more control, use the Full API:
 
 ### Basic Usage
 

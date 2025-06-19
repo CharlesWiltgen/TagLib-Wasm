@@ -151,7 +151,7 @@ Only read what you need:
 const tags = await readTags(buffer); // Only reads tags
 const props = await readProperties(buffer); // Only reads properties
 
-// Core API - manual optimization
+// Full API - manual optimization
 class LazyAudioFile {
   private file: AudioFile;
   private _tags?: TagData;
@@ -665,7 +665,7 @@ profiler.report();
 // - Quick scripts
 const tags = await readTags("song.mp3");
 
-// Core API - Best for:
+// Full API - Best for:
 // - Batch operations
 // - Memory control
 // - Performance-critical applications

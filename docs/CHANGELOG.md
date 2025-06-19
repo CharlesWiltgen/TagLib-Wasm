@@ -67,7 +67,7 @@ and this project adheres to
 - Production-ready WebAssembly port of TagLib v2.1
 - Full support for MP3, MP4/M4A, FLAC, OGG Vorbis, and WAV formats
 - Simple API for easy tag reading/writing (3 functions)
-- Core API for full control and advanced features
+- Full API for full control and advanced features
 - Workers API for Cloudflare Workers compatibility
 - TypeScript definitions with complete type safety
 - Automatic tag mapping for format-agnostic metadata handling
