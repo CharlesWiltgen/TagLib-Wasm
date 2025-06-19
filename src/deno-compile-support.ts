@@ -82,7 +82,10 @@ export async function loadWasmForDeno(
   // Try each strategy in order
   for (const strategy of strategies) {
     const result = await strategy();
-    if (result) return result;
+    if (result) {
+      // Ensure we always return a Uint8Array
+      return result instanceof Uint8Array ? result : new Uint8Array(result);
+    }
   }
 
   return undefined;
