@@ -314,17 +314,19 @@ Deno.test("Input Validation: Non-audio data", async () => {
     "Should reject text data as invalid audio",
   );
 
-  // Test with random data
-  const randomData = new Uint8Array(2048);
-  for (let i = 0; i < randomData.length; i++) {
-    randomData[i] = Math.floor(Math.random() * 256);
+  // Test with definitely non-audio data (avoid random chance of matching audio signatures)
+  const nonAudioData = new Uint8Array(2048);
+  // Fill with a pattern that won't match any audio format
+  // Avoid 0xFF (MP3), 0x00 (some formats), RIFF, fLaC, OggS, etc.
+  for (let i = 0; i < nonAudioData.length; i++) {
+    nonAudioData[i] = 0xAB; // Use a specific non-audio byte pattern
   }
 
   await assertRejects(
-    async () => await taglib.open(randomData.buffer),
+    async () => await taglib.open(nonAudioData.buffer),
     InvalidFormatError,
     "Invalid audio",
-    "Should reject random data as invalid audio",
+    "Should reject non-audio data as invalid audio",
   );
 
   // Test with PNG signature
