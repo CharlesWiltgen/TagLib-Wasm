@@ -99,7 +99,7 @@ bun add @charleswiltgen/taglib-wasm --registry=https://npm.pkg.github.com/
 ```
 Published Package:
 ├── src/
-│   ├── taglib.ts       # Core API
+│   ├── taglib.ts       # Full API
 │   ├── types.ts        # Type definitions
 │   └── wasm.ts         # Wasm interface
 ├── build/

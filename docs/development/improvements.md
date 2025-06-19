@@ -21,7 +21,7 @@ The test suite has been significantly enhanced with:
 
 - **Total Tests**: 140 (130 passing, 4 failing, 10 ignored)
 - **Coverage Areas**:
-  - ✅ Core API (100%)
+  - ✅ Full API (100%)
   - ✅ Simple API (100%)
   - ✅ Picture API (100%)
   - ✅ Error handling (85%)

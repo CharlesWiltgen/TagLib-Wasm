@@ -152,7 +152,7 @@ async function replaceAllPictures() {
   return modifiedBuffer;
 }
 
-// Example 4: Using Core API for more control
+// Example 4: Using TagLib API for more control
 async function advancedPictureHandling() {
   console.log("\n🎨 Example 4: Advanced picture handling");
 

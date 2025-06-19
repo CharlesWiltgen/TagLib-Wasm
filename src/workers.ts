@@ -219,11 +219,11 @@ export class AudioFileWorkers {
    * Get the current file buffer after modifications.
    * Note: This is not implemented in the Workers API.
    * @returns Empty Uint8Array (not implemented)
-   * @deprecated Use the Core API for this functionality
+   * @deprecated Use the Full API for this functionality
    */
   getFileBuffer(): Uint8Array {
     console.warn(
-      "getFileBuffer() is not implemented in Workers API. Use Core API for this functionality.",
+      "getFileBuffer() is not implemented in Workers API. Use Full API for this functionality.",
     );
     return new Uint8Array(0);
   }
@@ -374,7 +374,7 @@ export class TagLibWorkers {
     if (!this.module._taglib_file_new_from_buffer) {
       throw new EnvironmentError(
         "Workers",
-        "requires C-style functions which are not available. Use the Core API instead for this environment",
+        "requires C-style functions which are not available. Use the Full API instead for this environment",
         "C-style function exports",
       );
     }
