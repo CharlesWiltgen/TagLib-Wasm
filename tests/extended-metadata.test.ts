@@ -6,12 +6,12 @@
 
 import {
   assertEquals,
-  assertExists,
+  type assertExists,
 } from "https://deno.land/std@0.223.0/assert/mod.ts";
 import { TagLib } from "../src/taglib.ts";
 import { readFileData } from "../src/utils/file.ts";
 import {
-  createTestFileWithMetadata,
+  type createTestFileWithMetadata,
   measureTime,
   TEST_EXTENDED_METADATA,
   TEST_FILES,

@@ -12,7 +12,7 @@ import {
   assert,
   assertEquals,
   assertExists,
-  assertThrows,
+  type assertThrows,
 } from "https://deno.land/std@0.224.0/assert/mod.ts";
 import { TagLib } from "../src/mod.ts";
 import type { AudioFile } from "../src/mod.ts";
