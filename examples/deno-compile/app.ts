@@ -1,4 +1,5 @@
 #!/usr/bin/env -S deno run --allow-read --allow-net --allow-env
+/// <reference lib="deno.ns" />
 
 /**
  * Example: Using taglib-wasm with Deno compile
@@ -9,7 +10,7 @@
  * - With or without network access
  */
 
-import { TagLib, readTags, type ExtendedTag } from "jsr:@charlesw/taglib-wasm@latest";
+import { TagLib, readTags, type ExtendedTag } from "../../mod.ts";
 
 // Configuration from environment
 const USE_EMBEDDED = Deno.env.get("USE_EMBEDDED_WASM") === "true";
@@ -22,18 +23,36 @@ const WASM_URL = Deno.env.get("WASM_URL") ||
 async function initializeTagLib(): Promise<TagLib> {
   console.log("🎵 Initializing taglib-wasm...");
 
-  // Strategy 1: Use embedded WASM (if available)
-  if (USE_EMBEDDED) {
+  // Strategy 1: Check if running as compiled binary with included WASM
+  const isCompiled = import.meta.url.startsWith("file:///") && 
+                     import.meta.url.includes("/deno-compile-");
+  
+  if (isCompiled) {
     try {
-      const { wasmBinary } = await import("./taglib-wasm-embedded.ts");
-      console.log("📦 Using embedded WASM");
+      // In compiled binaries, the included WASM is at a relative path
+      const wasmPath = new URL("../../build/taglib.wasm", import.meta.url);
+      const wasmBinary = await Deno.readFile(wasmPath);
+      console.log("📦 Using embedded WASM from compiled binary");
       return await TagLib.initialize({ wasmBinary });
     } catch (e) {
-      console.log("⚠️  Embedded WASM not found, falling back to network");
+      console.log("⚠️  Embedded WASM not found in compiled binary");
+      console.log("    Error:", e instanceof Error ? e.message : String(e));
     }
   }
 
-  // Strategy 2: Try local file (development)
+  // Strategy 2: Use base64 embedded WASM (if available and USE_EMBEDDED is set)
+  if (USE_EMBEDDED) {
+    try {
+      const embeddedPath = new URL("../../taglib-wasm-embedded.ts", import.meta.url);
+      const { wasmBinary } = await import(embeddedPath.href);
+      console.log("📦 Using base64 embedded WASM");
+      return await TagLib.initialize({ wasmBinary });
+    } catch (e) {
+      console.log("⚠️  Base64 embedded WASM not found");
+    }
+  }
+
+  // Strategy 3: Try local file (development)
   try {
     const wasmBinary = await Deno.readFile("../../build/taglib.wasm");
     console.log("📁 Using local WASM file");
@@ -42,7 +61,7 @@ async function initializeTagLib(): Promise<TagLib> {
     // Not in development environment
   }
 
-  // Strategy 3: Load from network
+  // Strategy 4: Load from network
   console.log("🌐 Loading WASM from:", WASM_URL);
   return await TagLib.initialize({ wasmUrl: WASM_URL });
 }
@@ -60,14 +79,14 @@ async function processAudioFile(data: Uint8Array): Promise<void> {
     console.log("  Album:", tags.album || "(none)");
     console.log("  Year:", tags.year || "(none)");
     
-    if (tags.audioProperties) {
+    if ('audioProperties' in tags && tags.audioProperties) {
       console.log("\n🎵 Audio Properties:");
       console.log("  Duration:", tags.audioProperties.length, "seconds");
       console.log("  Bitrate:", tags.audioProperties.bitrate, "kbps");
       console.log("  Sample Rate:", tags.audioProperties.sampleRate, "Hz");
     }
   } catch (error) {
-    console.error("❌ Error reading tags:", error.message);
+    console.error("❌ Error reading tags:", error instanceof Error ? error.message : String(error));
   }
 }
 
@@ -115,7 +134,7 @@ async function main() {
           const data = await Deno.readFile(filePath);
           await processAudioFile(data);
         } catch (error) {
-          console.error(`❌ Error reading file: ${error.message}`);
+          console.error(`❌ Error reading file: ${error instanceof Error ? error.message : String(error)}`);
         }
       }
     } else {
@@ -127,11 +146,10 @@ async function main() {
       console.log("\n💡 Usage: deno run --allow-read app.ts [audio files...]");
     }
 
-    // Clean up
-    taglib.dispose();
+    // TagLib instance is automatically cleaned up (no dispose method needed)
     
   } catch (error) {
-    console.error("❌ Fatal error:", error.message);
+    console.error("❌ Fatal error:", error instanceof Error ? error.message : String(error));
     Deno.exit(1);
   }
 }
