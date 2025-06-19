@@ -1,4 +1,6 @@
 {
+  // This file is used for NPM package building only.
+  // For Deno development, see deno.json
   "compilerOptions": {
     "target": "ES2020",
     "module": "ESNext",
