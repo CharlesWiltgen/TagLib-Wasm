@@ -1,3 +1,5 @@
+/// <reference lib="deno.ns" />
+
 /**
  * @fileoverview Helper utilities for using taglib-wasm in Deno compiled binaries
  * 
