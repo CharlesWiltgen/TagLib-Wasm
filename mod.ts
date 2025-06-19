@@ -61,3 +61,10 @@ export type { ExtendedTag, Picture, PropertyMap } from "./src/types.ts";
 
 // Export constants
 export { SUPPORTED_FORMATS } from "./src/errors.ts";
+
+// Export Deno compile utilities
+export { 
+  initializeForDenoCompile, 
+  isDenoCompiled,
+  prepareWasmForEmbedding 
+} from "./src/deno-compile.ts";
