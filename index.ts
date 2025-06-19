@@ -191,6 +191,23 @@ export type { TagLibModule, WasmModule } from "./src/wasm.ts";
 import type { TagLibModule } from "./src/wasm.ts";
 
 /**
+ * Configuration options for loading the TagLib WASM module
+ */
+export interface LoadTagLibOptions {
+  /**
+   * Optional pre-loaded WASM binary data.
+   * If provided, this will be used instead of fetching from network.
+   */
+  wasmBinary?: ArrayBuffer | Uint8Array;
+
+  /**
+   * Optional custom URL or path for the WASM file.
+   * This is passed to the locateFile function.
+   */
+  wasmUrl?: string;
+}
+
+/**
  * Load the TagLib Wasm module.
  * This function initializes the WebAssembly module and returns
  * the loaded module for use with the Core API.
@@ -214,11 +231,29 @@ import type { TagLibModule } from "./src/wasm.ts";
  * @note Most users should use `TagLib.initialize()` instead,
  * which handles module loading automatically.
  */
-export async function loadTagLibModule(): Promise<TagLibModule> {
+export async function loadTagLibModule(options?: LoadTagLibOptions): Promise<TagLibModule> {
   // Now that we're using ES6 modules, we can use dynamic import directly
   const { default: createTagLibModule } = await import(
     "./build/taglib-wrapper.js"
   );
-  const module = await createTagLibModule();
+  
+  const moduleConfig: any = {};
+
+  if (options?.wasmBinary) {
+    // Use provided binary data directly
+    moduleConfig.wasmBinary = options.wasmBinary;
+  }
+
+  if (options?.wasmUrl) {
+    // Use custom URL for WASM file
+    moduleConfig.locateFile = (path: string) => {
+      if (path.endsWith('.wasm')) {
+        return options.wasmUrl!;
+      }
+      return path;
+    };
+  }
+
+  const module = await createTagLibModule(moduleConfig);
   return module as TagLibModule;
 }

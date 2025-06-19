@@ -750,17 +750,29 @@ export class TagLib {
    * Initialize TagLib with optional configuration.
    * This is the recommended way to create a TagLib instance.
    *
+   * @param options - Optional configuration for loading the WASM module
    * @returns Promise resolving to initialized TagLib instance
    *
    * @example
    * ```typescript
+   * // Basic usage
    * const taglib = await TagLib.initialize();
+   * 
+   * // With pre-loaded WASM binary (for offline usage)
+   * const wasmBinary = await fetch("taglib.wasm").then(r => r.arrayBuffer());
+   * const taglib = await TagLib.initialize({ wasmBinary });
+   * 
+   * // With custom WASM URL
+   * const taglib = await TagLib.initialize({ wasmUrl: "/assets/taglib.wasm" });
    * ```
    */
-  static async initialize(): Promise<TagLib> {
+  static async initialize(options?: {
+    wasmBinary?: ArrayBuffer | Uint8Array;
+    wasmUrl?: string;
+  }): Promise<TagLib> {
     // Use the loadTagLibModule function
     const { loadTagLibModule } = await import("../index.ts");
-    const module = await loadTagLibModule();
+    const module = await loadTagLibModule(options);
     return new TagLib(module);
   }
 
