@@ -5,11 +5,13 @@
 ::: code-tabs @tab Deno
 
 From JSR (recommended):
+
 ```typescript
 import { TagLib } from "@charlesw/taglib-wasm";
 ```
 
 From NPM:
+
 ```typescript
 import { TagLib } from "npm:taglib-wasm";
 ```
@@ -38,7 +40,7 @@ npx tsx your-script.ts
 ```javascript
 // The NPM package includes pre-compiled JavaScript
 import { TagLib } from "taglib-wasm";
-import { readTags, applyTags } from "taglib-wasm/simple";
+import { applyTags, readTags } from "taglib-wasm/simple";
 
 // Works the same as TypeScript
 const taglib = await TagLib.initialize();

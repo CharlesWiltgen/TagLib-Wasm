@@ -18,7 +18,10 @@
     "MD024": false, // Allow duplicate headings (common in API docs)
     "MD013": false, // Disable line length rule (conflicts with deno fmt prose preserve)
     "MD033": false, // Allow inline HTML (for badges, etc.)
-    "MD041": false // Allow non-h1 first heading
+    "MD041": false, // Allow non-h1 first heading
+    "MD022": false, // Headings should be surrounded by blank lines (deno fmt handles this)
+    "MD032": false, // Lists should be surrounded by blank lines (deno fmt handles this)
+    "MD007": false  // Unordered list indentation (deno fmt handles this)
   },
 
   // Use Deno for TypeScript/JavaScript

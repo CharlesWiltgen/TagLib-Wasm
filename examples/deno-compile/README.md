@@ -19,6 +19,7 @@ The simplest approach that leverages WebAssembly streaming compilation:
 ```
 
 This approach:
+
 - ✅ Uses WebAssembly streaming compilation for optimal performance
 - ✅ Simple to implement and maintain
 - ✅ Always gets the latest WASM optimizations
@@ -26,7 +27,9 @@ This approach:
 
 ### Alternative: Embedded WASM (Complex)
 
-For offline-only scenarios, see `app.ts` for a more complex example that attempts to embed the WASM. Note that this approach:
+For offline-only scenarios, see `app.ts` for a more complex example that
+attempts to embed the WASM. Note that this approach:
+
 - ❌ Doesn't benefit from streaming compilation
 - ❌ Creates larger binaries (+500KB)
 - ❌ More complex to maintain
@@ -37,11 +40,11 @@ For offline-only scenarios, see `app.ts` for a more complex example that attempt
 See `simple-app.ts` for a clean example that uses CDN loading:
 
 ```typescript
-import { TagLib, readTags } from "../../mod.ts";
+import { readTags, TagLib } from "../../mod.ts";
 
 // Initialize with CDN URL (uses streaming compilation)
 const taglib = await TagLib.initialize({
-  wasmUrl: "https://cdn.jsdelivr.net/npm/taglib-wasm@latest/dist/taglib.wasm"
+  wasmUrl: "https://cdn.jsdelivr.net/npm/taglib-wasm@latest/dist/taglib.wasm",
 });
 
 // Read tags from a file
@@ -52,10 +55,10 @@ console.log("Artist:", tags.artist);
 
 ## Trade-offs
 
-| Approach | Pros | Cons |
-|----------|------|------|
-| Embedded WASM | Works offline, single binary | Larger binary size (+500KB) |
-| CDN Loading | Smaller binary, always latest | Requires network access |
+| Approach      | Pros                          | Cons                        |
+| ------------- | ----------------------------- | --------------------------- |
+| Embedded WASM | Works offline, single binary  | Larger binary size (+500KB) |
+| CDN Loading   | Smaller binary, always latest | Requires network access     |
 
 ## Tips
 

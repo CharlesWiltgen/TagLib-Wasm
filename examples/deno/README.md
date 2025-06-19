@@ -5,6 +5,7 @@ This directory contains examples specific to Deno usage of taglib-wasm.
 ## Examples
 
 ### basic-usage.ts
+
 Basic example showing how to read and write audio metadata using taglib-wasm.
 
 ```bash
@@ -12,7 +13,10 @@ deno run --allow-read basic-usage.ts
 ```
 
 ### offline-compile.ts
-Advanced example showing how to use taglib-wasm in Deno compiled binaries with offline support. This is useful for creating standalone executables that don't require network access.
+
+Advanced example showing how to use taglib-wasm in Deno compiled binaries with
+offline support. This is useful for creating standalone executables that don't
+require network access.
 
 #### Usage:
 
@@ -31,10 +35,13 @@ Advanced example showing how to use taglib-wasm in Deno compiled binaries with o
    ./offline-compile path/to/audio/file.mp3
    ```
 
-The compiled binary will work offline without needing to fetch the WASM file from the network.
+The compiled binary will work offline without needing to fetch the WASM file
+from the network.
 
 ### prepare-offline.ts
-Helper script to prepare the WASM file for embedding in compiled binaries. This copies the WASM file from the taglib-wasm package to your local directory.
+
+Helper script to prepare the WASM file for embedding in compiled binaries. This
+copies the WASM file from the taglib-wasm package to your local directory.
 
 ## Key Features
 
