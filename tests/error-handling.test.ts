@@ -8,19 +8,19 @@ import {
   assertThrows,
 } from "https://deno.land/std@0.210.0/assert/mod.ts";
 import { TagLib } from "../src/taglib.ts";
-import { applyTags, readProperties, readTags } from "../src/simple.ts";
+import { type applyTags, readProperties, readTags } from "../src/simple.ts";
 import {
   EnvironmentError,
   FileOperationError,
   InvalidFormatError,
-  isFileOperationError,
+  type isFileOperationError,
   isInvalidFormatError,
-  isMetadataError,
+  type isMetadataError,
   isTagLibError,
   isUnsupportedFormatError,
-  MetadataError,
+  type MetadataError,
   TagLibErrorCode,
-  TagLibInitializationError,
+  type TagLibInitializationError,
   UnsupportedFormatError,
 } from "../src/errors.ts";
 
