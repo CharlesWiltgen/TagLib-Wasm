@@ -747,7 +747,7 @@ export class TagLib {
   }
 
   /**
-   * Initialize TagLib with default configuration.
+   * Initialize TagLib with optional configuration.
    * This is the recommended way to create a TagLib instance.
    *
    * @returns Promise resolving to initialized TagLib instance
@@ -755,7 +755,6 @@ export class TagLib {
    * @example
    * ```typescript
    * const taglib = await TagLib.initialize();
-   * const file = await taglib.open("song.mp3");
    * ```
    */
   static async initialize(): Promise<TagLib> {

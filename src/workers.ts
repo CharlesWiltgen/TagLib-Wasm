@@ -13,7 +13,7 @@ import type {
   AudioProperties,
   ExtendedTag,
   Tag,
-  TagLibConfig,
+  TagLibWorkersConfig,
 } from "./types.ts";
 import {
   cStringToJS,
@@ -333,7 +333,7 @@ export class TagLibWorkers {
    */
   static async initialize(
     wasmBinary: Uint8Array,
-    config?: TagLibConfig,
+    config?: TagLibWorkersConfig,
   ): Promise<TagLibWorkers> {
     const module = await loadTagLibModuleForWorkers(wasmBinary, config);
     return new TagLibWorkers(module);
@@ -438,7 +438,7 @@ export class TagLibWorkers {
 export async function processAudioMetadata(
   wasmBinary: Uint8Array,
   audioData: Uint8Array,
-  config?: TagLibConfig,
+  config?: TagLibWorkersConfig,
 ): Promise<
   { tag: Tag; properties: AudioProperties | null; format: AudioFormat }
 > {
@@ -461,4 +461,10 @@ export async function processAudioMetadata(
  * These types define the structure of metadata, audio properties,
  * and configuration options.
  */
-export type { AudioFormat, AudioProperties, ExtendedTag, Tag, TagLibConfig };
+export type {
+  AudioFormat,
+  AudioProperties,
+  ExtendedTag,
+  Tag,
+  TagLibWorkersConfig,
+};
