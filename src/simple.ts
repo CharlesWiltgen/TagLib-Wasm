@@ -30,7 +30,7 @@
  * ```
  */
 
-import { TagLib } from "./taglib.ts";
+import type { TagLib } from "./taglib.ts";
 import type { AudioProperties, Picture, Tag } from "./types.ts";
 import { PictureType } from "./types.ts";
 import {
@@ -38,7 +38,7 @@ import {
   InvalidFormatError,
   MetadataError,
 } from "./errors.ts";
-import { readFileData } from "./utils/file.ts";
+import type { readFileData } from "./utils/file.ts";
 import { writeFileData } from "./utils/write.ts";
 
 // Cached TagLib instance for auto-initialization
