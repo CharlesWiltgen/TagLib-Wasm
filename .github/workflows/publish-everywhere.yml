@@ -191,12 +191,6 @@ jobs:
         with:
           deno-version: v2.x
       
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-      
-      - run: npm install
-      
       - name: Update version in deno.json
         run: |
           if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
