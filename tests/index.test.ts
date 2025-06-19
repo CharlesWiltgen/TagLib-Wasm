@@ -26,5 +26,8 @@ import "./extended-metadata.test.ts";
 // Codec detection tests - Audio codec and lossless detection
 import "./codec-detection.test.ts";
 
+// Offline support tests - Deno compile and embedded WASM
+import "./offline-support.test.ts";
+
 // Note: Workers tests (test-workers.ts) are manual utilities
 // Run manually with: deno run --allow-read tools/test-workers.ts
