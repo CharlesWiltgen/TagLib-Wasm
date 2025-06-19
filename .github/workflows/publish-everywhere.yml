@@ -1,4 +1,4 @@
-name: Publish to NPM/GitHub
+name: Publish to NPM/GitHub/JSR
 
 on:
   push:
@@ -169,3 +169,36 @@ jobs:
         if: steps.check_github.outputs.exists == 'false'
         env:
           NODE_AUTH_TOKEN: ${{ github.token }}
+
+  publish-jsr:
+    needs: test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: false
+      
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      
+      - name: Update version in deno.json
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            VERSION="${{ github.event.inputs.version }}"
+          elif [ "${{ github.event_name }}" == "release" ]; then
+            VERSION="${{ github.event.release.tag_name }}"
+          else
+            # For tag push events, extract from GITHUB_REF
+            VERSION="${GITHUB_REF#refs/tags/}"
+          fi
+          # Remove 'v' prefix if present
+          VERSION="${VERSION#v}"
+          echo "Updating deno.json version to $VERSION"
+          sed -i "s/\"version\": \"[^\"]*\"/\"version\": \"$VERSION\"/" deno.json
+      
+      - name: Publish to JSR
+        run: deno publish
