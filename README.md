@@ -139,8 +139,8 @@ await updateTags("song.mp3", {
 
 ### Full API
 
-The Full API might be a better choice for apps and utilities focused on
-advanced metadata management.
+The Full API might be a better choice for apps and utilities focused on advanced
+metadata management.
 
 ```typescript
 import { TagLib } from "taglib-wasm";

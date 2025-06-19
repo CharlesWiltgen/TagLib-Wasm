@@ -209,7 +209,9 @@ for (const file of TEST_FILES) {
 const simpleBatchTime = performance.now() - batchStart2;
 
 console.log(
-  `| TagLib API                 | ${taglibBatchTime.toFixed(2).padStart(8)}ms |`,
+  `| TagLib API                 | ${
+    taglibBatchTime.toFixed(2).padStart(8)
+  }ms |`,
 );
 console.log(
   `| Simple API                 | ${
