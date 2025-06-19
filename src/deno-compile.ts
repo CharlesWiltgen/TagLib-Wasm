@@ -1,5 +1,3 @@
-/// <reference lib="deno.ns" />
-
 /**
  * @fileoverview Helper utilities for using taglib-wasm in Deno compiled binaries
  * 
@@ -18,8 +16,11 @@ import { TagLib } from "./taglib.ts";
  */
 export function isDenoCompiled(): boolean {
   // Check if Deno is available and if the main module indicates compilation
+  // @ts-ignore: Deno global is only available in Deno runtime
   return typeof Deno !== 'undefined' && 
+         // @ts-ignore: Deno global is only available in Deno runtime
          typeof Deno.mainModule === 'string' &&
+         // @ts-ignore: Deno global is only available in Deno runtime
          Deno.mainModule.includes('deno-compile://');
 }
 
@@ -53,6 +54,7 @@ export async function initializeForDenoCompile(
     try {
       // Try to load the embedded WASM file
       const wasmUrl = new URL(embeddedWasmPath, import.meta.url);
+      // @ts-ignore: Deno global is only available in Deno runtime
       const wasmBinary = await Deno.readFile(wasmUrl);
       
       // Initialize with the embedded binary
@@ -97,6 +99,7 @@ export async function prepareWasmForEmbedding(outputPath = './taglib.wasm'): Pro
     
     for (const path of possiblePaths) {
       try {
+        // @ts-ignore: Deno global is only available in Deno runtime
         wasmData = await Deno.readFile(path);
         sourcePath = path.pathname;
         break;
@@ -110,6 +113,7 @@ export async function prepareWasmForEmbedding(outputPath = './taglib.wasm'): Pro
     }
     
     // Write to output path
+    // @ts-ignore: Deno global is only available in Deno runtime
     await Deno.writeFile(outputPath, wasmData);
     console.log(`WASM file copied from ${sourcePath} to ${outputPath}`);
     console.log(`Include this file when compiling: deno compile --include ${outputPath} ...`);
