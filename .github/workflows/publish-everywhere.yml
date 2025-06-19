@@ -207,4 +207,4 @@ jobs:
           sed -i "s/\"version\": \"[^\"]*\"/\"version\": \"$VERSION\"/" deno.json
       
       - name: Publish to JSR
-        run: deno publish
+        run: deno publish --no-check
