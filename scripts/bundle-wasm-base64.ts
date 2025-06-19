@@ -17,8 +17,17 @@ try {
   const wasmData = await Deno.readFile(WASM_PATH);
   console.log(`📊 WASM size: ${(wasmData.length / 1024).toFixed(1)} KB`);
 
-  // Convert to base64 efficiently
-  const base64 = btoa(String.fromCharCode(...wasmData));
+  // Convert to base64 efficiently for large files
+  // Use Web Streams API for chunk-based encoding
+  const chunks: string[] = [];
+  const chunkSize = 65536; // 64KB chunks
+  
+  for (let i = 0; i < wasmData.length; i += chunkSize) {
+    const chunk = wasmData.slice(i, i + chunkSize);
+    chunks.push(btoa(String.fromCharCode(...chunk)));
+  }
+  
+  const base64 = chunks.join('');
   console.log(`📊 Base64 size: ${(base64.length / 1024).toFixed(1)} KB`);
 
   // Generate TypeScript module
