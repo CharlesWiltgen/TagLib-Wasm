@@ -162,7 +162,6 @@ export {
  * @see {@link Tag} - Basic metadata structure
  * @see {@link ExtendedTag} - Extended metadata with advanced fields
  * @see {@link AudioProperties} - Audio technical properties
- * @see {@link TagLibConfig} - Configuration options
  */
 export type {
   AudioFormat,
@@ -173,7 +172,6 @@ export type {
   Picture,
   PropertyMap,
   Tag,
-  TagLibConfig,
   TagName,
 } from "./src/types.ts";
 
@@ -189,7 +187,7 @@ export { PictureType } from "./src/types.ts";
  */
 export type { TagLibModule, WasmModule } from "./src/wasm.ts";
 
-// Import the type for use in this file
+// Import the types for use in this file
 import type { TagLibModule } from "./src/wasm.ts";
 
 /**
@@ -197,6 +195,7 @@ import type { TagLibModule } from "./src/wasm.ts";
  * This function initializes the WebAssembly module and returns
  * the loaded module for use with the Core API.
  *
+ * @param config - Optional configuration for module initialization
  * @returns Promise resolving to the initialized TagLib module
  *
  * @example
@@ -206,6 +205,10 @@ import type { TagLibModule } from "./src/wasm.ts";
  * // Manual module loading for advanced configuration
  * const module = await loadTagLibModule();
  * const taglib = await createTagLib(module);
+ *
+ * // With custom WASM binary
+ * const wasmData = await fetch("taglib.wasm").then(r => r.arrayBuffer());
+ * const module = await loadTagLibModule({ wasmBinary: wasmData });
  * ```
  *
  * @note Most users should use `TagLib.initialize()` instead,

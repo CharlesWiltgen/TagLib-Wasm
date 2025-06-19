@@ -2,7 +2,14 @@
  * @fileoverview Basic usage example for Deno
  */
 
+// For local development:
 import { TagLib } from "../../mod.ts";
+
+// When using the published package from JSR:
+// import { TagLib } from "@charlesw/taglib-wasm";
+
+// When using from NPM:
+// import { TagLib } from "npm:taglib-wasm";
 
 async function main() {
   console.log("🎵 taglib-wasm Deno Example");

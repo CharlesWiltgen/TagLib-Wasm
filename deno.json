@@ -1,4 +1,36 @@
 {
+  "name": "@charlesw/taglib-wasm",
+  "version": "0.3.21",
+  "exports": "./mod.ts",
+  "publish": {
+    "exclude": [
+      "lib/",
+      "docs/",
+      "examples/",
+      "scripts/",
+      "tools/",
+      "tests/",
+      "build/taglib-build/",
+      "build/*.sh",
+      "build/*.cpp",
+      ".github/",
+      ".vscode/",
+      ".ai/",
+      "node_modules/",
+      "dist/",
+      "*.log",
+      "*.tgz",
+      ".DS_Store",
+      "tsconfig.json",
+      "deno.lock",
+      "mise.toml",
+      "package.json",
+      "package-lock.json",
+      "npm-shrinkwrap.json",
+      "DENO_COMPATIBILITY_FIX.md",
+      "CODEC_DETECTION.md"
+    ]
+  },
   "lint": {
     "rules": {
       "exclude": [
