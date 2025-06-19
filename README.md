@@ -92,6 +92,31 @@ import { TagLib } from "taglib-wasm";
 const { TagLib } = require("taglib-wasm");
 ```
 
+### Deno Compiled Binaries (Offline Support)
+
+For Deno compiled binaries that need to work offline, you can embed the WASM file:
+
+```typescript
+// 1. Prepare your build by copying the WASM file
+import { prepareWasmForEmbedding } from "@charlesw/taglib-wasm";
+await prepareWasmForEmbedding("./taglib.wasm");
+
+// 2. In your application, use the helper for automatic handling
+import { initializeForDenoCompile } from "@charlesw/taglib-wasm";
+const taglib = await initializeForDenoCompile();
+
+// 3. Compile with the embedded WASM
+// deno compile --allow-read --include taglib.wasm myapp.ts
+```
+
+For manual control:
+
+```typescript
+// Load embedded WASM in compiled binaries
+const wasmBinary = await Deno.readFile(new URL("./taglib.wasm", import.meta.url));
+const taglib = await TagLib.initialize({ wasmBinary });
+```
+
 ## 🚀 Quick Start
 
 ### Simple API
