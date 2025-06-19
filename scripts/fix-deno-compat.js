@@ -5,11 +5,9 @@
  * This script patches the Emscripten-generated code to properly handle Deno environment
  */
 
-import { readFileSync, writeFileSync } from "fs";
-import { dirname, join } from "path";
-import { fileURLToPath } from "url";
+const { readFileSync, writeFileSync } = require("fs");
+const { join } = require("path");
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
 const wrapperPath = join(__dirname, "../build/taglib-wrapper.js");
 
 console.log("🔧 Applying Deno compatibility fixes to taglib-wrapper.js...");
@@ -69,7 +67,7 @@ if (matches && matches.length > 0) {
   );
 }
 
-// Fix 5 removed - findWasmBinary already handled by environment checks
+// Removed findWasmBinary and createWasm patches - not needed for JSR distribution
 
 if (modified) {
   writeFileSync(wrapperPath, content);

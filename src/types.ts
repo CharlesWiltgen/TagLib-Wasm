@@ -517,12 +517,12 @@ export const BITRATE_CONTROL_MODE_NAMES: Record<number, BitrateControlMode> = {
 };
 
 /**
- * Configuration options for TagLib initialization.
+ * Configuration options for TagLib Workers initialization.
  * Allows customization of memory limits and debug settings.
  *
  * @example
  * ```typescript
- * const config: TagLibConfig = {
+ * const config: TagLibWorkersConfig = {
  *   memory: {
  *     initial: 16 * 1024 * 1024,  // 16MB
  *     maximum: 64 * 1024 * 1024   // 64MB
@@ -533,7 +533,7 @@ export const BITRATE_CONTROL_MODE_NAMES: Record<number, BitrateControlMode> = {
  * const taglib = await TagLibWorkers.initialize(wasmBinary, config);
  * ```
  */
-export interface TagLibConfig {
+export interface TagLibWorkersConfig {
   /** Memory allocation settings */
   memory?: {
     /** Initial memory size in bytes */

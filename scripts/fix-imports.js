@@ -6,8 +6,8 @@
  * Also fixes taglib-wrapper.js import paths
  */
 
-import { readdirSync, readFileSync, statSync, writeFileSync } from "fs";
-import { extname, join } from "path";
+import { readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { extname, join } from "node:path";
 
 function fixImportsInFile(filePath) {
   let content = readFileSync(filePath, "utf8");

@@ -2,7 +2,7 @@
  * @fileoverview WebAssembly module interface for Cloudflare Workers
  */
 
-import type { TagLibConfig, TagLibModule } from "./types.ts";
+import type { TagLibModule, TagLibWorkersConfig } from "./types.ts";
 import { TagLibInitializationError } from "./errors.ts";
 
 // Re-export TagLibModule for convenience
@@ -12,7 +12,7 @@ export type { TagLibModule };
  * Default configuration for taglib-wasm module in Workers environment
  * Reduced memory limits to fit within Workers constraints
  */
-const DEFAULT_WORKERS_CONFIG: Required<TagLibConfig> = {
+const DEFAULT_WORKERS_CONFIG: TagLibWorkersConfig = {
   memory: {
     initial: 8 * 1024 * 1024, // 8MB (reduced from 16MB)
     maximum: 64 * 1024 * 1024, // 64MB (reduced from 256MB)
@@ -36,7 +36,7 @@ const DEFAULT_WORKERS_CONFIG: Required<TagLibConfig> = {
  */
 export async function loadTagLibModuleForWorkers(
   wasmBinary: Uint8Array,
-  config: TagLibConfig = {},
+  config: TagLibWorkersConfig = {},
 ): Promise<TagLibModule> {
   const mergedConfig = { ...DEFAULT_WORKERS_CONFIG, ...config };
 
@@ -44,8 +44,8 @@ export async function loadTagLibModuleForWorkers(
   const moduleConfig = {
     wasmBinary,
     wasmMemory: new WebAssembly.Memory({
-      initial: mergedConfig.memory.initial! / (64 * 1024),
-      maximum: mergedConfig.memory.maximum! / (64 * 1024),
+      initial: (mergedConfig.memory?.initial || 8 * 1024 * 1024) / (64 * 1024),
+      maximum: (mergedConfig.memory?.maximum || 64 * 1024 * 1024) / (64 * 1024),
     }),
     print: mergedConfig.debug ? console.log : () => {},
     printErr: mergedConfig.debug ? console.error : () => {},

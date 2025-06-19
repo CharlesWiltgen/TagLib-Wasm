@@ -4,6 +4,12 @@
 
 ::: code-tabs @tab Deno
 
+From JSR (recommended):
+```typescript
+import { TagLib } from "@charlesw/taglib-wasm";
+```
+
+From NPM:
 ```typescript
 import { TagLib } from "npm:taglib-wasm";
 ```
