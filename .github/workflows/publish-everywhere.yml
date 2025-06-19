@@ -38,6 +38,9 @@ jobs:
         with:
           node-version: 20
           registry-url: https://registry.npmjs.org/
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
 
       - run: npm install
 
@@ -104,6 +107,9 @@ jobs:
       - uses: actions/checkout@v4
         with:
           submodules: false
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
 
       - name: Update package for GitHub Packages
         run: |
@@ -184,6 +190,12 @@ jobs:
       - uses: denoland/setup-deno@v2
         with:
           deno-version: v2.x
+      
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      
+      - run: npm install
       
       - name: Update version in deno.json
         run: |
