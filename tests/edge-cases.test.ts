@@ -8,7 +8,7 @@ import {
   assertEquals,
   assertExists,
   assertRejects,
-  assertThrows,
+  type assertThrows,
 } from "https://deno.land/std@0.224.0/assert/mod.ts";
 import { TagLib } from "../src/mod.ts";
 import type { AudioFile } from "../src/mod.ts";
@@ -17,7 +17,7 @@ import {
   FileOperationError,
   InvalidFormatError,
   MetadataError,
-  TagLibInitializationError,
+  type TagLibInitializationError,
 } from "../src/errors.ts";
 import { TEST_FILES } from "./test-utils.ts";
 
