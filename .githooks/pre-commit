@@ -43,6 +43,24 @@ fi
 
 echo -e "${GREEN}✅ Versions are in sync: $PACKAGE_VERSION${NC}"
 
+# Run deno fmt
+echo "🎨 Running deno fmt..."
+if ! deno fmt; then
+    echo -e "${RED}❌ Formatting failed!${NC}"
+    echo "Files have been formatted. Please review and stage the changes."
+    exit 1
+fi
+
+# Run deno lint
+echo "🔍 Running deno lint..."
+if ! deno lint; then
+    echo -e "${RED}❌ Linting failed!${NC}"
+    echo "Please fix the linting errors before committing."
+    exit 1
+fi
+
+echo -e "${GREEN}✅ Formatting and linting passed${NC}"
+
 # Check if either version file is staged
 if git diff --cached --name-only | grep -E "(package\.json|deno\.json)" > /dev/null; then
     # Double-check that both files have the same version in staged changes
