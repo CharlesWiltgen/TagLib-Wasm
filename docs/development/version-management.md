@@ -1,6 +1,7 @@
 # Version Management
 
-This project maintains version numbers in both `deno.json` and `package.json`. To ensure these stay synchronized, we use automated tools and git hooks.
+This project maintains version numbers in both `deno.json` and `package.json`.
+To ensure these stay synchronized, we use automated tools and git hooks.
 
 ## Quick Start
 
@@ -10,7 +11,8 @@ This project maintains version numbers in both `deno.json` and `package.json`. T
 ./scripts/setup-git-hooks.sh
 ```
 
-This installs a pre-commit hook that prevents commits when versions are out of sync.
+This installs a pre-commit hook that prevents commits when versions are out of
+sync.
 
 ## Version Commands
 
@@ -44,6 +46,7 @@ deno task version:check
 ### Version Sync Script
 
 The `scripts/sync-version.ts` script:
+
 - Reads version from both `deno.json` and `package.json`
 - Updates both files atomically when changing versions
 - Validates semantic version format
@@ -52,6 +55,7 @@ The `scripts/sync-version.ts` script:
 ### Git Pre-commit Hook
 
 The `.githooks/pre-commit` hook:
+
 - Runs automatically before each commit
 - Checks if versions in both files match
 - Prevents commits if versions differ
@@ -83,6 +87,7 @@ The `.githooks/pre-commit` hook:
 ### Version Mismatch Error
 
 If you see:
+
 ```
 ❌ Version mismatch detected!
    package.json: 0.3.22
@@ -107,6 +112,7 @@ git config --unset core.hooksPath
 ### Manual Version Edit
 
 If you manually edit version numbers, ensure you update both files:
+
 1. Edit `package.json` version field
 2. Edit `deno.json` version field
 3. Commit both files together

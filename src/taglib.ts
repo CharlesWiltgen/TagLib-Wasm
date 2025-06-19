@@ -757,11 +757,11 @@ export class TagLib {
    * ```typescript
    * // Basic usage
    * const taglib = await TagLib.initialize();
-   * 
+   *
    * // With pre-loaded WASM binary (for offline usage)
    * const wasmBinary = await fetch("taglib.wasm").then(r => r.arrayBuffer());
    * const taglib = await TagLib.initialize({ wasmBinary });
-   * 
+   *
    * // With custom WASM URL
    * const taglib = await TagLib.initialize({ wasmUrl: "/assets/taglib.wasm" });
    * ```

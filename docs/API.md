@@ -89,8 +89,10 @@ function applyTags(
 
 #### Parameters
 
-- `input`: File path (string), audio data (Uint8Array/ArrayBuffer), or File object
-- `tags`: Object containing tags to apply (partial update supported, type `Partial<Tag>`)
+- `input`: File path (string), audio data (Uint8Array/ArrayBuffer), or File
+  object
+- `tags`: Object containing tags to apply (partial update supported, type
+  `Partial<Tag>`)
 - `options`: Write options (optional, for go-taglib compatibility)
 
 #### Returns
@@ -133,7 +135,8 @@ function updateTags(
 #### Parameters
 
 - `file`: File path as a string (required for disk operations)
-- `tags`: Object containing tags to update (partial update supported, type `Partial<Tag>`)
+- `tags`: Object containing tags to update (partial update supported, type
+  `Partial<Tag>`)
 - `options`: Write options (optional, for go-taglib compatibility)
 
 #### Returns

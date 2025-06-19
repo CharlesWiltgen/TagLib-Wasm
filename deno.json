@@ -51,8 +51,7 @@
   "fmt": {
     "exclude": [
       "lib/",
-      "build/",
-      "docs/"
+      "build/"
     ]
   },
   "tasks": {

@@ -48,7 +48,7 @@ await updateTags("song.mp3", {
 
 ```typescript
 import { readFile, writeFile } from "fs/promises";
-import { readTags, applyTags } from "taglib-wasm/simple";
+import { applyTags, readTags } from "taglib-wasm/simple";
 
 // Read from buffer
 const buffer = await readFile("song.mp3");

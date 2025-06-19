@@ -84,7 +84,7 @@ The Simple API provides clear error messages for common scenarios.
 ### Basic Error Handling
 
 ```typescript
-import { readProperties, readTags, applyTags } from "taglib-wasm/simple";
+import { applyTags, readProperties, readTags } from "taglib-wasm/simple";
 
 // Reading tags
 try {

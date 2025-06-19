@@ -4,11 +4,14 @@ This guide explains how to use taglib-wasm in compiled Deno binaries.
 
 ## The Challenge
 
-`deno compile` creates standalone executables, but taglib-wasm's WebAssembly module requires special handling since dynamic imports aren't included in the compiled binary.
+`deno compile` creates standalone executables, but taglib-wasm's WebAssembly
+module requires special handling since dynamic imports aren't included in the
+compiled binary.
 
 ## Quick Start
 
-See the complete example in `examples/deno-compile/` for a production-ready setup.
+See the complete example in `examples/deno-compile/` for a production-ready
+setup.
 
 ## Solution 1: Embed WASM (Recommended)
 
@@ -48,7 +51,7 @@ For smaller binaries that require network access:
 import { TagLib } from "jsr:@charlesw/taglib-wasm@latest";
 
 const taglib = await TagLib.initialize({
-  wasmUrl: "https://cdn.jsdelivr.net/npm/taglib-wasm@latest/dist/taglib.wasm"
+  wasmUrl: "https://cdn.jsdelivr.net/npm/taglib-wasm@latest/dist/taglib.wasm",
 });
 ```
 
@@ -67,7 +70,8 @@ async function initializeTagLib(): Promise<TagLib> {
   } catch {
     // Fall back to CDN
     return await TagLib.initialize({
-      wasmUrl: "https://cdn.jsdelivr.net/npm/taglib-wasm@latest/dist/taglib.wasm"
+      wasmUrl:
+        "https://cdn.jsdelivr.net/npm/taglib-wasm@latest/dist/taglib.wasm",
     });
   }
 }
@@ -90,14 +94,15 @@ cd examples/deno-compile
 
 ## Trade-offs
 
-| Approach | Binary Size | Network Required | Startup Time |
-|----------|------------|------------------|---------------|
-| Embedded WASM | +500KB | No | Fast |
-| CDN Loading | Minimal | Yes | Depends on network |
+| Approach      | Binary Size | Network Required | Startup Time       |
+| ------------- | ----------- | ---------------- | ------------------ |
+| Embedded WASM | +500KB      | No               | Fast               |
+| CDN Loading   | Minimal     | Yes              | Depends on network |
 
 ## Best Practices
 
-1. **Use JSR specifier**: Import from `jsr:@charlesw/taglib-wasm@latest` since JSR properly supports Wasm files
+1. **Use JSR specifier**: Import from `jsr:@charlesw/taglib-wasm@latest` since
+   JSR properly supports Wasm files
 2. **Environment variables**: Use `WASM_URL` to configure CDN location
 3. **Error handling**: Always provide fallback loading strategies
 4. **Test offline**: Ensure embedded binaries work without network

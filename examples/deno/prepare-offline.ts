@@ -2,7 +2,7 @@
 
 /**
  * Prepares the WASM file for embedding in a Deno compiled binary.
- * 
+ *
  * Run this script before compiling your application to copy the WASM file
  * to a location where it can be included in the compiled binary.
  */
