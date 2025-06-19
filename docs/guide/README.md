@@ -37,7 +37,7 @@ const tags = await readTags("song.mp3");
 await updateTags("song.mp3", { title: "New Title" });
 ```
 
-**Core API** - For full control:
+**Full API** - For full control:
 
 ```typescript
 const taglib = await TagLib.initialize();

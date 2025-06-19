@@ -11,7 +11,7 @@
  * const tags = await readTags("song.mp3");
  * console.log(tags.title, tags.artist);
  *
- * // Core API - Full control
+ * // Full API - Full control
  * import { TagLib } from "@charlesw/taglib-wasm";
  * const taglib = await TagLib.initialize();
  * const file = await taglib.open("song.mp3");
@@ -21,7 +21,7 @@
  * ```
  */
 
-// Export Core API
+// Export Full API
 export { TagLib } from "./src/taglib.ts";
 export type { AudioFile, Tag } from "./src/taglib.ts";
 export type { AudioProperties } from "./src/types.ts";

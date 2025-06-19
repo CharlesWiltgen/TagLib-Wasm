@@ -1,7 +1,7 @@
 #!/usr/bin/env -S deno run --allow-read --allow-hrtime
 
 /**
- * Performance benchmarks comparing Simple vs Core API styles
+ * Performance benchmarks comparing Simple vs TagLib API styles
  *
  * This benchmark measures:
  * - Initialization time
@@ -10,7 +10,7 @@
  * - Memory usage patterns
  */
 
-import { TagLib as CoreTagLib } from "../index";
+import { TagLib } from "../index";
 import { applyTags, readProperties, readTags } from "../src/simple";
 
 const TEST_FILE = "./tests/test-files/mp3/kiss-snippet.mp3";
@@ -88,16 +88,16 @@ const fileData = await Deno.readFile(TEST_FILE);
 
 const results: BenchmarkResult[] = [];
 
-// 1. Core API - Read Tags
-let coreTaglib: CoreTagLib | null = null;
+// 1. TagLib API - Read Tags
+let taglib: TagLib | null = null;
 results.push(
   await benchmark(
-    "Core API - Read Tags",
+    "TagLib API - Read Tags",
     async () => {
-      coreTaglib = await CoreTagLib.initialize();
+      taglib = await TagLib.initialize();
     },
     async () => {
-      const file = coreTaglib!.open(fileData);
+      const file = taglib!.open(fileData);
       const tags = file.tag();
       file.dispose();
     },
@@ -117,15 +117,15 @@ results.push(
   ),
 );
 
-// 3. Core API - Full Operation
+// 3. TagLib API - Full Operation
 results.push(
   await benchmark(
-    "Core API - Full Operation",
+    "TagLib API - Full Operation",
     async () => {
       // Already initialized
     },
     async () => {
-      const file = coreTaglib!.open(fileData);
+      const file = taglib!.open(fileData);
       const tags = file.tag();
       const props = file.audioProperties();
       file.setTitle("Benchmark Title");
@@ -181,12 +181,12 @@ console.log("-".repeat(100));
 console.log("\n📦 Batch Operations (5 files):");
 console.log("-".repeat(70));
 
-// Core API - Batch
+// TagLib API - Batch
 const batchStart1 = performance.now();
 for (const file of TEST_FILES) {
   try {
     const data = await Deno.readFile(file);
-    const audioFile = coreTaglib!.open(data);
+    const audioFile = taglib!.open(data);
     audioFile.tag();
     audioFile.audioProperties();
     audioFile.dispose();
@@ -194,7 +194,7 @@ for (const file of TEST_FILES) {
     // Skip invalid files
   }
 }
-const coreBatchTime = performance.now() - batchStart1;
+const taglibBatchTime = performance.now() - batchStart1;
 
 // Simple API - Batch
 const batchStart2 = performance.now();
@@ -209,7 +209,7 @@ for (const file of TEST_FILES) {
 const simpleBatchTime = performance.now() - batchStart2;
 
 console.log(
-  `| Core API                   | ${coreBatchTime.toFixed(2).padStart(8)}ms |`,
+  `| TagLib API                 | ${taglibBatchTime.toFixed(2).padStart(8)}ms |`,
 );
 console.log(
   `| Simple API                 | ${
@@ -252,15 +252,15 @@ console.log("   - Quick scripts and one-off operations");
 console.log("   - When simplicity matters more than performance");
 console.log("   - Developers familiar with go-taglib");
 
-console.log("\n2. Core API - Best for:");
+console.log("\n2. TagLib API - Best for:");
 console.log("   - Applications that process many files");
 console.log("   - When you need maximum control");
 console.log("   - Performance-critical applications");
 console.log("   - Long-running processes");
 
 // Cleanup
-if (coreTaglib) {
-  coreTaglib.destroy();
+if (taglib) {
+  taglib.destroy();
 }
 
 console.log("\n✅ Benchmark complete!");

@@ -224,19 +224,19 @@ Deno.test("Input Validation: Too small buffers", async () => {
 Deno.test("Input Validation: Null and undefined inputs", async () => {
   const taglib = await TagLib.initialize();
 
-  // Test Core API
+  // Test Full API
   await assertRejects(
     async () => await taglib.open(null as any),
     Error,
     "[object Null]",
-    "Core API should reject null input",
+    "Full API should reject null input",
   );
 
   await assertRejects(
     async () => await taglib.open(undefined as any),
     Error,
     "[object Undefined]",
-    "Core API should reject undefined input",
+    "Full API should reject undefined input",
   );
 
   // Test Simple API

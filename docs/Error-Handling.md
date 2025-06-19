@@ -7,7 +7,7 @@ taglib-wasm.
 
 - [Error Types](#error-types)
 - [Simple API Error Handling](#simple-api-error-handling)
-- [Core API Error Handling](#core-api-error-handling)
+- [Full API Error Handling](#full-api-error-handling)
 - [Common Error Scenarios](#common-error-scenarios)
 - [Error Recovery Strategies](#error-recovery-strategies)
 - [Debugging Tips](#debugging-tips)
@@ -160,9 +160,9 @@ results.forEach((result) => {
 });
 ```
 
-## Core API Error Handling
+## Full API Error Handling
 
-The Core API requires more careful error handling due to manual memory
+The Full API requires more careful error handling due to manual memory
 management.
 
 ### Initialization Errors
