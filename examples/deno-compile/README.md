@@ -4,39 +4,51 @@ This example shows how to use taglib-wasm with `deno compile`.
 
 ## Quick Start
 
-### Option 1: Embed WASM (Recommended for offline use)
+### Recommended: CDN Loading with Streaming
 
-1. Generate the embedded WASM module:
-   ```bash
-   deno run --allow-read --allow-write ../../scripts/bundle-wasm-base64.ts
-   ```
+The simplest approach that leverages WebAssembly streaming compilation:
 
-2. Use in your app:
-   ```typescript
-   import { TagLib } from "taglib-wasm";
-   import { wasmBinary } from "./taglib-wasm-embedded.ts";
+```bash
+# Compile the example
+./compile-simple.sh
 
-   const taglib = await TagLib.initialize({ wasmBinary });
-   ```
+# Run the compiled binary
+./taglib-simple                    # Test with demo data
+./taglib-simple song.mp3           # Read tags from file  
+./taglib-simple *.mp3              # Read tags from multiple files
+```
 
-3. Compile:
-   ```bash
-   deno compile --allow-read app.ts
-   ```
+This approach:
+- ✅ Uses WebAssembly streaming compilation for optimal performance
+- ✅ Simple to implement and maintain
+- ✅ Always gets the latest WASM optimizations
+- ⚠️ Requires internet connection on first run
 
-### Option 2: Load from CDN (Requires network)
+### Alternative: Embedded WASM (Complex)
+
+For offline-only scenarios, see `app.ts` for a more complex example that attempts to embed the WASM. Note that this approach:
+- ❌ Doesn't benefit from streaming compilation
+- ❌ Creates larger binaries (+500KB)
+- ❌ More complex to maintain
+- ✅ Works completely offline
+
+## Simple Example
+
+See `simple-app.ts` for a clean example that uses CDN loading:
 
 ```typescript
-import { TagLib } from "taglib-wasm";
+import { TagLib, readTags } from "../../mod.ts";
 
+// Initialize with CDN URL (uses streaming compilation)
 const taglib = await TagLib.initialize({
   wasmUrl: "https://cdn.jsdelivr.net/npm/taglib-wasm@latest/dist/taglib.wasm"
 });
+
+// Read tags from a file
+const tags = await readTags("song.mp3");
+console.log("Title:", tags.title);
+console.log("Artist:", tags.artist);
 ```
-
-## Complete Example
-
-See `app.ts` for a working example that handles both scenarios.
 
 ## Trade-offs
 

@@ -8,13 +8,17 @@ echo ""
 # Option 1: Compile with embedded WASM (offline support)
 if [ "$1" = "--embed" ]; then
     echo "📦 Generating embedded WASM module..."
-    deno run --allow-read --allow-write ../../scripts/bundle-wasm-base64.ts
+    cd ../.. && deno run --allow-read --allow-write scripts/bundle-wasm-base64.ts
+    cd examples/deno-compile
     
     echo ""
     echo "🔨 Compiling with embedded WASM..."
-    USE_EMBEDDED_WASM=true deno compile \
+    echo "  Including WASM file directly in binary..."
+    deno compile \
+        --no-check \
         --allow-read \
         --allow-env \
+        --include ../../build/taglib.wasm \
         --output taglib-tool-embedded \
         app.ts
     
@@ -24,6 +28,7 @@ if [ "$1" = "--embed" ]; then
 else
     echo "🔨 Compiling with CDN loading..."
     deno compile \
+        --no-check \
         --allow-read \
         --allow-net \
         --allow-env \

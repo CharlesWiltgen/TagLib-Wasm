@@ -1,6 +1,6 @@
 {
   "name": "@charlesw/taglib-wasm",
-  "version": "0.3.22",
+  "version": "0.3.23",
   "exports": "./mod.ts",
   "publish": {
     "exclude": [
@@ -39,9 +39,37 @@
         "require-await"
       ]
     },
-    "exclude": ["lib/", "build/", "scripts/", "examples/", "tools/", "docs/"]
+    "exclude": [
+      "lib/",
+      "build/",
+      "scripts/",
+      "examples/",
+      "tools/",
+      "docs/"
+    ]
   },
   "fmt": {
-    "exclude": ["lib/", "build/", "docs/"]
+    "exclude": [
+      "lib/",
+      "build/",
+      "docs/"
+    ]
+  },
+  "tasks": {
+    "build": "deno task build:ts && deno task build:wasm",
+    "build:ts": "deno run -A scripts/build-npm.ts",
+    "build:wasm": "cd build && bash build-wasm.sh",
+    "test": "deno test --allow-read --allow-write tests/",
+    "test:watch": "deno test --allow-read --allow-write --watch tests/",
+    "test:systematic": "deno test --allow-read tests/test-systematic.ts",
+    "dev": "deno run --watch --allow-read --allow-write examples/basic-usage.ts",
+    "fmt": "deno fmt",
+    "lint": "deno lint",
+    "check": "deno check **/*.ts",
+    "version:patch": "deno run --allow-read --allow-write scripts/sync-version.ts patch",
+    "version:minor": "deno run --allow-read --allow-write scripts/sync-version.ts minor",
+    "version:major": "deno run --allow-read --allow-write scripts/sync-version.ts major",
+    "version:set": "deno run --allow-read --allow-write scripts/sync-version.ts set",
+    "version:check": "deno run --allow-read --allow-write scripts/sync-version.ts check"
   }
 }

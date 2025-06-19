@@ -56,6 +56,7 @@ export default defineUserConfig({
             "/guide/cover-art.md",
             "/guide/examples.md",
             "/guide/workers-setup.md",
+            "/features/codec-detection.md",
           ],
         },
         {
@@ -64,6 +65,7 @@ export default defineUserConfig({
             "/Runtime-Compatibility.md",
             "/Memory-Management.md",
             "/Performance.md",
+            "/guide/performance-streaming.md",
             "/Error-Handling.md",
           ],
         },
@@ -87,7 +89,9 @@ export default defineUserConfig({
           text: "Development",
           children: [
             "/development/testing.md",
+            "/development/version-management.md",
             "/development/improvements.md",
+            "/development/deno-compatibility-fix.md",
             "/Publishing.md",
           ],
         },
