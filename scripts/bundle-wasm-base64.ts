@@ -2,7 +2,7 @@
 
 /**
  * @fileoverview Generate a TypeScript module with embedded WASM for Deno compile
- * 
+ *
  * This is a simpler alternative to the static build approach.
  * It creates a single file that can be imported in your project.
  */
@@ -21,13 +21,13 @@ try {
   // Use Web Streams API for chunk-based encoding
   const chunks: string[] = [];
   const chunkSize = 65536; // 64KB chunks
-  
+
   for (let i = 0; i < wasmData.length; i += chunkSize) {
     const chunk = wasmData.slice(i, i + chunkSize);
     chunks.push(btoa(String.fromCharCode(...chunk)));
   }
-  
-  const base64 = chunks.join('');
+
+  const base64 = chunks.join("");
   console.log(`📊 Base64 size: ${(base64.length / 1024).toFixed(1)} KB`);
 
   // Generate TypeScript module
@@ -76,7 +76,6 @@ file.dispose();`);
 
   console.log("\n🎯 To compile:");
   console.log("deno compile --allow-read your-app.ts");
-
 } catch (error) {
   console.error("❌ Error:", error);
   Deno.exit(1);

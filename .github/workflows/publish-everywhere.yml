@@ -186,11 +186,11 @@ jobs:
       - uses: actions/checkout@v4
         with:
           submodules: false
-      
+
       - uses: denoland/setup-deno@v2
         with:
           deno-version: v2.x
-      
+
       - name: Update version in deno.json
         run: |
           if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
@@ -205,6 +205,6 @@ jobs:
           VERSION="${VERSION#v}"
           echo "Updating deno.json version to $VERSION"
           sed -i "s/\"version\": \"[^\"]*\"/\"version\": \"$VERSION\"/" deno.json
-      
+
       - name: Publish to JSR
         run: deno publish --no-check

@@ -193,7 +193,8 @@ npm test
 
 - Requires `--allow-read` permission for file access
 - Some Node.js modules may not be compatible
-- **Offline Support**: Compiled binaries can embed WASM for offline usage (see [Deno Compile Guide](#deno-compiled-binaries))
+- **Offline Support**: Compiled binaries can embed WASM for offline usage (see
+  [Deno Compile Guide](#deno-compiled-binaries))
 
 #### Bun
 
@@ -220,7 +221,8 @@ npm test
 
 ## 🎯 Deno Compiled Binaries
 
-taglib-wasm includes special support for creating offline-capable Deno compiled binaries:
+taglib-wasm includes special support for creating offline-capable Deno compiled
+binaries:
 
 ### Automatic Offline Support
 
@@ -243,7 +245,7 @@ const taglib = await initializeForDenoCompile();
 2. **Initialize with embedded WASM:**
    ```typescript
    import { TagLib } from "taglib-wasm";
-   
+
    const wasmBinary = await Deno.readFile("./taglib.wasm");
    const taglib = await TagLib.initialize({ wasmBinary });
    ```
@@ -262,7 +264,8 @@ const taglib = await initializeForDenoCompile();
 
 ### Example
 
-See the complete example in [`examples/deno/offline-compile.ts`](https://github.com/CharlesWiltgen/taglib-wasm/blob/main/examples/deno/offline-compile.ts).
+See the complete example in
+[`examples/deno/offline-compile.ts`](https://github.com/CharlesWiltgen/taglib-wasm/blob/main/examples/deno/offline-compile.ts).
 
 ## 💡 Best Practices
 

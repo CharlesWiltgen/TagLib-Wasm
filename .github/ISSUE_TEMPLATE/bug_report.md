@@ -6,9 +6,13 @@ labels: bug
 assignees: ''
 ---
 
-**Describe the bug** A clear and concise description of what the bug is.
+**Describe the bug**
 
-**To Reproduce** Steps to reproduce the behavior:
+A clear and concise description of what the bug is.
+
+**To Reproduce**
+
+Steps to reproduce the behavior:
 
 ```typescript
 // Minimal code example that reproduces the issue
@@ -18,10 +22,13 @@ const tags = await readTags("file.mp3");
 // What happens vs what you expected
 ```
 
-**Expected behavior** A clear and concise description of what you expected to
-happen.
+**Expected behavior**
 
-**Actual behavior** What actually happened, including any error messages.
+A clear and concise description of what you expected to happen.
+
+**Actual behavior**
+
+What actually happened, including any error messages.
 
 **Environment:**
 
@@ -35,9 +42,10 @@ happen.
 - Size: [e.g., 5MB]
 - Special characteristics: [e.g., VBR, high bitrate, Unicode tags]
 
-**Additional context** Add any other context about the problem here. If
-possible, attach a sample file that reproduces the issue (ensure no copyright
-issues).
+**Additional context**
+
+Add any other context about the problem here. If possible, attach a sample file
+that reproduces the issue (ensure no copyright issues).
 
 **Logs**
 

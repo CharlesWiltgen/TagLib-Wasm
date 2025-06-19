@@ -2,7 +2,7 @@
 
 /**
  * @fileoverview Bundle taglib-wasm for Deno compile
- * 
+ *
  * This script creates a single bundled module that includes all dependencies
  * statically, making it suitable for use with `deno compile`.
  */
@@ -23,9 +23,9 @@ async function bundle() {
   const bundleResult = await new Deno.Command("deno", {
     args: [
       "bundle",
-      "--no-check",  // Skip type checking for faster bundling
+      "--no-check", // Skip type checking for faster bundling
       "./mod-static.ts",
-      join(OUTPUT_DIR, BUNDLE_FILE)
+      join(OUTPUT_DIR, BUNDLE_FILE),
     ],
   }).output();
 
@@ -87,9 +87,11 @@ if (Deno.args[0] === "simple") {
 
   await Deno.writeTextFile(
     join(OUTPUT_DIR, "example-deno-compile.ts"),
-    exampleContent
+    exampleContent,
   );
-  console.log(`✅ Example created at ${join(OUTPUT_DIR, "example-deno-compile.ts")}`);
+  console.log(
+    `✅ Example created at ${join(OUTPUT_DIR, "example-deno-compile.ts")}`,
+  );
 
   // Create README
   const readmeContent = `# Deno Compile Bundle
@@ -159,7 +161,9 @@ deno compile --allow-read --include ./taglib.wasm example-deno-compile.ts
 
   console.log("\n🎉 Bundle complete! Next steps:");
   console.log(`1. cd ${OUTPUT_DIR}`);
-  console.log("2. deno compile --allow-read --include ./taglib.wasm example-deno-compile.ts");
+  console.log(
+    "2. deno compile --allow-read --include ./taglib.wasm example-deno-compile.ts",
+  );
   console.log("3. ./example-deno-compile");
 }
 
