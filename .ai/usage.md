@@ -274,6 +274,130 @@ const modified = await applyTags("song.mp3", {
 await Deno.writeFile("song-modified.mp3", modified);
 ```
 
+### Deno Compiled Utilities
+
+When building Deno applications that will be distributed as compiled binaries
+using `deno compile`, you have three options for including the Wasm module:
+
+#### Option 1: Embed Wasm in the Binary (Recommended)
+
+```typescript
+// music-tagger.ts
+import { TagLib } from "npm:taglib-wasm";
+
+// Read the Wasm file at compile time
+const wasmBytes = await Deno.readFile(
+  new URL(import.meta.resolve("npm:taglib-wasm/dist/taglib.wasm")),
+);
+
+// Initialize with embedded Wasm
+const taglib = await TagLib.initialize({ wasmBinary: wasmBytes });
+
+// Your application logic
+if (import.meta.main) {
+  const [filePath] = Deno.args;
+  const audioFile = await taglib.open(filePath);
+  const tag = audioFile.tag();
+  console.log(`Title: ${tag.title}`);
+  console.log(`Artist: ${tag.artist}`);
+  audioFile.dispose();
+}
+```
+
+Compile with:
+
+```bash
+deno compile --allow-read music-tagger.ts
+```
+
+#### Option 2: Bundle Wasm File Separately
+
+If you prefer to keep the Wasm file external (e.g., for smaller binary size):
+
+```typescript
+// music-tagger.ts
+import { TagLib } from "npm:taglib-wasm";
+
+// Load Wasm from a file path relative to the executable
+const taglib = await TagLib.initialize({
+  wasmUrl: new URL("./taglib.wasm", import.meta.url).href,
+});
+
+// Your application logic
+if (import.meta.main) {
+  const [filePath] = Deno.args;
+  const audioFile = await taglib.open(filePath);
+  const tag = audioFile.tag();
+  console.log(`Title: ${tag.title}`);
+  console.log(`Artist: ${tag.artist}`);
+  audioFile.dispose();
+}
+```
+
+Then distribute both the compiled binary and the Wasm file:
+
+```bash
+# Compile the binary
+deno compile --allow-read music-tagger.ts
+
+# Copy the Wasm file
+cp node_modules/taglib-wasm/dist/taglib.wasm ./
+
+# Both files must be distributed together
+# - music-tagger (or music-tagger.exe)
+# - taglib.wasm
+```
+
+#### Option 3: CDN Loading with Streaming (Simplest)
+
+For applications that have internet access, you can use CDN loading which
+provides optimal performance through WebAssembly streaming compilation:
+
+```typescript
+// music-tagger.ts
+import { TagLib } from "npm:taglib-wasm";
+
+// Initialize with CDN URL for streaming compilation
+const taglib = await TagLib.initialize({
+  wasmUrl: "https://cdn.jsdelivr.net/npm/taglib-wasm@latest/dist/taglib.wasm",
+});
+
+// Your application logic
+if (import.meta.main) {
+  const [filePath] = Deno.args;
+  const audioFile = await taglib.open(filePath);
+  const tag = audioFile.tag();
+  console.log(`Title: ${tag.title}`);
+  console.log(`Artist: ${tag.artist}`);
+  audioFile.dispose();
+}
+```
+
+Compile with:
+
+```bash
+deno compile --allow-read --allow-net music-tagger.ts
+```
+
+#### Performance Considerations
+
+- **CDN Loading**: Smallest binary, uses streaming compilation, requires network
+  on first run
+- **Embedded Wasm**: Larger binary size (~800KB) but self-contained and works
+  offline
+- **External Wasm**: Medium binary size but requires distributing two files
+- CDN loading provides fastest initial compilation through WebAssembly streaming
+- All approaches have identical memory usage and performance after
+  initialization
+
+#### Choosing the Right Approach
+
+- **CDN Loading**: Best for utilities that typically have internet access
+- **Embedded Wasm**: Best for offline-first CLI tools and air-gapped
+  environments
+- **External Wasm**: Best when you need small binaries but can manage multiple
+  files
+
 ### Cloudflare Workers
 
 - Import from 'taglib-wasm/workers' for compatibility
