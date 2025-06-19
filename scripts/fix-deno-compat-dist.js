@@ -5,9 +5,9 @@
  * This is the same as fix-deno-compat.js but targets the dist folder
  */
 
-import { readFileSync, writeFileSync } from "fs";
-import { dirname, join } from "path";
-import { fileURLToPath } from "url";
+import { readFileSync, writeFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const wrapperPath = join(__dirname, "../dist/taglib-wrapper.js");
