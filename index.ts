@@ -233,6 +233,7 @@ export interface LoadTagLibOptions {
  */
 export async function loadTagLibModule(options?: LoadTagLibOptions): Promise<TagLibModule> {
   // Now that we're using ES6 modules, we can use dynamic import directly
+  // Note: For Deno compile, provide wasmBinary option to avoid dynamic loading
   const { default: createTagLibModule } = await import(
     "./build/taglib-wrapper.js"
   );
