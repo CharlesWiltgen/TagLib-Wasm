@@ -59,7 +59,11 @@
     "exclude": [
       "lib/",
       "build/"
-    ]
+    ],
+    "lineWidth": 80,
+    "indentWidth": 2,
+    "singleQuote": false,
+    "proseWrap": "preserve"
   },
   "tasks": {
     "build": "deno task build:ts && deno task build:wasm",
