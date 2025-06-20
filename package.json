@@ -1,6 +1,6 @@
 {
   "name": "taglib-wasm",
-  "version": "0.4.1",
+  "version": "0.4.2",
   "description": "TagLib for TypeScript platforms: Deno, Node.js, Bun, Electron, browsers, and Cloudflare Workers",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -16,6 +16,10 @@
     "./simple": {
       "types": "./dist/src/simple.d.ts",
       "default": "./dist/src/simple.js"
+    },
+    "./folder": {
+      "types": "./dist/src/folder-api.d.ts",
+      "default": "./dist/src/folder-api.js"
     }
   },
   "files": [
