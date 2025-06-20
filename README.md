@@ -102,6 +102,8 @@ const taglib = await initializeForDenoCompile();
 // deno compile --allow-read --include taglib.wasm myapp.ts
 ```
 
+See the [complete Deno compile guide](https://charleswiltgen.github.io/taglib-wasm/guide/deno-compile.html) for more options including CDN loading.
+
 For manual control:
 
 ```typescript
