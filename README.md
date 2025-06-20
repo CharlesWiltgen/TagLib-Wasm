@@ -43,6 +43,8 @@ TagLib itself is legendary, and a core dependency of many music apps.
   reliability
 - **✅ Two API styles** – Use the “Simple” API (3 functions), or the full “Core”
   API for more advanced applications
+- **✅ Batch folder operations** – Scan directories, process multiple files,
+  find duplicates, and export metadata catalogs
 
 ## 📦 Installation
 
@@ -165,6 +167,36 @@ file.save();
 
 // Clean up
 file.dispose();
+```
+
+### Batch Folder Operations
+
+Process entire music collections efficiently:
+
+```typescript
+import { findDuplicates, scanFolder } from "taglib-wasm/folder";
+
+// Scan a music library
+const result = await scanFolder("/path/to/music", {
+  recursive: true,
+  concurrency: 4,
+  onProgress: (processed, total, file) => {
+    console.log(`Processing ${processed}/${total}: ${file}`);
+  },
+});
+
+console.log(`Found ${result.totalFound} audio files`);
+console.log(`Successfully processed ${result.totalProcessed} files`);
+
+// Process results
+for (const file of result.files) {
+  console.log(`${file.path}: ${file.tags.artist} - ${file.tags.title}`);
+  console.log(`Duration: ${file.properties?.duration}s`);
+}
+
+// Find duplicates
+const duplicates = await findDuplicates("/path/to/music", ["artist", "title"]);
+console.log(`Found ${duplicates.size} groups of duplicates`);
 ```
 
 ### Working with Cover Art
