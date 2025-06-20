@@ -2,7 +2,9 @@
   "version": "5",
   "specifiers": {
     "jsr:@std/assert@*": "1.0.13",
+    "jsr:@std/assert@0.220": "0.220.1",
     "jsr:@std/assert@1": "1.0.13",
+    "jsr:@std/fmt@~0.220.1": "0.220.1",
     "jsr:@std/internal@^1.0.6": "1.0.8",
     "jsr:@std/path@1": "1.1.0",
     "npm:@types/emscripten@^1.39.6": "1.40.1",
@@ -12,11 +14,20 @@
     "npm:typescript@5": "5.8.3"
   },
   "jsr": {
+    "@std/assert@0.220.1": {
+      "integrity": "88710d54f3afdd7a5761e7805abba1f56cd14e4b212feffeb3e73a9f77482425",
+      "dependencies": [
+        "jsr:@std/fmt"
+      ]
+    },
     "@std/assert@1.0.13": {
       "integrity": "ae0d31e41919b12c656c742b22522c32fb26ed0cba32975cb0de2a273cb68b29",
       "dependencies": [
         "jsr:@std/internal"
       ]
+    },
+    "@std/fmt@0.220.1": {
+      "integrity": "3b1a698477a26b1dacbbee26db1a65030a005c6d71db3b3a0e59f8a638f04d7a"
     },
     "@std/internal@1.0.8": {
       "integrity": "fc66e846d8d38a47cffd274d80d2ca3f0de71040f855783724bb6b87f60891f5"
