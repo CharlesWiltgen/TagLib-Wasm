@@ -237,8 +237,12 @@ Deno.test("scanFolder - parallel processing", async () => {
   const duration2 = Date.now() - startTime2;
 
   // Both should find the same files
-  console.log(`Result1: found=${result1.totalFound}, processed=${result1.totalProcessed}`);
-  console.log(`Result2: found=${result2.totalFound}, processed=${result2.totalProcessed}`);
+  console.log(
+    `Result1: found=${result1.totalFound}, processed=${result1.totalProcessed}`,
+  );
+  console.log(
+    `Result2: found=${result2.totalFound}, processed=${result2.totalProcessed}`,
+  );
   assertEquals(result1.totalFound, result2.totalFound);
   // Processing might vary slightly due to timing, but both should process at least some files
   assertEquals(result1.totalProcessed > 0, true);

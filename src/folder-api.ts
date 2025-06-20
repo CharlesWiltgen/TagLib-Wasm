@@ -168,16 +168,16 @@ async function processBatch(
   concurrency: number,
 ): Promise<AudioFileMetadata[]> {
   const results: AudioFileMetadata[] = [];
-  
+
   // Process files in chunks of size 'concurrency'
   for (let i = 0; i < files.length; i += concurrency) {
     const chunk = files.slice(i, i + concurrency);
     const chunkResults = await Promise.all(
-      chunk.map(file => processor(file))
+      chunk.map((file) => processor(file)),
     );
     results.push(...chunkResults);
   }
-  
+
   return results;
 }
 
