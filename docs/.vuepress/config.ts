@@ -48,6 +48,7 @@ export default defineUserConfig({
             "/guide/installation.md",
             "/guide/quick-start.md",
             "/guide/platform-examples.md",
+            "/guide/deno-compile.md",
           ],
         },
         {
