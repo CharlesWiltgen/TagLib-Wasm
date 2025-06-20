@@ -29,5 +29,8 @@ import "./codec-detection.test.ts";
 // Offline support tests - Deno compile and embedded WASM
 import "./offline-support.test.ts";
 
+// Folder API tests - Batch operations and directory scanning
+import "./folder-api.test.ts";
+
 // Note: Workers tests (test-workers.ts) are manual utilities
 // Run manually with: deno run --allow-read tools/test-workers.ts
