@@ -4,7 +4,7 @@
  */
 
 import { TagLib } from "./taglib.ts";
-import { applyTags, readTags, type Tag } from "./simple.ts";
+import { readTags, type Tag, updateTags } from "./simple.ts";
 import type { AudioProperties } from "./types.ts";
 
 /**
@@ -115,8 +115,8 @@ async function* walkDirectory(
       }
     }
   } else if (
-    typeof globalThis.process !== "undefined" &&
-    globalThis.process.versions?.node
+    typeof (globalThis as any).process !== "undefined" &&
+    (globalThis as any).process.versions?.node
   ) {
     // Node.js runtime
     const fs = await import("fs/promises");
@@ -135,8 +135,8 @@ async function* walkDirectory(
       }
     }
   } else if (
-    typeof globalThis.process !== "undefined" &&
-    (globalThis.process as any).versions?.bun
+    typeof (globalThis as any).process !== "undefined" &&
+    (globalThis as any).process.versions?.bun
   ) {
     // Bun runtime
     const fs = await import("fs/promises");
@@ -168,22 +168,16 @@ async function processBatch(
   concurrency: number,
 ): Promise<AudioFileMetadata[]> {
   const results: AudioFileMetadata[] = [];
-  const executing: Promise<void>[] = [];
-
-  for (const file of files) {
-    const promise = processor(file).then((result) => {
-      results.push(result);
-    });
-
-    executing.push(promise);
-
-    if (executing.length >= concurrency) {
-      await Promise.race(executing);
-      executing.splice(executing.findIndex((p) => p === promise), 1);
-    }
+  
+  // Process files in chunks of size 'concurrency'
+  for (let i = 0; i < files.length; i += concurrency) {
+    const chunk = files.slice(i, i + concurrency);
+    const chunkResults = await Promise.all(
+      chunk.map(file => processor(file))
+    );
+    results.push(...chunkResults);
   }
-
-  await Promise.all(executing);
+  
   return results;
 }
 
@@ -342,7 +336,7 @@ export async function updateFolderTags(
 
   const processor = async (update: { path: string; tags: Partial<Tag> }) => {
     try {
-      await applyTags(update.path, update.tags);
+      await updateTags(update.path, update.tags);
       successful++;
     } catch (error) {
       const err = error instanceof Error ? error : new Error(String(error));
@@ -401,9 +395,7 @@ export async function findDuplicates(
     if (key) {
       const group = duplicates.get(key) || [];
       group.push(file);
-      if (group.length > 1) {
-        duplicates.set(key, group);
-      }
+      duplicates.set(key, group);
     }
   }
 
@@ -447,7 +439,7 @@ export async function exportFolderMetadata(
   // Runtime-specific file writing
   if (typeof Deno !== "undefined") {
     await Deno.writeTextFile(outputPath, JSON.stringify(data, null, 2));
-  } else if (typeof globalThis.process !== "undefined") {
+  } else if (typeof (globalThis as any).process !== "undefined") {
     const fs = await import("fs/promises");
     await fs.writeFile(outputPath, JSON.stringify(data, null, 2));
   }

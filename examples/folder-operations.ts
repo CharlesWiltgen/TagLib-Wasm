@@ -39,7 +39,7 @@ async function scanAndDisplay() {
     console.log(`    Album: ${file.tags.album || "(unknown)"}`);
     console.log(`    Title: ${file.tags.title || "(unknown)"}`);
     if (file.properties) {
-      console.log(`    Duration: ${file.properties.duration}s`);
+      console.log(`    Duration: ${file.properties.length}s`);
       console.log(`    Bitrate: ${file.properties.bitrate} kbps`);
     }
   }
@@ -78,7 +78,7 @@ async function findDuplicateSongs() {
       if (file.properties) {
         console.log(
           `      Size: ${
-            (file.properties.duration * file.properties.bitrate * 125).toFixed(
+            (file.properties.length * file.properties.bitrate * 125).toFixed(
               0,
             )
           } bytes`,
