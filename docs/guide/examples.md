@@ -175,5 +175,5 @@ import { TagLib } from "npm:taglib-wasm"; // Deno
   patterns
 - See the [Cloudflare Workers Setup](./workers-setup.md) for serverless
   deployment
-- Read the [API Reference](/API.md) for detailed documentation
+- Read the [API Reference](/api/) for detailed documentation
 - Explore [Cover Art handling](./cover-art.md) for working with embedded images

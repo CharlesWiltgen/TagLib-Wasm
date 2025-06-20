@@ -71,4 +71,4 @@ TagLib-Wasm is ideal when you need to:
 
 - [Installation Guide](./installation.md) - Get started with your runtime
 - [Quick Start](./quick-start.md) - Write your first metadata handler
-- [API Reference](/API.md) - Explore the full API
+- [API Reference](/api/) - Explore the full API

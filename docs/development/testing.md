@@ -356,5 +356,5 @@ When contributing tests:
 ## Next Steps
 
 - See [Contributing Guidelines](/CONTRIBUTING.md) for more details
-- Check [Performance Guide](/Performance.md) for benchmark guidelines
-- Read [Error Handling](/Error-Handling.md) for error testing patterns
+- Check [Performance Guide](/concepts/performance.md) for benchmark guidelines
+- Read [Error Handling](/concepts/error-handling.md) for error testing patterns
