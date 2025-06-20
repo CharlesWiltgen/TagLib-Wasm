@@ -1,115 +1,263 @@
 # Using taglib-wasm with Deno Compile
 
-This guide explains how to use taglib-wasm in compiled Deno binaries.
+This comprehensive guide explains how to use taglib-wasm in compiled Deno binaries, with multiple approaches for different use cases.
 
-## The Challenge
+## Overview
 
-`deno compile` creates standalone executables, but taglib-wasm's WebAssembly
-module requires special handling since dynamic imports aren't included in the
-compiled binary.
+taglib-wasm provides built-in support for Deno compiled binaries through two helper functions:
+- `initializeForDenoCompile()` - Automatic initialization with offline support
+- `prepareWasmForEmbedding()` - Copies WASM file for embedding
 
-## Quick Start
+## Method 1: Simple CDN Loading (Recommended)
 
-See the complete example in `examples/deno-compile/` for a production-ready
-setup.
-
-## Solution 1: Embed WASM (Recommended)
-
-For offline-capable binaries, embed the WASM module:
-
-### Step 1: Generate Embedded Module
-
-```bash
-deno run --allow-read --allow-write scripts/bundle-wasm-base64.ts
-```
-
-This creates `taglib-wasm-embedded.ts` with the WASM encoded as base64.
-
-### Step 2: Use in Your App
+The simplest approach that leverages WebAssembly streaming compilation:
 
 ```typescript
-import { TagLib } from "jsr:@charlesw/taglib-wasm@latest";
-import { wasmBinary } from "./taglib-wasm-embedded.ts";
+import { TagLib } from "@charlesw/taglib-wasm";
 
-const taglib = await TagLib.initialize({ wasmBinary });
+// Works in both development and compiled binaries
+const taglib = await TagLib.initialize({
+  wasmUrl: "https://cdn.jsdelivr.net/npm/taglib-wasm@latest/dist/taglib.wasm",
+});
+
+// Use the library
 const file = await taglib.open("audio.mp3");
 console.log(file.tag().title);
 file.dispose();
 ```
 
-### Step 3: Compile
-
+**Compile command:**
 ```bash
-deno compile --allow-read your-app.ts
+deno compile --allow-read --allow-net myapp.ts
 ```
 
-## Solution 2: Load from CDN
+**Pros:**
+- ✅ Simple implementation
+- ✅ Uses WebAssembly streaming compilation for optimal performance
+- ✅ Always gets latest WASM optimizations
+- ✅ Small binary size
 
-For smaller binaries that require network access:
+**Cons:**
+- ❌ Requires internet connection on first run
 
-```typescript
-import { TagLib } from "jsr:@charlesw/taglib-wasm@latest";
+## Method 2: Automatic Offline Support
 
-const taglib = await TagLib.initialize({
-  wasmUrl: "https://cdn.jsdelivr.net/npm/taglib-wasm@latest/dist/taglib.wasm",
-});
-```
-
-## Production Pattern
-
-Here's a robust pattern that works in development and production:
+Use the built-in helper functions for seamless offline support:
 
 ```typescript
-import { TagLib } from "jsr:@charlesw/taglib-wasm@latest";
+import { initializeForDenoCompile } from "@charlesw/taglib-wasm";
+import { readTags } from "@charlesw/taglib-wasm/simple";
 
-async function initializeTagLib(): Promise<TagLib> {
-  // Try embedded WASM first
-  try {
-    const { wasmBinary } = await import("./taglib-wasm-embedded.ts");
-    return await TagLib.initialize({ wasmBinary });
-  } catch {
-    // Fall back to CDN
-    return await TagLib.initialize({
-      wasmUrl:
-        "https://cdn.jsdelivr.net/npm/taglib-wasm@latest/dist/taglib.wasm",
-    });
+async function main() {
+  // Automatically handles offline/online scenarios
+  const taglib = await initializeForDenoCompile();
+  
+  // Process files
+  for (const filePath of Deno.args) {
+    const tags = await readTags(filePath);
+    console.log(`${filePath}:`, tags);
   }
+}
+
+if (import.meta.main) {
+  await main();
 }
 ```
 
-## Complete Example
+### Build Process
 
-```bash
-# Clone the example
-cd examples/deno-compile
+**Step 1: Prepare WASM file (run once during build)**
+```typescript
+// prepare-offline.ts
+import { prepareWasmForEmbedding } from "@charlesw/taglib-wasm";
 
-# Option 1: Compile with embedded WASM (offline support)
-./compile.sh --embed
-./taglib-tool-embedded song.mp3
-
-# Option 2: Compile with CDN loading (smaller size)
-./compile.sh
-./taglib-tool song.mp3
+await prepareWasmForEmbedding("./taglib.wasm");
 ```
 
-## Trade-offs
+```bash
+deno run --allow-read --allow-write prepare-offline.ts
+```
 
-| Approach      | Binary Size | Network Required | Startup Time       |
-| ------------- | ----------- | ---------------- | ------------------ |
-| Embedded WASM | +500KB      | No               | Fast               |
-| CDN Loading   | Minimal     | Yes              | Depends on network |
+**Step 2: Compile with embedded WASM**
+```bash
+deno compile --allow-read --include taglib.wasm myapp.ts
+```
+
+**Step 3: Run offline**
+```bash
+./myapp audio.mp3
+```
+
+### How It Works
+
+The `initializeForDenoCompile()` function:
+1. Detects if running as compiled binary using `Deno.mainModule`
+2. Attempts to load embedded WASM from `./taglib.wasm`
+3. Falls back to network fetch if not found (for development)
+
+## Method 3: Manual Control (Advanced)
+
+For full control over the loading strategy:
+
+```typescript
+import { TagLib } from "@charlesw/taglib-wasm";
+
+async function initializeTagLib(): Promise<TagLib> {
+  // Detect if running as compiled binary
+  const isCompiled = Deno.mainModule.includes("deno-compile://");
+  
+  if (isCompiled) {
+    try {
+      // Try to load embedded WASM
+      const wasmPath = new URL("./taglib.wasm", import.meta.url);
+      const wasmBinary = await Deno.readFile(wasmPath);
+      return await TagLib.initialize({ wasmBinary });
+    } catch (error) {
+      console.warn("Embedded WASM not found, falling back to CDN");
+    }
+  }
+  
+  // Development or fallback
+  return await TagLib.initialize({
+    wasmUrl: "https://cdn.jsdelivr.net/npm/taglib-wasm@latest/dist/taglib.wasm"
+  });
+}
+
+// Usage
+const taglib = await initializeTagLib();
+```
+
+## Complete Production Example
+
+Here's a production-ready implementation with error handling:
+
+```typescript
+#!/usr/bin/env -S deno run --allow-read --allow-net
+
+import { initializeForDenoCompile } from "@charlesw/taglib-wasm";
+import { readTags, writeTags } from "@charlesw/taglib-wasm/simple";
+
+async function processAudioFile(filePath: string) {
+  try {
+    // Read existing tags
+    const tags = await readTags(filePath);
+    console.log(`\n📄 File: ${filePath}`);
+    console.log(`  Title: ${tags.title || "(none)"}`);
+    console.log(`  Artist: ${tags.artist || "(none)"}`);
+    console.log(`  Album: ${tags.album || "(none)"}`);
+    
+    // Modify tags if needed
+    if (!tags.comment?.includes("Processed")) {
+      await writeTags(filePath, {
+        ...tags,
+        comment: `${tags.comment || ""} - Processed by taglib-wasm`,
+      });
+      console.log("  ✅ Updated comment tag");
+    }
+  } catch (error) {
+    console.error(`  ❌ Error: ${error.message}`);
+  }
+}
+
+async function main() {
+  if (Deno.args.length === 0) {
+    console.log("Usage: audio-processor <files...>");
+    console.log("Example: audio-processor *.mp3");
+    Deno.exit(1);
+  }
+  
+  console.log("🎵 Audio Metadata Processor");
+  console.log("Initializing taglib-wasm...");
+  
+  try {
+    // Initialize with automatic offline support
+    const taglib = await initializeForDenoCompile();
+    console.log("✅ Ready to process files\n");
+    
+    // Process all files
+    for (const filePath of Deno.args) {
+      await processAudioFile(filePath);
+    }
+    
+    console.log("\n✅ All files processed!");
+  } catch (error) {
+    console.error("Fatal error:", error.message);
+    Deno.exit(1);
+  }
+}
+
+if (import.meta.main) {
+  await main();
+}
+```
+
+## Key Implementation Details
+
+### 1. Detection of Compiled Binaries
+```typescript
+const isCompiled = Deno.mainModule.includes("deno-compile://");
+```
+
+### 2. Embedding WASM Files
+Use the `--include` flag when compiling:
+```bash
+deno compile --allow-read --include taglib.wasm myapp.ts
+```
+
+### 3. Path Resolution
+Use URL constructor for relative paths:
+```typescript
+const wasmPath = new URL("./taglib.wasm", import.meta.url);
+```
+
+### 4. Environment Configuration
+Support runtime configuration:
+```typescript
+const WASM_URL = Deno.env.get("TAGLIB_WASM_URL") || 
+  "https://cdn.jsdelivr.net/npm/taglib-wasm@latest/dist/taglib.wasm";
+```
+
+## Comparison Table
+
+| Method | Offline Support | Binary Size | Implementation Complexity | Best For |
+|--------|----------------|-------------|--------------------------|----------|
+| CDN Loading | ❌ | Small | Simple | Online tools, web services |
+| Auto Embedding | ✅ | +500KB | Medium | CLI tools, offline apps |
+| Manual Control | ✅ | +500KB | Complex | Custom requirements |
 
 ## Best Practices
 
-1. **Use JSR specifier**: Import from `jsr:@charlesw/taglib-wasm@latest` since
-   JSR properly supports Wasm files
-2. **Environment variables**: Use `WASM_URL` to configure CDN location
-3. **Error handling**: Always provide fallback loading strategies
-4. **Test offline**: Ensure embedded binaries work without network
+1. **Use TypeScript**: Leverage type safety for better development experience
+2. **Handle Errors**: Always wrap initialization in try-catch blocks
+3. **Provide Feedback**: Show loading status to users
+4. **Test Both Modes**: Ensure your app works in both development and compiled modes
+5. **Document Dependencies**: Make it clear if your tool requires internet access
 
-## Tips
+## Common Issues and Solutions
 
-- The embedded approach adds ~500KB to your binary
-- Consider hosting WASM on your own CDN for production
-- Use `--allow-net` only if loading from CDN
-- The WASM module is already optimized and compressed
+### Issue: "Module not found" in compiled binary
+**Solution**: Ensure you used `--include taglib.wasm` when compiling
+
+### Issue: Large binary size
+**Solution**: Use CDN loading if offline support isn't required
+
+### Issue: Slow initialization
+**Solution**: Use CDN with streaming compilation for faster startup
+
+### Issue: Network errors
+**Solution**: Implement retry logic or provide offline fallback
+
+## Example Projects
+
+Complete working examples are available in the repository:
+- `examples/deno-compile/simple-app.ts` - CDN loading example
+- `examples/deno-compile/app.ts` - Advanced embedding example
+- `examples/deno/offline-compile.ts` - Using helper functions
+
+## Tips for Production
+
+- **Cache WASM locally**: For frequently used tools, cache the WASM file locally
+- **Use your own CDN**: Host the WASM file on your infrastructure for reliability
+- **Version pinning**: Use specific versions instead of `@latest` for stability
+- **Progress indicators**: Show download progress when fetching from CDN
+- **Graceful degradation**: Provide meaningful error messages when initialization fails
