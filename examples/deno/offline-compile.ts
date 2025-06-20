@@ -11,8 +11,7 @@
  * 3. Run the compiled binary: ./offline-compile song.mp3
  */
 
-import { initializeForDenoCompile } from "@charlesw/taglib-wasm";
-import { readTags } from "@charlesw/taglib-wasm/simple";
+import { initializeForDenoCompile, readTags } from "@charlesw/taglib-wasm";
 
 async function main() {
   const args = Deno.args;

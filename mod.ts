@@ -68,3 +68,16 @@ export {
   isDenoCompiled,
   prepareWasmForEmbedding,
 } from "./src/deno-compile.ts";
+
+// Export Folder API
+export {
+  exportFolderMetadata,
+  findDuplicates,
+  scanFolder,
+  updateFolderTags,
+} from "./src/folder-api.ts";
+export type {
+  AudioFileMetadata,
+  FolderScanOptions,
+  FolderScanResult,
+} from "./src/folder-api.ts";
