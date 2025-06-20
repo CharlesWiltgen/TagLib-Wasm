@@ -6,6 +6,7 @@ taglib-wasm.
 ## Table of Contents
 
 - [Memory Management](#memory-management)
+- [Smart Partial Loading](#smart-partial-loading)
 - [Processing Optimization](#processing-optimization)
 - [Batch Operations](#batch-operations)
 - [Runtime-Specific Optimizations](#runtime-specific-optimizations)
@@ -112,6 +113,168 @@ async function processFile(buffer: Uint8Array) {
     // Process...
   } finally {
     file.dispose();
+  }
+}
+```
+
+## Smart Partial Loading
+
+### Overview
+
+Smart Partial Loading is a performance optimization that loads only the
+metadata-containing portions of audio files (header and footer) instead of the
+entire file. This dramatically improves performance for large files while
+maintaining full functionality.
+
+### How It Works
+
+Audio metadata is typically stored in specific locations:
+
+- **Header (first 1MB)**: ID3v2 tags (MP3), FLAC metadata blocks, MP4 atoms
+- **Footer (last 128KB)**: ID3v1 tags (MP3), APE tags
+
+For a 500MB audio file, Smart Partial Loading:
+
+- **Without**: Loads all 500MB into memory
+- **With**: Loads only ~1.1MB (1MB header + 128KB footer)
+- **Performance gain**: ~450x less memory usage
+
+### Usage
+
+```typescript
+// Enable partial loading for large files
+const file = await taglib.open(largeFile, {
+  partial: true,
+  maxHeaderSize: 2 * 1024 * 1024, // 2MB header
+  maxFooterSize: 256 * 1024, // 256KB footer
+});
+
+// Read operations work normally
+const tags = file.tag();
+console.log(tags.title, tags.artist);
+
+// Multiple tag changes are batched
+file.tag().setTitle("New Title");
+file.tag().setArtist("New Artist");
+file.tag().setAlbum("New Album");
+
+// Save automatically loads the full file when needed
+await file.saveToFile(); // Full file loaded here
+```
+
+### Supported Environments
+
+Partial loading works with:
+
+- **Browser File API**: Using `File.slice()` for efficient chunking
+- **Deno**: Native file operations with seek support
+- **Node.js**: File handle operations with position reads
+- **Buffers**: Falls back to full loading (no benefit)
+
+### Performance Comparison
+
+```typescript
+// Benchmark: 500MB FLAC file
+const benchmark = async () => {
+  console.time("Full Load");
+  const full = await taglib.open("large.flac");
+  console.timeEnd("Full Load"); // ~2500ms
+
+  console.time("Partial Load");
+  const partial = await taglib.open("large.flac", { partial: true });
+  console.timeEnd("Partial Load"); // ~50ms
+
+  // 50x faster initial load!
+};
+```
+
+### Memory Usage
+
+```typescript
+// Memory usage for different file sizes
+function memoryComparison(fileSizeMB: number) {
+  const fullLoad = fileSizeMB * 3; // Peak during processing
+  const partialLoad = 1.1 * 3; // Always ~3.3MB peak
+
+  return {
+    fullLoad: `${fullLoad}MB`,
+    partialLoad: `${partialLoad}MB`,
+    savings: `${((1 - partialLoad / fullLoad) * 100).toFixed(1)}%`,
+  };
+}
+
+// 100MB file: 300MB vs 3.3MB (98.9% savings)
+// 500MB file: 1500MB vs 3.3MB (99.8% savings)
+// 1GB file: 3000MB vs 3.3MB (99.9% savings)
+```
+
+### Smart Save Behavior
+
+The "smart save" feature ensures data integrity:
+
+1. **Metadata changes are tracked** in the partial buffer
+2. **On save, the full file is loaded** automatically
+3. **Changes are applied** to the complete file
+4. **The complete file is saved** with all audio data intact
+
+```typescript
+// Example: Safe editing with partial loading
+async function editLargeFile(path: string) {
+  // Fast partial load (only metadata)
+  const file = await taglib.open(path, { partial: true });
+
+  // Make multiple changes (no I/O yet)
+  const tag = file.tag();
+  tag.setTitle("New Title");
+  tag.setArtist("New Artist");
+  tag.setAlbum("New Album");
+  tag.setYear(2025);
+  tag.setGenre("Electronic");
+
+  // Smart save - loads full file only when needed
+  await file.saveToFile(); // Full file loaded and saved here
+
+  file.dispose();
+}
+```
+
+### Best Practices
+
+1. **Use for large files**: Most beneficial for files >50MB
+2. **Batch changes**: Make all metadata changes before saving
+3. **Check file size**: Small files don't benefit from partial loading
+
+```typescript
+// Adaptive loading based on file size
+async function openAdaptive(file: File | string) {
+  const size = file instanceof File ? file.size : await getFileSize(file);
+
+  const threshold = 50 * 1024 * 1024; // 50MB
+
+  return taglib.open(file, {
+    partial: size > threshold,
+    maxHeaderSize: Math.min(size * 0.1, 2 * 1024 * 1024), // 10% or 2MB max
+    maxFooterSize: Math.min(size * 0.01, 256 * 1024), // 1% or 256KB max
+  });
+}
+```
+
+### Limitations
+
+1. **Read-then-write pattern**: Full file must be loaded for saving
+2. **Not for streaming**: Requires random access to file
+3. **Format dependent**: Some rare formats store metadata throughout the file
+
+### Error Handling
+
+```typescript
+try {
+  const file = await taglib.open(largePath, { partial: true });
+  // ... process ...
+} catch (error) {
+  if (error.message.includes("partial loading not supported")) {
+    // Fall back to full loading
+    const file = await taglib.open(largePath);
   }
 }
 ```

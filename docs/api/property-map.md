@@ -38,7 +38,7 @@ file.setProperties({
 - For MP4-specific metadata, use the `setMP4Item()` method
 - Use the `Tags` constants for type-safe access:
   `file.properties()[Tags.AlbumArtist]`
-- See [Tag Name Constants](./Tag-Name-Constants.md) for a comprehensive list of
+- See [Tag Name Constants](./tag-name-constants.md) for a comprehensive list of
   standard property names and format-specific mappings
 
 ## 📋 Format-Specific Storage Reference

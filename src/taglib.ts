@@ -2,6 +2,7 @@ import type { TagLibModule, WasmModule } from "./wasm.ts";
 import type {
   AudioProperties,
   FileType,
+  OpenOptions,
   Picture,
   PropertyMap,
   Tag as BasicTag,
@@ -12,7 +13,11 @@ import {
   TagLibInitializationError,
   UnsupportedFormatError,
 } from "./errors.ts";
-import { readFileData } from "./utils/file.ts";
+import {
+  getFileSize,
+  readFileData,
+  readPartialFileData,
+} from "./utils/file.ts";
 import { writeFileData } from "./utils/write.ts";
 
 /**
@@ -348,14 +353,23 @@ export class AudioFileImpl implements AudioFile {
   private cachedTag: Tag | null = null;
   private cachedAudioProperties: AudioProperties | null = null;
   private sourcePath?: string;
+  private originalSource?: string | File | ArrayBuffer | Uint8Array;
+  private isPartiallyLoaded: boolean = false;
+  private partialLoadOptions?: OpenOptions;
 
   constructor(
     private module: TagLibModule,
     fileHandle: any,
     sourcePath?: string,
+    originalSource?: string | File | ArrayBuffer | Uint8Array,
+    isPartiallyLoaded: boolean = false,
+    partialLoadOptions?: OpenOptions,
   ) {
     this.fileHandle = fileHandle;
     this.sourcePath = sourcePath;
+    this.originalSource = originalSource;
+    this.isPartiallyLoaded = isPartiallyLoaded;
+    this.partialLoadOptions = partialLoadOptions;
   }
 
   /** @inheritdoc */
@@ -488,6 +502,13 @@ export class AudioFileImpl implements AudioFile {
 
   /** @inheritdoc */
   save(): boolean {
+    // If partially loaded, we need to load the full file first
+    if (this.isPartiallyLoaded && this.originalSource) {
+      throw new Error(
+        "Cannot save partially loaded file directly. Use saveToFile() instead, which will automatically load the full file.",
+      );
+    }
+
     // Clear caches since values may have changed
     this.cachedTag = null;
     this.cachedAudioProperties = null;
@@ -516,14 +537,70 @@ export class AudioFileImpl implements AudioFile {
       );
     }
 
-    // First save to in-memory buffer
-    if (!this.save()) {
-      throw new Error("Failed to save changes to in-memory buffer");
-    }
+    // If partially loaded, we need to load the full file first
+    if (this.isPartiallyLoaded && this.originalSource) {
+      // Load the full file
+      const fullData = await readFileData(this.originalSource);
 
-    // Get the updated buffer and write to file
-    const buffer = this.getFileBuffer();
-    await writeFileData(targetPath, buffer);
+      // Create a new file handle with the full data
+      const fullFileHandle = this.module.createFileHandle();
+      const success = fullFileHandle.loadFromBuffer(fullData);
+      if (!success) {
+        throw new InvalidFormatError(
+          "Failed to load full audio file for saving",
+          fullData.byteLength,
+        );
+      }
+
+      // Copy all tag changes from the partial handle to the full handle
+      const partialTag = this.fileHandle.getTag();
+      const fullTag = fullFileHandle.getTag();
+
+      if (partialTag && fullTag) {
+        // Copy basic tags
+        fullTag.setTitle(partialTag.title());
+        fullTag.setArtist(partialTag.artist());
+        fullTag.setAlbum(partialTag.album());
+        fullTag.setComment(partialTag.comment());
+        fullTag.setGenre(partialTag.genre());
+        fullTag.setYear(partialTag.year());
+        fullTag.setTrack(partialTag.track());
+      }
+
+      // Copy properties
+      const properties = this.fileHandle.getProperties();
+      fullFileHandle.setProperties(properties);
+
+      // Copy pictures
+      const pictures = this.fileHandle.getPictures();
+      fullFileHandle.setPictures(pictures);
+
+      // Save the full file handle
+      if (!fullFileHandle.save()) {
+        fullFileHandle.destroy();
+        throw new Error("Failed to save changes to full file");
+      }
+
+      // Get the buffer from the full file handle
+      const buffer = fullFileHandle.getBuffer();
+      fullFileHandle.destroy();
+
+      // Write to file
+      await writeFileData(targetPath, buffer);
+
+      // Update our state - we're no longer partially loaded
+      this.isPartiallyLoaded = false;
+      this.originalSource = undefined;
+    } else {
+      // Normal save for fully loaded files
+      if (!this.save()) {
+        throw new Error("Failed to save changes to in-memory buffer");
+      }
+
+      // Get the updated buffer and write to file
+      const buffer = this.getFileBuffer();
+      await writeFileData(targetPath, buffer);
+    }
   }
 
   /** @inheritdoc */
@@ -805,6 +882,7 @@ export class TagLib {
    */
   async open(
     input: string | ArrayBuffer | Uint8Array | File,
+    options?: OpenOptions,
   ): Promise<AudioFile> {
     // Check if Embind is available
     if (!this.module.createFileHandle) {
@@ -817,8 +895,59 @@ export class TagLib {
     // Track the source path if input is a string
     const sourcePath = typeof input === "string" ? input : undefined;
 
-    // Read file data if input is a path or File object
-    const audioData = await readFileData(input);
+    // Default options
+    const opts = {
+      partial: false,
+      maxHeaderSize: 1024 * 1024, // 1MB
+      maxFooterSize: 128 * 1024, // 128KB
+      ...options,
+    };
+
+    let audioData: Uint8Array;
+    let isPartiallyLoaded = false;
+
+    // Handle partial loading if enabled and input is a File
+    if (opts.partial && typeof File !== "undefined" && input instanceof File) {
+      const headerSize = Math.min(opts.maxHeaderSize, input.size);
+      const footerSize = Math.min(opts.maxFooterSize, input.size);
+
+      // If file is small enough, just load it all
+      if (input.size <= headerSize + footerSize) {
+        audioData = await readFileData(input);
+      } else {
+        // Load header and footer
+        const header = await input.slice(0, headerSize).arrayBuffer();
+        const footerStart = Math.max(0, input.size - footerSize);
+        const footer = await input.slice(footerStart).arrayBuffer();
+
+        // Combine header and footer
+        const combined = new Uint8Array(header.byteLength + footer.byteLength);
+        combined.set(new Uint8Array(header), 0);
+        combined.set(new Uint8Array(footer), header.byteLength);
+
+        audioData = combined;
+        isPartiallyLoaded = true;
+      }
+    } else if (opts.partial && typeof input === "string") {
+      // For file paths, we need to check file size first
+      const fileSize = await getFileSize(input);
+
+      if (fileSize > opts.maxHeaderSize + opts.maxFooterSize) {
+        // Read partial data
+        audioData = await readPartialFileData(
+          input,
+          opts.maxHeaderSize,
+          opts.maxFooterSize,
+        );
+        isPartiallyLoaded = true;
+      } else {
+        // File is small, read it all
+        audioData = await readFileData(input);
+      }
+    } else {
+      // Normal full file loading or partial not requested
+      audioData = await readFileData(input);
+    }
 
     // Ensure we pass the correct slice of the buffer
     const buffer = audioData.buffer.slice(
@@ -841,7 +970,14 @@ export class TagLib {
       );
     }
 
-    return new AudioFileImpl(this.module, fileHandle, sourcePath);
+    return new AudioFileImpl(
+      this.module,
+      fileHandle,
+      sourcePath,
+      input, // Store original source for lazy loading
+      isPartiallyLoaded,
+      opts,
+    );
   }
 
   /**
