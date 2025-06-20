@@ -10,6 +10,11 @@ JavaScript/TypeScript.
   - [applyTags()](#applytags)
   - [updateTags()](#updatetags)
   - [readProperties()](#readproperties)
+- [Folder API](#folder-api)
+  - [scanFolder()](#scanfolder)
+  - [updateFolderTags()](#updatefoldertags)
+  - [findDuplicates()](#findduplicates)
+  - [exportFolderMetadata()](#exportfoldermetadata)
 - [Full API](#full-api)
   - [TagLib Class](#taglib-class)
   - [AudioFile Class](#audiofile-class)
@@ -200,6 +205,112 @@ console.log(`Bitrate: ${props.bitrate} kbps`);
 console.log(`Sample rate: ${props.sampleRate} Hz`);
 console.log(`Channels: ${props.channels}`);
 ```
+
+## Folder API
+
+The Folder API provides batch operations for processing multiple audio files in
+directories. This API is ideal for building music library managers, duplicate
+finders, and batch metadata editors.
+
+::: tip The folder API requires filesystem access and is only available in Deno,
+Node.js, and Bun environments. :::
+
+### Import
+
+```typescript
+import {
+  findDuplicates,
+  scanFolder,
+  updateFolderTags,
+} from "taglib-wasm/folder";
+```
+
+### scanFolder()
+
+Scan a directory for audio files and read their metadata.
+
+```typescript
+function scanFolder(
+  folderPath: string,
+  options?: FolderScanOptions,
+): Promise<FolderScanResult>;
+```
+
+#### Example
+
+```typescript
+const result = await scanFolder("/music", {
+  recursive: true,
+  concurrency: 4,
+  onProgress: (processed, total, file) => {
+    console.log(`Processing ${processed}/${total}: ${file}`);
+  },
+});
+
+console.log(`Found ${result.totalFound} files`);
+console.log(`Processed ${result.totalProcessed} successfully`);
+```
+
+### updateFolderTags()
+
+Update metadata for multiple files in batch.
+
+```typescript
+function updateFolderTags(
+  updates: Array<{ path: string; tags: Partial<Tag> }>,
+  options?: { continueOnError?: boolean; concurrency?: number },
+): Promise<{
+  successful: number;
+  failed: Array<{ path: string; error: Error }>;
+  duration: number;
+}>;
+```
+
+#### Example
+
+```typescript
+const result = await updateFolderTags([
+  { path: "/music/song1.mp3", tags: { artist: "New Artist" } },
+  { path: "/music/song2.mp3", tags: { album: "New Album" } },
+]);
+
+console.log(`Updated ${result.successful} files`);
+```
+
+### findDuplicates()
+
+Find duplicate audio files based on metadata criteria.
+
+```typescript
+function findDuplicates(
+  folderPath: string,
+  criteria?: Array<keyof Tag>,
+): Promise<Map<string, AudioFileMetadata[]>>;
+```
+
+#### Example
+
+```typescript
+const duplicates = await findDuplicates("/music", ["artist", "title"]);
+for (const [key, files] of duplicates) {
+  console.log(`Found ${files.length} copies of: ${key}`);
+}
+```
+
+### exportFolderMetadata()
+
+Export folder metadata to a JSON file.
+
+```typescript
+function exportFolderMetadata(
+  folderPath: string,
+  outputPath: string,
+  options?: FolderScanOptions,
+): Promise<void>;
+```
+
+For complete documentation, see the
+[Folder API Reference](/api/folder-api.html).
 
 ## Full API
 

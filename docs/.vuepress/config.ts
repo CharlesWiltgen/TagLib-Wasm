@@ -55,6 +55,7 @@ export default defineUserConfig({
           text: "Features",
           children: [
             "/guide/cover-art.md",
+            "/guide/folder-operations.md",
             "/guide/examples.md",
             "/guide/workers-setup.md",
             "/features/codec-detection.md",
@@ -74,6 +75,7 @@ export default defineUserConfig({
           text: "API Reference",
           children: [
             "/api/README.md",
+            "/api/folder-api.md",
             "/api/tag-name-constants.md",
             "/api/property-map.md",
           ],

@@ -410,5 +410,5 @@ async function processFiles(
 
 - Check out the [Examples](./examples.md) for more code samples
 - Read the [API Reference](../api/) for detailed documentation
-- See [Runtime Compatibility](../concepts/runtime-compatibility.md) for platform-specific
-  details
+- See [Runtime Compatibility](../concepts/runtime-compatibility.md) for
+  platform-specific details

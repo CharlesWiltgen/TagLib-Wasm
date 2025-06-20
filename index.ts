@@ -138,6 +138,23 @@ export {
 } from "./src/file-utils.ts";
 
 /**
+ * Folder/batch operations for processing multiple audio files.
+ * @see {@link scanFolder} - Scan folder for audio files and read metadata
+ * @see {@link updateFolderTags} - Update tags for multiple files
+ * @see {@link findDuplicates} - Find duplicate files based on metadata
+ * @see {@link exportFolderMetadata} - Export folder metadata to JSON
+ */
+export {
+  type AudioFileMetadata,
+  exportFolderMetadata,
+  findDuplicates,
+  type FolderScanOptions,
+  type FolderScanResult,
+  scanFolder,
+  updateFolderTags,
+} from "./src/folder-api.ts";
+
+/**
  * Web browser utilities for cover art operations.
  * @see {@link pictureToDataURL} - Convert picture to data URL
  * @see {@link setCoverArtFromCanvas} - Set cover art from HTML canvas
