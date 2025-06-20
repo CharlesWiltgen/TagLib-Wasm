@@ -7,7 +7,7 @@ actions:
     link: /guide/
     type: primary
   - text: API Reference
-    link: /API.md
+    link: /api/
     type: secondary
 features:
   - title: Universal Compatibility

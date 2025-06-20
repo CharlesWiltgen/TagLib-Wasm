@@ -297,7 +297,7 @@ export default {
 - Configure memory limits (Workers have 128MB limit)
 - Always load from ArrayBuffer (no file system)
 - Consider using Durable Objects for caching
-- See [Cloudflare Workers Guide](../Cloudflare-Workers.md) for detailed
+- See [Cloudflare Workers Guide](../advanced/cloudflare-workers.md) for detailed
   configuration
 
 ## Electron
@@ -409,6 +409,6 @@ async function processFiles(
 ## Next Steps
 
 - Check out the [Examples](./examples.md) for more code samples
-- Read the [API Reference](../API.md) for detailed documentation
-- See [Runtime Compatibility](../Runtime-Compatibility.md) for platform-specific
+- Read the [API Reference](../api/) for detailed documentation
+- See [Runtime Compatibility](../concepts/runtime-compatibility.md) for platform-specific
   details

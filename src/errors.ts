@@ -113,7 +113,7 @@ export class UnsupportedFormatError extends TagLibError {
  */
 export class FileOperationError extends TagLibError {
   constructor(
-    public readonly operation: "read" | "write" | "save",
+    public readonly operation: "read" | "write" | "save" | "stat",
     message: string,
     public readonly path?: string,
     context?: Record<string, unknown>,
