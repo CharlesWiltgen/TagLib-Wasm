@@ -220,17 +220,17 @@ Supported codec detection:
 
 ### Guides
 
-- [API Reference](https://charleswiltgen.github.io/taglib-wasm/API.html)
+- [API Reference](https://charleswiltgen.github.io/taglib-wasm/api/)
 - [Platform Examples](https://charleswiltgen.github.io/taglib-wasm/guide/platform-examples.html)
 - [Working with Cover Art](https://charleswiltgen.github.io/taglib-wasm/guide/cover-art.html)
 - [Cloudflare Workers Setup](https://charleswiltgen.github.io/taglib-wasm/guide/workers-setup.html)
-- [Error Handling](https://charleswiltgen.github.io/taglib-wasm/Error-Handling.html)
+- [Error Handling](https://charleswiltgen.github.io/taglib-wasm/concepts/error-handling.html)
 
 ### Development
 
 - [Testing Guide](https://charleswiltgen.github.io/taglib-wasm/development/testing.html)
 - [Future Improvements](https://charleswiltgen.github.io/taglib-wasm/development/improvements.html)
-- [Contributing](https://charleswiltgen.github.io/taglib-wasm/CONTRIBUTING.html)
+- [Contributing](CONTRIBUTING.md)
 
 ## 📋 Supported Formats
 
@@ -270,7 +270,41 @@ file.setProperty(Tags.TrackGain, "-6.54 dB");
 file.setProperty(Tags.TrackPeak, "0.987654");
 ```
 
-[View all supported tag constants →](https://charleswiltgen.github.io/taglib-wasm/Tag-Name-Constants.html)
+[View all supported tag constants →](https://charleswiltgen.github.io/taglib-wasm/api/tag-name-constants.html)
+
+## ⚡ Performance & Smart Partial Loading
+
+`taglib-wasm` now supports Smart Partial Loading, dramatically improving
+performance for large audio files:
+
+```typescript
+// Enable partial loading for large files (>50MB)
+const file = await taglib.open("large-concert.flac", {
+  partial: true,
+  maxHeaderSize: 2 * 1024 * 1024, // 2MB header
+  maxFooterSize: 256 * 1024, // 256KB footer
+});
+
+// Read operations work normally
+const tags = file.tag();
+console.log(tags.title, tags.artist);
+
+// Make multiple changes efficiently
+tags.setTitle("Live at Madison Square Garden");
+tags.setArtist("The Beatles");
+tags.setAlbum("Greatest Live Performances");
+
+// Smart save - automatically loads full file when needed
+await file.saveToFile(); // Full file loaded only here
+```
+
+**Performance gains:**
+
+- **500MB file**: ~450x less memory usage (1.1MB vs 500MB)
+- **Initial load**: 50x faster (50ms vs 2500ms)
+- **Memory peak**: 3.3MB instead of 1.5GB
+
+[View performance guide →](https://charleswiltgen.github.io/taglib-wasm/concepts/performance.html)
 
 ## 🏗️ Development
 

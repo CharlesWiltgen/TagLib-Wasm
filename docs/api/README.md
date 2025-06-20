@@ -252,13 +252,22 @@ const taglib = await TagLib.initialize({
 Open an audio file from various input sources.
 
 ```typescript
-open(input: string | ArrayBuffer | Uint8Array | File): Promise<AudioFile>
+open(input: string | ArrayBuffer | Uint8Array | File, options?: OpenOptions): Promise<AudioFile>
 ```
 
 ##### Parameters
 
 - `input`: File path (string), audio data (ArrayBuffer/Uint8Array), or File
   object
+- `options` (optional): Configuration for opening the file
+
+```typescript
+interface OpenOptions {
+  partial?: boolean; // Enable partial loading (default: false)
+  maxHeaderSize?: number; // Max header size in bytes (default: 1MB)
+  maxFooterSize?: number; // Max footer size in bytes (default: 128KB)
+}
+```
 
 ##### Returns
 
@@ -285,6 +294,13 @@ const file = await taglib.open(arrayBuffer);
 // From File object (browsers)
 const fileInput = document.getElementById("file-input").files[0];
 const file = await taglib.open(fileInput);
+
+// With partial loading for large files
+const largeFile = await taglib.open("large-concert.flac", {
+  partial: true,
+  maxHeaderSize: 2 * 1024 * 1024, // 2MB
+  maxFooterSize: 256 * 1024, // 256KB
+});
 ```
 
 #### taglib.openFile()
@@ -576,12 +592,18 @@ you need to write the buffer to disk or use `saveToFile()`.
 Save the modified audio file directly to disk.
 
 ```typescript
-saveToFile(path: string): Promise<void>
+saveToFile(path?: string): Promise<void>
 ```
 
 ##### Parameters
 
-- `path`: File path where the audio file will be saved
+- `path` (optional): File path where the audio file will be saved. If not
+  provided, saves to the original file path (if available).
+
+**Smart Save for Partial Loading**: When the file was opened with partial
+loading enabled, `saveToFile()` automatically loads the complete file before
+saving, ensuring all audio data is preserved while applying your metadata
+changes.
 
 ##### Example
 

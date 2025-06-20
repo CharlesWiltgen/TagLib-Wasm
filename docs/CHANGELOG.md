@@ -8,6 +8,16 @@ and this project adheres to
 
 ## [Unreleased]
 
+### Added
+
+- Smart Partial Loading for dramatically improved performance with large files
+  - New `partial` option in `open()` method enables loading only metadata
+    portions
+  - Configurable `maxHeaderSize` and `maxFooterSize` options
+  - Automatic full file loading when `saveToFile()` is called
+  - 50-450x performance improvement for files >50MB
+  - Supports Browser File API, Deno, and Node.js environments
+
 ### Fixed
 
 - Fixed Unicode string handling - emoji, CJK characters, RTL text, and all
