@@ -6,9 +6,10 @@ effectively when writing code that consumes this package.
 ## Getting Started in 60 Seconds
 
 ```typescript
-// Install
-npm install taglib-wasm           // Node.js/Bun
-import ... from "npm:taglib-wasm" // Deno
+// Install - Choose based on runtime
+npm install taglib-wasm                      // Node.js/Bun
+import ... from "jsr:@charlesw/taglib-wasm"  // Deno (preferred)
+import ... from "npm:taglib-wasm"            // Deno (alternative)
 
 // Read tags (simplest approach)
 import { readTags } from "taglib-wasm/simple";
@@ -18,15 +19,33 @@ console.log(tags.artist, tags.title, tags.album);
 // That's it! For more control, keep reading...
 ```
 
+## Package Distribution
+
+taglib-wasm is distributed through two registries:
+
+### JSR Package (`@charlesw/taglib-wasm`) - Preferred for Deno
+
+- **Best for**: Deno applications and compiled binaries
+- **Includes**: All APIs including Folder API and Deno compile utilities
+- **Import**: `import { ... } from "jsr:@charlesw/taglib-wasm"`
+- **Benefits**: Better Deno integration, TypeScript-first, no npm overhead
+
+### NPM Package (`taglib-wasm`) - For Node.js/Bun/Browsers
+
+- **Best for**: Node.js, Bun, browser applications
+- **Import**: `import { ... } from "taglib-wasm"`
+- **Benefits**: Standard npm ecosystem compatibility
+
 ## API Overview
 
 taglib-wasm provides three APIs for different use cases:
 
 ### 1. **Simple API** (`taglib-wasm/simple`)
 
-- **Best for**: Quick reads, one-off operations
+- **Best for**: Quick reads, one-off operations, cover art handling
 - **Memory**: Automatically managed
-- **Functions**: `readTags()`, `applyTags()`, `updateTags()`, `readProperties()`
+- **Functions**: `readTags()`, `applyTags()`, `updateTags()`, `readProperties()`,
+  `getCoverArt()`, `setCoverArt()`
 
 ### 2. **Full API** (`taglib-wasm`)
 
@@ -34,25 +53,27 @@ taglib-wasm provides three APIs for different use cases:
 - **Memory**: Manual disposal required
 - **Classes**: `TagLib`, `AudioFile`, `Tag`, `PropertyMap`
 
-### 3. **Folder API** (`taglib-wasm/folder`)
+### 3. **Folder API** (Main export)
 
 - **Best for**: Library scanning, bulk updates, finding duplicates
 - **Memory**: Efficient batch processing
 - **Functions**: `scanFolder()`, `updateFolderTags()`, `findDuplicates()`,
   `exportFolderMetadata()`
 - **Runtime**: Node.js, Deno, and Bun only (requires filesystem access)
+- **Note**: Exported from main module, not a subpath
 
 ## Which API Should I Use?
 
 - **Reading tags from one file?** → Simple API: `readTags()`
 - **Writing tags to one file?** → Simple API: `updateTags()` or `applyTags()`
 - **Processing many files?** → Folder API: `scanFolder()`
-- **Need PropertyMap or pictures?** → Full API
+- **Need PropertyMap or pictures?** → Full API or Simple API cover art functions
 - **Need MusicBrainz/ReplayGain?** → Full API with PropertyMap
 - **Memory constrained environment?** → Simple API (automatic cleanup)
 - **Building a music player?** → Simple API for metadata, Full API for advanced
   features
 - **Building a tag editor?** → Full API for complete control
+- **Working with cover art?** → Simple API: `getCoverArt()`, `setCoverArt()`
 
 ## Quick Reference
 
@@ -64,24 +85,51 @@ taglib-wasm provides three APIs for different use cases:
 | Write tags          | `await updateTags("file.mp3", tags)`        | `tag.setTitle("New")`                         |
 | Get duration        | `(await readProperties("file.mp3")).length` | `audioFile.audioProperties().length`          |
 | Get modified buffer | `await applyTags("file.mp3", tags)`         | `audioFile.save(); audioFile.getFileBuffer()` |
+| Get cover art       | `await getCoverArt("file.mp3")`             | Use PropertyMap API                           |
+| Set cover art       | `await setCoverArt("file.mp3", data, type)` | Use PropertyMap API                           |
 | Scan folder         | `await scanFolder("/music")`                | Use Folder API                                |
 | Find duplicates     | `await findDuplicates("/music")`            | Use Folder API                                |
 
 ### Import Statements
 
 ```typescript
-// Deno
+// Deno (JSR - Preferred)
+import { TagLib } from "jsr:@charlesw/taglib-wasm";
+import {
+  applyTags,
+  getCoverArt,
+  readTags,
+  setCoverArt,
+  updateTags,
+} from "jsr:@charlesw/taglib-wasm/simple";
+import { findDuplicates, scanFolder } from "jsr:@charlesw/taglib-wasm";
+
+// Deno (NPM - Alternative)
 import { TagLib } from "npm:taglib-wasm";
 import { applyTags, readTags, updateTags } from "npm:taglib-wasm/simple";
-import { findDuplicates, scanFolder } from "npm:taglib-wasm/folder";
+import { findDuplicates, scanFolder } from "npm:taglib-wasm";
 
 // Node.js/Bun
 import { TagLib } from "taglib-wasm";
-import { applyTags, readTags, updateTags } from "taglib-wasm/simple";
-import { findDuplicates, scanFolder } from "taglib-wasm/folder";
+import {
+  applyTags,
+  getCoverArt,
+  readTags,
+  setCoverArt,
+  updateTags,
+} from "taglib-wasm/simple";
+import { findDuplicates, scanFolder } from "taglib-wasm";
 
 // TypeScript type imports
 import type { AudioProperties, FolderScanResult, Tag } from "taglib-wasm";
+
+// Error handling utilities
+import {
+  isFileOperationError,
+  isTagLibError,
+  isUnsupportedFormatError,
+  TagLibError,
+} from "taglib-wasm";
 ```
 
 ### Memory Management Checklist
@@ -92,10 +140,66 @@ import type { AudioProperties, FolderScanResult, Tag } from "taglib-wasm";
 - ✅ Simple API handles memory automatically
 - ✅ Folder API manages memory for batch operations
 
+## Deno Compile Support
+
+taglib-wasm provides built-in utilities for creating compiled Deno binaries:
+
+### Automatic Offline Support
+
+```typescript
+import {
+  initializeForDenoCompile,
+  isDenoCompiled,
+  prepareWasmForEmbedding,
+} from "jsr:@charlesw/taglib-wasm";
+
+// Automatically handles compiled vs development mode
+const taglib = await initializeForDenoCompile();
+
+// Check if running as compiled binary
+if (isDenoCompiled()) {
+  console.log("Running as compiled binary");
+}
+
+// Use taglib normally
+const file = await taglib.open("audio.mp3");
+```
+
+### Preparing for Offline
+
+```typescript
+// prepare-offline.ts
+import { prepareWasmForEmbedding } from "jsr:@charlesw/taglib-wasm";
+
+// Copy WASM file for embedding
+await prepareWasmForEmbedding("./taglib.wasm");
+```
+
+Then compile with:
+
+```bash
+deno compile --allow-read --include taglib.wasm myapp.ts
+```
+
+### Manual Control
+
+```typescript
+import { isDenoCompiled, TagLib } from "jsr:@charlesw/taglib-wasm";
+
+const taglib = await TagLib.initialize({
+  wasmUrl: isDenoCompiled()
+    ? new URL("./taglib.wasm", import.meta.url).href // Embedded
+    : "https://cdn.jsdelivr.net/npm/taglib-wasm@latest/dist/taglib.wasm", // CDN
+});
+```
+
 ## Quick Start (Full Example)
 
 ```typescript
-// Deno
+// Deno (JSR)
+import { TagLib } from "jsr:@charlesw/taglib-wasm";
+
+// Deno (NPM)
 import { TagLib } from "npm:taglib-wasm";
 
 // Node.js/Bun
@@ -126,6 +230,8 @@ audioFile.dispose();
 - **Always call `TagLib.initialize()` once** before using any functionality
 - This returns a TagLib instance that you use for all operations
 - Store this instance and reuse it throughout your application
+- For Deno compiled binaries, use `initializeForDenoCompile()` for automatic
+  offline support
 
 ### 2. Memory Management
 
@@ -217,6 +323,9 @@ const wasmData = await fetch("taglib.wasm").then((r) => r.arrayBuffer());
 const taglib = await TagLib.initialize({
   wasmBinary: wasmData,
 });
+
+// Deno compiled binaries (automatic)
+const taglib = await initializeForDenoCompile();
 ```
 
 ### Module Systems
@@ -231,7 +340,10 @@ const { TagLib } = require("taglib-wasm");
 // Dynamic import (when needed conditionally)
 const { TagLib } = await import("taglib-wasm");
 
-// Deno always uses npm: specifier
+// Deno with JSR (preferred)
+import { TagLib } from "jsr:@charlesw/taglib-wasm";
+
+// Deno with npm specifier
 import { TagLib } from "npm:taglib-wasm";
 ```
 
@@ -309,11 +421,32 @@ audioFile.dispose();
 For basic operations without manual memory management:
 
 ```typescript
-// Deno
-import { applyTags, readTags, updateTags } from "npm:taglib-wasm/simple";
+// Deno (JSR)
+import {
+  applyTags,
+  getCoverArt,
+  readTags,
+  setCoverArt,
+  updateTags,
+} from "jsr:@charlesw/taglib-wasm/simple";
+
+// Deno (NPM)
+import {
+  applyTags,
+  getCoverArt,
+  readTags,
+  setCoverArt,
+  updateTags,
+} from "npm:taglib-wasm/simple";
 
 // Node.js/Bun
-import { applyTags, readTags, updateTags } from "taglib-wasm/simple";
+import {
+  applyTags,
+  getCoverArt,
+  readTags,
+  setCoverArt,
+  updateTags,
+} from "taglib-wasm/simple";
 
 // Read tags - no need to manage AudioFile instances
 const tags = await readTags("song.mp3");
@@ -330,6 +463,16 @@ await updateTags("song.mp3", {
   title: "New Title",
   artist: "New Artist",
 });
+
+// Handle cover art
+const coverData = await getCoverArt("song.mp3");
+if (coverData) {
+  await fs.writeFile("cover.jpg", coverData);
+}
+
+// Set cover art
+const imageData = await fs.readFile("album-art.jpg");
+const bufferWithArt = await setCoverArt("song.mp3", imageData, "image/jpeg");
 ```
 
 ### Using the Folder API
@@ -337,13 +480,21 @@ await updateTags("song.mp3", {
 For batch operations on multiple audio files (Node.js/Deno/Bun only):
 
 ```typescript
-// Deno
+// Deno (JSR - note: imported from main module)
 import {
   exportFolderMetadata,
   findDuplicates,
   scanFolder,
   updateFolderTags,
-} from "npm:taglib-wasm/folder";
+} from "jsr:@charlesw/taglib-wasm";
+
+// Deno (NPM)
+import {
+  exportFolderMetadata,
+  findDuplicates,
+  scanFolder,
+  updateFolderTags,
+} from "npm:taglib-wasm";
 
 // Node.js/Bun
 import {
@@ -351,7 +502,7 @@ import {
   findDuplicates,
   scanFolder,
   updateFolderTags,
-} from "taglib-wasm/folder";
+} from "taglib-wasm";
 
 // Scan a directory for all audio files
 const result = await scanFolder("/path/to/music", {
@@ -369,7 +520,7 @@ console.log(`Successfully processed ${result.totalProcessed}`);
 // Access metadata for each file
 for (const file of result.files) {
   console.log(`${file.path}: ${file.tags.artist} - ${file.tags.title}`);
-  console.log(`Duration: ${file.properties?.duration}s`);
+  console.log(`Duration: ${file.properties?.length}s`);
 }
 
 // Batch update tags
@@ -402,19 +553,20 @@ Key folder API features:
 ```typescript
 const taglib = await TagLib.initialize();
 const audioFile = await taglib.open(buffer);
-const propMap = audioFile.properties();
+const propMap = audioFile.propertyMap();
+const properties = propMap.properties();
 
 // Read all properties
-const allProps = propMap.properties();
+const allProps = properties;
 
 // Read specific advanced properties
-const musicBrainzId = propMap.get("MUSICBRAINZ_TRACKID");
-const replayGain = propMap.get("REPLAYGAIN_TRACK_GAIN");
-const acoustId = propMap.get("ACOUSTID_ID");
+const musicBrainzId = properties["MUSICBRAINZ_TRACKID"]?.[0];
+const replayGain = properties["REPLAYGAIN_TRACK_GAIN"]?.[0];
+const acoustId = properties["ACOUSTID_ID"]?.[0];
 
 // Write advanced properties
-propMap.set("MUSICBRAINZ_ALBUMID", "some-uuid");
-propMap.set("REPLAYGAIN_TRACK_GAIN", "-3.5 dB");
+propMap.set("MUSICBRAINZ_ALBUMID", ["some-uuid"]);
+propMap.set("REPLAYGAIN_TRACK_GAIN", ["-3.5 dB"]);
 
 // Multiple values for a property
 propMap.set("ARTIST", ["Main Artist", "Featured Artist"]);
@@ -437,26 +589,51 @@ All formats are automatically detected from file content:
 - **OGG Vorbis** - Vorbis comments
 - **WAV** - RIFF INFO chunks
 
+Additional formats supported by TagLib but less commonly used:
+
+- **Opus** - Ogg Opus files
+- **APE** - Monkey's Audio
+- **MPC** - Musepack
+- **WavPack** - WavPack files
+- **TrueAudio** - TTA files
+
 ## Error Handling
 
-The library throws descriptive errors for common issues:
+The library provides typed errors for better error handling:
 
 ```typescript
-const taglib = await TagLib.initialize();
+import {
+  FileOperationError,
+  isFileOperationError,
+  isTagLibError,
+  isUnsupportedFormatError,
+  TagLibError,
+  UnsupportedFormatError,
+} from "taglib-wasm";
+
 try {
   const audioFile = await taglib.open(buffer);
   // ... use audioFile
   audioFile.dispose();
 } catch (error) {
-  if (error.message.includes("Module not initialized")) {
-    // TagLib.initialize() failed
-  } else if (error.message.includes("Invalid audio file format")) {
-    // Unsupported or corrupted file
-  } else if (error.message.includes("at least 1KB")) {
-    // File too small
+  if (isUnsupportedFormatError(error)) {
+    console.error("Unsupported format:", error.format);
+  } else if (isFileOperationError(error)) {
+    console.error("File error:", error.operation, error.path);
+  } else if (isTagLibError(error)) {
+    console.error("TagLib error:", error.message);
   }
 }
 ```
+
+Common error types:
+
+- `TagLibInitializationError` - Wasm module failed to initialize
+- `FileOperationError` - File read/write errors
+- `UnsupportedFormatError` - Unknown or unsupported audio format
+- `InvalidFormatError` - Corrupted or invalid file
+- `MemoryError` - Memory allocation failures
+- `MetadataError` - Tag reading/writing errors
 
 ## Common Recipes
 
@@ -480,7 +657,7 @@ await Deno.writeFile("song-with-art.mp3", modifiedBuffer);
 ### Recipe: Batch Rename Files Based on Metadata
 
 ```typescript
-import { scanFolder } from "taglib-wasm/folder";
+import { scanFolder } from "taglib-wasm";
 import { rename } from "fs/promises"; // Node.js
 
 const result = await scanFolder("/music");
@@ -523,7 +700,8 @@ await updateTags("song.m4a", mp3Tags);
 ### Recipe: Find and Handle Duplicates
 
 ```typescript
-import { findDuplicates, readProperties } from "taglib-wasm/folder";
+import { findDuplicates } from "taglib-wasm";
+import { readProperties } from "taglib-wasm/simple";
 
 const duplicates = await findDuplicates("/music", ["artist", "title"]);
 
@@ -558,37 +736,40 @@ import { TagLib } from "taglib-wasm";
 
 const taglib = await TagLib.initialize();
 const audioFile = await taglib.open("song.mp3");
-const propMap = audioFile.properties();
+const propMap = audioFile.propertyMap();
 
 // Set ReplayGain values (you'd calculate these with an audio analysis tool)
-propMap.set("REPLAYGAIN_TRACK_GAIN", "-3.21 dB");
-propMap.set("REPLAYGAIN_TRACK_PEAK", "0.988235");
-propMap.set("REPLAYGAIN_ALBUM_GAIN", "-4.19 dB");
-propMap.set("REPLAYGAIN_ALBUM_PEAK", "0.998871");
+propMap.set("REPLAYGAIN_TRACK_GAIN", ["-3.21 dB"]);
+propMap.set("REPLAYGAIN_TRACK_PEAK", ["0.988235"]);
+propMap.set("REPLAYGAIN_ALBUM_GAIN", ["-4.19 dB"]);
+propMap.set("REPLAYGAIN_ALBUM_PEAK", ["0.998871"]);
 
 audioFile.save();
 const buffer = audioFile.getFileBuffer();
 audioFile.dispose();
 
 // For batch processing entire albums
-import { scanFolder, updateFolderTags } from "taglib-wasm/folder";
+import { scanFolder, TagLib } from "taglib-wasm";
 
-const files = await scanFolder("/album");
-const updates = files.files.map((f) => ({
-  path: f.path,
-  tags: {
-    REPLAYGAIN_ALBUM_GAIN: "-4.19 dB",
-    REPLAYGAIN_REFERENCE_LOUDNESS: "89.0 dB",
-  },
-}));
+const result = await scanFolder("/album");
+const taglib = await TagLib.initialize();
 
-await updateFolderTags(updates);
+for (const file of result.files) {
+  const audioFile = await taglib.open(file.path);
+  const propMap = audioFile.propertyMap();
+
+  propMap.set("REPLAYGAIN_ALBUM_GAIN", ["-4.19 dB"]);
+  propMap.set("REPLAYGAIN_REFERENCE_LOUDNESS", ["89.0 dB"]);
+
+  audioFile.save();
+  audioFile.dispose();
+}
 ```
 
 ### Recipe: Clean Up Messy Tags
 
 ```typescript
-import { scanFolder, updateFolderTags } from "taglib-wasm/folder";
+import { scanFolder, updateFolderTags } from "taglib-wasm";
 
 const result = await scanFolder("/messy-music");
 
@@ -620,15 +801,16 @@ await updateFolderTags(updates.filter((u) => Object.keys(u.tags).length > 0));
 
 ### Common Errors and Solutions
 
-| Error Message                  | Cause                        | Solution                                     |
-| ------------------------------ | ---------------------------- | -------------------------------------------- |
-| "Module not initialized"       | Wasm not loaded              | Ensure `await TagLib.initialize()` completed |
-| "Invalid audio file format"    | Unsupported/corrupted file   | Check file extension and size (>1KB)         |
-| "Cannot read property of null" | Accessing disposed AudioFile | Check disposal order in code                 |
-| "File too small (under 1KB)"   | Empty or truncated file      | Validate file size before processing         |
-| "Failed to allocate memory"    | Large file or memory leak    | Check for missing `dispose()` calls          |
-| "File not found"               | Wrong path or permissions    | Verify file exists and is readable           |
-| "Save failed"                  | Write permissions            | Check file/directory write permissions       |
+| Error Message                    | Cause                        | Solution                                     |
+| -------------------------------- | ---------------------------- | -------------------------------------------- |
+| "Module not initialized"         | Wasm not loaded              | Ensure `await TagLib.initialize()` completed |
+| "Invalid audio file format"      | Unsupported/corrupted file   | Check file extension and size (>1KB)         |
+| "Cannot read property of null"   | Accessing disposed AudioFile | Check disposal order in code                 |
+| "File too small"                 | Empty or truncated file      | Validate file size before processing         |
+| "Failed to allocate memory"      | Large file or memory leak    | Check for missing `dispose()` calls          |
+| "File not found"                 | Wrong path or permissions    | Verify file exists and is readable           |
+| "Save failed"                    | Write permissions            | Check file/directory write permissions       |
+| "WebAssembly.instantiate failed" | CORS or network issue        | Check WASM URL and CORS headers              |
 
 ### Debug Patterns
 
@@ -700,21 +882,25 @@ for (const file of files.files) {
 
 - Use `fs.readFile()` or `fs.promises.readFile()` to load files
 - Full filesystem access available
+- Folder API works out of the box
 
 ### Browsers
 
 - Use `fetch()` or FileReader API to load files
 - No filesystem access; work with buffers in memory
+- Folder API not available (no filesystem)
+- Consider using Workers API for better performance
 
 ### Deno
 
-- Import using `npm:` specifier: `import { TagLib } from 'npm:taglib-wasm'`
+- Prefer JSR package: `import { TagLib } from 'jsr:@charlesw/taglib-wasm'`
+- Alternative NPM: `import { TagLib } from 'npm:taglib-wasm'`
 - Use `Deno.readFile()` to load files
 - Remember to grant file permissions with `--allow-read`
 - Full example:
 
 ```typescript
-import { applyTags, readTags } from "npm:taglib-wasm/simple";
+import { applyTags, readTags } from "jsr:@charlesw/taglib-wasm/simple";
 
 // Read tags
 const tags = await readTags("song.mp3");
@@ -730,88 +916,42 @@ const modified = await applyTags("song.mp3", {
 await Deno.writeFile("song-modified.mp3", modified);
 ```
 
-### Deno Compiled Utilities
+### Deno Compiled Binaries
 
-When building Deno applications that will be distributed as compiled binaries
-using `deno compile`, you have three options for including the Wasm module:
+taglib-wasm provides built-in support for Deno compiled binaries:
 
-#### Option 1: Embed Wasm in the Binary (Recommended)
+#### Option 1: Automatic Offline Support (Recommended)
 
 ```typescript
-// music-tagger.ts
-import { TagLib } from "npm:taglib-wasm";
+import { initializeForDenoCompile } from "jsr:@charlesw/taglib-wasm";
+import { readTags } from "jsr:@charlesw/taglib-wasm/simple";
 
-// Read the Wasm file at compile time
-const wasmBytes = await Deno.readFile(
-  new URL(import.meta.resolve("npm:taglib-wasm/dist/taglib.wasm")),
-);
-
-// Initialize with embedded Wasm
-const taglib = await TagLib.initialize({ wasmBinary: wasmBytes });
+// Automatically handles compiled vs development mode
+const taglib = await initializeForDenoCompile();
 
 // Your application logic
 if (import.meta.main) {
   const [filePath] = Deno.args;
-  const audioFile = await taglib.open(filePath);
-  const tag = audioFile.tag();
-  console.log(`Title: ${tag.title}`);
-  console.log(`Artist: ${tag.artist}`);
-  audioFile.dispose();
+  const tags = await readTags(filePath);
+  console.log(`Title: ${tags.title}`);
+  console.log(`Artist: ${tags.artist}`);
 }
 ```
 
-Compile with:
+Prepare for offline:
 
 ```bash
-deno compile --allow-read music-tagger.ts
+# Create local WASM copy
+deno run --allow-read --allow-write prepare-offline.ts
+
+# Compile with embedded WASM
+deno compile --allow-read --include taglib.wasm myapp.ts
 ```
 
-#### Option 2: Bundle Wasm File Separately
-
-If you prefer to keep the Wasm file external (e.g., for smaller binary size):
+#### Option 2: CDN Loading with Streaming (Simplest)
 
 ```typescript
-// music-tagger.ts
-import { TagLib } from "npm:taglib-wasm";
-
-// Load Wasm from a file path relative to the executable
-const taglib = await TagLib.initialize({
-  wasmUrl: new URL("./taglib.wasm", import.meta.url).href,
-});
-
-// Your application logic
-if (import.meta.main) {
-  const [filePath] = Deno.args;
-  const audioFile = await taglib.open(filePath);
-  const tag = audioFile.tag();
-  console.log(`Title: ${tag.title}`);
-  console.log(`Artist: ${tag.artist}`);
-  audioFile.dispose();
-}
-```
-
-Then distribute both the compiled binary and the Wasm file:
-
-```bash
-# Compile the binary
-deno compile --allow-read music-tagger.ts
-
-# Copy the Wasm file
-cp node_modules/taglib-wasm/dist/taglib.wasm ./
-
-# Both files must be distributed together
-# - music-tagger (or music-tagger.exe)
-# - taglib.wasm
-```
-
-#### Option 3: CDN Loading with Streaming (Simplest)
-
-For applications that have internet access, you can use CDN loading which
-provides optimal performance through WebAssembly streaming compilation:
-
-```typescript
-// music-tagger.ts
-import { TagLib } from "npm:taglib-wasm";
+import { TagLib } from "jsr:@charlesw/taglib-wasm";
 
 // Initialize with CDN URL for streaming compilation
 const taglib = await TagLib.initialize({
@@ -839,26 +979,40 @@ deno compile --allow-read --allow-net music-tagger.ts
 
 - **CDN Loading**: Smallest binary, uses streaming compilation, requires network
   on first run
-- **Embedded Wasm**: Larger binary size (~800KB) but self-contained and works
+- **Embedded Wasm**: Larger binary size (~500KB) but self-contained and works
   offline
-- **External Wasm**: Medium binary size but requires distributing two files
-- CDN loading provides fastest initial compilation through WebAssembly streaming
-- All approaches have identical memory usage and performance after
-  initialization
-
-#### Choosing the Right Approach
-
-- **CDN Loading**: Best for utilities that typically have internet access
-- **Embedded Wasm**: Best for offline-first CLI tools and air-gapped
-  environments
-- **External Wasm**: Best when you need small binaries but can manage multiple
-  files
+- **WebAssembly Streaming**: 200-400ms with streaming vs 400-800ms without
+- All approaches have identical runtime performance after initialization
 
 ### Cloudflare Workers
 
-- Import from 'taglib-wasm/workers' for compatibility
-- Use `fetch()` to load files from URLs or R2 storage
-- Memory limits apply; be mindful of file sizes
+Use the Workers API for edge compatibility:
+
+```typescript
+import { TagLibWorkers } from "taglib-wasm/workers";
+
+export default {
+  async fetch(request: Request): Promise<Response> {
+    const taglib = await TagLibWorkers.initialize();
+
+    // Fetch audio from R2 or external URL
+    const audioBuffer = await fetch(audioUrl).then((r) => r.arrayBuffer());
+
+    const audioFile = await taglib.open(audioBuffer);
+    const tag = audioFile.tag();
+
+    const metadata = {
+      title: tag.title,
+      artist: tag.artist,
+      album: tag.album,
+    };
+
+    audioFile.dispose();
+
+    return Response.json(metadata);
+  },
+};
+```
 
 ## Performance Tips
 
@@ -870,20 +1024,25 @@ deno compile --allow-read --allow-net music-tagger.ts
 4. **Use Simple API for reading**: When only reading tags, `readTags()` is more
    efficient
 5. **Handle large files carefully**: The entire file is loaded into memory
+6. **Use WebAssembly streaming**: Provide `wasmUrl` for CDN loading to enable
+   streaming compilation
+7. **Parallel processing**: Use Folder API's `concurrency` option for bulk operations
 
 ## Common Mistakes to Avoid
 
 ### ❌ DON'T vs ✅ DO
 
-| ❌ DON'T                     | ✅ DO                                                                      |
-| ---------------------------- | -------------------------------------------------------------------------- |
-| `TagLib.open(buffer)`        | `const taglib = await TagLib.initialize();`<br>`await taglib.open(buffer)` |
-| `audioFile.tag().getTitle()` | `audioFile.tag().title`                                                    |
-| `tag.title = "New"`          | `tag.setTitle("New")`                                                      |
-| Forget to dispose            | Always use try/finally with `dispose()`                                    |
-| Use AudioFile after dispose  | Dispose should be the last operation                                       |
-| Load Wasm multiple times     | Initialize once, reuse the instance                                        |
-| Process files sequentially   | Use Folder API for batch operations                                        |
+| ❌ DON'T                         | ✅ DO                                                                      |
+| -------------------------------- | -------------------------------------------------------------------------- |
+| `TagLib.open(buffer)`            | `const taglib = await TagLib.initialize();`<br>`await taglib.open(buffer)` |
+| `audioFile.tag().getTitle()`     | `audioFile.tag().title`                                                    |
+| `tag.title = "New"`              | `tag.setTitle("New")`                                                      |
+| Forget to dispose                | Always use try/finally with `dispose()`                                    |
+| Use AudioFile after dispose      | Dispose should be the last operation                                       |
+| Load Wasm multiple times         | Initialize once, reuse the instance                                        |
+| Process files sequentially       | Use Folder API for batch operations                                        |
+| Import from `taglib-wasm/folder` | Import from main module                                                    |
+| Mix JSR and NPM in Deno          | Use only JSR package for Deno apps                                         |
 
 ### Critical Memory Management
 
@@ -976,9 +1135,13 @@ interface AudioProperties {
 }
 
 interface PropertyMap {
-  get(key: string): string | string[] | undefined;
-  set(key: string, value: string | string[]): boolean;
   properties(): Record<string, string[]>;
+  set(key: string, value: string[]): boolean;
+  get(key: string): string[] | undefined;
+  contains(key: string): boolean;
+  isEmpty(): boolean;
+  propertyCount(): number;
+  removeAll(): void;
 }
 
 // Folder API Types
@@ -1014,18 +1177,21 @@ interface AudioFileMetadata {
 
 ```typescript
 // Node.js/Bun
-import {
-  exportFolderMetadata,
-  findDuplicates,
-  scanFolder,
-} from "taglib-wasm/folder";
+import { exportFolderMetadata, findDuplicates, scanFolder } from "taglib-wasm";
 
-// Deno
+// Deno (JSR)
 import {
   exportFolderMetadata,
   findDuplicates,
   scanFolder,
-} from "npm:taglib-wasm/folder";
+} from "jsr:@charlesw/taglib-wasm";
+
+// Deno (NPM)
+import {
+  exportFolderMetadata,
+  findDuplicates,
+  scanFolder,
+} from "npm:taglib-wasm";
 
 async function analyzeMusicLibrary(directory: string) {
   console.log("Scanning music library...");
@@ -1067,13 +1233,13 @@ async function analyzeMusicLibrary(directory: string) {
     stats: {
       totalTracks: result.totalProcessed,
       totalDuration: result.files.reduce(
-        (sum, f) => sum + (f.properties?.duration || 0),
+        (sum, f) => sum + (f.properties?.length || 0),
         0,
       ),
       totalSize: result.files.reduce(
         (sum, f) =>
           sum +
-          ((f.properties?.duration || 0) * (f.properties?.bitrate || 0) * 125),
+          ((f.properties?.length || 0) * (f.properties?.bitrate || 0) * 125),
         0,
       ),
     },
@@ -1130,6 +1296,1108 @@ async function scanMusicLibraryManual(directory: string) {
 }
 ```
 
+## WebAssembly Streaming Compilation
+
+taglib-wasm automatically uses WebAssembly streaming APIs for optimal performance:
+
+### Benefits of Streaming
+
+- **Parallel Download & Compile**: Compilation begins while downloading
+- **Lower Memory Usage**: No need to buffer entire WASM file
+- **Faster Startup**: 200-400ms with streaming vs 400-800ms without
+- **Better User Experience**: Reduced time to first interaction
+
+### How to Enable
+
+```typescript
+// Automatic streaming when using CDN URL
+const taglib = await TagLib.initialize({
+  wasmUrl: "https://cdn.jsdelivr.net/npm/taglib-wasm@latest/dist/taglib.wasm",
+});
+
+// Works with any URL that supports streaming
+const taglib = await TagLib.initialize({
+  wasmUrl: "https://your-cdn.com/taglib.wasm",
+});
+```
+
+### Requirements
+
+- CORS headers must allow access
+- Content-Type should be `application/wasm`
+- HTTPS required in production
+
+## Cross-Runtime Compatibility
+
+taglib-wasm is designed to work across all JavaScript runtimes:
+
+### Runtime Detection Pattern
+
+```typescript
+function detectRuntime(): string {
+  // @ts-ignore
+  if (typeof Deno !== "undefined") return "deno";
+  // @ts-ignore
+  if (typeof process !== "undefined") {
+    // @ts-ignore
+    if (process.versions?.bun) return "bun";
+    return "node";
+  }
+  if (typeof window !== "undefined") return "browser";
+  if (typeof self !== "undefined") return "worker";
+  return "unknown";
+}
+
+// Runtime-specific initialization
+const runtime = detectRuntime();
+switch (runtime) {
+  case "deno":
+    // Use JSR package
+    break;
+  case "node":
+  case "bun":
+    // Use NPM package
+    break;
+  case "browser":
+    // Use CDN or bundled
+    break;
+  case "worker":
+    // Use Workers API
+    break;
+}
+```
+
+### File Loading by Runtime
+
+```typescript
+async function loadAudioFile(path: string): Promise<Uint8Array> {
+  const runtime = detectRuntime();
+
+  switch (runtime) {
+    case "deno":
+      return await Deno.readFile(path);
+
+    case "node":
+      const { readFile } = await import("fs/promises");
+      return new Uint8Array(await readFile(path));
+
+    case "bun":
+      const file = Bun.file(path);
+      return new Uint8Array(await file.arrayBuffer());
+
+    case "browser":
+      const response = await fetch(path);
+      return new Uint8Array(await response.arrayBuffer());
+
+    default:
+      throw new Error(`Unsupported runtime: ${runtime}`);
+  }
+}
+```
+
+## Format-Specific Metadata Mapping
+
+Different audio formats use different tag names. taglib-wasm handles this automatically:
+
+### Common Mappings
+
+| Standard Field | ID3v2 (MP3) | Vorbis (FLAC/OGG) | MP4/iTunes |
+| -------------- | ----------- | ----------------- | ---------- |
+| Album Artist   | TPE2        | ALBUMARTIST       | aART       |
+| Disc Number    | TPOS        | DISCNUMBER        | disk       |
+| Total Discs    | TPOS        | DISCTOTAL         | disk       |
+| BPM            | TBPM        | BPM               | tmpo       |
+| Compilation    | TCMP        | COMPILATION       | cpil       |
+| Copyright      | TCOP        | COPYRIGHT         | cprt       |
+| Encoding Time  | TDEN        | DATE              | ©day       |
+| Original Date  | TDOR        | ORIGINALDATE      | ----       |
+
+### Accessing Format-Specific Tags
+
+```typescript
+const taglib = await TagLib.initialize();
+const audioFile = await taglib.open("song.mp3");
+const propMap = audioFile.propertyMap();
+const props = propMap.properties();
+
+// ID3v2 specific
+const id3AlbumArtist = props["TPE2"]?.[0];
+
+// Vorbis specific
+const vorbisAlbumArtist = props["ALBUMARTIST"]?.[0];
+
+// Unified access (recommended)
+const albumArtist = props["ALBUMARTIST"]?.[0] || props["TPE2"]?.[0] ||
+  props["aART"]?.[0];
+
+audioFile.dispose();
+```
+
+## Format Conversion Workflows
+
+taglib-wasm excels at preserving metadata when converting between audio formats. Here are comprehensive patterns for common conversion scenarios:
+
+### Basic Format Conversion Pattern
+
+```typescript
+import { applyTags, readTags } from "taglib-wasm/simple";
+import { TagLib } from "taglib-wasm";
+
+async function convertMetadata(sourcePath: string, targetPath: string) {
+  // Step 1: Read all metadata from source
+  const sourceTags = await readTags(sourcePath);
+
+  // Step 2: Read advanced metadata using Full API
+  const taglib = await TagLib.initialize();
+  const sourceFile = await taglib.open(sourcePath);
+  const propMap = sourceFile.propertyMap();
+  const advancedProps = propMap.properties();
+  sourceFile.dispose();
+
+  // Step 3: Apply to target file
+  const modifiedTarget = await applyTags(targetPath, sourceTags);
+
+  // Step 4: Apply advanced metadata
+  const targetFile = await taglib.open(modifiedTarget);
+  const targetPropMap = targetFile.propertyMap();
+
+  // Copy all properties that make sense for the target format
+  for (const [key, values] of Object.entries(advancedProps)) {
+    if (shouldCopyProperty(key, targetPath)) {
+      targetPropMap.set(key, values);
+    }
+  }
+
+  targetFile.save();
+  const finalBuffer = targetFile.getFileBuffer();
+  targetFile.dispose();
+
+  return finalBuffer;
+}
+
+function shouldCopyProperty(key: string, targetPath: string): boolean {
+  const ext = targetPath.substring(targetPath.lastIndexOf(".")).toLowerCase();
+
+  // Format-specific property filtering
+  const formatExclusions: Record<string, string[]> = {
+    ".mp3": ["COVERART", "METADATA_BLOCK_PICTURE"], // Use APIC frames instead
+    ".m4a": ["APIC", "PIC"], // Use MP4 cover atoms
+    ".flac": ["APIC", "PIC"], // Use METADATA_BLOCK_PICTURE
+    ".ogg": ["APIC", "PIC"], // Use METADATA_BLOCK_PICTURE
+  };
+
+  const exclusions = formatExclusions[ext] || [];
+  return !exclusions.includes(key.toUpperCase());
+}
+```
+
+### Batch Format Conversion
+
+```typescript
+import { scanFolder, TagLib } from "taglib-wasm";
+import { readFile, writeFile } from "fs/promises";
+
+async function batchConvertMetadata(
+  sourceDir: string,
+  targetDir: string,
+  sourceExt: string,
+  targetExt: string,
+) {
+  const taglib = await TagLib.initialize();
+  const result = await scanFolder(sourceDir, {
+    extensions: [sourceExt],
+    recursive: true,
+  });
+
+  const conversionMap = new Map<string, string>();
+
+  for (const file of result.files) {
+    // Calculate target path
+    const relativePath = file.path.substring(sourceDir.length);
+    const targetPath = targetDir + relativePath.replace(sourceExt, targetExt);
+
+    // Ensure target directory exists
+    await ensureDir(dirname(targetPath));
+
+    // Copy file first (assume audio conversion happened elsewhere)
+    // This example focuses on metadata transfer
+
+    try {
+      // Read all metadata from source
+      const sourceFile = await taglib.open(file.path);
+      const sourceTag = sourceFile.tag();
+      const sourcePropMap = sourceFile.propertyMap();
+      const sourceProps = sourcePropMap.properties();
+
+      // Create metadata object
+      const metadata = {
+        basic: {
+          title: sourceTag.title,
+          artist: sourceTag.artist,
+          album: sourceTag.album,
+          year: sourceTag.year,
+          track: sourceTag.track,
+          genre: sourceTag.genre,
+          comment: sourceTag.comment,
+        },
+        advanced: sourceProps,
+      };
+
+      sourceFile.dispose();
+
+      // Apply to target (after audio conversion)
+      const targetBuffer = await readFile(targetPath);
+      const targetFile = await taglib.open(targetBuffer);
+      const targetTag = targetFile.tag();
+      const targetPropMap = targetFile.propertyMap();
+
+      // Apply basic tags
+      targetTag.setTitle(metadata.basic.title || "");
+      targetTag.setArtist(metadata.basic.artist || "");
+      targetTag.setAlbum(metadata.basic.album || "");
+      targetTag.setYear(metadata.basic.year || 0);
+      targetTag.setTrack(metadata.basic.track || 0);
+      targetTag.setGenre(metadata.basic.genre || "");
+      targetTag.setComment(metadata.basic.comment || "");
+
+      // Apply advanced properties
+      for (const [key, values] of Object.entries(metadata.advanced)) {
+        if (isCompatibleProperty(key, sourceExt, targetExt)) {
+          targetPropMap.set(mapPropertyName(key, sourceExt, targetExt), values);
+        }
+      }
+
+      targetFile.save();
+      await writeFile(targetPath, targetFile.getFileBuffer());
+      targetFile.dispose();
+
+      conversionMap.set(file.path, targetPath);
+    } catch (error) {
+      console.error(`Failed to convert metadata for ${file.path}:`, error);
+    }
+  }
+
+  return conversionMap;
+}
+
+function isCompatibleProperty(
+  key: string,
+  sourceExt: string,
+  targetExt: string,
+): boolean {
+  // Define compatible properties between formats
+  const compatibility: Record<string, Record<string, string[]>> = {
+    ".mp3": {
+      ".flac": ["ALBUMARTIST", "DISCNUMBER", "COMPILATION", "BPM"],
+      ".m4a": ["ALBUMARTIST", "DISCNUMBER", "COMPILATION", "BPM"],
+      ".ogg": ["ALBUMARTIST", "DISCNUMBER", "COMPILATION", "BPM"],
+    },
+    ".flac": {
+      ".mp3": ["ALBUMARTIST", "DISCNUMBER", "COMPILATION", "BPM"],
+      ".m4a": ["ALBUMARTIST", "DISCNUMBER", "COMPILATION", "BPM"],
+      ".ogg": ["all"], // FLAC and OGG use same Vorbis Comments
+    },
+  };
+
+  const allowedProps = compatibility[sourceExt]?.[targetExt];
+  if (!allowedProps) return false;
+  if (allowedProps.includes("all")) return true;
+  return allowedProps.includes(key);
+}
+
+function mapPropertyName(
+  key: string,
+  sourceExt: string,
+  targetExt: string,
+): string {
+  // Map property names between formats
+  const propertyMap: Record<string, Record<string, Record<string, string>>> = {
+    ".mp3": {
+      ".m4a": {
+        "TPE2": "aART", // Album artist
+        "TPOS": "disk", // Disc number
+        "TCMP": "cpil", // Compilation
+        "TBPM": "tmpo", // BPM
+      },
+    },
+  };
+
+  return propertyMap[sourceExt]?.[targetExt]?.[key] || key;
+}
+```
+
+### Preserving Format-Specific Features
+
+```typescript
+// Preserve iTunes-specific metadata when converting M4A files
+async function preserveITunesMetadata(m4aPath: string, targetPath: string) {
+  const taglib = await TagLib.initialize();
+  const m4aFile = await taglib.open(m4aPath);
+  const propMap = m4aFile.propertyMap();
+  const props = propMap.properties();
+
+  // iTunes-specific properties to preserve
+  const itunesProps = {
+    purchaseDate: props["----:com.apple.iTunes:PURCHASE_DATE"]?.[0],
+    gapless: props["----:com.apple.iTunes:GAPLESS"]?.[0],
+    soundCheck: props["----:com.apple.iTunes:SOUNDCHECK"]?.[0],
+    mediaType: props["stik"]?.[0],
+    contentRating: props["rtng"]?.[0],
+  };
+
+  m4aFile.dispose();
+
+  // Store as custom tags in target format
+  const targetFile = await taglib.open(targetPath);
+  const targetPropMap = targetFile.propertyMap();
+
+  if (targetPath.endsWith(".flac") || targetPath.endsWith(".ogg")) {
+    // Store as custom Vorbis comments
+    if (itunesProps.purchaseDate) {
+      targetPropMap.set("ITUNES_PURCHASE_DATE", [itunesProps.purchaseDate]);
+    }
+    if (itunesProps.gapless) {
+      targetPropMap.set("ITUNES_GAPLESS", [itunesProps.gapless]);
+    }
+  } else if (targetPath.endsWith(".mp3")) {
+    // Store as TXXX frames
+    if (itunesProps.purchaseDate) {
+      targetPropMap.set("TXXX:ITUNES_PURCHASE_DATE", [
+        itunesProps.purchaseDate,
+      ]);
+    }
+  }
+
+  targetFile.save();
+  const buffer = targetFile.getFileBuffer();
+  targetFile.dispose();
+
+  return buffer;
+}
+```
+
+### Handling Cover Art During Conversion
+
+```typescript
+import { getCoverArt, setCoverArt } from "taglib-wasm/simple";
+
+async function convertWithCoverArt(sourcePath: string, targetPath: string) {
+  // Extract cover art from source
+  const coverData = await getCoverArt(sourcePath);
+
+  if (coverData) {
+    // Detect image type
+    const imageType = detectImageType(coverData);
+
+    // Apply cover art to target
+    const targetWithArt = await setCoverArt(targetPath, coverData, imageType);
+    return targetWithArt;
+  }
+
+  // No cover art to transfer
+  return await readFile(targetPath);
+}
+
+function detectImageType(data: Uint8Array): string {
+  // Check magic bytes
+  if (data[0] === 0xFF && data[1] === 0xD8) return "image/jpeg";
+  if (data[0] === 0x89 && data[1] === 0x50) return "image/png";
+  if (data[0] === 0x47 && data[1] === 0x49) return "image/gif";
+  if (data[0] === 0x42 && data[1] === 0x4D) return "image/bmp";
+  return "image/jpeg"; // Default
+}
+```
+
+### Format Conversion Best Practices
+
+1. **Preserve All Metadata**: Always attempt to preserve all metadata, even custom fields
+2. **Map Format-Specific Fields**: Use property mapping tables for format-specific fields
+3. **Handle Character Encoding**: Ensure UTF-8 encoding is maintained
+4. **Validate After Conversion**: Read back the converted file to verify metadata
+5. **Log Unmapped Fields**: Track fields that couldn't be converted
+6. **Batch Processing**: Use concurrent processing for large collections
+7. **Error Recovery**: Continue processing even if individual files fail
+
+## Streaming Audio Processing
+
+For processing large audio collections efficiently without running out of memory:
+
+### Basic Streaming Pattern
+
+```typescript
+import { scanFolder } from "taglib-wasm";
+import { createReadStream, createWriteStream } from "fs";
+import { pipeline } from "stream/promises";
+
+async function* processAudioStream(
+  directory: string,
+  batchSize: number = 100,
+): AsyncGenerator<AudioFileMetadata[]> {
+  let batch: AudioFileMetadata[] = [];
+
+  const result = await scanFolder(directory, {
+    recursive: true,
+    concurrency: 4,
+    onProgress: (processed, total, file) => {
+      // Progress tracking without storing all results
+    },
+  });
+
+  for (const file of result.files) {
+    batch.push(file);
+
+    if (batch.length >= batchSize) {
+      yield batch;
+      batch = []; // Clear batch to free memory
+    }
+  }
+
+  // Yield remaining files
+  if (batch.length > 0) {
+    yield batch;
+  }
+}
+
+// Usage: Process files in batches
+async function processLargeLibrary(directory: string) {
+  let totalProcessed = 0;
+
+  for await (const batch of processAudioStream(directory, 50)) {
+    // Process batch of 50 files
+    await processBatch(batch);
+    totalProcessed += batch.length;
+
+    // Force garbage collection hint (V8)
+    if (global.gc) global.gc();
+
+    console.log(`Processed ${totalProcessed} files...`);
+  }
+}
+```
+
+### Memory-Efficient Scanning
+
+```typescript
+import { TagLib } from "taglib-wasm";
+import { readdir } from "fs/promises";
+import { join } from "path";
+
+async function* scanDirectoryStream(
+  dir: string,
+  extensions: string[] = [".mp3", ".flac", ".m4a"],
+): AsyncGenerator<string> {
+  const entries = await readdir(dir, { withFileTypes: true });
+
+  for (const entry of entries) {
+    const fullPath = join(dir, entry.name);
+
+    if (entry.isDirectory()) {
+      yield* scanDirectoryStream(fullPath, extensions);
+    } else if (entry.isFile()) {
+      const ext = extname(entry.name).toLowerCase();
+      if (extensions.includes(ext)) {
+        yield fullPath;
+      }
+    }
+  }
+}
+
+async function processLargeLibraryStream(rootDir: string) {
+  const taglib = await TagLib.initialize();
+  const BATCH_SIZE = 10;
+  let batch: string[] = [];
+  let processedCount = 0;
+
+  for await (const filePath of scanDirectoryStream(rootDir)) {
+    batch.push(filePath);
+
+    if (batch.length >= BATCH_SIZE) {
+      // Process batch
+      await Promise.all(batch.map(async (path) => {
+        try {
+          const audioFile = await taglib.open(path);
+          const tag = audioFile.tag();
+
+          // Process metadata
+          console.log(`${path}: ${tag.artist} - ${tag.title}`);
+
+          audioFile.dispose(); // Critical for memory management
+        } catch (error) {
+          console.error(`Error processing ${path}:`, error);
+        }
+      }));
+
+      processedCount += batch.length;
+      console.log(`Processed ${processedCount} files...`);
+
+      batch = []; // Clear batch
+    }
+  }
+
+  // Process remaining files
+  if (batch.length > 0) {
+    await Promise.all(batch.map(/* same processing */));
+  }
+}
+```
+
+### Streaming Export to JSON Lines
+
+```typescript
+import { createWriteStream } from "fs";
+import { scanFolder } from "taglib-wasm";
+
+async function exportLibraryAsJSONLines(
+  directory: string,
+  outputPath: string,
+) {
+  const output = createWriteStream(outputPath);
+  let errorCount = 0;
+
+  await scanFolder(directory, {
+    recursive: true,
+    concurrency: 4,
+    continueOnError: true,
+    onProgress: async (processed, total, currentFile) => {
+      // Write progress to stderr so it doesn't interfere with output
+      process.stderr.write(`\rProcessing: ${processed}/${total}`);
+    },
+  });
+
+  // Process results in chunks to avoid memory issues
+  const CHUNK_SIZE = 100;
+
+  return new Promise((resolve, reject) => {
+    let processedCount = 0;
+
+    const processChunk = async (files: AudioFileMetadata[]) => {
+      for (const file of files) {
+        if (file.error) {
+          errorCount++;
+          continue;
+        }
+
+        const jsonLine = JSON.stringify({
+          path: file.path,
+          ...file.tags,
+          duration: file.properties?.length,
+          bitrate: file.properties?.bitrate,
+          sampleRate: file.properties?.sampleRate,
+        }) + "\n";
+
+        if (!output.write(jsonLine)) {
+          // Wait for drain event if buffer is full
+          await new Promise((resolve) => output.once("drain", resolve));
+        }
+
+        processedCount++;
+      }
+    };
+
+    output.on("error", reject);
+    output.on("finish", () => {
+      console.log(`\nExported ${processedCount} files (${errorCount} errors)`);
+      resolve(processedCount);
+    });
+
+    // End the stream when done
+    output.end();
+  });
+}
+```
+
+### Streaming Updates with Progress
+
+```typescript
+async function streamingUpdate(
+  directory: string,
+  updateFn: (tags: Tag) => Partial<Tag>,
+) {
+  const taglib = await TagLib.initialize();
+  const updateQueue: Array<{ path: string; updates: Partial<Tag> }> = [];
+  const QUEUE_SIZE = 20;
+
+  let totalFiles = 0;
+  let processedFiles = 0;
+  let updatedFiles = 0;
+
+  // First pass: count files
+  for await (const _ of scanDirectoryStream(directory)) {
+    totalFiles++;
+  }
+
+  // Second pass: process files
+  for await (const filePath of scanDirectoryStream(directory)) {
+    try {
+      const audioFile = await taglib.open(filePath);
+      const tag = audioFile.tag();
+
+      const currentTags = {
+        title: tag.title,
+        artist: tag.artist,
+        album: tag.album,
+        year: tag.year,
+        track: tag.track,
+        genre: tag.genre,
+        comment: tag.comment,
+      };
+
+      const updates = updateFn(currentTags);
+
+      if (Object.keys(updates).length > 0) {
+        updateQueue.push({ path: filePath, updates });
+        updatedFiles++;
+      }
+
+      audioFile.dispose();
+
+      // Process queue when it reaches size limit
+      if (updateQueue.length >= QUEUE_SIZE) {
+        await processUpdateQueue(updateQueue);
+        updateQueue.length = 0; // Clear queue
+      }
+
+      processedFiles++;
+      const progress = Math.round((processedFiles / totalFiles) * 100);
+      process.stderr.write(
+        `\rProgress: ${processedFiles}/${totalFiles} (${progress}%) - Updated: ${updatedFiles}`,
+      );
+    } catch (error) {
+      console.error(`\nError processing ${filePath}:`, error);
+    }
+  }
+
+  // Process remaining updates
+  if (updateQueue.length > 0) {
+    await processUpdateQueue(updateQueue);
+  }
+
+  console.log(
+    `\nCompleted: ${updatedFiles} files updated out of ${totalFiles}`,
+  );
+}
+
+async function processUpdateQueue(
+  queue: Array<{ path: string; updates: Partial<Tag> }>,
+) {
+  await Promise.all(queue.map(async ({ path, updates }) => {
+    try {
+      await updateTags(path, updates);
+    } catch (error) {
+      console.error(`Failed to update ${path}:`, error);
+    }
+  }));
+}
+```
+
+### Streaming Duplicate Detection
+
+```typescript
+async function* findDuplicatesStream(
+  directory: string,
+  criteria: Array<keyof Tag> = ["artist", "title"],
+): AsyncGenerator<{ key: string; files: string[] }> {
+  const seen = new Map<string, string[]>();
+  const YIELD_THRESHOLD = 1000; // Yield duplicates every 1000 files
+  let processedCount = 0;
+
+  for await (const filePath of scanDirectoryStream(directory)) {
+    try {
+      const tags = await readTags(filePath);
+
+      // Create composite key
+      const key = criteria
+        .map((field) => tags[field] || "")
+        .filter((v) => v !== "")
+        .join("|");
+
+      if (key) {
+        const existing = seen.get(key) || [];
+        existing.push(filePath);
+        seen.set(key, existing);
+
+        // If this creates a new duplicate group, yield it
+        if (existing.length === 2) {
+          yield { key, files: existing };
+        }
+      }
+
+      processedCount++;
+
+      // Periodically clean up non-duplicates to save memory
+      if (processedCount % YIELD_THRESHOLD === 0) {
+        for (const [key, files] of seen.entries()) {
+          if (files.length === 1) {
+            seen.delete(key); // Remove non-duplicates
+          }
+        }
+      }
+    } catch (error) {
+      console.error(`Error reading ${filePath}:`, error);
+    }
+  }
+
+  // Yield any remaining duplicates
+  for (const [key, files] of seen.entries()) {
+    if (files.length > 1) {
+      yield { key, files };
+    }
+  }
+}
+
+// Usage
+async function processDuplicatesStream(directory: string) {
+  console.log("Finding duplicates...\n");
+
+  for await (const duplicate of findDuplicatesStream(directory)) {
+    console.log(`Duplicate found: ${duplicate.key}`);
+    for (const file of duplicate.files) {
+      console.log(`  - ${file}`);
+    }
+    console.log();
+
+    // Process duplicate group immediately
+    // This keeps memory usage constant regardless of library size
+    await handleDuplicateGroup(duplicate.files);
+  }
+}
+```
+
+### Best Practices for Streaming Processing
+
+1. **Use Generators**: AsyncGenerators provide natural batching and backpressure
+2. **Process in Batches**: Balance between memory usage and performance
+3. **Clear References**: Explicitly clear arrays and objects after processing
+4. **Monitor Memory**: Use `process.memoryUsage()` to track memory consumption
+5. **Handle Backpressure**: Respect stream backpressure signals
+6. **Progress Reporting**: Use stderr for progress to keep stdout clean
+7. **Error Isolation**: Don't let one error stop the entire stream
+8. **Concurrent Limits**: Limit concurrent operations to prevent resource exhaustion
+
+## Migration Guides
+
+### Migrating from v0.3.x to v0.4.x
+
+```typescript
+// v0.3.x - Old import style
+import { TagLib } from "taglib-wasm/full";
+import { readTags } from "taglib-wasm/simple";
+
+// v0.4.x - New import style
+import { TagLib } from "taglib-wasm";
+import { readTags } from "taglib-wasm/simple";
+
+// Folder API moved from subpath to main export
+// v0.3.x
+import { scanFolder } from "taglib-wasm/folder";
+
+// v0.4.x
+import { scanFolder } from "taglib-wasm";
+```
+
+### Migrating from Other Libraries
+
+```typescript
+// From node-taglib2
+const taglib = require("taglib2");
+const tags = taglib.readTagsSync("file.mp3");
+
+// To taglib-wasm
+import { readTags } from "taglib-wasm/simple";
+const tags = await readTags("file.mp3");
+
+// From music-metadata
+const mm = require("music-metadata");
+const metadata = await mm.parseFile("file.mp3");
+
+// To taglib-wasm
+import { readProperties, readTags } from "taglib-wasm/simple";
+const tags = await readTags("file.mp3");
+const props = await readProperties("file.mp3");
+```
+
+## Performance Benchmarks
+
+Typical performance numbers for common operations:
+
+### Reading Operations
+
+- **Simple tag read**: 2-5ms per file
+- **Full metadata read**: 5-10ms per file
+- **Folder scan (1000 files)**: 2-4 seconds with concurrency=8
+
+### Writing Operations
+
+- **Simple tag update**: 5-10ms per file
+- **Full metadata update**: 10-20ms per file
+- **Batch update (100 files)**: 1-2 seconds
+
+### Memory Usage
+
+- **Base library**: ~2MB after initialization
+- **Per file overhead**: ~100KB-1MB depending on file size
+- **Batch processing**: Constant memory with proper disposal
+
+## Security Considerations
+
+### Input Validation
+
+```typescript
+async function safelyProcessUserFile(
+  buffer: ArrayBuffer,
+  maxSize: number = 100 * 1024 * 1024, // 100MB
+) {
+  // Validate size
+  if (buffer.byteLength > maxSize) {
+    throw new Error("File too large");
+  }
+
+  // Validate minimum size
+  if (buffer.byteLength < 1024) {
+    throw new Error("File too small to be valid audio");
+  }
+
+  // Validate magic bytes
+  const bytes = new Uint8Array(buffer);
+  if (!isValidAudioFile(bytes)) {
+    throw new Error("Not a valid audio file");
+  }
+
+  // Process with timeout
+  const timeout = setTimeout(() => {
+    throw new Error("Processing timeout");
+  }, 30000); // 30 second timeout
+
+  try {
+    const taglib = await TagLib.initialize();
+    const audioFile = await taglib.open(buffer);
+    // Process...
+    audioFile.dispose();
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+function isValidAudioFile(bytes: Uint8Array): boolean {
+  // Check for common audio file signatures
+  const signatures = [
+    [0x49, 0x44, 0x33], // ID3
+    [0xFF, 0xFB], // MP3
+    [0xFF, 0xF3], // MP3
+    [0xFF, 0xF2], // MP3
+    [0x66, 0x4C, 0x61, 0x43], // fLaC
+    [0x4F, 0x67, 0x67, 0x53], // OggS
+    [0x00, 0x00, 0x00, 0x20, 0x66, 0x74, 0x79, 0x70], // ftyp (MP4)
+    [0x52, 0x49, 0x46, 0x46], // RIFF (WAV)
+  ];
+
+  return signatures.some((sig) =>
+    sig.every((byte, index) => bytes[index] === byte)
+  );
+}
+```
+
+## Testing Patterns
+
+### Unit Testing with Mocks
+
+```typescript
+import { expect, test, vi } from "vitest";
+import { readTags } from "taglib-wasm/simple";
+
+// Mock the module
+vi.mock("taglib-wasm/simple", () => ({
+  readTags: vi.fn(),
+  updateTags: vi.fn(),
+}));
+
+test("should process music file", async () => {
+  // Setup mock
+  vi.mocked(readTags).mockResolvedValue({
+    title: "Test Song",
+    artist: "Test Artist",
+    album: "Test Album",
+  });
+
+  // Test your code
+  const result = await processMusic("test.mp3");
+
+  expect(result.title).toBe("Test Song");
+  expect(readTags).toHaveBeenCalledWith("test.mp3");
+});
+```
+
+### Integration Testing
+
+```typescript
+import { expect, test } from "@jest/globals";
+import { TagLib } from "taglib-wasm";
+import { readFile } from "fs/promises";
+
+test("should read and write tags", async () => {
+  const taglib = await TagLib.initialize();
+  const buffer = await readFile("test-files/sample.mp3");
+
+  const audioFile = await taglib.open(buffer);
+  const tag = audioFile.tag();
+
+  // Test reading
+  expect(tag.title).toBeDefined();
+
+  // Test writing
+  tag.setTitle("New Title");
+  const success = audioFile.save();
+  expect(success).toBe(true);
+
+  // Cleanup
+  audioFile.dispose();
+});
+```
+
+## Bundle Size Optimization
+
+### For Web Applications
+
+```typescript
+// Use dynamic imports for code splitting
+async function loadTagLib() {
+  const { TagLib } = await import("taglib-wasm");
+  return TagLib.initialize({
+    wasmUrl: "https://cdn.jsdelivr.net/npm/taglib-wasm@latest/dist/taglib.wasm",
+  });
+}
+
+// Tree-shake by importing only what you need
+import { readTags } from "taglib-wasm/simple";
+// Instead of importing everything
+```
+
+### Webpack Configuration
+
+```javascript
+module.exports = {
+  optimization: {
+    splitChunks: {
+      cacheGroups: {
+        taglib: {
+          test: /[\\/]node_modules[\\/]taglib-wasm/,
+          name: "taglib",
+          chunks: "async",
+        },
+      },
+    },
+  },
+};
+```
+
+## Error Recovery Patterns
+
+### Retry Logic
+
+```typescript
+async function readTagsWithRetry(
+  path: string,
+  maxRetries: number = 3,
+): Promise<Tag> {
+  let lastError: Error;
+
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      return await readTags(path);
+    } catch (error) {
+      lastError = error as Error;
+
+      // Don't retry on certain errors
+      if (isUnrecoverableError(error)) {
+        throw error;
+      }
+
+      // Exponential backoff
+      if (attempt < maxRetries) {
+        await new Promise((resolve) =>
+          setTimeout(resolve, Math.pow(2, attempt) * 100)
+        );
+      }
+    }
+  }
+
+  throw lastError!;
+}
+
+function isUnrecoverableError(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error);
+  return message.includes("Invalid audio file format") ||
+    message.includes("File too small");
+}
+```
+
+## CI/CD Integration
+
+### GitHub Actions Example
+
+```yaml
+name: Process Audio Metadata
+on: [push]
+
+jobs:
+  process:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: denoland/setup-deno@v1
+        with:
+          deno-version: v2.x
+
+      - name: Process audio files
+        run: |
+          deno run --allow-read --allow-write process-audio.ts
+```
+
+### Docker Example
+
+```dockerfile
+FROM denoland/deno:2.0.0
+WORKDIR /app
+COPY . .
+RUN deno cache --allow-scripts mod.ts
+CMD ["deno", "run", "--allow-read", "--allow-write", "process.ts"]
+```
+
+## Accessibility Considerations
+
+### Making Metadata Screen Reader Friendly
+
+```typescript
+function formatForScreenReader(tags: Tag): string {
+  const parts = [];
+
+  if (tags.title) parts.push(`Title: ${tags.title}`);
+  if (tags.artist) parts.push(`Artist: ${tags.artist}`);
+  if (tags.album) parts.push(`Album: ${tags.album}`);
+  if (tags.year) parts.push(`Year: ${tags.year}`);
+  if (tags.track) parts.push(`Track number: ${tags.track}`);
+
+  return parts.join(". ") + ".";
+}
+
+// ARIA-friendly HTML output
+function renderAccessibleMetadata(tags: Tag): string {
+  return `
+    <div role="article" aria-label="Audio file metadata">
+      <h3>${tags.title || "Untitled"}</h3>
+      <dl>
+        <dt>Artist</dt>
+        <dd>${tags.artist || "Unknown artist"}</dd>
+        <dt>Album</dt>
+        <dd>${tags.album || "Unknown album"}</dd>
+        <dt>Year</dt>
+        <dd>${tags.year || "Unknown year"}</dd>
+      </dl>
+    </div>
+  `;
+}
+```
+
 ## Additional Resources
 
 - **API Documentation**: See the project's docs/API.md
@@ -1140,6 +2408,7 @@ async function scanMusicLibraryManual(directory: string) {
 - **Examples**: Check the examples/ directory for runtime-specific code
 - **Folder Operations Guide**: See docs/guide/folder-operations.md for detailed
   batch processing examples
+- **Deno Compile Guide**: See docs/guide/deno-compile.md for compiled binary support
 
 ## Glossary
 
@@ -1170,3 +2439,12 @@ async function scanMusicLibraryManual(directory: string) {
 - **AudioProperties**: Technical properties (duration, bitrate, etc.)
 - **dispose()**: Release C++ memory (critical for Full API)
 - **Wasm**: WebAssembly - allows C++ TagLib to run in JavaScript
+- **JSR**: JavaScript Registry - Deno's package registry
+- **npm**: Node Package Manager - Node.js package registry
+
+### Performance Terms
+
+- **WebAssembly Streaming**: Compile WASM while downloading for faster startup
+- **Concurrency**: Number of files processed in parallel
+- **Memory Leak**: Unreleased C++ objects from missing dispose() calls
+- **Buffer**: Binary data in memory (ArrayBuffer/Uint8Array)
