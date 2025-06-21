@@ -78,8 +78,8 @@ taglib-wasm provides three APIs for different use cases:
 - **Building a music player?** → Simple API for metadata, batch functions for libraries
 - **Building a tag editor?** → Full API for complete control
 - **Working with cover art?** → Simple API: `getCoverArt()`, `setCoverArt()`
-- **Identifying files missing artwork?** → Folder API: `scanFolder()` with `hasCoverArt` field
-- **Analyzing volume normalization?** → Folder API: `scanFolder()` with `dynamics` field
+- **Identifying files missing artwork?** → Folder API: `scanFolder()` or Simple API: `readMetadataBatch()` with `hasCoverArt` field
+- **Analyzing volume normalization?** → Folder API: `scanFolder()` or Simple API: `readMetadataBatch()` with `dynamics` field
 
 ## Quick Reference
 
@@ -820,6 +820,7 @@ for (const [key, files] of duplicates) {
 ### Recipe: Identify Files Needing Cover Art or Volume Normalization
 
 ```typescript
+// Using Folder API (for directory scanning)
 import { scanFolder } from "taglib-wasm";
 
 const result = await scanFolder("/music", {
@@ -853,6 +854,55 @@ console.log(`\nNormalization stats:`);
 console.log(`- ReplayGain: ${replayGainFiles.length} files`);
 console.log(`- Apple Sound Check: ${soundCheckFiles.length} files`);
 console.log(`- No normalization: ${filesNeedingNormalization.length} files`);
+```
+
+### Recipe: Analyze Files Using Batch API
+
+```typescript
+// Using Simple API batch functions (for specific file lists)
+import { readMetadataBatch } from "taglib-wasm/simple";
+
+const files = [
+  "album/track01.mp3",
+  "album/track02.mp3",
+  "album/track03.mp3",
+];
+
+const result = await readMetadataBatch(files, {
+  concurrency: 8,
+});
+
+// Analyze cover art
+const withCoverArt = result.results.filter((r) => r.data.hasCoverArt);
+const withoutCoverArt = result.results.filter((r) => !r.data.hasCoverArt);
+
+console.log(`Cover art analysis:`);
+console.log(`- With cover art: ${withCoverArt.length} files`);
+console.log(`- Without cover art: ${withoutCoverArt.length} files`);
+
+// Analyze volume normalization
+const withReplayGain = result.results.filter((r) =>
+  r.data.dynamics?.replayGainTrackGain
+);
+const withSoundCheck = result.results.filter((r) =>
+  r.data.dynamics?.appleSoundCheck
+);
+const withoutNormalization = result.results.filter((r) =>
+  !r.data.dynamics?.replayGainTrackGain && !r.data.dynamics?.appleSoundCheck
+);
+
+console.log(`\nNormalization analysis:`);
+console.log(`- ReplayGain: ${withReplayGain.length} files`);
+console.log(`- Sound Check: ${withSoundCheck.length} files`);
+console.log(`- No normalization: ${withoutNormalization.length} files`);
+
+// List files needing attention
+if (withoutCoverArt.length > 0) {
+  console.log(`\nFiles needing cover art:`);
+  for (const { file } of withoutCoverArt) {
+    console.log(`- ${file}`);
+  }
+}
 ```
 
 ### Recipe: Add ReplayGain for Volume Normalization
