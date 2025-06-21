@@ -669,3 +669,85 @@ Deno.test("Integration: Performance - Concurrent Operations", async () => {
   // Note: CI runners may be slower, especially on macOS
   assert(timeMs < 2000, `Concurrent operations took ${timeMs}ms`);
 });
+
+Deno.test("readMetadataBatch - includes cover art and dynamics data", async () => {
+  const { readMetadataBatch } = await import("../src/simple.ts");
+  const { readFile } = await import("../src/utils/file.ts");
+
+  // Use real test files that might have metadata
+  const testFiles = [
+    "./tests/test-files/mp3/kiss-snippet.mp3",
+    "./tests/test-files/flac/1hz-5sec.flac",
+    "./tests/test-files/mp4/kiss-snippet.m4a",
+  ];
+
+  const result = await readMetadataBatch(testFiles, {
+    concurrency: 3,
+  });
+
+  // Should process all files
+  assertEquals(result.results.length, testFiles.length);
+  assertEquals(result.errors.length, 0);
+
+  // Check each result has the new fields
+  for (const { file, data } of result.results) {
+    // Basic assertions
+    assertExists(data.tags);
+    assertExists(data.properties);
+    assertEquals(typeof data.hasCoverArt, "boolean");
+
+    // Dynamics is optional but should be object or undefined
+    if (data.dynamics) {
+      assertEquals(typeof data.dynamics, "object");
+
+      // Check dynamics fields are strings if present
+      if (data.dynamics.replayGainTrackGain) {
+        assertEquals(typeof data.dynamics.replayGainTrackGain, "string");
+      }
+      if (data.dynamics.appleSoundCheck) {
+        assertEquals(typeof data.dynamics.appleSoundCheck, "string");
+      }
+    }
+
+    console.log(
+      `${file}: hasCoverArt=${data.hasCoverArt}, dynamics=${
+        data.dynamics ? "yes" : "no"
+      }`,
+    );
+  }
+});
+
+Deno.test("readMetadataBatch - processes files with dynamics metadata", async () => {
+  const { readMetadataBatch, updateTags } = await import("../src/simple.ts");
+  const { TagLib } = await import("../src/taglib.ts");
+
+  // Create a test file with ReplayGain data
+  const tempFile = await Deno.makeTempFile({ suffix: ".mp3" });
+  const testData = await Deno.readFile(
+    "./tests/test-files/mp3/kiss-snippet.mp3",
+  );
+  await Deno.writeFile(tempFile, testData);
+
+  try {
+    // Add ReplayGain data using full API
+    const taglib = await TagLib.initialize();
+    const audioFile = await taglib.open(tempFile);
+    audioFile.setProperty("REPLAYGAIN_TRACK_GAIN", "-6.5 dB");
+    audioFile.setProperty("REPLAYGAIN_TRACK_PEAK", "0.95");
+    audioFile.save();
+    await audioFile.saveToFile(tempFile);
+    audioFile.dispose();
+
+    // Test batch read
+    const result = await readMetadataBatch([tempFile]);
+
+    assertEquals(result.results.length, 1);
+    const data = result.results[0].data;
+
+    assertExists(data.dynamics);
+    assertEquals(data.dynamics.replayGainTrackGain, "-6.5 dB");
+    assertEquals(data.dynamics.replayGainTrackPeak, "0.95");
+  } finally {
+    await Deno.remove(tempFile);
+  }
+});

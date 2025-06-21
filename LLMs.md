@@ -527,7 +527,7 @@ if (tagsResult.errors.length > 0) {
   console.error(`Failed to process ${tagsResult.errors.length} files`);
 }
 
-// Read complete metadata (tags + properties) in one batch
+// Read complete metadata (tags + properties + cover art + dynamics) in one batch
 const metadata = await readMetadataBatch(files, { concurrency: 8 });
 
 for (const { file, data } of metadata.results) {
@@ -535,6 +535,14 @@ for (const { file, data } of metadata.results) {
   console.log(`  Title: ${data.tags.title}`);
   console.log(`  Duration: ${data.properties?.length}s`);
   console.log(`  Bitrate: ${data.properties?.bitrate}kbps`);
+  console.log(`  Has cover art: ${data.hasCoverArt}`);
+
+  if (data.dynamics?.replayGainTrackGain) {
+    console.log(`  ReplayGain: ${data.dynamics.replayGainTrackGain}`);
+  }
+  if (data.dynamics?.appleSoundCheck) {
+    console.log(`  Apple Sound Check: detected`);
+  }
 }
 
 // Performance comparison:
