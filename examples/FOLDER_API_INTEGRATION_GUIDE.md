@@ -7,17 +7,19 @@ This guide explains how to properly integrate the taglib-wasm Folder API into yo
 ### 1. Import Path Issues
 
 **❌ Wrong:**
+
 ```typescript
 import type { AudioFileMetadata } from "taglib-wasm/folder";
 ```
 
 **✅ Correct:**
+
 ```typescript
-import { 
-  scanFolder,
+import {
   type AudioFileMetadata,
   type FolderScanOptions,
-  type FolderScanResult 
+  type FolderScanResult,
+  scanFolder,
 } from "taglib-wasm";
 ```
 
@@ -26,6 +28,7 @@ The Folder API is exported from the main module, not a separate submodule.
 ### 2. Missing Helper Functions
 
 The following functions don't exist in taglib-wasm and need to be implemented:
+
 - `scanMusicDirectory` → Use `scanFolder` instead
 - `formatMetadataForDisplay` → Implement as a helper
 - `groupFilesByAlbum` → Implement as a helper
@@ -33,7 +36,9 @@ The following functions don't exist in taglib-wasm and need to be implemented:
 **Example helper implementations:**
 
 ```typescript
-function formatMetadataForDisplay(file: AudioFileMetadata): Record<string, any> {
+function formatMetadataForDisplay(
+  file: AudioFileMetadata,
+): Record<string, any> {
   return {
     ...file.tags,
     duration: file.properties?.length,
@@ -42,16 +47,18 @@ function formatMetadataForDisplay(file: AudioFileMetadata): Record<string, any> 
   };
 }
 
-function groupFilesByAlbum(files: AudioFileMetadata[]): Map<string, AudioFileMetadata[]> {
+function groupFilesByAlbum(
+  files: AudioFileMetadata[],
+): Map<string, AudioFileMetadata[]> {
   const albums = new Map<string, AudioFileMetadata[]>();
-  
+
   for (const file of files) {
     const albumName = file.tags.album || "Unknown Album";
     const albumFiles = albums.get(albumName) || [];
     albumFiles.push(file);
     albums.set(albumName, albumFiles);
   }
-  
+
   return albums;
 }
 ```
@@ -63,32 +70,32 @@ The `scanFolder` API scans entire directories. To scan specific files:
 ```typescript
 async function scanSpecificFiles(
   filesToProcess: string[],
-  options?: Partial<FolderScanOptions>
+  options?: Partial<FolderScanOptions>,
 ): Promise<FolderScanResult> {
   // Extract unique directories
   const directories = new Set<string>();
   const fileSet = new Set(filesToProcess);
-  
+
   for (const file of filesToProcess) {
     directories.add(dirname(file));
   }
-  
+
   // Aggregate results
   const allFiles: AudioFileMetadata[] = [];
-  
+
   // Scan each directory
   for (const dir of directories) {
     const result = await scanFolder(dir, {
       recursive: false,
       ...options,
     });
-    
+
     // Filter to only include files we want
-    const relevantFiles = result.files.filter(f => fileSet.has(f.path));
+    const relevantFiles = result.files.filter((f) => fileSet.has(f.path));
     allFiles.push(...relevantFiles);
   }
-  
-  return { files: allFiles, /* ... */ };
+
+  return { files: allFiles /* ... */ };
 }
 ```
 
@@ -105,14 +112,14 @@ const audioFile = await taglib.open(filePath);
 try {
   const propertyMap = audioFile.propertyMap();
   const properties = propertyMap.properties();
-  
+
   // Access ReplayGain
   const trackGain = properties["REPLAYGAIN_TRACK_GAIN"]?.[0];
   const trackPeak = properties["REPLAYGAIN_TRACK_PEAK"]?.[0];
-  
+
   // Access AcoustID
   const acoustId = properties["ACOUSTID_ID"]?.[0];
-  
+
   // Access MusicBrainz
   const mbTrackId = properties["MUSICBRAINZ_TRACKID"]?.[0];
 } finally {
@@ -127,8 +134,8 @@ The correct types from taglib-wasm:
 ```typescript
 interface AudioFileMetadata {
   path: string;
-  tags: Tag;  // Basic tags: title, artist, album, etc.
-  properties?: AudioProperties;  // Duration, bitrate, sampleRate, etc.
+  tags: Tag; // Basic tags: title, artist, album, etc.
+  properties?: AudioProperties; // Duration, bitrate, sampleRate, etc.
   error?: Error;
 }
 
@@ -143,10 +150,10 @@ interface Tag {
 }
 
 interface AudioProperties {
-  length: number;      // Duration in seconds
-  bitrate: number;     // Bitrate in kbps
-  sampleRate: number;  // Sample rate in Hz
-  channels: number;    // Number of channels
+  length: number; // Duration in seconds
+  bitrate: number; // Bitrate in kbps
+  sampleRate: number; // Sample rate in Hz
+  channels: number; // Number of channels
 }
 ```
 
@@ -163,7 +170,7 @@ const taglib = await TagLib.initialize({ wasmData });
 
 // Option 2: Load from a URL
 const taglib = await TagLib.initialize({
-  wasmUrl: "https://cdn.jsdelivr.net/npm/taglib-wasm@latest/dist/taglib.wasm"
+  wasmUrl: "https://cdn.jsdelivr.net/npm/taglib-wasm@latest/dist/taglib.wasm",
 });
 ```
 
@@ -174,12 +181,12 @@ Always wrap operations in try-catch blocks:
 ```typescript
 try {
   const result = await scanFolder(directory, {
-    continueOnError: true,  // Don't stop on errors
+    continueOnError: true, // Don't stop on errors
     onProgress: (processed, total) => {
       console.log(`Progress: ${processed}/${total}`);
-    }
+    },
   });
-  
+
   // Handle errors
   if (result.errors.length > 0) {
     console.error("Some files failed:", result.errors);
@@ -199,7 +206,7 @@ const audioFile = await taglib.open(filePath);
 try {
   // Use the audioFile
 } finally {
-  audioFile.dispose();  // Critical!
+  audioFile.dispose(); // Critical!
 }
 ```
 
@@ -208,21 +215,22 @@ try {
 ```typescript
 // Use concurrency for better performance
 const result = await scanFolder(directory, {
-  concurrency: 8,  // Process 8 files in parallel
-  includeProperties: true,  // Include audio properties
+  concurrency: 8, // Process 8 files in parallel
+  includeProperties: true, // Include audio properties
 });
 
 // For large folders, use progress callbacks
 const result = await scanFolder(directory, {
   onProgress: (processed, total, currentFile) => {
     updateProgressBar(processed, total);
-  }
+  },
 });
 ```
 
 ## Complete Working Example
 
 See `fixed_show_tags_folder.ts` for a complete working implementation that:
+
 - Properly imports from taglib-wasm
 - Implements all helper functions
 - Handles extended metadata correctly
