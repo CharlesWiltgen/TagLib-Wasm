@@ -877,13 +877,34 @@ export async function readPropertiesBatch(
  *   console.log(`  Title: ${data.tags.title}`);
  *   console.log(`  Duration: ${data.properties?.length}s`);
  *   console.log(`  Bitrate: ${data.properties?.bitrate}kbps`);
+ *   console.log(`  Has cover art: ${data.hasCoverArt}`);
+ *
+ *   if (data.dynamics?.replayGainTrackGain) {
+ *     console.log(`  ReplayGain: ${data.dynamics.replayGainTrackGain}`);
+ *   }
+ *   if (data.dynamics?.appleSoundCheck) {
+ *     console.log(`  Sound Check: detected`);
+ *   }
  * }
  * ```
  */
 export async function readMetadataBatch(
   files: Array<string | Uint8Array | ArrayBuffer | File>,
   options: BatchOptions = {},
-): Promise<BatchResult<{ tags: Tag; properties: AudioProperties | null }>> {
+): Promise<
+  BatchResult<{
+    tags: Tag;
+    properties: AudioProperties | null;
+    hasCoverArt: boolean;
+    dynamics?: {
+      replayGainTrackGain?: string;
+      replayGainTrackPeak?: string;
+      replayGainAlbumGain?: string;
+      replayGainAlbumPeak?: string;
+      appleSoundCheck?: string;
+    };
+  }>
+> {
   const startTime = Date.now();
   const {
     concurrency = 4,
@@ -893,7 +914,18 @@ export async function readMetadataBatch(
 
   const results: Array<{
     file: string;
-    data: { tags: Tag; properties: AudioProperties | null };
+    data: {
+      tags: Tag;
+      properties: AudioProperties | null;
+      hasCoverArt: boolean;
+      dynamics?: {
+        replayGainTrackGain?: string;
+        replayGainTrackPeak?: string;
+        replayGainAlbumGain?: string;
+        replayGainAlbumPeak?: string;
+        appleSoundCheck?: string;
+      };
+    };
   }> = [];
   const errors: Array<{ file: string; error: Error }> = [];
 
@@ -921,7 +953,60 @@ export async function readMetadataBatch(
           }
           const tags = audioFile.tag();
           const properties = audioFile.audioProperties();
-          results.push({ file: fileName, data: { tags, properties } });
+
+          // Check for cover art
+          const pictures = audioFile.getPictures();
+          const hasCoverArt = pictures.length > 0;
+
+          // Extract dynamics data
+          const dynamics: any = {};
+
+          const replayGainTrackGain = audioFile.getProperty(
+            "REPLAYGAIN_TRACK_GAIN",
+          );
+          if (replayGainTrackGain) {
+            dynamics.replayGainTrackGain = replayGainTrackGain;
+          }
+
+          const replayGainTrackPeak = audioFile.getProperty(
+            "REPLAYGAIN_TRACK_PEAK",
+          );
+          if (replayGainTrackPeak) {
+            dynamics.replayGainTrackPeak = replayGainTrackPeak;
+          }
+
+          const replayGainAlbumGain = audioFile.getProperty(
+            "REPLAYGAIN_ALBUM_GAIN",
+          );
+          if (replayGainAlbumGain) {
+            dynamics.replayGainAlbumGain = replayGainAlbumGain;
+          }
+
+          const replayGainAlbumPeak = audioFile.getProperty(
+            "REPLAYGAIN_ALBUM_PEAK",
+          );
+          if (replayGainAlbumPeak) {
+            dynamics.replayGainAlbumPeak = replayGainAlbumPeak;
+          }
+
+          // Apple Sound Check - check both standard property and MP4-specific atom
+          let appleSoundCheck = audioFile.getProperty("ITUNNORM");
+          if (!appleSoundCheck && audioFile.isMP4()) {
+            appleSoundCheck = audioFile.getMP4Item(
+              "----:com.apple.iTunes:iTunNORM",
+            );
+          }
+          if (appleSoundCheck) dynamics.appleSoundCheck = appleSoundCheck;
+
+          results.push({
+            file: fileName,
+            data: {
+              tags,
+              properties,
+              hasCoverArt,
+              dynamics: Object.keys(dynamics).length > 0 ? dynamics : undefined,
+            },
+          });
         } finally {
           audioFile.dispose();
         }
