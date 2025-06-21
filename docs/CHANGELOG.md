@@ -10,6 +10,13 @@ and this project adheres to
 
 ### Added
 
+- Container format and codec detection
+  - New `containerFormat` field in `AudioProperties` interface
+  - Differentiates between container formats (MP4, OGG) and codecs (AAC, Vorbis)
+  - Properly identifies MP4 containers (including .m4a files) vs their codecs (AAC/ALAC)
+  - Clear distinction between how audio data is packaged vs compressed
+  - Supports all major container formats: MP4, OGG, MP3, FLAC, WAV, AIFF
+
 - Smart Partial Loading for dramatically improved performance with large files
   - New `partial` option in `open()` method enables loading only metadata
     portions

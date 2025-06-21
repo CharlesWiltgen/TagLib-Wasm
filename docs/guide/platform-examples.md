@@ -26,6 +26,9 @@ console.log(`Title: ${tags.title}`);
 console.log(`Artist: ${tags.artist}`);
 console.log(`Duration: ${props.length}s`);
 console.log(`Bitrate: ${props.bitrate} kbps`);
+console.log(`Container: ${props.containerFormat}`);
+console.log(`Codec: ${props.codec}`);
+console.log(`Lossless: ${props.isLossless}`);
 
 // Write metadata
 const tag = file.tag();
@@ -73,6 +76,9 @@ console.log(`Title: ${tags.title}`);
 console.log(`Artist: ${tags.artist}`);
 console.log(`Duration: ${props.length}s`);
 console.log(`Bitrate: ${props.bitrate} kbps`);
+console.log(`Container: ${props.containerFormat}`);
+console.log(`Codec: ${props.codec}`);
+console.log(`Lossless: ${props.isLossless}`);
 
 // Write metadata
 const tag = file.tag();
@@ -118,6 +124,9 @@ console.log(`Title: ${tags.title}`);
 console.log(`Artist: ${tags.artist}`);
 console.log(`Duration: ${props.length}s`);
 console.log(`Bitrate: ${props.bitrate} kbps`);
+console.log(`Container: ${props.containerFormat}`);
+console.log(`Codec: ${props.codec}`);
+console.log(`Lossless: ${props.isLossless}`);
 
 // Write metadata
 const tag = file.tag();
@@ -164,6 +173,9 @@ console.log(`Title: ${tags.title}`);
 console.log(`Artist: ${tags.artist}`);
 console.log(`Duration: ${props.length}s`);
 console.log(`Bitrate: ${props.bitrate} kbps`);
+console.log(`Container: ${props.containerFormat}`);
+console.log(`Codec: ${props.codec}`);
+console.log(`Lossless: ${props.isLossless}`);
 
 // Write metadata
 const tag = file.tag();
