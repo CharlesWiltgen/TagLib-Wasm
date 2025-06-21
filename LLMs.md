@@ -90,6 +90,7 @@ taglib-wasm provides three APIs for different use cases:
 | Read tags             | `await readTags("file.mp3")`                | `audioFile.tag().title`                       |
 | Write tags            | `await updateTags("file.mp3", tags)`        | `tag.setTitle("New")`                         |
 | Get duration          | `(await readProperties("file.mp3")).length` | `audioFile.audioProperties().length`          |
+| Get codec/container   | `(await readProperties("file.mp3")).codec`  | `audioFile.audioProperties().codec`           |
 | Get modified buffer   | `await applyTags("file.mp3", tags)`         | `audioFile.save(); audioFile.getFileBuffer()` |
 | Get cover art         | `await getCoverArt("file.mp3")`             | Use PropertyMap API                           |
 | Set cover art         | `await setCoverArt("file.mp3", data, type)` | Use PropertyMap API                           |
@@ -431,6 +432,10 @@ const audioInfo = {
   bitrate: props.bitrate, // Bitrate in kb/s
   sampleRate: props.sampleRate, // Sample rate in Hz
   channels: props.channels, // Number of channels
+  bitsPerSample: props.bitsPerSample, // Bits per sample (0 if N/A)
+  codec: props.codec, // Audio codec (e.g., "AAC", "ALAC", "MP3")
+  containerFormat: props.containerFormat, // Container (e.g., "MP4", "OGG")
+  isLossless: props.isLossless, // true for lossless formats
 };
 
 audioFile.dispose();
@@ -724,6 +729,38 @@ Common error types:
 - `MetadataError` - Tag reading/writing errors
 
 ## Common Recipes
+
+### Recipe: Container Format and Codec Detection
+
+```typescript
+import { readProperties } from "taglib-wasm/simple";
+
+// Detect container format and codec
+const props = await readProperties("audio.m4a");
+
+console.log(`Container: ${props.containerFormat}`); // "MP4"
+console.log(`Codec: ${props.codec}`); // "AAC" or "ALAC"
+console.log(`Lossless: ${props.isLossless}`); // false for AAC, true for ALAC
+
+// Understanding container vs codec:
+// - Container format: How audio data and metadata are packaged
+// - Codec: How audio is compressed/encoded
+
+// Examples of container/codec combinations:
+// MP4 container (.m4a) → AAC (lossy) or ALAC (lossless)
+// OGG container → Vorbis, Opus, FLAC, or Speex
+// MP3 → Both container and codec
+// FLAC → Both container and codec
+
+// Batch analysis
+const files = ["song1.mp3", "song2.m4a", "song3.ogg", "song4.flac"];
+for (const file of files) {
+  const props = await readProperties(file);
+  console.log(
+    `${file}: ${props.containerFormat} container, ${props.codec} codec`,
+  );
+}
+```
 
 ### Recipe: Add Album Art / Cover Image
 

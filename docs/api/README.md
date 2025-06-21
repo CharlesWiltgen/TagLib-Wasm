@@ -195,6 +195,7 @@ interface AudioProperties {
   sampleRate: number; // Sample rate in Hz
   channels: number; // Number of channels (1=mono, 2=stereo)
   codec?: string; // Audio codec (e.g., "AAC", "ALAC", "MP3", "FLAC", "PCM", "Vorbis")
+  containerFormat?: string; // Container format (e.g., "MP4", "OGG", "MP3", "FLAC")
   isLossless?: boolean; // True for lossless/uncompressed formats
   bitsPerSample?: number; // Bit depth (e.g., 16, 24)
 }
@@ -208,6 +209,18 @@ console.log(`Duration: ${props.length}s`);
 console.log(`Bitrate: ${props.bitrate} kbps`);
 console.log(`Sample rate: ${props.sampleRate} Hz`);
 console.log(`Channels: ${props.channels}`);
+console.log(`Container: ${props.containerFormat}`);
+console.log(`Codec: ${props.codec}`);
+console.log(`Lossless: ${props.isLossless}`);
+
+// Container vs Codec:
+// - Container format: How audio data and metadata are packaged
+// - Codec: How audio is compressed/encoded
+//
+// Examples:
+// MP4 container (.m4a) can contain AAC or ALAC
+// OGG container can contain Vorbis, Opus, FLAC, or Speex
+// MP3 and FLAC are both container and codec
 ```
 
 ### Batch Processing
@@ -692,6 +705,10 @@ interface AudioProperties {
   bitrate: number; // Bitrate in kbps
   sampleRate: number; // Sample rate in Hz
   channels: number; // Number of channels
+  bitsPerSample: number; // Bits per sample (0 if not applicable)
+  codec: string; // Audio codec (e.g., "AAC", "ALAC", "MP3", "FLAC", "PCM")
+  containerFormat: string; // Container format (e.g., "MP4", "OGG", "MP3", "FLAC")
+  isLossless: boolean; // True for lossless/uncompressed formats
 }
 ```
 
