@@ -1,7 +1,11 @@
 {
   "name": "@charlesw/taglib-wasm",
-  "version": "0.4.7",
-  "exports": "./mod.ts",
+  "version": "0.4.8",
+  "exports": {
+    ".": "./mod.ts",
+    "./simple": "./simple.ts",
+    "./workers": "./workers.ts"
+  },
   "compilerOptions": {
     "lib": [
       "deno.window",
