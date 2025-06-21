@@ -115,16 +115,27 @@ export {
 } from "./src/simple.ts";
 
 /**
- * Constants and utilities for tag name validation.
- * @see {@link Tags} - Standard tag name constants
- * @see {@link FormatMappings} - Format-specific field mappings
- * @see {@link isValidTagName} - Validate tag names
- * @see {@link getAllTagNames} - Get all valid tag names
+ * Enhanced property constants and utilities with rich metadata.
+ * @see {@link PROPERTIES} - Comprehensive property definitions with metadata
+ * @see {@link PropertyKey} - Type-safe property keys
+ * @see {@link PropertyValue} - Type-safe property values
+ * @see {@link isValidProperty} - Validate property keys
+ * @see {@link getPropertyMetadata} - Get property metadata
+ * @see {@link getAllPropertyKeys} - Get all valid property keys
+ * @see {@link getPropertiesByFormat} - Filter properties by format support
+ * @see {@link Tags} - Legacy tag name constants (deprecated)
+ * @see {@link FormatMappings} - Format-specific field mappings (deprecated)
  */
 export {
   FormatMappings,
+  getAllProperties,
+  getAllPropertyKeys,
   getAllTagNames,
+  getPropertiesByFormat,
+  getPropertyMetadata,
+  isValidProperty,
   isValidTagName,
+  PROPERTIES,
   Tags,
 } from "./src/constants.ts";
 /**
@@ -187,6 +198,8 @@ export {
  * @see {@link Tag} - Basic metadata structure
  * @see {@link ExtendedTag} - Extended metadata with advanced fields
  * @see {@link AudioProperties} - Audio technical properties
+ * @see {@link PropertyKey} - Type-safe property keys with autocomplete
+ * @see {@link PropertyValue} - Type-safe property values
  */
 export type {
   AudioFormat,
@@ -199,6 +212,8 @@ export type {
   Tag,
   TagName,
 } from "./src/types.ts";
+
+export type { PropertyKey, PropertyValue } from "./src/constants.ts";
 
 /**
  * Enum exports
