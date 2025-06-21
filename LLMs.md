@@ -58,10 +58,11 @@ taglib-wasm provides three APIs for different use cases:
 
 ### 3. **Folder API** (Main export)
 
-- **Best for**: Library scanning, bulk updates, finding duplicates
+- **Best for**: Library scanning, bulk updates, finding duplicates, cover art detection, dynamics analysis
 - **Memory**: Efficient batch processing
 - **Functions**: `scanFolder()`, `updateFolderTags()`, `findDuplicates()`,
   `exportFolderMetadata()`
+- **Features**: Detects cover art presence, extracts ReplayGain/Sound Check data
 - **Runtime**: Node.js, Deno, and Bun only (requires filesystem access)
 - **Note**: Exported from main module, not a subpath
 
@@ -77,6 +78,8 @@ taglib-wasm provides three APIs for different use cases:
 - **Building a music player?** → Simple API for metadata, batch functions for libraries
 - **Building a tag editor?** → Full API for complete control
 - **Working with cover art?** → Simple API: `getCoverArt()`, `setCoverArt()`
+- **Identifying files missing artwork?** → Folder API: `scanFolder()` with `hasCoverArt` field
+- **Analyzing volume normalization?** → Folder API: `scanFolder()` with `dynamics` field
 
 ## Quick Reference
 
@@ -585,6 +588,19 @@ console.log(`Successfully processed ${result.totalProcessed}`);
 for (const file of result.files) {
   console.log(`${file.path}: ${file.tags.artist} - ${file.tags.title}`);
   console.log(`Duration: ${file.properties?.length}s`);
+
+  // Check for cover art
+  if (file.hasCoverArt) {
+    console.log(`  Has cover art`);
+  }
+
+  // Check for volume normalization data
+  if (file.dynamics?.replayGainTrackGain) {
+    console.log(`  ReplayGain: ${file.dynamics.replayGainTrackGain}`);
+  }
+  if (file.dynamics?.appleSoundCheck) {
+    console.log(`  Has Apple Sound Check data`);
+  }
 }
 
 // Batch update tags
@@ -791,6 +807,44 @@ for (const [key, files] of duplicates) {
     // await unlink(file.path); // Uncomment to actually delete
   }
 }
+```
+
+### Recipe: Identify Files Needing Cover Art or Volume Normalization
+
+```typescript
+import { scanFolder } from "taglib-wasm";
+
+const result = await scanFolder("/music", {
+  recursive: true,
+  concurrency: 8,
+});
+
+// Find files missing cover art
+const filesNeedingArt = result.files.filter((f) => !f.hasCoverArt);
+console.log(`Files missing cover art: ${filesNeedingArt.length}`);
+
+for (const file of filesNeedingArt) {
+  console.log(`- ${file.path}`);
+}
+
+// Find files without volume normalization
+const filesNeedingNormalization = result.files.filter((f) =>
+  !f.dynamics?.replayGainTrackGain && !f.dynamics?.appleSoundCheck
+);
+console.log(
+  `\nFiles needing volume normalization: ${filesNeedingNormalization.length}`,
+);
+
+// Analyze existing normalization
+const replayGainFiles = result.files.filter((f) =>
+  f.dynamics?.replayGainTrackGain
+);
+const soundCheckFiles = result.files.filter((f) => f.dynamics?.appleSoundCheck);
+
+console.log(`\nNormalization stats:`);
+console.log(`- ReplayGain: ${replayGainFiles.length} files`);
+console.log(`- Apple Sound Check: ${soundCheckFiles.length} files`);
+console.log(`- No normalization: ${filesNeedingNormalization.length} files`);
 ```
 
 ### Recipe: Add ReplayGain for Volume Normalization
@@ -1231,7 +1285,17 @@ interface AudioFileMetadata {
   path: string; // File path
   tags: Tag; // Metadata tags
   properties?: AudioProperties; // Audio properties (optional)
+  hasCoverArt?: boolean; // Whether file has embedded cover art
+  dynamics?: AudioDynamics; // ReplayGain and Sound Check data
   error?: Error; // Error if processing failed
+}
+
+interface AudioDynamics {
+  replayGainTrackGain?: string; // Track gain in dB (e.g., "-6.54 dB")
+  replayGainTrackPeak?: string; // Track peak value (0.0-1.0)
+  replayGainAlbumGain?: string; // Album gain in dB
+  replayGainAlbumPeak?: string; // Album peak value (0.0-1.0)
+  appleSoundCheck?: string; // Apple Sound Check normalization data
 }
 ```
 
@@ -1281,6 +1345,20 @@ async function analyzeMusicLibrary(directory: string) {
   console.log(`- Errors: ${result.errors.length}`);
   console.log(`- Time: ${result.duration}ms`);
 
+  // Analyze cover art and dynamics
+  const filesWithCoverArt = result.files.filter((f) => f.hasCoverArt).length;
+  const filesWithReplayGain =
+    result.files.filter((f) => f.dynamics?.replayGainTrackGain).length;
+  const filesWithSoundCheck =
+    result.files.filter((f) => f.dynamics?.appleSoundCheck).length;
+
+  console.log(`\nAnalysis:`);
+  console.log(
+    `- Files with cover art: ${filesWithCoverArt}/${result.totalProcessed}`,
+  );
+  console.log(`- Files with ReplayGain: ${filesWithReplayGain}`);
+  console.log(`- Files with Sound Check: ${filesWithSoundCheck}`);
+
   // Find duplicates
   const duplicates = await findDuplicates(directory, ["artist", "title"]);
   console.log(`\nFound ${duplicates.size} duplicate groups`);
@@ -1300,6 +1378,10 @@ async function analyzeMusicLibrary(directory: string) {
         (sum, f) => sum + (f.properties?.length || 0),
         0,
       ),
+      filesWithCoverArt,
+      filesNeedingCoverArt: result.totalProcessed - filesWithCoverArt,
+      filesWithReplayGain,
+      filesWithSoundCheck,
       totalSize: result.files.reduce(
         (sum, f) =>
           sum +
