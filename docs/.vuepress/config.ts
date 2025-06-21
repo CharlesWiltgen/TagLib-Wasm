@@ -46,6 +46,10 @@ export default defineUserConfig({
         link: "/guide/examples.md",
       },
       {
+        text: "NPM",
+        link: "https://www.npmjs.com/package/taglib-wasm",
+      },
+      {
         text: "JSR",
         link: "https://jsr.io/@charlesw/taglib-wasm",
       },
