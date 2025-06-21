@@ -4,7 +4,7 @@
  */
 
 import { TagLib } from "./taglib.ts";
-import { readTags, type Tag, updateTags } from "./simple.ts";
+import { type Tag, updateTags } from "./simple.ts";
 import type { AudioProperties } from "./types.ts";
 
 /**
@@ -245,25 +245,26 @@ export async function scanFolder(
     // Process files in batches
     const processor = async (filePath: string): Promise<AudioFileMetadata> => {
       try {
-        const tags = await readTags(filePath);
-        let properties: AudioProperties | undefined;
+        // Open file once and read both tags and properties
+        const audioFile = await taglib.open(filePath);
+        try {
+          const tags = audioFile.tag();
+          let properties: AudioProperties | undefined;
 
-        if (includeProperties) {
-          const audioFile = await taglib.open(filePath);
-          try {
+          if (includeProperties) {
             const props = audioFile.audioProperties();
             if (props) {
               properties = props;
             }
-          } finally {
-            audioFile.dispose();
           }
+
+          processed++;
+          onProgress?.(processed, totalFound, filePath);
+
+          return { path: filePath, tags, properties };
+        } finally {
+          audioFile.dispose();
         }
-
-        processed++;
-        onProgress?.(processed, totalFound, filePath);
-
-        return { path: filePath, tags, properties };
       } catch (error) {
         const err = error instanceof Error ? error : new Error(String(error));
 
