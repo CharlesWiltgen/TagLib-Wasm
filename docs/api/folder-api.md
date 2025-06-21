@@ -46,6 +46,23 @@ const result = await scanFolder("/music", {
     console.log(`${processed}/${total}`);
   },
 });
+
+// Check for files with dynamics data
+for (const file of result.files) {
+  if (file.hasCoverArt) {
+    console.log(`${file.path} has cover art`);
+  }
+
+  if (file.dynamics?.replayGainTrackGain) {
+    console.log(
+      `${file.path} has ReplayGain: ${file.dynamics.replayGainTrackGain}`,
+    );
+  }
+
+  if (file.dynamics?.appleSoundCheck) {
+    console.log(`${file.path} has Sound Check data`);
+  }
+}
 ```
 
 ### updateFolderTags()
@@ -214,8 +231,37 @@ interface AudioFileMetadata {
   /** Audio properties (optional) */
   properties?: AudioProperties;
 
+  /** Whether the file contains embedded cover art */
+  hasCoverArt?: boolean;
+
+  /** Audio dynamics data (ReplayGain and Sound Check) */
+  dynamics?: AudioDynamics;
+
   /** Error if processing failed */
   error?: Error;
+}
+```
+
+### AudioDynamics
+
+Audio dynamics data for volume normalization.
+
+```typescript
+interface AudioDynamics {
+  /** ReplayGain track gain in dB (e.g., "-6.54 dB") */
+  replayGainTrackGain?: string;
+
+  /** ReplayGain track peak value (0.0-1.0) */
+  replayGainTrackPeak?: string;
+
+  /** ReplayGain album gain in dB */
+  replayGainAlbumGain?: string;
+
+  /** ReplayGain album peak value (0.0-1.0) */
+  replayGainAlbumPeak?: string;
+
+  /** Apple Sound Check normalization data (iTunNORM) */
+  appleSoundCheck?: string;
 }
 ```
 

@@ -24,6 +24,22 @@ function extname(path: string): string {
 /**
  * Metadata for a single audio file including path information
  */
+/**
+ * Audio dynamics data (ReplayGain and Apple Sound Check)
+ */
+export interface AudioDynamics {
+  /** ReplayGain track gain in dB (e.g., "-6.54 dB") */
+  replayGainTrackGain?: string;
+  /** ReplayGain track peak value (0.0-1.0) */
+  replayGainTrackPeak?: string;
+  /** ReplayGain album gain in dB */
+  replayGainAlbumGain?: string;
+  /** ReplayGain album peak value (0.0-1.0) */
+  replayGainAlbumPeak?: string;
+  /** Apple Sound Check normalization data (iTunNORM) */
+  appleSoundCheck?: string;
+}
+
 export interface AudioFileMetadata {
   /** Absolute or relative path to the audio file */
   path: string;
@@ -31,6 +47,10 @@ export interface AudioFileMetadata {
   tags: Tag;
   /** Audio properties (duration, bitrate, sample rate, etc.) */
   properties?: AudioProperties;
+  /** Whether the file contains embedded cover art */
+  hasCoverArt?: boolean;
+  /** Audio dynamics data (ReplayGain and Sound Check) */
+  dynamics?: AudioDynamics;
   /** Any errors encountered while reading this file */
   error?: Error;
 }
@@ -258,10 +278,61 @@ export async function scanFolder(
             }
           }
 
+          // Check if the file has cover art
+          const pictures = audioFile.getPictures();
+          const hasCoverArt = pictures.length > 0;
+
+          // Extract dynamics data (ReplayGain and Sound Check)
+          const dynamics: AudioDynamics = {};
+
+          // ReplayGain fields
+          const replayGainTrackGain = audioFile.getProperty(
+            "REPLAYGAIN_TRACK_GAIN",
+          );
+          if (replayGainTrackGain) {
+            dynamics.replayGainTrackGain = replayGainTrackGain;
+          }
+
+          const replayGainTrackPeak = audioFile.getProperty(
+            "REPLAYGAIN_TRACK_PEAK",
+          );
+          if (replayGainTrackPeak) {
+            dynamics.replayGainTrackPeak = replayGainTrackPeak;
+          }
+
+          const replayGainAlbumGain = audioFile.getProperty(
+            "REPLAYGAIN_ALBUM_GAIN",
+          );
+          if (replayGainAlbumGain) {
+            dynamics.replayGainAlbumGain = replayGainAlbumGain;
+          }
+
+          const replayGainAlbumPeak = audioFile.getProperty(
+            "REPLAYGAIN_ALBUM_PEAK",
+          );
+          if (replayGainAlbumPeak) {
+            dynamics.replayGainAlbumPeak = replayGainAlbumPeak;
+          }
+
+          // Apple Sound Check - check both standard property and MP4-specific atom
+          let appleSoundCheck = audioFile.getProperty("ITUNNORM");
+          if (!appleSoundCheck && audioFile.isMP4()) {
+            appleSoundCheck = audioFile.getMP4Item(
+              "----:com.apple.iTunes:iTunNORM",
+            );
+          }
+          if (appleSoundCheck) dynamics.appleSoundCheck = appleSoundCheck;
+
           processed++;
           onProgress?.(processed, totalFound, filePath);
 
-          return { path: filePath, tags, properties };
+          return {
+            path: filePath,
+            tags,
+            properties,
+            hasCoverArt,
+            dynamics: Object.keys(dynamics).length > 0 ? dynamics : undefined,
+          };
         } finally {
           audioFile.dispose();
         }
