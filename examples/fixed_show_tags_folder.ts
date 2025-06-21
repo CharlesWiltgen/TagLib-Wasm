@@ -1,42 +1,46 @@
 import { Table } from "jsr:@cliffy/table@1.0.0-rc.7";
 import ora from "npm:ora@8.1.1";
 import { dirname } from "jsr:@std/path";
-import { 
-  scanFolder,
+import {
   type AudioFileMetadata,
   type FolderScanOptions,
-  type FolderScanResult 
+  type FolderScanResult,
+  scanFolder,
 } from "taglib-wasm";
 import { TagLib } from "taglib-wasm";
-import type { Tag, ExtendedTag } from "taglib-wasm";
+import type { ExtendedTag, Tag } from "taglib-wasm";
 
 /**
  * Helper function to format metadata for display
  */
-function formatMetadataForDisplay(file: AudioFileMetadata): Record<string, any> {
+function formatMetadataForDisplay(
+  file: AudioFileMetadata,
+): Record<string, any> {
   const metadata: Record<string, any> = {
     ...file.tags,
     duration: file.properties?.length,
     bitrate: file.properties?.bitrate,
     sampleRate: file.properties?.sampleRate,
   };
-  
+
   return metadata;
 }
 
 /**
  * Helper function to group files by album
  */
-function groupFilesByAlbum(files: AudioFileMetadata[]): Map<string, AudioFileMetadata[]> {
+function groupFilesByAlbum(
+  files: AudioFileMetadata[],
+): Map<string, AudioFileMetadata[]> {
   const albums = new Map<string, AudioFileMetadata[]>();
-  
+
   for (const file of files) {
     const albumName = file.tags.album || "Unknown Album";
     const albumFiles = albums.get(albumName) || [];
     albumFiles.push(file);
     albums.set(albumName, albumFiles);
   }
-  
+
   // Sort files within each album by track number
   for (const [albumName, albumFiles] of albums) {
     albumFiles.sort((a, b) => {
@@ -45,7 +49,7 @@ function groupFilesByAlbum(files: AudioFileMetadata[]): Map<string, AudioFileMet
       return trackA - trackB;
     });
   }
-  
+
   return albums;
 }
 
@@ -54,22 +58,22 @@ function groupFilesByAlbum(files: AudioFileMetadata[]): Map<string, AudioFileMet
  */
 async function scanSpecificFiles(
   filesToProcess: string[],
-  options?: Partial<FolderScanOptions>
+  options?: Partial<FolderScanOptions>,
 ): Promise<FolderScanResult> {
   // Extract unique directories from the file list
   const directories = new Set<string>();
   const fileSet = new Set(filesToProcess);
-  
+
   for (const file of filesToProcess) {
     directories.add(dirname(file));
   }
-  
+
   // We'll aggregate results from all directories
   const allFiles: AudioFileMetadata[] = [];
   const allErrors: Array<{ path: string; error: Error }> = [];
   let totalDuration = 0;
   let processedCount = 0;
-  
+
   // Scan each directory
   for (const dir of directories) {
     try {
@@ -80,26 +84,32 @@ async function scanSpecificFiles(
           // Only count files that were in our original list
           if (fileSet.has(currentFile)) {
             processedCount++;
-            options?.onProgress?.(processedCount, filesToProcess.length, currentFile);
+            options?.onProgress?.(
+              processedCount,
+              filesToProcess.length,
+              currentFile,
+            );
           }
         },
       });
-      
+
       // Filter to only include files we care about
       const relevantFiles = result.files.filter((f) => fileSet.has(f.path));
       allFiles.push(...relevantFiles);
-      
+
       // Add errors for files in our list
       const relevantErrors = result.errors.filter((e) => fileSet.has(e.path));
       allErrors.push(...relevantErrors);
-      
+
       totalDuration += result.duration;
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorMessage = error instanceof Error
+        ? error.message
+        : String(error);
       console.error(`Error scanning directory ${dir}: ${errorMessage}`);
     }
   }
-  
+
   return {
     files: allFiles,
     errors: allErrors,
@@ -130,7 +140,7 @@ export async function showTagsWithFolderAPI(
   try {
     // Initialize TagLib if needed
     const taglib = await TagLib.initialize();
-    
+
     // Scan files using the helper function
     const result = await scanSpecificFiles(filesToProcess, {
       onProgress: (processed, total, _currentFile) => {
@@ -170,14 +180,14 @@ export async function showTagsWithFolderAPI(
       let hasExtendedMetadata = false;
       let albumGain: string | undefined;
       let albumPeak: string | undefined;
-      
+
       // Check first file for album-level ReplayGain using Full API
       try {
         const audioFile = await taglib.open(firstFile.path);
         try {
           const propertyMap = audioFile.propertyMap();
           const properties = propertyMap.properties();
-          
+
           // Check for ReplayGain album values
           if (properties["REPLAYGAIN_ALBUM_GAIN"]) {
             albumGain = properties["REPLAYGAIN_ALBUM_GAIN"][0];
@@ -210,25 +220,31 @@ export async function showTagsWithFolderAPI(
       const extendedMetadataPromises = files.map(async (file) => {
         let acoustId = "✗";
         let replayGain = "✗";
-        
+
         try {
           const audioFile = await taglib.open(file.path);
           try {
             const propertyMap = audioFile.propertyMap();
             const properties = propertyMap.properties();
-            
+
             // Check for AcoustID
-            if (properties["ACOUSTID_ID"] || properties["ACOUSTID_FINGERPRINT"]) {
+            if (
+              properties["ACOUSTID_ID"] || properties["ACOUSTID_FINGERPRINT"]
+            ) {
               acoustId = "✓";
             }
-            
+
             // Check for track ReplayGain
             const replayGainInfo = [];
             if (properties["REPLAYGAIN_TRACK_GAIN"]) {
-              replayGainInfo.push(`G: ${properties["REPLAYGAIN_TRACK_GAIN"][0]}`);
+              replayGainInfo.push(
+                `G: ${properties["REPLAYGAIN_TRACK_GAIN"][0]}`,
+              );
             }
             if (properties["REPLAYGAIN_TRACK_PEAK"]) {
-              replayGainInfo.push(`P: ${properties["REPLAYGAIN_TRACK_PEAK"][0]}`);
+              replayGainInfo.push(
+                `P: ${properties["REPLAYGAIN_TRACK_PEAK"][0]}`,
+              );
             }
             if (replayGainInfo.length > 0) {
               replayGain = replayGainInfo.join(", ");
@@ -239,12 +255,12 @@ export async function showTagsWithFolderAPI(
         } catch (error) {
           // Ignore errors reading extended metadata
         }
-        
+
         return { file, acoustId, replayGain };
       });
-      
+
       const filesWithExtended = await Promise.all(extendedMetadataPromises);
-      
+
       for (const { file, acoustId, replayGain } of filesWithExtended) {
         const metadata = formatMetadataForDisplay(file);
         const duration = metadata.duration
@@ -316,7 +332,9 @@ export async function showTagsWithFolderAPI(
       }
     }
   } catch (error) {
-    spinner.fail(`Error: ${error instanceof Error ? error.message : String(error)}`);
+    spinner.fail(
+      `Error: ${error instanceof Error ? error.message : String(error)}`,
+    );
     throw error;
   }
 }
@@ -326,7 +344,7 @@ export async function showTagsWithFolderAPI(
  */
 async function checkMusicBrainzPresence(
   taglib: TagLib,
-  files: AudioFileMetadata[]
+  files: AudioFileMetadata[],
 ): Promise<boolean> {
   for (const file of files) {
     try {
@@ -334,7 +352,7 @@ async function checkMusicBrainzPresence(
       try {
         const propertyMap = audioFile.propertyMap();
         const properties = propertyMap.properties();
-        
+
         // Check for any MusicBrainz properties
         const mbProperties = [
           "MUSICBRAINZ_TRACKID",
@@ -343,7 +361,7 @@ async function checkMusicBrainzPresence(
           "MUSICBRAINZ_RELEASEGROUPID",
           "MUSICBRAINZ_RELEASETRACKID",
         ];
-        
+
         for (const prop of mbProperties) {
           if (properties[prop]) {
             return true;
