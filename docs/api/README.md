@@ -304,13 +304,26 @@ for (const { file, data } of result.results) {
 
 ### readMetadataBatch()
 
-Read both tags and audio properties from multiple files in a single operation. This is the most efficient method for getting complete metadata.
+Read tags, audio properties, cover art presence, and audio dynamics data from multiple files in a single operation. This is the most efficient method for getting complete metadata.
 
 ```typescript
 function readMetadataBatch(
   files: Array<string | Uint8Array | ArrayBuffer | File>,
   options?: BatchOptions,
-): Promise<BatchResult<{ tags: Tag; properties: AudioProperties | null }>>;
+): Promise<
+  BatchResult<{
+    tags: Tag;
+    properties: AudioProperties | null;
+    hasCoverArt: boolean;
+    dynamics?: {
+      replayGainTrackGain?: string;
+      replayGainTrackPeak?: string;
+      replayGainAlbumGain?: string;
+      replayGainAlbumPeak?: string;
+      appleSoundCheck?: string;
+    };
+  }>
+>;
 ```
 
 #### Example
@@ -329,6 +342,14 @@ for (const { file, data } of result.results) {
   console.log(`  Title: ${data.tags.title}`);
   console.log(`  Duration: ${data.properties?.length}s`);
   console.log(`  Bitrate: ${data.properties?.bitrate}kbps`);
+  console.log(`  Has cover art: ${data.hasCoverArt}`);
+
+  if (data.dynamics?.replayGainTrackGain) {
+    console.log(`  ReplayGain: ${data.dynamics.replayGainTrackGain}`);
+  }
+  if (data.dynamics?.appleSoundCheck) {
+    console.log(`  Sound Check: detected`);
+  }
 }
 ```
 
