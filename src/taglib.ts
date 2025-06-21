@@ -118,14 +118,33 @@ export interface AudioFile {
   setProperties(properties: PropertyMap): void;
 
   /**
-   * Get a single property value by key.
+   * Get a single property value by key (typed version).
+   * @param key - Property key from PROPERTIES constant
+   * @returns Property value with correct type or undefined if not found
+   */
+  getProperty<K extends import("./constants.ts").PropertyKey>(
+    key: K,
+  ): import("./constants.ts").PropertyValue<K> | undefined;
+
+  /**
+   * Get a single property value by key (string version for backward compatibility).
    * @param key - Property name (e.g., "ALBUMARTIST", "ACOUSTID_ID")
    * @returns Property value or undefined if not found
    */
   getProperty(key: string): string | undefined;
 
   /**
-   * Set a single property value.
+   * Set a single property value (typed version).
+   * @param key - Property key from PROPERTIES constant
+   * @param value - Property value with correct type
+   */
+  setProperty<K extends import("./constants.ts").PropertyKey>(
+    key: K,
+    value: import("./constants.ts").PropertyValue<K>,
+  ): void;
+
+  /**
+   * Set a single property value (string version for backward compatibility).
    * @param key - Property name
    * @param value - Property value
    */
