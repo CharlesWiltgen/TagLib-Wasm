@@ -226,6 +226,33 @@ public:
         // Unknown codec - assume lossy
         return false;
     }
+    
+    std::string containerFormat() const {
+        if (!file) return "UNKNOWN";
+        
+        // Detect container format based on file type
+        if (dynamic_cast<TagLib::MPEG::File*>(file)) {
+            return "MP3";
+        }
+        else if (dynamic_cast<TagLib::MP4::File*>(file)) {
+            return "MP4"; // Includes .m4a files (ISO Base Media File Format)
+        }
+        else if (dynamic_cast<TagLib::FLAC::File*>(file)) {
+            return "FLAC";
+        }
+        else if (dynamic_cast<TagLib::Ogg::Vorbis::File*>(file) ||
+                 dynamic_cast<TagLib::Ogg::Opus::File*>(file)) {
+            return "OGG";
+        }
+        else if (dynamic_cast<TagLib::RIFF::WAV::File*>(file)) {
+            return "WAV";
+        }
+        else if (dynamic_cast<TagLib::RIFF::AIFF::File*>(file)) {
+            return "AIFF";
+        }
+        
+        return "UNKNOWN";
+    }
 };
 
 // Picture wrapper class for managing album art/cover images
@@ -896,7 +923,8 @@ EMSCRIPTEN_BINDINGS(taglib) {
         .function("channels", &AudioPropertiesWrapper::channels)
         .function("bitsPerSample", &AudioPropertiesWrapper::bitsPerSample)
         .function("codec", &AudioPropertiesWrapper::codec)
-        .function("isLossless", &AudioPropertiesWrapper::isLossless);
+        .function("isLossless", &AudioPropertiesWrapper::isLossless)
+        .function("containerFormat", &AudioPropertiesWrapper::containerFormat);
     
     // PictureWrapper class
     class_<PictureWrapper>("PictureWrapper")

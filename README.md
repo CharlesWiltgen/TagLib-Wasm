@@ -216,15 +216,16 @@ const modifiedBuffer = await setCoverArt("song.mp3", imageData, "image/jpeg");
 // Save modifiedBuffer to file if needed
 ```
 
-### Codec Detection and Audio Properties
+### Container Format and Codec Detection
 
 ```typescript
 import { readProperties } from "taglib-wasm/simple";
 
-// Get detailed audio properties including codec info
+// Get detailed audio properties including container and codec info
 const props = await readProperties("song.m4a");
 
-console.log(props.codec); // "AAC" or "ALAC"
+console.log(props.containerFormat); // "MP4" (container format)
+console.log(props.codec); // "AAC" or "ALAC" (compressed media format)
 console.log(props.isLossless); // false for AAC, true for ALAC
 console.log(props.bitsPerSample); // 16 for most formats
 console.log(props.bitrate); // 256 (kbps)
@@ -232,13 +233,19 @@ console.log(props.sampleRate); // 44100 (Hz)
 console.log(props.length); // 180 (duration in seconds)
 ```
 
-Supported codec detection:
+Container format vs Codec:
 
-- **MP3** – Returns "MP3" (lossy)
-- **M4A/MP4** – Distinguishes between "AAC" (lossy) and "ALAC" (lossless)
-- **FLAC** – Returns "FLAC" (lossless)
-- **OGG** – Returns "Vorbis" (lossy) or "Opus" (lossy)
-- **WAV** – Returns "PCM" (uncompressed)
+- **Container format** – How audio data and metadata are packaged (e.g., MP4, OGG)
+- **Codec** – How audio is compressed/encoded (e.g., AAC, Vorbis)
+
+Supported formats:
+
+- **MP4 container** (.mp4, .m4a) – Can contain AAC (lossy) or ALAC (lossless)
+- **OGG container** (.ogg) – Can contain Vorbis, Opus, FLAC, or Speex
+- **MP3** – Both container and codec (lossy)
+- **FLAC** – Both container and codec (lossless)
+- **WAV** – Container for PCM (uncompressed) audio
+- **AIFF** – Container for PCM (uncompressed) audio
 
 ## 📚 Documentation
 

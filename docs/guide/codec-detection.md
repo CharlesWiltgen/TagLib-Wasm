@@ -1,11 +1,12 @@
-# Audio Codec Detection in taglib-wasm
+# Audio Container and Codec Detection in taglib-wasm
 
-As of v0.3.20, taglib-wasm now provides codec detection and lossless audio
-detection capabilities.
+As of v0.3.20, taglib-wasm provides codec detection and lossless audio
+detection capabilities. As of v0.4.0, container format detection has been
+added to differentiate between container formats and compressed media formats.
 
 ## New AudioProperties Fields
 
-The `AudioProperties` interface now includes three new fields:
+The `AudioProperties` interface now includes these additional fields:
 
 ```typescript
 interface AudioProperties {
@@ -17,10 +18,39 @@ interface AudioProperties {
   /** Audio codec (e.g., "AAC", "ALAC", "MP3", "FLAC", "PCM") */
   readonly codec: string;
 
+  /** Container format (e.g., "MP4", "OGG", "MP3", "FLAC") */
+  readonly containerFormat: string;
+
   /** Whether the audio is lossless (uncompressed or losslessly compressed) */
   readonly isLossless: boolean;
 }
 ```
+
+## Container vs Codec
+
+Understanding the difference between container formats and codecs is important:
+
+- **Container Format**: Defines how audio data and metadata are packaged in a file (e.g., MP4, OGG)
+- **Codec**: Defines how the audio is compressed/encoded (e.g., AAC, Vorbis)
+
+Some formats like MP3 and FLAC are both container and codec, while others like MP4 and OGG are containers that can hold different codecs:
+
+- **MP4 container** (includes .m4a files): Can contain AAC (lossy) or ALAC (lossless)
+- **OGG container**: Can contain Vorbis, Opus, FLAC, or Speex codecs
+- **MP3**: Both container and codec
+- **FLAC**: Both container and codec
+
+## Container Format Detection
+
+The `containerFormat` field returns:
+
+- `"MP4"` - ISO Base Media File Format (includes .m4a files)
+- `"OGG"` - Ogg container
+- `"MP3"` - MPEG Layer 3
+- `"FLAC"` - Free Lossless Audio Codec
+- `"WAV"` - RIFF WAVE format
+- `"AIFF"` - Audio Interchange File Format
+- `"UNKNOWN"` - Format could not be determined
 
 ## Codec Detection
 
@@ -53,25 +83,31 @@ const file = await taglib.open(audioBuffer);
 const props = file.audioProperties();
 
 if (props) {
+  console.log(`Container: ${props.containerFormat}`);
   console.log(`Codec: ${props.codec}`);
   console.log(`Is lossless: ${props.isLossless}`);
   console.log(`Bits per sample: ${props.bitsPerSample}`);
 
-  // Distinguish between AAC and ALAC in MP4/M4A files
-  if (file.getFormat() === "MP4") {
+  // Example: Distinguish between different MP4/M4A codecs
+  if (props.containerFormat === "MP4") {
     if (props.codec === "AAC") {
-      console.log("This is an AAC file (lossy)");
+      console.log("This is an MP4/M4A file with AAC audio (lossy)");
     } else if (props.codec === "ALAC") {
-      console.log("This is an Apple Lossless file");
+      console.log("This is an MP4/M4A file with Apple Lossless audio");
     }
+  }
+
+  // Example: OGG container can have different codecs
+  if (props.containerFormat === "OGG") {
+    console.log(`OGG container with ${props.codec} codec`);
   }
 }
 ```
 
 ## Implementation Notes
 
-- The codec detection leverages TagLib's native properties classes
-- Bits per sample is only available for formats that support it (FLAC, WAV,
-  AIFF, MP4)
-- The Workers API (Cloudflare Workers compatibility mode) returns default values
-  for these new fields
+- Container format detection uses TagLib's file type identification
+- Codec detection leverages TagLib's native properties classes
+- M4A files are identified as MP4 containers (ISOBMFF) since M4A is just a file extension convention
+- Bits per sample is only available for formats that support it (FLAC, WAV, AIFF, MP4)
+- The Workers API (Cloudflare Workers compatibility mode) returns default values for these fields
