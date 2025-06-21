@@ -388,9 +388,32 @@ class SmartTagger {
 
 ## Batch Operations
 
+### Using Simple API Batch Functions (Recommended)
+
+The Simple API provides optimized batch processing functions that automatically handle concurrency and resource management:
+
+```typescript
+import { readMetadataBatch, readTagsBatch } from "taglib-wasm/simple";
+
+// Read tags from multiple files efficiently
+const result = await readTagsBatch(files, {
+  concurrency: 8,
+  onProgress: (processed, total) => {
+    console.log(`${processed}/${total} files processed`);
+  },
+});
+
+// Read complete metadata (tags + properties) in one batch
+const metadata = await readMetadataBatch(files, { concurrency: 8 });
+
+// Performance comparison for 19 files:
+// - Sequential: ~90 seconds
+// - readTagsBatch (concurrency=8): ~5 seconds (18x faster)
+```
+
 ### Sequential Processing
 
-Best for memory-constrained environments:
+Best for memory-constrained environments or when using the Full API:
 
 ```typescript
 async function processSequentially(files: string[]) {
