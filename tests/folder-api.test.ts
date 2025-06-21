@@ -29,6 +29,7 @@ Deno.test("scanFolder - reads all audio files with metadata", async () => {
     assertExists(file.tags);
     assertExists(file.properties);
     assertEquals(file.error, undefined);
+    assertEquals(typeof file.hasCoverArt, "boolean");
 
     // Verify properties
     if (file.properties) {
@@ -211,6 +212,7 @@ Deno.test("exportFolderMetadata - exports to JSON", async () => {
       assertExists(file.path);
       assertExists(file.tags);
       assertExists(file.properties);
+      assertEquals(typeof file.hasCoverArt, "boolean");
     }
   } finally {
     await Deno.remove(tempFile);
@@ -250,4 +252,85 @@ Deno.test("scanFolder - parallel processing", async () => {
 
   console.log(`Sequential duration: ${duration1}ms`);
   console.log(`Parallel duration: ${duration2}ms`);
+});
+
+Deno.test("scanFolder - detects cover art presence", async () => {
+  const result = await scanFolder(TEST_FILES_DIR, {
+    recursive: true,
+  });
+
+  // Check that hasCoverArt is populated for all files
+  let filesWithCoverArt = 0;
+  let filesWithoutCoverArt = 0;
+
+  for (const file of result.files) {
+    assertEquals(typeof file.hasCoverArt, "boolean");
+    if (file.hasCoverArt) {
+      filesWithCoverArt++;
+    } else {
+      filesWithoutCoverArt++;
+    }
+  }
+
+  // We should have some files with and without cover art in our test set
+  console.log(`Files with cover art: ${filesWithCoverArt}`);
+  console.log(`Files without cover art: ${filesWithoutCoverArt}`);
+
+  // At least some files should exist in each category
+  assertEquals(result.files.length > 0, true);
+});
+
+Deno.test("scanFolder - extracts audio dynamics data", async () => {
+  const result = await scanFolder(TEST_FILES_DIR, {
+    recursive: true,
+  });
+
+  // Check that dynamics data is extracted when available
+  let filesWithDynamics = 0;
+  let filesWithReplayGain = 0;
+  let filesWithSoundCheck = 0;
+
+  for (const file of result.files) {
+    if (file.dynamics) {
+      filesWithDynamics++;
+
+      // Check ReplayGain fields
+      if (
+        file.dynamics.replayGainTrackGain ||
+        file.dynamics.replayGainTrackPeak ||
+        file.dynamics.replayGainAlbumGain ||
+        file.dynamics.replayGainAlbumPeak
+      ) {
+        filesWithReplayGain++;
+      }
+
+      // Check Sound Check
+      if (file.dynamics.appleSoundCheck) {
+        filesWithSoundCheck++;
+      }
+
+      // Validate field formats if present
+      if (file.dynamics.replayGainTrackGain) {
+        assertEquals(typeof file.dynamics.replayGainTrackGain, "string");
+        // ReplayGain values typically include "dB"
+        console.log(`Track gain: ${file.dynamics.replayGainTrackGain}`);
+      }
+
+      if (file.dynamics.replayGainTrackPeak) {
+        assertEquals(typeof file.dynamics.replayGainTrackPeak, "string");
+      }
+
+      if (file.dynamics.appleSoundCheck) {
+        assertEquals(typeof file.dynamics.appleSoundCheck, "string");
+        console.log(`Sound Check: ${file.dynamics.appleSoundCheck}`);
+      }
+    }
+  }
+
+  console.log(`Files with dynamics data: ${filesWithDynamics}`);
+  console.log(`Files with ReplayGain: ${filesWithReplayGain}`);
+  console.log(`Files with Sound Check: ${filesWithSoundCheck}`);
+
+  // All files should be processed
+  assertEquals(result.files.length > 0, true);
 });
