@@ -45,10 +45,20 @@ echo -e "${GREEN}✅ Versions are in sync: $PACKAGE_VERSION${NC}"
 
 # Run deno fmt
 echo "🎨 Running deno fmt..."
-if ! deno fmt; then
-    echo -e "${RED}❌ Formatting failed!${NC}"
-    echo "Files have been formatted. Please review and stage the changes."
-    exit 1
+deno fmt
+
+# Check if formatting changed any files
+if ! git diff --exit-code > /dev/null 2>&1; then
+    echo -e "${YELLOW}📝 Files were formatted. Adding changes to commit...${NC}"
+    # Get list of modified files that were already staged
+    STAGED_FILES=$(git diff --cached --name-only)
+    # Re-add any staged files that were formatted
+    for file in $STAGED_FILES; do
+        if git diff --name-only | grep -q "^$file$"; then
+            git add "$file"
+            echo "  Re-staged: $file"
+        fi
+    done
 fi
 
 # Run deno lint
