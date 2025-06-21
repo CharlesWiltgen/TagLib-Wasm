@@ -672,12 +672,12 @@ Deno.test("Integration: Performance - Concurrent Operations", async () => {
 
 Deno.test("readMetadataBatch - includes cover art and dynamics data", async () => {
   const { readMetadataBatch } = await import("../src/simple.ts");
-  const { readFile } = await import("../src/utils/file.ts");
+  const { readFileData } = await import("../src/utils/file.ts");
 
   // Use real test files that might have metadata
   const testFiles = [
     "./tests/test-files/mp3/kiss-snippet.mp3",
-    "./tests/test-files/flac/1hz-5sec.flac",
+    "./tests/test-files/flac/kiss-snippet.flac",
     "./tests/test-files/mp4/kiss-snippet.m4a",
   ];
 
