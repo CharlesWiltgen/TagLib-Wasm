@@ -86,11 +86,16 @@ export {
  * @see {@link applyPictures} - Apply pictures to audio files
  * @see {@link getCoverArt} - Get primary cover art data
  * @see {@link setCoverArt} - Set primary cover art
+ * @see {@link readTagsBatch} - Read tags from multiple files efficiently
+ * @see {@link readPropertiesBatch} - Read properties from multiple files efficiently
+ * @see {@link readMetadataBatch} - Read complete metadata from multiple files efficiently
  */
 export {
   addPicture,
   applyPictures,
   applyTags,
+  type BatchOptions,
+  type BatchResult,
   clearPictures,
   clearTags,
   findPictureByType,
@@ -98,9 +103,12 @@ export {
   getFormat,
   getPictureMetadata,
   isValidAudioFile,
+  readMetadataBatch,
   readPictures,
   readProperties,
+  readPropertiesBatch,
   readTags,
+  readTagsBatch,
   replacePictureByType,
   setCoverArt,
   updateTags,
