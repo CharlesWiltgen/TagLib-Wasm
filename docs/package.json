@@ -12,6 +12,7 @@
     "@vuepress/bundler-vite": "next",
     "@vuepress/theme-default": "next",
     "@vuepress/helper": "next",
+    "@vuepress/plugin-search": "next",
     "sass": "^1.80.0"
   }
 }

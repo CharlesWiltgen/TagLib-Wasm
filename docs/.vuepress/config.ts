@@ -1,6 +1,7 @@
 import { defaultTheme } from "@vuepress/theme-default";
 import { defineUserConfig } from "vuepress";
 import { viteBundler } from "@vuepress/bundler-vite";
+import { searchPlugin } from "@vuepress/plugin-search";
 
 export default defineUserConfig({
   lang: "en-US",
@@ -11,6 +12,17 @@ export default defineUserConfig({
   base: "/taglib-wasm/",
 
   bundler: viteBundler(),
+
+  plugins: [
+    searchPlugin({
+      // Optional: customize search behavior
+      locales: {
+        "/": {
+          placeholder: "Search",
+        },
+      },
+    }),
+  ],
 
   theme: defaultTheme({
     logo: null,
@@ -34,8 +46,8 @@ export default defineUserConfig({
         link: "/guide/examples.md",
       },
       {
-        text: "NPM",
-        link: "https://www.npmjs.com/package/taglib-wasm",
+        text: "JSR",
+        link: "https://jsr.io/@charlesw/taglib-wasm",
       },
     ],
 
