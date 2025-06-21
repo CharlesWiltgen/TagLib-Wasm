@@ -5,6 +5,7 @@ This guide shows the recommended way to set up a Deno application that uses tagl
 ## ✅ Use Only JSR Package
 
 The JSR package (`@charlesw/taglib-wasm`) includes everything you need:
+
 - Folder API (scanFolder, updateFolderTags, etc.)
 - Deno compile utilities (isDenoCompiled, initializeForDenoCompile)
 - Simple API (readTags, writeTags)
@@ -37,47 +38,49 @@ The JSR package (`@charlesw/taglib-wasm`) includes everything you need:
 ### 2. Main Application (`main.ts`)
 
 ```typescript
-import { 
+import {
+  type AudioFileMetadata,
+  FileOperationError,
+  type FolderScanOptions,
   // Deno compile support
   initializeForDenoCompile,
   isDenoCompiled,
-  
-  // Folder API
-  scanFolder,
-  type AudioFileMetadata,
-  type FolderScanOptions,
-  
   // Simple API
   readTags,
-  writeTags,
-  
+  // Folder API
+  scanFolder,
   // Error types
   TagLibError,
-  FileOperationError
+  writeTags,
 } from "@charlesw/taglib-wasm";
 
 import { dirname } from "@std/path";
 
 async function main() {
   // Show runtime environment
-  console.log(`🚀 Running as: ${isDenoCompiled() ? "Compiled Binary" : "Development Mode"}`);
-  
+  console.log(
+    `🚀 Running as: ${
+      isDenoCompiled() ? "Compiled Binary" : "Development Mode"
+    }`,
+  );
+
   try {
     // Initialize with automatic offline support for compiled binaries
     const taglib = await initializeForDenoCompile();
     console.log("✅ TagLib initialized successfully\n");
-    
+
     // Example 1: Scan a folder
     await scanFolderExample();
-    
+
     // Example 2: Process specific files
     await processSpecificFiles(Deno.args);
-    
   } catch (error) {
     if (error instanceof TagLibError) {
       console.error("❌ TagLib Error:", error.message);
       if (isDenoCompiled()) {
-        console.error("💡 Tip: Make sure taglib.wasm is included in the binary");
+        console.error(
+          "💡 Tip: Make sure taglib.wasm is included in the binary",
+        );
       }
     } else {
       console.error("❌ Unexpected error:", error);
@@ -88,7 +91,7 @@ async function main() {
 
 async function scanFolderExample() {
   console.log("📁 Scanning music folder...\n");
-  
+
   const result = await scanFolder("./music", {
     recursive: true,
     concurrency: 8,
@@ -97,18 +100,18 @@ async function scanFolderExample() {
       // Update progress in place
       Deno.stdout.writeSync(
         new TextEncoder().encode(
-          `\rProcessing: ${processed}/${total} files...`
-        )
+          `\rProcessing: ${processed}/${total} files...`,
+        ),
       );
-    }
+    },
   });
-  
+
   console.log("\n\n📊 Scan Results:");
   console.log(`  Total files found: ${result.totalFound}`);
   console.log(`  Successfully processed: ${result.totalProcessed}`);
   console.log(`  Errors: ${result.errors.length}`);
   console.log(`  Time taken: ${result.duration}ms`);
-  
+
   // Group by album
   const albums = groupByAlbum(result.files);
   console.log(`  Albums found: ${albums.size}\n`);
@@ -116,12 +119,12 @@ async function scanFolderExample() {
 
 async function processSpecificFiles(files: string[]) {
   if (files.length === 0) return;
-  
+
   console.log(`\n🎵 Processing ${files.length} specific files...\n`);
-  
+
   // For specific files, we can use scanFolder with directory filtering
   const filesByDir = groupFilesByDirectory(files);
-  
+
   for (const [dir, dirFiles] of filesByDir) {
     const result = await scanFolder(dir, {
       recursive: false,
@@ -129,12 +132,10 @@ async function processSpecificFiles(files: string[]) {
       // Custom filter to only process our specific files
       extensions: getUniqueExtensions(dirFiles),
     });
-    
+
     // Filter to only our files
-    const ourFiles = result.files.filter(f => 
-      dirFiles.includes(f.path)
-    );
-    
+    const ourFiles = result.files.filter((f) => dirFiles.includes(f.path));
+
     for (const file of ourFiles) {
       console.log(`📄 ${file.path}`);
       console.log(`   Title: ${file.tags.title || "(none)"}`);
@@ -150,7 +151,9 @@ async function processSpecificFiles(files: string[]) {
 }
 
 // Helper functions
-function groupByAlbum(files: AudioFileMetadata[]): Map<string, AudioFileMetadata[]> {
+function groupByAlbum(
+  files: AudioFileMetadata[],
+): Map<string, AudioFileMetadata[]> {
   const albums = new Map<string, AudioFileMetadata[]>();
   for (const file of files) {
     const album = file.tags.album || "Unknown Album";
@@ -214,23 +217,23 @@ try {
 ### 4. Advanced Example with Extended Metadata
 
 ```typescript
-import { 
+import {
+  type AudioFileMetadata,
   initializeForDenoCompile,
   scanFolder,
   TagLib,
-  type AudioFileMetadata 
 } from "@charlesw/taglib-wasm";
 
 async function getExtendedMetadata(files: AudioFileMetadata[]) {
   const taglib = await TagLib.initialize();
-  
+
   for (const file of files) {
     try {
       const audioFile = await taglib.open(file.path);
       try {
         const propertyMap = audioFile.propertyMap();
         const properties = propertyMap.properties();
-        
+
         // Check for ReplayGain
         const replayGain = {
           trackGain: properties["REPLAYGAIN_TRACK_GAIN"]?.[0],
@@ -238,24 +241,24 @@ async function getExtendedMetadata(files: AudioFileMetadata[]) {
           albumGain: properties["REPLAYGAIN_ALBUM_GAIN"]?.[0],
           albumPeak: properties["REPLAYGAIN_ALBUM_PEAK"]?.[0],
         };
-        
+
         // Check for AcoustID
         const acoustId = {
           id: properties["ACOUSTID_ID"]?.[0],
           fingerprint: properties["ACOUSTID_FINGERPRINT"]?.[0],
         };
-        
+
         // Check for MusicBrainz
         const musicBrainz = {
           trackId: properties["MUSICBRAINZ_TRACKID"]?.[0],
           albumId: properties["MUSICBRAINZ_ALBUMID"]?.[0],
           artistId: properties["MUSICBRAINZ_ARTISTID"]?.[0],
         };
-        
+
         console.log(`Extended metadata for ${file.path}:`, {
           replayGain,
           acoustId,
-          musicBrainz
+          musicBrainz,
         });
       } finally {
         audioFile.dispose();
@@ -270,16 +273,19 @@ async function getExtendedMetadata(files: AudioFileMetadata[]) {
 ## Development Workflow
 
 ### 1. Development Mode
+
 ```bash
 deno task dev ./music
 ```
 
 ### 2. Prepare for Offline (Optional)
+
 ```bash
 deno task prepare-offline
 ```
 
 ### 3. Compile Binary
+
 ```bash
 # With offline support
 deno task compile
@@ -289,6 +295,7 @@ deno compile --allow-read --allow-net main.ts
 ```
 
 ### 4. Run Compiled Binary
+
 ```bash
 ./my-audio-app ./music
 ```
@@ -304,19 +311,22 @@ deno compile --allow-read --allow-net main.ts
 ## Common Patterns
 
 ### Pattern 1: Hybrid Online/Offline
+
 ```typescript
 const taglib = await initializeForDenoCompile();
 // Works online in dev, offline in compiled binary
 ```
 
 ### Pattern 2: Always Online (Simpler)
+
 ```typescript
 const taglib = await TagLib.initialize({
-  wasmUrl: "https://cdn.jsdelivr.net/npm/taglib-wasm@latest/dist/taglib.wasm"
+  wasmUrl: "https://cdn.jsdelivr.net/npm/taglib-wasm@latest/dist/taglib.wasm",
 });
 ```
 
 ### Pattern 3: Force Offline
+
 ```typescript
 const wasmBinary = await Deno.readFile("./taglib.wasm");
 const taglib = await TagLib.initialize({ wasmBinary });
