@@ -1,12 +1,21 @@
 #!/usr/bin/env -S deno run --allow-read
 
 /**
- * @fileoverview Example demonstrating codec detection and lossless detection
+ * @fileoverview Example demonstrating container format and codec detection
  *
  * This example shows how to:
- * - Detect audio codecs (AAC, ALAC, MP3, FLAC, PCM, etc.)
+ * - Detect container formats (MP4, OGG, MP3, FLAC, etc.)
+ * - Detect audio codecs (AAC, ALAC, MP3, FLAC, Vorbis, Opus, PCM, etc.)
+ * - Understand the difference between container and codec
  * - Determine if audio is lossless
  * - Get bits per sample information
+ *
+ * Container vs Codec:
+ * - Container format: How the audio data and metadata are packaged (e.g., MP4, OGG)
+ * - Codec: How the audio is compressed/encoded (e.g., AAC, Vorbis)
+ * - Some formats like MP3 and FLAC are both container and codec
+ * - MP4 containers (including .m4a files) can contain AAC (lossy) or ALAC (lossless)
+ * - OGG containers can contain Vorbis, Opus, FLAC, or Speex codecs
  *
  * Run with: deno run --allow-read examples/codec-detection.ts <audio-file>
  */
@@ -32,7 +41,8 @@ async function analyzeAudioFile(filePath: string) {
 
     if (properties) {
       console.log("\n📊 Audio Properties:");
-      console.log(`  Format: ${audioFile.getFormat()}`);
+      console.log(`  File Format: ${audioFile.getFormat()}`);
+      console.log(`  Container: ${properties.containerFormat}`);
       console.log(`  Codec: ${properties.codec}`);
       console.log(`  Lossless: ${properties.isLossless ? "✅ Yes" : "❌ No"}`);
       console.log(`  Duration: ${properties.length} seconds`);
@@ -40,6 +50,34 @@ async function analyzeAudioFile(filePath: string) {
       console.log(`  Sample Rate: ${properties.sampleRate} Hz`);
       console.log(`  Channels: ${properties.channels}`);
       console.log(`  Bits per Sample: ${properties.bitsPerSample || "N/A"}`);
+
+      // Provide container-specific information
+      console.log("\n📦 Container Information:");
+      switch (properties.containerFormat) {
+        case "MP4":
+          console.log("  ISO Base Media File Format (ISOBMFF)");
+          console.log("  Commonly used extensions: .mp4, .m4a, .m4b");
+          console.log("  Can contain: AAC (lossy) or ALAC (lossless) audio");
+          break;
+        case "OGG":
+          console.log("  Ogg container format");
+          console.log("  Can contain: Vorbis, Opus, FLAC, or Speex codecs");
+          break;
+        case "MP3":
+          console.log("  MPEG Layer 3 - Both container and codec");
+          break;
+        case "FLAC":
+          console.log("  Free Lossless Audio Codec - Both container and codec");
+          break;
+        case "WAV":
+          console.log("  RIFF WAVE format");
+          console.log("  Usually contains: PCM (uncompressed) audio");
+          break;
+        case "AIFF":
+          console.log("  Audio Interchange File Format");
+          console.log("  Usually contains: PCM (uncompressed) audio");
+          break;
+      }
 
       // Provide codec-specific information
       console.log("\n💡 Codec Information:");
