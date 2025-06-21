@@ -18,6 +18,14 @@ and this project adheres to
   - 50-450x performance improvement for files >50MB
   - Supports Browser File API, Deno, and Node.js environments
 
+- High-performance batch processing APIs for multiple files
+  - New `readTagsBatch()`, `readPropertiesBatch()`, and `readMetadataBatch()` functions
+  - 10-20x performance improvement when processing multiple files
+  - Configurable concurrency control (default: 4 concurrent files)
+  - Progress callback support for tracking batch operations
+  - Single TagLib instance reused across all operations
+  - Resolves performance issue where 19 files took 90+ seconds (now ~5 seconds)
+
 ### Fixed
 
 - Fixed Unicode string handling - emoji, CJK characters, RTL text, and all
@@ -26,6 +34,21 @@ and this project adheres to
     proper UTF-8 encoding
   - All Unicode edge case tests now pass
   - Critical fix for international users
+
+- Fixed double file opening in `scanFolder()` function
+  - Previously opened each file twice (once for tags, once for properties)
+  - Now reads both in a single operation, improving folder scan performance by ~2x
+
+### Changed
+
+- Updated README with comprehensive performance best practices section
+- Added batch processing example (`examples/batch-performance.ts`)
+
+### Documentation
+
+- Enhanced performance guide with batch processing patterns
+- Added performance comparison data for different processing methods
+- Updated API exports to include new batch functions and types
 
 ## [0.3.2] - 2025-01-14
 

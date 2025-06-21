@@ -659,6 +659,295 @@ export async function getPictureMetadata(
 }
 
 /**
+ * Options for batch operations
+ */
+export interface BatchOptions {
+  /** Number of files to process concurrently (default: 4) */
+  concurrency?: number;
+  /** Continue processing on errors (default: true) */
+  continueOnError?: boolean;
+  /** Progress callback */
+  onProgress?: (processed: number, total: number, currentFile: string) => void;
+}
+
+/**
+ * Result from a batch operation
+ */
+export interface BatchResult<T> {
+  /** Successful results */
+  results: Array<{ file: string; data: T }>;
+  /** Errors encountered */
+  errors: Array<{ file: string; error: Error }>;
+  /** Total processing time in milliseconds */
+  duration: number;
+}
+
+/**
+ * Read tags from multiple files efficiently
+ *
+ * This method is optimized for batch processing and reuses a single TagLib
+ * instance across all files, significantly improving performance compared
+ * to calling readTags() multiple times.
+ *
+ * @param files - Array of file paths or buffers to process
+ * @param options - Batch processing options
+ * @returns Batch result with tags and any errors
+ *
+ * @example
+ * ```typescript
+ * const files = ["song1.mp3", "song2.mp3", "song3.mp3"];
+ * const result = await readTagsBatch(files, {
+ *   concurrency: 8,
+ *   onProgress: (processed, total) => {
+ *     console.log(`${processed}/${total} files processed`);
+ *   }
+ * });
+ *
+ * for (const { file, data } of result.results) {
+ *   console.log(`${file}: ${data.artist} - ${data.title}`);
+ * }
+ * ```
+ */
+export async function readTagsBatch(
+  files: Array<string | Uint8Array | ArrayBuffer | File>,
+  options: BatchOptions = {},
+): Promise<BatchResult<Tag>> {
+  const startTime = Date.now();
+  const {
+    concurrency = 4,
+    continueOnError = true,
+    onProgress,
+  } = options;
+
+  const results: Array<{ file: string; data: Tag }> = [];
+  const errors: Array<{ file: string; error: Error }> = [];
+
+  // Initialize TagLib once for all operations
+  const taglib = await getTagLib();
+
+  let processed = 0;
+  const total = files.length;
+
+  // Process files in chunks for memory efficiency
+  for (let i = 0; i < files.length; i += concurrency) {
+    const chunk = files.slice(i, i + concurrency);
+
+    const chunkPromises = chunk.map(async (file, idx) => {
+      const fileIndex = i + idx;
+      const fileName = typeof file === "string" ? file : `file-${fileIndex}`;
+
+      try {
+        const audioFile = await taglib.open(file);
+        try {
+          if (!audioFile.isValid()) {
+            throw new InvalidFormatError(
+              "File may be corrupted or in an unsupported format",
+            );
+          }
+          const tags = audioFile.tag();
+          results.push({ file: fileName, data: tags });
+        } finally {
+          audioFile.dispose();
+        }
+      } catch (error) {
+        const err = error instanceof Error ? error : new Error(String(error));
+        errors.push({ file: fileName, error: err });
+        if (!continueOnError) {
+          throw err;
+        }
+      }
+
+      processed++;
+      onProgress?.(processed, total, fileName);
+    });
+
+    await Promise.all(chunkPromises);
+  }
+
+  return {
+    results,
+    errors,
+    duration: Date.now() - startTime,
+  };
+}
+
+/**
+ * Read audio properties from multiple files efficiently
+ *
+ * @param files - Array of file paths or buffers to process
+ * @param options - Batch processing options
+ * @returns Batch result with audio properties and any errors
+ *
+ * @example
+ * ```typescript
+ * const files = ["song1.mp3", "song2.mp3", "song3.mp3"];
+ * const result = await readPropertiesBatch(files);
+ *
+ * for (const { file, data } of result.results) {
+ *   console.log(`${file}: ${data.length}s, ${data.bitrate}kbps`);
+ * }
+ * ```
+ */
+export async function readPropertiesBatch(
+  files: Array<string | Uint8Array | ArrayBuffer | File>,
+  options: BatchOptions = {},
+): Promise<BatchResult<AudioProperties | null>> {
+  const startTime = Date.now();
+  const {
+    concurrency = 4,
+    continueOnError = true,
+    onProgress,
+  } = options;
+
+  const results: Array<{ file: string; data: AudioProperties | null }> = [];
+  const errors: Array<{ file: string; error: Error }> = [];
+
+  // Initialize TagLib once for all operations
+  const taglib = await getTagLib();
+
+  let processed = 0;
+  const total = files.length;
+
+  // Process files in chunks for memory efficiency
+  for (let i = 0; i < files.length; i += concurrency) {
+    const chunk = files.slice(i, i + concurrency);
+
+    const chunkPromises = chunk.map(async (file, idx) => {
+      const fileIndex = i + idx;
+      const fileName = typeof file === "string" ? file : `file-${fileIndex}`;
+
+      try {
+        const audioFile = await taglib.open(file);
+        try {
+          if (!audioFile.isValid()) {
+            throw new InvalidFormatError(
+              "File may be corrupted or in an unsupported format",
+            );
+          }
+          const properties = audioFile.audioProperties();
+          results.push({ file: fileName, data: properties });
+        } finally {
+          audioFile.dispose();
+        }
+      } catch (error) {
+        const err = error instanceof Error ? error : new Error(String(error));
+        errors.push({ file: fileName, error: err });
+        if (!continueOnError) {
+          throw err;
+        }
+      }
+
+      processed++;
+      onProgress?.(processed, total, fileName);
+    });
+
+    await Promise.all(chunkPromises);
+  }
+
+  return {
+    results,
+    errors,
+    duration: Date.now() - startTime,
+  };
+}
+
+/**
+ * Read both tags and properties from multiple files efficiently
+ *
+ * This is the most efficient way to get complete metadata from multiple files,
+ * as it reads both tags and properties in a single file open operation.
+ *
+ * @param files - Array of file paths or buffers to process
+ * @param options - Batch processing options
+ * @returns Batch result with complete metadata and any errors
+ *
+ * @example
+ * ```typescript
+ * const files = ["song1.mp3", "song2.mp3", "song3.mp3"];
+ * const result = await readMetadataBatch(files, {
+ *   concurrency: 8,
+ *   onProgress: (processed, total, file) => {
+ *     console.log(`Processing ${file}: ${processed}/${total}`);
+ *   }
+ * });
+ *
+ * for (const { file, data } of result.results) {
+ *   console.log(`${file}:`);
+ *   console.log(`  Artist: ${data.tags.artist}`);
+ *   console.log(`  Title: ${data.tags.title}`);
+ *   console.log(`  Duration: ${data.properties?.length}s`);
+ *   console.log(`  Bitrate: ${data.properties?.bitrate}kbps`);
+ * }
+ * ```
+ */
+export async function readMetadataBatch(
+  files: Array<string | Uint8Array | ArrayBuffer | File>,
+  options: BatchOptions = {},
+): Promise<BatchResult<{ tags: Tag; properties: AudioProperties | null }>> {
+  const startTime = Date.now();
+  const {
+    concurrency = 4,
+    continueOnError = true,
+    onProgress,
+  } = options;
+
+  const results: Array<{
+    file: string;
+    data: { tags: Tag; properties: AudioProperties | null };
+  }> = [];
+  const errors: Array<{ file: string; error: Error }> = [];
+
+  // Initialize TagLib once for all operations
+  const taglib = await getTagLib();
+
+  let processed = 0;
+  const total = files.length;
+
+  // Process files in chunks for memory efficiency
+  for (let i = 0; i < files.length; i += concurrency) {
+    const chunk = files.slice(i, i + concurrency);
+
+    const chunkPromises = chunk.map(async (file, idx) => {
+      const fileIndex = i + idx;
+      const fileName = typeof file === "string" ? file : `file-${fileIndex}`;
+
+      try {
+        const audioFile = await taglib.open(file);
+        try {
+          if (!audioFile.isValid()) {
+            throw new InvalidFormatError(
+              "File may be corrupted or in an unsupported format",
+            );
+          }
+          const tags = audioFile.tag();
+          const properties = audioFile.audioProperties();
+          results.push({ file: fileName, data: { tags, properties } });
+        } finally {
+          audioFile.dispose();
+        }
+      } catch (error) {
+        const err = error instanceof Error ? error : new Error(String(error));
+        errors.push({ file: fileName, error: err });
+        if (!continueOnError) {
+          throw err;
+        }
+      }
+
+      processed++;
+      onProgress?.(processed, total, fileName);
+    });
+
+    await Promise.all(chunkPromises);
+  }
+
+  return {
+    results,
+    errors,
+    duration: Date.now() - startTime,
+  };
+}
+
+/**
  * Re-export commonly used types for convenience.
  * These types define the structure of metadata and audio properties.
  */

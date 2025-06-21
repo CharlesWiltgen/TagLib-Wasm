@@ -304,13 +304,44 @@ file.setProperty(Tags.TrackPeak, "0.987654");
 
 [View all supported tag constants →](https://charleswiltgen.github.io/taglib-wasm/api/tag-name-constants.html)
 
-## ⚡ Performance & Smart Partial Loading
+## ⚡ Performance & Best Practices
 
-`taglib-wasm` now supports Smart Partial Loading, dramatically improving
-performance for large audio files:
+### Batch Processing for Multiple Files
+
+When processing multiple audio files, use the optimized batch APIs for dramatic performance improvements:
 
 ```typescript
-// Enable partial loading for large files (>50MB)
+import { readMetadataBatch, readTagsBatch } from "taglib-wasm/simple";
+
+// ❌ SLOW: Processing files one by one (can take 90+ seconds for 19 files)
+for (const file of files) {
+  const tags = await readTags(file); // Re-initializes for each file
+}
+
+// ✅ FAST: Batch processing (10-20x faster)
+const result = await readTagsBatch(files, {
+  concurrency: 8, // Process 8 files in parallel
+  onProgress: (processed, total) => {
+    console.log(`${processed}/${total} files processed`);
+  },
+});
+
+// ✅ FASTEST: Read complete metadata in one batch
+const metadata = await readMetadataBatch(files, { concurrency: 8 });
+```
+
+**Performance comparison for 19 audio files:**
+
+- Sequential: ~90 seconds (4.7s per file)
+- Batch (concurrency=4): ~8 seconds (11x faster)
+- Batch (concurrency=8): ~5 seconds (18x faster)
+
+### Smart Partial Loading
+
+For large audio files (>50MB), enable partial loading to dramatically reduce memory usage:
+
+```typescript
+// Enable partial loading for large files
 const file = await taglib.open("large-concert.flac", {
   partial: true,
   maxHeaderSize: 2 * 1024 * 1024, // 2MB header
@@ -320,11 +351,6 @@ const file = await taglib.open("large-concert.flac", {
 // Read operations work normally
 const tags = file.tag();
 console.log(tags.title, tags.artist);
-
-// Make multiple changes efficiently
-tags.setTitle("Live at Madison Square Garden");
-tags.setArtist("The Beatles");
-tags.setAlbum("Greatest Live Performances");
 
 // Smart save - automatically loads full file when needed
 await file.saveToFile(); // Full file loaded only here
@@ -336,7 +362,22 @@ await file.saveToFile(); // Full file loaded only here
 - **Initial load**: 50x faster (50ms vs 2500ms)
 - **Memory peak**: 3.3MB instead of 1.5GB
 
-[View performance guide →](https://charleswiltgen.github.io/taglib-wasm/concepts/performance.html)
+### WebAssembly Streaming
+
+For web applications, use CDN URLs to enable WebAssembly streaming compilation:
+
+```typescript
+// ✅ FAST: Streaming compilation (200-400ms)
+const taglib = await TagLib.initialize({
+  wasmUrl: "https://cdn.jsdelivr.net/npm/taglib-wasm@latest/dist/taglib.wasm",
+});
+
+// ❌ SLOWER: ArrayBuffer loading (400-800ms)
+const wasmBinary = await fetch("taglib.wasm").then((r) => r.arrayBuffer());
+const taglib = await TagLib.initialize({ wasmBinary });
+```
+
+[View complete performance guide →](https://charleswiltgen.github.io/taglib-wasm/concepts/performance.html)
 
 ## 🏗️ Development
 
