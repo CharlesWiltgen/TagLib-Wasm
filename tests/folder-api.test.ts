@@ -84,6 +84,7 @@ Deno.test("scanFolder - handles errors gracefully", async () => {
   try {
     const result = await scanFolder(tempDir, {
       continueOnError: true,
+      useWorkerPool: false, // Disable worker pool to avoid timer leaks in tests
     });
 
     assertEquals(result.totalFound, 1);
