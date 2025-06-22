@@ -89,6 +89,7 @@ export {
  * @see {@link readTagsBatch} - Read tags from multiple files efficiently
  * @see {@link readPropertiesBatch} - Read properties from multiple files efficiently
  * @see {@link readMetadataBatch} - Read complete metadata from multiple files efficiently
+ * @see {@link setWorkerPoolMode} - Enable/disable worker pool for Simple API
  */
 export {
   addPicture,
@@ -111,6 +112,7 @@ export {
   readTagsBatch,
   replacePictureByType,
   setCoverArt,
+  setWorkerPoolMode,
   updateTags,
 } from "./src/simple.ts";
 
@@ -219,6 +221,23 @@ export type { PropertyKey, PropertyValue } from "./src/constants.ts";
  * Enum exports
  */
 export { PictureType } from "./src/types.ts";
+
+/**
+ * Worker pool exports for parallel processing.
+ * @see {@link TagLibWorkerPool} - Worker pool for parallel file processing
+ * @see {@link getGlobalWorkerPool} - Get/create global worker pool instance
+ * @see {@link terminateGlobalWorkerPool} - Terminate global worker pool
+ */
+export {
+  getGlobalWorkerPool,
+  TagLibWorkerPool,
+  terminateGlobalWorkerPool,
+} from "./src/worker-pool.ts";
+export type {
+  BatchOperation,
+  WorkerPoolOptions,
+  WorkerTask,
+} from "./src/worker-pool.ts";
 
 /**
  * Wasm module types for advanced usage.
