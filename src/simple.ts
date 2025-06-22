@@ -75,6 +75,9 @@ export function setWorkerPoolMode(
     workerPoolInstance = pool;
   } else if (enabled && !workerPoolInstance) {
     workerPoolInstance = getGlobalWorkerPool();
+  } else if (!enabled) {
+    // Clean up worker pool instance when disabling
+    workerPoolInstance = null;
   }
 }
 

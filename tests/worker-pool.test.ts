@@ -30,14 +30,16 @@ if (hasWorkerSupport) {
   Deno.test("Worker Pool: Initialization", async () => {
     const pool = new TagLibWorkerPool({ size: 2 });
 
-    // Wait for worker pool to initialize
-    await pool.waitForReady();
+    try {
+      // Wait for worker pool to initialize
+      await pool.waitForReady();
 
-    const stats = pool.getStats();
-    assertEquals(stats.poolSize, 2);
-    assertEquals(stats.initialized, true);
-
-    pool.terminate();
+      const stats = pool.getStats();
+      assertEquals(stats.poolSize, 2);
+      assertEquals(stats.initialized, true);
+    } finally {
+      pool.terminate();
+    }
   });
 
   Deno.test("Worker Pool: Simple API Integration", async () => {
@@ -165,6 +167,7 @@ if (hasWorkerSupport) {
 
     // Test with worker pool
     const pool = new TagLibWorkerPool({ size: 4 });
+    await pool.waitForReady();
     setWorkerPoolMode(true, pool);
 
     try {
@@ -174,8 +177,8 @@ if (hasWorkerSupport) {
       }
       console.timeEnd("With worker pool");
     } finally {
-      pool.terminate();
       setWorkerPoolMode(false);
+      pool.terminate();
     }
   });
 
