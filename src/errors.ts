@@ -188,6 +188,8 @@ export class EnvironmentError extends TagLibError {
       ? `Environment '${environment}' ${reason}. Required feature: ${requiredFeature}.`
       : `Environment '${environment}' ${reason}.`;
     super("ENVIRONMENT", message);
+    this.name = "EnvironmentError";
+    Object.setPrototypeOf(this, EnvironmentError.prototype);
   }
 }
 
