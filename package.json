@@ -55,7 +55,6 @@
     "docs:build": "cd docs && npm install && npm run build",
     "update-taglib": "./scripts/update-taglib.sh",
     "release": "./scripts/release.sh",
-    "prepublishOnly": "npm run build:ts && npm run postbuild",
     "publish:npm": "echo 'Use GitHub Actions workflow for publishing'",
     "publish:github": "echo 'Use GitHub Actions workflow for publishing'"
   },

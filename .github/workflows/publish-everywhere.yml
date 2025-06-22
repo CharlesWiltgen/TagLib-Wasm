@@ -1,210 +1,430 @@
-name: Publish to NPM/GitHub/JSR
+name: Publish to NPM/GitHub/JSR (Improved)
 
 on:
-  push:
-    tags:
-      - "v*"
-  release:
-    types: [created]
   workflow_dispatch:
     inputs:
       version:
-        description: "Package version to publish"
+        description: "Version to publish (e.g., 1.2.3)"
         required: true
         type: string
+  release:
+    types: [published]
+  push:
+    tags:
+      - "v*"
 
 jobs:
-  test:
-    name: "Run tests"
+  prepare-and-test:
+    name: Prepare and Test
     runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      should-publish: ${{ steps.check.outputs.should-publish }}
     steps:
       - uses: actions/checkout@v4
         with:
-          submodules: false
+          token: ${{ secrets.GITHUB_TOKEN }}
+
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
-      - run: npm install
-      - run: npm test || echo "Tests failed but continuing"
+          node-version: "22"
+          cache: "npm"
+
+      - name: Setup Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Determine version
+        id: version
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            VERSION="${{ github.event.inputs.version }}"
+          elif [[ "${{ github.event_name }}" == "release" ]]; then
+            VERSION="${{ github.event.release.tag_name }}"
+          elif [[ "$GITHUB_REF" == refs/tags/* ]]; then
+            VERSION="${GITHUB_REF#refs/tags/}"
+          else
+            echo "No version found"
+            exit 1
+          fi
+
+          # Normalize version (remove 'v' prefix if present)
+          VERSION="${VERSION#v}"
+
+          # Validate version format
+          if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9.-]+)?(\+[a-zA-Z0-9.-]+)?$ ]]; then
+            echo "Invalid version format: $VERSION"
+            exit 1
+          fi
+
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Version: $VERSION"
+
+      - name: Check if should publish
+        id: check
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          SHOULD_PUBLISH="true"
+
+          # Check if version already exists on NPM
+          if npm view taglib-wasm@$VERSION version 2>/dev/null; then
+            echo "Version $VERSION already exists on NPM"
+            SHOULD_PUBLISH="false"
+          fi
+
+          echo "should-publish=$SHOULD_PUBLISH" >> $GITHUB_OUTPUT
+
+      - name: Sync versions across files
+        if: steps.check.outputs.should-publish == 'true'
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+
+          # Use the sync-version script to update all version references
+          node -e "
+            const fs = require('fs');
+            const path = require('path');
+
+            // Update package.json
+            const pkgPath = path.join(__dirname, 'package.json');
+            const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
+            pkg.version = '$VERSION';
+            fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2) + '\n');
+
+            // Update deno.json
+            const denoPath = path.join(__dirname, 'deno.json');
+            const deno = JSON.parse(fs.readFileSync(denoPath, 'utf8'));
+            deno.version = '$VERSION';
+            fs.writeFileSync(denoPath, JSON.stringify(deno, null, 2) + '\n');
+
+            console.log('Updated versions to $VERSION');
+          "
+
+      - name: Build project
+        if: steps.check.outputs.should-publish == 'true'
+        run: npm run build
+
+      - name: Verify build artifacts
+        if: steps.check.outputs.should-publish == 'true'
+        run: |
+          # Check that all required files exist
+          test -f dist/index.js || (echo "Missing dist/index.js" && exit 1)
+          test -f dist/index.d.ts || (echo "Missing dist/index.d.ts" && exit 1)
+          test -f dist/taglib.wasm || (echo "Missing dist/taglib.wasm" && exit 1)
+          test -f dist/taglib-wrapper.js || (echo "Missing dist/taglib-wrapper.js" && exit 1)
+
+          # Check file sizes are reasonable
+          WASM_SIZE=$(stat -c%s dist/taglib.wasm 2>/dev/null || stat -f%z dist/taglib.wasm)
+          if [ "$WASM_SIZE" -lt 1000 ]; then
+            echo "WASM file too small: $WASM_SIZE bytes"
+            exit 1
+          fi
+
+      - name: Run tests
+        if: steps.check.outputs.should-publish == 'true'
+        run: npm test
+
+      - name: Upload build artifacts
+        if: steps.check.outputs.should-publish == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-artifacts
+          path: |
+            dist/
+            package.json
+            deno.json
+            README.md
+            LICENSE
+          retention-days: 1
 
   publish-npm:
-    needs: test
+    name: Publish to NPM
+    needs: prepare-and-test
+    if: needs.prepare-and-test.outputs.should-publish == 'true'
     runs-on: ubuntu-latest
+    outputs:
+      published: ${{ steps.publish.outputs.published }}
     steps:
-      - uses: actions/checkout@v4
-        with:
-          submodules: false
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
-          registry-url: https://registry.npmjs.org/
-      - uses: denoland/setup-deno@v2
+          node-version: "22"
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
         with:
-          deno-version: v2.x
+          name: build-artifacts
+          path: .
 
-      - run: npm install
-
-      - name: Extract version
-        id: extract_version
+      - name: Prepare publish directory
         run: |
-          if [ "${{ github.event_name }}" == "push" ]; then
-            # Tag push - extract version from ref
-            VERSION="${GITHUB_REF#refs/tags/}"
-            echo "Triggered by tag push: $VERSION"
-          elif [ "${{ github.event_name }}" == "release" ]; then
-            # Release created
-            VERSION="${{ github.event.release.tag_name }}"
-            echo "Triggered by release: $VERSION"
-          elif [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
-            # Manual trigger
-            VERSION="${{ github.event.inputs.version }}"
-            echo "Triggered manually with version: $VERSION"
-          fi
-          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+          # Create a clean directory with only files to publish
+          mkdir -p publish-dir
+          cp -r dist publish-dir/
+          cp package.json README.md LICENSE publish-dir/
+          cd publish-dir
+          echo "Contents of publish directory:"
+          ls -la
+          echo "Contents of dist:"
+          ls -la dist/
 
-      - name: Update version (if manual)
-        if: github.event_name == 'workflow_dispatch'
+      - name: Configure npm
         run: |
-          # Check current version first
-          CURRENT_VERSION=$(node -p "require('./package.json').version")
-          if [ "$CURRENT_VERSION" != "${{ github.event.inputs.version }}" ]; then
-            npm version ${{ github.event.inputs.version }} --no-git-tag-version
-          else
-            echo "Version already set to ${{ github.event.inputs.version }}"
-          fi
+          echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" > ~/.npmrc
+          npm whoami
 
-      - name: Check if specific version exists on npm
-        id: check_npm
+      - name: Publish to NPM with retry
+        id: publish
+        uses: nick-invision/retry@v3
+        with:
+          timeout_minutes: 5
+          max_attempts: 3
+          retry_wait_seconds: 30
+          command: |
+            cd publish-dir && npm publish --access public
+            echo "published=true" >> $GITHUB_OUTPUT
+          on_retry_command: |
+            echo "Retrying NPM publish..."
+
+      - name: Verify NPM publication
         run: |
-          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
-            PACKAGE_VERSION="${{ github.event.inputs.version }}"
-          elif [ "${{ github.event_name }}" == "release" ]; then
-            PACKAGE_VERSION="${{ github.event.release.tag_name }}"
-          else
-            # For tag push events, extract from GITHUB_REF
-            PACKAGE_VERSION="${GITHUB_REF#refs/tags/}"
-          fi
-          if npm view taglib-wasm@$PACKAGE_VERSION version 2>/dev/null; then
-            echo "exists=true" >> $GITHUB_OUTPUT
-            echo "Version $PACKAGE_VERSION already exists on npm"
-          else
-            echo "exists=false" >> $GITHUB_OUTPUT
-            echo "Version $PACKAGE_VERSION does not exist on npm"
-          fi
+          VERSION="${{ needs.prepare-and-test.outputs.version }}"
+          sleep 10  # Give NPM time to propagate
 
-      - run: npm publish --access public
-        if: steps.check_npm.outputs.exists == 'false'
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          for i in {1..5}; do
+            if npm view taglib-wasm@$VERSION version 2>/dev/null; then
+              echo "Successfully verified version $VERSION on NPM"
+              exit 0
+            fi
+            echo "Attempt $i: Version not found yet, waiting..."
+            sleep 10
+          done
+
+          echo "Failed to verify NPM publication"
+          exit 1
 
   publish-github:
-    needs: test
+    name: Publish to GitHub Packages
+    needs: [prepare-and-test, publish-npm]
+    if: needs.prepare-and-test.outputs.should-publish == 'true'
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
+    outputs:
+      published: ${{ steps.publish.outputs.published }}
     steps:
-      - uses: actions/checkout@v4
-        with:
-          submodules: false
-      - uses: denoland/setup-deno@v2
-        with:
-          deno-version: v2.x
-
-      - name: Update package for GitHub Packages
-        run: |
-          # Update package name for GitHub Packages (must be lowercase and scoped)
-          sed -i 's/"name": "[^"]*"/"name": "@charleswiltgen\/taglib-wasm"/' package.json
-
-          # Update repository.url to remove git+ prefix (GitHub Packages requirement)
-          sed -i 's/"url": "git+https:/"url": "https:/' package.json
-
-          # Update version if manual trigger
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            CURRENT_VERSION=$(node -p "require('./package.json').version")
-            if [ "$CURRENT_VERSION" != "${{ github.event.inputs.version }}" ]; then
-              sed -i 's/"version": "[^"]*"/"version": "${{ github.event.inputs.version }}"/' package.json
-            else
-              echo "Version already set to ${{ github.event.inputs.version }}"
-            fi
-          fi
-
-          # Remove publishConfig that points to npmjs
-          sed -i '/"publishConfig":/,/}/d' package.json
-
-          # Debug: Show the modified package.json
-          echo "Modified package.json:"
-          cat package.json | jq .
-
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
-          registry-url: https://npm.pkg.github.com/
+          node-version: "22"
+          registry-url: "https://npm.pkg.github.com"
 
-      - run: npm install
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: build-artifacts
+          path: .
 
-      - name: Debug npm config
+      - name: Prepare publish directory
         run: |
-          echo "NPM config:"
-          npm config list
-          echo "Registry:"
-          npm config get registry
+          # Create a clean directory with only files to publish
+          mkdir -p publish-dir
+          cp -r dist publish-dir/
+          cp package.json README.md LICENSE publish-dir/
 
-      - name: Check if specific version exists on GitHub Packages
-        id: check_github
+      - name: Update package.json for GitHub
         run: |
-          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
-            PACKAGE_VERSION="${{ github.event.inputs.version }}"
-          elif [ "${{ github.event_name }}" == "release" ]; then
-            PACKAGE_VERSION="${{ github.event.release.tag_name }}"
-          else
-            # For tag push events, extract from GITHUB_REF
-            PACKAGE_VERSION="${GITHUB_REF#refs/tags/}"
-          fi
-          if npm view @charleswiltgen/taglib-wasm@$PACKAGE_VERSION version --registry=https://npm.pkg.github.com/ 2>/dev/null; then
-            echo "exists=true" >> $GITHUB_OUTPUT
-            echo "Version $PACKAGE_VERSION already exists on GitHub Packages"
-          else
-            echo "exists=false" >> $GITHUB_OUTPUT
-            echo "Version $PACKAGE_VERSION does not exist on GitHub Packages"
-          fi
-        env:
-          NODE_AUTH_TOKEN: ${{ github.token }}
+          cd publish-dir
+          node -e "
+            const fs = require('fs');
+            const pkg = JSON.parse(fs.readFileSync('./package.json', 'utf8'));
 
-      - run: npm publish --access public
-        if: steps.check_github.outputs.exists == 'false'
-        env:
-          NODE_AUTH_TOKEN: ${{ github.token }}
+            // Update package name for GitHub
+            pkg.name = '@charleswiltgen/taglib-wasm';
+
+            // Remove NPM-specific config
+            delete pkg.publishConfig;
+
+            // Add GitHub registry config
+            pkg.publishConfig = {
+              registry: 'https://npm.pkg.github.com'
+            };
+
+            fs.writeFileSync('./package.json', JSON.stringify(pkg, null, 2) + '\n');
+            console.log('Updated package.json for GitHub Packages');
+          "
+
+      - name: Configure GitHub registry
+        run: |
+          echo "//npm.pkg.github.com/:_authToken=${{ secrets.GITHUB_TOKEN }}" > ~/.npmrc
+          echo "@charleswiltgen:registry=https://npm.pkg.github.com" >> ~/.npmrc
+
+      - name: Publish to GitHub with retry
+        id: publish
+        uses: nick-invision/retry@v3
+        with:
+          timeout_minutes: 5
+          max_attempts: 3
+          retry_wait_seconds: 30
+          command: |
+            cd publish-dir && npm publish
+            echo "published=true" >> $GITHUB_OUTPUT
+          on_retry_command: |
+            echo "Retrying GitHub publish..."
 
   publish-jsr:
-    needs: test
+    name: Publish to JSR
+    needs: [prepare-and-test, publish-npm, publish-github]
+    if: needs.prepare-and-test.outputs.should-publish == 'true'
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      id-token: write
+    outputs:
+      published: ${{ steps.publish.outputs.published }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: denoland/setup-deno@v1
+        with:
+          deno-version: v1.x
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: build-artifacts
+          path: .
+
+      - name: Publish to JSR with retry
+        id: publish
+        uses: nick-invision/retry@v3
+        with:
+          timeout_minutes: 5
+          max_attempts: 3
+          retry_wait_seconds: 30
+          command: |
+            deno publish --allow-slow-types --allow-dirty
+            echo "published=true" >> $GITHUB_OUTPUT
+          on_retry_command: |
+            echo "Retrying JSR publish..."
+
+  finalize:
+    name: Finalize Release
+    needs: [prepare-and-test, publish-npm, publish-github, publish-jsr]
+    if: always() && needs.prepare-and-test.outputs.should-publish == 'true'
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
-          submodules: false
+          token: ${{ secrets.GITHUB_TOKEN }}
 
-      - uses: denoland/setup-deno@v2
-        with:
-          deno-version: v2.x
-
-      - name: Update version in deno.json
+      - name: Check publication status
+        id: status
         run: |
-          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
-            VERSION="${{ github.event.inputs.version }}"
-          elif [ "${{ github.event_name }}" == "release" ]; then
-            VERSION="${{ github.event.release.tag_name }}"
-          else
-            # For tag push events, extract from GITHUB_REF
-            VERSION="${GITHUB_REF#refs/tags/}"
-          fi
-          # Remove 'v' prefix if present
-          VERSION="${VERSION#v}"
-          echo "Updating deno.json version to $VERSION"
-          sed -i "s/\"version\": \"[^\"]*\"/\"version\": \"$VERSION\"/" deno.json
+          VERSION="${{ needs.prepare-and-test.outputs.version }}"
+          SUCCESS=true
+          FAILURES=""
 
-      - name: Publish to JSR
-        run: deno publish --no-check
+          if [ "${{ needs.publish-npm.outputs.published }}" != "true" ]; then
+            FAILURES="${FAILURES}NPM "
+            SUCCESS=false
+          fi
+
+          if [ "${{ needs.publish-github.outputs.published }}" != "true" ]; then
+            FAILURES="${FAILURES}GitHub "
+            SUCCESS=false
+          fi
+
+          if [ "${{ needs.publish-jsr.outputs.published }}" != "true" ]; then
+            FAILURES="${FAILURES}JSR "
+            SUCCESS=false
+          fi
+
+          echo "success=$SUCCESS" >> $GITHUB_OUTPUT
+          echo "failures=$FAILURES" >> $GITHUB_OUTPUT
+
+          if [ "$SUCCESS" = "true" ]; then
+            echo "✅ All publications successful for version $VERSION"
+          else
+            echo "❌ Failed to publish to: $FAILURES"
+          fi
+
+      - name: Create success tag
+        if: steps.status.outputs.success == 'true'
+        run: |
+          VERSION="${{ needs.prepare-and-test.outputs.version }}"
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+
+          # Create a published tag to mark successful release
+          git tag -a "published-v$VERSION" -m "Successfully published v$VERSION to all registries"
+          git push origin "published-v$VERSION"
+
+      - name: Rollback NPM
+        if: steps.status.outputs.success == 'false' && needs.publish-npm.outputs.published == 'true'
+        run: |
+          VERSION="${{ needs.prepare-and-test.outputs.version }}"
+          echo "⚠️  Rollback required for NPM version $VERSION"
+          echo "To rollback NPM:"
+          echo "1. npm unpublish taglib-wasm@$VERSION"
+          echo "2. Wait 24 hours before republishing the same version"
+          echo ""
+          echo "Note: NPM has restrictions on unpublishing. You may need to:"
+          echo "- Deprecate the version instead: npm deprecate taglib-wasm@$VERSION 'Published in error'"
+          echo "- Publish a patch version with fixes"
+
+      - name: Create rollback issue
+        if: steps.status.outputs.success == 'false'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const version = '${{ needs.prepare-and-test.outputs.version }}';
+            const failures = '${{ steps.status.outputs.failures }}';
+            const npmPublished = '${{ needs.publish-npm.outputs.published }}' === 'true';
+            const githubPublished = '${{ needs.publish-github.outputs.published }}' === 'true';
+            const jsrPublished = '${{ needs.publish-jsr.outputs.published }}' === 'true';
+
+            let body = `## Publication Failure for v${version}\n\n`;
+            body += `Failed to publish to: ${failures}\n\n`;
+            body += `### Publication Status\n`;
+            body += `- NPM: ${npmPublished ? '✅ Published' : '❌ Failed'}\n`;
+            body += `- GitHub Packages: ${githubPublished ? '✅ Published' : '❌ Failed'}\n`;
+            body += `- JSR: ${jsrPublished ? '✅ Published' : '❌ Failed'}\n\n`;
+
+            if (npmPublished || githubPublished || jsrPublished) {
+              body += `### ⚠️  Rollback Required\n\n`;
+
+              if (npmPublished) {
+                body += `#### NPM Rollback\n`;
+                body += `\`\`\`bash\n`;
+                body += `# Option 1: Deprecate (recommended)\n`;
+                body += `npm deprecate taglib-wasm@${version} 'Published in error'\n\n`;
+                body += `# Option 2: Unpublish (requires waiting 24h to republish)\n`;
+                body += `npm unpublish taglib-wasm@${version}\n`;
+                body += `\`\`\`\n\n`;
+              }
+
+              if (githubPublished) {
+                body += `#### GitHub Packages Rollback\n`;
+                body += `Delete the package version from GitHub Packages UI or use:\n`;
+                body += `\`\`\`bash\n`;
+                body += `gh api -X DELETE /user/packages/npm/@charleswiltgen%2Ftaglib-wasm/versions/VERSION_ID\n`;
+                body += `\`\`\`\n\n`;
+              }
+
+              if (jsrPublished) {
+                body += `#### JSR Rollback\n`;
+                body += `JSR does not support unpublishing. Consider publishing a patch version.\n\n`;
+              }
+            }
+
+            body += `### Next Steps\n`;
+            body += `1. Review the workflow logs for specific error details\n`;
+            body += `2. Fix the underlying issue\n`;
+            body += `3. If any registries were published, follow rollback procedures above\n`;
+            body += `4. Re-run the workflow or publish a new patch version\n`;
+
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `🚨 Publication failed for v${version}`,
+              body: body,
+              labels: ['bug', 'release']
+            });
