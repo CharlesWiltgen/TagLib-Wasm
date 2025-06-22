@@ -7,6 +7,7 @@ import {
   updateFolderTags,
 } from "../src/folder-api.ts";
 import { readTags } from "../src/simple.ts";
+import { terminateGlobalWorkerPool } from "../src/worker-pool.ts";
 
 const TEST_FILES_DIR = new URL("./test-files", import.meta.url).pathname;
 
@@ -254,6 +255,9 @@ Deno.test("scanFolder - parallel processing", async () => {
 
   console.log(`Sequential duration: ${duration1}ms`);
   console.log(`Parallel duration: ${duration2}ms`);
+
+  // Clean up worker pool if one was created
+  terminateGlobalWorkerPool();
 });
 
 Deno.test("scanFolder - detects cover art presence", async () => {

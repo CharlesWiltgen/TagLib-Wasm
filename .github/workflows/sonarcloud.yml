@@ -1,0 +1,65 @@
+name: SonarCloud Analysis
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    types: [opened, synchronize, reopened]
+  workflow_dispatch:
+
+jobs:
+  sonarcloud:
+    name: SonarCloud Analysis
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Shallow clones should be disabled for better analysis
+
+      - name: Setup Deno
+        uses: denoland/setup-deno@v1
+        with:
+          deno-version: v1.x
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build WebAssembly
+        run: npm run build:wasm
+
+      - name: Build TypeScript
+        run: npm run build:ts
+
+      - name: Run tests with coverage
+        run: |
+          # Run Deno tests with coverage
+          deno test --allow-read --allow-write --coverage=coverage tests/
+
+          # Generate lcov report from Deno coverage
+          deno coverage coverage --lcov --output=coverage/lcov.info
+
+      - name: Fix coverage paths for SonarCloud
+        run: |
+          # SonarCloud expects relative paths in lcov files
+          sed -i 's|SF:/Users/.*/taglib-wasm/|SF:|g' coverage/lcov.info || true
+          sed -i 's|SF:.*/taglib-wasm/|SF:|g' coverage/lcov.info || true
+
+      - name: SonarCloud Scan
+        uses: SonarSource/sonarcloud-github-action@master
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        with:
+          args: >
+            -Dsonar.coverage.exclusions=**/*.test.ts,**/*.spec.ts,**/test-utils.ts,**/examples/**,**/scripts/**,**/tools/**,**/lib/**
+            -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info
+            -Dsonar.typescript.lcov.reportPaths=coverage/lcov.info
