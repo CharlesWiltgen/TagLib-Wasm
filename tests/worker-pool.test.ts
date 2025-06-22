@@ -30,8 +30,8 @@ if (hasWorkerSupport) {
   Deno.test("Worker Pool: Initialization", async () => {
     const pool = new TagLibWorkerPool({ size: 2 });
 
-    // Wait for initialization
-    await new Promise((resolve) => setTimeout(resolve, 100));
+    // Wait for proper initialization
+    await new Promise((resolve) => setTimeout(resolve, 500));
 
     const stats = pool.getStats();
     assertEquals(stats.poolSize, 2);
