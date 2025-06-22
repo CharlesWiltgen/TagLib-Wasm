@@ -13,6 +13,7 @@ const TEST_FILES_DIR = new URL("./test-files", import.meta.url).pathname;
 Deno.test("scanFolder - reads all audio files with metadata", async () => {
   const result = await scanFolder(TEST_FILES_DIR, {
     recursive: true,
+    useWorkerPool: false, // Disable worker pool for test stability
     onProgress: (processed, total) => {
       console.log(`Progress: ${processed}/${total}`);
     },
