@@ -176,14 +176,11 @@ jobs:
           echo "Contents of dist:"
           ls -la dist/
 
-      - name: Configure npm
-        run: |
-          echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" > ~/.npmrc
-          npm whoami
-
       - name: Publish to NPM with retry
         id: publish
         uses: nick-invision/retry@v3
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         with:
           timeout_minutes: 5
           max_attempts: 3
@@ -259,14 +256,11 @@ jobs:
             console.log('Updated package.json for GitHub Packages');
           "
 
-      - name: Configure GitHub registry
-        run: |
-          echo "//npm.pkg.github.com/:_authToken=${{ secrets.GITHUB_TOKEN }}" > ~/.npmrc
-          echo "@charleswiltgen:registry=https://npm.pkg.github.com" >> ~/.npmrc
-
       - name: Publish to GitHub with retry
         id: publish
         uses: nick-invision/retry@v3
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           timeout_minutes: 5
           max_attempts: 3
