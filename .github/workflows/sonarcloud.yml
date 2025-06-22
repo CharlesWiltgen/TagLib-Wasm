@@ -1,17 +1,18 @@
 name: SonarCloud Analysis
 
 on:
-  push:
+  workflow_run:
+    workflows: ["Tests"]
+    types:
+      - completed
     branches:
       - main
-  pull_request:
-    types: [opened, synchronize, reopened]
-  workflow_dispatch:
 
 jobs:
   sonarcloud:
     name: SonarCloud Analysis
     runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
 
     steps:
       - name: Checkout code
@@ -19,51 +20,21 @@ jobs:
         with:
           fetch-depth: 0 # Shallow clones should be disabled for better analysis
 
-      - name: Setup Deno
-        uses: denoland/setup-deno@v2
+      - name: Download coverage artifact
+        uses: actions/download-artifact@v4
         with:
-          deno-version: v2.x
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-          cache: "npm"
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Install Emscripten
-        uses: mymindstorm/setup-emsdk@v14
-        with:
-          version: latest
-
-      - name: Build WebAssembly
-        run: npm run build:wasm
-
-      - name: Copy WASM files to dist
-        run: |
-          mkdir -p dist
-          cp build/taglib.wasm dist/
-          cp build/taglib-wrapper.js dist/
-          cp build/taglib-wrapper.d.ts dist/
-
-      - name: Build TypeScript
-        run: npm run build:ts
-
-      - name: Run tests with coverage
-        run: |
-          # Run Deno tests with coverage
-          deno test --allow-read --allow-write --coverage=coverage tests/
-
-          # Generate lcov report from Deno coverage
-          deno coverage coverage --lcov --output=coverage/lcov.info
+          name: coverage-lcov
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          run-id: ${{ github.event.workflow_run.id }}
 
       - name: Fix coverage paths for SonarCloud
         run: |
           # SonarCloud expects relative paths in lcov files
-          sed -i 's|SF:/Users/.*/taglib-wasm/|SF:|g' coverage/lcov.info || true
-          sed -i 's|SF:.*/taglib-wasm/|SF:|g' coverage/lcov.info || true
+          sed -i 's|SF:/Users/.*/taglib-wasm/|SF:|g' coverage.lcov || true
+          sed -i 's|SF:.*/taglib-wasm/|SF:|g' coverage.lcov || true
+          # Move to expected location
+          mkdir -p coverage
+          mv coverage.lcov coverage/lcov.info
 
       - name: SonarCloud Scan
         uses: SonarSource/sonarcloud-github-action@master
