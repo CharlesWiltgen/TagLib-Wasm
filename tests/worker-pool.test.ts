@@ -30,8 +30,8 @@ if (hasWorkerSupport) {
   Deno.test("Worker Pool: Initialization", async () => {
     const pool = new TagLibWorkerPool({ size: 2 });
 
-    // Wait for proper initialization
-    await new Promise((resolve) => setTimeout(resolve, 500));
+    // Wait for worker pool to initialize
+    await pool.waitForReady();
 
     const stats = pool.getStats();
     assertEquals(stats.poolSize, 2);
@@ -59,8 +59,9 @@ if (hasWorkerSupport) {
       const pictures = await readPictures(TEST_MP3);
       assertEquals(Array.isArray(pictures), true);
     } finally {
-      // Disable worker pool mode
+      // Disable worker pool mode and clean up
       setWorkerPoolMode(false);
+      terminateGlobalWorkerPool();
     }
   });
 
