@@ -646,38 +646,44 @@ Deno.test("Integration: Cross-Format Tag Transfer", async () => {
   assertEquals(targetTags.album, sourceTags.album);
 });
 
-Deno.test("Integration: Performance - Concurrent Operations", async () => {
-  // Skip performance tests in CI as they are unreliable due to variable runner performance
-  const isCI = Deno.env.get("CI") === "true";
-  if (isCI) {
-    console.log("Skipping performance test in CI environment");
-    return;
-  }
+Deno.test({
+  name: "Integration: Performance - Concurrent Operations",
+  ignore: Deno.env.get("CI") === "true",
+  fn: async () => {
+    let taglib;
+    try {
+      taglib = await TagLib.initialize();
+      const { createTestFiles, measureTime } = await import("./test-utils.ts");
 
-  const taglib = await TagLib.initialize();
-  const { createTestFiles, measureTime } = await import("./test-utils.ts");
+      const files = await createTestFiles(20, "mp3");
 
-  const files = await createTestFiles(20, "mp3");
+      // Measure concurrent processing time
+      const { timeMs } = await measureTime(async () => {
+        await Promise.all(
+          files.map(async (buffer) => {
+            const file = await taglib.open(buffer);
+            try {
+              const tag = file.tag();
+              tag.setTitle(`Concurrent ${Math.random()}`);
+              file.save();
+            } finally {
+              file.dispose();
+            }
+          }),
+        );
+      });
 
-  // Measure concurrent processing time
-  const { timeMs } = await measureTime(async () => {
-    await Promise.all(
-      files.map(async (buffer) => {
-        const file = await taglib.open(buffer);
-        const tag = file.tag();
-        tag.setTitle(`Concurrent ${Math.random()}`);
-        file.save();
-        file.dispose();
-      }),
-    );
-  });
-
-  // Should handle concurrent operations efficiently
-  const timeLimit = 2000;
-  assert(
-    timeMs < timeLimit,
-    `Concurrent operations took ${timeMs}ms (limit: ${timeLimit}ms)`,
-  );
+      // Should handle concurrent operations efficiently
+      const timeLimit = 2000;
+      assert(
+        timeMs < timeLimit,
+        `Concurrent operations took ${timeMs}ms (limit: ${timeLimit}ms)`,
+      );
+    } catch (error) {
+      console.error("Error in concurrent operations test:", error);
+      throw error;
+    }
+  },
 });
 
 Deno.test("readMetadataBatch - includes cover art and dynamics data", async () => {
