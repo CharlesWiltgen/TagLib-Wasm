@@ -668,7 +668,7 @@ Deno.test("Integration: Performance - Concurrent Operations", async () => {
   // Should handle concurrent operations efficiently
   // Note: CI runners may be slower, especially on macOS
   const isCI = Deno.env.get("CI") === "true";
-  const timeLimit = isCI ? 3000 : 2000; // More tolerant in CI
+  const timeLimit = isCI ? 5000 : 2000; // More tolerant in CI (especially for GitHub Actions)
   assert(
     timeMs < timeLimit,
     `Concurrent operations took ${timeMs}ms (limit: ${timeLimit}ms)`,
