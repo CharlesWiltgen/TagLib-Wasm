@@ -84,8 +84,8 @@ async function handleBatchOperations(
         case "addPicture":
           audioFile.addPicture(args[0]);
           break;
-        case "removePicture":
-          audioFile.removePicture(args[0]);
+        case "removePictures":
+          audioFile.removePictures();
           break;
 
         // Save operation
@@ -228,9 +228,10 @@ self.onmessage = async (event: MessageEvent) => {
 };
 
 // Handle worker errors
-self.onerror = (error) => {
+self.onerror = (event) => {
+  const message = event instanceof ErrorEvent ? event.message : String(event);
   self.postMessage({
     type: "error",
-    error: `Worker error: ${error.message || error}`,
+    error: `Worker error: ${message}`,
   });
 };
