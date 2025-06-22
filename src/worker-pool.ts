@@ -151,12 +151,15 @@ export class TagLibWorkerPool {
         };
 
         workerState.worker.addEventListener("message", messageHandler);
-        workerState.worker.addEventListener("error", (error) => {
+        workerState.worker.addEventListener("error", (event) => {
           if (workerState.initTimeout) {
             clearTimeout(workerState.initTimeout);
             workerState.initTimeout = undefined;
           }
-          reject(new WorkerError(`Worker error: ${error.message}`));
+          const message = event instanceof ErrorEvent
+            ? event.message
+            : String(event);
+          reject(new WorkerError(`Worker error: ${message}`));
         });
 
         // Send initialization message
