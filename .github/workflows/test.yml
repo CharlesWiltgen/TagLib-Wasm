@@ -46,6 +46,13 @@ jobs:
       - name: Build WebAssembly
         run: npm run build:wasm
 
+      - name: Copy WASM files to dist
+        run: |
+          mkdir -p dist
+          cp build/taglib.wasm dist/
+          cp build/taglib-wrapper.js dist/
+          cp build/taglib-wrapper.d.ts dist/
+
       - name: Build TypeScript
         run: npm run build:ts
 
