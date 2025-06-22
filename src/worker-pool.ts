@@ -114,15 +114,20 @@ export class TagLibWorkerPool {
    */
   async waitForReady(): Promise<void> {
     await this.initPromise;
+
     // Double-check that all workers are initialized
-    const maxRetries = 10;
+    const maxRetries = 20; // Increase retries for slower CI environments
     for (let i = 0; i < maxRetries; i++) {
       if (this.workers.every((w) => w.initialized)) {
         return;
       }
       await new Promise((resolve) => setTimeout(resolve, 100));
     }
-    throw new WorkerError("Worker pool initialization timeout");
+
+    const initializedCount = this.workers.filter((w) => w.initialized).length;
+    throw new WorkerError(
+      `Worker pool initialization timeout: ${initializedCount}/${this.workers.length} workers initialized`,
+    );
   }
 
   /**
@@ -202,7 +207,9 @@ export class TagLibWorkerPool {
     } catch (error) {
       // Fallback for environments without module worker support
       throw new WorkerError(
-        "Failed to create worker. Ensure Web Workers are supported in this environment.",
+        `Failed to create worker: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
       );
     }
   }
