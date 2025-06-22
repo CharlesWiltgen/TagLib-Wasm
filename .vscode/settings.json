@@ -53,5 +53,9 @@
         ".github/workflows/publish-everywhere.yml"
       ]
     }
-  ]
+  ],
+  "sonarlint.connectedMode.project": {
+    "connectionId": "charles-wiltgen",
+    "projectKey": "CharlesWiltgen_taglib-wasm"
+  }
 }
