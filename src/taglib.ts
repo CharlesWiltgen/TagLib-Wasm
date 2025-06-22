@@ -19,6 +19,8 @@ import {
   readPartialFileData,
 } from "./utils/file.ts";
 import { writeFileData } from "./utils/write.ts";
+import { getGlobalWorkerPool, type TagLibWorkerPool } from "./worker-pool.ts";
+import type { BatchOperation } from "./worker-pool.ts";
 
 /**
  * Extended Tag interface with read/write capabilities for audio metadata.
@@ -838,6 +840,7 @@ export class AudioFileImpl implements AudioFile {
  */
 export class TagLib {
   private module: TagLibModule;
+  private workerPool?: TagLibWorkerPool;
 
   constructor(module: WasmModule) {
     this.module = module as TagLibModule;
@@ -861,16 +864,45 @@ export class TagLib {
    *
    * // With custom WASM URL
    * const taglib = await TagLib.initialize({ wasmUrl: "/assets/taglib.wasm" });
+   *
+   * // With worker pool enabled
+   * const taglib = await TagLib.initialize({ useWorkerPool: true });
    * ```
    */
   static async initialize(options?: {
     wasmBinary?: ArrayBuffer | Uint8Array;
     wasmUrl?: string;
+    useWorkerPool?: boolean;
+    workerPoolOptions?: {
+      size?: number;
+      debug?: boolean;
+    };
   }): Promise<TagLib> {
     // Use the loadTagLibModule function
     const { loadTagLibModule } = await import("../index.ts");
     const module = await loadTagLibModule(options);
-    return new TagLib(module);
+    const taglib = new TagLib(module);
+
+    // Initialize worker pool if requested
+    if (options?.useWorkerPool) {
+      taglib.workerPool = getGlobalWorkerPool(options.workerPoolOptions);
+    }
+
+    return taglib;
+  }
+
+  /**
+   * Enable or disable worker pool for this TagLib instance
+   */
+  setWorkerPool(pool: TagLibWorkerPool | null): void {
+    this.workerPool = pool || undefined;
+  }
+
+  /**
+   * Get the current worker pool instance
+   */
+  getWorkerPool(): TagLibWorkerPool | undefined {
+    return this.workerPool;
   }
 
   /**
@@ -1077,6 +1109,72 @@ export class TagLib {
     } finally {
       file.dispose();
     }
+  }
+
+  /**
+   * Execute batch operations on a file using the worker pool.
+   * This method provides efficient batch processing using Web Workers.
+   *
+   * @param file - File path or Uint8Array
+   * @param operations - Array of operations to execute
+   * @returns Result of the batch operations
+   *
+   * @example
+   * ```typescript
+   * const result = await taglib.batchOperations("song.mp3", [
+   *   { method: "setTitle", args: ["New Title"] },
+   *   { method: "setArtist", args: ["New Artist"] },
+   *   { method: "save" }
+   * ]);
+   * ```
+   */
+  async batchOperations(
+    file: string | Uint8Array,
+    operations: BatchOperation[],
+  ): Promise<any> {
+    if (!this.workerPool) {
+      throw new Error(
+        "Worker pool not initialized. Enable it with TagLib.initialize({ useWorkerPool: true })",
+      );
+    }
+
+    return this.workerPool.batchOperations(file, operations);
+  }
+
+  /**
+   * Process multiple files in parallel using the worker pool.
+   *
+   * @param files - Array of file paths
+   * @param operation - Operation to perform on each file
+   * @returns Array of results
+   *
+   * @example
+   * ```typescript
+   * const tags = await taglib.processFiles(
+   *   ["song1.mp3", "song2.mp3", "song3.mp3"],
+   *   "readTags"
+   * );
+   * ```
+   */
+  async processFiles<T>(
+    files: string[],
+    operation: "readTags" | "readProperties",
+  ): Promise<T[]> {
+    if (!this.workerPool) {
+      throw new Error(
+        "Worker pool not initialized. Enable it with TagLib.initialize({ useWorkerPool: true })",
+      );
+    }
+
+    return Promise.all(
+      files.map((file) => {
+        if (operation === "readTags") {
+          return this.workerPool!.readTags(file) as Promise<T>;
+        } else {
+          return this.workerPool!.readProperties(file) as Promise<T>;
+        }
+      }),
+    );
   }
 
   /**
