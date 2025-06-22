@@ -650,7 +650,7 @@ Deno.test({
   name: "Integration: Performance - Concurrent Operations",
   ignore: Deno.env.get("CI") === "true",
   fn: async () => {
-    let taglib;
+    let taglib: TagLib | undefined;
     try {
       taglib = await TagLib.initialize();
       const { createTestFiles, measureTime } = await import("./test-utils.ts");
@@ -661,7 +661,7 @@ Deno.test({
       const { timeMs } = await measureTime(async () => {
         await Promise.all(
           files.map(async (buffer) => {
-            const file = await taglib.open(buffer);
+            const file = await taglib!.open(buffer);
             try {
               const tag = file.tag();
               tag.setTitle(`Concurrent ${Math.random()}`);
