@@ -125,7 +125,7 @@ jobs:
 
       - name: Run tests (Deno)
         if: matrix.runtime == 'deno'
-        run: deno test --allow-read --allow-write --coverage=coverage tests/
+        run: deno test --allow-read --allow-write --allow-env --coverage=coverage tests/
 
       - name: Generate coverage report
         if: matrix.runtime == 'deno' && matrix.os == 'ubuntu-latest'
