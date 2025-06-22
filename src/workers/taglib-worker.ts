@@ -139,8 +139,18 @@ self.onmessage = async (event: MessageEvent) => {
 
     switch (op) {
       case "init":
-        await initializeTagLib();
-        self.postMessage({ type: "initialized" });
+        try {
+          await initializeTagLib();
+          self.postMessage({ type: "initialized" });
+        } catch (initError) {
+          console.error("Worker initialization failed:", initError);
+          self.postMessage({
+            type: "error",
+            error: initError instanceof Error
+              ? initError.message
+              : String(initError),
+          });
+        }
         break;
 
       case "readTags": {

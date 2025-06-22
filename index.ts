@@ -295,9 +295,24 @@ export async function loadTagLibModule(
 ): Promise<TagLibModule> {
   // Now that we're using ES6 modules, we can use dynamic import directly
   // Note: For Deno compile, provide wasmBinary option to avoid dynamic loading
-  const { default: createTagLibModule } = await import(
-    "./build/taglib-wrapper.js"
-  );
+
+  // Try different paths for the wrapper module
+  let createTagLibModule;
+  try {
+    // First try the build directory (development)
+    const module = await import("./build/taglib-wrapper.js");
+    createTagLibModule = module.default;
+  } catch {
+    try {
+      // Then try the dist directory (CI/production)
+      const module = await import("./dist/taglib-wrapper.js");
+      createTagLibModule = module.default;
+    } catch {
+      throw new Error(
+        "Could not load taglib-wrapper.js from either ./build or ./dist",
+      );
+    }
+  }
 
   const moduleConfig: any = {};
 

@@ -106,7 +106,18 @@ jobs:
 
       - name: Run tests (Deno)
         if: matrix.runtime == 'deno'
-        run: npm run test
+        run: deno test --allow-read --allow-write --coverage=coverage tests/
+
+      - name: Generate coverage report
+        if: matrix.runtime == 'deno' && matrix.os == 'ubuntu-latest'
+        run: deno coverage coverage --lcov --output=coverage.lcov
+
+      - name: Upload coverage reports
+        if: matrix.runtime == 'deno' && matrix.os == 'ubuntu-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-lcov
+          path: coverage.lcov
 
       - name: Run tests (Bun)
         if: matrix.runtime == 'bun'
