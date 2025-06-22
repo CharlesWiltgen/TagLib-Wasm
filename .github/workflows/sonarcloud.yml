@@ -20,9 +20,9 @@ jobs:
           fetch-depth: 0 # Shallow clones should be disabled for better analysis
 
       - name: Setup Deno
-        uses: denoland/setup-deno@v1
+        uses: denoland/setup-deno@v2
         with:
-          deno-version: v1.x
+          deno-version: v2.x
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
