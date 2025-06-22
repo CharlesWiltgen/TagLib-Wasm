@@ -300,11 +300,13 @@ export async function loadTagLibModule(
   let createTagLibModule;
   try {
     // First try the build directory (development)
+    // @ts-ignore: Dynamic import handled at runtime
     const module = await import("./build/taglib-wrapper.js");
     createTagLibModule = module.default;
   } catch {
     try {
       // Then try the dist directory (CI/production)
+      // @ts-ignore: Dynamic import handled at runtime
       const module = await import("./dist/taglib-wrapper.js");
       createTagLibModule = module.default;
     } catch {
