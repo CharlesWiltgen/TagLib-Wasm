@@ -114,6 +114,15 @@ export class TagLibWorkerPool {
    */
   async waitForReady(): Promise<void> {
     await this.initPromise;
+    // Double-check that all workers are initialized
+    const maxRetries = 10;
+    for (let i = 0; i < maxRetries; i++) {
+      if (this.workers.every((w) => w.initialized)) {
+        return;
+      }
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    }
+    throw new WorkerError("Worker pool initialization timeout");
   }
 
   /**
@@ -153,6 +162,7 @@ export class TagLibWorkerPool {
               clearTimeout(workerState.initTimeout);
               workerState.initTimeout = undefined;
             }
+            workerState.worker.removeEventListener("message", messageHandler);
             reject(new WorkerError(e.data.error));
           }
         };
