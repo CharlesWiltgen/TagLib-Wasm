@@ -38,6 +38,14 @@ jobs:
       - name: Install dependencies
         run: npm install
 
+      - name: Install Emscripten
+        uses: mymindstorm/setup-emsdk@v14
+        with:
+          version: latest
+
+      - name: Build WebAssembly
+        run: npm run build:wasm
+
       - name: Build TypeScript
         run: npm run build:ts
 
@@ -48,7 +56,11 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: dist
-          path: dist/
+          path: |
+            dist/
+            build/taglib.wasm
+            build/taglib-wrapper.js
+            build/taglib-wrapper.d.ts
 
   test:
     name: Test (${{ matrix.os }}, ${{ matrix.runtime }})
@@ -102,7 +114,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: dist
-          path: dist/
+          path: .
 
       - name: Run tests (Deno)
         if: matrix.runtime == 'deno'
