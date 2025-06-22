@@ -29,7 +29,7 @@
   ],
   "scripts": {
     "build:wasm": "./build/build-wasm.sh",
-    "build:ts": "tsc && deno run --allow-read --allow-write --allow-run --allow-env --unstable-detect-cjs scripts/build-js.js",
+    "build:ts": "tsc && deno run --allow-read --allow-write --allow-run --allow-env scripts/build-js.js",
     "postbuild": "deno run --allow-read --allow-write --allow-run --allow-env scripts/postbuild.js",
     "build": "npm run build:wasm && npm run build:ts && npm run postbuild",
     "test": "deno test --allow-read --allow-write tests/",
