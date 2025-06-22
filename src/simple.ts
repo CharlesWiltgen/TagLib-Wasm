@@ -40,9 +40,43 @@ import {
 } from "./errors.ts";
 import type { readFileData } from "./utils/file.ts";
 import { writeFileData } from "./utils/write.ts";
+import { getGlobalWorkerPool, type TagLibWorkerPool } from "./worker-pool.ts";
 
 // Cached TagLib instance for auto-initialization
 let cachedTagLib: TagLib | null = null;
+
+// Worker pool mode flag
+let useWorkerPool = false;
+let workerPoolInstance: TagLibWorkerPool | null = null;
+
+/**
+ * Enable or disable worker pool mode for Simple API operations.
+ * When enabled, operations will be processed in parallel using Web Workers.
+ *
+ * @param enabled - Whether to enable worker pool mode
+ * @param pool - Optional worker pool instance to use (creates global pool if not provided)
+ *
+ * @example
+ * ```typescript
+ * // Enable worker pool with default settings
+ * setWorkerPoolMode(true);
+ *
+ * // Enable with custom pool
+ * const pool = new TagLibWorkerPool({ size: 8 });
+ * setWorkerPoolMode(true, pool);
+ * ```
+ */
+export function setWorkerPoolMode(
+  enabled: boolean,
+  pool?: TagLibWorkerPool,
+): void {
+  useWorkerPool = enabled;
+  if (enabled && pool) {
+    workerPoolInstance = pool;
+  } else if (enabled && !workerPoolInstance) {
+    workerPoolInstance = getGlobalWorkerPool();
+  }
+}
 
 /**
  * Get or create a TagLib instance with auto-initialization.
@@ -75,6 +109,14 @@ async function getTagLib(): Promise<TagLib> {
 export async function readTags(
   file: string | Uint8Array | ArrayBuffer | File,
 ): Promise<Tag> {
+  // Use worker pool if enabled and file is string or Uint8Array
+  if (
+    useWorkerPool && workerPoolInstance &&
+    (typeof file === "string" || file instanceof Uint8Array)
+  ) {
+    return workerPoolInstance.readTags(file);
+  }
+
   const taglib = await getTagLib();
   const audioFile = await taglib.open(file);
   try {
@@ -117,6 +159,14 @@ export async function applyTags(
   tags: Partial<Tag>,
   options?: number,
 ): Promise<Uint8Array> {
+  // Use worker pool if enabled and file is string or Uint8Array
+  if (
+    useWorkerPool && workerPoolInstance &&
+    (typeof file === "string" || file instanceof Uint8Array)
+  ) {
+    return workerPoolInstance.applyTags(file, tags);
+  }
+
   const taglib = await getTagLib();
   const audioFile = await taglib.open(file);
   try {
@@ -185,6 +235,11 @@ export async function updateTags(
     throw new Error("updateTags requires a file path string to save changes");
   }
 
+  // Use worker pool if enabled
+  if (useWorkerPool && workerPoolInstance) {
+    return workerPoolInstance.updateTags(file, tags);
+  }
+
   // Get the modified buffer
   const modifiedBuffer = await applyTags(file, tags, options);
 
@@ -209,6 +264,22 @@ export async function updateTags(
 export async function readProperties(
   file: string | Uint8Array | ArrayBuffer | File,
 ): Promise<AudioProperties> {
+  // Use worker pool if enabled and file is string or Uint8Array
+  if (
+    useWorkerPool && workerPoolInstance &&
+    (typeof file === "string" || file instanceof Uint8Array)
+  ) {
+    const props = await workerPoolInstance.readProperties(file);
+    if (!props) {
+      throw new MetadataError(
+        "read",
+        "File may not contain valid audio data",
+        "audioProperties",
+      );
+    }
+    return props;
+  }
+
   const taglib = await getTagLib();
   const audioFile = await taglib.open(file);
   try {
@@ -357,6 +428,14 @@ export async function clearTags(
 export async function readPictures(
   file: string | Uint8Array | ArrayBuffer | File,
 ): Promise<Picture[]> {
+  // Use worker pool if enabled and file is string or Uint8Array
+  if (
+    useWorkerPool && workerPoolInstance &&
+    (typeof file === "string" || file instanceof Uint8Array)
+  ) {
+    return workerPoolInstance.readPictures(file);
+  }
+
   const taglib = await getTagLib();
   const audioFile = await taglib.open(file);
   try {
@@ -552,6 +631,14 @@ export async function setCoverArt(
   imageData: Uint8Array,
   mimeType: string,
 ): Promise<Uint8Array> {
+  // Use worker pool if enabled and file is string or Uint8Array
+  if (
+    useWorkerPool && workerPoolInstance &&
+    (typeof file === "string" || file instanceof Uint8Array)
+  ) {
+    return workerPoolInstance.setCoverArt(file, imageData, mimeType);
+  }
+
   const picture: Picture = {
     mimeType,
     data: imageData,

@@ -224,16 +224,16 @@ Deno.test("scanFolder - parallel processing", async () => {
 
   // Test with different concurrency levels
   const result1 = await scanFolder(TEST_FILES_DIR, {
-    concurrency: 1,
     recursive: true,
+    useWorkerPool: false, // Sequential processing
   });
 
   const duration1 = Date.now() - startTime;
 
   const startTime2 = Date.now();
   const result2 = await scanFolder(TEST_FILES_DIR, {
-    concurrency: 4,
     recursive: true,
+    useWorkerPool: true, // Parallel processing with worker pool
   });
 
   const duration2 = Date.now() - startTime2;

@@ -17,3 +17,15 @@ export type {
 
 // Export from wasm.ts
 export type { TagLibModule } from "./wasm.ts";
+
+// Export worker pool functionality
+export {
+  getGlobalWorkerPool,
+  TagLibWorkerPool,
+  terminateGlobalWorkerPool,
+} from "./worker-pool.ts";
+export type {
+  BatchOperation,
+  WorkerPoolOptions,
+  WorkerTask,
+} from "./worker-pool.ts";
