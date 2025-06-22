@@ -110,6 +110,13 @@ export class TagLibWorkerPool {
   }
 
   /**
+   * Wait for the worker pool to be ready
+   */
+  async waitForReady(): Promise<void> {
+    await this.initPromise;
+  }
+
+  /**
    * Initialize worker threads
    */
   private async initializeWorkers(): Promise<void> {
