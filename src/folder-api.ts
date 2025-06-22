@@ -6,6 +6,7 @@
 import { TagLib } from "./taglib.ts";
 import { type Tag, updateTags } from "./simple.ts";
 import type { AudioProperties } from "./types.ts";
+import { getGlobalWorkerPool, type TagLibWorkerPool } from "./worker-pool.ts";
 
 /**
  * Cross-runtime path utilities
@@ -71,8 +72,10 @@ export interface FolderScanOptions {
   includeProperties?: boolean;
   /** Whether to continue on errors (default: true) */
   continueOnError?: boolean;
-  /** Number of files to process in parallel (default: 4) */
-  concurrency?: number;
+  /** Use worker pool for parallel processing (default: true if available) */
+  useWorkerPool?: boolean;
+  /** Worker pool instance to use (creates one if not provided) */
+  workerPool?: TagLibWorkerPool;
 }
 
 /**
@@ -239,7 +242,8 @@ export async function scanFolder(
     maxFiles = Infinity,
     includeProperties = true,
     continueOnError = true,
-    concurrency = 4,
+    useWorkerPool = true,
+    workerPool,
     onProgress,
   } = options;
 
@@ -258,110 +262,202 @@ export async function scanFolder(
   const totalFound = filePaths.length;
   let processed = 0;
 
-  // Initialize TagLib once for the entire operation
-  const taglib = await TagLib.initialize();
+  // Determine if we should use worker pool
+  const shouldUseWorkerPool = useWorkerPool &&
+    (workerPool || typeof Worker !== "undefined");
+  let pool: TagLibWorkerPool | null = null;
+
+  if (shouldUseWorkerPool) {
+    pool = workerPool || getGlobalWorkerPool();
+  }
+
+  // Initialize TagLib if not using worker pool
+  const taglib = shouldUseWorkerPool ? null : await TagLib.initialize();
 
   try {
-    // Process files in batches
-    const processor = async (filePath: string): Promise<AudioFileMetadata> => {
-      try {
-        // Open file once and read both tags and properties
-        const audioFile = await taglib.open(filePath);
-        try {
-          const tags = audioFile.tag();
-          let properties: AudioProperties | undefined;
+    // Process files based on whether we're using worker pool
+    if (pool) {
+      // Worker pool processing
+      const batchSize = Math.min(50, filePaths.length); // Process in reasonable chunks
 
-          if (includeProperties) {
-            const props = audioFile.audioProperties();
-            if (props) {
-              properties = props;
+      for (let i = 0; i < filePaths.length; i += batchSize) {
+        const batch = filePaths.slice(
+          i,
+          Math.min(i + batchSize, filePaths.length),
+        );
+
+        // Process batch in parallel using worker pool
+        const batchPromises = batch.map(async (filePath) => {
+          try {
+            const [tags, properties, pictures] = await Promise.all([
+              pool!.readTags(filePath),
+              includeProperties
+                ? pool!.readProperties(filePath)
+                : Promise.resolve(null),
+              pool!.readPictures(filePath),
+            ]);
+
+            const hasCoverArt = pictures.length > 0;
+
+            // Extract dynamics data from tags
+            const dynamics: AudioDynamics = {};
+            if ((tags as any).REPLAYGAIN_TRACK_GAIN) {
+              dynamics.replayGainTrackGain =
+                (tags as any).REPLAYGAIN_TRACK_GAIN;
+            }
+            if ((tags as any).REPLAYGAIN_TRACK_PEAK) {
+              dynamics.replayGainTrackPeak =
+                (tags as any).REPLAYGAIN_TRACK_PEAK;
+            }
+            if ((tags as any).REPLAYGAIN_ALBUM_GAIN) {
+              dynamics.replayGainAlbumGain =
+                (tags as any).REPLAYGAIN_ALBUM_GAIN;
+            }
+            if ((tags as any).REPLAYGAIN_ALBUM_PEAK) {
+              dynamics.replayGainAlbumPeak =
+                (tags as any).REPLAYGAIN_ALBUM_PEAK;
+            }
+            if ((tags as any).ITUNNORM) {
+              dynamics.appleSoundCheck = (tags as any).ITUNNORM;
+            }
+
+            processed++;
+            onProgress?.(processed, totalFound, filePath);
+
+            return {
+              path: filePath,
+              tags,
+              properties: properties || undefined,
+              hasCoverArt,
+              dynamics: Object.keys(dynamics).length > 0 ? dynamics : undefined,
+            };
+          } catch (error) {
+            const err = error instanceof Error
+              ? error
+              : new Error(String(error));
+
+            if (continueOnError) {
+              errors.push({ path: filePath, error: err });
+              processed++;
+              onProgress?.(processed, totalFound, filePath);
+              return { path: filePath, tags: {}, error: err };
+            } else {
+              throw err;
             }
           }
+        });
 
-          // Check if the file has cover art
-          const pictures = audioFile.getPictures();
-          const hasCoverArt = pictures.length > 0;
-
-          // Extract dynamics data (ReplayGain and Sound Check)
-          const dynamics: AudioDynamics = {};
-
-          // ReplayGain fields
-          const replayGainTrackGain = audioFile.getProperty(
-            "REPLAYGAIN_TRACK_GAIN",
-          );
-          if (replayGainTrackGain) {
-            dynamics.replayGainTrackGain = replayGainTrackGain;
-          }
-
-          const replayGainTrackPeak = audioFile.getProperty(
-            "REPLAYGAIN_TRACK_PEAK",
-          );
-          if (replayGainTrackPeak) {
-            dynamics.replayGainTrackPeak = replayGainTrackPeak;
-          }
-
-          const replayGainAlbumGain = audioFile.getProperty(
-            "REPLAYGAIN_ALBUM_GAIN",
-          );
-          if (replayGainAlbumGain) {
-            dynamics.replayGainAlbumGain = replayGainAlbumGain;
-          }
-
-          const replayGainAlbumPeak = audioFile.getProperty(
-            "REPLAYGAIN_ALBUM_PEAK",
-          );
-          if (replayGainAlbumPeak) {
-            dynamics.replayGainAlbumPeak = replayGainAlbumPeak;
-          }
-
-          // Apple Sound Check - check both standard property and MP4-specific atom
-          let appleSoundCheck = audioFile.getProperty("ITUNNORM");
-          if (!appleSoundCheck && audioFile.isMP4()) {
-            appleSoundCheck = audioFile.getMP4Item(
-              "----:com.apple.iTunes:iTunNORM",
-            );
-          }
-          if (appleSoundCheck) dynamics.appleSoundCheck = appleSoundCheck;
-
-          processed++;
-          onProgress?.(processed, totalFound, filePath);
-
-          return {
-            path: filePath,
-            tags,
-            properties,
-            hasCoverArt,
-            dynamics: Object.keys(dynamics).length > 0 ? dynamics : undefined,
-          };
-        } finally {
-          audioFile.dispose();
-        }
-      } catch (error) {
-        const err = error instanceof Error ? error : new Error(String(error));
-
-        if (continueOnError) {
-          errors.push({ path: filePath, error: err });
-          processed++;
-          onProgress?.(processed, totalFound, filePath);
-          return { path: filePath, tags: {}, error: err };
-        } else {
-          throw err;
-        }
+        const batchResults = await Promise.all(batchPromises);
+        files.push(...batchResults.filter((r) => !r.error));
       }
-    };
+    } else {
+      // Original non-worker processing
+      const processor = async (
+        filePath: string,
+      ): Promise<AudioFileMetadata> => {
+        try {
+          // Open file once and read both tags and properties
+          const audioFile = await taglib!.open(filePath);
+          try {
+            const tags = audioFile.tag();
+            let properties: AudioProperties | undefined;
 
-    // Process in batches with concurrency control
-    const batchSize = concurrency * 10; // Process in chunks
-    for (let i = 0; i < filePaths.length; i += batchSize) {
-      const batch = filePaths.slice(
-        i,
-        Math.min(i + batchSize, filePaths.length),
-      );
-      const batchResults = await processBatch(batch, processor, concurrency);
-      files.push(...batchResults.filter((r) => !r.error));
+            if (includeProperties) {
+              const props = audioFile.audioProperties();
+              if (props) {
+                properties = props;
+              }
+            }
+
+            // Check if the file has cover art
+            const pictures = audioFile.getPictures();
+            const hasCoverArt = pictures.length > 0;
+
+            // Extract dynamics data (ReplayGain and Sound Check)
+            const dynamics: AudioDynamics = {};
+
+            // ReplayGain fields
+            const replayGainTrackGain = audioFile.getProperty(
+              "REPLAYGAIN_TRACK_GAIN",
+            );
+            if (replayGainTrackGain) {
+              dynamics.replayGainTrackGain = replayGainTrackGain;
+            }
+
+            const replayGainTrackPeak = audioFile.getProperty(
+              "REPLAYGAIN_TRACK_PEAK",
+            );
+            if (replayGainTrackPeak) {
+              dynamics.replayGainTrackPeak = replayGainTrackPeak;
+            }
+
+            const replayGainAlbumGain = audioFile.getProperty(
+              "REPLAYGAIN_ALBUM_GAIN",
+            );
+            if (replayGainAlbumGain) {
+              dynamics.replayGainAlbumGain = replayGainAlbumGain;
+            }
+
+            const replayGainAlbumPeak = audioFile.getProperty(
+              "REPLAYGAIN_ALBUM_PEAK",
+            );
+            if (replayGainAlbumPeak) {
+              dynamics.replayGainAlbumPeak = replayGainAlbumPeak;
+            }
+
+            // Apple Sound Check - check both standard property and MP4-specific atom
+            let appleSoundCheck = audioFile.getProperty("ITUNNORM");
+            if (!appleSoundCheck && audioFile.isMP4()) {
+              appleSoundCheck = audioFile.getMP4Item(
+                "----:com.apple.iTunes:iTunNORM",
+              );
+            }
+            if (appleSoundCheck) dynamics.appleSoundCheck = appleSoundCheck;
+
+            processed++;
+            onProgress?.(processed, totalFound, filePath);
+
+            return {
+              path: filePath,
+              tags,
+              properties,
+              hasCoverArt,
+              dynamics: Object.keys(dynamics).length > 0 ? dynamics : undefined,
+            };
+          } finally {
+            audioFile.dispose();
+          }
+        } catch (error) {
+          const err = error instanceof Error ? error : new Error(String(error));
+
+          if (continueOnError) {
+            errors.push({ path: filePath, error: err });
+            processed++;
+            onProgress?.(processed, totalFound, filePath);
+            return { path: filePath, tags: {}, error: err };
+          } else {
+            throw err;
+          }
+        }
+      };
+
+      // Process in batches with concurrency control
+      const concurrency = 4; // Default concurrency for non-worker processing
+      const batchSize = concurrency * 10; // Process in chunks
+      for (let i = 0; i < filePaths.length; i += batchSize) {
+        const batch = filePaths.slice(
+          i,
+          Math.min(i + batchSize, filePaths.length),
+        );
+        const batchResults = await processBatch(batch, processor, concurrency);
+        files.push(...batchResults.filter((r) => !r.error));
+      }
     }
   } finally {
-    // TagLib instance doesn't need disposal, only AudioFile instances do
+    // Clean up worker pool if we created it
+    if (pool && !workerPool) {
+      // Don't terminate global pool, only if we created a temporary one
+    }
   }
 
   return {
