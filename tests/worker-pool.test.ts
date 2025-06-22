@@ -41,8 +41,12 @@ if (hasWorkerSupport) {
   });
 
   Deno.test("Worker Pool: Simple API Integration", async () => {
-    // Enable worker pool mode
-    setWorkerPoolMode(true);
+    // Create and initialize a pool explicitly
+    const pool = new TagLibWorkerPool({ size: 2 });
+    await pool.waitForReady();
+
+    // Enable worker pool mode with our initialized pool
+    setWorkerPoolMode(true, pool);
 
     try {
       // Test readTags
@@ -61,7 +65,7 @@ if (hasWorkerSupport) {
     } finally {
       // Disable worker pool mode and clean up
       setWorkerPoolMode(false);
-      terminateGlobalWorkerPool();
+      pool.terminate();
     }
   });
 
