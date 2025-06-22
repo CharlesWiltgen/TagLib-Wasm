@@ -5,10 +5,10 @@
  * Handles .ts extensions in imports automatically
  */
 
-import { existsSync, mkdirSync } from "fs";
-import { dirname, join } from "path";
-import { execSync } from "child_process";
-import { fileURLToPath } from "url";
+import { existsSync, mkdirSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { execSync } from "node:child_process";
+import { fileURLToPath } from "node:url";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const rootDir = join(__dirname, "..");
