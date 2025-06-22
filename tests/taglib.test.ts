@@ -667,7 +667,12 @@ Deno.test("Integration: Performance - Concurrent Operations", async () => {
 
   // Should handle concurrent operations efficiently
   // Note: CI runners may be slower, especially on macOS
-  assert(timeMs < 2000, `Concurrent operations took ${timeMs}ms`);
+  const isCI = Deno.env.get("CI") === "true";
+  const timeLimit = isCI ? 3000 : 2000; // More tolerant in CI
+  assert(
+    timeMs < timeLimit,
+    `Concurrent operations took ${timeMs}ms (limit: ${timeLimit}ms)`,
+  );
 });
 
 Deno.test("readMetadataBatch - includes cover art and dynamics data", async () => {
