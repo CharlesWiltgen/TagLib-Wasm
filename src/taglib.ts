@@ -1223,7 +1223,7 @@ export {
   MetadataError,
   SUPPORTED_FORMATS,
   TagLibError,
-  TagLibErrorCode,
   TagLibInitializationError,
   UnsupportedFormatError,
 } from "./errors.ts";
+export type { TagLibErrorCode } from "./errors.ts";

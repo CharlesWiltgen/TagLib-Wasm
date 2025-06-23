@@ -474,7 +474,7 @@ export type { TagName } from "./constants.ts";
  * const picture: Picture = {
  *   mimeType: "image/jpeg",
  *   data: new Uint8Array(imageBuffer),
- *   type: PictureType.FrontCover,
+ *   type: "FrontCover",
  *   description: "Album cover"
  * };
  * ```
@@ -485,7 +485,7 @@ export interface Picture {
   /** Image data */
   data: Uint8Array;
   /** Picture type (front cover, back cover, etc.) */
-  type: PictureType;
+  type: number;
   /** Description */
   description?: string;
 }
@@ -499,35 +499,90 @@ export interface Picture {
  * ```typescript
  * // Set front cover art
  * const coverArt = {
- *   type: PictureType.FrontCover,
+ *   type: "FrontCover",
  *   mimeType: "image/jpeg",
  *   data: imageData
  * };
  * ```
  */
-export enum PictureType {
-  Other = 0,
-  FileIcon = 1,
-  OtherFileIcon = 2,
-  FrontCover = 3,
-  BackCover = 4,
-  LeafletPage = 5,
-  Media = 6,
-  LeadArtist = 7,
-  Artist = 8,
-  Conductor = 9,
-  Band = 10,
-  Composer = 11,
-  Lyricist = 12,
-  RecordingLocation = 13,
-  DuringRecording = 14,
-  DuringPerformance = 15,
-  MovieScreenCapture = 16,
-  ColouredFish = 17,
-  Illustration = 18,
-  BandLogo = 19,
-  PublisherLogo = 20,
-}
+export type PictureType =
+  | "Other"
+  | "FileIcon"
+  | "OtherFileIcon"
+  | "FrontCover"
+  | "BackCover"
+  | "LeafletPage"
+  | "Media"
+  | "LeadArtist"
+  | "Artist"
+  | "Conductor"
+  | "Band"
+  | "Composer"
+  | "Lyricist"
+  | "RecordingLocation"
+  | "DuringRecording"
+  | "DuringPerformance"
+  | "MovieScreenCapture"
+  | "ColouredFish"
+  | "Illustration"
+  | "BandLogo"
+  | "PublisherLogo";
+
+/**
+ * Map of picture type names to their numeric values.
+ * Used for converting between string representations and numeric codes.
+ */
+export const PICTURE_TYPE_VALUES: Record<PictureType, number> = {
+  Other: 0,
+  FileIcon: 1,
+  OtherFileIcon: 2,
+  FrontCover: 3,
+  BackCover: 4,
+  LeafletPage: 5,
+  Media: 6,
+  LeadArtist: 7,
+  Artist: 8,
+  Conductor: 9,
+  Band: 10,
+  Composer: 11,
+  Lyricist: 12,
+  RecordingLocation: 13,
+  DuringRecording: 14,
+  DuringPerformance: 15,
+  MovieScreenCapture: 16,
+  ColouredFish: 17,
+  Illustration: 18,
+  BandLogo: 19,
+  PublisherLogo: 20,
+};
+
+/**
+ * Map of numeric values to picture type names.
+ * Used for converting numeric codes to string representations.
+ */
+export const PICTURE_TYPE_NAMES: Record<number, PictureType> = {
+  0: "Other",
+  1: "FileIcon",
+  2: "OtherFileIcon",
+  3: "FrontCover",
+  4: "BackCover",
+  5: "LeafletPage",
+  6: "Media",
+  7: "LeadArtist",
+  8: "Artist",
+  9: "Conductor",
+  10: "Band",
+  11: "Composer",
+  12: "Lyricist",
+  13: "RecordingLocation",
+  14: "DuringRecording",
+  15: "DuringPerformance",
+  16: "MovieScreenCapture",
+  17: "ColouredFish",
+  18: "Illustration",
+  19: "BandLogo",
+  20: "PublisherLogo",
+};
 
 /**
  * Bitrate control modes for audio encoding (MP4/M4A specific).

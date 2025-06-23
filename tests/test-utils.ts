@@ -2,30 +2,8 @@
  * @fileoverview Shared test utilities and constants for taglib-wasm tests
  */
 
-// Use numeric values directly to avoid import issues
-export enum PictureType {
-  Other = 0,
-  FileIcon = 1,
-  OtherFileIcon = 2,
-  FrontCover = 3,
-  BackCover = 4,
-  LeafletPage = 5,
-  Media = 6,
-  LeadArtist = 7,
-  Artist = 8,
-  Conductor = 9,
-  Band = 10,
-  Composer = 11,
-  Lyricist = 12,
-  RecordingLocation = 13,
-  DuringRecording = 14,
-  DuringPerformance = 15,
-  MovieScreenCapture = 16,
-  ColouredFish = 17,
-  Illustration = 18,
-  BandLogo = 19,
-  PublisherLogo = 20,
-}
+// Import PictureType from types
+import type { PictureType } from "../src/types.ts";
 
 // Test file paths
 export const TEST_FILES = {
@@ -488,13 +466,13 @@ export const TEST_PICTURES = {
   frontCover: {
     mimeType: "image/png",
     data: RED_PNG,
-    type: PictureType.FrontCover,
+    type: 3, // FrontCover
     description: "Front cover",
   },
   backCover: {
     mimeType: "image/jpeg",
     data: BLUE_JPEG,
-    type: PictureType.BackCover,
+    type: 4, // BackCover
     description: "Back cover",
   },
 } as const;

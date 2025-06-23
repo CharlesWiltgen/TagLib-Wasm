@@ -18,7 +18,6 @@ import {
   isTagLibError,
   isUnsupportedFormatError,
   type MetadataError,
-  TagLibErrorCode,
   type TagLibInitializationError,
   UnsupportedFormatError,
 } from "../src/errors.ts";
@@ -161,7 +160,7 @@ Deno.test("error type guards work correctly", async () => {
       assertEquals(error.bufferSize, 50, "Should have buffer size");
       assertEquals(
         error.code,
-        TagLibErrorCode.INVALID_FORMAT,
+        "INVALID_FORMAT",
         "Should have correct error code",
       );
     }
@@ -238,11 +237,11 @@ Deno.test("error codes enable programmatic error handling", async () => {
   } catch (error) {
     if (isTagLibError(error)) {
       switch (error.code) {
-        case TagLibErrorCode.INVALID_FORMAT:
+        case "INVALID_FORMAT":
           // Handle invalid format
-          assertEquals(error.code, TagLibErrorCode.INVALID_FORMAT);
+          assertEquals(error.code, "INVALID_FORMAT");
           break;
-        case TagLibErrorCode.UNSUPPORTED_FORMAT:
+        case "UNSUPPORTED_FORMAT":
           // Handle unsupported format
           break;
         default:
