@@ -454,8 +454,8 @@ export const PROPERTIES = {
 } as const;
 
 /**
- * Legacy Tags constant for backward compatibility.
- * @deprecated Use PROPERTIES instead for enhanced functionality.
+ * Legacy Tags constant for simplified access to common property names.
+ * For enhanced functionality with metadata and type safety, consider using PROPERTIES.
  */
 export const Tags = {
   // Basic Properties
@@ -554,7 +554,7 @@ export type PropertyValue<K extends PropertyKey> =
 
 /**
  * Type representing all valid tag property names (legacy)
- * @deprecated Use PropertyKey instead
+ * For enhanced type safety, consider using PropertyKey.
  */
 export type TagName = typeof Tags[keyof typeof Tags];
 
@@ -603,7 +603,7 @@ export function getPropertiesByFormat(format: string): PropertyKey[] {
 
 /**
  * Type guard to check if a string is a valid tag name (legacy)
- * @deprecated Use isValidProperty instead
+ * For enhanced functionality, consider using isValidProperty.
  */
 export function isValidTagName(name: string): name is TagName {
   return Object.values(Tags).includes(name as TagName);
@@ -611,7 +611,7 @@ export function isValidTagName(name: string): name is TagName {
 
 /**
  * Get all available tag names as an array (legacy)
- * @deprecated Use getAllPropertyKeys instead
+ * For enhanced functionality, consider using getAllPropertyKeys.
  */
 export function getAllTagNames(): readonly TagName[] {
   return Object.values(Tags);
