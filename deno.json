@@ -28,7 +28,7 @@
       ".vscode/",
       ".ai/",
       "node_modules/",
-      "dist/",
+      "dist/*",
       "!dist/taglib-wrapper.js",
       "*.log",
       "*.tgz",
