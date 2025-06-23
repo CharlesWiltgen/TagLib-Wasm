@@ -34,11 +34,12 @@ import {
   BLUE_JPEG,
   cleanupTestImages,
   createTestImages,
-  PictureType,
   RED_PNG,
   TEST_FILES,
   TEST_PICTURES,
 } from "./test-utils.ts";
+import type { PictureType } from "../src/types.ts";
+import { PICTURE_TYPE_VALUES } from "../src/types.ts";
 
 // =============================================================================
 // Core Picture API Tests
@@ -86,7 +87,7 @@ Deno.test("Picture API: Add and retrieve pictures", async () => {
     const pictures = file.getPictures();
     assertEquals(pictures.length, 1, "Should have 1 picture after adding");
     assertEquals(pictures[0].mimeType, "image/png");
-    assertEquals(pictures[0].type, PictureType.FrontCover);
+    assertEquals(pictures[0].type, PICTURE_TYPE_VALUES.FrontCover);
     assertEquals(pictures[0].description, "Front cover");
     assertEquals(pictures[0].data.length, RED_PNG.length);
 
@@ -107,8 +108,8 @@ Deno.test("Picture API: Add and retrieve pictures", async () => {
     // Verify pictures were set
     const retrievedPics = file.getPictures();
     assertEquals(retrievedPics.length, 2, "Should have 2 pictures");
-    assertEquals(retrievedPics[0].type, PictureType.FrontCover);
-    assertEquals(retrievedPics[1].type, PictureType.BackCover);
+    assertEquals(retrievedPics[0].type, PICTURE_TYPE_VALUES.FrontCover);
+    assertEquals(retrievedPics[1].type, PICTURE_TYPE_VALUES.BackCover);
 
     file.dispose();
   }
@@ -163,11 +164,11 @@ Deno.test("Picture API: Different picture types", async () => {
 
   // Add various picture types
   const pictureTypes = [
-    { type: PictureType.FrontCover, desc: "Front" },
-    { type: PictureType.BackCover, desc: "Back" },
-    { type: PictureType.LeafletPage, desc: "Leaflet" },
-    { type: PictureType.Artist, desc: "Artist photo" },
-    { type: PictureType.BandLogo, desc: "Logo" },
+    { type: PICTURE_TYPE_VALUES.FrontCover, desc: "Front" },
+    { type: PICTURE_TYPE_VALUES.BackCover, desc: "Back" },
+    { type: PICTURE_TYPE_VALUES.LeafletPage, desc: "Leaflet" },
+    { type: PICTURE_TYPE_VALUES.Artist, desc: "Artist photo" },
+    { type: PICTURE_TYPE_VALUES.BandLogo, desc: "Logo" },
   ];
 
   const pictures = pictureTypes.map((pt) => ({
@@ -268,21 +269,21 @@ Deno.test("Simple API: findPictureByType", async () => {
     {
       mimeType: "image/png",
       data: RED_PNG,
-      type: PictureType.Artist,
+      type: PICTURE_TYPE_VALUES.Artist,
       description: "Artist",
     },
   ];
 
   // Find specific types
-  const frontCover = findPictureByType(pictures, PictureType.FrontCover);
+  const frontCover = findPictureByType(pictures, "FrontCover");
   assertExists(frontCover);
   assertEquals(frontCover.description, "Front cover");
 
-  const backCover = findPictureByType(pictures, PictureType.BackCover);
+  const backCover = findPictureByType(pictures, "BackCover");
   assertExists(backCover);
   assertEquals(backCover.description, "Back cover");
 
-  const notFound = findPictureByType(pictures, PictureType.BandLogo);
+  const notFound = findPictureByType(pictures, "BandLogo");
   assertEquals(notFound, null, "Should return null when type not found");
 });
 
@@ -301,7 +302,7 @@ Deno.test("Simple API: replacePictureByType", async () => {
   const newFrontCover = {
     mimeType: "image/jpeg",
     data: BLUE_JPEG,
-    type: PictureType.FrontCover,
+    type: PICTURE_TYPE_VALUES.FrontCover,
     description: "New front",
   };
 
@@ -314,12 +315,12 @@ Deno.test("Simple API: replacePictureByType", async () => {
   const pictures = await readPictures(modifiedBuffer);
   assertEquals(pictures.length, 2, "Should still have 2 pictures");
 
-  const frontCover = findPictureByType(pictures, PictureType.FrontCover);
+  const frontCover = findPictureByType(pictures, "FrontCover");
   assertExists(frontCover);
   assertEquals(frontCover.description, "New front");
   assertEquals(frontCover.data, BLUE_JPEG);
 
-  const backCover = findPictureByType(pictures, PictureType.BackCover);
+  const backCover = findPictureByType(pictures, "BackCover");
   assertExists(backCover);
   assertEquals(
     backCover.description,
@@ -337,7 +338,7 @@ Deno.test("Simple API: getPictureMetadata", async () => {
     {
       mimeType: "image/jpeg",
       data: BLUE_JPEG,
-      type: PictureType.Artist,
+      type: PICTURE_TYPE_VALUES.Artist,
       description: "Band photo",
     },
   ];
@@ -348,12 +349,12 @@ Deno.test("Simple API: getPictureMetadata", async () => {
   const metadata = await getPictureMetadata(bufferWithPics);
   assertEquals(metadata.length, 2);
 
-  assertEquals(metadata[0].type, PictureType.FrontCover);
+  assertEquals(metadata[0].type, PICTURE_TYPE_VALUES.FrontCover);
   assertEquals(metadata[0].mimeType, "image/png");
   assertEquals(metadata[0].description, "Front cover");
   assertEquals(metadata[0].size, RED_PNG.length);
 
-  assertEquals(metadata[1].type, PictureType.Artist);
+  assertEquals(metadata[1].type, PICTURE_TYPE_VALUES.Artist);
   assertEquals(metadata[1].mimeType, "image/jpeg");
   assertEquals(metadata[1].description, "Band photo");
   assertEquals(metadata[1].size, BLUE_JPEG.length);
@@ -468,12 +469,12 @@ Deno.test("File Utils: loadPictureFromFile and savePictureToFile", async () => {
 
   try {
     // Load picture from file
-    const picture = await loadPictureFromFile(redPath, PictureType.FrontCover, {
+    const picture = await loadPictureFromFile(redPath, "FrontCover", {
       description: "Test cover",
     });
 
     assertEquals(picture.mimeType, "image/png");
-    assertEquals(picture.type, PictureType.FrontCover);
+    assertEquals(picture.type, PICTURE_TYPE_VALUES.FrontCover);
     assertEquals(picture.description, "Test cover");
     assertEquals(picture.data, RED_PNG);
 
@@ -503,11 +504,11 @@ Deno.test("Web Utils: pictureToDataURL and dataURLToPicture", () => {
   // Convert back to picture
   const converted = dataURLToPicture(
     dataURL,
-    PictureType.BackCover,
+    "BackCover",
     "Converted",
   );
   assertEquals(converted.mimeType, "image/png");
-  assertEquals(converted.type, PictureType.BackCover);
+  assertEquals(converted.type, PICTURE_TYPE_VALUES.BackCover);
   assertEquals(converted.description, "Converted");
   assertEquals(converted.data.length, RED_PNG.length);
 

@@ -218,9 +218,10 @@ export type {
 export type { PropertyKey, PropertyValue } from "./src/constants.ts";
 
 /**
- * Enum exports
+ * Type and constant exports
  */
-export { PictureType } from "./src/types.ts";
+export type { PictureType } from "./src/types.ts";
+export { PICTURE_TYPE_NAMES, PICTURE_TYPE_VALUES } from "./src/types.ts";
 
 /**
  * Worker pool exports for parallel processing.

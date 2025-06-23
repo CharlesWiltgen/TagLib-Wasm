@@ -21,8 +21,8 @@
  * ```
  */
 
-import type { Picture } from "./types.ts";
-import { PictureType } from "./types.ts";
+import type { Picture, PictureType } from "./types.ts";
+import { PICTURE_TYPE_VALUES } from "./types.ts";
 import { applyPictures, readPictures } from "./simple.ts";
 
 /**
@@ -61,7 +61,7 @@ export function pictureToDataURL(picture: Picture): string {
  */
 export function dataURLToPicture(
   dataURL: string,
-  type: PictureType = PictureType.FrontCover,
+  type: PictureType | number = "FrontCover",
   description?: string,
 ): Picture {
   // Parse data URL
@@ -82,7 +82,7 @@ export function dataURLToPicture(
   return {
     mimeType,
     data,
-    type,
+    type: typeof type === "string" ? PICTURE_TYPE_VALUES[type] : type,
     description,
   };
 }
@@ -117,7 +117,7 @@ export async function setCoverArtFromCanvas(
   const {
     format = "image/jpeg",
     quality = 0.92,
-    type = PictureType.FrontCover,
+    type = "FrontCover",
     description = "Front Cover",
   } = options;
 
@@ -162,7 +162,7 @@ export async function canvasToPicture(
   const {
     format = "image/jpeg",
     quality = 0.92,
-    type = PictureType.FrontCover,
+    type = "FrontCover",
     description,
   } = options;
 
@@ -181,7 +181,7 @@ export async function canvasToPicture(
         resolve({
           mimeType: format,
           data,
-          type,
+          type: typeof type === "string" ? PICTURE_TYPE_VALUES[type] : type,
           description,
         });
       },
@@ -212,7 +212,7 @@ export async function canvasToPicture(
  */
 export async function imageFileToPicture(
   file: File,
-  type: PictureType = PictureType.FrontCover,
+  type: PictureType | number = "FrontCover",
   description?: string,
 ): Promise<Picture> {
   const arrayBuffer = await file.arrayBuffer();
@@ -221,7 +221,7 @@ export async function imageFileToPicture(
   return {
     mimeType: file.type,
     data,
-    type,
+    type: typeof type === "string" ? PICTURE_TYPE_VALUES[type] : type,
     description: description || file.name,
   };
 }
