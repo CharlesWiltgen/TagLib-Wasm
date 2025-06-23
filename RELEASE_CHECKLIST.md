@@ -10,7 +10,7 @@ This checklist ensures a smooth and safe release process.
 - [ ] Code is properly formatted (`deno fmt --check`)
 - [ ] No linting errors (`deno lint`)
 - [ ] Type checking passes (`deno check ./src ./tests`)
-- [ ] Build succeeds (`npm run build`)
+- [ ] Build succeeds (`deno task build`)
 
 ### 2. Version Synchronization
 
@@ -38,6 +38,9 @@ Use the safe release script that enforces all checks:
 
 ```bash
 # For a specific version
+deno task release 2.2.5
+
+# Or directly:
 ./scripts/release-safe.sh 2.2.5
 ```
 
@@ -64,7 +67,7 @@ If you must release manually:
    deno lint
    deno check ./src ./tests
    deno task test
-   npm run build
+   deno task build
    ```
 
 2. **Update versions**:
