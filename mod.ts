@@ -56,7 +56,7 @@ export {
 export { AudioFileWorkers, TagLibWorkers } from "./src/workers.ts";
 
 // Export additional types
-export { PictureType } from "./src/types.ts";
+export type { PictureType } from "./src/types.ts";
 export type { ExtendedTag, Picture, PropertyMap } from "./src/types.ts";
 
 // Export constants
