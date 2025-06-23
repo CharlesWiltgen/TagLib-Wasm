@@ -3,6 +3,10 @@ set -euo pipefail
 
 # Safe Release Script for taglib-wasm
 # This script ensures all tests pass and versions are synchronized before creating a release
+#
+# Usage:
+#   deno task release          # Auto-increment patch version (0.0.1)
+#   deno task release 2.3.4    # Set specific version
 
 # Colors for output
 RED='\033[0;31m'
@@ -224,21 +228,33 @@ main() {
     echo "=================================="
     echo
 
-    # Get version argument
-    if [[ $# -eq 0 ]]; then
-        print_error "Version number required"
-        echo "Usage: $0 <version>"
-        echo "Example: $0 2.2.5"
-        exit 1
-    fi
-
-    local new_version=$1
+    # Get version argument or auto-increment
+    local new_version=""
     
-    # Validate version format
-    if ! [[ "$new_version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-        print_error "Invalid version format: $new_version"
-        print_warning "Version must be in format X.Y.Z (e.g., 2.2.5)"
-        exit 1
+    if [[ $# -eq 0 ]]; then
+        # No version specified, auto-increment patch version
+        local current_version=$(node -p "require('./package.json').version")
+        
+        # Parse version components
+        IFS='.' read -ra VERSION_PARTS <<< "$current_version"
+        local major="${VERSION_PARTS[0]}"
+        local minor="${VERSION_PARTS[1]}"
+        local patch="${VERSION_PARTS[2]}"
+        
+        # Increment patch version
+        patch=$((patch + 1))
+        new_version="${major}.${minor}.${patch}"
+        
+        print_step "Auto-incrementing version: $current_version → $new_version"
+    else
+        new_version=$1
+        
+        # Validate version format
+        if ! [[ "$new_version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            print_error "Invalid version format: $new_version"
+            print_warning "Version must be in format X.Y.Z (e.g., 2.2.5)"
+            exit 1
+        fi
     fi
 
     # Pre-release checks
