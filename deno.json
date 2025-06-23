@@ -29,6 +29,7 @@
       ".ai/",
       "node_modules/",
       "dist/",
+      "!dist/taglib-wrapper.js",
       "*.log",
       "*.tgz",
       ".DS_Store",
