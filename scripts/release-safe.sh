@@ -106,7 +106,7 @@ run_tests() {
 
     # Check if build works
     print_step "Verifying build process..."
-    if ! npm run build > /dev/null 2>&1; then
+    if ! deno task build > /dev/null 2>&1; then
         print_error "Build failed"
         exit 1
     fi

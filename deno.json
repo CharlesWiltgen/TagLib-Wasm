@@ -84,6 +84,8 @@
     "version:minor": "deno run --allow-read --allow-write scripts/sync-version.ts minor",
     "version:major": "deno run --allow-read --allow-write scripts/sync-version.ts major",
     "version:set": "deno run --allow-read --allow-write scripts/sync-version.ts set",
-    "version:check": "deno run --allow-read --allow-write scripts/sync-version.ts check"
+    "version:check": "deno run --allow-read --allow-write scripts/sync-version.ts check",
+    "release": "./scripts/release-safe.sh",
+    "release:quick": "./scripts/release.sh"
   }
 }
