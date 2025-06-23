@@ -43,7 +43,7 @@ Object.values(PROPERTIES).forEach((prop) => {
 
 ### Legacy Tags Object
 
-For backward compatibility, the `Tags` object is still available:
+The `Tags` object provides a simplified approach for common property names and remains fully supported:
 
 ```typescript
 import { Tags } from "taglib-wasm";
