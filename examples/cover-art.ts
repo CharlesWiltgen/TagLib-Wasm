@@ -13,7 +13,8 @@
  */
 
 import { TagLib } from "../src/taglib.ts";
-import { PictureType } from "../src/types.ts";
+import type { PictureType } from "../src/types.ts";
+import { PICTURE_TYPE_NAMES, PICTURE_TYPE_VALUES } from "../src/types.ts";
 import {
   addPicture,
   applyPictures,
@@ -74,13 +75,15 @@ async function extractCoverArt() {
   for (let i = 0; i < pictures.length; i++) {
     const pic = pictures[i];
     console.log(`Picture ${i + 1}:`);
-    console.log(`  Type: ${PictureType[pic.type]} (${pic.type})`);
+    console.log(
+      `  Type: ${PICTURE_TYPE_NAMES[pic.type] || "Unknown"} (${pic.type})`,
+    );
     console.log(`  MIME: ${pic.mimeType}`);
     console.log(`  Size: ${pic.data.length} bytes`);
     console.log(`  Description: ${pic.description || "(none)"}`);
 
     // Save the front cover
-    if (pic.type === PictureType.FrontCover) {
+    if (pic.type === PICTURE_TYPE_VALUES.FrontCover) {
       const extension = pic.mimeType.split("/")[1];
       await saveImage(`cover.${extension}`, pic.data);
       console.log(`  Saved as: cover.${extension}`);
@@ -99,7 +102,7 @@ async function addCoverArt() {
   const cover = {
     mimeType: "image/jpeg",
     data: coverData,
-    type: PictureType.FrontCover,
+    type: PICTURE_TYPE_VALUES.FrontCover,
     description: "Album cover",
   };
 
@@ -128,19 +131,19 @@ async function replaceAllPictures() {
     {
       mimeType: "image/jpeg",
       data: frontCover,
-      type: PictureType.FrontCover,
+      type: PICTURE_TYPE_VALUES.FrontCover,
       description: "Album front cover",
     },
     {
       mimeType: "image/jpeg",
       data: backCover,
-      type: PictureType.BackCover,
+      type: PICTURE_TYPE_VALUES.BackCover,
       description: "Album back cover",
     },
     {
       mimeType: "image/jpeg",
       data: artistPhoto,
-      type: PictureType.Artist,
+      type: PICTURE_TYPE_VALUES.Artist,
       description: "Artist photo",
     },
   ];
@@ -165,8 +168,8 @@ async function advancedPictureHandling() {
 
   // Remove all non-cover pictures
   const coversOnly = currentPics.filter((pic) =>
-    pic.type === PictureType.FrontCover ||
-    pic.type === PictureType.BackCover
+    pic.type === PICTURE_TYPE_VALUES.FrontCover ||
+    pic.type === PICTURE_TYPE_VALUES.BackCover
   );
 
   if (coversOnly.length !== currentPics.length) {
@@ -175,13 +178,15 @@ async function advancedPictureHandling() {
   }
 
   // Add a band logo if not present
-  const hasLogo = currentPics.some((pic) => pic.type === PictureType.BandLogo);
+  const hasLogo = currentPics.some((pic) =>
+    pic.type === PICTURE_TYPE_VALUES.BandLogo
+  );
   if (!hasLogo) {
     const logo = await loadImage("band-logo.png");
     file.addPicture({
       mimeType: "image/png",
       data: logo,
-      type: PictureType.BandLogo,
+      type: PICTURE_TYPE_VALUES.BandLogo,
       description: "Band logo",
     });
     console.log("Added band logo");
@@ -220,30 +225,39 @@ async function copyPictures(sourceFile: string, targetFile: string) {
 function showPictureTypes() {
   console.log("\n📖 Picture Type Reference:");
   const types = [
-    { value: PictureType.Other, name: "Other" },
-    { value: PictureType.FileIcon, name: "File icon (32x32 PNG)" },
-    { value: PictureType.OtherFileIcon, name: "Other file icon" },
-    { value: PictureType.FrontCover, name: "Front cover" },
-    { value: PictureType.BackCover, name: "Back cover" },
-    { value: PictureType.LeafletPage, name: "Leaflet page" },
-    { value: PictureType.Media, name: "Media (label side of CD)" },
-    { value: PictureType.LeadArtist, name: "Lead artist/performer" },
-    { value: PictureType.Artist, name: "Artist/performer" },
-    { value: PictureType.Conductor, name: "Conductor" },
-    { value: PictureType.Band, name: "Band/Orchestra" },
-    { value: PictureType.Composer, name: "Composer" },
-    { value: PictureType.Lyricist, name: "Lyricist/text writer" },
-    { value: PictureType.RecordingLocation, name: "Recording location" },
-    { value: PictureType.DuringRecording, name: "During recording" },
-    { value: PictureType.DuringPerformance, name: "During performance" },
+    { value: PICTURE_TYPE_VALUES.Other, name: "Other" },
+    { value: PICTURE_TYPE_VALUES.FileIcon, name: "File icon (32x32 PNG)" },
+    { value: PICTURE_TYPE_VALUES.OtherFileIcon, name: "Other file icon" },
+    { value: PICTURE_TYPE_VALUES.FrontCover, name: "Front cover" },
+    { value: PICTURE_TYPE_VALUES.BackCover, name: "Back cover" },
+    { value: PICTURE_TYPE_VALUES.LeafletPage, name: "Leaflet page" },
+    { value: PICTURE_TYPE_VALUES.Media, name: "Media (label side of CD)" },
+    { value: PICTURE_TYPE_VALUES.LeadArtist, name: "Lead artist/performer" },
+    { value: PICTURE_TYPE_VALUES.Artist, name: "Artist/performer" },
+    { value: PICTURE_TYPE_VALUES.Conductor, name: "Conductor" },
+    { value: PICTURE_TYPE_VALUES.Band, name: "Band/Orchestra" },
+    { value: PICTURE_TYPE_VALUES.Composer, name: "Composer" },
+    { value: PICTURE_TYPE_VALUES.Lyricist, name: "Lyricist/text writer" },
     {
-      value: PictureType.MovieScreenCapture,
+      value: PICTURE_TYPE_VALUES.RecordingLocation,
+      name: "Recording location",
+    },
+    { value: PICTURE_TYPE_VALUES.DuringRecording, name: "During recording" },
+    {
+      value: PICTURE_TYPE_VALUES.DuringPerformance,
+      name: "During performance",
+    },
+    {
+      value: PICTURE_TYPE_VALUES.MovieScreenCapture,
       name: "Movie/video screen capture",
     },
-    { value: PictureType.ColouredFish, name: "A bright colored fish (!)" },
-    { value: PictureType.Illustration, name: "Illustration" },
-    { value: PictureType.BandLogo, name: "Band/artist logo" },
-    { value: PictureType.PublisherLogo, name: "Publisher/studio logo" },
+    {
+      value: PICTURE_TYPE_VALUES.ColouredFish,
+      name: "A bright colored fish (!)",
+    },
+    { value: PICTURE_TYPE_VALUES.Illustration, name: "Illustration" },
+    { value: PICTURE_TYPE_VALUES.BandLogo, name: "Band/artist logo" },
+    { value: PICTURE_TYPE_VALUES.PublisherLogo, name: "Publisher/studio logo" },
   ];
 
   for (const type of types) {
@@ -309,12 +323,12 @@ async function manageCompleteArtwork() {
 
   // Load different artwork types
   const artworks = [
-    await loadPictureFromFile("front-cover.jpg", PictureType.FrontCover),
-    await loadPictureFromFile("back-cover.jpg", PictureType.BackCover),
-    await loadPictureFromFile("booklet-page1.jpg", PictureType.LeafletPage),
-    await loadPictureFromFile("booklet-page2.jpg", PictureType.LeafletPage),
-    await loadPictureFromFile("cd-label.jpg", PictureType.Media),
-    await loadPictureFromFile("band-photo.jpg", PictureType.Band),
+    await loadPictureFromFile("front-cover.jpg", "FrontCover"),
+    await loadPictureFromFile("back-cover.jpg", "BackCover"),
+    await loadPictureFromFile("booklet-page1.jpg", "LeafletPage"),
+    await loadPictureFromFile("booklet-page2.jpg", "LeafletPage"),
+    await loadPictureFromFile("cd-label.jpg", "Media"),
+    await loadPictureFromFile("band-photo.jpg", "Band"),
   ];
 
   // Apply all artwork
@@ -343,7 +357,7 @@ async function smartCoverReplacement() {
   // Replace just the front cover, keep other artwork
   const newFrontCover = await loadPictureFromFile(
     "better-cover.jpg",
-    PictureType.FrontCover,
+    "FrontCover",
   );
   const modifiedBuffer = await replacePictureByType(audioFile, newFrontCover);
 
@@ -358,10 +372,10 @@ async function exportForWeb(audioFile: string, outputDir: string) {
   const exported = await exportAllPictures(audioFile, outputDir, {
     nameFormat: (picture, index) => {
       const typeMap: Record<number, string> = {
-        [PictureType.FrontCover]: "cover",
-        [PictureType.BackCover]: "back",
-        [PictureType.Artist]: "artist",
-        [PictureType.Band]: "band",
+        [PICTURE_TYPE_VALUES.FrontCover]: "cover",
+        [PICTURE_TYPE_VALUES.BackCover]: "back",
+        [PICTURE_TYPE_VALUES.Artist]: "artist",
+        [PICTURE_TYPE_VALUES.Band]: "band",
       };
       const name = typeMap[picture.type] || `artwork-${index}`;
       const ext = picture.mimeType.split("/")[1];
@@ -391,7 +405,7 @@ async function coverArtQualityCheck(audioFile: string) {
         `  ⚠️  Warning: Large image (${sizeKB} KB) may affect file size`,
       );
     }
-    if (pic.type === PictureType.FrontCover && sizeKB < 50) {
+    if (pic.type === PICTURE_TYPE_VALUES.FrontCover && sizeKB < 50) {
       console.log(`  ⚠️  Warning: Cover art seems too small`);
     }
     if (!pic.mimeType.match(/^image\/(jpeg|png)$/)) {

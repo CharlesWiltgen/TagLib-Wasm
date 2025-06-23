@@ -16,8 +16,8 @@
  * ```
  */
 
-import type { Picture } from "./types.ts";
-import { PictureType } from "./types.ts";
+import type { Picture, PictureType } from "./types.ts";
+import { PICTURE_TYPE_VALUES } from "./types.ts";
 import {
   applyPictures,
   getCoverArt,
@@ -79,10 +79,11 @@ export async function exportCoverArt(
 export async function exportPictureByType(
   audioPath: string,
   imagePath: string,
-  type: PictureType,
+  type: PictureType | number,
 ): Promise<void> {
   const pictures = await readPictures(audioPath);
-  const picture = pictures.find((pic: Picture) => pic.type === type);
+  const typeValue = typeof type === "string" ? PICTURE_TYPE_VALUES[type] : type;
+  const picture = pictures.find((pic: Picture) => pic.type === typeValue);
 
   if (!picture) {
     throw new Error(`No picture of type ${type} found in: ${audioPath}`);
@@ -131,24 +132,24 @@ export async function exportAllPictures(
     } else {
       // Default naming: type-index.ext
       const typeNames: Record<number, string> = {
-        [PictureType.FrontCover]: "front-cover",
-        [PictureType.BackCover]: "back-cover",
-        [PictureType.LeafletPage]: "leaflet",
-        [PictureType.Media]: "media",
-        [PictureType.LeadArtist]: "lead-artist",
-        [PictureType.Artist]: "artist",
-        [PictureType.Conductor]: "conductor",
-        [PictureType.Band]: "band",
-        [PictureType.Composer]: "composer",
-        [PictureType.Lyricist]: "lyricist",
-        [PictureType.RecordingLocation]: "recording-location",
-        [PictureType.DuringRecording]: "during-recording",
-        [PictureType.DuringPerformance]: "during-performance",
-        [PictureType.MovieScreenCapture]: "screen-capture",
-        [PictureType.ColouredFish]: "fish",
-        [PictureType.Illustration]: "illustration",
-        [PictureType.BandLogo]: "band-logo",
-        [PictureType.PublisherLogo]: "publisher-logo",
+        [PICTURE_TYPE_VALUES.FrontCover]: "front-cover",
+        [PICTURE_TYPE_VALUES.BackCover]: "back-cover",
+        [PICTURE_TYPE_VALUES.LeafletPage]: "leaflet",
+        [PICTURE_TYPE_VALUES.Media]: "media",
+        [PICTURE_TYPE_VALUES.LeadArtist]: "lead-artist",
+        [PICTURE_TYPE_VALUES.Artist]: "artist",
+        [PICTURE_TYPE_VALUES.Conductor]: "conductor",
+        [PICTURE_TYPE_VALUES.Band]: "band",
+        [PICTURE_TYPE_VALUES.Composer]: "composer",
+        [PICTURE_TYPE_VALUES.Lyricist]: "lyricist",
+        [PICTURE_TYPE_VALUES.RecordingLocation]: "recording-location",
+        [PICTURE_TYPE_VALUES.DuringRecording]: "during-recording",
+        [PICTURE_TYPE_VALUES.DuringPerformance]: "during-performance",
+        [PICTURE_TYPE_VALUES.MovieScreenCapture]: "screen-capture",
+        [PICTURE_TYPE_VALUES.ColouredFish]: "fish",
+        [PICTURE_TYPE_VALUES.Illustration]: "illustration",
+        [PICTURE_TYPE_VALUES.BandLogo]: "band-logo",
+        [PICTURE_TYPE_VALUES.PublisherLogo]: "publisher-logo",
       };
 
       const typeName = typeNames[picture.type] || "other";
@@ -236,7 +237,7 @@ export async function importCoverArt(
 export async function importPictureWithType(
   audioPath: string,
   imagePath: string,
-  type: PictureType,
+  type: PictureType | number,
   options: {
     mimeType?: string;
     description?: string;
@@ -262,7 +263,7 @@ export async function importPictureWithType(
   const picture: Picture = {
     mimeType,
     data: imageData,
-    type,
+    type: typeof type === "string" ? PICTURE_TYPE_VALUES[type] : type,
     description: options.description,
   };
 
@@ -288,7 +289,7 @@ export async function importPictureWithType(
  */
 export async function loadPictureFromFile(
   imagePath: string,
-  type: PictureType = PictureType.FrontCover,
+  type: PictureType | number = "FrontCover",
   options: {
     mimeType?: string;
     description?: string;
@@ -314,7 +315,7 @@ export async function loadPictureFromFile(
   return {
     mimeType,
     data,
-    type,
+    type: typeof type === "string" ? PICTURE_TYPE_VALUES[type] : type,
     description: options.description || imagePath.split("/").pop(),
   };
 }
@@ -384,7 +385,7 @@ export async function copyCoverArt(
     // Find the MIME type from the source
     const pictures = await readPictures(sourcePath);
     const coverPicture = pictures.find((p: Picture) =>
-      p.type === PictureType.FrontCover
+      p.type === PICTURE_TYPE_VALUES.FrontCover
     ) || pictures[0];
 
     const modifiedBuffer = await setCoverArt(

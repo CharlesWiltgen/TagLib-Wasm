@@ -31,8 +31,8 @@
  */
 
 import type { TagLib } from "./taglib.ts";
-import type { AudioProperties, Picture, Tag } from "./types.ts";
-import { PictureType } from "./types.ts";
+import type { AudioProperties, Picture, PictureType, Tag } from "./types.ts";
+import { PICTURE_TYPE_VALUES } from "./types.ts";
 import {
   FileOperationError,
   InvalidFormatError,
@@ -603,7 +603,7 @@ export async function getCoverArt(
 
   // Try to find front cover first
   const frontCover = pictures.find((pic) =>
-    pic.type === PictureType.FrontCover
+    pic.type === PICTURE_TYPE_VALUES.FrontCover
   );
   if (frontCover) {
     return frontCover.data;
@@ -645,7 +645,7 @@ export async function setCoverArt(
   const picture: Picture = {
     mimeType,
     data: imageData,
-    type: PictureType.FrontCover,
+    type: PICTURE_TYPE_VALUES.FrontCover,
     description: "Front Cover",
   };
   return applyPictures(file, [picture]);
@@ -669,9 +669,10 @@ export async function setCoverArt(
  */
 export function findPictureByType(
   pictures: Picture[],
-  type: PictureType,
+  type: PictureType | number,
 ): Picture | null {
-  return pictures.find((pic) => pic.type === type) || null;
+  const typeValue = typeof type === "string" ? PICTURE_TYPE_VALUES[type] : type;
+  return pictures.find((pic) => pic.type === typeValue) || null;
 }
 
 /**
@@ -733,7 +734,7 @@ export async function getPictureMetadata(
   file: string | Uint8Array | ArrayBuffer | File,
 ): Promise<
   Array<{
-    type: PictureType;
+    type: number;
     mimeType: string;
     description?: string;
     size: number;
@@ -1126,5 +1127,5 @@ export async function readMetadataBatch(
  * Re-export commonly used types for convenience.
  * These types define the structure of metadata and audio properties.
  */
-export type { AudioProperties, Picture, Tag } from "./types.ts";
-export { PictureType } from "./types.ts";
+export type { AudioProperties, Picture, PictureType, Tag } from "./types.ts";
+export { PICTURE_TYPE_NAMES, PICTURE_TYPE_VALUES } from "./types.ts";
