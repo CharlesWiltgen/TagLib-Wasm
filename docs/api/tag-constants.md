@@ -11,13 +11,44 @@ FLAC, OGG, WAV, etc.).
 
 ## TypeScript Constants
 
-taglib-wasm provides type-safe constants for all standard tag names via the
-`Tags` object:
+### Enhanced PROPERTIES Constant (Recommended)
+
+taglib-wasm provides a comprehensive `PROPERTIES` constant with rich metadata for all standard properties:
+
+```typescript
+import { PROPERTIES, PropertyKey } from "taglib-wasm/constants";
+
+// Access property metadata
+const titleProp = PROPERTIES.TITLE;
+console.log(titleProp.description); // "The title of the track"
+console.log(titleProp.type); // "string"
+console.log(titleProp.supportedFormats); // ["ID3v2", "MP4", "Vorbis", "WAV"]
+console.log(titleProp.mappings.id3v2.frame); // "TIT2"
+
+// Use for type-safe property access
+const title = file.getProperty(PROPERTIES.TITLE.key);
+const artist = file.getProperty(PROPERTIES.ARTIST.key);
+
+// Iterate through all known properties with metadata
+Object.values(PROPERTIES).forEach((prop) => {
+  const value = file.getProperty(prop.key);
+  if (value !== undefined) {
+    console.log(`${prop.key}: ${value}`);
+    console.log(`  Description: ${prop.description}`);
+    console.log(`  Type: ${prop.type}`);
+    console.log(`  Formats: ${prop.supportedFormats.join(", ")}`);
+  }
+});
+```
+
+### Legacy Tags Object
+
+For backward compatibility, the `Tags` object is still available:
 
 ```typescript
 import { Tags } from "taglib-wasm";
 
-// Use constants instead of strings for better IDE support
+// Use constants instead of strings
 const title = properties[Tags.Title]?.[0]; // Instead of properties["TITLE"]
 const artist = properties[Tags.Artist]?.[0]; // Instead of properties["ARTIST"]
 const bpm = properties[Tags.Bpm]?.[0]; // Instead of properties["BPM"]
@@ -28,8 +59,33 @@ console.log(Tags.AlbumArtist); // "ALBUMARTIST"
 console.log(Tags.TrackGain); // "REPLAYGAIN_TRACK_GAIN"
 ```
 
-See the [tag-constants.ts example](../examples/tag-constants.ts) for a complete
-demonstration.
+### Utility Functions
+
+```typescript
+import {
+  getAllPropertyKeys,
+  getPropertiesByFormat,
+  getPropertyMetadata,
+  isValidProperty,
+} from "taglib-wasm/constants";
+
+// Check if a property is valid
+isValidProperty("ACOUSTID_ID"); // true
+isValidProperty("INVALID_KEY"); // false
+
+// Get metadata about a property
+const metadata = getPropertyMetadata("MUSICBRAINZ_TRACKID");
+console.log(metadata.description); // "MusicBrainz Track ID"
+
+// Get all available property keys
+const allKeys = getAllPropertyKeys(); // ["TITLE", "ARTIST", "ALBUM", ...]
+
+// Get properties supported by a specific format
+const mp3Properties = getPropertiesByFormat("MP3");
+const flacProperties = getPropertiesByFormat("FLAC");
+```
+
+See the [tag-constants.ts example](../../examples/common/tag-constants.ts) for a complete demonstration.
 
 ## Standard Property Names
 
@@ -259,37 +315,57 @@ WAV files use INFO chunks with specific FourCC codes:
 ### Reading Tags (TypeScript)
 
 ```typescript
-import { TagLib, Tags } from "taglib-wasm";
+import { TagLib } from "taglib-wasm";
+import { PROPERTIES, Tags } from "taglib-wasm/constants";
 
 const taglib = await TagLib.initialize();
 const file = taglib.openFile(audioBuffer);
 
-// Using tag constants (recommended for type safety)
+// Using PROPERTIES constant (recommended - provides rich metadata)
 const properties = file.properties();
-const title = properties[Tags.Title]?.[0];
-const artist = properties[Tags.Artist]?.[0];
+const title = file.getProperty(PROPERTIES.TITLE.key);
+const artist = file.getProperty(PROPERTIES.ARTIST.key);
+const musicBrainzId = file.getProperty(PROPERTIES.MUSICBRAINZ_TRACKID.key);
+
+// Using legacy Tags constants (still supported)
+const title2 = properties[Tags.Title]?.[0];
+const artist2 = properties[Tags.Artist]?.[0];
 const album = properties[Tags.Album]?.[0];
-const musicBrainzId = properties[Tags.MusicBrainzTrackId]?.[0];
 
 // Or using string property names directly
-const title2 = properties["TITLE"]?.[0];
-const artist2 = properties["ARTIST"]?.[0];
+const title3 = properties["TITLE"]?.[0];
+const artist3 = properties["ARTIST"]?.[0];
 ```
 
 ### Writing Tags (TypeScript)
 
 ```typescript
-// Set properties using tag constants (recommended)
+// Using PROPERTIES constant (recommended)
+file.setProperty(PROPERTIES.TITLE.key, "My Song Title");
+file.setProperty(PROPERTIES.ARTIST.key, "Artist Name");
+file.setProperty(PROPERTIES.ALBUMARTIST.key, "Album Artist");
+file.setProperty(
+  PROPERTIES.MUSICBRAINZ_TRACKID.key,
+  "123e4567-e89b-12d3-a456-426614174000",
+);
+
+// Or set multiple properties at once
+file.setProperties({
+  [PROPERTIES.TITLE.key]: ["My Song Title"],
+  [PROPERTIES.ARTIST.key]: ["Artist Name"],
+  [PROPERTIES.ALBUMARTIST.key]: ["Album Artist"],
+  [PROPERTIES.MUSICBRAINZ_TRACKID.key]: [
+    "123e4567-e89b-12d3-a456-426614174000",
+  ],
+});
+
+// Using legacy Tags constants
 file.setProperties({
   [Tags.Title]: ["My Song Title"],
   [Tags.Artist]: ["Artist Name"],
   [Tags.AlbumArtist]: ["Album Artist"],
   [Tags.MusicBrainzTrackId]: ["123e4567-e89b-12d3-a456-426614174000"],
 });
-
-// Or using string property names
-file.setProperty("TITLE", "My Song Title");
-file.setProperty("ARTIST", "Artist Name");
 
 // Save changes
 file.save();

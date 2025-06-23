@@ -229,8 +229,8 @@ import { TagLib } from "taglib-wasm";
 // Initialize the library
 const taglib = await TagLib.initialize();
 
-// Read tags from an audio file buffer
-const audioFile = await taglib.open(buffer);
+// Read tags from an audio file (accepts path, buffer, or File)
+const audioFile = await taglib.open("song.mp3"); // or buffer/File
 const tag = audioFile.tag();
 
 console.log({
@@ -265,7 +265,7 @@ audioFile.dispose();
 const taglib = await TagLib.initialize();
 let audioFile;
 try {
-  audioFile = await taglib.open(buffer);
+  audioFile = await taglib.open("song.mp3"); // or buffer/File
   // ... work with file
 } finally {
   audioFile?.dispose();
@@ -644,32 +644,69 @@ Key folder API features:
 ### Advanced Metadata (PropertyMap)
 
 ```typescript
+import { TagLib } from "taglib-wasm";
+import { PROPERTIES, PropertyKey } from "taglib-wasm/constants";
+
 const taglib = await TagLib.initialize();
-const audioFile = await taglib.open(buffer);
-const propMap = audioFile.propertyMap();
-const properties = propMap.properties();
+const audioFile = taglib.openFile(buffer);
 
-// Read all properties
-const allProps = properties;
+// Get complete property map - all metadata as key-value pairs
+const properties = audioFile.properties();
+console.log(properties); // { ALBUMARTIST: ["Various"], BPM: ["120"], ... }
 
-// Read specific advanced properties
-const musicBrainzId = properties["MUSICBRAINZ_TRACKID"]?.[0];
-const replayGain = properties["REPLAYGAIN_TRACK_GAIN"]?.[0];
-const acoustId = properties["ACOUSTID_ID"]?.[0];
+// Using PROPERTIES constant for type-safe access (recommended)
+const title = audioFile.getProperty(PROPERTIES.TITLE.key);
+const musicBrainzId = audioFile.getProperty(PROPERTIES.MUSICBRAINZ_TRACKID.key);
+const replayGain = audioFile.getProperty(PROPERTIES.REPLAYGAIN_TRACK_GAIN.key);
+
+// Access property metadata
+const titleProp = PROPERTIES.TITLE;
+console.log(titleProp.description); // "The title of the track"
+console.log(titleProp.supportedFormats); // ["ID3v2", "MP4", "Vorbis", "WAV"]
+
+// Iterate through all known properties with metadata
+Object.values(PROPERTIES).forEach((prop) => {
+  const value = audioFile.getProperty(prop.key);
+  if (value !== undefined) {
+    console.log(`${prop.key}: ${value} (${prop.description})`);
+  }
+});
 
 // Write advanced properties
-propMap.set("MUSICBRAINZ_ALBUMID", ["some-uuid"]);
-propMap.set("REPLAYGAIN_TRACK_GAIN", ["-3.5 dB"]);
+audioFile.setProperty(PROPERTIES.MUSICBRAINZ_ALBUMID.key, "some-uuid");
+audioFile.setProperty(PROPERTIES.REPLAYGAIN_TRACK_GAIN.key, "-3.5 dB");
 
-// Multiple values for a property
-propMap.set("ARTIST", ["Main Artist", "Featured Artist"]);
+// Set multiple properties at once
+audioFile.setProperties({
+  [PROPERTIES.ALBUMARTIST.key]: ["Album Artist"],
+  [PROPERTIES.COMPOSER.key]: ["Composer Name"],
+  [PROPERTIES.BPM.key]: ["120"],
+});
 
 // Save and get modified buffer
-const success = audioFile.save();
-if (success) {
-  const modifiedBuffer = audioFile.getFileBuffer();
-}
+audioFile.save();
+const modifiedBuffer = audioFile.getFileBuffer();
 audioFile.dispose();
+```
+
+#### Property Discovery Functions
+
+```typescript
+import {
+  getAllPropertyKeys,
+  getPropertiesByFormat,
+  isValidProperty,
+} from "taglib-wasm/constants";
+
+// Check if a property is valid
+isValidProperty("ACOUSTID_ID"); // true
+
+// Get all available property keys
+const allKeys = getAllPropertyKeys(); // ["TITLE", "ARTIST", "ALBUM", ...]
+
+// Get properties supported by a specific format
+const mp3Properties = getPropertiesByFormat("MP3");
+const flacProperties = getPropertiesByFormat("FLAC");
 ```
 
 ## Supported Formats
@@ -946,16 +983,22 @@ if (withoutCoverArt.length > 0) {
 
 ```typescript
 import { TagLib } from "taglib-wasm";
+import { PROPERTIES } from "taglib-wasm/constants";
 
 const taglib = await TagLib.initialize();
 const audioFile = await taglib.open("song.mp3");
-const propMap = audioFile.propertyMap();
 
 // Set ReplayGain values (you'd calculate these with an audio analysis tool)
-propMap.set("REPLAYGAIN_TRACK_GAIN", ["-3.21 dB"]);
-propMap.set("REPLAYGAIN_TRACK_PEAK", ["0.988235"]);
-propMap.set("REPLAYGAIN_ALBUM_GAIN", ["-4.19 dB"]);
-propMap.set("REPLAYGAIN_ALBUM_PEAK", ["0.998871"]);
+audioFile.setProperty(PROPERTIES.REPLAYGAIN_TRACK_GAIN.key, "-3.21 dB");
+audioFile.setProperty(PROPERTIES.REPLAYGAIN_TRACK_PEAK.key, "0.988235");
+audioFile.setProperty(PROPERTIES.REPLAYGAIN_ALBUM_GAIN.key, "-4.19 dB");
+audioFile.setProperty(PROPERTIES.REPLAYGAIN_ALBUM_PEAK.key, "0.998871");
+
+// Or use the convenience methods
+audioFile.setReplayGainTrackGain("-3.21 dB");
+audioFile.setReplayGainTrackPeak("0.988235");
+audioFile.setReplayGainAlbumGain("-4.19 dB");
+audioFile.setReplayGainAlbumPeak("0.998871");
 
 audioFile.save();
 const buffer = audioFile.getFileBuffer();
@@ -969,12 +1012,11 @@ const taglib = await TagLib.initialize();
 
 for (const file of result.files) {
   const audioFile = await taglib.open(file.path);
-  const propMap = audioFile.propertyMap();
 
-  propMap.set("REPLAYGAIN_ALBUM_GAIN", ["-4.19 dB"]);
-  propMap.set("REPLAYGAIN_REFERENCE_LOUDNESS", ["89.0 dB"]);
+  audioFile.setReplayGainAlbumGain("-4.19 dB");
+  audioFile.setProperty("REPLAYGAIN_REFERENCE_LOUDNESS", "89.0 dB");
 
-  audioFile.save();
+  await audioFile.saveToFile(); // Save back to original file
   audioFile.dispose();
 }
 ```

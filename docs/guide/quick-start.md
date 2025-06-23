@@ -100,13 +100,16 @@ console.log(`Lossless: ${props.isLossless}`);
 console.log(`Bits per sample: ${props.bitsPerSample}`);
 
 // Update metadata
-file.setTitle("New Title");
-file.setArtist("New Artist");
+const tag = file.tag();
+tag.setTitle("New Title");
+tag.setArtist("New Artist");
 
-// Save changes (returns updated buffer)
+// Save changes
 const success = file.save();
 if (success) {
   console.log("Tags saved successfully");
+  const updatedBuffer = file.getFileBuffer();
+  // Write updatedBuffer to file if needed
 }
 
 // Clean up
@@ -121,8 +124,8 @@ file.setMusicBrainzTrackId("12345678-90ab-cdef-1234-567890abcdef");
 file.setMusicBrainzReleaseId("abcdef12-3456-7890-abcd-ef1234567890");
 
 // AcoustID fingerprinting
-file.setAcoustidFingerprint("AQADtMmybfGO8NCNEESLnzHyXNOHeHnG...");
-file.setAcoustidId("e7359e88-f1f7-41ed-b9f6-16e58e906997");
+file.setAcoustIdFingerprint("AQADtMmybfGO8NCNEESLnzHyXNOHeHnG...");
+file.setAcoustIdId("e7359e88-f1f7-41ed-b9f6-16e58e906997");
 
 // ReplayGain volume normalization
 file.setReplayGainTrackGain("-6.54 dB");
@@ -131,7 +134,37 @@ file.setReplayGainTrackPeak("0.987654");
 
 ### Using Tag Constants
 
-For better type safety and IDE autocomplete, use the `Tags` constants:
+#### Enhanced PROPERTIES Constant (Recommended)
+
+For the best type safety and rich metadata access, use the `PROPERTIES` constant:
+
+```typescript
+import { PROPERTIES } from "taglib-wasm/constants";
+
+// Access property metadata
+const titleProp = PROPERTIES.TITLE;
+console.log(titleProp.description); // "The title of the track"
+console.log(titleProp.supportedFormats); // ["ID3v2", "MP4", "Vorbis", "WAV"]
+
+// Read properties with type safety
+const title = file.getProperty(PROPERTIES.TITLE.key);
+const albumArtist = file.getProperty(PROPERTIES.ALBUMARTIST.key);
+
+// Write properties
+file.setProperty(PROPERTIES.TITLE.key, "My Song");
+file.setProperty(PROPERTIES.BPM.key, "120");
+
+// Set multiple properties
+file.setProperties({
+  [PROPERTIES.TITLE.key]: ["My Song"],
+  [PROPERTIES.ALBUMARTIST.key]: ["Various Artists"],
+  [PROPERTIES.BPM.key]: ["120"],
+});
+```
+
+#### Legacy Tags Constants
+
+For backward compatibility, the `Tags` constants are still available:
 
 ```typescript
 import { Tags } from "taglib-wasm";
