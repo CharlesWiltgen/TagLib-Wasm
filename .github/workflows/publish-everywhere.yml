@@ -1,4 +1,4 @@
-name: Publish to NPM/GitHub/JSR (Improved)
+name: Publish to JSR/NPM/GitHub
 
 on:
   workflow_dispatch:
