@@ -220,7 +220,7 @@ export class AudioFileWorkers {
    * Get the current file buffer after modifications.
    * Note: This is not implemented in the Workers API.
    * @returns Empty Uint8Array (not implemented)
-   * @deprecated Use the Full API for this functionality
+   * @throws {Error} Consider using the Full API for this functionality
    */
   getFileBuffer(): Uint8Array {
     console.warn(
@@ -401,8 +401,8 @@ export class TagLibWorkers {
   }
 
   /**
-   * @deprecated Use `open()` instead. This method will be removed in the next major version.
    * Open an audio file from a buffer (backward compatibility).
+   * Consider using `open()` for consistency with the Full API.
    * @param buffer Audio file data as Uint8Array
    * @returns Audio file instance
    */
