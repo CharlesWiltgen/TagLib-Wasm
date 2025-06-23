@@ -28,18 +28,47 @@ file.setProperties({
 });
 ```
 
+### Using the PROPERTIES Constant for Type-Safe Access
+
+The library provides a comprehensive `PROPERTIES` constant with metadata for all known properties:
+
+```typescript
+import { PROPERTIES, PropertyKey } from "taglib-wasm/constants";
+
+// Access property metadata
+const titleProp = PROPERTIES.TITLE;
+console.log(titleProp.description); // "The title of the track"
+console.log(titleProp.type); // "string"
+console.log(titleProp.supportedFormats); // ["ID3v2", "MP4", "Vorbis", "WAV"]
+
+// Use for type-safe property access
+const title = file.getProperty(PROPERTIES.TITLE.key);
+const trackNumber = file.getProperty(PROPERTIES.TRACK_NUMBER.key);
+
+// Iterate through all known properties
+Object.values(PROPERTIES).forEach((prop) => {
+  const value = file.getProperty(prop.key);
+  if (value !== undefined) {
+    console.log(`${prop.key}: ${value} (${prop.description})`);
+  }
+});
+```
+
 ## 📝 Important Notes
 
-- Property keys are typically uppercase (e.g., "ALBUMARTIST",
+- Property keys are always uppercase (e.g., "ALBUMARTIST",
   "REPLAYGAIN_TRACK_GAIN")
 - Property values in `setProperties()` must be arrays of strings
-- Property keys may vary by format - check existing properties with
-  `file.properties()`
+- The `PROPERTIES` constant from `taglib-wasm/constants` provides:
+  - Type-safe property keys
+  - Rich metadata including descriptions and supported formats
+  - Format-specific mappings (ID3v2 frames, Vorbis comments, MP4 atoms)
+- Use utility functions for property discovery:
+  - `isValidProperty(key)` - Check if a property key is valid
+  - `getAllPropertyKeys()` - Get all available property keys
+  - `getPropertiesByFormat(format)` - Get properties supported by a format
 - For MP4-specific metadata, use the `setMP4Item()` method
-- Use the `Tags` constants for type-safe access:
-  `file.properties()[Tags.AlbumArtist]`
-- See [Tag Name Constants](./tag-name-constants.md) for a comprehensive list of
-  standard property names and format-specific mappings
+- See [Tag Constants](./tag-constants.md) for the complete PROPERTIES reference
 
 ## 📋 Format-Specific Storage Reference
 
