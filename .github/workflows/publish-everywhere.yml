@@ -13,6 +13,13 @@ on:
     tags:
       - "v*"
 
+# Job execution order:
+# 1. prepare-and-test: Build and test the package
+# 2. publish-jsr: Publish to JSR first (fail-fast if OIDC not working)
+# 3. publish-npm: Publish to NPM (only if JSR succeeds)
+# 4. publish-github: Publish to GitHub Packages (only if JSR and NPM succeed)
+# 5. finalize: Create tags/issues based on results
+
 jobs:
   prepare-and-test:
     name: Prepare and Test
@@ -145,10 +152,53 @@ jobs:
             LICENSE
           retention-days: 1
 
-  publish-npm:
-    name: Publish to NPM
+  publish-jsr:
+    name: Publish to JSR
     needs: prepare-and-test
     if: needs.prepare-and-test.outputs.should-publish == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write # Required for OIDC authentication to JSR
+    outputs:
+      published: ${{ steps.publish.outputs.published }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: denoland/setup-deno@v1
+        with:
+          deno-version: v1.x
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: build-artifacts
+          path: .
+
+      - name: Publish to JSR with retry
+        id: publish
+        uses: nick-invision/retry@v3
+        with:
+          timeout_minutes: 5
+          max_attempts: 3
+          retry_wait_seconds: 30
+          command: |
+            # Use OIDC for authentication (no token needed)
+            if deno publish --allow-slow-types --allow-dirty; then
+              echo "JSR publish successful"
+              echo "published=true" >> $GITHUB_OUTPUT
+            else
+              echo "JSR publish failed"
+              echo "published=false" >> $GITHUB_OUTPUT
+              exit 1
+            fi
+          on_retry_command: |
+            echo "Retrying JSR publish..."
+
+  publish-npm:
+    name: Publish to NPM
+    needs: [prepare-and-test, publish-jsr] # Now depends on JSR success
+    if: needs.prepare-and-test.outputs.should-publish == 'true' && needs.publish-jsr.outputs.published == 'true'
     runs-on: ubuntu-latest
     outputs:
       published: ${{ steps.publish.outputs.published }}
@@ -210,8 +260,12 @@ jobs:
 
   publish-github:
     name: Publish to GitHub Packages
-    needs: [prepare-and-test, publish-npm]
-    if: needs.prepare-and-test.outputs.should-publish == 'true'
+    needs: [
+      prepare-and-test,
+      publish-jsr,
+      publish-npm,
+    ] # Depends on both JSR and NPM
+    if: needs.prepare-and-test.outputs.should-publish == 'true' && needs.publish-jsr.outputs.published == 'true' && needs.publish-npm.outputs.published == 'true'
     runs-on: ubuntu-latest
     outputs:
       published: ${{ steps.publish.outputs.published }}
@@ -271,52 +325,9 @@ jobs:
           on_retry_command: |
             echo "Retrying GitHub publish..."
 
-  publish-jsr:
-    name: Publish to JSR
-    needs: [prepare-and-test, publish-npm, publish-github]
-    if: needs.prepare-and-test.outputs.should-publish == 'true'
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      id-token: write # Required for OIDC authentication to JSR
-    outputs:
-      published: ${{ steps.publish.outputs.published }}
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: denoland/setup-deno@v1
-        with:
-          deno-version: v1.x
-
-      - name: Download build artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: build-artifacts
-          path: .
-
-      - name: Publish to JSR with retry
-        id: publish
-        uses: nick-invision/retry@v3
-        with:
-          timeout_minutes: 5
-          max_attempts: 3
-          retry_wait_seconds: 30
-          command: |
-            # Use OIDC for authentication (no token needed)
-            if deno publish --allow-slow-types --allow-dirty; then
-              echo "JSR publish successful"
-              echo "published=true" >> $GITHUB_OUTPUT
-            else
-              echo "JSR publish failed"
-              echo "published=false" >> $GITHUB_OUTPUT
-              exit 1
-            fi
-          on_retry_command: |
-            echo "Retrying JSR publish..."
-
   finalize:
     name: Finalize Release
-    needs: [prepare-and-test, publish-npm, publish-github, publish-jsr]
+    needs: [prepare-and-test, publish-jsr, publish-npm, publish-github]
     if: always() && needs.prepare-and-test.outputs.should-publish == 'true'
     runs-on: ubuntu-latest
     permissions:
