@@ -493,22 +493,26 @@ Main entry point for the Full API.
 Initialize the TagLib WebAssembly module.
 
 ```typescript
-static async initialize(config?: TagLibConfig): Promise<TagLib>
+static async initialize(options?: {
+  wasmBinary?: ArrayBuffer | Uint8Array;
+  wasmUrl?: string;
+  useWorkerPool?: boolean;
+  workerPoolOptions?: {
+    size?: number;
+    debug?: boolean;
+  };
+}): Promise<TagLib>
 ```
 
 ##### Parameters
 
-- `config` (optional): Configuration options
-
-```typescript
-interface TagLibConfig {
-  memory?: {
-    initial?: number; // Initial memory size in bytes (default: 16MB)
-    maximum?: number; // Maximum memory size in bytes (default: 256MB)
-  };
-  debug?: boolean; // Enable debug output (default: false)
-}
-```
+- `options` (optional): Configuration for loading the WASM module
+  - `wasmBinary`: Pre-loaded WASM binary (for offline usage)
+  - `wasmUrl`: Custom WASM URL
+  - `useWorkerPool`: Enable worker pool for parallel processing
+  - `workerPoolOptions`: Worker pool configuration
+    - `size`: Number of workers (default: 4)
+    - `debug`: Enable debug output (default: false)
 
 ##### Example
 
@@ -516,14 +520,15 @@ interface TagLibConfig {
 // Default initialization
 const taglib = await TagLib.initialize();
 
-// Custom memory configuration
-const taglib = await TagLib.initialize({
-  memory: {
-    initial: 8 * 1024 * 1024, // 8MB
-    maximum: 128 * 1024 * 1024, // 128MB
-  },
-  debug: true,
-});
+// With pre-loaded WASM binary (for offline usage)
+const wasmBinary = await fetch("taglib.wasm").then((r) => r.arrayBuffer());
+const taglib = await TagLib.initialize({ wasmBinary });
+
+// With custom WASM URL
+const taglib = await TagLib.initialize({ wasmUrl: "/assets/taglib.wasm" });
+
+// With worker pool enabled
+const taglib = await TagLib.initialize({ useWorkerPool: true });
 ```
 
 #### taglib.open()
@@ -582,51 +587,28 @@ const largeFile = await taglib.open("large-concert.flac", {
 });
 ```
 
-#### taglib.openFile()
+#### taglib.updateFile()
 
-Open an audio file from a buffer (legacy method, use `open()` instead).
+Update tags in a file and save changes to disk in one operation.
+This is a convenience method that opens, modifies, saves, and closes the file.
 
 ```typescript
-openFile(buffer: Uint8Array): AudioFile
+updateFile(path: string, tags: Partial<Tag>): Promise<void>
 ```
 
 ##### Parameters
 
-- `buffer`: Audio file data as Uint8Array
-
-##### Returns
-
-An `AudioFile` instance.
+- `path`: File path to update
+- `tags`: Object containing tags to update
 
 ##### Throws
 
-- Error if the file format is not supported or the file is corrupted
+- Error if file operations fail
 
 ##### Example
 
 ```typescript
-const audioData = await Deno.readFile("song.mp3");
-const file = taglib.openFile(audioData);
-```
-
-#### taglib.updateFile()
-
-Update tags on a file and save it to a new location.
-
-```typescript
-updateFile(inputPath: string, outputPath: string, tags: Partial<Tags>): Promise<void>
-```
-
-##### Parameters
-
-- `inputPath`: Path to the input audio file
-- `outputPath`: Path where the modified file will be saved
-- `tags`: Tags to update (partial update supported)
-
-##### Example
-
-```typescript
-await taglib.updateFile("song.mp3", "song-updated.mp3", {
+await taglib.updateFile("song.mp3", {
   title: "New Title",
   artist: "New Artist",
 });
@@ -655,13 +637,83 @@ await taglib.copyWithTags("original.mp3", "copy.mp3", {
 });
 ```
 
-#### taglib.getModule()
+#### taglib.setWorkerPool()
 
-Get the underlying Emscripten module (advanced usage).
+Enable or disable worker pool for this TagLib instance.
 
 ```typescript
-getModule(): TagLibModule
+setWorkerPool(pool: TagLibWorkerPool | null): void
 ```
+
+#### taglib.getWorkerPool()
+
+Get the current worker pool instance.
+
+```typescript
+getWorkerPool(): TagLibWorkerPool | undefined
+```
+
+#### taglib.batchOperations()
+
+Execute batch operations on a file using the worker pool.
+This method provides efficient batch processing using Web Workers.
+
+```typescript
+batchOperations(
+  file: string | Uint8Array,
+  operations: BatchOperation[]
+): Promise<any>
+```
+
+##### Parameters
+
+- `file`: File path or Uint8Array
+- `operations`: Array of operations to execute
+
+##### Example
+
+```typescript
+const result = await taglib.batchOperations("song.mp3", [
+  { method: "setTitle", args: ["New Title"] },
+  { method: "setArtist", args: ["New Artist"] },
+  { method: "save" },
+]);
+```
+
+#### taglib.processFiles()
+
+Process multiple files in parallel using the worker pool.
+
+```typescript
+processFiles<T>(
+  files: string[],
+  operation: "readTags" | "readProperties"
+): Promise<T[]>
+```
+
+##### Parameters
+
+- `files`: Array of file paths
+- `operation`: Operation to perform on each file
+
+##### Example
+
+```typescript
+const tags = await taglib.processFiles(
+  ["song1.mp3", "song2.mp3", "song3.mp3"],
+  "readTags",
+);
+```
+
+#### taglib.version()
+
+Get the TagLib version.
+
+```typescript
+version(): string
+```
+
+Returns version string (e.g., "2.1.0")
 
 ### AudioFile Class
 
@@ -679,25 +731,37 @@ isValid(): boolean
 
 ##### getFormat()
 
-Get the audio format of the file.
+Get the audio file format.
 
 ```typescript
-getFormat(): string
+getFormat(): FileType
 ```
 
-Returns one of: `"MP3"`, `"MP4"`, `"FLAC"`, `"OGG"`, `"WAV"`, `"UNKNOWN"`
+Returns the detected file type:
+
+```typescript
+type FileType =
+  | "MP3"
+  | "MP4"
+  | "FLAC"
+  | "OGG"
+  | "WAV"
+  | "AIFF"
+  | "ASF"
+  | "UNKNOWN";
+```
 
 #### Property Methods
 
 ##### audioProperties()
 
-Get audio properties.
+Get audio properties (duration, bitrate, sample rate, etc.).
 
 ```typescript
-audioProperties(): AudioProperties
+audioProperties(): AudioProperties | null
 ```
 
-Returns:
+Returns `AudioProperties` object or `null` if unavailable:
 
 ```typescript
 interface AudioProperties {
@@ -705,25 +769,26 @@ interface AudioProperties {
   bitrate: number; // Bitrate in kbps
   sampleRate: number; // Sample rate in Hz
   channels: number; // Number of channels
-  bitsPerSample: number; // Bits per sample (0 if not applicable)
-  codec: string; // Audio codec (e.g., "AAC", "ALAC", "MP3", "FLAC", "PCM")
-  containerFormat: string; // Container format (e.g., "MP4", "OGG", "MP3", "FLAC")
-  isLossless: boolean; // True for lossless/uncompressed formats
+  bitsPerSample?: number; // Bits per sample (optional)
+  codec?: string; // Audio codec (e.g., "AAC", "ALAC", "MP3", "FLAC", "PCM")
+  containerFormat?: string; // Container format (e.g., "MP4", "OGG", "MP3", "FLAC")
+  isLossless?: boolean; // True for lossless/uncompressed formats
 }
 ```
 
 ##### tag()
 
-Get all basic tags.
+Get the tag object for reading/writing basic metadata.
 
 ```typescript
-tag(): TagData
+tag(): Tag
 ```
 
-Returns:
+Returns a `Tag` object with getters and setters for metadata fields:
 
 ```typescript
-interface TagData {
+interface Tag {
+  // Read properties
   title: string;
   artist: string;
   album: string;
@@ -731,71 +796,238 @@ interface TagData {
   genre: string;
   year: number;
   track: number;
+
+  // Write methods
+  setTitle(value: string): void;
+  setArtist(value: string): void;
+  setAlbum(value: string): void;
+  setComment(value: string): void;
+  setGenre(value: string): void;
+  setYear(value: number): void;
+  setTrack(value: number): void;
 }
 ```
 
-#### Basic Tag Writing Methods
+##### Example
 
 ```typescript
-setTitle(title: string): void
-setArtist(artist: string): void
-setAlbum(album: string): void
-setComment(comment: string): void
-setGenre(genre: string): void
-setYear(year: number): void
-setTrack(track: number): void
+const tag = file.tag();
+console.log(tag.title); // Read
+tag.setTitle("New Title"); // Write
 ```
 
-#### Extended Tag Methods
+#### Property Map Methods
 
-##### extendedTag()
+##### properties()
 
-Get extended metadata fields.
+Get all metadata properties as a key-value map.
+Includes both standard and format-specific properties.
 
 ```typescript
-extendedTag(): ExtendedTag
+properties(): PropertyMap
 ```
 
 Returns:
 
 ```typescript
-interface ExtendedTag {
-  albumArtist?: string;
-  composer?: string;
-  copyright?: string;
-  encodedBy?: string;
-  originalArtist?: string;
-  bpm?: number;
-  compilation?: boolean;
-  discNumber?: number;
-  totalDiscs?: number;
-  totalTracks?: number;
-  replayGainTrackGain?: string;
-  replayGainTrackPeak?: string;
-  replayGainAlbumGain?: string;
-  replayGainAlbumPeak?: string;
-  appleSoundCheck?: string;
+interface PropertyMap {
+  [key: string]: string;
 }
 ```
 
-##### setExtendedTag()
+##### setProperties()
 
-Set extended metadata fields.
+Set multiple properties at once from a PropertyMap.
 
 ```typescript
-setExtendedTag(tag: Partial<ExtendedTag>): void
+setProperties(properties: PropertyMap): void
+```
+
+##### getProperty()
+
+Get a single property value by key.
+
+```typescript
+getProperty(key: string): string | undefined
+```
+
+##### setProperty()
+
+Set a single property value.
+
+```typescript
+setProperty(key: string, value: string): void
+```
+
+##### Example
+
+```typescript
+// Get all properties
+const props = file.properties();
+console.log(props.ALBUMARTIST);
+
+// Set properties
+file.setProperties({
+  ALBUMARTIST: "Various Artists",
+  COMPOSER: "Composer Name",
+  BPM: "120",
+});
+
+// Single property access
+const albumArtist = file.getProperty("ALBUMARTIST");
+file.setProperty("ALBUMARTIST", "New Album Artist");
+```
+
+#### Picture/Cover Art Methods
+
+##### getPictures()
+
+Get all pictures/cover art from the audio file.
+
+```typescript
+getPictures(): Picture[]
+```
+
+Returns an array of `Picture` objects:
+
+```typescript
+interface Picture {
+  mimeType: string;
+  data: Uint8Array;
+  type: string;
+  description?: string;
+}
+```
+
+##### setPictures()
+
+Set pictures/cover art in the audio file (replaces all existing).
+
+```typescript
+setPictures(pictures: Picture[]): void
+```
+
+##### addPicture()
+
+Add a single picture to the audio file.
+
+```typescript
+addPicture(picture: Picture): void
+```
+
+##### removePictures()
+
+Remove all pictures from the audio file.
+
+```typescript
+removePictures(): void
+```
+
+##### Example
+
+```typescript
+// Get cover art
+const pictures = file.getPictures();
+if (pictures.length > 0) {
+  console.log(`Found ${pictures.length} pictures`);
+  const cover = pictures[0];
+  console.log(`MIME type: ${cover.mimeType}`);
+}
+
+// Add new cover art
+const imageData = await fetch("cover.jpg").then((r) => r.arrayBuffer());
+file.addPicture({
+  mimeType: "image/jpeg",
+  data: new Uint8Array(imageData),
+  type: "Cover (front)",
+  description: "Album cover",
+});
+```
+
+#### MP4-Specific Methods
+
+##### isMP4()
+
+Check if this is an MP4/M4A file.
+
+```typescript
+isMP4(): boolean
+```
+
+##### getMP4Item()
+
+Get an MP4-specific metadata item.
+
+```typescript
+getMP4Item(key: string): string | undefined
+```
+
+##### Parameters
+
+- `key`: MP4 atom name (e.g., "----:com.apple.iTunes:iTunNORM")
+
+##### Throws
+
+- Error if not an MP4 file
+
+##### setMP4Item()
+
+Set an MP4-specific metadata item.
+
+```typescript
+setMP4Item(key: string, value: string): void
+```
+
+##### Parameters
+
+- `key`: MP4 atom name
+- `value`: Item value
+
+##### Throws
+
+- Error if not an MP4 file
+
+##### removeMP4Item()
+
+Remove an MP4-specific metadata item.
+
+```typescript
+removeMP4Item(key: string): void
+```
+
+##### Parameters
+
+- `key`: MP4 atom name to remove
+
+##### Throws
+
+- Error if not an MP4 file
+
+##### Example
+
+```typescript
+if (file.isMP4()) {
+  // Get Apple Sound Check data
+  const soundCheck = file.getMP4Item("iTunNORM");
+
+  // Set custom metadata
+  file.setMP4Item("----:com.apple.iTunes:MyCustomField", "Custom Value");
+
+  // Remove metadata
+  file.removeMP4Item("----:com.apple.iTunes:UnwantedField");
+}
 ```
 
 #### AcoustID Integration
 
 ```typescript
 // Fingerprint methods
-setAcoustidFingerprint(fingerprint: string): void
-getAcoustidFingerprint(): string | undefined
+setAcoustIdFingerprint(fingerprint: string): void
+getAcoustIdFingerprint(): string | undefined
 
 // ID methods
-setAcoustidId(id: string): void
-getAcoustidId(): string | undefined
+setAcoustIdId(id: string): void
+getAcoustIdId(): string | undefined
 ```
 
 #### MusicBrainz Integration
@@ -812,22 +1044,6 @@ getMusicBrainzReleaseId(): string | undefined
 // Artist ID
 setMusicBrainzArtistId(id: string): void
 getMusicBrainzArtistId(): string | undefined
-
-// Album ID
-setMusicBrainzAlbumId(id: string): void
-getMusicBrainzAlbumId(): string | undefined
-
-// Album Artist ID
-setMusicBrainzAlbumArtistId(id: string): void
-getMusicBrainzAlbumArtistId(): string | undefined
-
-// Release Group ID
-setMusicBrainzReleaseGroupId(id: string): void
-getMusicBrainzReleaseGroupId(): string | undefined
-
-// Work ID
-setMusicBrainzWorkId(id: string): void
-getMusicBrainzWorkId(): string | undefined
 ```
 
 #### Volume Normalization
@@ -898,12 +1114,13 @@ await file.saveToFile("song-updated.mp3");
 file.dispose();
 ```
 
-##### toBuffer()
+##### getFileBuffer()
 
-Get the current file data as a buffer.
+Get the current file data as a buffer, including any modifications.
+Call this after save() to get the updated file data.
 
 ```typescript
-toBuffer(): Uint8Array
+getFileBuffer(): Uint8Array
 ```
 
 Returns the complete audio file with any modifications.
@@ -921,10 +1138,18 @@ leaks.
 
 ### Types and Interfaces
 
-#### AudioFormat
+#### FileType
 
 ```typescript
-type AudioFormat = "MP3" | "MP4" | "FLAC" | "OGG" | "WAV" | "UNKNOWN";
+type FileType =
+  | "MP3"
+  | "MP4"
+  | "FLAC"
+  | "OGG"
+  | "WAV"
+  | "AIFF"
+  | "ASF"
+  | "UNKNOWN";
 ```
 
 #### TagLibModule
@@ -946,62 +1171,134 @@ interface TagLibModule {
 
 ## Workers API
 
-Special API for Cloudflare Workers compatibility.
+The Full API works in Cloudflare Workers with no special configuration needed.
 
 ```typescript
-import { TagLib } from "taglib-wasm/workers";
+import { TagLib } from "taglib-wasm";
 
-// Initialize with Workers-specific config
-const taglib = await TagLib.initialize({
-  memory: {
-    initial: 8 * 1024 * 1024, // 8MB (Workers limit)
-  },
-});
+// Initialize normally - memory is automatically configured for Workers
+const taglib = await TagLib.initialize();
+
+// Use the same API as in other environments
+const file = await taglib.open(audioBuffer);
+const tag = file.tag();
+console.log(tag.title);
+file.dispose();
 ```
 
-The Workers API is identical to the Full API but with optimizations for the
-Workers runtime environment.
+The WebAssembly module automatically detects the Workers environment and optimizes memory usage accordingly.
 
 ## Error Handling
 
-### Common Errors
+### Error Types
+
+taglib-wasm provides specific error types for better error handling:
+
+#### TagLibInitializationError
+
+Thrown when the Wasm module fails to initialize.
+
+```typescript
+import { TagLibInitializationError } from "taglib-wasm";
+
+try {
+  const taglib = await TagLib.initialize();
+} catch (error) {
+  if (error instanceof TagLibInitializationError) {
+    console.error("Failed to initialize TagLib:", error.message);
+  }
+}
+```
 
 #### UnsupportedFormatError
 
 Thrown when attempting to open an unsupported file format.
 
 ```typescript
+import { SUPPORTED_FORMATS, UnsupportedFormatError } from "taglib-wasm";
+
 try {
-  const file = taglib.openFile(buffer);
+  const file = await taglib.open("file.xyz");
 } catch (error) {
-  if (error.message.includes("Unsupported format")) {
-    console.error("File format not supported");
+  if (error instanceof UnsupportedFormatError) {
+    console.error(
+      `Format not supported. Supported formats: ${
+        SUPPORTED_FORMATS.join(", ")
+      }`,
+    );
   }
 }
 ```
 
-#### InvalidFileError
+#### InvalidFormatError
 
-Thrown when the file is corrupted or invalid.
+Thrown when the file is corrupted or has an invalid format.
 
 ```typescript
-const file = taglib.openFile(buffer);
-if (!file.isValid()) {
-  throw new Error("Invalid or corrupted file");
+import { InvalidFormatError } from "taglib-wasm";
+
+try {
+  const file = await taglib.open(corruptedBuffer);
+} catch (error) {
+  if (error instanceof InvalidFormatError) {
+    console.error("File is corrupted or invalid:", error.message);
+    console.error("File size:", error.details?.fileSize);
+  }
 }
 ```
 
-#### MemoryError
+#### MetadataError
 
-Thrown when memory allocation fails.
+Thrown when metadata operations fail.
 
 ```typescript
+import { MetadataError } from "taglib-wasm";
+
 try {
-  const taglib = await TagLib.initialize({
-    memory: { initial: 1024 }, // Too small
-  });
+  const tag = file.tag();
 } catch (error) {
-  console.error("Failed to allocate memory:", error);
+  if (error instanceof MetadataError) {
+    console.error("Failed to read metadata:", error.message);
+  }
+}
+```
+
+#### FileOperationError
+
+Thrown when file system operations fail.
+
+```typescript
+import { FileOperationError } from "taglib-wasm";
+
+try {
+  await file.saveToFile("/readonly/path.mp3");
+} catch (error) {
+  if (error instanceof FileOperationError) {
+    console.error("File operation failed:", error.message);
+  }
+}
+```
+
+### Error Checking Utilities
+
+```typescript
+import {
+  isEnvironmentError,
+  isFileOperationError,
+  isInvalidFormatError,
+  isMemoryError,
+  isMetadataError,
+  isTagLibError,
+  isUnsupportedFormatError,
+} from "taglib-wasm";
+
+try {
+  // ... taglib operations
+} catch (error) {
+  if (isTagLibError(error)) {
+    console.error(`TagLib error [${error.code}]: ${error.message}`);
+    console.error("Details:", error.details);
+  }
 }
 ```
 
@@ -1009,7 +1306,7 @@ try {
 
 1. **Always check file validity**:
    ```typescript
-   const file = taglib.openFile(buffer);
+   const file = await taglib.open(buffer);
    if (!file.isValid()) {
      throw new Error("Invalid file");
    }
@@ -1025,11 +1322,21 @@ try {
 3. **Use try-catch for file operations**:
    ```typescript
    try {
-     const file = taglib.openFile(buffer);
+     const file = await taglib.open("song.mp3");
      // ... operations
      file.dispose();
    } catch (error) {
      console.error("Error processing file:", error);
+   }
+   ```
+
+4. **Always dispose of files**:
+   ```typescript
+   const file = await taglib.open(buffer);
+   try {
+     // ... operations
+   } finally {
+     file.dispose(); // Ensures cleanup even on error
    }
    ```
 
@@ -1103,7 +1410,7 @@ const tags = await readTags("song.mp3");
 With the Full API, you must manually dispose of files:
 
 ```typescript
-const file = taglib.openFile(buffer);
+const file = await taglib.open("song.mp3");
 try {
   // ... do work
 } finally {
@@ -1113,25 +1420,24 @@ try {
 
 ### Memory Configuration
 
-Configure memory limits based on your use case:
+The WebAssembly module automatically configures memory based on your environment. For most use cases, the default configuration works well.
 
 ```typescript
-// Small files (< 10MB)
-const taglib = await TagLib.initialize({
-  memory: { initial: 16 * 1024 * 1024 }, // 16MB
-});
+// Default initialization (recommended)
+const taglib = await TagLib.initialize();
 
-// Large files (> 50MB)
+// With worker pool for parallel processing
 const taglib = await TagLib.initialize({
-  memory: {
-    initial: 32 * 1024 * 1024, // 32MB
-    maximum: 256 * 1024 * 1024, // 256MB
+  useWorkerPool: true,
+  workerPoolOptions: {
+    size: 4, // Number of workers
+    debug: false,
   },
 });
 
-// Cloudflare Workers (strict limits)
+// With custom WASM URL
 const taglib = await TagLib.initialize({
-  memory: { initial: 8 * 1024 * 1024 }, // 8MB
+  wasmUrl: "/custom/path/taglib.wasm",
 });
 ```
 
@@ -1173,21 +1479,22 @@ async function processAudioFile(filePath: string) {
     console.log("Properties:", file.audioProperties());
 
     // Update metadata
-    file.setTitle("New Title");
-    file.setArtist("New Artist");
-    file.setAlbum("New Album");
-    file.setYear(2024);
+    const tag = file.tag();
+    tag.setTitle("New Title");
+    tag.setArtist("New Artist");
+    tag.setAlbum("New Album");
+    tag.setYear(2024);
 
-    // Add extended metadata
-    file.setExtendedTag({
-      albumArtist: "Various Artists",
-      composer: "Composer Name",
-      bpm: 120,
-      replayGainTrackGain: "-6.5 dB",
+    // Add extended metadata using properties
+    file.setProperties({
+      ALBUMARTIST: "Various Artists",
+      COMPOSER: "Composer Name",
+      BPM: "120",
+      REPLAYGAIN_TRACK_GAIN: "-6.5 dB",
     });
 
     // Add identifiers
-    file.setAcoustidFingerprint("AQADtMmybfGO8NCN...");
+    file.setAcoustIdFingerprint("AQADtMmybfGO8NCN...");
     file.setMusicBrainzTrackId("f4d1b6b8-8c1e-4d9a-9f2a-1234567890ab");
 
     // Save changes to a new file
@@ -1206,12 +1513,13 @@ async function processAudioFile(filePath: string) {
 await processAudioFile("song.mp3");
 
 // Alternative: Using the simple API
-import { updateTags } from "taglib-wasm/simple";
+import { updateTags } from "taglib-wasm";
 
-await updateTags("song.mp3", "song-modified.mp3", {
+await updateTags("song.mp3", {
   title: "New Title",
   artist: "New Artist",
   album: "New Album",
   year: 2024,
 });
+// File on disk now has updated tags
 ```
