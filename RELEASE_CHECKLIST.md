@@ -37,11 +37,15 @@ This checklist ensures a smooth and safe release process.
 Use the safe release script that enforces all checks:
 
 ```bash
-# For a specific version
-deno task release 2.2.5
+# Auto-increment patch version (e.g., 2.2.5 → 2.2.6)
+deno task release
+
+# Set a specific version
+deno task release 2.3.0
 
 # Or directly:
-./scripts/release-safe.sh 2.2.5
+./scripts/release-safe.sh         # Auto-increment
+./scripts/release-safe.sh 2.3.0   # Specific version
 ```
 
 This script will:
