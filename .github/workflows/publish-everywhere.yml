@@ -276,6 +276,9 @@ jobs:
     needs: [prepare-and-test, publish-npm, publish-github]
     if: needs.prepare-and-test.outputs.should-publish == 'true'
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write # Required for OIDC authentication to JSR
     outputs:
       published: ${{ steps.publish.outputs.published }}
     steps:
@@ -299,8 +302,15 @@ jobs:
           max_attempts: 3
           retry_wait_seconds: 30
           command: |
-            deno publish --allow-slow-types --allow-dirty
-            echo "published=true" >> $GITHUB_OUTPUT
+            # Use OIDC for authentication (no token needed)
+            if deno publish --allow-slow-types --allow-dirty; then
+              echo "JSR publish successful"
+              echo "published=true" >> $GITHUB_OUTPUT
+            else
+              echo "JSR publish failed"
+              echo "published=false" >> $GITHUB_OUTPUT
+              exit 1
+            fi
           on_retry_command: |
             echo "Retrying JSR publish..."
 
@@ -309,6 +319,9 @@ jobs:
     needs: [prepare-and-test, publish-npm, publish-github, publish-jsr]
     if: always() && needs.prepare-and-test.outputs.should-publish == 'true'
     runs-on: ubuntu-latest
+    permissions:
+      contents: write # Required to create tags
+      issues: write # Required to create issues
     steps:
       - uses: actions/checkout@v4
         with:
