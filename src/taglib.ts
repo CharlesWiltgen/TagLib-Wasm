@@ -19,8 +19,11 @@ import {
   readPartialFileData,
 } from "./utils/file.ts";
 import { writeFileData } from "./utils/write.ts";
-import { getGlobalWorkerPool, type TagLibWorkerPool } from "./worker-pool.ts";
-import type { BatchOperation } from "./worker-pool.ts";
+import {
+  type BatchOperation,
+  getGlobalWorkerPool,
+  type TagLibWorkerPool,
+} from "./worker-pool.ts";
 
 /**
  * Extended Tag interface with read/write capabilities for audio metadata.
