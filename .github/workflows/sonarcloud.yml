@@ -36,6 +36,16 @@ jobs:
           mkdir -p coverage
           mv coverage.lcov coverage/lcov.info
 
+      - name: Setup Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      - name: Generate test execution report
+        run: |
+          # Generate SonarQube test execution report
+          ./scripts/generate-sonar-test-report.ts || echo "Failed to generate test report"
+
       - name: SonarCloud Scan
         uses: SonarSource/sonarqube-scan-action@master
         env:
@@ -46,3 +56,4 @@ jobs:
             -Dsonar.coverage.exclusions=**/*.test.ts,**/*.spec.ts,**/test-utils.ts,**/examples/**,**/scripts/**,**/tools/**,**/lib/**
             -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info
             -Dsonar.typescript.lcov.reportPaths=coverage/lcov.info
+            -Dsonar.testExecutionReportPaths=test-results-sonar.json

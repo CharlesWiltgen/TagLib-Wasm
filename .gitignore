@@ -178,3 +178,7 @@ package.json.backup
 .github-token
 CLAUDE.local.md
 BACKLOG.md
+
+# SonarQube test reports
+test-results-sonar.json
+eslint-report.json
