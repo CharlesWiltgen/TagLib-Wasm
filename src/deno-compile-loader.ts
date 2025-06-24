@@ -61,7 +61,7 @@ export async function loadTagLibModuleStatic(
     const module = await createTagLibModule(moduleConfig) as TagLibModule;
 
     // Verify the module loaded correctly
-    if (!module || !module.HEAPU8) {
+    if (!module?.HEAPU8) {
       throw new Error("Module not initialized: missing HEAPU8");
     }
 

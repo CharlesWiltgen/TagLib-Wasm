@@ -656,7 +656,7 @@ export class AudioFileImpl implements AudioFile {
       mimeType: pic.mimeType,
       data: pic.data,
       type: pic.type,
-      description: pic.description || "",
+      description: pic.description ?? "",
     }));
 
     this.fileHandle.setPictures(picturesArray);
@@ -668,7 +668,7 @@ export class AudioFileImpl implements AudioFile {
       mimeType: picture.mimeType,
       data: picture.data,
       type: picture.type,
-      description: picture.description || "",
+      description: picture.description ?? "",
     };
 
     this.fileHandle.addPicture(pic);
@@ -698,7 +698,7 @@ export class AudioFileImpl implements AudioFile {
   /** @inheritdoc */
   getMusicBrainzTrackId(): string | undefined {
     const value = this.getProperty("MUSICBRAINZ_TRACKID");
-    return value || undefined;
+    return value ?? undefined;
   }
 
   /** @inheritdoc */
@@ -709,7 +709,7 @@ export class AudioFileImpl implements AudioFile {
   /** @inheritdoc */
   getMusicBrainzReleaseId(): string | undefined {
     const value = this.getProperty("MUSICBRAINZ_ALBUMID");
-    return value || undefined;
+    return value ?? undefined;
   }
 
   /** @inheritdoc */
@@ -720,7 +720,7 @@ export class AudioFileImpl implements AudioFile {
   /** @inheritdoc */
   getMusicBrainzArtistId(): string | undefined {
     const value = this.getProperty("MUSICBRAINZ_ARTISTID");
-    return value || undefined;
+    return value ?? undefined;
   }
 
   /** @inheritdoc */
@@ -731,7 +731,7 @@ export class AudioFileImpl implements AudioFile {
   /** @inheritdoc */
   getAcoustIdFingerprint(): string | undefined {
     const value = this.getProperty("ACOUSTID_FINGERPRINT");
-    return value || undefined;
+    return value ?? undefined;
   }
 
   /** @inheritdoc */
@@ -742,7 +742,7 @@ export class AudioFileImpl implements AudioFile {
   /** @inheritdoc */
   getAcoustIdId(): string | undefined {
     const value = this.getProperty("ACOUSTID_ID");
-    return value || undefined;
+    return value ?? undefined;
   }
 
   /** @inheritdoc */
@@ -753,7 +753,7 @@ export class AudioFileImpl implements AudioFile {
   /** @inheritdoc */
   getReplayGainTrackGain(): string | undefined {
     const value = this.getProperty("REPLAYGAIN_TRACK_GAIN");
-    return value || undefined;
+    return value ?? undefined;
   }
 
   /** @inheritdoc */
@@ -764,7 +764,7 @@ export class AudioFileImpl implements AudioFile {
   /** @inheritdoc */
   getReplayGainTrackPeak(): string | undefined {
     const value = this.getProperty("REPLAYGAIN_TRACK_PEAK");
-    return value || undefined;
+    return value ?? undefined;
   }
 
   /** @inheritdoc */
@@ -775,7 +775,7 @@ export class AudioFileImpl implements AudioFile {
   /** @inheritdoc */
   getReplayGainAlbumGain(): string | undefined {
     const value = this.getProperty("REPLAYGAIN_ALBUM_GAIN");
-    return value || undefined;
+    return value ?? undefined;
   }
 
   /** @inheritdoc */
@@ -786,7 +786,7 @@ export class AudioFileImpl implements AudioFile {
   /** @inheritdoc */
   getReplayGainAlbumPeak(): string | undefined {
     const value = this.getProperty("REPLAYGAIN_ALBUM_PEAK");
-    return value || undefined;
+    return value ?? undefined;
   }
 
   /** @inheritdoc */
@@ -802,7 +802,7 @@ export class AudioFileImpl implements AudioFile {
     }
     // For other formats, it might be in properties
     const value = this.getProperty("ITUNESOUNDCHECK");
-    return value || undefined;
+    return value ?? undefined;
   }
 
   /** @inheritdoc */
