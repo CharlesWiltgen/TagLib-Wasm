@@ -63,7 +63,8 @@
   "fmt": {
     "exclude": [
       "lib/",
-      "build/"
+      "build/",
+      "docs/"
     ],
     "lineWidth": 80,
     "indentWidth": 2,
