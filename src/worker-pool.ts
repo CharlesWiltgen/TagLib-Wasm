@@ -106,8 +106,17 @@ export class TagLibWorkerPool {
     this.initTimeout = options.initTimeout ?? 30000;
     this.operationTimeout = options.operationTimeout ?? 60000;
 
-    // Initialize workers asynchronously after constructor
-    this.initPromise = Promise.resolve().then(() => this.initializeWorkers());
+    // Defer initialization to avoid async operation in constructor
+    this.initPromise = this.deferredInit();
+  }
+
+  /**
+   * Deferred initialization to avoid async operation in constructor
+   */
+  private async deferredInit(): Promise<void> {
+    // Use setTimeout to ensure constructor completes first
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    return this.initializeWorkers();
   }
 
   /**

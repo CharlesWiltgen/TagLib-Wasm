@@ -21,6 +21,54 @@ const DEFAULT_WORKERS_CONFIG: TagLibWorkersConfig = {
 };
 
 /**
+ * Create Emscripten module configuration for Workers
+ */
+function createModuleConfig(
+  wasmBinary: Uint8Array,
+  config: TagLibWorkersConfig,
+) {
+  const mergedConfig = { ...DEFAULT_WORKERS_CONFIG, ...config };
+
+  return {
+    wasmBinary,
+    wasmMemory: new WebAssembly.Memory({
+      initial: (mergedConfig.memory?.initial ?? 8 * 1024 * 1024) / (64 * 1024),
+      maximum: (mergedConfig.memory?.maximum ?? 64 * 1024 * 1024) / (64 * 1024),
+    }),
+    print: mergedConfig.debug ? console.log : () => {},
+    printErr: mergedConfig.debug ? console.error : () => {},
+    onRuntimeInitialized: () => {
+      if (mergedConfig.debug) {
+        console.log("taglib-wasm module initialized in Workers");
+      }
+    },
+    // Workers-specific settings
+    locateFile: () => "", // Empty string since we're providing wasmBinary directly
+    noFSInit: true, // Disable file system access
+    noExitRuntime: true,
+  };
+}
+
+/**
+ * Setup memory arrays on the WebAssembly instance
+ */
+function setupMemoryArrays(wasmInstance: any): void {
+  if (!wasmInstance.HEAPU8) {
+    const buffer = wasmInstance.buffer || wasmInstance.wasmMemory?.buffer;
+    if (buffer) {
+      wasmInstance.HEAPU8 = new Uint8Array(buffer);
+      wasmInstance.HEAP8 = new Int8Array(buffer);
+      wasmInstance.HEAP16 = new Int16Array(buffer);
+      wasmInstance.HEAP32 = new Int32Array(buffer);
+      wasmInstance.HEAPU16 = new Uint16Array(buffer);
+      wasmInstance.HEAPU32 = new Uint32Array(buffer);
+      wasmInstance.HEAPF32 = new Float32Array(buffer);
+      wasmInstance.HEAPF64 = new Float64Array(buffer);
+    }
+  }
+}
+
+/**
  * Load and initialize the TagLib WebAssembly module for Cloudflare Workers
  *
  * @param wasmBinary - The WebAssembly binary as Uint8Array
@@ -38,31 +86,7 @@ export async function loadTagLibModuleForWorkers(
   wasmBinary: Uint8Array,
   config: TagLibWorkersConfig = {},
 ): Promise<TagLibModule> {
-  const mergedConfig = { ...DEFAULT_WORKERS_CONFIG, ...config };
-
-  // Create Emscripten module configuration for Workers
-  const moduleConfig = {
-    wasmBinary,
-    wasmMemory: new WebAssembly.Memory({
-      initial: (mergedConfig.memory?.initial ?? 8 * 1024 * 1024) / (64 * 1024),
-      maximum: (mergedConfig.memory?.maximum ?? 64 * 1024 * 1024) / (64 * 1024),
-    }),
-    print: mergedConfig.debug ? console.log : () => {},
-    printErr: mergedConfig.debug ? console.error : () => {},
-    onRuntimeInitialized: () => {
-      if (mergedConfig.debug) {
-        console.log("taglib-wasm module initialized in Workers");
-      }
-    },
-    // Workers-specific settings
-    locateFile: () => {
-      // Return empty string since we're providing wasmBinary directly
-      return "";
-    },
-    // Disable file system access
-    noFSInit: true,
-    noExitRuntime: true,
-  };
+  const moduleConfig = createModuleConfig(wasmBinary, config);
 
   try {
     // For Workers, we need to use a modified version of the Emscripten output
@@ -77,21 +101,7 @@ export async function loadTagLibModuleForWorkers(
     }
 
     const wasmInstance = await TagLibWasm(moduleConfig);
-
-    // Ensure proper memory arrays are set up
-    if (!wasmInstance.HEAPU8) {
-      const buffer = wasmInstance.buffer || wasmInstance.wasmMemory?.buffer;
-      if (buffer) {
-        wasmInstance.HEAPU8 = new Uint8Array(buffer);
-        wasmInstance.HEAP8 = new Int8Array(buffer);
-        wasmInstance.HEAP16 = new Int16Array(buffer);
-        wasmInstance.HEAP32 = new Int32Array(buffer);
-        wasmInstance.HEAPU16 = new Uint16Array(buffer);
-        wasmInstance.HEAPU32 = new Uint32Array(buffer);
-        wasmInstance.HEAPF32 = new Float32Array(buffer);
-        wasmInstance.HEAPF64 = new Float64Array(buffer);
-      }
-    }
+    setupMemoryArrays(wasmInstance);
 
     return wasmInstance as TagLibModule;
   } catch (error) {
