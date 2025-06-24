@@ -92,6 +92,7 @@ export class TagLibWorkerPool {
   private queue: QueuedTask[] = [];
   private terminated = false;
   private readonly initPromise: Promise<void>;
+  private waitForReadyTimer?: ReturnType<typeof setTimeout>;
 
   private readonly size: number;
   private readonly debug: boolean;
@@ -131,7 +132,19 @@ export class TagLibWorkerPool {
       if (this.workers.every((w) => w.initialized)) {
         return;
       }
-      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      // Use a tracked timer for cleanup
+      await new Promise<void>((resolve) => {
+        this.waitForReadyTimer = setTimeout(() => {
+          this.waitForReadyTimer = undefined;
+          resolve();
+        }, 100);
+      });
+
+      // Check if terminated during wait
+      if (this.terminated) {
+        throw new WorkerError("Worker pool terminated during initialization");
+      }
     }
 
     const initializedCount = this.workers.filter((w) => w.initialized).length;
@@ -387,6 +400,12 @@ export class TagLibWorkerPool {
    */
   terminate(): void {
     this.terminated = true;
+
+    // Clear waitForReady timer if active
+    if (this.waitForReadyTimer) {
+      clearTimeout(this.waitForReadyTimer);
+      this.waitForReadyTimer = undefined;
+    }
 
     // Clear queue
     this.queue.forEach((task) => {
