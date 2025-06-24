@@ -6,6 +6,62 @@
 import { EnvironmentError, FileOperationError } from "../errors.ts";
 
 /**
+ * Detect the current runtime environment
+ */
+function detectRuntime(): {
+  hasDeno: boolean;
+  hasNode: boolean;
+  hasBun: boolean;
+} {
+  const hasDeno = typeof (globalThis as any).Deno !== "undefined";
+  const hasNode = typeof (globalThis as any).process !== "undefined" &&
+    (globalThis as any).process.versions &&
+    (globalThis as any).process.versions.node;
+  const hasBun = typeof (globalThis as any).Bun !== "undefined";
+
+  return { hasDeno, hasNode, hasBun };
+}
+
+/**
+ * Read file from filesystem based on runtime
+ */
+async function readFileFromPath(path: string): Promise<Uint8Array> {
+  const { hasDeno, hasNode, hasBun } = detectRuntime();
+
+  if (!hasDeno && !hasNode && !hasBun) {
+    throw new EnvironmentError(
+      "Browser",
+      "does not support file path reading",
+      "filesystem access",
+    );
+  }
+
+  try {
+    if (hasDeno) {
+      return await (globalThis as any).Deno.readFile(path);
+    }
+
+    if (hasNode) {
+      const { readFile } = await import("fs/promises");
+      return new Uint8Array(await readFile(path));
+    }
+
+    if (hasBun) {
+      const bunFile = (globalThis as any).Bun.file(path);
+      return new Uint8Array(await bunFile.arrayBuffer());
+    }
+
+    throw new Error("No runtime detected");
+  } catch (error) {
+    throw new FileOperationError(
+      "read",
+      (error as Error).message,
+      path,
+    );
+  }
+}
+
+/**
  * Read a file's data from various sources.
  * Supports file paths (Node.js/Deno/Bun), buffers, and File objects (browser).
  *
@@ -34,48 +90,7 @@ export async function readFileData(
 
   // String path - read from filesystem
   if (typeof file === "string") {
-    // Check environment support first
-    const hasDeno = typeof (globalThis as any).Deno !== "undefined";
-    const hasNode = typeof (globalThis as any).process !== "undefined" &&
-      (globalThis as any).process.versions &&
-      (globalThis as any).process.versions.node;
-    const hasBun = typeof (globalThis as any).Bun !== "undefined";
-
-    // If no runtime supports filesystem, throw EnvironmentError
-    if (!hasDeno && !hasNode && !hasBun) {
-      const env = "Browser";
-      throw new EnvironmentError(
-        env,
-        "does not support file path reading",
-        "filesystem access",
-      );
-    }
-
-    try {
-      // Deno
-      if (hasDeno) {
-        return await (globalThis as any).Deno.readFile(file);
-      }
-
-      // Node.js
-      if (hasNode) {
-        const { readFile } = await import("fs/promises");
-        return new Uint8Array(await readFile(file));
-      }
-
-      // Bun
-      if (hasBun) {
-        const bunFile = (globalThis as any).Bun.file(file);
-        return new Uint8Array(await bunFile.arrayBuffer());
-      }
-    } catch (error) {
-      // Convert system file errors to FileOperationError
-      throw new FileOperationError(
-        "read",
-        (error as Error).message,
-        file,
-      );
-    }
+    return readFileFromPath(file);
   }
 
   const inputType = Object.prototype.toString.call(file);
