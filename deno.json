@@ -57,14 +57,16 @@
       "scripts/",
       "examples/",
       "tools/",
-      "docs/"
+      "docs/.vuepress/",
+      "docs/index.html"
     ]
   },
   "fmt": {
     "exclude": [
       "lib/",
       "build/",
-      "docs/"
+      "docs/.vuepress/",
+      "docs/index.html"
     ],
     "lineWidth": 80,
     "indentWidth": 2,
