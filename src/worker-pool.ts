@@ -114,8 +114,8 @@ export class TagLibWorkerPool {
    * Deferred initialization to avoid async operation in constructor
    */
   private async deferredInit(): Promise<void> {
-    // Use setTimeout to ensure constructor completes first
-    await new Promise((resolve) => setTimeout(resolve, 0));
+    // Use queueMicrotask to ensure constructor completes first
+    await new Promise<void>((resolve) => queueMicrotask(resolve));
     return this.initializeWorkers();
   }
 
