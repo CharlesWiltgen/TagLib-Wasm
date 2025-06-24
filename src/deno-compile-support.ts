@@ -66,7 +66,7 @@ export async function loadWasmForDeno(
 
     // 3. Fetch from URL
     async () => {
-      const url = options.wasmUrl || options.fallbackUrl ||
+      const url = options.wasmUrl ?? options.fallbackUrl ??
         "https://cdn.jsdelivr.net/npm/taglib-wasm@latest/dist/taglib.wasm";
       try {
         const response = await fetch(url);
