@@ -44,8 +44,8 @@ export async function loadTagLibModuleForWorkers(
   const moduleConfig = {
     wasmBinary,
     wasmMemory: new WebAssembly.Memory({
-      initial: (mergedConfig.memory?.initial || 8 * 1024 * 1024) / (64 * 1024),
-      maximum: (mergedConfig.memory?.maximum || 64 * 1024 * 1024) / (64 * 1024),
+      initial: (mergedConfig.memory?.initial ?? 8 * 1024 * 1024) / (64 * 1024),
+      maximum: (mergedConfig.memory?.maximum ?? 64 * 1024 * 1024) / (64 * 1024),
     }),
     print: mergedConfig.debug ? console.log : () => {},
     printErr: mergedConfig.debug ? console.error : () => {},

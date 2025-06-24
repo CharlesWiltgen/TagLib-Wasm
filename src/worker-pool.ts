@@ -99,12 +99,12 @@ export class TagLibWorkerPool {
   private readonly operationTimeout: number;
 
   constructor(options: WorkerPoolOptions = {}) {
-    this.size = options.size ||
-      (typeof navigator !== "undefined" ? navigator.hardwareConcurrency : 4) ||
+    this.size = options.size ??
+      (typeof navigator !== "undefined" ? navigator.hardwareConcurrency : 4) ??
       4;
-    this.debug = options.debug || false;
-    this.initTimeout = options.initTimeout || 30000;
-    this.operationTimeout = options.operationTimeout || 60000;
+    this.debug = options.debug ?? false;
+    this.initTimeout = options.initTimeout ?? 30000;
+    this.operationTimeout = options.operationTimeout ?? 60000;
 
     this.initPromise = this.initializeWorkers();
   }
