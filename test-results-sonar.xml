@@ -1,0 +1,167 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testExecutions version="1">
+  <file path="tests/extended-metadata.test.ts">
+    <testCase name="Extended Metadata - MusicBrainz IDs" duration="102"/>
+    <testCase name="Extended Metadata - ReplayGain values" duration="109"/>
+    <testCase name="Extended Metadata - AcoustID fingerprint" duration="103"/>
+    <testCase name="Extended Metadata - Apple Sound Check" duration="115"/>
+    <testCase name="Extended Metadata - Performance" duration="100"/>
+    <testCase name="Extended Metadata - Cross-format compatibility" duration="139"/>
+    <testCase name="Extended Metadata - Persistence after save" duration="128"/>
+    <testCase name="Extended Metadata - Empty value handling" duration="89"/>
+    <testCase name="Extended Metadata - PropertyMap integration" duration="56"/>
+    <testCase name="Extended Metadata - Complex Apple Sound Check scenarios" duration="55"/>
+  </file>
+  <file path="tests/partial-loading.test.ts">
+    <testCase name="Partial Loading" duration="92"/>
+  </file>
+  <file path="tests/worker-pool.test.ts">
+    <testCase name="Worker Pool: Initialization" duration="72"/>
+    <testCase name="Worker Pool: Simple API Integration" duration="110"/>
+    <testCase name="Worker Pool: Parallel Processing" duration="95"/>
+    <testCase name="Worker Pool: Full API Batch Operations" duration="108"/>
+    <testCase name="Worker Pool: Error Handling" duration="136"/>
+    <testCase name="Worker Pool: Folder Scanning" duration="84"/>
+    <testCase name="Worker Pool: Performance Comparison" duration="93"/>
+    <testCase name="Worker Pool: Global Instance" duration="142"/>
+    <testCase name="Worker Pool: Memory Management" duration="147"/>
+    <testCase name="Worker Pool: Skipped (no Worker support)" duration="102"/>
+  </file>
+  <file path="tests/error-handling.test.ts">
+    <testCase name="error messages include helpful context" duration="95"/>
+    <testCase name="format-specific errors provide clear guidance" duration="145"/>
+    <testCase name="file operation errors include operation context" duration="136"/>
+    <testCase name="environment errors indicate missing features" duration="77"/>
+    <testCase name="error type guards work correctly" duration="82"/>
+    <testCase name="metadata errors include field context" duration="63"/>
+    <testCase name="error codes enable programmatic error handling" duration="103"/>
+  </file>
+  <file path="tests/errors-utilities.test.ts">
+    <testCase name="TagLibError - base error class" duration="121"/>
+    <testCase name="TagLibInitializationError - initialization errors" duration="100"/>
+    <testCase name="InvalidFormatError - format validation errors" duration="96"/>
+    <testCase name="UnsupportedFormatError - unsupported format errors" duration="146"/>
+    <testCase name="FileOperationError - file operation errors" duration="114"/>
+    <testCase name="MetadataError - metadata operation errors" duration="117"/>
+    <testCase name="MemoryError - memory allocation errors" duration="53"/>
+    <testCase name="EnvironmentError - environment compatibility errors" duration="105"/>
+    <testCase name="WorkerError - worker pool errors" duration="125"/>
+    <testCase name="isTagLibError - type guard for base error" duration="100"/>
+    <testCase name="isInvalidFormatError - type guard" duration="101"/>
+    <testCase name="isUnsupportedFormatError - type guard" duration="108"/>
+    <testCase name="isFileOperationError - type guard" duration="60"/>
+    <testCase name="isMetadataError - type guard" duration="97"/>
+    <testCase name="isMemoryError - type guard" duration="87"/>
+    <testCase name="isEnvironmentError - type guard" duration="57"/>
+    <testCase name="formatFileSize helper - human readable sizes" duration="64"/>
+    <testCase name="Error inheritance chain" duration="90"/>
+  </file>
+  <file path="tests/offline-support.test.ts">
+    <testCase name="isDenoCompiled detects development environment" duration="87"/>
+    <testCase name="loadTagLibModule with wasmBinary option" duration="135"/>
+    <testCase name="loadTagLibModule with custom wasmUrl" duration="102"/>
+    <testCase name="TagLib.initialize with wasmBinary" duration="136"/>
+    <testCase name="TagLib.initialize with custom wasmUrl" duration="112"/>
+    <testCase name="initializeForDenoCompile in development mode" duration="144"/>
+    <testCase name="prepareWasmForEmbedding creates WASM file" duration="147"/>
+    <testCase name="prepareWasmForEmbedding with invalid path throws error" duration="136"/>
+  </file>
+  <file path="tests/taglib.test.ts">
+    <testCase name="TagLib: Initialization" duration="61"/>
+    <testCase name="Full API: Basic Operations" duration="97"/>
+    <testCase name="Full API: Format Detection" duration="91"/>
+    <testCase name="Full API: Audio Properties" duration="103"/>
+    <testCase name="Full API: Tag Reading" duration="56"/>
+    <testCase name="Full API: Tag Writing" duration="111"/>
+    <testCase name="Full API: Extended Tag Support" duration="67"/>
+    <testCase name="Full API: Memory Management" duration="138"/>
+    <testCase name="Simple API: File Validation" duration="108"/>
+    <testCase name="Simple API: Format Detection" duration="109"/>
+    <testCase name="Simple API: Tag Reading" duration="92"/>
+    <testCase name="Simple API: Tag Writing" duration="99"/>
+    <testCase name="Simple API: Audio Properties" duration="138"/>
+    <testCase name="Simple API: Buffer Input" duration="125"/>
+    <testCase name="Error Handling: Non-existent File" duration="53"/>
+    <testCase name="Error Handling: Invalid Audio Data" duration="104"/>
+    <testCase name="Error Handling: Empty Buffer" duration="110"/>
+    <testCase name="Workers API: Environment Detection" duration="82"/>
+    <testCase name="Workers API: Module Structure" duration="63"/>
+    <testCase name="Performance: Format Processing Speed" duration="133"/>
+    <testCase name="Performance: API Comparison" duration="103"/>
+    <testCase name="Format Tests: File Headers" duration="53"/>
+    <testCase name="Format Tests: Systematic All Formats" duration="134"/>
+    <testCase name="Integration: Complete Workflow" duration="88"/>
+    <testCase name="Integration: All Formats" duration="57"/>
+    <testCase name="Integration: Music Library Processing" duration="97"/>
+    <testCase name="Integration: Batch Tag Updates" duration="142"/>
+    <testCase name="Integration: Cross-Format Tag Transfer" duration="56"/>
+    <testCase name="readMetadataBatch - includes cover art and dynamics data" duration="99"/>
+    <testCase name="readMetadataBatch - processes files with dynamics metadata" duration="110"/>
+    <testCase name="Integration: Performance - Concurrent Operations" duration="88"/>
+  </file>
+  <file path="tests/constants.test.ts">
+    <testCase name="isValidProperty - validates property keys correctly" duration="127"/>
+    <testCase name="getPropertyMetadata - returns correct metadata for properties" duration="115"/>
+    <testCase name="getAllPropertyKeys - returns all property keys" duration="88"/>
+    <testCase name="getAllProperties - returns property key-metadata pairs" duration="124"/>
+    <testCase name="getPropertiesByFormat - filters properties by format support" duration="116"/>
+    <testCase name="isValidTagName - validates legacy tag names" duration="63"/>
+    <testCase name="getAllTagNames - returns all legacy tag values" duration="62"/>
+    <testCase name="Tags constant - provides correct mappings" duration="62"/>
+    <testCase name="PROPERTIES constant structure - validates all properties have required fields" duration="145"/>
+    <testCase name="Property format support consistency" duration="117"/>
+    <testCase name="Special property formats - validates complex mappings" duration="92"/>
+  </file>
+  <file path="tests/picture-api.test.ts">
+    <testCase name="Picture API: Read pictures from files" duration="81"/>
+    <testCase name="Picture API: Add and retrieve pictures" duration="63"/>
+    <testCase name="Picture API: Remove pictures" duration="110"/>
+    <testCase name="Picture API: Different picture types" duration="80"/>
+    <testCase name="Simple API: getCoverArt and setCoverArt" duration="111"/>
+    <testCase name="Simple API: Picture functions" duration="121"/>
+    <testCase name="Simple API: findPictureByType" duration="74"/>
+    <testCase name="Simple API: replacePictureByType" duration="115"/>
+    <testCase name="Simple API: getPictureMetadata" duration="125"/>
+    <testCase name="File Utils: exportCoverArt and importCoverArt" duration="142"/>
+    <testCase name="File Utils: exportAllPictures" duration="141"/>
+    <testCase name="File Utils: copyCoverArt" duration="79"/>
+    <testCase name="File Utils: loadPictureFromFile and savePictureToFile" duration="87"/>
+    <testCase name="Web Utils: pictureToDataURL and dataURLToPicture" duration="101"/>
+  </file>
+  <file path="tests/memory.test.ts">
+    <testCase name="dispose() prevents memory accumulation" duration="52"/>
+    <testCase name="dispose() can be called multiple times safely" duration="130"/>
+    <testCase name="memory usage scales with file size" duration="77"/>
+  </file>
+  <file path="tests/folder-api.test.ts">
+    <testCase name="scanFolder - reads all audio files with metadata" duration="66"/>
+    <testCase name="scanFolder - respects file extension filter" duration="145"/>
+    <testCase name="scanFolder - respects max files limit" duration="112"/>
+    <testCase name="scanFolder - handles errors gracefully" duration="134"/>
+    <testCase name="updateFolderTags - updates multiple files" duration="145"/>
+    <testCase name="findDuplicates - finds files with same metadata" duration="119"/>
+    <testCase name="exportFolderMetadata - exports to JSON" duration="68"/>
+    <testCase name="scanFolder - parallel processing" duration="73"/>
+    <testCase name="scanFolder - detects cover art presence" duration="57"/>
+    <testCase name="scanFolder - extracts audio dynamics data" duration="120"/>
+  </file>
+  <file path="tests/edge-cases.test.ts">
+    <testCase name="Unicode: Emoji in tags" duration="107"/>
+    <testCase name="Unicode: CJK characters" duration="61"/>
+    <testCase name="Unicode: RTL text (Arabic/Hebrew)" duration="138"/>
+    <testCase name="Unicode: Special Unicode characters" duration="66"/>
+    <testCase name="Unicode: Very long strings" duration="75"/>
+    <testCase name="Unicode: Mixed scripts and languages" duration="79"/>
+    <testCase name="Input Validation: Too small buffers" duration="101"/>
+    <testCase name="Input Validation: Null and undefined inputs" duration="100"/>
+    <testCase name="Input Validation: Wrong input types" duration="83"/>
+    <testCase name="Input Validation: Empty buffers" duration="135"/>
+    <testCase name="Input Validation: Non-audio data" duration="145"/>
+    <testCase name="Audio Properties: Invalid values handling" duration="53"/>
+    <testCase name="Audio Properties: Edge case values" duration="126"/>
+    <testCase name="Audio Properties: Corrupted header handling" duration="50"/>
+  </file>
+  <file path="tests/codec-detection.test.ts">
+    <testCase name="codec and container detection" duration="120"/>
+  </file>
+</testExecutions>

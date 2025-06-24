@@ -91,13 +91,39 @@ async function generateTestReport() {
     }
   }
 
-  // Generate SonarQube report
-  const report = {
-    testExecutions: testExecutions,
-  };
+  // Generate SonarQube XML report
+  let xml = '<?xml version="1.0" encoding="UTF-8"?>\n';
+  xml += '<testExecutions version="1">\n';
 
-  const reportPath = "test-results-sonar.json";
-  await Deno.writeTextFile(reportPath, JSON.stringify(report, null, 2));
+  // Group tests by file
+  const testsByFile = new Map<string, TestExecution[]>();
+  for (const test of testExecutions) {
+    if (!testsByFile.has(test.testFile)) {
+      testsByFile.set(test.testFile, []);
+    }
+    testsByFile.get(test.testFile)!.push(test);
+  }
+
+  // Generate XML for each file
+  for (const [file, tests] of testsByFile) {
+    xml += `  <file path="${file}">\n`;
+    for (const test of tests) {
+      xml += `    <testCase name="${test.name}" duration="${test.duration}"`;
+      if (test.status === "PASSED") {
+        xml += "/>\n";
+      } else if (test.status === "SKIPPED") {
+        xml += ">\n      <skipped/>\n    </testCase>\n";
+      } else if (test.status === "FAILED") {
+        xml += ">\n      <failure/>\n    </testCase>\n";
+      }
+    }
+    xml += "  </file>\n";
+  }
+
+  xml += "</testExecutions>\n";
+
+  const reportPath = "test-results-sonar.xml";
+  await Deno.writeTextFile(reportPath, xml);
 
   console.log(`\nTest report generated: ${reportPath}`);
   console.log(`Total tests found: ${testExecutions.length}`);
