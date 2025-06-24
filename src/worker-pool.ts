@@ -91,7 +91,7 @@ export class TagLibWorkerPool {
   private workers: WorkerState[] = [];
   private queue: QueuedTask[] = [];
   private terminated = false;
-  private initPromise: Promise<void>;
+  private readonly initPromise: Promise<void>;
 
   private readonly size: number;
   private readonly debug: boolean;
@@ -106,7 +106,8 @@ export class TagLibWorkerPool {
     this.initTimeout = options.initTimeout ?? 30000;
     this.operationTimeout = options.operationTimeout ?? 60000;
 
-    this.initPromise = this.initializeWorkers();
+    // Initialize workers asynchronously after constructor
+    this.initPromise = Promise.resolve().then(() => this.initializeWorkers());
   }
 
   /**
@@ -409,9 +410,7 @@ let globalPool: TagLibWorkerPool | null = null;
 export function getGlobalWorkerPool(
   options?: WorkerPoolOptions,
 ): TagLibWorkerPool {
-  if (!globalPool) {
-    globalPool = new TagLibWorkerPool(options);
-  }
+  globalPool ??= new TagLibWorkerPool(options);
   return globalPool;
 }
 
