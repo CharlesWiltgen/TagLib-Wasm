@@ -56,4 +56,4 @@ jobs:
             -Dsonar.coverage.exclusions=**/*.test.ts,**/*.spec.ts,**/test-utils.ts,**/examples/**,**/scripts/**,**/tools/**,**/lib/**
             -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info
             -Dsonar.typescript.lcov.reportPaths=coverage/lcov.info
-            -Dsonar.testExecutionReportPaths=test-results-sonar.json
+            -Dsonar.testExecutionReportPaths=test-results-sonar.xml
