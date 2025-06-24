@@ -189,12 +189,18 @@ if (hasWorkerSupport) {
     // Should return the same instance
     assertEquals(pool1, pool2);
 
+    // Wait for initialization before terminating
+    await pool1.waitForReady();
+
     // Terminate global pool
     terminateGlobalWorkerPool();
 
     // Should create new instance
     const pool3 = getGlobalWorkerPool();
     assertEquals(pool3 !== pool1, true);
+
+    // Wait for initialization before terminating
+    await pool3.waitForReady();
 
     terminateGlobalWorkerPool();
   });
@@ -203,6 +209,9 @@ if (hasWorkerSupport) {
     const pool = new TagLibWorkerPool({ size: 2 });
 
     try {
+      // Wait for pool to be ready
+      await pool.waitForReady();
+
       // Process many files to test memory management
       const files = Array(20).fill(TEST_MP3);
 
