@@ -56,7 +56,7 @@ export async function loadWasmForDeno(
     async () => {
       if (typeof Deno !== "undefined" && !isDenoCompiled()) {
         try {
-          const path = options.wasmPath || "./build/taglib.wasm";
+          const path = options.wasmPath ?? "./build/taglib.wasm";
           return await Deno.readFile(path);
         } catch {
           // File not found, try next strategy

@@ -181,7 +181,6 @@ BACKLOG.md
 KNOWN_ISSUES.md
 
 # SonarQube test reports
-test-results-sonar.json
 eslint-report.json
-sonarcloud-report-*.md
-sonarcloud-report-*.json
+test-results-sonar.*
+sonarcloud-report-*.*

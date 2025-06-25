@@ -222,7 +222,7 @@ export async function imageFileToPicture(
     mimeType: file.type,
     data,
     type: typeof type === "string" ? PICTURE_TYPE_VALUES[type] : type,
-    description: description || file.name,
+    description: description ?? file.name,
   };
 }
 
@@ -323,11 +323,11 @@ export async function createPictureGallery(
 
   pictures.forEach((picture: Picture, index: number) => {
     const wrapper = document.createElement("div");
-    wrapper.className = options.className || "picture-item";
+    wrapper.className = options.className ?? "picture-item";
 
     const img = document.createElement("img");
     displayPicture(picture, img);
-    img.alt = picture.description || `Picture ${index + 1}`;
+    img.alt = picture.description ?? `Picture ${index + 1}`;
 
     if (options.onClick) {
       img.style.cursor = "pointer";

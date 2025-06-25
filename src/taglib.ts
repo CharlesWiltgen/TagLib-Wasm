@@ -555,7 +555,7 @@ export class AudioFileImpl implements AudioFile {
   /** @inheritdoc */
   async saveToFile(path?: string): Promise<void> {
     // Determine the target path
-    const targetPath = path || this.sourcePath;
+    const targetPath = path ?? this.sourcePath;
     if (!targetPath) {
       throw new Error(
         "No file path available. Either provide a path or open the file from a path.",
@@ -898,7 +898,7 @@ export class TagLib {
    * Enable or disable worker pool for this TagLib instance
    */
   setWorkerPool(pool: TagLibWorkerPool | null): void {
-    this.workerPool = pool || undefined;
+    this.workerPool = pool ?? undefined;
   }
 
   /**
