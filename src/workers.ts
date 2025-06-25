@@ -138,8 +138,11 @@ export class AudioFileWorkers {
   setTitle(title: string): void {
     if (this.tagPtr === 0) return;
     const titlePtr = jsToCString(this.module, title);
-    this.module._taglib_tag_set_title?.(this.tagPtr, titlePtr);
-    this.module._free(titlePtr);
+    try {
+      this.module._taglib_tag_set_title?.(this.tagPtr, titlePtr);
+    } finally {
+      this.module._free(titlePtr);
+    }
   }
 
   /**
@@ -149,8 +152,11 @@ export class AudioFileWorkers {
   setArtist(artist: string): void {
     if (this.tagPtr === 0) return;
     const artistPtr = jsToCString(this.module, artist);
-    this.module._taglib_tag_set_artist?.(this.tagPtr, artistPtr);
-    this.module._free(artistPtr);
+    try {
+      this.module._taglib_tag_set_artist?.(this.tagPtr, artistPtr);
+    } finally {
+      this.module._free(artistPtr);
+    }
   }
 
   /**
@@ -160,8 +166,11 @@ export class AudioFileWorkers {
   setAlbum(album: string): void {
     if (this.tagPtr === 0) return;
     const albumPtr = jsToCString(this.module, album);
-    this.module._taglib_tag_set_album?.(this.tagPtr, albumPtr);
-    this.module._free(albumPtr);
+    try {
+      this.module._taglib_tag_set_album?.(this.tagPtr, albumPtr);
+    } finally {
+      this.module._free(albumPtr);
+    }
   }
 
   /**
@@ -171,8 +180,11 @@ export class AudioFileWorkers {
   setComment(comment: string): void {
     if (this.tagPtr === 0) return;
     const commentPtr = jsToCString(this.module, comment);
-    this.module._taglib_tag_set_comment?.(this.tagPtr, commentPtr);
-    this.module._free(commentPtr);
+    try {
+      this.module._taglib_tag_set_comment?.(this.tagPtr, commentPtr);
+    } finally {
+      this.module._free(commentPtr);
+    }
   }
 
   /**
@@ -182,8 +194,11 @@ export class AudioFileWorkers {
   setGenre(genre: string): void {
     if (this.tagPtr === 0) return;
     const genrePtr = jsToCString(this.module, genre);
-    this.module._taglib_tag_set_genre?.(this.tagPtr, genrePtr);
-    this.module._free(genrePtr);
+    try {
+      this.module._taglib_tag_set_genre?.(this.tagPtr, genrePtr);
+    } finally {
+      this.module._free(genrePtr);
+    }
   }
 
   /**
@@ -364,40 +379,46 @@ export class TagLibWorkers {
     }
 
     // Use Emscripten's allocate function for proper memory management
-    let dataPtr: number;
-    if (this.module.allocate && this.module.ALLOC_NORMAL !== undefined) {
-      dataPtr = this.module.allocate(buffer, this.module.ALLOC_NORMAL);
-    } else {
-      dataPtr = this.module._malloc(buffer.length);
-      this.module.HEAPU8.set(buffer, dataPtr);
-    }
+    let dataPtr: number = 0;
+    try {
+      if (this.module.allocate && this.module.ALLOC_NORMAL !== undefined) {
+        dataPtr = this.module.allocate(buffer, this.module.ALLOC_NORMAL);
+      } else {
+        dataPtr = this.module._malloc(buffer.length);
+        this.module.HEAPU8.set(buffer, dataPtr);
+      }
 
-    if (!this.module._taglib_file_new_from_buffer) {
-      throw new EnvironmentError(
-        "Workers",
-        "requires C-style functions which are not available. Use the Full API instead for this environment",
-        "C-style function exports",
-      );
-    }
+      if (!this.module._taglib_file_new_from_buffer) {
+        throw new EnvironmentError(
+          "Workers",
+          "requires C-style functions which are not available. Use the Full API instead for this environment",
+          "C-style function exports",
+        );
+      }
 
-    const fileId = this.module._taglib_file_new_from_buffer(
-      dataPtr,
-      buffer.length,
-    );
-
-    if (fileId === 0) {
-      // Free the allocated memory since file creation failed
-      this.module._free(dataPtr);
-      throw new InvalidFormatError(
-        "Failed to open audio file. File format may be invalid or not supported",
+      const fileId = this.module._taglib_file_new_from_buffer(
+        dataPtr,
         buffer.length,
       );
+
+      if (fileId === 0) {
+        throw new InvalidFormatError(
+          "Failed to open audio file. File format may be invalid or not supported",
+          buffer.length,
+        );
+      }
+
+      // Free the temporary buffer copy (TagLib has made its own copy in ByteVector)
+      this.module._free(dataPtr);
+
+      return new AudioFileWorkers(this.module, fileId);
+    } catch (error) {
+      // Always free allocated memory on error
+      if (dataPtr) {
+        this.module._free(dataPtr);
+      }
+      throw error;
     }
-
-    // Free the temporary buffer copy (TagLib has made its own copy in ByteVector)
-    this.module._free(dataPtr);
-
-    return new AudioFileWorkers(this.module, fileId);
   }
 
   /**
