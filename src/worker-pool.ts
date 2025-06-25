@@ -72,8 +72,8 @@ interface WorkerState {
  *
  * @example
  * ```typescript
- * // Create a worker pool
- * const pool = new TagLibWorkerPool({ size: 4 });
+ * // Create and initialize a worker pool
+ * const pool = await createWorkerPool({ size: 4 });
  *
  * // Process files in parallel
  * const tags = await Promise.all(
@@ -91,14 +91,20 @@ export class TagLibWorkerPool {
   private workers: WorkerState[] = [];
   private queue: QueuedTask[] = [];
   private terminated = false;
-  private readonly initPromise: Promise<void>;
+  private initPromise?: Promise<void>;
   private waitForReadyTimer?: ReturnType<typeof setTimeout>;
+  private initialized = false;
 
   private readonly size: number;
   private readonly debug: boolean;
   private readonly initTimeout: number;
   private readonly operationTimeout: number;
 
+  /**
+   * Create a new worker pool instance.
+   * Note: Call initialize() before using the pool.
+   * @param options Worker pool configuration
+   */
   constructor(options: WorkerPoolOptions = {}) {
     this.size = options.size ??
       (typeof navigator !== "undefined" ? navigator.hardwareConcurrency : 4) ??
@@ -106,25 +112,30 @@ export class TagLibWorkerPool {
     this.debug = options.debug ?? false;
     this.initTimeout = options.initTimeout ?? 30000;
     this.operationTimeout = options.operationTimeout ?? 60000;
-
-    // Defer initialization to avoid async operation in constructor
-    this.initPromise = this.deferredInit();
   }
 
   /**
-   * Deferred initialization to avoid async operation in constructor
+   * Initialize the worker pool. Must be called before using the pool.
+   * @returns Promise that resolves when all workers are initialized
    */
-  private async deferredInit(): Promise<void> {
-    // Use queueMicrotask to ensure constructor completes first
-    await new Promise<void>((resolve) => queueMicrotask(resolve));
-    return this.initializeWorkers();
+  async initialize(): Promise<void> {
+    if (this.initialized) return this.initPromise;
+    if (this.initPromise) return this.initPromise;
+
+    this.initPromise = this.initializeWorkers();
+    await this.initPromise;
+    this.initialized = true;
+    return this.initPromise;
   }
 
   /**
    * Wait for the worker pool to be ready
    */
   async waitForReady(): Promise<void> {
-    await this.initPromise;
+    if (!this.initPromise) {
+      await this.initialize();
+    }
+    await this.initPromise!;
 
     // Double-check that all workers are initialized
     const maxRetries = 20; // Increase retries for slower CI environments
@@ -245,8 +256,10 @@ export class TagLibWorkerPool {
       throw new WorkerError("Worker pool has been terminated");
     }
 
-    // Wait for initialization
-    await this.initPromise;
+    // Ensure initialization
+    if (!this.initialized) {
+      await this.initialize();
+    }
 
     return new Promise((resolve, reject) => {
       const queuedTask: QueuedTask = { task, resolve, reject };
@@ -433,12 +446,29 @@ export class TagLibWorkerPool {
 let globalPool: TagLibWorkerPool | null = null;
 
 /**
+ * Create a new worker pool instance
+ * @param options Worker pool configuration
+ * @returns Promise that resolves to an initialized worker pool
+ */
+export async function createWorkerPool(
+  options?: WorkerPoolOptions,
+): Promise<TagLibWorkerPool> {
+  const pool = new TagLibWorkerPool(options);
+  await pool.initialize();
+  return pool;
+}
+
+/**
  * Get or create a global worker pool instance
+ * @deprecated Use createWorkerPool() instead for better error handling
  */
 export function getGlobalWorkerPool(
   options?: WorkerPoolOptions,
 ): TagLibWorkerPool {
-  globalPool ??= new TagLibWorkerPool(options);
+  if (!globalPool) {
+    globalPool = new TagLibWorkerPool(options);
+    // Note: Initialization happens on first use
+  }
   return globalPool;
 }
 
