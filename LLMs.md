@@ -1456,6 +1456,11 @@ export default {
    // Enable globally
    import { setWorkerPoolMode } from "taglib-wasm";
    setWorkerPoolMode(true);
+
+   // Or create custom pool (recommended)
+   import { createWorkerPool, setWorkerPoolMode } from "taglib-wasm";
+   const pool = await createWorkerPool({ size: 8 });
+   setWorkerPoolMode(true, pool);
    ```
 
 ## Common Mistakes to Avoid
@@ -1473,6 +1478,7 @@ export default {
 | Process files sequentially       | Use Folder API for batch operations                                        |
 | Import from `taglib-wasm/folder` | Import from main module                                                    |
 | Mix JSR and NPM in Deno          | Use only JSR package for Deno apps                                         |
+| `getGlobalWorkerPool()`          | Use `await createWorkerPool()` instead                                     |
 
 ### Critical Memory Management
 
