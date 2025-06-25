@@ -52,8 +52,8 @@ export class AudioFileWorkers {
   constructor(module: TagLibModule, fileId: number) {
     this.module = module;
     this.fileId = fileId;
-    this.tagPtr = module._taglib_file_tag?.(fileId) || 0;
-    this.propsPtr = module._taglib_file_audioproperties?.(fileId) || 0;
+    this.tagPtr = module._taglib_file_tag?.(fileId) ?? 0;
+    this.propsPtr = module._taglib_file_audioproperties?.(fileId) ?? 0;
   }
 
   /**
@@ -69,7 +69,7 @@ export class AudioFileWorkers {
    * @returns Audio format (e.g., "MP3", "FLAC", "OGG")
    */
   format(): AudioFormat {
-    const formatPtr = this.module._taglib_file_format?.(this.fileId) || 0;
+    const formatPtr = this.module._taglib_file_format?.(this.fileId) ?? 0;
     if (formatPtr === 0) return "MP3"; // fallback
     const formatStr = cStringToJS(this.module, formatPtr);
     return formatStr as AudioFormat;
@@ -82,13 +82,13 @@ export class AudioFileWorkers {
   tag(): Tag {
     if (this.tagPtr === 0) return {};
 
-    const title = this.module._taglib_tag_title?.(this.tagPtr) || 0;
-    const artist = this.module._taglib_tag_artist?.(this.tagPtr) || 0;
-    const album = this.module._taglib_tag_album?.(this.tagPtr) || 0;
-    const comment = this.module._taglib_tag_comment?.(this.tagPtr) || 0;
-    const genre = this.module._taglib_tag_genre?.(this.tagPtr) || 0;
-    const year = this.module._taglib_tag_year?.(this.tagPtr) || 0;
-    const track = this.module._taglib_tag_track?.(this.tagPtr) || 0;
+    const title = this.module._taglib_tag_title?.(this.tagPtr) ?? 0;
+    const artist = this.module._taglib_tag_artist?.(this.tagPtr) ?? 0;
+    const album = this.module._taglib_tag_album?.(this.tagPtr) ?? 0;
+    const comment = this.module._taglib_tag_comment?.(this.tagPtr) ?? 0;
+    const genre = this.module._taglib_tag_genre?.(this.tagPtr) ?? 0;
+    const year = this.module._taglib_tag_year?.(this.tagPtr) ?? 0;
+    const track = this.module._taglib_tag_track?.(this.tagPtr) ?? 0;
 
     return {
       title: title ? cStringToJS(this.module, title) : undefined,
@@ -96,8 +96,8 @@ export class AudioFileWorkers {
       album: album ? cStringToJS(this.module, album) : undefined,
       comment: comment ? cStringToJS(this.module, comment) : undefined,
       genre: genre ? cStringToJS(this.module, genre) : undefined,
-      year: year || undefined,
-      track: track || undefined,
+      year: year ?? undefined,
+      track: track ?? undefined,
     };
   }
 
@@ -109,15 +109,15 @@ export class AudioFileWorkers {
     if (this.propsPtr === 0) return null;
 
     const length =
-      this.module._taglib_audioproperties_length?.(this.propsPtr) || 0;
+      this.module._taglib_audioproperties_length?.(this.propsPtr) ?? 0;
     const bitrate =
-      this.module._taglib_audioproperties_bitrate?.(this.propsPtr) || 0;
+      this.module._taglib_audioproperties_bitrate?.(this.propsPtr) ?? 0;
     const sampleRate = this.module._taglib_audioproperties_samplerate?.(
       this.propsPtr,
-    ) || 0;
+    ) ?? 0;
     const channels = this.module._taglib_audioproperties_channels?.(
       this.propsPtr,
-    ) || 0;
+    ) ?? 0;
 
     return {
       length,

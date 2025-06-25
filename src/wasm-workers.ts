@@ -129,7 +129,7 @@ async function createWorkersCompatibleModule(): Promise<any> {
   try {
     // Try to import the existing module
     const wasmModule = await import("../build/taglib-wrapper.js");
-    return wasmModule.default || wasmModule;
+    return wasmModule.default ?? wasmModule;
   } catch (error) {
     // If that fails, provide a fallback implementation
     throw new TagLibInitializationError(

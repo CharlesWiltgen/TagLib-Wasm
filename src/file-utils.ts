@@ -135,8 +135,8 @@ const PICTURE_TYPE_NAMES: Record<number, string> = {
  * Generate filename for a picture
  */
 function generatePictureFilename(picture: Picture, index: number): string {
-  const typeName = PICTURE_TYPE_NAMES[picture.type] || "other";
-  const ext = picture.mimeType.split("/")[1] || "jpg";
+  const typeName = PICTURE_TYPE_NAMES[picture.type] ?? "other";
+  const ext = picture.mimeType.split("/")[1] ?? "jpg";
   return `${typeName}-${index + 1}.${ext}`;
 }
 
@@ -223,7 +223,7 @@ export async function importCoverArt(
       "webp": "image/webp",
       "bmp": "image/bmp",
     };
-    mimeType = mimeTypes[ext || ""] || "image/jpeg";
+    mimeType = mimeTypes[ext ?? ""] ?? "image/jpeg";
   }
 
   const modifiedBuffer = await setCoverArt(audioPath, imageData, mimeType);
@@ -276,7 +276,7 @@ export async function importPictureWithType(
       "webp": "image/webp",
       "bmp": "image/bmp",
     };
-    mimeType = mimeTypes[ext || ""] || "image/jpeg";
+    mimeType = mimeTypes[ext ?? ""] ?? "image/jpeg";
   }
 
   const picture: Picture = {
@@ -328,14 +328,14 @@ export async function loadPictureFromFile(
       "webp": "image/webp",
       "bmp": "image/bmp",
     };
-    mimeType = mimeTypes[ext || ""] || "image/jpeg";
+    mimeType = mimeTypes[ext ?? ""] ?? "image/jpeg";
   }
 
   return {
     mimeType,
     data,
     type: typeof type === "string" ? PICTURE_TYPE_VALUES[type] : type,
-    description: options.description || imagePath.split("/").pop(),
+    description: options.description ?? imagePath.split("/").pop(),
   };
 }
 
@@ -405,7 +405,7 @@ export async function copyCoverArt(
     const pictures = await readPictures(sourcePath);
     const coverPicture = pictures.find((p: Picture) =>
       p.type === PICTURE_TYPE_VALUES.FrontCover
-    ) || pictures[0];
+    ) ?? pictures[0];
 
     const modifiedBuffer = await setCoverArt(
       targetPath,
