@@ -93,7 +93,54 @@ These should be addressed before widespread adoption to improve developer experi
   - Update author field in package.json
   - Ensure consistent author info across all package files
 
-### 8. Add Migration Guides
+### 8. Fix Worker Type Checking Context Issues
+
+- **Priority**: HIGH
+- **Issue**: Workers fail type checking in Deno because they're checked in window/DOM context instead of worker context
+- **Root Cause Analysis**:
+  1. **Type Context Mismatch**: Worker files are type-checked as window scripts, not worker scripts
+     - `self.onmessage` and `self.postMessage` don't exist on `Window & typeof globalThis`
+     - Worker-specific globals are not available during type checking
+  2. **Import Chain Contamination**: Workers import modules that reference DOM APIs
+     - `src/workers/taglib-worker.ts` imports from `../simple.ts`
+     - `simple.ts` imports from modules that use DOM APIs (e.g., `web-utils.ts` with `HTMLCanvasElement`)
+     - These DOM types are incompatible with worker context
+  3. **Configuration Issues**: `deno.json` specifies `"lib": ["deno.window", "dom"]` globally
+     - This sets up window/DOM context for all files
+     - No separate configuration for worker files
+  4. **Worker Creation Method**: Using `new Worker(new URL(...))` works at runtime but not for static analysis
+
+- **Why It Only Fails During Type Checking**:
+  - At runtime, workers execute in correct context with proper globals
+  - During `deno check`, all files are analyzed in the default (window) context
+  - Tests pass without `--check` flag but fail with it
+  - The issue is purely about static type analysis, not runtime behavior
+
+- **Solutions**:
+  1. **Isolate Worker Code**:
+     - Create worker-specific modules that don't import DOM-dependent code
+     - Move shared logic to DOM-free utility modules
+     - Use dependency injection or configuration to avoid direct imports
+  2. **Configure Worker Type Context**:
+     - Add triple-slash directives to worker files: `/// <reference lib="webworker" />`
+     - Consider separate `tsconfig.json` for workers with `"lib": ["webworker"]`
+     - Use `.d.ts` files to declare worker-specific globals
+  3. **Refactor Import Structure**:
+     - Extract pure functions from `simple.ts` that don't depend on DOM
+     - Create a `worker-safe` module that workers can import
+     - Use dynamic imports with type guards for DOM-specific code
+  4. **Build Process Changes**:
+     - Compile workers separately with worker-specific type context
+     - Use build tools that understand worker context
+     - Consider using Web Workers API type definitions
+
+- **Impact**:
+  - Fixes test failures with type checking enabled
+  - Enables proper type safety for worker code
+  - Improves developer experience with correct IntelliSense
+  - Makes workers more reliable across different environments
+
+### 9. Add Migration Guides
 
 - **Priority**: LOW
 - **Tasks**:
