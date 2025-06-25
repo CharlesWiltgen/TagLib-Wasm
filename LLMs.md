@@ -1407,6 +1407,7 @@ export default {
 ### 🚀 Maximum Performance Checklist
 
 1. **Use Batch APIs for Multiple Files** (10-20x speedup)
+
    ```typescript
    // ❌ SLOW: Sequential processing
    for (const file of files) {
@@ -1435,6 +1436,7 @@ export default {
    - Each file uses ~2x its size in memory during processing
 
 5. **Album/Folder Processing**
+
    ```typescript
    // FASTEST: Process entire album at once
    const albumFiles = getAlbumFiles();
@@ -1449,6 +1451,7 @@ export default {
    - Larger memory allocation for batch operations
 
 7. **Worker Pool** (4x speedup for complex operations)
+
    ```typescript
    // Enable globally
    import { setWorkerPoolMode } from "taglib-wasm";
