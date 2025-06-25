@@ -62,7 +62,7 @@ let workerPoolInstance: TagLibWorkerPool | null = null;
  * setWorkerPoolMode(true);
  *
  * // Enable with custom pool
- * const pool = new TagLibWorkerPool({ size: 8 });
+ * const pool = await createWorkerPool({ size: 8 });
  * setWorkerPoolMode(true, pool);
  * ```
  */

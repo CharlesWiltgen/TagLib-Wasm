@@ -8,6 +8,7 @@ import {
 } from "https://deno.land/std@0.224.0/assert/mod.ts";
 import {
   type applyTags,
+  createWorkerPool,
   getGlobalWorkerPool,
   readPictures,
   readProperties,
@@ -28,12 +29,9 @@ const hasWorkerSupport = typeof Worker !== "undefined";
 
 if (hasWorkerSupport) {
   Deno.test("Worker Pool: Initialization", async () => {
-    const pool = new TagLibWorkerPool({ size: 2 });
+    const pool = await createWorkerPool({ size: 2 });
 
     try {
-      // Wait for worker pool to initialize
-      await pool.waitForReady();
-
       const stats = pool.getStats();
       assertEquals(stats.poolSize, 2);
       assertEquals(stats.initialized, true);
@@ -44,8 +42,7 @@ if (hasWorkerSupport) {
 
   Deno.test("Worker Pool: Simple API Integration", async () => {
     // Create and initialize a pool explicitly
-    const pool = new TagLibWorkerPool({ size: 2 });
-    await pool.waitForReady();
+    const pool = await createWorkerPool({ size: 2 });
 
     // Enable worker pool mode with our initialized pool
     setWorkerPoolMode(true, pool);

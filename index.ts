@@ -226,10 +226,12 @@ export { PICTURE_TYPE_NAMES, PICTURE_TYPE_VALUES } from "./src/types.ts";
 /**
  * Worker pool exports for parallel processing.
  * @see {@link TagLibWorkerPool} - Worker pool for parallel file processing
- * @see {@link getGlobalWorkerPool} - Get/create global worker pool instance
+ * @see {@link createWorkerPool} - Create and initialize a worker pool
+ * @see {@link getGlobalWorkerPool} - Get/create global worker pool instance (deprecated)
  * @see {@link terminateGlobalWorkerPool} - Terminate global worker pool
  */
 export {
+  createWorkerPool,
   getGlobalWorkerPool,
   TagLibWorkerPool,
   terminateGlobalWorkerPool,

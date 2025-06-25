@@ -20,6 +20,7 @@ export type { TagLibModule } from "./wasm.ts";
 
 // Export worker pool functionality
 export {
+  createWorkerPool,
   getGlobalWorkerPool,
   TagLibWorkerPool,
   terminateGlobalWorkerPool,
