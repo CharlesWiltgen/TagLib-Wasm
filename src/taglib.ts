@@ -376,10 +376,10 @@ export class AudioFileImpl implements AudioFile {
   private fileHandle: any;
   private cachedTag: Tag | null = null;
   private cachedAudioProperties: AudioProperties | null = null;
-  private sourcePath?: string;
+  private readonly sourcePath?: string;
   private originalSource?: string | File | ArrayBuffer | Uint8Array;
   private isPartiallyLoaded: boolean = false;
-  private partialLoadOptions?: OpenOptions;
+  private readonly partialLoadOptions?: OpenOptions;
 
   constructor(
     private module: TagLibModule,
@@ -842,7 +842,7 @@ export class AudioFileImpl implements AudioFile {
  * ```
  */
 export class TagLib {
-  private module: TagLibModule;
+  private readonly module: TagLibModule;
   private workerPool?: TagLibWorkerPool;
 
   constructor(module: WasmModule) {
