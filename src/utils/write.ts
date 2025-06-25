@@ -28,8 +28,7 @@ export async function writeFileData(
     // Node.js
     if (
       typeof (globalThis as any).process !== "undefined" &&
-      (globalThis as any).process.versions &&
-      (globalThis as any).process.versions.node
+      (globalThis as any).process.versions?.node
     ) {
       const { writeFile } = await import("fs/promises");
       await writeFile(path, data);
@@ -50,13 +49,16 @@ export async function writeFileData(
     );
   }
 
-  const env = typeof (globalThis as any).Deno !== "undefined"
-    ? "Deno"
-    : typeof (globalThis as any).process !== "undefined"
-    ? "Node.js"
-    : typeof (globalThis as any).Bun !== "undefined"
-    ? "Bun"
-    : "Browser";
+  let env: string;
+  if (typeof (globalThis as any).Deno !== "undefined") {
+    env = "Deno";
+  } else if (typeof (globalThis as any).process !== "undefined") {
+    env = "Node.js";
+  } else if (typeof (globalThis as any).Bun !== "undefined") {
+    env = "Bun";
+  } else {
+    env = "Browser";
+  }
   throw new EnvironmentError(
     env,
     "does not support file path writing",

@@ -15,8 +15,7 @@ function detectRuntime(): {
 } {
   const hasDeno = typeof (globalThis as any).Deno !== "undefined";
   const hasNode = typeof (globalThis as any).process !== "undefined" &&
-    (globalThis as any).process.versions &&
-    (globalThis as any).process.versions.node;
+    (globalThis as any).process.versions?.node;
   const hasBun = typeof (globalThis as any).Bun !== "undefined";
 
   return { hasDeno, hasNode, hasBun };
@@ -111,8 +110,7 @@ export async function readFileData(
 export async function getFileSize(path: string): Promise<number> {
   const hasDeno = typeof (globalThis as any).Deno !== "undefined";
   const hasNode = typeof (globalThis as any).process !== "undefined" &&
-    (globalThis as any).process.versions &&
-    (globalThis as any).process.versions.node;
+    (globalThis as any).process.versions?.node;
   const hasBun = typeof (globalThis as any).Bun !== "undefined";
 
   if (!hasDeno && !hasNode && !hasBun) {
@@ -175,8 +173,7 @@ export async function readPartialFileData(
 ): Promise<Uint8Array> {
   const hasDeno = typeof (globalThis as any).Deno !== "undefined";
   const hasNode = typeof (globalThis as any).process !== "undefined" &&
-    (globalThis as any).process.versions &&
-    (globalThis as any).process.versions.node;
+    (globalThis as any).process.versions?.node;
 
   if (!hasDeno && !hasNode) {
     throw new EnvironmentError(
