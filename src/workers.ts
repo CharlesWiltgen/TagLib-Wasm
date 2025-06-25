@@ -44,10 +44,10 @@ import { EnvironmentError, InvalidFormatError, MemoryError } from "./errors.ts";
  * ```
  */
 export class AudioFileWorkers {
-  private module: TagLibModule;
+  private readonly module: TagLibModule;
   private fileId: number;
-  private tagPtr: number;
-  private propsPtr: number;
+  private readonly tagPtr: number;
+  private readonly propsPtr: number;
 
   constructor(module: TagLibModule, fileId: number) {
     this.module = module;
@@ -325,7 +325,7 @@ export class AudioFileWorkers {
  * ```
  */
 export class TagLibWorkers {
-  private module: TagLibModule;
+  private readonly module: TagLibModule;
 
   private constructor(module: TagLibModule) {
     this.module = module;
