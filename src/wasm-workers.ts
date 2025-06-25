@@ -156,6 +156,7 @@ export function cStringToJS(module: TagLibModule, ptr: number): string {
 
 /**
  * Convert JavaScript string to C string (Workers-compatible)
+ * Note: This function allocates memory that must be freed by the caller
  */
 export function jsToCString(module: TagLibModule, str: string): number {
   const encoder = new TextEncoder();
@@ -166,8 +167,14 @@ export function jsToCString(module: TagLibModule, str: string): number {
     return module.allocate(bytes, module.ALLOC_NORMAL);
   } else {
     const ptr = module._malloc(bytes.length);
-    module.HEAPU8.set(bytes, ptr);
-    return ptr;
+    try {
+      module.HEAPU8.set(bytes, ptr);
+      return ptr;
+    } catch (error) {
+      // Free memory if set operation fails
+      module._free(ptr);
+      throw error;
+    }
   }
 }
 
