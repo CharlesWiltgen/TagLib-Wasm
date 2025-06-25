@@ -274,7 +274,7 @@ async function processFileWithWorker(
   return {
     path: filePath,
     tags,
-    properties: properties || undefined,
+    properties: properties ?? undefined,
     hasCoverArt,
     dynamics,
   };
@@ -406,11 +406,11 @@ export async function scanFolder(
 
   // Determine if we should use worker pool
   const shouldUseWorkerPool = useWorkerPool &&
-    (workerPool || typeof Worker !== "undefined");
+    (workerPool ?? typeof Worker !== "undefined");
   let pool: TagLibWorkerPool | null = null;
 
   if (shouldUseWorkerPool) {
-    pool = workerPool || getGlobalWorkerPool();
+    pool = workerPool ?? getGlobalWorkerPool();
   }
 
   // Initialize TagLib if not using worker pool
@@ -637,12 +637,12 @@ export async function findDuplicates(
   // Group by composite key
   for (const file of result.files) {
     const key = criteria
-      .map((field) => file.tags[field] || "")
+      .map((field) => file.tags[field] ?? "")
       .filter((v) => v !== "")
       .join("|");
 
     if (key) {
-      const group = duplicates.get(key) || [];
+      const group = duplicates.get(key) ?? [];
       group.push(file);
       duplicates.set(key, group);
     }
