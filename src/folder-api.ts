@@ -114,71 +114,88 @@ const DEFAULT_AUDIO_EXTENSIONS = [
 ];
 
 /**
+ * Process a directory entry
+ */
+async function* processDirectoryEntry(
+  path: string,
+  entryName: string,
+  isDirectory: boolean,
+  isFile: boolean,
+  options: FolderScanOptions,
+): AsyncGenerator<string> {
+  const { recursive = true, extensions = DEFAULT_AUDIO_EXTENSIONS } = options;
+  const fullPath = join(path, entryName);
+
+  if (isDirectory && recursive) {
+    yield* walkDirectory(fullPath, options);
+  } else if (isFile) {
+    const ext = extname(entryName).toLowerCase();
+    if (extensions.includes(ext)) {
+      yield fullPath;
+    }
+  }
+}
+
+/**
+ * Get directory reader for current runtime
+ */
+async function getDirectoryReader() {
+  if (typeof Deno !== "undefined") {
+    return {
+      readDir: async function* (path: string) {
+        for await (const entry of Deno.readDir(path)) {
+          yield {
+            name: entry.name,
+            isDirectory: entry.isDirectory,
+            isFile: entry.isFile,
+          };
+        }
+      },
+    };
+  }
+
+  // Node.js or Bun runtime
+  const isNode = typeof (globalThis as any).process !== "undefined" &&
+    (globalThis as any).process.versions?.node;
+  const isBun = typeof (globalThis as any).process !== "undefined" &&
+    (globalThis as any).process.versions?.bun;
+
+  if (isNode || isBun) {
+    const fs = await import("fs/promises");
+    return {
+      readDir: async function* (path: string) {
+        const entries = await fs.readdir(path, { withFileTypes: true });
+        for (const entry of entries) {
+          yield {
+            name: entry.name,
+            isDirectory: entry.isDirectory(),
+            isFile: entry.isFile(),
+          };
+        }
+      },
+    };
+  }
+
+  throw new Error("Directory scanning not supported in this runtime");
+}
+
+/**
  * Cross-runtime directory reading
  */
 async function* walkDirectory(
   path: string,
   options: FolderScanOptions = {},
 ): AsyncGenerator<string> {
-  const { recursive = true, extensions = DEFAULT_AUDIO_EXTENSIONS } = options;
+  const reader = await getDirectoryReader();
 
-  // Runtime-specific directory reading
-  if (typeof Deno !== "undefined") {
-    // Deno runtime
-    for await (const entry of Deno.readDir(path)) {
-      const fullPath = join(path, entry.name);
-
-      if (entry.isDirectory && recursive) {
-        yield* walkDirectory(fullPath, options);
-      } else if (entry.isFile) {
-        const ext = extname(entry.name).toLowerCase();
-        if (extensions.includes(ext)) {
-          yield fullPath;
-        }
-      }
-    }
-  } else if (
-    typeof (globalThis as any).process !== "undefined" &&
-    (globalThis as any).process.versions?.node
-  ) {
-    // Node.js runtime
-    const fs = await import("fs/promises");
-    const entries = await fs.readdir(path, { withFileTypes: true });
-
-    for (const entry of entries) {
-      const fullPath = join(path, entry.name);
-
-      if (entry.isDirectory() && recursive) {
-        yield* walkDirectory(fullPath, options);
-      } else if (entry.isFile()) {
-        const ext = extname(entry.name).toLowerCase();
-        if (extensions.includes(ext)) {
-          yield fullPath;
-        }
-      }
-    }
-  } else if (
-    typeof (globalThis as any).process !== "undefined" &&
-    (globalThis as any).process.versions?.bun
-  ) {
-    // Bun runtime
-    const fs = await import("fs/promises");
-    const entries = await fs.readdir(path, { withFileTypes: true });
-
-    for (const entry of entries) {
-      const fullPath = join(path, entry.name);
-
-      if (entry.isDirectory() && recursive) {
-        yield* walkDirectory(fullPath, options);
-      } else if (entry.isFile()) {
-        const ext = extname(entry.name).toLowerCase();
-        if (extensions.includes(ext)) {
-          yield fullPath;
-        }
-      }
-    }
-  } else {
-    throw new Error("Directory scanning not supported in this runtime");
+  for await (const entry of reader.readDir(path)) {
+    yield* processDirectoryEntry(
+      path,
+      entry.name,
+      entry.isDirectory,
+      entry.isFile,
+      options,
+    );
   }
 }
 
