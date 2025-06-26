@@ -1,3 +1,6 @@
+/* eslint-disable sonarjs/no-empty-test-file */
+// NOSONAR: This file contains Deno tests which SonarQube doesn't recognize
+
 import {
   assertEquals,
   assertThrows,
