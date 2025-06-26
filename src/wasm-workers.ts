@@ -54,7 +54,7 @@ function createModuleConfig(
  */
 function setupMemoryArrays(wasmInstance: any): void {
   if (!wasmInstance.HEAPU8) {
-    const buffer = wasmInstance.buffer || wasmInstance.wasmMemory?.buffer;
+    const buffer = wasmInstance.buffer ?? wasmInstance.wasmMemory?.buffer;
     if (buffer) {
       wasmInstance.HEAPU8 = new Uint8Array(buffer);
       wasmInstance.HEAP8 = new Int8Array(buffer);

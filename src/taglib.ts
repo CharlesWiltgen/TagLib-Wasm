@@ -1,5 +1,6 @@
 import type { TagLibModule, WasmModule } from "./wasm.ts";
 import type {
+  AudioFileInput,
   AudioProperties,
   FileType,
   OpenOptions,
@@ -377,15 +378,15 @@ export class AudioFileImpl implements AudioFile {
   private cachedTag: Tag | null = null;
   private cachedAudioProperties: AudioProperties | null = null;
   private readonly sourcePath?: string;
-  private originalSource?: string | File | ArrayBuffer | Uint8Array;
+  private originalSource?: AudioFileInput;
   private isPartiallyLoaded: boolean = false;
   private readonly partialLoadOptions?: OpenOptions;
 
   constructor(
-    private module: TagLibModule,
+    private readonly module: TagLibModule,
     fileHandle: any,
     sourcePath?: string,
-    originalSource?: string | File | ArrayBuffer | Uint8Array,
+    originalSource?: AudioFileInput,
     isPartiallyLoaded: boolean = false,
     partialLoadOptions?: OpenOptions,
   ) {

@@ -13,6 +13,11 @@ export type { TagLibModule } from "./wasm.ts";
 // Note: AudioFile is not needed for JSR exports
 
 /**
+ * Input types accepted by taglib-wasm for audio files
+ */
+export type AudioFileInput = string | Uint8Array | ArrayBuffer | File;
+
+/**
  * Supported file types detected by TagLib.
  * "UNKNOWN" indicates the format could not be determined.
  *
