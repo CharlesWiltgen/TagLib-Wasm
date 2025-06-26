@@ -465,10 +465,7 @@ export async function createWorkerPool(
 export function getGlobalWorkerPool(
   options?: WorkerPoolOptions,
 ): TagLibWorkerPool {
-  if (!globalPool) {
-    globalPool = new TagLibWorkerPool(options);
-    // Note: Initialization happens on first use
-  }
+  globalPool ??= new TagLibWorkerPool(options);
   return globalPool;
 }
 

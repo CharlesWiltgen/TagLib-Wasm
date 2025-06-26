@@ -431,15 +431,14 @@ export async function scanFolder(
         // Process batch in parallel using worker pool
         const batchPromises = batch.map(async (filePath) => {
           try {
-            const [tags, properties, pictures] = await Promise.all([
+            // Pre-fetch data to warm up the worker pool
+            await Promise.all([
               pool!.readTags(filePath),
               includeProperties
                 ? pool!.readProperties(filePath)
                 : Promise.resolve(null),
               pool!.readPictures(filePath),
             ]);
-
-            const hasCoverArt = pictures.length > 0;
 
             return await processFileWithWorker(
               filePath,
@@ -480,19 +479,13 @@ export async function scanFolder(
           // Open file once and read both tags and properties
           const audioFile = await taglib!.open(filePath);
           try {
-            const tags = audioFile.tag();
-            let properties: AudioProperties | undefined;
-
+            // Pre-read data to ensure file is valid
+            audioFile.tag();
             if (includeProperties) {
-              const props = audioFile.audioProperties();
-              if (props) {
-                properties = props;
-              }
+              audioFile.audioProperties();
             }
-
             // Check if the file has cover art
-            const pictures = audioFile.getPictures();
-            const hasCoverArt = pictures.length > 0;
+            audioFile.getPictures();
 
             return await processFileWithTagLib(
               filePath,
