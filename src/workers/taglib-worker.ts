@@ -6,12 +6,10 @@
  */
 
 import type { TagLib } from "../taglib.ts";
-import type { AudioProperties, Picture, Tag } from "../types.ts";
+import type { Tag } from "../types.ts";
 import {
   applyTags,
-  type readPictures,
   readProperties,
-  type readTags,
   setCoverArt,
   updateTags,
 } from "../simple.ts";

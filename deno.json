@@ -83,7 +83,7 @@
     "dev": "deno run --watch --allow-read --allow-write examples/basic-usage.ts",
     "fmt": "deno fmt",
     "lint": "deno lint",
-    "check": "deno check **/*.ts",
+    "check": "deno check mod.ts src/**/*.ts tests/**/*.ts",
     "version:patch": "deno run --allow-read --allow-write scripts/sync-version.ts patch",
     "version:minor": "deno run --allow-read --allow-write scripts/sync-version.ts minor",
     "version:major": "deno run --allow-read --allow-write scripts/sync-version.ts major",

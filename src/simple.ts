@@ -31,14 +31,19 @@
  */
 
 import type { TagLib } from "./taglib.ts";
-import type { AudioProperties, Picture, PictureType, Tag } from "./types.ts";
+import type {
+  AudioFileInput,
+  AudioProperties,
+  Picture,
+  PictureType,
+  Tag,
+} from "./types.ts";
 import { PICTURE_TYPE_VALUES } from "./types.ts";
 import {
   FileOperationError,
   InvalidFormatError,
   MetadataError,
 } from "./errors.ts";
-import type { readFileData } from "./utils/file.ts";
 import { writeFileData } from "./utils/write.ts";
 import { getGlobalWorkerPool, type TagLibWorkerPool } from "./worker-pool.ts";
 
@@ -94,7 +99,7 @@ async function getTagLib(): Promise<TagLib> {
     const { TagLib } = await import("./taglib.ts");
     cachedTagLib = await TagLib.initialize();
   }
-  return cachedTagLib as TagLib;
+  return cachedTagLib;
 }
 
 /**
@@ -110,7 +115,7 @@ async function getTagLib(): Promise<TagLib> {
  * ```
  */
 export async function readTags(
-  file: string | Uint8Array | ArrayBuffer | File,
+  file: AudioFileInput,
 ): Promise<Tag> {
   // Use worker pool if enabled and file is string or Uint8Array
   if (

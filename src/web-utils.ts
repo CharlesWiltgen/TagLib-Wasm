@@ -65,7 +65,8 @@ export function dataURLToPicture(
   description?: string,
 ): Picture {
   // Parse data URL
-  const matches = dataURL.match(/^data:([^;]+);base64,(.+)$/);
+  const regex = /^data:([^;]+);base64,(.+)$/;
+  const matches = regex.exec(dataURL);
   if (!matches) {
     throw new Error("Invalid data URL format");
   }
