@@ -1,0 +1,742 @@
+
+---
+events:
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/opt/homebrew/share/cmake/Modules/CMakeDetermineSystem.cmake:200 (message)"
+      - "CMakeLists.txt:3 (project)"
+    message: |
+      The target system is: WASI - 1 - wasm32
+      The host system is: Darwin - 24.6.0 - x86_64
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/opt/homebrew/share/cmake/Modules/CMakeDetermineCompilerId.cmake:17 (message)"
+      - "/opt/homebrew/share/cmake/Modules/CMakeDetermineCompilerId.cmake:64 (__determine_compiler_id_test)"
+      - "/opt/homebrew/share/cmake/Modules/CMakeDetermineCCompiler.cmake:123 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:3 (project)"
+    message: |
+      Compiling the C compiler identification source file "CMakeCCompilerId.c" succeeded.
+      Compiler: /Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/bin/clang 
+      Build flags: -O3
+      Id flags: -c;--target=wasm32-wasi 
+      
+      The output was:
+      0
+      
+      
+      Compilation of the C compiler identification source "CMakeCCompilerId.c" produced "CMakeCCompilerId.o"
+      
+      The C compiler identification is Clang, found in:
+        /Users/Charles/Projects/taglib-wasm/build/wasi/taglib/CMakeFiles/4.0.3/CompilerIdC/CMakeCCompilerId.o
+      
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/opt/homebrew/share/cmake/Modules/CMakeDetermineCompilerId.cmake:17 (message)"
+      - "/opt/homebrew/share/cmake/Modules/CMakeDetermineCompilerId.cmake:64 (__determine_compiler_id_test)"
+      - "/opt/homebrew/share/cmake/Modules/CMakeDetermineCXXCompiler.cmake:126 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:3 (project)"
+    message: |
+      Compiling the CXX compiler identification source file "CMakeCXXCompilerId.cpp" succeeded.
+      Compiler: /Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/bin/clang++ 
+      Build flags: -O3;-fno-exceptions;-fno-rtti
+      Id flags: -c;--target=wasm32-wasi 
+      
+      The output was:
+      0
+      
+      
+      Compilation of the CXX compiler identification source "CMakeCXXCompilerId.cpp" produced "CMakeCXXCompilerId.o"
+      
+      The CXX compiler identification is Clang, found in:
+        /Users/Charles/Projects/taglib-wasm/build/wasi/taglib/CMakeFiles/4.0.3/CompilerIdCXX/CMakeCXXCompilerId.o
+      
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/opt/homebrew/share/cmake/Modules/CMakeDetermineCompilerABI.cmake:83 (try_compile)"
+      - "/opt/homebrew/share/cmake/Modules/CMakeTestCCompiler.cmake:26 (CMAKE_DETERMINE_COMPILER_ABI)"
+      - "CMakeLists.txt:3 (project)"
+    checks:
+      - "Detecting C compiler ABI info"
+    directories:
+      source: "/Users/Charles/Projects/taglib-wasm/build/wasi/taglib/CMakeFiles/CMakeScratch/TryCompile-g3ubQn"
+      binary: "/Users/Charles/Projects/taglib-wasm/build/wasi/taglib/CMakeFiles/CMakeScratch/TryCompile-g3ubQn"
+    cmakeVariables:
+      CMAKE_CXX_COMPILER_CLANG_SCAN_DEPS: "CMAKE_CXX_COMPILER_CLANG_SCAN_DEPS-NOTFOUND"
+      CMAKE_CXX_COMPILER_TARGET: "wasm32-wasi"
+      CMAKE_C_COMPILER_TARGET: "wasm32-wasi"
+      CMAKE_C_FLAGS: "-O3"
+      CMAKE_EXE_LINKER_FLAGS: ""
+      CMAKE_MODULE_PATH: "/Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/share/cmake;/Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/share/cmake"
+      CMAKE_SYSROOT: "/Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/share/wasi-sysroot"
+    buildResult:
+      variable: "CMAKE_C_ABI_COMPILED"
+      cached: true
+      stdout: |
+        Change Dir: '/Users/Charles/Projects/taglib-wasm/build/wasi/taglib/CMakeFiles/CMakeScratch/TryCompile-g3ubQn'
+        
+        Run Build Command(s): /opt/homebrew/bin/cmake -E env VERBOSE=1 /usr/bin/make -f Makefile cmTC_5d44d/fast
+        /Applications/Xcode.app/Contents/Developer/usr/bin/make  -f CMakeFiles/cmTC_5d44d.dir/build.make CMakeFiles/cmTC_5d44d.dir/build
+        Building C object CMakeFiles/cmTC_5d44d.dir/CMakeCCompilerABI.c.obj
+        /Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/bin/clang --target=wasm32-wasi --sysroot=/Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/share/wasi-sysroot   -O3    -v -MD -MT CMakeFiles/cmTC_5d44d.dir/CMakeCCompilerABI.c.obj -MF CMakeFiles/cmTC_5d44d.dir/CMakeCCompilerABI.c.obj.d -o CMakeFiles/cmTC_5d44d.dir/CMakeCCompilerABI.c.obj -c /opt/homebrew/share/cmake/Modules/CMakeCCompilerABI.c
+        clang version 20.1.8-wasi-sdk (https://github.com/llvm/llvm-project 87f0227cb60147a26a1eeb4fb06e3b505e9c7261)
+        Target: wasm32-unknown-wasi
+        Thread model: posix
+        InstalledDir: /Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/bin
+        Configuration file: /Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/bin/clang.cfg
+         (in-process)
+         "/Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/bin/clang-20" -cc1 -triple wasm32-unknown-wasi -emit-obj -disable-free -clear-ast-before-backend -disable-llvm-verifier -discard-value-names -main-file-name CMakeCCompilerABI.c -mrelocation-model static -mframe-pointer=none -ffp-contract=on -fno-rounding-math -mconstructor-aliases -target-cpu generic -fvisibility=hidden -debugger-tuning=gdb -fdebug-compilation-dir=/Users/Charles/Projects/taglib-wasm/build/wasi/taglib/CMakeFiles/CMakeScratch/TryCompile-g3ubQn -target-linker-version 1053.12 -v -fcoverage-compilation-dir=/Users/Charles/Projects/taglib-wasm/build/wasi/taglib/CMakeFiles/CMakeScratch/TryCompile-g3ubQn -resource-dir /Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/lib/clang/20 -dependency-file CMakeFiles/cmTC_5d44d.dir/CMakeCCompilerABI.c.obj.d -MT CMakeFiles/cmTC_5d44d.dir/CMakeCCompilerABI.c.obj -sys-header-deps -isysroot /Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/share/wasi-sysroot -internal-isystem /Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/lib/clang/20/include -internal-isystem /Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/share/wasi-sysroot/include/wasm32-wasi -internal-isystem /Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/share/wasi-sysroot/include -O3 -ferror-limit 19 -fgnuc-version=4.2.1 -fskip-odr-check-in-gmf -vectorize-loops -vectorize-slp -o CMakeFiles/cmTC_5d44d.dir/CMakeCCompilerABI.c.obj -x c /opt/homebrew/share/cmake/Modules/CMakeCCompilerABI.c
+        clang -cc1 version 20.1.8-wasi-sdk based upon LLVM 20.1.8-wasi-sdk default target wasm32-wasi
+        #include "..." search starts here:
+        #include <...> search starts here:
+         /Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/lib/clang/20/include
+         /Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/share/wasi-sysroot/include/wasm32-wasi
+         /Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/share/wasi-sysroot/include
+        End of search list.
+        Linking C executable cmTC_5d44d
+        /opt/homebrew/bin/cmake -E cmake_link_script CMakeFiles/cmTC_5d44d.dir/link.txt --verbose=1
+        clang version 20.1.8-wasi-sdk (https://github.com/llvm/llvm-project 87f0227cb60147a26a1eeb4fb06e3b505e9c7261)
+        Target: wasm32-unknown-wasi
+        Thread model: posix
+        InstalledDir: /Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/bin
+        Configuration file: /Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/bin/clang.cfg
+         "/Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/bin/wasm-ld" -m wasm32 -L/Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/lib/clang/20/lib/wasm32-unknown-wasi -L/Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/share/wasi-sysroot/lib/wasm32-wasi /Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/share/wasi-sysroot/lib/wasm32-wasi/crt1-command.o CMakeFiles/cmTC_5d44d.dir/CMakeCCompilerABI.c.obj -lc /Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/lib/clang/20/lib/wasm32-unknown-wasi/libclang_rt.builtins.a -o cmTC_5d44d
+        /Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/bin/clang --target=wasm32-wasi --sysroot=/Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/share/wasi-sysroot -O3   -v CMakeFiles/cmTC_5d44d.dir/CMakeCCompilerABI.c.obj -o cmTC_5d44d
+        
+      exitCode: 0
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/opt/homebrew/share/cmake/Modules/CMakeDetermineCompilerABI.cmake:191 (message)"
+      - "/opt/homebrew/share/cmake/Modules/CMakeTestCCompiler.cmake:26 (CMAKE_DETERMINE_COMPILER_ABI)"
+      - "CMakeLists.txt:3 (project)"
+    message: |
+      Parsed C implicit include dir info: rv=done
+        found start of include info
+        found start of implicit include info
+          add: [/Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/lib/clang/20/include]
+          add: [/Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/share/wasi-sysroot/include/wasm32-wasi]
+          add: [/Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/share/wasi-sysroot/include]
+        end of search list found
+        collapse include dir [/Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/lib/clang/20/include] ==> [/Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/lib/clang/20/include]
+        collapse include dir [/Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/share/wasi-sysroot/include/wasm32-wasi] ==> [/Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/share/wasi-sysroot/include/wasm32-wasi]
+        collapse include dir [/Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/share/wasi-sysroot/include] ==> [/Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/share/wasi-sysroot/include]
+        implicit include dirs: [/Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/lib/clang/20/include;/Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/share/wasi-sysroot/include/wasm32-wasi;/Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/share/wasi-sysroot/include]
+      
+      
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/opt/homebrew/share/cmake/Modules/CMakeDetermineCompilerABI.cmake:227 (message)"
+      - "/opt/homebrew/share/cmake/Modules/CMakeTestCCompiler.cmake:26 (CMAKE_DETERMINE_COMPILER_ABI)"
+      - "CMakeLists.txt:3 (project)"
+    message: |
+      Parsed C implicit link information:
+        link line regex: [^( *|.*[/\\])(ld[0-9]*(|\\.[a-rt-z][a-z]*|\\.s[a-np-z][a-z]*|\\.so[a-z]+)|CMAKE_LINK_STARTFILE-NOTFOUND|([^/\\]+-)?ld|collect2)[^/\\]*( |$)]
+        linker tool regex: [^[ 	]*(->|")?[ 	]*(([^"]*[/\\])?(ld[0-9]*(|\\.[a-rt-z][a-z]*|\\.s[a-np-z][a-z]*|\\.so[a-z]+)))("|,| |$)]
+        ignore line: [Change Dir: '/Users/Charles/Projects/taglib-wasm/build/wasi/taglib/CMakeFiles/CMakeScratch/TryCompile-g3ubQn']
+        ignore line: []
+        ignore line: [Run Build Command(s): /opt/homebrew/bin/cmake -E env VERBOSE=1 /usr/bin/make -f Makefile cmTC_5d44d/fast]
+        ignore line: [/Applications/Xcode.app/Contents/Developer/usr/bin/make  -f CMakeFiles/cmTC_5d44d.dir/build.make CMakeFiles/cmTC_5d44d.dir/build]
+        ignore line: [Building C object CMakeFiles/cmTC_5d44d.dir/CMakeCCompilerABI.c.obj]
+        ignore line: [/Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/bin/clang --target=wasm32-wasi --sysroot=/Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/share/wasi-sysroot   -O3    -v -MD -MT CMakeFiles/cmTC_5d44d.dir/CMakeCCompilerABI.c.obj -MF CMakeFiles/cmTC_5d44d.dir/CMakeCCompilerABI.c.obj.d -o CMakeFiles/cmTC_5d44d.dir/CMakeCCompilerABI.c.obj -c /opt/homebrew/share/cmake/Modules/CMakeCCompilerABI.c]
+        ignore line: [clang version 20.1.8-wasi-sdk (https://github.com/llvm/llvm-project 87f0227cb60147a26a1eeb4fb06e3b505e9c7261)]
+        ignore line: [Target: wasm32-unknown-wasi]
+        ignore line: [Thread model: posix]
+        ignore line: [InstalledDir: /Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/bin]
+        ignore line: [Configuration file: /Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/bin/clang.cfg]
+        ignore line: [ (in-process)]
+        ignore line: [ "/Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/bin/clang-20" -cc1 -triple wasm32-unknown-wasi -emit-obj -disable-free -clear-ast-before-backend -disable-llvm-verifier -discard-value-names -main-file-name CMakeCCompilerABI.c -mrelocation-model static -mframe-pointer=none -ffp-contract=on -fno-rounding-math -mconstructor-aliases -target-cpu generic -fvisibility=hidden -debugger-tuning=gdb -fdebug-compilation-dir=/Users/Charles/Projects/taglib-wasm/build/wasi/taglib/CMakeFiles/CMakeScratch/TryCompile-g3ubQn -target-linker-version 1053.12 -v -fcoverage-compilation-dir=/Users/Charles/Projects/taglib-wasm/build/wasi/taglib/CMakeFiles/CMakeScratch/TryCompile-g3ubQn -resource-dir /Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/lib/clang/20 -dependency-file CMakeFiles/cmTC_5d44d.dir/CMakeCCompilerABI.c.obj.d -MT CMakeFiles/cmTC_5d44d.dir/CMakeCCompilerABI.c.obj -sys-header-deps -isysroot /Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/share/wasi-sysroot -internal-isystem /Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/lib/clang/20/include -internal-isystem /Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/share/wasi-sysroot/include/wasm32-wasi -internal-isystem /Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/share/wasi-sysroot/include -O3 -ferror-limit 19 -fgnuc-version=4.2.1 -fskip-odr-check-in-gmf -vectorize-loops -vectorize-slp -o CMakeFiles/cmTC_5d44d.dir/CMakeCCompilerABI.c.obj -x c /opt/homebrew/share/cmake/Modules/CMakeCCompilerABI.c]
+        ignore line: [clang -cc1 version 20.1.8-wasi-sdk based upon LLVM 20.1.8-wasi-sdk default target wasm32-wasi]
+        ignore line: [#include "..." search starts here:]
+        ignore line: [#include <...> search starts here:]
+        ignore line: [ /Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/lib/clang/20/include]
+        ignore line: [ /Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/share/wasi-sysroot/include/wasm32-wasi]
+        ignore line: [ /Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/share/wasi-sysroot/include]
+        ignore line: [End of search list.]
+        ignore line: [Linking C executable cmTC_5d44d]
+        ignore line: [/opt/homebrew/bin/cmake -E cmake_link_script CMakeFiles/cmTC_5d44d.dir/link.txt --verbose=1]
+        ignore line: [clang version 20.1.8-wasi-sdk (https://github.com/llvm/llvm-project 87f0227cb60147a26a1eeb4fb06e3b505e9c7261)]
+        ignore line: [Target: wasm32-unknown-wasi]
+        ignore line: [Thread model: posix]
+        ignore line: [InstalledDir: /Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/bin]
+        ignore line: [Configuration file: /Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/bin/clang.cfg]
+        link line: [ "/Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/bin/wasm-ld" -m wasm32 -L/Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/lib/clang/20/lib/wasm32-unknown-wasi -L/Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/share/wasi-sysroot/lib/wasm32-wasi /Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/share/wasi-sysroot/lib/wasm32-wasi/crt1-command.o CMakeFiles/cmTC_5d44d.dir/CMakeCCompilerABI.c.obj -lc /Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/lib/clang/20/lib/wasm32-unknown-wasi/libclang_rt.builtins.a -o cmTC_5d44d]
+          arg [/Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/bin/wasm-ld] ==> ignore
+          arg [-m] ==> ignore
+          arg [wasm32] ==> ignore
+          arg [-L/Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/lib/clang/20/lib/wasm32-unknown-wasi] ==> dir [/Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/lib/clang/20/lib/wasm32-unknown-wasi]
+          arg [-L/Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/share/wasi-sysroot/lib/wasm32-wasi] ==> dir [/Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/share/wasi-sysroot/lib/wasm32-wasi]
+          arg [/Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/share/wasi-sysroot/lib/wasm32-wasi/crt1-command.o] ==> obj [/Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/share/wasi-sysroot/lib/wasm32-wasi/crt1-command.o]
+          arg [CMakeFiles/cmTC_5d44d.dir/CMakeCCompilerABI.c.obj] ==> ignore
+          arg [-lc] ==> lib [c]
+          arg [/Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/lib/clang/20/lib/wasm32-unknown-wasi/libclang_rt.builtins.a] ==> lib [/Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/lib/clang/20/lib/wasm32-unknown-wasi/libclang_rt.builtins.a]
+          arg [-o] ==> ignore
+          arg [cmTC_5d44d] ==> ignore
+        ignore line: [/Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/bin/clang --target=wasm32-wasi --sysroot=/Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/share/wasi-sysroot -O3   -v CMakeFiles/cmTC_5d44d.dir/CMakeCCompilerABI.c.obj -o cmTC_5d44d]
+        ignore line: []
+        ignore line: []
+        remove lib [/Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/lib/clang/20/lib/wasm32-unknown-wasi/libclang_rt.builtins.a]
+        collapse library dir [/Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/lib/clang/20/lib/wasm32-unknown-wasi] ==> [/Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/lib/clang/20/lib/wasm32-unknown-wasi]
+        collapse library dir [/Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/share/wasi-sysroot/lib/wasm32-wasi] ==> [/Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/share/wasi-sysroot/lib/wasm32-wasi]
+        implicit libs: [c]
+        implicit objs: [/Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/share/wasi-sysroot/lib/wasm32-wasi/crt1-command.o]
+        implicit dirs: [/Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/lib/clang/20/lib/wasm32-unknown-wasi;/Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/share/wasi-sysroot/lib/wasm32-wasi]
+        implicit fwks: []
+      
+      
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/opt/homebrew/share/cmake/Modules/CMakeDetermineCompilerABI.cmake:83 (try_compile)"
+      - "/opt/homebrew/share/cmake/Modules/CMakeTestCXXCompiler.cmake:26 (CMAKE_DETERMINE_COMPILER_ABI)"
+      - "CMakeLists.txt:3 (project)"
+    checks:
+      - "Detecting CXX compiler ABI info"
+    directories:
+      source: "/Users/Charles/Projects/taglib-wasm/build/wasi/taglib/CMakeFiles/CMakeScratch/TryCompile-Gnwj5M"
+      binary: "/Users/Charles/Projects/taglib-wasm/build/wasi/taglib/CMakeFiles/CMakeScratch/TryCompile-Gnwj5M"
+    cmakeVariables:
+      CMAKE_CXX_COMPILER_CLANG_SCAN_DEPS: "CMAKE_CXX_COMPILER_CLANG_SCAN_DEPS-NOTFOUND"
+      CMAKE_CXX_COMPILER_TARGET: "wasm32-wasi"
+      CMAKE_CXX_FLAGS: "-O3 -fno-exceptions -fno-rtti"
+      CMAKE_CXX_SCAN_FOR_MODULES: "OFF"
+      CMAKE_C_COMPILER_TARGET: "wasm32-wasi"
+      CMAKE_EXE_LINKER_FLAGS: ""
+      CMAKE_MODULE_PATH: "/Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/share/cmake;/Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/share/cmake"
+      CMAKE_SYSROOT: "/Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/share/wasi-sysroot"
+    buildResult:
+      variable: "CMAKE_CXX_ABI_COMPILED"
+      cached: true
+      stdout: |
+        Change Dir: '/Users/Charles/Projects/taglib-wasm/build/wasi/taglib/CMakeFiles/CMakeScratch/TryCompile-Gnwj5M'
+        
+        Run Build Command(s): /opt/homebrew/bin/cmake -E env VERBOSE=1 /usr/bin/make -f Makefile cmTC_9c980/fast
+        /Applications/Xcode.app/Contents/Developer/usr/bin/make  -f CMakeFiles/cmTC_9c980.dir/build.make CMakeFiles/cmTC_9c980.dir/build
+        Building CXX object CMakeFiles/cmTC_9c980.dir/CMakeCXXCompilerABI.cpp.obj
+        /Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/bin/clang++ --target=wasm32-wasi --sysroot=/Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/share/wasi-sysroot   -O3 -fno-exceptions -fno-rtti    -v -MD -MT CMakeFiles/cmTC_9c980.dir/CMakeCXXCompilerABI.cpp.obj -MF CMakeFiles/cmTC_9c980.dir/CMakeCXXCompilerABI.cpp.obj.d -o CMakeFiles/cmTC_9c980.dir/CMakeCXXCompilerABI.cpp.obj -c /opt/homebrew/share/cmake/Modules/CMakeCXXCompilerABI.cpp
+        clang version 20.1.8-wasi-sdk (https://github.com/llvm/llvm-project 87f0227cb60147a26a1eeb4fb06e3b505e9c7261)
+        Target: wasm32-unknown-wasi
+        Thread model: posix
+        InstalledDir: /Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/bin
+        Configuration file: /Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/bin/clang++.cfg
+         (in-process)
+         "/Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/bin/clang-20" -cc1 -triple wasm32-unknown-wasi -emit-obj -disable-free -clear-ast-before-backend -disable-llvm-verifier -discard-value-names -main-file-name CMakeCXXCompilerABI.cpp -mrelocation-model static -mframe-pointer=none -ffp-contract=on -fno-rounding-math -mconstructor-aliases -target-cpu generic -fvisibility=hidden -debugger-tuning=gdb -fdebug-compilation-dir=/Users/Charles/Projects/taglib-wasm/build/wasi/taglib/CMakeFiles/CMakeScratch/TryCompile-Gnwj5M -target-linker-version 1053.12 -v -fcoverage-compilation-dir=/Users/Charles/Projects/taglib-wasm/build/wasi/taglib/CMakeFiles/CMakeScratch/TryCompile-Gnwj5M -resource-dir /Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/lib/clang/20 -dependency-file CMakeFiles/cmTC_9c980.dir/CMakeCXXCompilerABI.cpp.obj.d -MT CMakeFiles/cmTC_9c980.dir/CMakeCXXCompilerABI.cpp.obj -sys-header-deps -isysroot /Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/share/wasi-sysroot -internal-isystem /Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/share/wasi-sysroot/include/wasm32-wasi/c++/v1 -internal-isystem /Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/share/wasi-sysroot/include/c++/v1 -internal-isystem /Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/lib/clang/20/include -internal-isystem /Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/share/wasi-sysroot/include/wasm32-wasi -internal-isystem /Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/share/wasi-sysroot/include -O3 -fdeprecated-macro -ferror-limit 19 -fno-rtti -fgnuc-version=4.2.1 -fskip-odr-check-in-gmf -vectorize-loops -vectorize-slp -o CMakeFiles/cmTC_9c980.dir/CMakeCXXCompilerABI.cpp.obj -x c++ /opt/homebrew/share/cmake/Modules/CMakeCXXCompilerABI.cpp
+        clang -cc1 version 20.1.8-wasi-sdk based upon LLVM 20.1.8-wasi-sdk default target wasm32-wasi
+        #include "..." search starts here:
+        #include <...> search starts here:
+         /Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/share/wasi-sysroot/include/wasm32-wasi/c++/v1
+         /Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/share/wasi-sysroot/include/c++/v1
+         /Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/lib/clang/20/include
+         /Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/share/wasi-sysroot/include/wasm32-wasi
+         /Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/share/wasi-sysroot/include
+        End of search list.
+        Linking CXX executable cmTC_9c980
+        /opt/homebrew/bin/cmake -E cmake_link_script CMakeFiles/cmTC_9c980.dir/link.txt --verbose=1
+        clang version 20.1.8-wasi-sdk (https://github.com/llvm/llvm-project 87f0227cb60147a26a1eeb4fb06e3b505e9c7261)
+        Target: wasm32-unknown-wasi
+        Thread model: posix
+        InstalledDir: /Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/bin
+        Configuration file: /Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/bin/clang++.cfg
+         "/Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/bin/wasm-ld" -m wasm32 -L/Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/lib/clang/20/lib/wasm32-unknown-wasi -L/Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/share/wasi-sysroot/lib/wasm32-wasi /Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/share/wasi-sysroot/lib/wasm32-wasi/crt1-command.o CMakeFiles/cmTC_9c980.dir/CMakeCXXCompilerABI.cpp.obj -lc++ -lc++abi -lc /Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/lib/clang/20/lib/wasm32-unknown-wasi/libclang_rt.builtins.a -o cmTC_9c980
+        /Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/bin/clang++ --target=wasm32-wasi --sysroot=/Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/share/wasi-sysroot -O3 -fno-exceptions -fno-rtti   -v CMakeFiles/cmTC_9c980.dir/CMakeCXXCompilerABI.cpp.obj -o cmTC_9c980
+        
+      exitCode: 0
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/opt/homebrew/share/cmake/Modules/CMakeDetermineCompilerABI.cmake:191 (message)"
+      - "/opt/homebrew/share/cmake/Modules/CMakeTestCXXCompiler.cmake:26 (CMAKE_DETERMINE_COMPILER_ABI)"
+      - "CMakeLists.txt:3 (project)"
+    message: |
+      Parsed CXX implicit include dir info: rv=done
+        found start of include info
+        found start of implicit include info
+          add: [/Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/share/wasi-sysroot/include/wasm32-wasi/c++/v1]
+          add: [/Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/share/wasi-sysroot/include/c++/v1]
+          add: [/Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/lib/clang/20/include]
+          add: [/Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/share/wasi-sysroot/include/wasm32-wasi]
+          add: [/Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/share/wasi-sysroot/include]
+        end of search list found
+        collapse include dir [/Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/share/wasi-sysroot/include/wasm32-wasi/c++/v1] ==> [/Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/share/wasi-sysroot/include/wasm32-wasi/c++/v1]
+        collapse include dir [/Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/share/wasi-sysroot/include/c++/v1] ==> [/Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/share/wasi-sysroot/include/c++/v1]
+        collapse include dir [/Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/lib/clang/20/include] ==> [/Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/lib/clang/20/include]
+        collapse include dir [/Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/share/wasi-sysroot/include/wasm32-wasi] ==> [/Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/share/wasi-sysroot/include/wasm32-wasi]
+        collapse include dir [/Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/share/wasi-sysroot/include] ==> [/Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/share/wasi-sysroot/include]
+        implicit include dirs: [/Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/share/wasi-sysroot/include/wasm32-wasi/c++/v1;/Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/share/wasi-sysroot/include/c++/v1;/Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/lib/clang/20/include;/Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/share/wasi-sysroot/include/wasm32-wasi;/Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/share/wasi-sysroot/include]
+      
+      
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/opt/homebrew/share/cmake/Modules/CMakeDetermineCompilerABI.cmake:227 (message)"
+      - "/opt/homebrew/share/cmake/Modules/CMakeTestCXXCompiler.cmake:26 (CMAKE_DETERMINE_COMPILER_ABI)"
+      - "CMakeLists.txt:3 (project)"
+    message: |
+      Parsed CXX implicit link information:
+        link line regex: [^( *|.*[/\\])(ld[0-9]*(|\\.[a-rt-z][a-z]*|\\.s[a-np-z][a-z]*|\\.so[a-z]+)|CMAKE_LINK_STARTFILE-NOTFOUND|([^/\\]+-)?ld|collect2)[^/\\]*( |$)]
+        linker tool regex: [^[ 	]*(->|")?[ 	]*(([^"]*[/\\])?(ld[0-9]*(|\\.[a-rt-z][a-z]*|\\.s[a-np-z][a-z]*|\\.so[a-z]+)))("|,| |$)]
+        ignore line: [Change Dir: '/Users/Charles/Projects/taglib-wasm/build/wasi/taglib/CMakeFiles/CMakeScratch/TryCompile-Gnwj5M']
+        ignore line: []
+        ignore line: [Run Build Command(s): /opt/homebrew/bin/cmake -E env VERBOSE=1 /usr/bin/make -f Makefile cmTC_9c980/fast]
+        ignore line: [/Applications/Xcode.app/Contents/Developer/usr/bin/make  -f CMakeFiles/cmTC_9c980.dir/build.make CMakeFiles/cmTC_9c980.dir/build]
+        ignore line: [Building CXX object CMakeFiles/cmTC_9c980.dir/CMakeCXXCompilerABI.cpp.obj]
+        ignore line: [/Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/bin/clang++ --target=wasm32-wasi --sysroot=/Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/share/wasi-sysroot   -O3 -fno-exceptions -fno-rtti    -v -MD -MT CMakeFiles/cmTC_9c980.dir/CMakeCXXCompilerABI.cpp.obj -MF CMakeFiles/cmTC_9c980.dir/CMakeCXXCompilerABI.cpp.obj.d -o CMakeFiles/cmTC_9c980.dir/CMakeCXXCompilerABI.cpp.obj -c /opt/homebrew/share/cmake/Modules/CMakeCXXCompilerABI.cpp]
+        ignore line: [clang version 20.1.8-wasi-sdk (https://github.com/llvm/llvm-project 87f0227cb60147a26a1eeb4fb06e3b505e9c7261)]
+        ignore line: [Target: wasm32-unknown-wasi]
+        ignore line: [Thread model: posix]
+        ignore line: [InstalledDir: /Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/bin]
+        ignore line: [Configuration file: /Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/bin/clang++.cfg]
+        ignore line: [ (in-process)]
+        ignore line: [ "/Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/bin/clang-20" -cc1 -triple wasm32-unknown-wasi -emit-obj -disable-free -clear-ast-before-backend -disable-llvm-verifier -discard-value-names -main-file-name CMakeCXXCompilerABI.cpp -mrelocation-model static -mframe-pointer=none -ffp-contract=on -fno-rounding-math -mconstructor-aliases -target-cpu generic -fvisibility=hidden -debugger-tuning=gdb -fdebug-compilation-dir=/Users/Charles/Projects/taglib-wasm/build/wasi/taglib/CMakeFiles/CMakeScratch/TryCompile-Gnwj5M -target-linker-version 1053.12 -v -fcoverage-compilation-dir=/Users/Charles/Projects/taglib-wasm/build/wasi/taglib/CMakeFiles/CMakeScratch/TryCompile-Gnwj5M -resource-dir /Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/lib/clang/20 -dependency-file CMakeFiles/cmTC_9c980.dir/CMakeCXXCompilerABI.cpp.obj.d -MT CMakeFiles/cmTC_9c980.dir/CMakeCXXCompilerABI.cpp.obj -sys-header-deps -isysroot /Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/share/wasi-sysroot -internal-isystem /Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/share/wasi-sysroot/include/wasm32-wasi/c++/v1 -internal-isystem /Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/share/wasi-sysroot/include/c++/v1 -internal-isystem /Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/lib/clang/20/include -internal-isystem /Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/share/wasi-sysroot/include/wasm32-wasi -internal-isystem /Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/share/wasi-sysroot/include -O3 -fdeprecated-macro -ferror-limit 19 -fno-rtti -fgnuc-version=4.2.1 -fskip-odr-check-in-gmf -vectorize-loops -vectorize-slp -o CMakeFiles/cmTC_9c980.dir/CMakeCXXCompilerABI.cpp.obj -x c++ /opt/homebrew/share/cmake/Modules/CMakeCXXCompilerABI.cpp]
+        ignore line: [clang -cc1 version 20.1.8-wasi-sdk based upon LLVM 20.1.8-wasi-sdk default target wasm32-wasi]
+        ignore line: [#include "..." search starts here:]
+        ignore line: [#include <...> search starts here:]
+        ignore line: [ /Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/share/wasi-sysroot/include/wasm32-wasi/c++/v1]
+        ignore line: [ /Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/share/wasi-sysroot/include/c++/v1]
+        ignore line: [ /Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/lib/clang/20/include]
+        ignore line: [ /Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/share/wasi-sysroot/include/wasm32-wasi]
+        ignore line: [ /Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/share/wasi-sysroot/include]
+        ignore line: [End of search list.]
+        ignore line: [Linking CXX executable cmTC_9c980]
+        ignore line: [/opt/homebrew/bin/cmake -E cmake_link_script CMakeFiles/cmTC_9c980.dir/link.txt --verbose=1]
+        ignore line: [clang version 20.1.8-wasi-sdk (https://github.com/llvm/llvm-project 87f0227cb60147a26a1eeb4fb06e3b505e9c7261)]
+        ignore line: [Target: wasm32-unknown-wasi]
+        ignore line: [Thread model: posix]
+        ignore line: [InstalledDir: /Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/bin]
+        ignore line: [Configuration file: /Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/bin/clang++.cfg]
+        link line: [ "/Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/bin/wasm-ld" -m wasm32 -L/Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/lib/clang/20/lib/wasm32-unknown-wasi -L/Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/share/wasi-sysroot/lib/wasm32-wasi /Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/share/wasi-sysroot/lib/wasm32-wasi/crt1-command.o CMakeFiles/cmTC_9c980.dir/CMakeCXXCompilerABI.cpp.obj -lc++ -lc++abi -lc /Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/lib/clang/20/lib/wasm32-unknown-wasi/libclang_rt.builtins.a -o cmTC_9c980]
+          arg [/Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/bin/wasm-ld] ==> ignore
+          arg [-m] ==> ignore
+          arg [wasm32] ==> ignore
+          arg [-L/Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/lib/clang/20/lib/wasm32-unknown-wasi] ==> dir [/Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/lib/clang/20/lib/wasm32-unknown-wasi]
+          arg [-L/Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/share/wasi-sysroot/lib/wasm32-wasi] ==> dir [/Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/share/wasi-sysroot/lib/wasm32-wasi]
+          arg [/Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/share/wasi-sysroot/lib/wasm32-wasi/crt1-command.o] ==> obj [/Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/share/wasi-sysroot/lib/wasm32-wasi/crt1-command.o]
+          arg [CMakeFiles/cmTC_9c980.dir/CMakeCXXCompilerABI.cpp.obj] ==> ignore
+          arg [-lc++] ==> lib [c++]
+          arg [-lc++abi] ==> lib [c++abi]
+          arg [-lc] ==> lib [c]
+          arg [/Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/lib/clang/20/lib/wasm32-unknown-wasi/libclang_rt.builtins.a] ==> lib [/Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/lib/clang/20/lib/wasm32-unknown-wasi/libclang_rt.builtins.a]
+          arg [-o] ==> ignore
+          arg [cmTC_9c980] ==> ignore
+        ignore line: [/Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/bin/clang++ --target=wasm32-wasi --sysroot=/Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/share/wasi-sysroot -O3 -fno-exceptions -fno-rtti   -v CMakeFiles/cmTC_9c980.dir/CMakeCXXCompilerABI.cpp.obj -o cmTC_9c980]
+        ignore line: []
+        ignore line: []
+        remove lib [/Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/lib/clang/20/lib/wasm32-unknown-wasi/libclang_rt.builtins.a]
+        collapse library dir [/Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/lib/clang/20/lib/wasm32-unknown-wasi] ==> [/Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/lib/clang/20/lib/wasm32-unknown-wasi]
+        collapse library dir [/Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/share/wasi-sysroot/lib/wasm32-wasi] ==> [/Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/share/wasi-sysroot/lib/wasm32-wasi]
+        implicit libs: [c++;c++abi;c]
+        implicit objs: [/Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/share/wasi-sysroot/lib/wasm32-wasi/crt1-command.o]
+        implicit dirs: [/Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/lib/clang/20/lib/wasm32-unknown-wasi;/Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/share/wasi-sysroot/lib/wasm32-wasi]
+        implicit fwks: []
+      
+      
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/opt/homebrew/share/cmake/Modules/CheckIncludeFile.cmake:99 (try_compile)"
+      - "/opt/homebrew/share/cmake/Modules/CheckTypeSize.cmake:318 (check_include_file)"
+      - "ConfigureChecks.cmake:7 (check_type_size)"
+      - "CMakeLists.txt:98 (include)"
+    checks:
+      - "Looking for sys/types.h"
+    directories:
+      source: "/Users/Charles/Projects/taglib-wasm/build/wasi/taglib/CMakeFiles/CMakeScratch/TryCompile-KUe9sh"
+      binary: "/Users/Charles/Projects/taglib-wasm/build/wasi/taglib/CMakeFiles/CMakeScratch/TryCompile-KUe9sh"
+    cmakeVariables:
+      CMAKE_CXX_COMPILER_CLANG_SCAN_DEPS: "CMAKE_CXX_COMPILER_CLANG_SCAN_DEPS-NOTFOUND"
+      CMAKE_CXX_COMPILER_TARGET: "wasm32-wasi"
+      CMAKE_C_COMPILER_TARGET: "wasm32-wasi"
+      CMAKE_C_FLAGS: "-O3 -Wall"
+      CMAKE_EXE_LINKER_FLAGS: ""
+      CMAKE_MODULE_PATH: "/Users/Charles/Projects/taglib-wasm/lib/taglib/cmake/modules"
+      CMAKE_SYSROOT: "/Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/share/wasi-sysroot"
+    buildResult:
+      variable: "HAVE_SYS_TYPES_H"
+      cached: true
+      stdout: |
+        Change Dir: '/Users/Charles/Projects/taglib-wasm/build/wasi/taglib/CMakeFiles/CMakeScratch/TryCompile-KUe9sh'
+        
+        Run Build Command(s): /opt/homebrew/bin/cmake -E env VERBOSE=1 /usr/bin/make -f Makefile cmTC_b17bc/fast
+        /Applications/Xcode.app/Contents/Developer/usr/bin/make  -f CMakeFiles/cmTC_b17bc.dir/build.make CMakeFiles/cmTC_b17bc.dir/build
+        Building C object CMakeFiles/cmTC_b17bc.dir/CheckIncludeFile.c.obj
+        /Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/bin/clang --target=wasm32-wasi --sysroot=/Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/share/wasi-sysroot   -O3 -Wall  -MD -MT CMakeFiles/cmTC_b17bc.dir/CheckIncludeFile.c.obj -MF CMakeFiles/cmTC_b17bc.dir/CheckIncludeFile.c.obj.d -o CMakeFiles/cmTC_b17bc.dir/CheckIncludeFile.c.obj -c /Users/Charles/Projects/taglib-wasm/build/wasi/taglib/CMakeFiles/CMakeScratch/TryCompile-KUe9sh/CheckIncludeFile.c
+        Linking C executable cmTC_b17bc
+        /opt/homebrew/bin/cmake -E cmake_link_script CMakeFiles/cmTC_b17bc.dir/link.txt --verbose=1
+        /Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/bin/clang --target=wasm32-wasi --sysroot=/Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/share/wasi-sysroot -O3 -Wall  CMakeFiles/cmTC_b17bc.dir/CheckIncludeFile.c.obj -o cmTC_b17bc
+        
+      exitCode: 0
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/opt/homebrew/share/cmake/Modules/CheckIncludeFile.cmake:99 (try_compile)"
+      - "/opt/homebrew/share/cmake/Modules/CheckTypeSize.cmake:319 (check_include_file)"
+      - "ConfigureChecks.cmake:7 (check_type_size)"
+      - "CMakeLists.txt:98 (include)"
+    checks:
+      - "Looking for stdint.h"
+    directories:
+      source: "/Users/Charles/Projects/taglib-wasm/build/wasi/taglib/CMakeFiles/CMakeScratch/TryCompile-5I2zGn"
+      binary: "/Users/Charles/Projects/taglib-wasm/build/wasi/taglib/CMakeFiles/CMakeScratch/TryCompile-5I2zGn"
+    cmakeVariables:
+      CMAKE_CXX_COMPILER_CLANG_SCAN_DEPS: "CMAKE_CXX_COMPILER_CLANG_SCAN_DEPS-NOTFOUND"
+      CMAKE_CXX_COMPILER_TARGET: "wasm32-wasi"
+      CMAKE_C_COMPILER_TARGET: "wasm32-wasi"
+      CMAKE_C_FLAGS: "-O3 -Wall"
+      CMAKE_EXE_LINKER_FLAGS: ""
+      CMAKE_MODULE_PATH: "/Users/Charles/Projects/taglib-wasm/lib/taglib/cmake/modules"
+      CMAKE_SYSROOT: "/Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/share/wasi-sysroot"
+    buildResult:
+      variable: "HAVE_STDINT_H"
+      cached: true
+      stdout: |
+        Change Dir: '/Users/Charles/Projects/taglib-wasm/build/wasi/taglib/CMakeFiles/CMakeScratch/TryCompile-5I2zGn'
+        
+        Run Build Command(s): /opt/homebrew/bin/cmake -E env VERBOSE=1 /usr/bin/make -f Makefile cmTC_a5a3a/fast
+        /Applications/Xcode.app/Contents/Developer/usr/bin/make  -f CMakeFiles/cmTC_a5a3a.dir/build.make CMakeFiles/cmTC_a5a3a.dir/build
+        Building C object CMakeFiles/cmTC_a5a3a.dir/CheckIncludeFile.c.obj
+        /Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/bin/clang --target=wasm32-wasi --sysroot=/Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/share/wasi-sysroot   -O3 -Wall  -MD -MT CMakeFiles/cmTC_a5a3a.dir/CheckIncludeFile.c.obj -MF CMakeFiles/cmTC_a5a3a.dir/CheckIncludeFile.c.obj.d -o CMakeFiles/cmTC_a5a3a.dir/CheckIncludeFile.c.obj -c /Users/Charles/Projects/taglib-wasm/build/wasi/taglib/CMakeFiles/CMakeScratch/TryCompile-5I2zGn/CheckIncludeFile.c
+        Linking C executable cmTC_a5a3a
+        /opt/homebrew/bin/cmake -E cmake_link_script CMakeFiles/cmTC_a5a3a.dir/link.txt --verbose=1
+        /Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/bin/clang --target=wasm32-wasi --sysroot=/Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/share/wasi-sysroot -O3 -Wall  CMakeFiles/cmTC_a5a3a.dir/CheckIncludeFile.c.obj -o cmTC_a5a3a
+        
+      exitCode: 0
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/opt/homebrew/share/cmake/Modules/CheckIncludeFile.cmake:99 (try_compile)"
+      - "/opt/homebrew/share/cmake/Modules/CheckTypeSize.cmake:320 (check_include_file)"
+      - "ConfigureChecks.cmake:7 (check_type_size)"
+      - "CMakeLists.txt:98 (include)"
+    checks:
+      - "Looking for stddef.h"
+    directories:
+      source: "/Users/Charles/Projects/taglib-wasm/build/wasi/taglib/CMakeFiles/CMakeScratch/TryCompile-EGriQ6"
+      binary: "/Users/Charles/Projects/taglib-wasm/build/wasi/taglib/CMakeFiles/CMakeScratch/TryCompile-EGriQ6"
+    cmakeVariables:
+      CMAKE_CXX_COMPILER_CLANG_SCAN_DEPS: "CMAKE_CXX_COMPILER_CLANG_SCAN_DEPS-NOTFOUND"
+      CMAKE_CXX_COMPILER_TARGET: "wasm32-wasi"
+      CMAKE_C_COMPILER_TARGET: "wasm32-wasi"
+      CMAKE_C_FLAGS: "-O3 -Wall"
+      CMAKE_EXE_LINKER_FLAGS: ""
+      CMAKE_MODULE_PATH: "/Users/Charles/Projects/taglib-wasm/lib/taglib/cmake/modules"
+      CMAKE_SYSROOT: "/Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/share/wasi-sysroot"
+    buildResult:
+      variable: "HAVE_STDDEF_H"
+      cached: true
+      stdout: |
+        Change Dir: '/Users/Charles/Projects/taglib-wasm/build/wasi/taglib/CMakeFiles/CMakeScratch/TryCompile-EGriQ6'
+        
+        Run Build Command(s): /opt/homebrew/bin/cmake -E env VERBOSE=1 /usr/bin/make -f Makefile cmTC_8da43/fast
+        /Applications/Xcode.app/Contents/Developer/usr/bin/make  -f CMakeFiles/cmTC_8da43.dir/build.make CMakeFiles/cmTC_8da43.dir/build
+        Building C object CMakeFiles/cmTC_8da43.dir/CheckIncludeFile.c.obj
+        /Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/bin/clang --target=wasm32-wasi --sysroot=/Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/share/wasi-sysroot   -O3 -Wall  -MD -MT CMakeFiles/cmTC_8da43.dir/CheckIncludeFile.c.obj -MF CMakeFiles/cmTC_8da43.dir/CheckIncludeFile.c.obj.d -o CMakeFiles/cmTC_8da43.dir/CheckIncludeFile.c.obj -c /Users/Charles/Projects/taglib-wasm/build/wasi/taglib/CMakeFiles/CMakeScratch/TryCompile-EGriQ6/CheckIncludeFile.c
+        Linking C executable cmTC_8da43
+        /opt/homebrew/bin/cmake -E cmake_link_script CMakeFiles/cmTC_8da43.dir/link.txt --verbose=1
+        /Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/bin/clang --target=wasm32-wasi --sysroot=/Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/share/wasi-sysroot -O3 -Wall  CMakeFiles/cmTC_8da43.dir/CheckIncludeFile.c.obj -o cmTC_8da43
+        
+      exitCode: 0
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/opt/homebrew/share/cmake/Modules/CheckTypeSize.cmake:212 (try_compile)"
+      - "/opt/homebrew/share/cmake/Modules/CheckTypeSize.cmake:339 (__check_type_size_impl)"
+      - "ConfigureChecks.cmake:7 (check_type_size)"
+      - "CMakeLists.txt:98 (include)"
+    checks:
+      - "Check size of short"
+    directories:
+      source: "/Users/Charles/Projects/taglib-wasm/build/wasi/taglib/CMakeFiles/CMakeScratch/TryCompile-3Tv3rJ"
+      binary: "/Users/Charles/Projects/taglib-wasm/build/wasi/taglib/CMakeFiles/CMakeScratch/TryCompile-3Tv3rJ"
+    cmakeVariables:
+      CMAKE_CXX_COMPILER_CLANG_SCAN_DEPS: "CMAKE_CXX_COMPILER_CLANG_SCAN_DEPS-NOTFOUND"
+      CMAKE_CXX_COMPILER_TARGET: "wasm32-wasi"
+      CMAKE_C_COMPILER_TARGET: "wasm32-wasi"
+      CMAKE_C_FLAGS: "-O3 -Wall"
+      CMAKE_EXE_LINKER_FLAGS: ""
+      CMAKE_MODULE_PATH: "/Users/Charles/Projects/taglib-wasm/lib/taglib/cmake/modules"
+      CMAKE_SYSROOT: "/Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/share/wasi-sysroot"
+    buildResult:
+      variable: "HAVE_SIZEOF_SHORT"
+      cached: true
+      stdout: |
+        Change Dir: '/Users/Charles/Projects/taglib-wasm/build/wasi/taglib/CMakeFiles/CMakeScratch/TryCompile-3Tv3rJ'
+        
+        Run Build Command(s): /opt/homebrew/bin/cmake -E env VERBOSE=1 /usr/bin/make -f Makefile cmTC_ce251/fast
+        /Applications/Xcode.app/Contents/Developer/usr/bin/make  -f CMakeFiles/cmTC_ce251.dir/build.make CMakeFiles/cmTC_ce251.dir/build
+        Building C object CMakeFiles/cmTC_ce251.dir/SIZEOF_SHORT.c.obj
+        /Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/bin/clang --target=wasm32-wasi --sysroot=/Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/share/wasi-sysroot   -O3 -Wall  -MD -MT CMakeFiles/cmTC_ce251.dir/SIZEOF_SHORT.c.obj -MF CMakeFiles/cmTC_ce251.dir/SIZEOF_SHORT.c.obj.d -o CMakeFiles/cmTC_ce251.dir/SIZEOF_SHORT.c.obj -c /Users/Charles/Projects/taglib-wasm/build/wasi/taglib/CMakeFiles/CMakeScratch/TryCompile-3Tv3rJ/SIZEOF_SHORT.c
+        Linking C executable cmTC_ce251
+        /opt/homebrew/bin/cmake -E cmake_link_script CMakeFiles/cmTC_ce251.dir/link.txt --verbose=1
+        /Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/bin/clang --target=wasm32-wasi --sysroot=/Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/share/wasi-sysroot -O3 -Wall  CMakeFiles/cmTC_ce251.dir/SIZEOF_SHORT.c.obj -o cmTC_ce251
+        
+      exitCode: 0
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/opt/homebrew/share/cmake/Modules/CheckTypeSize.cmake:212 (try_compile)"
+      - "/opt/homebrew/share/cmake/Modules/CheckTypeSize.cmake:339 (__check_type_size_impl)"
+      - "ConfigureChecks.cmake:12 (check_type_size)"
+      - "CMakeLists.txt:98 (include)"
+    checks:
+      - "Check size of int"
+    directories:
+      source: "/Users/Charles/Projects/taglib-wasm/build/wasi/taglib/CMakeFiles/CMakeScratch/TryCompile-urU7SQ"
+      binary: "/Users/Charles/Projects/taglib-wasm/build/wasi/taglib/CMakeFiles/CMakeScratch/TryCompile-urU7SQ"
+    cmakeVariables:
+      CMAKE_CXX_COMPILER_CLANG_SCAN_DEPS: "CMAKE_CXX_COMPILER_CLANG_SCAN_DEPS-NOTFOUND"
+      CMAKE_CXX_COMPILER_TARGET: "wasm32-wasi"
+      CMAKE_C_COMPILER_TARGET: "wasm32-wasi"
+      CMAKE_C_FLAGS: "-O3 -Wall"
+      CMAKE_EXE_LINKER_FLAGS: ""
+      CMAKE_MODULE_PATH: "/Users/Charles/Projects/taglib-wasm/lib/taglib/cmake/modules"
+      CMAKE_SYSROOT: "/Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/share/wasi-sysroot"
+    buildResult:
+      variable: "HAVE_SIZEOF_INT"
+      cached: true
+      stdout: |
+        Change Dir: '/Users/Charles/Projects/taglib-wasm/build/wasi/taglib/CMakeFiles/CMakeScratch/TryCompile-urU7SQ'
+        
+        Run Build Command(s): /opt/homebrew/bin/cmake -E env VERBOSE=1 /usr/bin/make -f Makefile cmTC_c0e49/fast
+        /Applications/Xcode.app/Contents/Developer/usr/bin/make  -f CMakeFiles/cmTC_c0e49.dir/build.make CMakeFiles/cmTC_c0e49.dir/build
+        Building C object CMakeFiles/cmTC_c0e49.dir/SIZEOF_INT.c.obj
+        /Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/bin/clang --target=wasm32-wasi --sysroot=/Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/share/wasi-sysroot   -O3 -Wall  -MD -MT CMakeFiles/cmTC_c0e49.dir/SIZEOF_INT.c.obj -MF CMakeFiles/cmTC_c0e49.dir/SIZEOF_INT.c.obj.d -o CMakeFiles/cmTC_c0e49.dir/SIZEOF_INT.c.obj -c /Users/Charles/Projects/taglib-wasm/build/wasi/taglib/CMakeFiles/CMakeScratch/TryCompile-urU7SQ/SIZEOF_INT.c
+        Linking C executable cmTC_c0e49
+        /opt/homebrew/bin/cmake -E cmake_link_script CMakeFiles/cmTC_c0e49.dir/link.txt --verbose=1
+        /Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/bin/clang --target=wasm32-wasi --sysroot=/Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/share/wasi-sysroot -O3 -Wall  CMakeFiles/cmTC_c0e49.dir/SIZEOF_INT.c.obj -o cmTC_c0e49
+        
+      exitCode: 0
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/opt/homebrew/share/cmake/Modules/CheckTypeSize.cmake:212 (try_compile)"
+      - "/opt/homebrew/share/cmake/Modules/CheckTypeSize.cmake:339 (__check_type_size_impl)"
+      - "ConfigureChecks.cmake:17 (check_type_size)"
+      - "CMakeLists.txt:98 (include)"
+    checks:
+      - "Check size of long long"
+    directories:
+      source: "/Users/Charles/Projects/taglib-wasm/build/wasi/taglib/CMakeFiles/CMakeScratch/TryCompile-R9pQ1Y"
+      binary: "/Users/Charles/Projects/taglib-wasm/build/wasi/taglib/CMakeFiles/CMakeScratch/TryCompile-R9pQ1Y"
+    cmakeVariables:
+      CMAKE_CXX_COMPILER_CLANG_SCAN_DEPS: "CMAKE_CXX_COMPILER_CLANG_SCAN_DEPS-NOTFOUND"
+      CMAKE_CXX_COMPILER_TARGET: "wasm32-wasi"
+      CMAKE_C_COMPILER_TARGET: "wasm32-wasi"
+      CMAKE_C_FLAGS: "-O3 -Wall"
+      CMAKE_EXE_LINKER_FLAGS: ""
+      CMAKE_MODULE_PATH: "/Users/Charles/Projects/taglib-wasm/lib/taglib/cmake/modules"
+      CMAKE_SYSROOT: "/Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/share/wasi-sysroot"
+    buildResult:
+      variable: "HAVE_SIZEOF_LONGLONG"
+      cached: true
+      stdout: |
+        Change Dir: '/Users/Charles/Projects/taglib-wasm/build/wasi/taglib/CMakeFiles/CMakeScratch/TryCompile-R9pQ1Y'
+        
+        Run Build Command(s): /opt/homebrew/bin/cmake -E env VERBOSE=1 /usr/bin/make -f Makefile cmTC_35175/fast
+        /Applications/Xcode.app/Contents/Developer/usr/bin/make  -f CMakeFiles/cmTC_35175.dir/build.make CMakeFiles/cmTC_35175.dir/build
+        Building C object CMakeFiles/cmTC_35175.dir/SIZEOF_LONGLONG.c.obj
+        /Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/bin/clang --target=wasm32-wasi --sysroot=/Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/share/wasi-sysroot   -O3 -Wall  -MD -MT CMakeFiles/cmTC_35175.dir/SIZEOF_LONGLONG.c.obj -MF CMakeFiles/cmTC_35175.dir/SIZEOF_LONGLONG.c.obj.d -o CMakeFiles/cmTC_35175.dir/SIZEOF_LONGLONG.c.obj -c /Users/Charles/Projects/taglib-wasm/build/wasi/taglib/CMakeFiles/CMakeScratch/TryCompile-R9pQ1Y/SIZEOF_LONGLONG.c
+        Linking C executable cmTC_35175
+        /opt/homebrew/bin/cmake -E cmake_link_script CMakeFiles/cmTC_35175.dir/link.txt --verbose=1
+        /Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/bin/clang --target=wasm32-wasi --sysroot=/Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/share/wasi-sysroot -O3 -Wall  CMakeFiles/cmTC_35175.dir/SIZEOF_LONGLONG.c.obj -o cmTC_35175
+        
+      exitCode: 0
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/opt/homebrew/share/cmake/Modules/CheckTypeSize.cmake:212 (try_compile)"
+      - "/opt/homebrew/share/cmake/Modules/CheckTypeSize.cmake:339 (__check_type_size_impl)"
+      - "ConfigureChecks.cmake:22 (check_type_size)"
+      - "CMakeLists.txt:98 (include)"
+    checks:
+      - "Check size of wchar_t"
+    directories:
+      source: "/Users/Charles/Projects/taglib-wasm/build/wasi/taglib/CMakeFiles/CMakeScratch/TryCompile-dQHQAP"
+      binary: "/Users/Charles/Projects/taglib-wasm/build/wasi/taglib/CMakeFiles/CMakeScratch/TryCompile-dQHQAP"
+    cmakeVariables:
+      CMAKE_CXX_COMPILER_CLANG_SCAN_DEPS: "CMAKE_CXX_COMPILER_CLANG_SCAN_DEPS-NOTFOUND"
+      CMAKE_CXX_COMPILER_TARGET: "wasm32-wasi"
+      CMAKE_C_COMPILER_TARGET: "wasm32-wasi"
+      CMAKE_C_FLAGS: "-O3 -Wall"
+      CMAKE_EXE_LINKER_FLAGS: ""
+      CMAKE_MODULE_PATH: "/Users/Charles/Projects/taglib-wasm/lib/taglib/cmake/modules"
+      CMAKE_SYSROOT: "/Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/share/wasi-sysroot"
+    buildResult:
+      variable: "HAVE_SIZEOF_WCHAR_T"
+      cached: true
+      stdout: |
+        Change Dir: '/Users/Charles/Projects/taglib-wasm/build/wasi/taglib/CMakeFiles/CMakeScratch/TryCompile-dQHQAP'
+        
+        Run Build Command(s): /opt/homebrew/bin/cmake -E env VERBOSE=1 /usr/bin/make -f Makefile cmTC_2137a/fast
+        /Applications/Xcode.app/Contents/Developer/usr/bin/make  -f CMakeFiles/cmTC_2137a.dir/build.make CMakeFiles/cmTC_2137a.dir/build
+        Building C object CMakeFiles/cmTC_2137a.dir/SIZEOF_WCHAR_T.c.obj
+        /Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/bin/clang --target=wasm32-wasi --sysroot=/Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/share/wasi-sysroot   -O3 -Wall  -MD -MT CMakeFiles/cmTC_2137a.dir/SIZEOF_WCHAR_T.c.obj -MF CMakeFiles/cmTC_2137a.dir/SIZEOF_WCHAR_T.c.obj.d -o CMakeFiles/cmTC_2137a.dir/SIZEOF_WCHAR_T.c.obj -c /Users/Charles/Projects/taglib-wasm/build/wasi/taglib/CMakeFiles/CMakeScratch/TryCompile-dQHQAP/SIZEOF_WCHAR_T.c
+        Linking C executable cmTC_2137a
+        /opt/homebrew/bin/cmake -E cmake_link_script CMakeFiles/cmTC_2137a.dir/link.txt --verbose=1
+        /Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/bin/clang --target=wasm32-wasi --sysroot=/Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/share/wasi-sysroot -O3 -Wall  CMakeFiles/cmTC_2137a.dir/SIZEOF_WCHAR_T.c.obj -o cmTC_2137a
+        
+      exitCode: 0
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/opt/homebrew/share/cmake/Modules/CheckTypeSize.cmake:212 (try_compile)"
+      - "/opt/homebrew/share/cmake/Modules/CheckTypeSize.cmake:339 (__check_type_size_impl)"
+      - "ConfigureChecks.cmake:27 (check_type_size)"
+      - "CMakeLists.txt:98 (include)"
+    checks:
+      - "Check size of float"
+    directories:
+      source: "/Users/Charles/Projects/taglib-wasm/build/wasi/taglib/CMakeFiles/CMakeScratch/TryCompile-e2fYCR"
+      binary: "/Users/Charles/Projects/taglib-wasm/build/wasi/taglib/CMakeFiles/CMakeScratch/TryCompile-e2fYCR"
+    cmakeVariables:
+      CMAKE_CXX_COMPILER_CLANG_SCAN_DEPS: "CMAKE_CXX_COMPILER_CLANG_SCAN_DEPS-NOTFOUND"
+      CMAKE_CXX_COMPILER_TARGET: "wasm32-wasi"
+      CMAKE_C_COMPILER_TARGET: "wasm32-wasi"
+      CMAKE_C_FLAGS: "-O3 -Wall"
+      CMAKE_EXE_LINKER_FLAGS: ""
+      CMAKE_MODULE_PATH: "/Users/Charles/Projects/taglib-wasm/lib/taglib/cmake/modules"
+      CMAKE_SYSROOT: "/Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/share/wasi-sysroot"
+    buildResult:
+      variable: "HAVE_SIZEOF_FLOAT"
+      cached: true
+      stdout: |
+        Change Dir: '/Users/Charles/Projects/taglib-wasm/build/wasi/taglib/CMakeFiles/CMakeScratch/TryCompile-e2fYCR'
+        
+        Run Build Command(s): /opt/homebrew/bin/cmake -E env VERBOSE=1 /usr/bin/make -f Makefile cmTC_e9b40/fast
+        /Applications/Xcode.app/Contents/Developer/usr/bin/make  -f CMakeFiles/cmTC_e9b40.dir/build.make CMakeFiles/cmTC_e9b40.dir/build
+        Building C object CMakeFiles/cmTC_e9b40.dir/SIZEOF_FLOAT.c.obj
+        /Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/bin/clang --target=wasm32-wasi --sysroot=/Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/share/wasi-sysroot   -O3 -Wall  -MD -MT CMakeFiles/cmTC_e9b40.dir/SIZEOF_FLOAT.c.obj -MF CMakeFiles/cmTC_e9b40.dir/SIZEOF_FLOAT.c.obj.d -o CMakeFiles/cmTC_e9b40.dir/SIZEOF_FLOAT.c.obj -c /Users/Charles/Projects/taglib-wasm/build/wasi/taglib/CMakeFiles/CMakeScratch/TryCompile-e2fYCR/SIZEOF_FLOAT.c
+        Linking C executable cmTC_e9b40
+        /opt/homebrew/bin/cmake -E cmake_link_script CMakeFiles/cmTC_e9b40.dir/link.txt --verbose=1
+        /Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/bin/clang --target=wasm32-wasi --sysroot=/Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/share/wasi-sysroot -O3 -Wall  CMakeFiles/cmTC_e9b40.dir/SIZEOF_FLOAT.c.obj -o cmTC_e9b40
+        
+      exitCode: 0
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/opt/homebrew/share/cmake/Modules/CheckTypeSize.cmake:212 (try_compile)"
+      - "/opt/homebrew/share/cmake/Modules/CheckTypeSize.cmake:339 (__check_type_size_impl)"
+      - "ConfigureChecks.cmake:32 (check_type_size)"
+      - "CMakeLists.txt:98 (include)"
+    checks:
+      - "Check size of double"
+    directories:
+      source: "/Users/Charles/Projects/taglib-wasm/build/wasi/taglib/CMakeFiles/CMakeScratch/TryCompile-ZqSnBo"
+      binary: "/Users/Charles/Projects/taglib-wasm/build/wasi/taglib/CMakeFiles/CMakeScratch/TryCompile-ZqSnBo"
+    cmakeVariables:
+      CMAKE_CXX_COMPILER_CLANG_SCAN_DEPS: "CMAKE_CXX_COMPILER_CLANG_SCAN_DEPS-NOTFOUND"
+      CMAKE_CXX_COMPILER_TARGET: "wasm32-wasi"
+      CMAKE_C_COMPILER_TARGET: "wasm32-wasi"
+      CMAKE_C_FLAGS: "-O3 -Wall"
+      CMAKE_EXE_LINKER_FLAGS: ""
+      CMAKE_MODULE_PATH: "/Users/Charles/Projects/taglib-wasm/lib/taglib/cmake/modules"
+      CMAKE_SYSROOT: "/Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/share/wasi-sysroot"
+    buildResult:
+      variable: "HAVE_SIZEOF_DOUBLE"
+      cached: true
+      stdout: |
+        Change Dir: '/Users/Charles/Projects/taglib-wasm/build/wasi/taglib/CMakeFiles/CMakeScratch/TryCompile-ZqSnBo'
+        
+        Run Build Command(s): /opt/homebrew/bin/cmake -E env VERBOSE=1 /usr/bin/make -f Makefile cmTC_6d587/fast
+        /Applications/Xcode.app/Contents/Developer/usr/bin/make  -f CMakeFiles/cmTC_6d587.dir/build.make CMakeFiles/cmTC_6d587.dir/build
+        Building C object CMakeFiles/cmTC_6d587.dir/SIZEOF_DOUBLE.c.obj
+        /Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/bin/clang --target=wasm32-wasi --sysroot=/Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/share/wasi-sysroot   -O3 -Wall  -MD -MT CMakeFiles/cmTC_6d587.dir/SIZEOF_DOUBLE.c.obj -MF CMakeFiles/cmTC_6d587.dir/SIZEOF_DOUBLE.c.obj.d -o CMakeFiles/cmTC_6d587.dir/SIZEOF_DOUBLE.c.obj -c /Users/Charles/Projects/taglib-wasm/build/wasi/taglib/CMakeFiles/CMakeScratch/TryCompile-ZqSnBo/SIZEOF_DOUBLE.c
+        Linking C executable cmTC_6d587
+        /opt/homebrew/bin/cmake -E cmake_link_script CMakeFiles/cmTC_6d587.dir/link.txt --verbose=1
+        /Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/bin/clang --target=wasm32-wasi --sysroot=/Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/share/wasi-sysroot -O3 -Wall  CMakeFiles/cmTC_6d587.dir/SIZEOF_DOUBLE.c.obj -o cmTC_6d587
+        
+      exitCode: 0
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/opt/homebrew/share/cmake/Modules/Internal/CheckSourceCompiles.cmake:104 (try_compile)"
+      - "/opt/homebrew/share/cmake/Modules/CheckCXXSourceCompiles.cmake:58 (cmake_check_source_compiles)"
+      - "ConfigureChecks.cmake:39 (check_cxx_source_compiles)"
+      - "CMakeLists.txt:98 (include)"
+    checks:
+      - "Performing Test HAVE_GCC_BYTESWAP"
+    directories:
+      source: "/Users/Charles/Projects/taglib-wasm/build/wasi/taglib/CMakeFiles/CMakeScratch/TryCompile-V2thEu"
+      binary: "/Users/Charles/Projects/taglib-wasm/build/wasi/taglib/CMakeFiles/CMakeScratch/TryCompile-V2thEu"
+    cmakeVariables:
+      CMAKE_CXX_COMPILER_CLANG_SCAN_DEPS: "CMAKE_CXX_COMPILER_CLANG_SCAN_DEPS-NOTFOUND"
+      CMAKE_CXX_COMPILER_TARGET: "wasm32-wasi"
+      CMAKE_CXX_FLAGS: "-O3 -fno-exceptions -fno-rtti -Wall"
+      CMAKE_C_COMPILER_TARGET: "wasm32-wasi"
+      CMAKE_EXE_LINKER_FLAGS: ""
+      CMAKE_MODULE_PATH: "/Users/Charles/Projects/taglib-wasm/lib/taglib/cmake/modules"
+      CMAKE_SYSROOT: "/Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/share/wasi-sysroot"
+    buildResult:
+      variable: "HAVE_GCC_BYTESWAP"
+      cached: true
+      stdout: |
+        Change Dir: '/Users/Charles/Projects/taglib-wasm/build/wasi/taglib/CMakeFiles/CMakeScratch/TryCompile-V2thEu'
+        
+        Run Build Command(s): /opt/homebrew/bin/cmake -E env VERBOSE=1 /usr/bin/make -f Makefile cmTC_c3e5f/fast
+        /Applications/Xcode.app/Contents/Developer/usr/bin/make  -f CMakeFiles/cmTC_c3e5f.dir/build.make CMakeFiles/cmTC_c3e5f.dir/build
+        Building CXX object CMakeFiles/cmTC_c3e5f.dir/src.cxx.obj
+        /Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/bin/clang++ --target=wasm32-wasi --sysroot=/Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/share/wasi-sysroot -DHAVE_GCC_BYTESWAP  -O3 -fno-exceptions -fno-rtti -Wall  -MD -MT CMakeFiles/cmTC_c3e5f.dir/src.cxx.obj -MF CMakeFiles/cmTC_c3e5f.dir/src.cxx.obj.d -o CMakeFiles/cmTC_c3e5f.dir/src.cxx.obj -c /Users/Charles/Projects/taglib-wasm/build/wasi/taglib/CMakeFiles/CMakeScratch/TryCompile-V2thEu/src.cxx
+        /Users/Charles/Projects/taglib-wasm/build/wasi/taglib/CMakeFiles/CMakeScratch/TryCompile-V2thEu/src.cxx:3:5: warning: ignoring return value of function declared with const attribute [-Wunused-value]
+            3 |     __builtin_bswap16(0);
+              |     ^~~~~~~~~~~~~~~~~ ~
+        /Users/Charles/Projects/taglib-wasm/build/wasi/taglib/CMakeFiles/CMakeScratch/TryCompile-V2thEu/src.cxx:4:5: warning: ignoring return value of function declared with const attribute [-Wunused-value]
+            4 |     __builtin_bswap32(0);
+              |     ^~~~~~~~~~~~~~~~~ ~
+        /Users/Charles/Projects/taglib-wasm/build/wasi/taglib/CMakeFiles/CMakeScratch/TryCompile-V2thEu/src.cxx:5:5: warning: ignoring return value of function declared with const attribute [-Wunused-value]
+            5 |     __builtin_bswap64(0);
+              |     ^~~~~~~~~~~~~~~~~ ~
+        3 warnings generated.
+        Linking CXX executable cmTC_c3e5f
+        /opt/homebrew/bin/cmake -E cmake_link_script CMakeFiles/cmTC_c3e5f.dir/link.txt --verbose=1
+        /Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/bin/clang++ --target=wasm32-wasi --sysroot=/Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/share/wasi-sysroot -O3 -fno-exceptions -fno-rtti -Wall  CMakeFiles/cmTC_c3e5f.dir/src.cxx.obj -o cmTC_c3e5f
+        
+      exitCode: 0
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/opt/homebrew/share/cmake/Modules/Internal/CheckSourceCompiles.cmake:104 (try_compile)"
+      - "/opt/homebrew/share/cmake/Modules/CheckCXXSourceCompiles.cmake:58 (cmake_check_source_compiles)"
+      - "ConfigureChecks.cmake:98 (check_cxx_source_compiles)"
+      - "CMakeLists.txt:98 (include)"
+    checks:
+      - "Performing Test HAVE_ISO_STRDUP"
+    directories:
+      source: "/Users/Charles/Projects/taglib-wasm/build/wasi/taglib/CMakeFiles/CMakeScratch/TryCompile-SUFb9H"
+      binary: "/Users/Charles/Projects/taglib-wasm/build/wasi/taglib/CMakeFiles/CMakeScratch/TryCompile-SUFb9H"
+    cmakeVariables:
+      CMAKE_CXX_COMPILER_CLANG_SCAN_DEPS: "CMAKE_CXX_COMPILER_CLANG_SCAN_DEPS-NOTFOUND"
+      CMAKE_CXX_COMPILER_TARGET: "wasm32-wasi"
+      CMAKE_CXX_FLAGS: "-O3 -fno-exceptions -fno-rtti -Wall"
+      CMAKE_C_COMPILER_TARGET: "wasm32-wasi"
+      CMAKE_EXE_LINKER_FLAGS: ""
+      CMAKE_MODULE_PATH: "/Users/Charles/Projects/taglib-wasm/lib/taglib/cmake/modules"
+      CMAKE_SYSROOT: "/Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/share/wasi-sysroot"
+    buildResult:
+      variable: "HAVE_ISO_STRDUP"
+      cached: true
+      stdout: |
+        Change Dir: '/Users/Charles/Projects/taglib-wasm/build/wasi/taglib/CMakeFiles/CMakeScratch/TryCompile-SUFb9H'
+        
+        Run Build Command(s): /opt/homebrew/bin/cmake -E env VERBOSE=1 /usr/bin/make -f Makefile cmTC_8209a/fast
+        /Applications/Xcode.app/Contents/Developer/usr/bin/make  -f CMakeFiles/cmTC_8209a.dir/build.make CMakeFiles/cmTC_8209a.dir/build
+        Building CXX object CMakeFiles/cmTC_8209a.dir/src.cxx.obj
+        /Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/bin/clang++ --target=wasm32-wasi --sysroot=/Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/share/wasi-sysroot -DHAVE_ISO_STRDUP  -O3 -fno-exceptions -fno-rtti -Wall  -MD -MT CMakeFiles/cmTC_8209a.dir/src.cxx.obj -MF CMakeFiles/cmTC_8209a.dir/src.cxx.obj.d -o CMakeFiles/cmTC_8209a.dir/src.cxx.obj -c /Users/Charles/Projects/taglib-wasm/build/wasi/taglib/CMakeFiles/CMakeScratch/TryCompile-SUFb9H/src.cxx
+        /Users/Charles/Projects/taglib-wasm/build/wasi/taglib/CMakeFiles/CMakeScratch/TryCompile-SUFb9H/src.cxx:4:5: error: use of undeclared identifier '_strdup'; did you mean 'strdup'?
+            4 |     _strdup(0);
+              |     ^~~~~~~
+              |     strdup
+        /Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/share/wasi-sysroot/include/wasm32-wasi/__header_string.h:15:7: note: 'strdup' declared here
+           15 | char *strdup(const char *) __attribute__((__nothrow__, __nonnull__(1)));
+              |       ^
+        /Users/Charles/Projects/taglib-wasm/build/wasi/taglib/CMakeFiles/CMakeScratch/TryCompile-SUFb9H/src.cxx:4:13: warning: null passed to a callee that requires a non-null argument [-Wnonnull]
+            4 |     _strdup(0);
+              |             ^
+        1 warning and 1 error generated.
+        make[1]: *** [CMakeFiles/cmTC_8209a.dir/src.cxx.obj] Error 1
+        make: *** [cmTC_8209a/fast] Error 2
+        
+      exitCode: 2
+...
