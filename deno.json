@@ -3,7 +3,7 @@
   "version": "0.5.4",
   "nodeModulesDir": "auto",
   "exports": {
-    ".": "./mod.ts",
+    ".": "./index.ts",
     "./simple": "./simple.ts",
     "./workers": "./workers.ts"
   },
@@ -76,15 +76,17 @@
   },
   "tasks": {
     "build": "deno task build:ts && deno task build:wasm",
-    "build:ts": "deno run -A scripts/build-npm.ts",
+    "build:ts": "deno run -A scripts/build-js.mjs",
     "build:wasm": "cd build && bash build-wasm.sh",
     "test": "deno test --allow-read --allow-write tests/",
     "test:watch": "deno test --allow-read --allow-write --watch tests/",
     "test:systematic": "deno test --allow-read tests/test-systematic.ts",
+    "test:unified": "deno test --allow-read --allow-write tests/unified-*.test.ts tests/runtime-*.test.ts tests/msgpack.test.ts tests/wasi-*.test.ts",
+    "test:phase3": "deno test --allow-read --allow-write tests/unified-api.test.ts tests/unified-loader-components.test.ts tests/msgpack.test.ts tests/runtime-detector.test.ts tests/wasi-loader.test.ts",
     "dev": "deno run --watch --allow-read --allow-write examples/basic-usage.ts",
     "fmt": "deno fmt",
     "lint": "deno lint",
-    "check": "deno check mod.ts src/**/*.ts tests/**/*.ts",
+    "check": "deno check index.ts src/**/*.ts tests/**/*.ts",
     "version:patch": "deno run --allow-read --allow-write scripts/sync-version.ts patch",
     "version:minor": "deno run --allow-read --allow-write scripts/sync-version.ts minor",
     "version:major": "deno run --allow-read --allow-write scripts/sync-version.ts major",
