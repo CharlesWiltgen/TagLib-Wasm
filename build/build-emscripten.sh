@@ -70,6 +70,30 @@ fi
 echo -e "${GREEN}✅ TagLib built successfully${NC}"
 ls -lh "$BUILD_DIR/taglib/taglib/libtag.a"
 
+# Step 1.5: Download MessagePack headers
+echo ""
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "📦 Step 1.5: Setting up MessagePack headers"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+MSGPACK_DIR="$PROJECT_ROOT/lib/msgpack"
+if [ ! -d "$MSGPACK_DIR/include" ]; then
+    echo "Downloading MessagePack headers..."
+    mkdir -p "$MSGPACK_DIR"
+    cd "$MSGPACK_DIR"
+    
+    # Download header-only version
+    wget -q https://github.com/msgpack/msgpack-c/releases/download/cpp-6.1.0/msgpack-cxx-6.1.0.tar.gz || \
+        curl -sL https://github.com/msgpack/msgpack-c/releases/download/cpp-6.1.0/msgpack-cxx-6.1.0.tar.gz -o msgpack-cxx-6.1.0.tar.gz
+    tar xzf msgpack-cxx-6.1.0.tar.gz
+    mv msgpack-cxx-6.1.0/include .
+    rm -rf msgpack-cxx-6.1.0 msgpack-cxx-6.1.0.tar.gz
+    
+    echo -e "${GREEN}✅ MessagePack headers downloaded${NC}"
+else
+    echo -e "${GREEN}✅ MessagePack headers already present${NC}"
+fi
+
 # Step 2: Link final WASM module
 echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
@@ -78,18 +102,43 @@ echo "━━━━━━━━━━━━━━━━━━━━━━━━�
 
 cd "$PROJECT_ROOT"
 
-# Compile and link the C API with TagLib
-echo "Linking C API with TagLib..."
-emcc "$SRC_DIR/taglib_api.cpp" \
+# Compile and link the C API with TagLib and MessagePack
+echo "Linking C API with TagLib and MessagePack..."
+
+# Compile all C API source files
+CAPI_SOURCES=(
+    "$SRC_DIR/taglib_api.cpp"
+    "$SRC_DIR/core/taglib_memory.cpp"
+    "$SRC_DIR/core/taglib_error.cpp"
+    "$SRC_DIR/io/taglib_stream.cpp"
+    "$SRC_DIR/io/taglib_buffer.cpp"
+    "$SRC_DIR/formats/taglib_mp3.cpp"
+    "$SRC_DIR/formats/taglib_flac.cpp"
+    "$SRC_DIR/formats/taglib_m4a.cpp"
+)
+
+emcc "${CAPI_SOURCES[@]}" \
     "$BUILD_DIR/taglib/taglib/libtag.a" \
+    -I"$SRC_DIR" \
     -I"$TAGLIB_DIR" \
     -I"$TAGLIB_DIR/taglib" \
     -I"$TAGLIB_DIR/taglib/toolkit" \
+    -I"$TAGLIB_DIR/taglib/mpeg" \
     -I"$TAGLIB_DIR/taglib/mpeg/id3v2" \
+    -I"$TAGLIB_DIR/taglib/flac" \
+    -I"$TAGLIB_DIR/taglib/mp4" \
+    -I"$TAGLIB_DIR/taglib/ogg" \
+    -I"$TAGLIB_DIR/taglib/ogg/vorbis" \
+    -I"$TAGLIB_DIR/taglib/riff" \
+    -I"$TAGLIB_DIR/taglib/riff/wav" \
     -I"$BUILD_DIR/taglib" \
+    -I"$PROJECT_ROOT/lib/msgpack/include" \
+    -DMSGPACK_NO_BOOST=1 \
+    -DMSGPACK_ENDIAN_LITTLE_BYTE=1 \
+    -DMSGPACK_ENDIAN_BIG_BYTE=0 \
     -o "$DIST_DIR/taglib_emscripten.js" \
-    -s EXPORTED_FUNCTIONS='["_tl_read_tags","_tl_write_tags","_tl_free","_tl_version","_tl_get_last_error","_malloc","_free"]' \
-    -s EXPORTED_RUNTIME_METHODS='["ccall","cwrap","UTF8ToString","stringToUTF8","lengthBytesUTF8","allocate","ALLOC_NORMAL"]' \
+    -s EXPORTED_FUNCTIONS='["_tl_read_tags","_tl_read_tags_ex","_tl_write_tags","_tl_free","_tl_malloc","_tl_version","_tl_get_last_error","_tl_get_last_error_code","_tl_clear_error","_tl_api_version","_tl_has_capability","_tl_detect_format","_tl_format_name","_tl_read_tags_json","_tl_write_tags_json","_tl_stream_open","_tl_stream_read_metadata","_tl_stream_read_artwork","_tl_stream_close","_tl_read_mp3","_tl_write_mp3","_tl_read_flac","_tl_write_flac","_tl_read_m4a","_tl_write_m4a","_tl_pool_create","_tl_pool_alloc","_tl_pool_reset","_tl_pool_destroy","_malloc","_free"]' \
+    -s EXPORTED_RUNTIME_METHODS='["ccall","cwrap","UTF8ToString","stringToUTF8","lengthBytesUTF8","allocate","ALLOC_NORMAL","getValue","setValue"]' \
     -s ALLOW_MEMORY_GROWTH=1 \
     -s MODULARIZE=1 \
     -s EXPORT_ES6=1 \
@@ -97,9 +146,13 @@ emcc "$SRC_DIR/taglib_api.cpp" \
     -s ENVIRONMENT='web,worker,node' \
     -s FILESYSTEM=1 \
     -s INITIAL_MEMORY=16MB \
+    -s MAXIMUM_MEMORY=2GB \
+    -s STACK_SIZE=1MB \
+    -DTAGLIB_VERSION=\"2.0.2\" \
     -O3 \
     -fno-exceptions \
-    -fno-rtti
+    -fno-rtti \
+    -std=c++17
 
 # Check results
 if [ ! -f "$DIST_DIR/taglib_emscripten.wasm" ]; then

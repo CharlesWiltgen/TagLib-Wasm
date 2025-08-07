@@ -17,6 +17,7 @@ export interface EmscriptenModule {
   // Memory management
   _malloc(size: number): number;
   _free(ptr: number): void;
+  _realloc?(ptr: number, newSize: number): number;
   allocate?(data: number[] | Uint8Array, allocator: number): number;
   ALLOC_NORMAL?: number;
 
@@ -33,10 +34,18 @@ export interface EmscriptenModule {
     argTypes: string[],
   ): (...args: any[]) => any;
 
+  UTF8ToString?(ptr: number): string;
+  stringToUTF8?(str: string, ptr: number, maxBytes: number): number;
+  lengthBytesUTF8?(str: string): number;
+
+  addFunction?(func: any): number;
+  removeFunction?(funcPtr: number): void;
+
   // File system (if enabled)
   FS?: any;
 
   // Runtime
+  ready?: Promise<EmscriptenModule>;
   then?(callback: (module: EmscriptenModule) => void): void;
   onRuntimeInitialized?: () => void;
 }
