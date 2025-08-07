@@ -568,7 +568,9 @@ export function isValidProperty(key: string): key is PropertyKey {
 /**
  * Get property metadata for a given property key
  */
-export function getPropertyMetadata<K extends PropertyKey>(key: K) {
+export function getPropertyMetadata<K extends PropertyKey>(
+  key: K,
+): PropertyMetadata | undefined {
   return PROPERTIES[key];
 }
 
