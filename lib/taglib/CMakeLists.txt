@@ -19,9 +19,6 @@ if(APPLE)
     set(FRAMEWORK_INSTALL_DIR "/Library/Frameworks" CACHE STRING "Directory to install frameworks to.")
   endif()
 endif()
-if(NOT BUILD_SHARED_LIBS)
-  add_definitions(-DTAGLIB_STATIC)
-endif()
 option(ENABLE_STATIC_RUNTIME "Visual Studio, link with runtime statically" OFF)
 
 option(ENABLE_CCACHE "Use ccache when building libtag" OFF)
@@ -96,7 +93,7 @@ endif()
 # Patch version: increase it for bug fix releases.
 set(TAGLIB_SOVERSION_MAJOR 2)
 set(TAGLIB_SOVERSION_MINOR 1)
-set(TAGLIB_SOVERSION_PATCH 0)
+set(TAGLIB_SOVERSION_PATCH 1)
 
 include(ConfigureChecks.cmake)
 
