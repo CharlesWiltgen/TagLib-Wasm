@@ -881,6 +881,10 @@ export class TagLib {
       size?: number;
       debug?: boolean;
     };
+    // New unified loader options
+    legacyMode?: boolean;
+    forceWasmType?: "wasi" | "emscripten";
+    disableOptimizations?: boolean;
   }): Promise<TagLib> {
     // Use the loadTagLibModule function
     const { loadTagLibModule } = await import("../index.ts");

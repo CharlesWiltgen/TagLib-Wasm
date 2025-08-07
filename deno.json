@@ -1,6 +1,7 @@
 {
   "name": "@charlesw/taglib-wasm",
   "version": "0.5.4",
+  "nodeModulesDir": "auto",
   "exports": {
     ".": "./mod.ts",
     "./simple": "./simple.ts",

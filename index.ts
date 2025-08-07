@@ -267,6 +267,27 @@ export interface LoadTagLibOptions {
    * This is passed to the locateFile function.
    */
   wasmUrl?: string;
+
+  /**
+   * Force legacy Emscripten-only mode (disables WASI optimizations).
+   * Use this for debugging or compatibility with older environments.
+   * @default false
+   */
+  legacyMode?: boolean;
+
+  /**
+   * Force a specific WASM type (overrides automatic detection).
+   * - "wasi": Use WASI implementation for filesystem access (Deno/Node.js)
+   * - "emscripten": Use Emscripten implementation for universal compatibility
+   * @default undefined (auto-detect)
+   */
+  forceWasmType?: "wasi" | "emscripten";
+
+  /**
+   * Disable performance optimizations for debugging.
+   * @default false
+   */
+  disableOptimizations?: boolean;
 }
 
 /**
@@ -274,16 +295,26 @@ export interface LoadTagLibOptions {
  * This function initializes the WebAssembly module and returns
  * the loaded module for use with the Full API.
  *
- * @param config - Optional configuration for module initialization
+ * Automatically selects the optimal implementation:
+ * - WASI for Deno/Node.js (faster filesystem access, MessagePack serialization)
+ * - Emscripten for browsers (universal compatibility)
+ *
+ * @param options - Optional configuration for module initialization
  * @returns Promise resolving to the initialized TagLib module
  *
  * @example
  * ```typescript
  * import { loadTagLibModule, createTagLib } from "taglib-wasm";
  *
- * // Manual module loading for advanced configuration
+ * // Auto-select optimal implementation
  * const module = await loadTagLibModule();
  * const taglib = await createTagLib(module);
+ *
+ * // Force Emscripten mode
+ * const module = await loadTagLibModule({ legacyMode: true });
+ *
+ * // Force WASI mode (Deno/Node.js only)
+ * const module = await loadTagLibModule({ forceWasmType: "wasi" });
  *
  * // With custom WASM binary
  * const wasmData = await fetch("taglib.wasm").then(r => r.arrayBuffer());
@@ -296,9 +327,40 @@ export interface LoadTagLibOptions {
 export async function loadTagLibModule(
   options?: LoadTagLibOptions,
 ): Promise<TagLibModule> {
-  // Now that we're using ES6 modules, we can use dynamic import directly
-  // Note: For Deno compile, provide wasmBinary option to avoid dynamic loading
+  // Use legacy Emscripten-only mode if requested
+  if (options?.legacyMode) {
+    return loadLegacyTagLibModule(options);
+  }
 
+  // Use unified loader for optimal performance
+  try {
+    const { loadUnifiedTagLibModule } = await import(
+      "./src/runtime/unified-loader.ts"
+    );
+    return await loadUnifiedTagLibModule({
+      wasmBinary: options?.wasmBinary,
+      wasmUrl: options?.wasmUrl,
+      forceWasmType: options?.forceWasmType,
+      disableOptimizations: options?.disableOptimizations,
+    });
+  } catch (error) {
+    console.warn(
+      `[TagLib] Unified loader failed, falling back to legacy mode: ${error}`,
+    );
+    // Fall back to legacy mode if unified loader fails
+    return loadLegacyTagLibModule(options || {});
+  }
+}
+
+/**
+ * Legacy Emscripten-only module loader.
+ * Used for fallback compatibility and when legacyMode is explicitly requested.
+ *
+ * @internal
+ */
+async function loadLegacyTagLibModule(
+  options: LoadTagLibOptions,
+): Promise<TagLibModule> {
   // Try different paths for the wrapper module
   let createTagLibModule;
   try {
