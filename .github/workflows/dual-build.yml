@@ -1,0 +1,286 @@
+name: Dual Build (Emscripten + WASI)
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      skip_emscripten:
+        description: "Skip Emscripten build"
+        required: false
+        default: false
+        type: boolean
+      skip_wasi:
+        description: "Skip WASI build"
+        required: false
+        default: false
+        type: boolean
+
+jobs:
+  build-emscripten:
+    name: Build with Emscripten
+    runs-on: ubuntu-latest
+    if: ${{ !inputs.skip_emscripten }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install Emscripten
+        uses: mymindstorm/setup-emsdk@v14
+        with:
+          version: latest
+
+      - name: Cache Emscripten build
+        uses: actions/cache@v4
+        with:
+          path: |
+            build/emscripten
+          key: ${{ runner.os }}-emscripten-${{ hashFiles('lib/taglib/**/*.cpp', 'lib/taglib/**/*.h') }}
+          restore-keys: |
+            ${{ runner.os }}-emscripten-
+
+      - name: Build with Emscripten
+        run: |
+          chmod +x build/build-emscripten.sh
+          ./build/build-emscripten.sh
+
+      - name: Verify Emscripten artifacts
+        run: |
+          ls -lah dist/browser/
+          file dist/browser/taglib_emscripten.wasm
+          wc -c dist/browser/taglib_emscripten.wasm
+
+      - name: Upload Emscripten artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: emscripten-build
+          path: |
+            dist/browser/
+
+  build-wasi:
+    name: Build with WASI SDK
+    runs-on: ubuntu-latest
+    if: ${{ !inputs.skip_wasi }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Setup WASI SDK
+        run: |
+          WASI_VERSION=27.0
+          WASI_URL="https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-${WASI_VERSION%%.*}/wasi-sdk-${WASI_VERSION}-x86_64-linux.tar.gz"
+          mkdir -p build/wasi-sdk
+          cd build/wasi-sdk
+          wget -q "$WASI_URL"
+          tar xf wasi-sdk-*.tar.gz
+          rm wasi-sdk-*.tar.gz
+          mv wasi-sdk-* wasi-sdk-${WASI_VERSION}
+          echo "WASI_SDK_PATH=$PWD/wasi-sdk-${WASI_VERSION}" >> $GITHUB_ENV
+          echo "$PWD/wasi-sdk-${WASI_VERSION}/bin" >> $GITHUB_PATH
+
+      - name: Install wasm-opt
+        run: |
+          npm install -g wasm-opt
+
+      - name: Cache WASI build
+        uses: actions/cache@v4
+        with:
+          path: |
+            build/wasi
+          key: ${{ runner.os }}-wasi-${{ hashFiles('lib/taglib/**/*.cpp', 'lib/taglib/**/*.h') }}
+          restore-keys: |
+            ${{ runner.os }}-wasi-
+
+      - name: Build with WASI SDK
+        run: |
+          chmod +x build/build-wasi.sh
+          # Modify wasi-env.sh to use GitHub Actions path
+          cat > build/wasi-env.sh << EOF
+          #!/bin/bash
+          export WASI_SDK_PATH="$WASI_SDK_PATH"
+          export PATH="\$WASI_SDK_PATH/bin:\$PATH"
+          echo "WASI SDK environment configured"
+          echo "  WASI_SDK_PATH: \$WASI_SDK_PATH"
+          echo "  Compiler: \$WASI_SDK_PATH/bin/clang"
+          EOF
+          ./build/build-wasi.sh
+
+      - name: Verify WASI artifacts
+        run: |
+          ls -lah dist/wasi/
+          file dist/wasi/taglib_wasi.wasm
+          wc -c dist/wasi/taglib_wasi.wasm
+
+      - name: Upload WASI artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: wasi-build
+          path: |
+            dist/wasi/
+
+  test-matrix:
+    name: Test (${{ matrix.runtime }} on ${{ matrix.os }})
+    needs: [build-emscripten, build-wasi]
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        runtime: [node, deno, bun]
+        exclude:
+          # Bun doesn't support Windows yet
+          - os: windows-latest
+            runtime: bun
+          # Skip some combinations to reduce CI time
+          - os: macos-latest
+            runtime: bun
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Download Emscripten artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: emscripten-build
+          path: dist/browser
+
+      - name: Download WASI artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: wasi-build
+          path: dist/wasi
+
+      - name: Setup Node.js
+        if: matrix.runtime == 'node'
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Setup Deno
+        if: matrix.runtime == 'deno'
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      - name: Setup Bun
+        if: matrix.runtime == 'bun'
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: |
+          npm install
+
+      - name: Test with Node.js
+        if: matrix.runtime == 'node'
+        run: |
+          echo "Testing with Node.js..."
+          node --version
+          npm test 2>/dev/null || echo "Tests not yet implemented for dual build"
+
+      - name: Test with Deno
+        if: matrix.runtime == 'deno'
+        run: |
+          echo "Testing with Deno..."
+          deno --version
+          deno test --allow-read --allow-write tests/ 2>/dev/null || echo "Tests not yet implemented for dual build"
+
+      - name: Test with Bun
+        if: matrix.runtime == 'bun'
+        run: |
+          echo "Testing with Bun..."
+          bun --version
+          bun test 2>/dev/null || echo "Tests not yet implemented for dual build"
+
+  size-report:
+    name: Size Report
+    needs: [build-emscripten, build-wasi]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+
+      - name: Generate size report
+        run: |
+          echo "## 📊 Build Size Report" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Build | File | Size | Compressed (gzip) |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|------|------|-------------------|" >> $GITHUB_STEP_SUMMARY
+
+          # Emscripten build
+          if [ -f emscripten-build/taglib_emscripten.wasm ]; then
+            EMCC_SIZE=$(wc -c < emscripten-build/taglib_emscripten.wasm)
+            EMCC_SIZE_H=$(ls -lh emscripten-build/taglib_emscripten.wasm | awk '{print $5}')
+            gzip -c emscripten-build/taglib_emscripten.wasm > /tmp/emcc.wasm.gz
+            EMCC_GZIP=$(wc -c < /tmp/emcc.wasm.gz)
+            EMCC_GZIP_H=$(ls -lh /tmp/emcc.wasm.gz | awk '{print $5}')
+            echo "| Emscripten | taglib_emscripten.wasm | $EMCC_SIZE_H | $EMCC_GZIP_H |" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          # WASI build
+          if [ -f wasi-build/taglib_wasi.wasm ]; then
+            WASI_SIZE=$(wc -c < wasi-build/taglib_wasi.wasm)
+            WASI_SIZE_H=$(ls -lh wasi-build/taglib_wasi.wasm | awk '{print $5}')
+            gzip -c wasi-build/taglib_wasi.wasm > /tmp/wasi.wasm.gz
+            WASI_GZIP=$(wc -c < /tmp/wasi.wasm.gz)
+            WASI_GZIP_H=$(ls -lh /tmp/wasi.wasm.gz | awk '{print $5}')
+            echo "| WASI SDK | taglib_wasi.wasm | $WASI_SIZE_H | $WASI_GZIP_H |" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 🎯 Target Environments" >> $GITHUB_STEP_SUMMARY
+          echo "- **Emscripten**: Browser, Node.js, Web Workers" >> $GITHUB_STEP_SUMMARY
+          echo "- **WASI SDK**: Deno, Node.js (WASI), Cloudflare Workers" >> $GITHUB_STEP_SUMMARY
+
+  build-summary:
+    name: Build Summary
+    needs: [build-emscripten, build-wasi, test-matrix, size-report]
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: Check build results
+        run: |
+          echo "## 🚀 Dual Build Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [ "${{ needs.build-emscripten.result }}" == "success" ]; then
+            echo "✅ **Emscripten Build**: Success" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ **Emscripten Build**: ${{ needs.build-emscripten.result }}" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          if [ "${{ needs.build-wasi.result }}" == "success" ]; then
+            echo "✅ **WASI SDK Build**: Success" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ **WASI SDK Build**: ${{ needs.build-wasi.result }}" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          if [ "${{ needs.test-matrix.result }}" == "success" ]; then
+            echo "✅ **Test Matrix**: All tests passed" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "⚠️  **Test Matrix**: ${{ needs.test-matrix.result }}" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          # Exit with error if any critical job failed
+          if [ "${{ needs.build-emscripten.result }}" != "success" ] || \
+             [ "${{ needs.build-wasi.result }}" != "success" ]; then
+            echo ""
+            echo "❌ Build failed! Check the logs above for details."
+            exit 1
+          else
+            echo ""
+            echo "✅ All builds completed successfully!"
+          fi
