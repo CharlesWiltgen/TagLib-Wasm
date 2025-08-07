@@ -26,6 +26,27 @@ import { PICTURE_TYPE_VALUES } from "./types.ts";
 import { applyPictures, readPictures } from "./simple.ts";
 
 /**
+ * Ensures a Uint8Array is backed by an ArrayBuffer (not SharedArrayBuffer)
+ * for compatibility with Web APIs like Blob constructor.
+ * Only creates a copy when necessary.
+ *
+ * @internal
+ */
+function ensureArrayBufferBacked(
+  data: Uint8Array,
+): Uint8Array & { buffer: ArrayBuffer } {
+  // Check if already ArrayBuffer-backed
+  if (data.buffer instanceof ArrayBuffer) {
+    return data as Uint8Array & { buffer: ArrayBuffer };
+  }
+  // Only copy if SharedArrayBuffer-backed
+  // Creating a new Uint8Array ensures ArrayBuffer backing
+  const copy = new Uint8Array(data.length);
+  copy.set(data);
+  return copy as Uint8Array & { buffer: ArrayBuffer };
+}
+
+/**
  * Convert a Picture object to a data URL for display in web browsers
  *
  * @param picture - Picture object from taglib-wasm
@@ -40,7 +61,7 @@ import { applyPictures, readPictures } from "./simple.ts";
  */
 export function pictureToDataURL(picture: Picture): string {
   // Convert Uint8Array to base64
-  const base64 = btoa(String.fromCharCode(...picture.data));
+  const base64 = btoa(String.fromCharCode(...Array.from(picture.data)));
   return `data:${picture.mimeType};base64,${base64}`;
 }
 
@@ -250,7 +271,8 @@ export function displayPicture(
   }
 
   // Create blob and object URL
-  const blob = new Blob([picture.data], { type: picture.mimeType });
+  const data = ensureArrayBufferBacked(picture.data);
+  const blob = new Blob([data], { type: picture.mimeType });
   const objectURL = URL.createObjectURL(blob);
 
   // Set the src
@@ -288,7 +310,8 @@ export function createPictureDownloadURL(
   picture: Picture,
   filename: string = "cover",
 ): string {
-  const blob = new Blob([picture.data], { type: picture.mimeType });
+  const data = ensureArrayBufferBacked(picture.data);
+  const blob = new Blob([data], { type: picture.mimeType });
   return URL.createObjectURL(blob);
 }
 
