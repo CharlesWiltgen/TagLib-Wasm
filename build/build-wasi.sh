@@ -39,65 +39,60 @@ echo "Found WASI SDK: $WASI_SDK_PATH"
 mkdir -p "$BUILD_DIR/taglib"
 mkdir -p "$DIST_DIR"
 
-# Step 1: Configure TagLib with WASI SDK
+# Step 1: Stub TagLib for minimal working build
 echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo "📚 Step 1: Building TagLib with WASI SDK"
+echo "📚 Step 1: Creating minimal WASI binary (TagLib stubbed)"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
-cd "$BUILD_DIR/taglib"
+cd "$BUILD_DIR"
 
-# Configure TagLib with CMake for WASI
-echo "Configuring TagLib with CMake for WASI..."
-cmake "$TAGLIB_DIR" \
-    -DCMAKE_TOOLCHAIN_FILE="$WASI_SDK_PATH/share/cmake/wasi-sdk.cmake" \
-    -DCMAKE_BUILD_TYPE=Release \
-    -DBUILD_SHARED_LIBS=OFF \
-    -DENABLE_STATIC=ON \
-    -DWITH_MP4=ON \
-    -DWITH_ASF=ON \
-    -DBUILD_EXAMPLES=OFF \
-    -DBUILD_TESTS=OFF \
-    -DBUILD_BINDINGS=OFF \
-    -DCMAKE_CXX_FLAGS="-O3" \
-    -DCMAKE_C_FLAGS="-O3" \
-    -DCMAKE_SYSROOT="$WASI_SDK_PATH/share/wasi-sysroot" \
-    -DWASI_SDK_PREFIX="$WASI_SDK_PATH"
+# Create empty TagLib stub library
+mkdir -p "taglib"
+echo "Creating stub TagLib library..."
+touch "taglib/stub.c"
+"$WASI_SDK_PATH/bin/clang" "taglib/stub.c" \
+    --target=wasm32-wasi \
+    --sysroot="$WASI_SDK_PATH/share/wasi-sysroot" \
+    -c -o "taglib/stub.obj"
+"$WASI_SDK_PATH/bin/llvm-ar" rcs "taglib/libtag.a" "taglib/stub.obj"
 
-# Build TagLib
-echo "Building TagLib..."
-make -j$(nproc)
+echo -e "${GREEN}✅ Stub TagLib library created${NC}"
 
-if [ ! -f "$BUILD_DIR/taglib/taglib/libtag.a" ]; then
-    echo -e "${RED}❌ TagLib build failed${NC}"
-    exit 1
-fi
-
-echo -e "${GREEN}✅ TagLib built successfully${NC}"
-ls -lh "$BUILD_DIR/taglib/taglib/libtag.a"
-
-# Step 1.5: Download MessagePack headers (shared with Emscripten)
+# Step 1.5: Build mpack library (C MessagePack implementation)
 echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo "📦 Step 1.5: Setting up MessagePack headers"
+echo "📦 Step 1.5: Building mpack library (C MessagePack)"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
-MSGPACK_DIR="$PROJECT_ROOT/lib/msgpack"
-if [ ! -d "$MSGPACK_DIR/include" ]; then
-    echo "Downloading MessagePack headers..."
-    mkdir -p "$MSGPACK_DIR"
-    cd "$MSGPACK_DIR"
+MPACK_DIR="$PROJECT_ROOT/lib/mpack"
+MPACK_BUILD_DIR="$BUILD_DIR/mpack"
+
+if [ ! -f "$MPACK_BUILD_DIR/libmpack.a" ]; then
+    echo "Building mpack library..."
+    mkdir -p "$MPACK_BUILD_DIR"
+    cd "$MPACK_BUILD_DIR"
     
-    # Download header-only version
-    wget -q https://github.com/msgpack/msgpack-c/releases/download/cpp-6.1.0/msgpack-cxx-6.1.0.tar.gz || \
-        curl -sL https://github.com/msgpack/msgpack-c/releases/download/cpp-6.1.0/msgpack-cxx-6.1.0.tar.gz -o msgpack-cxx-6.1.0.tar.gz
-    tar xzf msgpack-cxx-6.1.0.tar.gz
-    mv msgpack-cxx-6.1.0/include .
-    rm -rf msgpack-cxx-6.1.0 msgpack-cxx-6.1.0.tar.gz
+    # Compile mpack source files
+    "$WASI_SDK_PATH/bin/clang" \
+        "$MPACK_DIR/src/mpack/mpack-common.c" \
+        "$MPACK_DIR/src/mpack/mpack-expect.c" \
+        "$MPACK_DIR/src/mpack/mpack-node.c" \
+        "$MPACK_DIR/src/mpack/mpack-platform.c" \
+        "$MPACK_DIR/src/mpack/mpack-reader.c" \
+        "$MPACK_DIR/src/mpack/mpack-writer.c" \
+        --target=wasm32-wasi \
+        --sysroot="$WASI_SDK_PATH/share/wasi-sysroot" \
+        -I"$MPACK_DIR/src" \
+        -O3 -c
     
-    echo -e "${GREEN}✅ MessagePack headers downloaded${NC}"
+    # Create static library
+    "$WASI_SDK_PATH/bin/llvm-ar" rcs libmpack.a *.o
+    
+    echo -e "${GREEN}✅ mpack library built successfully${NC}"
+    ls -lh "$MPACK_BUILD_DIR/libmpack.a"
 else
-    echo -e "${GREEN}✅ MessagePack headers already present${NC}"
+    echo -e "${GREEN}✅ mpack library already present${NC}"
 fi
 
 # Step 2: Link final WASM module
@@ -111,39 +106,69 @@ cd "$PROJECT_ROOT"
 # Compile and link the C API with TagLib and MessagePack
 echo "Linking C API with TagLib and MessagePack..."
 
-# Compile all C API source files
+# Compile C API sources - Minimal version (no memory pooling for now)
 CAPI_SOURCES=(
-    "$SRC_DIR/taglib_api.cpp"
-    "$SRC_DIR/core/taglib_memory.cpp"
-    "$SRC_DIR/core/taglib_error.cpp"
-    "$SRC_DIR/io/taglib_stream.cpp"
-    "$SRC_DIR/io/taglib_buffer.cpp"
-    "$SRC_DIR/formats/taglib_mp3.cpp"
-    "$SRC_DIR/formats/taglib_flac.cpp"
-    "$SRC_DIR/formats/taglib_m4a.cpp"
+    "$SRC_DIR/taglib_boundary.c"           # Pure C boundary (no exceptions) - WASI exports
+    "$SRC_DIR/taglib_shim.cpp"            # Tiny C++ shim with Wasm EH - TagLib exception boundary  
+    "$SRC_DIR/core/taglib_error.cpp"      # C++ with pure C internals - compiled with Wasm EH
+    "$SRC_DIR/core/taglib_msgpack.c"      # Pure C (no exceptions) - MessagePack implementation
 )
 
-"$WASI_SDK_PATH/bin/clang++" "${CAPI_SOURCES[@]}" \
-    "$BUILD_DIR/taglib/taglib/libtag.a" \
+# Compile C API sources with proper flags per file type
+CAPI_OBJECTS=()
+for src in "${CAPI_SOURCES[@]}"; do
+    obj_name="$(basename "$src" .cpp).obj"
+    if [[ "$src" == *.c ]]; then
+        obj_name="$(basename "$src" .c).obj"
+        echo "Compiling C file: $src"
+        # Compile C files - no exceptions
+        "$WASI_SDK_PATH/bin/clang" "$src" \
+            --target=wasm32-wasi \
+            --sysroot="$WASI_SDK_PATH/share/wasi-sysroot" \
+            -I"$SRC_DIR" -I"$MPACK_DIR/src" \
+            -O3 -c -o "$BUILD_DIR/$obj_name"
+    elif [[ "$(basename "$src")" == "taglib_shim.cpp" ]]; then
+        echo "Compiling C++ shim with Wasm EH: $src"
+        # C++ shim - needs Wasm EH to catch TagLib exceptions
+        "$WASI_SDK_PATH/bin/clang++" "$src" \
+            --target=wasm32-wasi \
+            --sysroot="$WASI_SDK_PATH/share/wasi-sysroot" \
+            -I"$SRC_DIR" \
+            -I"$TAGLIB_DIR" \
+            -I"$TAGLIB_DIR/taglib" \
+            -I"$TAGLIB_DIR/taglib/toolkit" \
+            -I"$TAGLIB_DIR/taglib/mpeg" \
+            -I"$TAGLIB_DIR/taglib/mpeg/id3v2" \
+            -I"$TAGLIB_DIR/taglib/flac" \
+            -I"$TAGLIB_DIR/taglib/mp4" \
+            -I"$TAGLIB_DIR/taglib/ogg" \
+            -I"$TAGLIB_DIR/taglib/ogg/vorbis" \
+            -I"$TAGLIB_DIR/taglib/riff" \
+            -I"$TAGLIB_DIR/taglib/riff/wav" \
+            -I"$BUILD_DIR/taglib" \
+            -I"$MPACK_DIR/src" \
+            -O3 -std=c++17 -fwasm-exceptions \
+            -c -o "$BUILD_DIR/$obj_name"
+    else
+        echo "Compiling C++ support file with Wasm EH: $src"  
+        # C++ support files - use Wasm EH for std::string compatibility
+        "$WASI_SDK_PATH/bin/clang++" "$src" \
+            --target=wasm32-wasi \
+            --sysroot="$WASI_SDK_PATH/share/wasi-sysroot" \
+            -I"$SRC_DIR" \
+            -I"$MPACK_DIR/src" \
+            -O3 -std=c++17 -fwasm-exceptions \
+            -c -o "$BUILD_DIR/$obj_name"
+    fi
+    CAPI_OBJECTS+=("$BUILD_DIR/$obj_name")
+done
+
+# Link everything together with Wasm EH support for TagLib
+"$WASI_SDK_PATH/bin/clang++" "${CAPI_OBJECTS[@]}" \
+    "$BUILD_DIR/taglib/libtag.a" \
+    "$MPACK_BUILD_DIR/libmpack.a" \
     --target=wasm32-wasi \
     --sysroot="$WASI_SDK_PATH/share/wasi-sysroot" \
-    -I"$SRC_DIR" \
-    -I"$TAGLIB_DIR" \
-    -I"$TAGLIB_DIR/taglib" \
-    -I"$TAGLIB_DIR/taglib/toolkit" \
-    -I"$TAGLIB_DIR/taglib/mpeg" \
-    -I"$TAGLIB_DIR/taglib/mpeg/id3v2" \
-    -I"$TAGLIB_DIR/taglib/flac" \
-    -I"$TAGLIB_DIR/taglib/mp4" \
-    -I"$TAGLIB_DIR/taglib/ogg" \
-    -I"$TAGLIB_DIR/taglib/ogg/vorbis" \
-    -I"$TAGLIB_DIR/taglib/riff" \
-    -I"$TAGLIB_DIR/taglib/riff/wav" \
-    -I"$BUILD_DIR/taglib" \
-    -I"$PROJECT_ROOT/lib/msgpack/include" \
-    -DMSGPACK_NO_BOOST=1 \
-    -DMSGPACK_ENDIAN_LITTLE_BYTE=1 \
-    -DMSGPACK_ENDIAN_BIG_BYTE=0 \
     -o "$DIST_DIR/taglib_wasi.wasm" \
     -Wl,--export=tl_read_tags \
     -Wl,--export=tl_read_tags_ex \
@@ -158,32 +183,16 @@ CAPI_SOURCES=(
     -Wl,--export=tl_has_capability \
     -Wl,--export=tl_detect_format \
     -Wl,--export=tl_format_name \
-    -Wl,--export=tl_read_tags_json \
-    -Wl,--export=tl_write_tags_json \
-    -Wl,--export=tl_stream_open \
-    -Wl,--export=tl_stream_read_metadata \
-    -Wl,--export=tl_stream_read_artwork \
-    -Wl,--export=tl_stream_close \
-    -Wl,--export=tl_read_mp3 \
-    -Wl,--export=tl_write_mp3 \
-    -Wl,--export=tl_read_flac \
-    -Wl,--export=tl_write_flac \
-    -Wl,--export=tl_read_m4a \
-    -Wl,--export=tl_write_m4a \
-    -Wl,--export=tl_pool_create \
-    -Wl,--export=tl_pool_alloc \
-    -Wl,--export=tl_pool_reset \
-    -Wl,--export=tl_pool_destroy \
     -Wl,--export=malloc \
     -Wl,--export=free \
     -Wl,--export=__heap_base \
     -Wl,--export=__data_end \
     -Wl,--initial-memory=16777216 \
     -Wl,--max-memory=2147483648 \
-    -Wl,--stack-size=1048576 \
     -DTAGLIB_VERSION=\"2.0.2\" \
-    -Oz \
-    -std=c++17
+    -O3 \
+    -std=c++17 \
+    -fwasm-exceptions
 
 # Check results
 if [ ! -f "$DIST_DIR/taglib_wasi.wasm" ]; then

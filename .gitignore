@@ -11,6 +11,24 @@ KNOWN_ISSUES.md
 
 # Build artifacts
 build/taglib-build/
+build/wasi/
+build/emscripten/
+build/poc/
+build/phase0-test/
+build/tests/
+build/dist/
+build/**/*.o
+build/**/*.obj
+build/**/*.a
+build/**/*.so
+build/**/*.wasm
+build/**/*.js
+build/**/CMakeCache.txt
+build/**/cmake_install.cmake
+build/**/Makefile
+build/**/CTestTestfile.cmake
+build/**/CMakeFiles/
+build/**/*.cmake
 dist/
 
 # Test files backup
@@ -38,6 +56,10 @@ mise.toml
 # ===================
 # Dependencies
 # ===================
+
+# Downloaded dependencies
+lib/mpack/
+lib/taglib/
 
 # Node modules
 node_modules/
@@ -100,6 +122,15 @@ coverage
 
 # Package files
 *.tgz
+
+# Object files and libraries
+*.o
+*.obj
+*.a
+*.lib
+*.so
+*.dylib
+*.dll
 
 # Build directories
 build/Release
