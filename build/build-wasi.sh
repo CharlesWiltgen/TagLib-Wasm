@@ -59,7 +59,7 @@ cmake "$TAGLIB_DIR" \
     -DBUILD_EXAMPLES=OFF \
     -DBUILD_TESTS=OFF \
     -DBUILD_BINDINGS=OFF \
-    -DCMAKE_CXX_FLAGS="-O3 -fno-exceptions -fno-rtti" \
+    -DCMAKE_CXX_FLAGS="-O3" \
     -DCMAKE_C_FLAGS="-O3" \
     -DCMAKE_SYSROOT="$WASI_SDK_PATH/share/wasi-sysroot" \
     -DWASI_SDK_PREFIX="$WASI_SDK_PATH"
@@ -183,8 +183,6 @@ CAPI_SOURCES=(
     -Wl,--stack-size=1048576 \
     -DTAGLIB_VERSION=\"2.0.2\" \
     -Oz \
-    -fno-exceptions \
-    -fno-rtti \
     -std=c++17
 
 # Check results

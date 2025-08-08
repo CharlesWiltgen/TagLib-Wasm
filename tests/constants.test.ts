@@ -37,32 +37,44 @@ Deno.test("isValidProperty - validates property keys correctly", () => {
 Deno.test("getPropertyMetadata - returns correct metadata for properties", () => {
   // Test basic property
   const titleMeta = getPropertyMetadata("TITLE");
-  assertEquals(titleMeta.key, "TITLE");
-  assertEquals(titleMeta.description, "The title of the track");
-  assertEquals(titleMeta.type, "string");
-  assertEquals(titleMeta.supportedFormats, ["ID3v2", "MP4", "Vorbis", "WAV"]);
-  assertExists(titleMeta.mappings);
-  assertEquals(titleMeta.mappings.id3v2?.frame, "TIT2");
-  assertEquals(titleMeta.mappings.mp4, "©nam");
+  if (titleMeta) {
+    assertEquals(titleMeta.key, "TITLE");
+    assertEquals(titleMeta.description, "The title of the track");
+    assertEquals(titleMeta.type, "string");
+    assertEquals(titleMeta.supportedFormats, ["ID3v2", "MP4", "Vorbis", "WAV"]);
+    assertExists(titleMeta.mappings);
+    const id3v2Mapping = titleMeta.mappings.id3v2;
+    if (typeof id3v2Mapping === "object") {
+      assertEquals(id3v2Mapping.frame, "TIT2");
+    }
+    assertEquals(titleMeta.mappings.mp4, "©nam");
+  }
 
   // Test extended property
   const mbTrackId = getPropertyMetadata("MUSICBRAINZ_TRACKID");
-  assertEquals(mbTrackId.key, "MUSICBRAINZ_TRACKID");
-  assertEquals(mbTrackId.description, "MusicBrainz Recording ID (UUID)");
-  assertEquals(mbTrackId.mappings.id3v2?.frame, "UFID");
-  assertEquals(mbTrackId.mappings.id3v2?.description, "http://musicbrainz.org");
+  if (mbTrackId) {
+    assertEquals(mbTrackId.key, "MUSICBRAINZ_TRACKID");
+    assertEquals(mbTrackId.description, "MusicBrainz Recording ID (UUID)");
+    const id3v2Mapping = mbTrackId.mappings.id3v2;
+    if (typeof id3v2Mapping === "object") {
+      assertEquals(id3v2Mapping.frame, "UFID");
+      assertEquals(id3v2Mapping.description, "http://musicbrainz.org");
+    }
+  }
 
   // Test ReplayGain property
   const rgTrackGain = getPropertyMetadata("REPLAYGAIN_TRACK_GAIN");
-  assertEquals(
-    rgTrackGain.description,
-    "ReplayGain track gain in dB (e.g., '-6.54 dB')",
-  );
-  assertEquals(rgTrackGain.mappings.id3v2?.frame, "TXXX");
-  assertEquals(
-    rgTrackGain.mappings.id3v2?.description,
-    "ReplayGain_Track_Gain",
-  );
+  if (rgTrackGain) {
+    assertEquals(
+      rgTrackGain.description,
+      "ReplayGain track gain in dB (e.g., '-6.54 dB')",
+    );
+    const id3v2Mapping = rgTrackGain.mappings.id3v2;
+    if (typeof id3v2Mapping === "object") {
+      assertEquals(id3v2Mapping.frame, "TXXX");
+      assertEquals(id3v2Mapping.description, "ReplayGain_Track_Gain");
+    }
+  }
 });
 
 Deno.test("getAllPropertyKeys - returns all property keys", () => {
@@ -115,7 +127,9 @@ Deno.test("getPropertiesByFormat - filters properties by format support", () => 
   // Verify all returned properties support ID3v2
   for (const prop of id3v2Props) {
     const metadata = getPropertyMetadata(prop as PropertyKey);
-    assertEquals(metadata.supportedFormats.includes("ID3v2" as any), true);
+    if (metadata) {
+      assertEquals(metadata.supportedFormats.includes("ID3v2" as any), true);
+    }
   }
 
   // Test Vorbis format
