@@ -49,7 +49,7 @@ CMAKE_CXX_COMPILER_CLANG_SCAN_DEPS:FILEPATH=CMAKE_CXX_COMPILER_CLANG_SCAN_DEPS-N
 CMAKE_CXX_COMPILER_RANLIB:FILEPATH=/Users/Charles/Projects/taglib-wasm/build/wasi-sdk/wasi-sdk-27.0-arm64-macos/bin/llvm-ranlib
 
 //Flags used by the CXX compiler during all build types.
-CMAKE_CXX_FLAGS:STRING=-O3 -fno-exceptions -fno-rtti
+CMAKE_CXX_FLAGS:STRING=-O3
 
 //Flags used by the CXX compiler during DEBUG builds.
 CMAKE_CXX_FLAGS_DEBUG:STRING=-g
