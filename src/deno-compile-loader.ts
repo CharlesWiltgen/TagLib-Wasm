@@ -9,7 +9,8 @@
 import createTagLibModule from "../build/taglib-wrapper.js";
 
 // Import types
-import type { LoadTagLibOptions, TagLibModule } from "../index.ts";
+import type { LoadTagLibOptions } from "./runtime/loader-types.ts";
+import type { TagLibModule } from "./wasm.ts";
 
 // Module state
 let cachedModule: TagLibModule | null = null;

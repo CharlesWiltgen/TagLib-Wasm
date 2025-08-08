@@ -10,8 +10,10 @@
     "npm:@msgpack/msgpack@3.0.0": "3.0.0",
     "npm:@types/emscripten@^1.39.6": "1.40.1",
     "npm:@types/node@20": "20.19.0",
+    "npm:@wasmer/sdk@*": "0.9.0",
     "npm:@wasmer/wasi@0.12.0": "0.12.0",
     "npm:esbuild@~0.25.5": "0.25.5",
+    "npm:fast-check@3.15.0": "3.15.0",
     "npm:tsx@^4.20.3": "4.20.3",
     "npm:typescript@5": "5.8.3"
   },
@@ -176,6 +178,12 @@
         "undici-types"
       ]
     },
+    "@wasmer/sdk@0.9.0": {
+      "integrity": "sha512-k/CY19NfeLCjA9ZpX69JAoZKiuMT3hKjDFJYWdRGkCdfig9NtC9Op7Gpg2LeezuuQKd4WaSSq8bpSMdHw1BMgg==",
+      "dependencies": [
+        "web-worker"
+      ]
+    },
     "@wasmer/wasi@0.12.0": {
       "integrity": "sha512-FJhLZKAfLWm/yjQI7eCRHNbA8ezmb7LSpUYFkHruZXs2mXk2+DaQtSElEtOoNrVQ4vApTyVaAd5/b7uEu8w6wQ==",
       "dependencies": [
@@ -223,6 +231,12 @@
       "scripts": true,
       "bin": true
     },
+    "fast-check@3.15.0": {
+      "integrity": "sha512-iBz6c+EXL6+nI931x/sbZs1JYTZtLG6Cko0ouS8LRTikhDR7+wZk4TYzdRavlnByBs2G6+nuuJ7NYL9QplNt8Q==",
+      "dependencies": [
+        "pure-rand"
+      ]
+    },
     "fsevents@2.3.3": {
       "integrity": "sha512-5xoDfX+fL7faATnagmWPpbFtwh/R77WmMMqqHGS65C3vvB0YHrgF+B1YmZ3441tMj5n63k0212XNoJwzlhffQw==",
       "os": ["darwin"],
@@ -236,6 +250,9 @@
     },
     "path-browserify@1.0.1": {
       "integrity": "sha512-b7uo2UCUOYZcnF/3ID0lulOJi/bafxa1xPe7ZPsammBSpjSWQkjNxlt635YGS2MiR9GjvuXCtz2emr3jbsz98g=="
+    },
+    "pure-rand@6.1.0": {
+      "integrity": "sha512-bVWawvoZoBYpp6yIoQtQXHZjmz35RSVHnUOTefl8Vcjr8snTPY1wnpSPMWekcFwbxI6gtmT7rSYPFvz71ldiOA=="
     },
     "randombytes@2.1.0": {
       "integrity": "sha512-vYl3iOX+4CKUWuxGi9Ukhie6fsqXqS9FE2Zaic4tNFD2N2QQaXOMFbuKK4QmDHC0JO6B1Zp41J0LpT0oR68amQ==",
@@ -273,6 +290,9 @@
     },
     "undici-types@6.21.0": {
       "integrity": "sha512-iwDZqg0QAGrg9Rav5H4n0M64c3mkR59cJ6wQp+7C4nI0gsmExaedaYLNO44eT4AtBBwjbTiGPMlt2Md0T9H9JQ=="
+    },
+    "web-worker@1.5.0": {
+      "integrity": "sha512-RiMReJrTAiA+mBjGONMnjVDP2u3p9R1vkcGz6gDIrOMT3oGuYwX2WRMYI9ipkphSuE5XKEhydbhNEJh4NY9mlw=="
     }
   },
   "remote": {
