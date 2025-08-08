@@ -1,57 +1,60 @@
-// Error handling for TagLib-Wasm
+// Error handling for TagLib-Wasm - Pure C to avoid std::string EH symbols
 #include "taglib_core.h"
-#include <string>
-#include <cstring>
+#include <string.h>
+#include <stdlib.h>
 
-// Thread-local error state
-static thread_local std::string g_last_error_message;
-static thread_local tl_error_code g_last_error_code = TL_SUCCESS;
+// Simple C error state (no thread_local, no std::string)
+static char g_last_error_message[256] = {0};
+static tl_error_code g_last_error_code = TL_SUCCESS;
+
+extern "C" {
 
 // Set error with message
 void tl_set_error(tl_error_code code, const char* message) {
     g_last_error_code = code;
     if (message) {
-        g_last_error_message = message;
+        strncpy(g_last_error_message, message, sizeof(g_last_error_message) - 1);
+        g_last_error_message[sizeof(g_last_error_message) - 1] = '\0';
     } else {
         // Default messages for error codes
+        const char* default_msg = "Unknown error";
         switch (code) {
             case TL_SUCCESS:
-                g_last_error_message = "Success";
+                default_msg = "Success";
                 break;
             case TL_ERROR_INVALID_INPUT:
-                g_last_error_message = "Invalid input: Null pointer or zero size";
+                default_msg = "Invalid input: Null pointer or zero size";
                 break;
             case TL_ERROR_UNSUPPORTED_FORMAT:
-                g_last_error_message = "Unsupported audio format";
+                default_msg = "Unsupported audio format";
                 break;
             case TL_ERROR_MEMORY_ALLOCATION:
-                g_last_error_message = "Memory allocation failed";
+                default_msg = "Memory allocation failed";
                 break;
             case TL_ERROR_IO_READ:
-                g_last_error_message = "Failed to read file";
+                default_msg = "Failed to read file";
                 break;
             case TL_ERROR_IO_WRITE:
-                g_last_error_message = "Failed to write file";
+                default_msg = "Failed to write file";
                 break;
             case TL_ERROR_PARSE_FAILED:
-                g_last_error_message = "Failed to parse audio file";
+                default_msg = "Failed to parse audio file";
                 break;
             case TL_ERROR_SERIALIZE_FAILED:
-                g_last_error_message = "Failed to serialize tag data";
+                default_msg = "Failed to serialize tag data";
                 break;
             case TL_ERROR_NOT_IMPLEMENTED:
-                g_last_error_message = "Feature not yet implemented";
-                break;
-            default:
-                g_last_error_message = "Unknown error";
+                default_msg = "Feature not yet implemented";
                 break;
         }
+        strncpy(g_last_error_message, default_msg, sizeof(g_last_error_message) - 1);
+        g_last_error_message[sizeof(g_last_error_message) - 1] = '\0';
     }
 }
 
 // Get last error message
 const char* tl_get_last_error(void) {
-    return g_last_error_message.empty() ? nullptr : g_last_error_message.c_str();
+    return g_last_error_message[0] ? g_last_error_message : nullptr;
 }
 
 // Get last error code
@@ -62,7 +65,7 @@ int tl_get_last_error_code(void) {
 // Clear error state
 void tl_clear_error(void) {
     g_last_error_code = TL_SUCCESS;
-    g_last_error_message.clear();
+    g_last_error_message[0] = '\0';
 }
 
 // Version information
@@ -79,26 +82,24 @@ int tl_api_version(void) {
     return TAGLIB_WASM_API_VERSION;
 }
 
-// Capability detection
+// Capability detection - Pure C implementation
 bool tl_has_capability(const char* capability) {
     if (!capability) return false;
     
-    std::string cap(capability);
-    
-    // List of supported capabilities
-    if (cap == "msgpack") return true;
-    if (cap == "json") return true;  // Legacy support
-    if (cap == "streaming") return true;
-    if (cap == "memory-pool") return true;
-    if (cap == "format-mp3") return true;
-    if (cap == "format-flac") return true;
-    if (cap == "format-m4a") return true;
-    if (cap == "format-ogg") return true;
-    if (cap == "format-wav") return true;
-    if (cap == "format-ape") return true;
-    if (cap == "format-wavpack") return true;
-    if (cap == "format-opus") return true;
-    if (cap == "wasi") {
+    // List of supported capabilities - using strcmp instead of std::string
+    if (strcmp(capability, "msgpack") == 0) return true;
+    if (strcmp(capability, "json") == 0) return true;  // Legacy support
+    if (strcmp(capability, "streaming") == 0) return true;
+    if (strcmp(capability, "memory-pool") == 0) return true;
+    if (strcmp(capability, "format-mp3") == 0) return true;
+    if (strcmp(capability, "format-flac") == 0) return true;
+    if (strcmp(capability, "format-m4a") == 0) return true;
+    if (strcmp(capability, "format-ogg") == 0) return true;
+    if (strcmp(capability, "format-wav") == 0) return true;
+    if (strcmp(capability, "format-ape") == 0) return true;
+    if (strcmp(capability, "format-wavpack") == 0) return true;
+    if (strcmp(capability, "format-opus") == 0) return true;
+    if (strcmp(capability, "wasi") == 0) {
         #ifdef __wasi__
         return true;
         #else
@@ -108,3 +109,5 @@ bool tl_has_capability(const char* capability) {
     
     return false;
 }
+
+} // extern "C"

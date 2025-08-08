@@ -3,8 +3,10 @@
 #include "../core/taglib_core.h"
 #include <flac/flacfile.h>
 #include <flac/flacpicture.h>
+#include <ogg/xiphcomment.h>
+#include <mpeg/id3v2/id3v2framefactory.h>
 #include <toolkit/tbytevectorstream.h>
-#include <msgpack.hpp>
+// MessagePack removed - using core C API now
 #include <cstring>
 #include <memory>
 
@@ -263,7 +265,7 @@ int tl_write_flac(const uint8_t* buf, size_t len,
     
     // Get the modified data
     if (out_buf && out_size) {
-        TagLib::ByteVector modified = stream->data();
+        TagLib::ByteVector modified = *stream->data();
         *out_size = modified.size();
         *out_buf = static_cast<uint8_t*>(tl_malloc(*out_size));
         if (*out_buf) {
