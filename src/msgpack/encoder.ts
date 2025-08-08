@@ -142,7 +142,8 @@ export function encodeMessagePackCompact<T>(data: T): Uint8Array {
 }
 
 /**
- * Clean an object by removing undefined values, null values, and empty strings
+ * Clean an object by removing undefined values and empty strings
+ * Note: Preserves null values as they may have semantic meaning
  */
 function cleanObject(obj: unknown): unknown {
   if (obj === null || obj === undefined) {

@@ -5,7 +5,7 @@
  * with Deno compile by handling WASM loading appropriately.
  */
 
-import type { LoadTagLibOptions } from "../index.ts";
+import type { LoadTagLibOptions } from "./runtime/loader-types.ts";
 
 /**
  * Detects if running in a Deno compiled binary

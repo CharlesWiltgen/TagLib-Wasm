@@ -255,40 +255,9 @@ import type { TagLibModule } from "./src/wasm.ts";
 /**
  * Configuration options for loading the TagLib WASM module
  */
-export interface LoadTagLibOptions {
-  /**
-   * Optional pre-loaded WASM binary data.
-   * If provided, this will be used instead of fetching from network.
-   */
-  wasmBinary?: ArrayBuffer | Uint8Array;
-
-  /**
-   * Optional custom URL or path for the WASM file.
-   * This is passed to the locateFile function.
-   */
-  wasmUrl?: string;
-
-  /**
-   * Force legacy Emscripten-only mode (disables WASI optimizations).
-   * Use this for debugging or compatibility with older environments.
-   * @default false
-   */
-  legacyMode?: boolean;
-
-  /**
-   * Force a specific WASM type (overrides automatic detection).
-   * - "wasi": Use WASI implementation for filesystem access (Deno/Node.js)
-   * - "emscripten": Use Emscripten implementation for universal compatibility
-   * @default undefined (auto-detect)
-   */
-  forceWasmType?: "wasi" | "emscripten";
-
-  /**
-   * Disable performance optimizations for debugging.
-   * @default false
-   */
-  disableOptimizations?: boolean;
-}
+// Re-export LoadTagLibOptions from the new location
+export type { LoadTagLibOptions } from "./src/runtime/loader-types.ts";
+import type { LoadTagLibOptions } from "./src/runtime/loader-types.ts";
 
 /**
  * Load the TagLib Wasm module.
@@ -335,13 +304,14 @@ export async function loadTagLibModule(
   // Use unified loader for optimal performance
   try {
     const { loadUnifiedTagLibModule } = await import(
-      "./src/runtime/unified-loader.ts"
+      "./src/runtime/unified-loader-v2.ts"
     );
     return await loadUnifiedTagLibModule({
       wasmBinary: options?.wasmBinary,
       wasmUrl: options?.wasmUrl,
-      forceWasmType: options?.forceWasmType,
-      disableOptimizations: options?.disableOptimizations,
+      // These options exist in the v2 loader
+      debug: false,
+      useInlineWasm: false,
     });
   } catch (error) {
     console.warn(

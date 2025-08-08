@@ -566,12 +566,26 @@ export function isValidProperty(key: string): key is PropertyKey {
 }
 
 /**
+ * Property metadata interface inferred from PROPERTIES structure
+ */
+export type PropertyMetadata = {
+  key: string;
+  description: string;
+  type: "string" | "number" | "boolean" | "array";
+  supportedFormats: readonly string[];
+  mappings: Record<
+    string,
+    string | { frame?: string; atom?: string; description?: string }
+  >;
+};
+
+/**
  * Get property metadata for a given property key
  */
 export function getPropertyMetadata<K extends PropertyKey>(
   key: K,
 ): PropertyMetadata | undefined {
-  return PROPERTIES[key];
+  return PROPERTIES[key] as PropertyMetadata | undefined;
 }
 
 /**

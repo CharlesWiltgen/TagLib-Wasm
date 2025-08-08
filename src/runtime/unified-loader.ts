@@ -9,7 +9,7 @@
  */
 
 import type { TagLibModule, WasmModule } from "../wasm.ts";
-import type { LoadTagLibOptions } from "../../index.ts";
+import type { LoadTagLibOptions } from "./loader-types.ts";
 import { detectRuntime, type RuntimeDetectionResult } from "./detector.ts";
 import {
   loadWasi,
