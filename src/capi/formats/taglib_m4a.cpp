@@ -6,7 +6,7 @@
 #include <mp4/mp4item.h>
 #include <mp4/mp4coverart.h>
 #include <toolkit/tbytevectorstream.h>
-#include <msgpack.hpp>
+// MessagePack removed - using core C API now
 #include <cstring>
 #include <memory>
 
@@ -304,7 +304,7 @@ int tl_write_m4a(const uint8_t* buf, size_t len,
     
     // Get the modified data
     if (out_buf && out_size) {
-        TagLib::ByteVector modified = stream->data();
+        TagLib::ByteVector modified = *stream->data();
         *out_size = modified.size();
         *out_buf = static_cast<uint8_t*>(tl_malloc(*out_size));
         if (*out_buf) {

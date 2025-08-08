@@ -96,6 +96,9 @@
     "url": "https://github.com/CharlesWiltgen/taglib-wasm/issues"
   },
   "homepage": "https://github.com/CharlesWiltgen/taglib-wasm#readme",
+  "dependencies": {
+    "@msgpack/msgpack": "^3.1.2"
+  },
   "devDependencies": {
     "@types/emscripten": "^1.39.6",
     "@types/node": "^20.0.0",

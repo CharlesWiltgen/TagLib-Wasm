@@ -1,9 +1,0 @@
-{
-	"InstallScripts" : 
-	[
-		"/Users/Charles/Projects/taglib-wasm/build/wasi/taglib/cmake_install.cmake",
-		"/Users/Charles/Projects/taglib-wasm/build/wasi/taglib/3rdparty/utfcpp/cmake_install.cmake",
-		"/Users/Charles/Projects/taglib-wasm/build/wasi/taglib/taglib/cmake_install.cmake"
-	],
-	"Parallel" : false
-}
