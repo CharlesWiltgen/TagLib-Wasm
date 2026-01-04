@@ -10,12 +10,7 @@
  * - Proper error handling
  */
 
-import {
-  assert,
-  assertEquals,
-  assertExists,
-  assertThrows,
-} from "https://deno.land/std@0.208.0/assert/mod.ts";
+import { assert, assertEquals, assertExists, assertThrows } from "@std/assert";
 
 // Mock WASI exports for testing
 const createMockWasiExports = (

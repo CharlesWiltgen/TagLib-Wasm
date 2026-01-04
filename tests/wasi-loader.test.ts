@@ -5,11 +5,7 @@
  * integration with different runtime environments.
  */
 
-import {
-  assertEquals,
-  assertExists,
-  assertRejects,
-} from "https://deno.land/std@0.208.0/assert/mod.ts";
+import { assertEquals, assertExists, assertRejects } from "@std/assert";
 import {
   CachedWasiLoader,
   getWasiCapabilities,

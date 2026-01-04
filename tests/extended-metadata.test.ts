@@ -4,10 +4,7 @@
  * Tests MusicBrainz IDs, ReplayGain, AcoustID, and other advanced metadata
  */
 
-import {
-  assertEquals,
-  type assertExists,
-} from "https://deno.land/std@0.223.0/assert/mod.ts";
+import { assertEquals, type assertExists } from "@std/assert";
 import { TagLib } from "../src/taglib.ts";
 import { readFileData } from "../src/utils/file.ts";
 import {
