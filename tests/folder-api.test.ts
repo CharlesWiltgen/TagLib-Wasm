@@ -1,4 +1,4 @@
-import { assertEquals, assertExists } from "jsr:@std/assert@^0.220.0";
+import { assertEquals, assertExists } from "@std/assert";
 import {
   type AudioFileMetadata,
   exportFolderMetadata,

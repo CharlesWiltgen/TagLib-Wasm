@@ -2,9 +2,9 @@
  * Tests for Smart Partial Loading functionality
  */
 
-import { assert, assertEquals, assertExists } from "jsr:@std/assert@^1.0.0";
+import { assert, assertEquals, assertExists } from "@std/assert";
 import { TagLib } from "../src/taglib.ts";
-import { join } from "jsr:@std/path@^1.0.0";
+import { join } from "@std/path";
 
 const TEST_FILES_DIR = join(Deno.cwd(), "tests/test-files");
 

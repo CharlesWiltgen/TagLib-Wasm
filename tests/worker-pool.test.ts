@@ -2,10 +2,7 @@
  * Test suite for worker pool functionality
  */
 
-import {
-  assertEquals,
-  assertExists,
-} from "https://deno.land/std@0.224.0/assert/mod.ts";
+import { assertEquals, assertExists } from "@std/assert";
 import {
   type applyTags,
   createWorkerPool,

@@ -2,11 +2,7 @@
  * @fileoverview Tests for enhanced error handling with context
  */
 
-import {
-  assertEquals,
-  assertRejects,
-  assertThrows,
-} from "https://deno.land/std@0.210.0/assert/mod.ts";
+import { assertEquals, assertRejects, assertThrows } from "@std/assert";
 import { TagLib } from "../src/taglib.ts";
 import { type applyTags, readProperties, readTags } from "../src/simple.ts";
 import {

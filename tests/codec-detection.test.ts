@@ -1,8 +1,8 @@
 /// <reference lib="deno.ns" />
 
-import { assertEquals } from "https://deno.land/std@0.220.0/assert/mod.ts";
+import { assertEquals } from "@std/assert";
 import { TagLib } from "../src/mod.ts";
-import { join } from "https://deno.land/std@0.220.0/path/mod.ts";
+import { join } from "@std/path";
 
 // Test codec detection, container format detection, and lossless detection
 Deno.test("codec and container detection", async (t) => {
