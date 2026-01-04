@@ -8,7 +8,7 @@
  * Uses @msgpack/msgpack for reliable cross-platform encoding.
  */
 
-import { encode, type EncoderOptions } from "npm:@msgpack/msgpack@3.0.0";
+import { encode, type EncoderOptions } from "@msgpack/msgpack";
 import type {
   AudioProperties,
   ExtendedTag,

@@ -5,7 +5,7 @@
 # Private planning documents
 *.nogit.md
 *.nogit.txt
-CLAUDE.local.md
+CLAUDE*
 BACKLOG.md
 KNOWN_ISSUES.md
 

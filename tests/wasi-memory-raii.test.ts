@@ -5,11 +5,7 @@
  * Verifies automatic cleanup, error handling, and memory leak prevention.
  */
 
-import {
-  assert,
-  assertEquals,
-  assertThrows,
-} from "https://deno.land/std@0.208.0/assert/mod.ts";
+import { assert, assertEquals, assertThrows } from "@std/assert";
 import {
   heapViews,
   WasmAlloc,

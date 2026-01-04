@@ -3,11 +3,7 @@
  * Combines tests from test-pictures.ts and test-cover-art-helpers.ts
  */
 
-import {
-  assert,
-  assertEquals,
-  assertExists,
-} from "https://deno.land/std@0.224.0/assert/mod.ts";
+import { assert, assertEquals, assertExists } from "@std/assert";
 import { TagLib } from "../src/taglib.ts";
 import { readFileData } from "../src/utils/file.ts";
 import {

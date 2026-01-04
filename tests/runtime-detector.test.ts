@@ -5,10 +5,7 @@
  * optimal WASM binary selection for each environment type.
  */
 
-import {
-  assertEquals,
-  assertExists,
-} from "https://deno.land/std@0.208.0/assert/mod.ts";
+import { assertEquals, assertExists } from "@std/assert";
 import {
   _clearRuntimeOverride,
   _forceRuntime,

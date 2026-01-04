@@ -2,11 +2,7 @@
  * @fileoverview Tests for offline support and Deno compile utilities
  */
 
-import {
-  assertEquals,
-  assertExists,
-  assertRejects,
-} from "https://deno.land/std@0.224.0/assert/mod.ts";
+import { assertEquals, assertExists, assertRejects } from "@std/assert";
 import { TagLib } from "../src/taglib.ts";
 import { loadTagLibModule } from "../index.ts";
 import {
@@ -14,7 +10,7 @@ import {
   isDenoCompiled,
   prepareWasmForEmbedding,
 } from "../src/deno-compile.ts";
-import { join } from "https://deno.land/std@0.224.0/path/mod.ts";
+import { join } from "@std/path";
 
 Deno.test("isDenoCompiled detects development environment", () => {
   // In development, this should return false

@@ -5,10 +5,7 @@
  * performance comparisons, and integration with the C API data format.
  */
 
-import {
-  assertEquals,
-  assertExists,
-} from "https://deno.land/std@0.208.0/assert/mod.ts";
+import { assertEquals, assertExists } from "@std/assert";
 import {
   compareEncodingEfficiency,
   createMessagePackProcessor,

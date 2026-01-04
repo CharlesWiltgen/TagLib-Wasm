@@ -5,11 +5,7 @@
  * compatibility while adding WASI optimizations for server environments.
  */
 
-import {
-  assert,
-  assertEquals,
-  assertExists,
-} from "https://deno.land/std@0.208.0/assert/mod.ts";
+import { assert, assertEquals, assertExists } from "@std/assert";
 import { detectRuntime } from "../src/runtime/detector.ts";
 import {
   getRecommendedConfig,

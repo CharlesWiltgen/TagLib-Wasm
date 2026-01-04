@@ -5,7 +5,7 @@
  * file system mounting, memory management, and error handling.
  */
 
-import { Directory, init, type Instance, type runWasix } from "npm:@wasmer/sdk";
+import { Directory, init, type Instance, type runWasix } from "@wasmer/sdk";
 import {
   heapViews,
   WasmArena,
@@ -107,7 +107,7 @@ export async function initializeWasmer(useInline = false): Promise<void> {
     if (useInline) {
       // Try to use inline WASM for deno compile/bundle
       try {
-        const wasmInline = await import("npm:@wasmer/sdk/wasm-inline");
+        const wasmInline = await import("@wasmer/sdk/wasm-inline");
         await init({ module: wasmInline.default || wasmInline });
       } catch {
         // Fall back to standard init if inline fails

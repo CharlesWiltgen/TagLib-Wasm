@@ -1,10 +1,7 @@
 /* eslint-disable sonarjs/no-empty-test-file */
 // NOSONAR: This file contains Deno tests which SonarQube doesn't recognize
 
-import {
-  assertEquals,
-  assertThrows,
-} from "https://deno.land/std@0.224.0/assert/mod.ts";
+import { assertEquals, assertThrows } from "@std/assert";
 import { jsToCString } from "../src/wasm-workers.ts";
 import type { TagLibModule } from "../src/wasm.ts";
 
