@@ -113,11 +113,14 @@ async function loadWithWasmerWasi(
   try {
     // Dynamic import to avoid issues in non-Deno environments
     const wasmerModule = await import("@wasmer/wasi");
-    const { WASI } = wasmerModule;
+    const { init, WASI } = wasmerModule;
 
     if (config.debug) {
       console.log("[WASI Loader] Initializing @wasmer/wasi");
     }
+
+    // Initialize the WASI module (required in v1.x)
+    await init();
 
     // Configure WASI with filesystem access
     const wasi = new WASI({
@@ -150,14 +153,12 @@ async function loadWithWasmerWasi(
       );
     }
 
-    // Compile and instantiate
+    // Compile and instantiate using WASI's instantiate method (v1.x API)
     const module = await WebAssembly.compile(wasmBytes);
-    const instance = await WebAssembly.instantiate(module, {
-      wasi_snapshot_preview1: wasi.wasiImport,
-    });
+    const instance = await wasi.instantiate(module, {});
 
-    // Initialize WASI
-    wasi.start(instance);
+    // Start WASI (instance already set by instantiate in v1.x)
+    wasi.start();
 
     if (config.debug) {
       console.log("[WASI Loader] WASI module loaded successfully");

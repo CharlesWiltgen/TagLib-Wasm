@@ -124,67 +124,67 @@ describe("MessagePack C API", () => {
   });
 
   describe("Round-trip encoding/decoding", () => {
-    it.todo("should encode and decode sample data without loss");
-    it.todo("should handle empty/null fields correctly");
-    it.todo("should preserve Unicode strings exactly");
-    it.todo("should handle large values correctly");
-    it.todo("should maintain field order independence");
+    it.skip("should encode and decode sample data without loss", () => {});
+    it.skip("should handle empty/null fields correctly", () => {});
+    it.skip("should preserve Unicode strings exactly", () => {});
+    it.skip("should handle large values correctly", () => {});
+    it.skip("should maintain field order independence", () => {});
   });
 
   describe("Arena memory management", () => {
-    it.todo("should create arena with specified size");
-    it.todo("should allocate memory within arena bounds");
-    it.todo("should grow arena when needed");
-    it.todo("should reset arena without leaking");
-    it.todo("should destroy arena completely");
-    it.todo("should handle allocation failures gracefully");
+    it.skip("should create arena with specified size", () => {});
+    it.skip("should allocate memory within arena bounds", () => {});
+    it.skip("should grow arena when needed", () => {});
+    it.skip("should reset arena without leaking", () => {});
+    it.skip("should destroy arena completely", () => {});
+    it.skip("should handle allocation failures gracefully", () => {});
   });
 
   describe("Error handling", () => {
-    it.todo("should return MP_ERR_INVALID_DATA for null inputs");
-    it.todo("should return MP_ERR_NOMEM for allocation failures");
-    it.todo("should return MP_ERR_TRUNCATED for incomplete data");
-    it.todo("should return MP_ERR_TYPE for wrong data types");
-    it.todo("should provide human-readable error messages");
+    it.skip("should return MP_ERR_INVALID_DATA for null inputs", () => {});
+    it.skip("should return MP_ERR_NOMEM for allocation failures", () => {});
+    it.skip("should return MP_ERR_TRUNCATED for incomplete data", () => {});
+    it.skip("should return MP_ERR_TYPE for wrong data types", () => {});
+    it.skip("should provide human-readable error messages", () => {});
   });
 
   describe("Wire format compatibility", () => {
-    it.todo("should produce same output as JavaScript @msgpack/msgpack");
-    it.todo("should decode JavaScript-encoded MessagePack");
-    it.todo("should handle missing optional fields");
-    it.todo("should ignore unknown fields gracefully");
+    it.skip("should produce same output as JavaScript @msgpack/msgpack", () => {});
+    it.skip("should decode JavaScript-encoded MessagePack", () => {});
+    it.skip("should handle missing optional fields", () => {});
+    it.skip("should ignore unknown fields gracefully", () => {});
   });
 
   describe("Performance characteristics", () => {
-    it.todo("should encode 1000 tag records under 100ms");
-    it.todo("should decode 1000 tag records under 50ms");
-    it.todo("should use minimal memory allocations");
+    it.skip("should encode 1000 tag records under 100ms", () => {});
+    it.skip("should decode 1000 tag records under 50ms", () => {});
+    it.skip("should use minimal memory allocations", () => {});
   });
 
   describe("Two-pass encoding", () => {
-    it.todo("should calculate correct size for encoding");
-    it.todo("should match calculated size with actual encoded size");
-    it.todo("should handle size calculation edge cases");
+    it.skip("should calculate correct size for encoding", () => {});
+    it.skip("should match calculated size with actual encoded size", () => {});
+    it.skip("should handle size calculation edge cases", () => {});
   });
 
   describe("Stream encoding", () => {
-    it.todo("should stream encode to callback function");
-    it.todo("should handle stream write failures");
-    it.todo("should produce identical output to buffer encoding");
+    it.skip("should stream encode to callback function", () => {});
+    it.skip("should handle stream write failures", () => {});
+    it.skip("should produce identical output to buffer encoding", () => {});
   });
 
   describe("Format-specific optimizations", () => {
-    it.todo("should handle MP3-specific encoding");
-    it.todo("should handle FLAC-specific encoding");
-    it.todo("should handle M4A-specific encoding");
+    it.skip("should handle MP3-specific encoding", () => {});
+    it.skip("should handle FLAC-specific encoding", () => {});
+    it.skip("should handle M4A-specific encoding", () => {});
   });
 
   // Property-based testing for comprehensive coverage
   describe("Property-based tests", () => {
-    it.todo("should satisfy round-trip property for all inputs");
-    it.todo("should maintain encoding determinism");
-    it.todo("should handle arbitrary string lengths");
-    it.todo("should preserve numeric precision");
+    it.skip("should satisfy round-trip property for all inputs", () => {});
+    it.skip("should maintain encoding determinism", () => {});
+    it.skip("should handle arbitrary string lengths", () => {});
+    it.skip("should preserve numeric precision", () => {});
   });
 });
 
