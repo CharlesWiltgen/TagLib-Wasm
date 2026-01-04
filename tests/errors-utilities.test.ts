@@ -2,10 +2,7 @@
  * @fileoverview Tests for error type guards and utility functions in errors.ts
  */
 
-import {
-  assertEquals,
-  assertInstanceOf,
-} from "https://deno.land/std@0.210.0/assert/mod.ts";
+import { assertEquals, assertInstanceOf } from "@std/assert";
 import {
   EnvironmentError,
   FileOperationError,

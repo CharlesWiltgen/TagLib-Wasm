@@ -112,7 +112,7 @@ async function loadWithWasmerWasi(
 ): Promise<WasiExports> {
   try {
     // Dynamic import to avoid issues in non-Deno environments
-    const wasmerModule = await import("npm:@wasmer/wasi@0.12.0");
+    const wasmerModule = await import("@wasmer/wasi");
     const { WASI } = wasmerModule;
 
     if (config.debug) {
@@ -288,7 +288,7 @@ export async function isWasiAvailable(): Promise<boolean> {
     // Quick check for Deno + @wasmer/wasi
     if (typeof Deno !== "undefined") {
       try {
-        await import("npm:@wasmer/wasi@0.12.0");
+        await import("@wasmer/wasi");
         return true;
       } catch {
         // @wasmer/wasi not available, but that's ok

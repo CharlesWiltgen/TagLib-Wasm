@@ -9,7 +9,7 @@ import {
   assertExists,
   assertRejects,
   type assertThrows,
-} from "https://deno.land/std@0.224.0/assert/mod.ts";
+} from "@std/assert";
 import { TagLib } from "../src/mod.ts";
 import type { AudioFile } from "../src/mod.ts";
 import { applyTags, readProperties, readTags } from "../src/simple.ts";

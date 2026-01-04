@@ -2,7 +2,7 @@
  * @fileoverview Memory management tests for taglib-wasm
  */
 
-import { assertEquals } from "https://deno.land/std@0.210.0/assert/mod.ts";
+import { assertEquals } from "@std/assert";
 import { TagLib } from "../index.ts";
 import { TEST_FILES } from "./test-utils.ts";
 

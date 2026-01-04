@@ -11,11 +11,8 @@
  * - 10 runs: Large data tests (performance considerations)
  */
 
-import {
-  assert,
-  assertEquals,
-} from "https://deno.land/std@0.208.0/assert/mod.ts";
-import fc from "npm:fast-check@3.15.0";
+import { assert, assertEquals } from "@std/assert";
+import fc from "fast-check";
 import {
   decodeAudioProperties,
   decodePicture,

@@ -2,10 +2,7 @@
  * @fileoverview Tests for constants.ts utility functions and type definitions
  */
 
-import {
-  assertEquals,
-  assertExists,
-} from "https://deno.land/std@0.210.0/assert/mod.ts";
+import { assertEquals, assertExists } from "@std/assert";
 import {
   getAllProperties,
   getAllPropertyKeys,
