@@ -282,9 +282,9 @@ Deno.test("MessagePack: Unicode handling", () => {
   fc.assert(
     fc.property(
       fc.record({
-        title: fc.unicodeString({ minLength: 1 }), // Avoid empty strings
-        artist: fc.stringOf(fc.char16bits(), { minLength: 1 }),
-        comment: fc.stringOf(fc.fullUnicode(), { minLength: 1 }),
+        title: fc.string({ minLength: 1 }), // Unicode is default in v4
+        artist: fc.string({ minLength: 1 }),
+        comment: fc.string({ minLength: 1 }),
       }),
       (tagData) => {
         const encoded = encodeTagData(tagData as ExtendedTag);
