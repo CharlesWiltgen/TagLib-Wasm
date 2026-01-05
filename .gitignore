@@ -10,25 +10,9 @@ BACKLOG.md
 KNOWN_ISSUES.md
 
 # Build artifacts
-build/taglib-build/
-build/wasi/
-build/emscripten/
-build/poc/
-build/phase0-test/
-build/tests/
-build/dist/
-build/**/*.o
-build/**/*.obj
-build/**/*.a
-build/**/*.so
-build/**/*.wasm
-build/**/*.js
-build/**/CMakeCache.txt
-build/**/cmake_install.cmake
-build/**/Makefile
-build/**/CTestTestfile.cmake
-build/**/CMakeFiles/
-build/**/*.cmake
+build/*/
+build/*.wasm
+build/*.js
 dist/
 
 # Test files backup
@@ -186,7 +170,3 @@ lib-cov
 # ===================
 *.backup
 package.json.backup
-# Phase 0/1 build artifacts (temporary)
-build/phase0-test/
-build/poc/
-build/wasi-sdk/
