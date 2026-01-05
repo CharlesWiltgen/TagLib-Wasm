@@ -1,7 +1,7 @@
 {
   "name": "@charlesw/taglib-wasm",
   "version": "0.9.0",
-  "description": "TagLib in WebAssembly with TypeScript bindings, for universal audio metadata handling in browsers, Node.js, Deno, Bun, and Cloudflare Workers",
+  "description": "TagLib-Wasm is the universal tagging library for TypeScript/JavaScript platforms: Browsers, Node.js, Deno, Bun, Cloudflare Workers, and Electron apps",
   "nodeModulesDir": "auto",
   "exports": {
     ".": "./index.ts",
