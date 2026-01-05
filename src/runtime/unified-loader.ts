@@ -225,12 +225,14 @@ async function loadEmscriptenModule(
 
     // Try different paths for the wrapper
     try {
+      // @ts-ignore: Dynamic import handled at runtime
       const module = await import("../../build/taglib-wrapper.js");
       createModule = module.default as (
         config?: unknown,
       ) => Promise<TagLibModule>;
     } catch {
       try {
+        // @ts-ignore: Dynamic import handled at runtime
         const module = await import("../../dist/taglib-wrapper.js");
         createModule = module.default as (
           config?: unknown,
