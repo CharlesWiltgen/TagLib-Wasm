@@ -1,14 +1,18 @@
 ---
-home: true
-heroText: TagLib-Wasm
-tagline: TagLib compiled to WebAssembly with TypeScript bindings for universal audio metadata handling
-actions:
-  - text: Get Started
-    link: /guide/
-    type: primary
-  - text: API Reference
-    link: /api/
-    type: secondary
+layout: home
+
+hero:
+  name: TagLib-Wasm
+  text: Universal Audio Metadata
+  tagline: TagLib compiled to WebAssembly with TypeScript bindings for universal audio metadata handling
+  actions:
+    - theme: brand
+      text: Get Started
+      link: /guide/
+    - theme: alt
+      text: API Reference
+      link: /api/
+
 features:
   - title: Universal Compatibility
     details: Works seamlessly with Deno, Node.js, Bun, web browsers, and Cloudflare Workers
@@ -22,7 +26,6 @@ features:
     details: Self-contained Wasm bundle with no external dependencies
   - title: Battle-Tested
     details: Built on TagLib, the de-facto standard for audio metadata since 2002
-footer: MIT Licensed | Copyright © 2024 Charles Wiltgen
 ---
 
 ## Quick Example
@@ -44,21 +47,17 @@ await updateTags("song.mp3", {
 
 ## Installation
 
-::: code-tabs @tab Deno
+::: code-group
 
-```typescript
+```typescript [Deno]
 import { TagLib } from "npm:taglib-wasm";
 ```
 
-@tab Node.js
-
-```bash
+```bash [Node.js]
 npm install taglib-wasm
 ```
 
-@tab Bun
-
-```bash
+```bash [Bun]
 bun add taglib-wasm
 ```
 
