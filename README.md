@@ -1,7 +1,7 @@
 # TagLib-Wasm
 
 [![Tests](https://github.com/CharlesWiltgen/taglib-wasm/actions/workflows/test.yml/badge.svg)](https://github.com/CharlesWiltgen/taglib-wasm/actions/workflows/test.yml)
-[![npm version](https://img.shields.io/npm/v/taglib-wasm.svg?logo=nodedotjs&logoColor=f5f5f5)](https://www.npmjs.com/package/taglib-wasm)
+[![npm version](https://img.shields.io/npm/v/taglib-wasm.svg)](https://www.npmjs.com/package/taglib-wasm)
 [![npm downloads](https://img.shields.io/npm/dm/taglib-wasm.svg)](https://www.npmjs.com/package/taglib-wasm)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/CharlesWiltgen/taglib-wasm/blob/main/LICENSE)
 <br>[![Built with](https://img.shields.io/badge/TypeScript-5-3178c6.svg?logo=typescript&logoColor=f5f5f5)](https://www.typescriptlang.org/)
@@ -29,28 +29,26 @@ TagLib-Wasm stands on the shoulders of giants, including
 [Wasm](https://webassembly.org/) ([WebAssembly](https://webassembly.org/)).
 TagLib itself is legendary, and a core dependency of many music apps.
 
-## 🎯 Features
+## Features
 
-- **✅ Blazing fast performance** – Batch processing delivers **10-20x speedup**
-  for multiple files
-- **✅ Full audio format support** – Supports all audio formats supported by
-  TagLib
-- **✅ TypeScript first** – Complete type definitions and modern API
-- **✅ Wide TS/JS runtime support** – Deno, Node.js, Bun, Electron, Cloudflare
+- **Blazing fast performance** – Batch processing delivers 10-20x speedup for
+  multiple files
+- **Full audio format support** – Supports all audio formats supported by TagLib
+- **TypeScript first** – Complete type definitions and modern API
+- **Wide TS/JS runtime support** – Deno, Node.js, Bun, Electron, Cloudflare
   Workers, and browsers
-- **✅ Format abstraction** – Handles container format details automagically
-  when possible
-- **✅ Zero dependencies** – Self-contained Wasm bundle
-- **✅ Automatic runtime optimization** – Uses WASI for Deno/Node.js, Emscripten
+- **Format abstraction** – Handles container format details automagically when
+  possible
+- **Zero dependencies** – Self-contained Wasm bundle
+- **Automatic runtime optimization** – Uses WASI for Deno/Node.js, Emscripten
   for browsers
-- **✅ Production ready** – Growing test suite helps ensure safety and
-  reliability
-- **✅ Two API styles** – Use the “Simple” API (3 functions), or the full “Core”
+- **Production ready** – Growing test suite helps ensure safety and reliability
+- **Two API styles** – Use the "Simple" API (3 functions), or the full "Core"
   API for more advanced applications
-- **✅ Batch folder operations** – Scan directories, process multiple files,
-  find duplicates, and export metadata catalogs
+- **Batch folder operations** – Scan directories, process multiple files, find
+  duplicates, and export metadata catalogs
 
-## 📦 Installation
+## Installation
 
 ### Deno
 
@@ -122,7 +120,7 @@ const wasmBinary = await Deno.readFile(
 const taglib = await TagLib.initialize({ wasmBinary });
 ```
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Simple API
 
@@ -147,7 +145,7 @@ await updateTags("song.mp3", {
 });
 ```
 
-### 🏃 High-Performance Batch Processing (10-20x Faster!)
+### High-Performance Batch Processing
 
 ```typescript
 import { readMetadataBatch, readTagsBatch } from "taglib-wasm/simple";
@@ -294,9 +292,9 @@ Supported formats:
 - **WAV** – Container for PCM (uncompressed) audio
 - **AIFF** – Container for PCM (uncompressed) audio
 
-## 📚 Documentation
+## Documentation
 
-**[📖 View Full Documentation](https://charleswiltgen.github.io/taglib-wasm/)**
+**[View Full Documentation](https://charleswiltgen.github.io/taglib-wasm/)**
 
 ### Getting Started
 
@@ -307,7 +305,7 @@ Supported formats:
 ### Guides
 
 - [API Reference](https://charleswiltgen.github.io/taglib-wasm/api/)
-- [Performance Guide](https://charleswiltgen.github.io/taglib-wasm/concepts/performance.html) - **10-20x speedup techniques**
+- [Performance Guide](https://charleswiltgen.github.io/taglib-wasm/concepts/performance.html)
 - [Album Processing Guide](https://charleswiltgen.github.io/taglib-wasm/guide/album-processing.html) - Process entire albums in seconds
 - [Platform Examples](https://charleswiltgen.github.io/taglib-wasm/guide/platform-examples.html)
 - [Working with Cover Art](https://charleswiltgen.github.io/taglib-wasm/guide/cover-art.html)
@@ -321,19 +319,19 @@ Supported formats:
 - [Future Improvements](https://charleswiltgen.github.io/taglib-wasm/development/improvements.html)
 - [Contributing](CONTRIBUTING.md)
 
-## 📋 Supported Formats
+## Supported Formats
 
 `taglib-wasm` is designed to support all formats supported by TagLib:
 
-- ✅ **.mp3** – ID3v2 and ID3v1 tags
-- ✅ **.m4a/.mp4** – MPEG-4/AAC metadata for AAC and Apple Lossless audio
-- ✅ **.flac** – Vorbis comments and audio properties
-- ✅ **.ogg** – Ogg Vorbis format with full metadata support
-- ✅ **.wav** – INFO chunk metadata
-- ✅ **Additional formats** – Opus, APE, MPC, WavPack, TrueAudio, AIFF, WMA, and
+- **.mp3** – ID3v2 and ID3v1 tags
+- **.m4a/.mp4** – MPEG-4/AAC metadata for AAC and Apple Lossless audio
+- **.flac** – Vorbis comments and audio properties
+- **.ogg** – Ogg Vorbis format with full metadata support
+- **.wav** – INFO chunk metadata
+- **Additional formats** – Opus, APE, MPC, WavPack, TrueAudio, AIFF, WMA, and
   more
 
-## 🎯 Key Features
+## Key Features
 
 ### Extended Metadata Support
 
@@ -361,7 +359,7 @@ file.setProperty(Tags.TrackPeak, "0.987654");
 
 [View all supported tag constants →](https://charleswiltgen.github.io/taglib-wasm/api/tag-name-constants.html)
 
-## ⚡ Performance & Best Practices
+## Performance and Best Practices
 
 ### Batch Processing for Multiple Files
 
@@ -436,7 +434,7 @@ const taglib = await TagLib.initialize({ wasmBinary });
 
 [View complete performance guide →](https://charleswiltgen.github.io/taglib-wasm/concepts/performance.html)
 
-## 🏗️ Development
+## Development
 
 ### Build from Source
 
@@ -457,20 +455,20 @@ npm test
 
 [View full development guide →](CONTRIBUTING.md)
 
-## 🌐 Runtime Compatibility
+## Runtime Compatibility
 
 `taglib-wasm` works across all major JavaScript runtimes:
 
-| Runtime                | Status  | Installation              | Notes                     |
-| ---------------------- | ------- | ------------------------- | ------------------------- |
-| **Deno**               | ✅ Full | `npm:taglib-wasm`         | Native TypeScript         |
-| **Node.js**            | ✅ Full | `npm install taglib-wasm` | TypeScript via tsx        |
-| **Bun**                | ✅ Full | `bun add taglib-wasm`     | Native TypeScript         |
-| **Browser**            | ✅ Full | Via bundler               | Full API support          |
-| **Cloudflare Workers** | ✅ Full | `taglib-wasm/workers`     | Memory-optimized build    |
-| **Electron**           | ✅ Full | `npm install taglib-wasm` | Main & renderer processes |
+| Runtime                | Status | Installation              | Notes                     |
+| ---------------------- | ------ | ------------------------- | ------------------------- |
+| **Deno**               | Full   | `npm:taglib-wasm`         | Native TypeScript         |
+| **Node.js**            | Full   | `npm install taglib-wasm` | TypeScript via tsx        |
+| **Bun**                | Full   | `bun add taglib-wasm`     | Native TypeScript         |
+| **Browser**            | Full   | Via bundler               | Full API support          |
+| **Cloudflare Workers** | Full   | `taglib-wasm/workers`     | Memory-optimized build    |
+| **Electron**           | Full   | `npm install taglib-wasm` | Main & renderer processes |
 
-## 🚧 Known Limitations
+## Known Limitations
 
 - **Memory Usage** – Entire file must be loaded into memory (may be an issue for
   very large files)
@@ -479,12 +477,12 @@ npm test
 - **Cloudflare Workers** – Limited to 128MB memory per request; files larger
   than ~100MB may fail
 
-## 🤝 Contributing
+## Contributing
 
 Contributions are welcome! Please read our [Contributing Guide](CONTRIBUTING.md)
 for details on our code of conduct and the process for submitting pull requests.
 
-## 📄 License
+## License
 
 This project uses dual licensing:
 
@@ -502,7 +500,8 @@ means:
 
 For details, see [lib/taglib/COPYING.LGPL](lib/taglib/COPYING.LGPL)
 
-## 🙏 Acknowledgments
+## Acknowledgments
 
 - [TagLib](https://taglib.org/) – Excellent audio metadata library
 - [Emscripten](https://emscripten.org/) – WebAssembly compilation toolchain
+- [WASI](https://wasi.dev/) – WebAssembly System Interface for server-side runtimes
