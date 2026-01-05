@@ -70,29 +70,19 @@ fi
 echo -e "${GREEN}✅ TagLib built successfully${NC}"
 ls -lh "$BUILD_DIR/taglib/taglib/libtag.a"
 
-# Step 1.5: Download MessagePack headers
+# Step 1.5: Verify MessagePack headers (git submodule)
 echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo "📦 Step 1.5: Setting up MessagePack headers"
+echo "📦 Step 1.5: Verifying MessagePack headers"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
 MSGPACK_DIR="$PROJECT_ROOT/lib/msgpack"
-if [ ! -d "$MSGPACK_DIR/include" ]; then
-    echo "Downloading MessagePack headers..."
-    mkdir -p "$MSGPACK_DIR"
-    cd "$MSGPACK_DIR"
-    
-    # Download header-only version
-    wget -q https://github.com/msgpack/msgpack-c/releases/download/cpp-6.1.0/msgpack-cxx-6.1.0.tar.gz || \
-        curl -sL https://github.com/msgpack/msgpack-c/releases/download/cpp-6.1.0/msgpack-cxx-6.1.0.tar.gz -o msgpack-cxx-6.1.0.tar.gz
-    tar xzf msgpack-cxx-6.1.0.tar.gz
-    mv msgpack-cxx-6.1.0/include .
-    rm -rf msgpack-cxx-6.1.0 msgpack-cxx-6.1.0.tar.gz
-    
-    echo -e "${GREEN}✅ MessagePack headers downloaded${NC}"
-else
-    echo -e "${GREEN}✅ MessagePack headers already present${NC}"
+if [ ! -f "$MSGPACK_DIR/include/msgpack.hpp" ]; then
+    echo -e "${RED}❌ MessagePack headers not found.${NC}"
+    echo "Please run: git submodule update --init --recursive"
+    exit 1
 fi
+echo -e "${GREEN}✅ MessagePack headers found${NC}"
 
 # Step 2: Link final WASM module
 echo ""
