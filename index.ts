@@ -44,7 +44,10 @@ export {
   createTagLib,
   TagLib,
 } from "./src/taglib.ts";
-export type { AudioFile as AudioFileInterface } from "./src/taglib.ts";
+export type {
+  AudioFile as AudioFileInterface,
+  MutableTag,
+} from "./src/taglib.ts";
 
 /**
  * Error types for proper error handling and debugging.
@@ -224,7 +227,7 @@ export type { PropertyKey, PropertyValue } from "./src/constants.ts";
 /**
  * Type and constant exports
  */
-export type { PictureType } from "./src/types.ts";
+export type { OpenOptions, PictureType } from "./src/types.ts";
 export { PICTURE_TYPE_NAMES, PICTURE_TYPE_VALUES } from "./src/types.ts";
 
 /**
