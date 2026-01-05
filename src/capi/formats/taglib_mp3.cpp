@@ -9,7 +9,7 @@
 #include <mpeg/id3v2/frames/attachedpictureframe.h>
 #include <mpeg/id3v2/frames/textidentificationframe.h>
 #include <toolkit/tbytevectorstream.h>
-// MessagePack removed - using core C API now
+#include <msgpack.hpp>
 #include <cstring>
 #include <memory>
 
