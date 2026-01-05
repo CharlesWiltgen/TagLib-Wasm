@@ -177,6 +177,7 @@ jobs:
 
       - name: Test with Node.js
         if: matrix.runtime == 'node'
+        shell: bash
         run: |
           echo "Testing with Node.js..."
           node --version
@@ -184,6 +185,7 @@ jobs:
 
       - name: Test with Deno
         if: matrix.runtime == 'deno'
+        shell: bash
         run: |
           echo "Testing with Deno..."
           deno --version
@@ -191,6 +193,7 @@ jobs:
 
       - name: Test with Bun
         if: matrix.runtime == 'bun'
+        shell: bash
         run: |
           echo "Testing with Bun..."
           bun --version
