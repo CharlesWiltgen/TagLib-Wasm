@@ -35,6 +35,28 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Verify Tests workflow passed
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "Checking if Tests workflow passed for this commit..."
+          COMMIT_SHA="${{ github.sha }}"
+
+          # Get the status of the Tests workflow for this commit
+          RESULT=$(gh run list --workflow=test.yml --commit=$COMMIT_SHA --json conclusion --limit 1 -q '.[0].conclusion' || echo "not_found")
+
+          if [ "$RESULT" = "success" ]; then
+            echo "✅ Tests workflow passed for commit $COMMIT_SHA"
+          elif [ "$RESULT" = "not_found" ] || [ -z "$RESULT" ]; then
+            echo "⚠️ No Tests workflow run found for commit $COMMIT_SHA"
+            echo "This may be okay if tests were run on a parent commit."
+            echo "Proceeding with caution..."
+          else
+            echo "❌ Tests workflow did not pass (status: $RESULT)"
+            echo "Please ensure tests pass before releasing."
+            exit 1
+          fi
+
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
