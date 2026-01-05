@@ -537,6 +537,34 @@ if (readPerm.state !== "granted") {
 
 ### Node.js Issues
 
+#### Using with CommonJS
+
+**Problem**: `require('taglib-wasm')` fails with ERR_REQUIRE_ESM.
+
+taglib-wasm is an ESM-only package (`"type": "module"`). CommonJS files must use dynamic import:
+
+```javascript
+// ❌ This will NOT work in CommonJS
+const { TagLib } = require("taglib-wasm");
+
+// ✅ Use dynamic import instead
+async function main() {
+  const { TagLib } = await import("taglib-wasm");
+  const taglib = await TagLib.initialize();
+  // ...
+}
+main();
+```
+
+**Why ESM-only?**
+
+- ESM is the JavaScript standard
+- Better tree-shaking and static analysis
+- Native support in all modern runtimes (Node 14+, Deno, Bun, browsers)
+- Bundlers (webpack, esbuild, Vite) handle the conversion automatically
+
+#### ES Module Configuration
+
 **Problem**: ES modules not working.
 
 ```json
@@ -550,11 +578,7 @@ if (readPerm.state !== "granted") {
 ```
 
 ```javascript
-// For CommonJS compatibility
-import { createRequire } from "module";
-const require = createRequire(import.meta.url);
-
-// Or use dynamic import
+// Or use dynamic import from CommonJS
 const { TagLib } = await import("taglib-wasm");
 ```
 
