@@ -41,10 +41,6 @@ mise.toml
 # Dependencies
 # ===================
 
-# Downloaded dependencies
-lib/mpack/
-lib/taglib/
-
 # Node modules
 node_modules/
 jspm_packages/
