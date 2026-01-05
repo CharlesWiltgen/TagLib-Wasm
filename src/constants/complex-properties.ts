@@ -78,8 +78,11 @@ export type VariantMap = Record<string, unknown>;
  * ```
  */
 export interface ComplexPropertyValueMap {
+  /** Cover art and embedded images */
   PICTURE: Picture;
+  /** Track/album rating (normalized 0.0-1.0) */
   RATING: Rating;
+  /** Unsynchronized lyrics text */
   LYRICS: UnsyncedLyrics;
 }
 

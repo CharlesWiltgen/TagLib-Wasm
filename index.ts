@@ -44,6 +44,7 @@ export {
   createTagLib,
   TagLib,
 } from "./src/taglib.ts";
+export type { AudioFile as AudioFileInterface } from "./src/taglib.ts";
 
 /**
  * Error types for proper error handling and debugging.
@@ -140,6 +141,7 @@ export {
   PROPERTIES,
   Tags,
 } from "./src/constants.ts";
+export type { PropertyMetadata } from "./src/constants/property-types.ts";
 /**
  * File I/O utilities for cover art operations.
  * @see {@link exportCoverArt} - Export cover art to file
@@ -166,6 +168,7 @@ export {
  * @see {@link exportFolderMetadata} - Export folder metadata to JSON
  */
 export {
+  type AudioDynamics,
   type AudioFileMetadata,
   exportFolderMetadata,
   findDuplicates,
@@ -204,6 +207,7 @@ export {
  * @see {@link PropertyValue} - Type-safe property values
  */
 export type {
+  AudioFileInput,
   AudioFormat,
   AudioProperties,
   ExtendedTag,
@@ -237,6 +241,7 @@ export {
 } from "./src/constants/complex-properties.ts";
 export type {
   ComplexPropertyKey,
+  ComplexPropertyKeyMap,
   ComplexPropertyValueMap,
   Rating,
   UnsyncedLyrics,
