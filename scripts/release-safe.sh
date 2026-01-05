@@ -73,7 +73,7 @@ check_up_to_date() {
 # Function to run comprehensive tests
 run_tests() {
     print_step "Running comprehensive test suite..."
-    
+
     # Run format check
     print_step "Checking code formatting..."
     if ! deno fmt --check > /dev/null 2>&1; then
@@ -115,6 +115,56 @@ run_tests() {
         exit 1
     fi
     print_success "Build successful"
+}
+
+# Function to run package publishing preflight checks
+run_preflight_checks() {
+    print_step "Running package publishing preflight checks..."
+
+    # JSR publish dry-run (catches module exclusion issues)
+    print_step "Checking JSR publish compatibility..."
+    if ! deno publish --dry-run --allow-dirty > /dev/null 2>&1; then
+        print_error "JSR publish dry-run failed"
+        print_warning "Run 'deno publish --dry-run' to see details"
+        exit 1
+    fi
+    print_success "JSR publish check passed"
+
+    # publint (verify package.json)
+    print_step "Running publint..."
+    if ! npx publint > /dev/null 2>&1; then
+        print_error "publint failed"
+        print_warning "Run 'npx publint' to see details"
+        exit 1
+    fi
+    print_success "publint passed"
+
+    # arethetypeswrong (verify type exports)
+    print_step "Checking TypeScript type exports..."
+    if ! npx @arethetypeswrong/cli --pack --profile esm-only > /dev/null 2>&1; then
+        print_error "arethetypeswrong check failed"
+        print_warning "Run 'npx @arethetypeswrong/cli --pack --profile esm-only' to see details"
+        exit 1
+    fi
+    print_success "Type exports check passed"
+
+    # NPM pack dry-run (verify package contents)
+    print_step "Verifying NPM package contents..."
+    local pack_output=$(npm pack --dry-run 2>&1)
+    if [[ $? -ne 0 ]]; then
+        print_error "NPM pack dry-run failed"
+        exit 1
+    fi
+    # Check for essential files
+    if ! echo "$pack_output" | grep -q "dist/index.js"; then
+        print_error "dist/index.js missing from NPM package"
+        exit 1
+    fi
+    if ! echo "$pack_output" | grep -q "dist/index.d.ts"; then
+        print_error "dist/index.d.ts missing from NPM package"
+        exit 1
+    fi
+    print_success "NPM package contents verified"
 }
 
 # Function to check version sync
@@ -278,6 +328,9 @@ main() {
 
     # Run comprehensive tests
     run_tests
+
+    # Run preflight checks for package publishing
+    run_preflight_checks
 
     # Update versions
     update_versions "$new_version"
