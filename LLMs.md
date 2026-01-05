@@ -109,6 +109,7 @@ const tags = await readTagsBatch(files, { concurrency: 8 });
 - **Building a music player?** → Simple API for metadata, **batch functions for libraries**
 - **Building a tag editor?** → Full API for complete control
 - **Working with cover art?** → Simple API: `getCoverArt()`, `setCoverArt()`
+- **Working with ratings?** → Full API: `getRating()`, `setRating()`, `RatingUtils`
 - **Identifying files missing artwork?** → Folder API: `scanFolder()` or Simple API: `readMetadataBatch()` with `hasCoverArt` field
 - **Analyzing volume normalization?** → Folder API: `scanFolder()` or Simple API: `readMetadataBatch()` with `dynamics` field
 
@@ -125,6 +126,8 @@ const tags = await readTagsBatch(files, { concurrency: 8 });
 | Get modified buffer  | `await applyTags("file.mp3", tags)`                   | `audioFile.save(); audioFile.getFileBuffer()` |
 | Get cover art        | `await getCoverArt("file.mp3")`                       | Use PropertyMap API                           |
 | Set cover art        | `await setCoverArt("file.mp3", data, type)`           | Use PropertyMap API                           |
+| Get rating           | N/A (use Full API)                                    | `audioFile.getRating()`                       |
+| Set rating           | N/A (use Full API)                                    | `audioFile.setRating(0.8)`                    |
 | **Batch read tags**  | `await readTagsBatch(files)` **10-20x faster**        | Manual loop with disposal                     |
 | **Batch properties** | `await readPropertiesBatch(files)` **10-20x faster**  | Manual loop with disposal                     |
 | **Batch metadata**   | `await readMetadataBatch(files)` **10-20x faster**    | Manual loop with disposal                     |
@@ -380,6 +383,23 @@ const taglib = await TagLib.initialize({
 const taglib = await initializeForDenoCompile();
 ```
 
+### Runtime Detection (WASI vs Emscripten)
+
+taglib-wasm automatically selects the optimal WebAssembly implementation:
+
+- **Deno/Node.js**: Uses WASI (10x faster MessagePack serialization)
+- **Browsers/Workers**: Uses Emscripten (web compatibility)
+
+```typescript
+const taglib = await TagLib.initialize();
+
+// Check which implementation is active
+console.log(taglib.isWasi); // true for Deno/Node.js
+console.log(taglib.isEmscripten); // true for browsers/Workers
+```
+
+Most users don't need to configure this - it's automatic.
+
 ### Module Systems
 
 ```typescript
@@ -470,6 +490,55 @@ const audioInfo = {
 };
 
 audioFile.dispose();
+```
+
+### Working with Ratings
+
+```typescript
+const taglib = await TagLib.initialize();
+const audioFile = await taglib.open(buffer);
+
+// Read rating (normalized 0.0-1.0)
+const rating = audioFile.getRating(); // undefined if no rating
+
+// Read all ratings (multiple raters supported)
+const ratings = audioFile.getRatings();
+// Returns: [{ rating: 0.8, email: "user@example.com", counter: 42 }, ...]
+
+// Set rating
+audioFile.setRating(0.8); // 4 out of 5 stars
+audioFile.setRating(0.8, "user@example.com"); // With rater ID
+
+audioFile.save();
+audioFile.dispose();
+```
+
+### RatingUtils for Conversions
+
+```typescript
+import { RatingUtils } from "taglib-wasm";
+
+// Normalized <-> POPM (ID3v2 0-255 scale)
+RatingUtils.toPopm(0.8); // 196
+RatingUtils.fromPopm(196); // 0.8
+
+// Normalized <-> Stars
+RatingUtils.toStars(0.8); // 4 (default 5-star scale)
+RatingUtils.toStars(0.8, 10); // 8 (10-star scale)
+RatingUtils.fromStars(4); // 0.8
+RatingUtils.fromStars(8, 10); // 0.8
+
+// Normalized <-> Percent
+RatingUtils.toPercent(0.8); // 80
+RatingUtils.fromPercent(80); // 0.8
+
+// Validation
+RatingUtils.isValid(0.8); // true
+RatingUtils.isValid(1.5); // false
+RatingUtils.clamp(1.5); // 1.0
+
+// Standard POPM values (WMP convention)
+RatingUtils.POPM_STAR_VALUES; // [0, 1, 64, 128, 196, 255]
 ```
 
 ### Using the Simple API
