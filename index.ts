@@ -224,6 +224,50 @@ export type { PictureType } from "./src/types.ts";
 export { PICTURE_TYPE_NAMES, PICTURE_TYPE_VALUES } from "./src/types.ts";
 
 /**
+ * Complex property types and constants for structured metadata.
+ * @see {@link COMPLEX_PROPERTIES} - Rich metadata object with format mappings
+ * @see {@link COMPLEX_PROPERTY_KEY} - Simple key map for daily use
+ * @see {@link Rating} - Track rating metadata (normalized 0.0-1.0)
+ * @see {@link UnsyncedLyrics} - Unsynchronized lyrics text
+ * @see {@link ComplexPropertyValueMap} - Type map for generic methods
+ */
+export {
+  COMPLEX_PROPERTIES,
+  COMPLEX_PROPERTY_KEY,
+} from "./src/constants/complex-properties.ts";
+export type {
+  ComplexPropertyKey,
+  ComplexPropertyValueMap,
+  Rating,
+  UnsyncedLyrics,
+  VariantMap,
+} from "./src/constants/complex-properties.ts";
+
+/**
+ * Rating conversion utilities for cross-format compatibility.
+ * @see {@link RatingUtils} - Namespace with all rating utilities
+ * @see {@link toNormalized} - POPM (0-255) to normalized (0.0-1.0)
+ * @see {@link fromNormalized} - Normalized to POPM
+ * @see {@link toStars} - Normalized to star rating
+ * @see {@link fromStars} - Star rating to normalized
+ * @see {@link toPopm} - Normalized to standard POPM value
+ * @see {@link fromPopm} - Standard POPM to normalized
+ */
+export {
+  clamp as clampRating,
+  fromNormalized,
+  fromPercent,
+  fromPopm,
+  fromStars,
+  isValid as isValidRating,
+  RatingUtils,
+  toNormalized,
+  toPercent,
+  toPopm,
+  toStars,
+} from "./src/utils/rating.ts";
+
+/**
  * Worker pool exports for parallel processing.
  * @see {@link TagLibWorkerPool} - Worker pool for parallel file processing
  * @see {@link createWorkerPool} - Create and initialize a worker pool
