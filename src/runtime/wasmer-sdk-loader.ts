@@ -133,7 +133,7 @@ export async function loadWasmerWasi(
   config: WasmerLoaderConfig = {},
 ): Promise<WasiModule> {
   const {
-    wasmPath = "./dist/wasi/taglib_wasi.wasm",
+    wasmPath = "./dist/taglib-wasi.wasm",
     useInlineWasm = false,
     mounts = {},
     env = {},

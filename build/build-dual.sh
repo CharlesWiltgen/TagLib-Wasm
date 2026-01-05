@@ -128,8 +128,8 @@ fi
 
 # Check WASI output
 if [ "$SKIP_WASI" = false ]; then
-    if [ -f "$PROJECT_ROOT/dist/wasi/taglib_wasi.wasm" ]; then
-        WASI_SIZE=$(ls -lh "$PROJECT_ROOT/dist/wasi/taglib_wasi.wasm" | awk '{print $5}')
+    if [ -f "$PROJECT_ROOT/dist/taglib-wasi.wasm" ]; then
+        WASI_SIZE=$(ls -lh "$PROJECT_ROOT/dist/taglib-wasi.wasm" | awk '{print $5}')
         echo -e "WASI SDK:   ${GREEN}✅ Success${NC}"
         echo "  └─ WASM size: $WASI_SIZE"
         echo "  └─ Target: Deno, Node.js (WASI), Cloudflare Workers"
@@ -141,13 +141,10 @@ fi
 echo ""
 echo "Output directory structure:"
 echo "  dist/"
-echo "  ├── browser/"
-echo "  │   ├── taglib_emscripten.wasm"
-echo "  │   ├── taglib_emscripten.js"
-echo "  │   └── taglib_emscripten.d.ts"
-echo "  └── wasi/"
-echo "      ├── taglib_wasi.wasm"
-echo "      └── taglib_wasi.json"
+echo "  ├── taglib-web.wasm"
+echo "  ├── taglib-wrapper.js"
+echo "  ├── taglib-wasi.wasm"
+echo "  └── taglib-wasi.json"
 
 # Exit with error if any build failed
 if [ "$SKIP_EMSCRIPTEN" = false ] && [ "$EMSCRIPTEN_SUCCESS" = false ]; then
