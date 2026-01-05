@@ -31,7 +31,7 @@ export function isDenoCompiled(): boolean {
  * specified path relative to the binary. If the embedded WASM is not found
  * or if running in development mode, it falls back to network fetch.
  *
- * @param embeddedWasmPath - Path to embedded WASM file (default: './taglib.wasm')
+ * @param embeddedWasmPath - Path to embedded WASM file (default: './taglib-web.wasm')
  * @returns Promise resolving to initialized TagLib instance
  *
  * @example
@@ -40,14 +40,14 @@ export function isDenoCompiled(): boolean {
  * const taglib = await initializeForDenoCompile();
  *
  * // Custom embedded WASM path
- * const taglib = await initializeForDenoCompile('./assets/taglib.wasm');
+ * const taglib = await initializeForDenoCompile('./assets/taglib-web.wasm');
  *
  * // Compile command:
- * // deno compile --allow-read --include taglib.wasm myapp.ts
+ * // deno compile --allow-read --include taglib-web.wasm myapp.ts
  * ```
  */
 export async function initializeForDenoCompile(
-  embeddedWasmPath = "./taglib.wasm",
+  embeddedWasmPath = "./taglib-web.wasm",
 ): Promise<TagLib> {
   // Only attempt embedded loading in compiled binaries
   if (isDenoCompiled()) {
@@ -77,26 +77,29 @@ export async function initializeForDenoCompile(
  * Helper function to prepare a WASM file for embedding in a compiled binary.
  * This function copies the WASM file from node_modules to a local path.
  *
- * @param outputPath - Where to save the WASM file (default: './taglib.wasm')
+ * @param outputPath - Where to save the WASM file (default: './taglib-web.wasm')
  *
  * @example
  * ```typescript
  * // In your build script:
- * await prepareWasmForEmbedding('./assets/taglib.wasm');
+ * await prepareWasmForEmbedding('./assets/taglib-web.wasm');
  *
  * // Then compile with:
- * // deno compile --allow-read --include assets/taglib.wasm myapp.ts
+ * // deno compile --allow-read --include assets/taglib-web.wasm myapp.ts
  * ```
  */
 export async function prepareWasmForEmbedding(
-  outputPath = "./taglib.wasm",
+  outputPath = "./taglib-web.wasm",
 ): Promise<void> {
   try {
     // Try to find the WASM file in common locations
     const possiblePaths = [
-      new URL("../dist/taglib.wasm", import.meta.url),
-      new URL("../build/taglib.wasm", import.meta.url),
-      new URL("./node_modules/taglib-wasm/dist/taglib.wasm", import.meta.url),
+      new URL("../dist/taglib-web.wasm", import.meta.url),
+      new URL("../build/taglib-web.wasm", import.meta.url),
+      new URL(
+        "./node_modules/taglib-wasm/dist/taglib-web.wasm",
+        import.meta.url,
+      ),
     ];
 
     let wasmData: Uint8Array | null = null;
@@ -114,7 +117,7 @@ export async function prepareWasmForEmbedding(
     }
 
     if (!wasmData || !sourcePath) {
-      throw new Error("Could not find taglib.wasm in expected locations");
+      throw new Error("Could not find taglib-web.wasm in expected locations");
     }
 
     // Write to output path

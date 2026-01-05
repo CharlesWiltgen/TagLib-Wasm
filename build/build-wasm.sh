@@ -79,17 +79,17 @@ echo "🔧 Applying Deno compatibility patches..."
 # Apply comprehensive Deno compatibility fixes
 node "$PROJECT_ROOT/scripts/fix-deno-compat.js"
 
-# Rename the WASM file to taglib.wasm
-mv "$OUTPUT_DIR/taglib-wrapper.wasm" "$OUTPUT_DIR/taglib.wasm"
+# Rename the WASM file to taglib-web.wasm
+mv "$OUTPUT_DIR/taglib-wrapper.wasm" "$OUTPUT_DIR/taglib-web.wasm"
 
-# Update the JS file to reference taglib.wasm instead of taglib-wrapper.wasm
-sed -i.bak 's/taglib-wrapper\.wasm/taglib.wasm/g' "$OUTPUT_DIR/taglib-wrapper.js"
+# Update the JS file to reference taglib-web.wasm instead of taglib-wrapper.wasm
+sed -i.bak 's/taglib-wrapper\.wasm/taglib-web.wasm/g' "$OUTPUT_DIR/taglib-wrapper.js"
 rm "$OUTPUT_DIR/taglib-wrapper.js.bak"
 
 echo "✅ taglib-wasm build complete!"
 echo "📁 Output files:"
 echo "   - $OUTPUT_DIR/taglib-wrapper.js"
-echo "   - $OUTPUT_DIR/taglib.wasm"
+echo "   - $OUTPUT_DIR/taglib-web.wasm"
 
 # Clean up temporary files
 rm -rf "$CMAKE_BUILD_DIR"
