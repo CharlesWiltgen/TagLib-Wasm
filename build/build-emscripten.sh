@@ -55,7 +55,7 @@ emcmake cmake "$TAGLIB_DIR" \
     -DBUILD_EXAMPLES=OFF \
     -DBUILD_TESTS=OFF \
     -DBUILD_BINDINGS=OFF \
-    -DCMAKE_CXX_FLAGS="-O3 -fno-exceptions" \
+    -DCMAKE_CXX_FLAGS="-O3" \
     -DCMAKE_C_FLAGS="-O3"
 
 # Build TagLib
@@ -152,7 +152,6 @@ emcc "${CAPI_SOURCES[@]}" \
     -s STACK_SIZE=1MB \
     -DTAGLIB_VERSION=\"2.0.2\" \
     -O3 \
-    -fno-exceptions \
     -std=c++17
 
 # Check results
