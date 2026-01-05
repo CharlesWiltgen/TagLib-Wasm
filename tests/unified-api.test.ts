@@ -41,7 +41,6 @@ Deno.test("Recommended configuration for current environment", () => {
 
   assertExists(config);
   assertEquals(typeof config.disableOptimizations, "boolean");
-  assertExists(config.wasiConfig);
 
   console.log(`Recommended config:`, config);
 });
@@ -208,10 +207,8 @@ Deno.test("Error handling - graceful fallback", async () => {
     // Test what happens when WASI is forced but fails
     const module = await loadUnifiedTagLibModule({
       forceWasmType: "wasi",
-      wasiConfig: {
-        // Invalid config to trigger fallback
-        wasmPath: "/nonexistent/path.wasm",
-      },
+      // Invalid URL to trigger fallback
+      wasmUrl: "/nonexistent/path.wasm",
     });
 
     // Should fall back to Emscripten
