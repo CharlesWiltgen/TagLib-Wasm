@@ -103,15 +103,8 @@ jobs:
       - name: Build with WASI SDK
         run: |
           chmod +x build/build-wasi.sh
-          # Modify wasi-env.sh to use GitHub Actions path
-          cat > build/wasi-env.sh << EOF
-          #!/bin/bash
-          export WASI_SDK_PATH="$WASI_SDK_PATH"
-          export PATH="\$WASI_SDK_PATH/bin:\$PATH"
-          echo "WASI SDK environment configured"
-          echo "  WASI_SDK_PATH: \$WASI_SDK_PATH"
-          echo "  Compiler: \$WASI_SDK_PATH/bin/clang"
-          EOF
+          # Create wasi-env.sh to use GitHub Actions path
+          printf '#!/bin/bash\nexport WASI_SDK_PATH="%s"\nexport PATH="$WASI_SDK_PATH/bin:$PATH"\necho "WASI SDK environment configured"\n' "$WASI_SDK_PATH" > build/wasi-env.sh
           ./build/build-wasi.sh
 
       - name: Verify WASI artifacts

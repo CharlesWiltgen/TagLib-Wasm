@@ -20,7 +20,7 @@ PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 SRC_DIR="$PROJECT_ROOT/src/capi"
 TAGLIB_DIR="$PROJECT_ROOT/lib/taglib"
 BUILD_DIR="$PROJECT_ROOT/build/wasi"
-DIST_DIR="$PROJECT_ROOT/dist"
+DIST_DIR="$PROJECT_ROOT/dist/wasi"
 
 # Source WASI environment
 source "$SCRIPT_DIR/wasi-env.sh"
@@ -39,25 +39,51 @@ echo "Found WASI SDK: $WASI_SDK_PATH"
 mkdir -p "$BUILD_DIR/taglib"
 mkdir -p "$DIST_DIR"
 
-# Step 1: Stub TagLib for minimal working build
+# Step 1: Build TagLib with WASI SDK
 echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo "📚 Step 1: Creating minimal WASI binary (TagLib stubbed)"
+echo "📚 Step 1: Building TagLib with WASI SDK"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
-cd "$BUILD_DIR"
+cd "$BUILD_DIR/taglib"
 
-# Create empty TagLib stub library
-mkdir -p "taglib"
-echo "Creating stub TagLib library..."
-touch "taglib/stub.c"
-"$WASI_SDK_PATH/bin/clang" "taglib/stub.c" \
-    --target=wasm32-wasi \
-    --sysroot="$WASI_SDK_PATH/share/wasi-sysroot" \
-    -c -o "taglib/stub.obj"
-"$WASI_SDK_PATH/bin/llvm-ar" rcs "taglib/libtag.a" "taglib/stub.obj"
+# Configure TagLib with CMake for WASI
+echo "Configuring TagLib with CMake for WASI..."
 
-echo -e "${GREEN}✅ Stub TagLib library created${NC}"
+# Use WASI SDK compilers directly (more portable across SDK versions)
+cmake "$TAGLIB_DIR" \
+    -DCMAKE_SYSTEM_NAME=WASI \
+    -DCMAKE_SYSTEM_VERSION=1 \
+    -DCMAKE_SYSTEM_PROCESSOR=wasm32 \
+    -DCMAKE_C_COMPILER="$WASI_SDK_PATH/bin/clang" \
+    -DCMAKE_CXX_COMPILER="$WASI_SDK_PATH/bin/clang++" \
+    -DCMAKE_AR="$WASI_SDK_PATH/bin/llvm-ar" \
+    -DCMAKE_RANLIB="$WASI_SDK_PATH/bin/llvm-ranlib" \
+    -DCMAKE_C_COMPILER_TARGET=wasm32-wasi \
+    -DCMAKE_CXX_COMPILER_TARGET=wasm32-wasi \
+    -DCMAKE_SYSROOT="$WASI_SDK_PATH/share/wasi-sysroot" \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DBUILD_SHARED_LIBS=OFF \
+    -DENABLE_STATIC=ON \
+    -DWITH_MP4=ON \
+    -DWITH_ASF=ON \
+    -DBUILD_EXAMPLES=OFF \
+    -DBUILD_TESTS=OFF \
+    -DBUILD_BINDINGS=OFF \
+    -DCMAKE_CXX_FLAGS="-O3 -fwasm-exceptions" \
+    -DCMAKE_C_FLAGS="-O3"
+
+# Build TagLib
+echo "Building TagLib..."
+make -j$(nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 4)
+
+if [ ! -f "$BUILD_DIR/taglib/taglib/libtag.a" ]; then
+    echo -e "${RED}❌ TagLib build failed${NC}"
+    exit 1
+fi
+
+echo -e "${GREEN}✅ TagLib built successfully${NC}"
+ls -lh "$BUILD_DIR/taglib/taglib/libtag.a"
 
 # Step 1.5: Build mpack library (C MessagePack implementation)
 echo ""
@@ -171,7 +197,7 @@ done
     "$MPACK_BUILD_DIR/libmpack.a" \
     --target=wasm32-wasi \
     --sysroot="$WASI_SDK_PATH/share/wasi-sysroot" \
-    -o "$DIST_DIR/taglib-wasi.wasm" \
+    -o "$DIST_DIR/taglib_wasi.wasm" \
     -Wl,--export=tl_read_tags \
     -Wl,--export=tl_read_tags_ex \
     -Wl,--export=tl_write_tags \
@@ -197,7 +223,7 @@ done
     -fwasm-exceptions
 
 # Check results
-if [ ! -f "$DIST_DIR/taglib-wasi.wasm" ]; then
+if [ ! -f "$DIST_DIR/taglib_wasi.wasm" ]; then
     echo -e "${RED}❌ WASM module build failed${NC}"
     exit 1
 fi
@@ -213,8 +239,8 @@ if command -v wasm-opt &> /dev/null; then
     wasm-opt -Oz \
         --enable-simd \
         --enable-bulk-memory \
-        "$DIST_DIR/taglib-wasi.wasm" \
-        -o "$DIST_DIR/taglib-wasi.wasm"
+        "$DIST_DIR/taglib_wasi.wasm" \
+        -o "$DIST_DIR/taglib_wasi.wasm"
     echo -e "${GREEN}✅ Optimization complete${NC}"
 else
     echo -e "${YELLOW}⚠️  wasm-opt not found, skipping optimization${NC}"
@@ -229,7 +255,7 @@ echo "━━━━━━━━━━━━━━━━━━━━━━━━�
 
 if command -v wasm-strip &> /dev/null; then
     echo "Stripping debug info..."
-    wasm-strip "$DIST_DIR/taglib-wasi.wasm"
+    wasm-strip "$DIST_DIR/taglib_wasi.wasm"
     echo -e "${GREEN}✅ Debug info stripped${NC}"
 else
     echo -e "${YELLOW}⚠️  wasm-strip not found, skipping${NC}"
@@ -242,7 +268,7 @@ echo "━━━━━━━━━━━━━━━━━━━━━━━━�
 echo "📝 Step 5: Generating metadata"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
-cat > "$DIST_DIR/taglib-wasi.json" << EOF
+cat > "$DIST_DIR/taglib_wasi.json" << EOF
 {
   "name": "taglib-wasi",
   "version": "3.0.0",
@@ -276,13 +302,13 @@ echo "━━━━━━━━━━━━━━━━━━━━━━━━�
 echo "✅ Build Summary"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
-WASM_SIZE=$(ls -lh "$DIST_DIR/taglib-wasi.wasm" | awk '{print $5}')
+WASM_SIZE=$(ls -lh "$DIST_DIR/taglib_wasi.wasm" | awk '{print $5}')
 
 echo -e "${GREEN}✅ WASI SDK build successful${NC}"
 echo ""
 echo "Output files:"
-echo "  📦 WASM: $DIST_DIR/taglib-wasi.wasm ($WASM_SIZE)"
-echo "  📝 Meta: $DIST_DIR/taglib-wasi.json"
+echo "  📦 WASM: $DIST_DIR/taglib_wasi.wasm ($WASM_SIZE)"
+echo "  📝 Meta: $DIST_DIR/taglib_wasi.json"
 echo ""
 echo "Target environments: Deno, Node.js (WASI), Cloudflare Workers"
 echo "Optimizations: Size-optimized (-Oz), stripped"

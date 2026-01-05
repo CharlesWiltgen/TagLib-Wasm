@@ -4,3 +4,6 @@
 [submodule "lib/mpack"]
 	path = lib/mpack
 	url = https://github.com/ludocode/mpack.git
+[submodule "lib/msgpack"]
+	path = lib/msgpack
+	url = https://github.com/msgpack/msgpack-c.git
