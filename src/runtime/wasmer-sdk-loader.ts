@@ -1,11 +1,11 @@
 /**
- * @fileoverview Modern WASI loader using @wasmer/sdk for Deno 2+
+ * @fileoverview Modern WASI loader using @wasmer/wasi for Deno 2+
  *
- * Implements actual WASI functionality using Wasmer SDK with proper
+ * Implements actual WASI functionality using Wasmer WASI with proper
  * file system mounting, memory management, and error handling.
  */
 
-import { Directory, init, type Instance, type runWasix } from "@wasmer/sdk";
+import { init as initWasi, WASI as WasmerWasi } from "@wasmer/wasi";
 import {
   heapViews,
   WasmArena,
@@ -77,15 +77,15 @@ export interface WasiModule {
 }
 
 /**
- * Configuration for Wasmer SDK loader
+ * Configuration for Wasmer WASI loader
  */
 export interface WasmerLoaderConfig {
   /** Path to WASI WASM binary */
   wasmPath?: string;
   /** Use inline WASM for bundling */
   useInlineWasm?: boolean;
-  /** Initial file system mounts */
-  mounts?: Record<string, Directory>;
+  /** Preopened directories mapping virtual paths to host paths */
+  mounts?: Record<string, string>;
   /** Environment variables */
   env?: Record<string, string>;
   /** Arguments to pass to WASI module */
@@ -98,36 +98,24 @@ export interface WasmerLoaderConfig {
 let isInitialized = false;
 
 /**
- * Initialize Wasmer SDK (must be called once before any Wasmer APIs)
+ * Initialize Wasmer WASI runtime (must be called once before any WASI APIs)
  */
-export async function initializeWasmer(useInline = false): Promise<void> {
+export async function initializeWasmer(_useInline = false): Promise<void> {
   if (isInitialized) return;
 
   try {
-    if (useInline) {
-      // Try to use inline WASM for deno compile/bundle
-      try {
-        const wasmInline = await import("@wasmer/sdk/wasm-inline");
-        await init({ module: wasmInline.default || wasmInline });
-      } catch {
-        // Fall back to standard init if inline fails
-        await init();
-      }
-    } else {
-      // Standard initialization
-      await init();
-    }
+    await initWasi();
     isInitialized = true;
   } catch (error) {
     throw new WasmerInitError(
-      `Failed to initialize Wasmer SDK: ${error}`,
+      `Failed to initialize Wasmer WASI: ${error}`,
       error,
     );
   }
 }
 
 /**
- * Load WASI module using Wasmer SDK
+ * Load WASI module using Wasmer WASI
  */
 export async function loadWasmerWasi(
   config: WasmerLoaderConfig = {},
@@ -141,11 +129,11 @@ export async function loadWasmerWasi(
     debug = false,
   } = config;
 
-  // Ensure SDK is initialized
+  // Ensure WASI runtime is initialized
   await initializeWasmer(useInlineWasm);
 
   if (debug) {
-    console.log("[WasmerSDK] Loading WASI module from:", wasmPath);
+    console.log("[WasmerWASI] Loading WASI module from:", wasmPath);
   }
 
   try {
@@ -155,18 +143,12 @@ export async function loadWasmerWasi(
     // Create WebAssembly module
     const wasmModule = await WebAssembly.compile(wasmBytes as BufferSource);
 
-    // Set up file system mounts
-    const mountConfig: Record<string, Directory> = {
-      "/": new Directory(), // Root directory
-      ...mounts,
-    };
-
-    // Create WASI instance with Wasmer SDK
+    // Create WASI instance with preopened directories
     const instance = await instantiateWasi(wasmModule, {
       env,
       args,
-      mount: mountConfig,
-    });
+      preopens: mounts,
+    }, debug);
 
     // Extract exports and wrap in our interface
     return createWasiModule(instance, debug);
@@ -194,44 +176,54 @@ async function loadWasmBinary(path: string): Promise<Uint8Array> {
 }
 
 /**
- * Instantiate WASI module with Wasmer SDK
+ * Instantiate WASI module with Wasmer WASI runtime
+ *
+ * Uses @wasmer/wasi for WASI import resolution (MemFS-based).
+ * Does NOT call _start or wasi.start() since this is a library module.
+ * The module provides library functions (tl_read_tags, etc.) that can be
+ * called directly after instantiation.
  */
 async function instantiateWasi(
   wasmModule: WebAssembly.Module,
   config: {
     env: Record<string, string>;
     args: string[];
-    mount: Record<string, Directory>;
+    preopens: Record<string, string>;
   },
+  debug: boolean,
 ): Promise<WebAssembly.Instance> {
-  // For now, use plain WebAssembly without WASI imports
-  // The test binary doesn't need full WASI, just memory management
-  const importObject = {
-    wasi_snapshot_preview1: {
-      // Minimal WASI stubs for the test binary
-      fd_write: () => 0,
-      fd_read: () => 0,
-      fd_close: () => 0,
-      fd_seek: () => 0,
-      environ_get: () => 0,
-      environ_sizes_get: () => 0,
-      args_get: () => 0,
-      args_sizes_get: () => 0,
-      proc_exit: () => {},
-      clock_time_get: () => 0,
-      random_get: () => 0,
-    },
-    env: {
-      // Environment imports if needed
-    },
-  };
+  // Create WASI instance to get import bindings
+  // Note: @wasmer/wasi uses MemFS, not native filesystem access
+  const wasi = new WasmerWasi({
+    args: config.args,
+    env: config.env,
+  });
 
-  // Instantiate the module
-  const instance = await WebAssembly.instantiate(wasmModule, importObject);
+  if (debug) {
+    console.log("[WasmerWASI] Created WASI import resolver");
+    if (Object.keys(config.preopens).length > 0) {
+      console.log(
+        "[WasmerWASI] Mounts config (stored for reference):",
+        config.preopens,
+      );
+    }
+  }
 
-  // Initialize if needed (for libraries)
-  if (instance.exports._initialize) {
-    (instance.exports._initialize as () => void)();
+  // Get WASI imports from the @wasmer/wasi instance
+  const wasiImports = wasi.getImports(wasmModule) as WebAssembly.Imports;
+
+  // Use manual WebAssembly.instantiate to avoid wasi.instantiate()
+  // which may try to run _start or perform other initialization
+  // that doesn't work for library-style WASI modules
+  const instance = await WebAssembly.instantiate(wasmModule, wasiImports);
+
+  if (debug) {
+    const exportNames = Object.keys(instance.exports).slice(0, 5);
+    console.log(
+      "[WasmerWASI] Module instantiated with exports:",
+      exportNames,
+      "...",
+    );
   }
 
   return instance;
