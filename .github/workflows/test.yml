@@ -181,9 +181,98 @@ jobs:
       - name: Type check
         run: deno check ./src ./tests
 
+  package-compat:
+    name: Package Compatibility
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Setup Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: .
+
+      - name: NPM - publint
+        run: npx publint
+
+      - name: NPM - arethetypeswrong
+        run: |
+          npx @arethetypeswrong/cli --pack
+          echo "Note: node10 failures and CJS dynamic import warnings are expected for ESM packages"
+
+      - name: JSR - deno doc lint
+        run: |
+          # Check for missing documentation (warnings only, don't fail)
+          deno doc --lint index.ts 2>&1 | head -50 || true
+          echo "✓ JSR documentation check complete"
+
+      - name: Bun - import test
+        run: |
+          cd /tmp
+          mkdir -p bun-compat-test
+          cd bun-compat-test
+          bun init -y
+          bun add $GITHUB_WORKSPACE
+          cat > test.ts << 'EOF'
+          import { TagLib, readTags } from "taglib-wasm";
+          import { readTags as simpleReadTags } from "taglib-wasm/simple";
+          import { TagLibWorkerPool } from "taglib-wasm/workers";
+
+          console.log("✓ Main import works:", typeof TagLib);
+          console.log("✓ Simple subpath works:", typeof simpleReadTags);
+          console.log("✓ Workers subpath works:", typeof TagLibWorkerPool);
+
+          const taglib = await TagLib.initialize();
+          console.log("✓ TagLib.initialize() works");
+          EOF
+          bun run test.ts
+          echo "✓ Bun compatibility verified"
+
+      - name: Node.js - import test
+        run: |
+          cd /tmp
+          mkdir -p node-compat-test
+          cd node-compat-test
+          npm init -y
+          npm pkg set type=module
+          npm install $GITHUB_WORKSPACE
+          cat > test.mjs << 'EOF'
+          import { TagLib, readTags } from "taglib-wasm";
+          import { readTags as simpleReadTags } from "taglib-wasm/simple";
+
+          console.log("✓ Main import works:", typeof TagLib);
+          console.log("✓ Simple subpath works:", typeof simpleReadTags);
+
+          const taglib = await TagLib.initialize();
+          console.log("✓ TagLib.initialize() works");
+          EOF
+          node test.mjs
+          echo "✓ Node.js compatibility verified"
+
   test-summary:
     name: Test Summary
-    needs: [build, test, lint]
+    needs: [build, test, lint, package-compat]
     runs-on: ubuntu-latest
     if: always()
     steps:
@@ -191,7 +280,8 @@ jobs:
         run: |
           if [ "${{ needs.build.result }}" != "success" ] || \
              [ "${{ needs.test.result }}" != "success" ] || \
-             [ "${{ needs.lint.result }}" != "success" ]; then
+             [ "${{ needs.lint.result }}" != "success" ] || \
+             [ "${{ needs.package-compat.result }}" != "success" ]; then
             echo "❌ Tests failed!"
             exit 1
           else
