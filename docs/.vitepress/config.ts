@@ -10,8 +10,11 @@ export default defineConfig({
 
   lastUpdated: true,
 
-  // TODO: Fix dead links in existing docs
-  ignoreDeadLinks: true,
+  // Dead links checking enabled
+  ignoreDeadLinks: false,
+
+  // Clean URLs (no .html extension)
+  cleanUrls: true,
 
   themeConfig: {
     logo: undefined,
@@ -84,7 +87,7 @@ export default defineConfig({
           items: [
             { text: "Overview", link: "/api/" },
             { text: "Folder API", link: "/api/folder-api" },
-            { text: "Tag Name Constants", link: "/api/tag-name-constants" },
+            { text: "Tag Name Constants", link: "/api/tag-constants" },
             { text: "Property Map", link: "/api/property-map" },
           ],
         },
@@ -122,7 +125,7 @@ export default defineConfig({
           items: [
             { text: "Overview", link: "/api/" },
             { text: "Folder API", link: "/api/folder-api" },
-            { text: "Tag Name Constants", link: "/api/tag-name-constants" },
+            { text: "Tag Name Constants", link: "/api/tag-constants" },
             { text: "Property Map", link: "/api/property-map" },
           ],
         },

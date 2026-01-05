@@ -362,5 +362,5 @@ The folder API requires filesystem access:
 
 - [Folder Operations Guide](/guide/folder-operations.html) - Detailed usage
   examples
-- [Simple API](/api/simple-api.html) - Individual file operations
+- [Simple API](/api/#simple-api) - Individual file operations
 - [Performance Guide](/concepts/performance.html) - Optimization tips
