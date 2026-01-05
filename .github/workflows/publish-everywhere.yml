@@ -391,17 +391,6 @@ jobs:
             echo "❌ Failed to publish to: $FAILURES"
           fi
 
-      - name: Create success tag
-        if: steps.status.outputs.success == 'true'
-        run: |
-          VERSION="${{ needs.prepare-and-build.outputs.version }}"
-          git config user.name "GitHub Actions"
-          git config user.email "actions@github.com"
-
-          # Create a published tag to mark successful release
-          git tag -a "published-v$VERSION" -m "Successfully published v$VERSION to all registries"
-          git push origin "published-v$VERSION"
-
       - name: Rollback NPM
         if: steps.status.outputs.success == 'false' && needs.publish-npm.outputs.published == 'true'
         run: |
