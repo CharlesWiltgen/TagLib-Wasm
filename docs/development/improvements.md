@@ -202,7 +202,7 @@ The test suite has been significantly enhanced with:
 ## Contributing
 
 Want to help implement these improvements? See our
-[Contributing Guide](/CONTRIBUTING.md) for details on:
+[Contributing Guide](https://github.com/CharlesWiltgen/taglib-wasm/blob/main/CONTRIBUTING.md) for details on:
 
 - Setting up development environment
 - Submitting pull requests
