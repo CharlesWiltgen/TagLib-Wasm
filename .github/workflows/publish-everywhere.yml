@@ -414,61 +414,63 @@ jobs:
           echo "- Deprecate the version instead: npm deprecate taglib-wasm@$VERSION 'Published in error'"
           echo "- Publish a patch version with fixes"
 
-      - name: Create rollback issue
+      - name: Write failure summary
         if: steps.status.outputs.success == 'false'
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const version = '${{ needs.prepare-and-build.outputs.version }}';
-            const failures = '${{ steps.status.outputs.failures }}';
-            const npmPublished = '${{ needs.publish-npm.outputs.published }}' === 'true';
-            const githubPublished = '${{ needs.publish-github.outputs.published }}' === 'true';
-            const jsrPublished = '${{ needs.publish-jsr.outputs.published }}' === 'true';
+        run: |
+          VERSION="${{ needs.prepare-and-build.outputs.version }}"
+          FAILURES="${{ steps.status.outputs.failures }}"
+          NPM_PUBLISHED="${{ needs.publish-npm.outputs.published }}"
+          GITHUB_PUBLISHED="${{ needs.publish-github.outputs.published }}"
+          JSR_PUBLISHED="${{ needs.publish-jsr.outputs.published }}"
 
-            let body = `## Publication Failure for v${version}\n\n`;
-            body += `Failed to publish to: ${failures}\n\n`;
-            body += `### Publication Status\n`;
-            body += `- NPM: ${npmPublished ? '✅ Published' : '❌ Failed'}\n`;
-            body += `- GitHub Packages: ${githubPublished ? '✅ Published' : '❌ Failed'}\n`;
-            body += `- JSR: ${jsrPublished ? '✅ Published' : '❌ Failed'}\n\n`;
+          {
+            echo "## ❌ Publication Failed for v${VERSION}"
+            echo ""
+            echo "Failed to publish to: ${FAILURES}"
+            echo ""
+            echo "### Publication Status"
+            echo "| Registry | Status |"
+            echo "|----------|--------|"
+            echo "| JSR | $([ "$JSR_PUBLISHED" = "true" ] && echo "✅ Published" || echo "❌ Failed") |"
+            echo "| NPM | $([ "$NPM_PUBLISHED" = "true" ] && echo "✅ Published" || echo "❌ Failed") |"
+            echo "| GitHub Packages | $([ "$GITHUB_PUBLISHED" = "true" ] && echo "✅ Published" || echo "❌ Failed") |"
+            echo ""
 
-            if (npmPublished || githubPublished || jsrPublished) {
-              body += `### ⚠️  Rollback Required\n\n`;
+            if [ "$NPM_PUBLISHED" = "true" ] || [ "$GITHUB_PUBLISHED" = "true" ] || [ "$JSR_PUBLISHED" = "true" ]; then
+              echo "### ⚠️ Rollback Required"
+              echo ""
 
-              if (npmPublished) {
-                body += `#### NPM Rollback\n`;
-                body += `\`\`\`bash\n`;
-                body += `# Option 1: Deprecate (recommended)\n`;
-                body += `npm deprecate taglib-wasm@${version} 'Published in error'\n\n`;
-                body += `# Option 2: Unpublish (requires waiting 24h to republish)\n`;
-                body += `npm unpublish taglib-wasm@${version}\n`;
-                body += `\`\`\`\n\n`;
-              }
+              if [ "$NPM_PUBLISHED" = "true" ]; then
+                echo "#### NPM Rollback"
+                echo '```bash'
+                echo "# Option 1: Deprecate (recommended)"
+                echo "npm deprecate taglib-wasm@${VERSION} 'Published in error'"
+                echo ""
+                echo "# Option 2: Unpublish (requires waiting 24h to republish)"
+                echo "npm unpublish taglib-wasm@${VERSION}"
+                echo '```'
+                echo ""
+              fi
 
-              if (githubPublished) {
-                body += `#### GitHub Packages Rollback\n`;
-                body += `Delete the package version from GitHub Packages UI or use:\n`;
-                body += `\`\`\`bash\n`;
-                body += `gh api -X DELETE /user/packages/npm/@charleswiltgen%2Ftaglib-wasm/versions/VERSION_ID\n`;
-                body += `\`\`\`\n\n`;
-              }
+              if [ "$GITHUB_PUBLISHED" = "true" ]; then
+                echo "#### GitHub Packages Rollback"
+                echo "Delete the package version from GitHub Packages UI or use:"
+                echo '```bash'
+                echo "gh api -X DELETE /user/packages/npm/@charleswiltgen%2Ftaglib-wasm/versions/VERSION_ID"
+                echo '```'
+                echo ""
+              fi
 
-              if (jsrPublished) {
-                body += `#### JSR Rollback\n`;
-                body += `JSR does not support unpublishing. Consider publishing a patch version.\n\n`;
-              }
-            }
+              if [ "$JSR_PUBLISHED" = "true" ]; then
+                echo "#### JSR Rollback"
+                echo "JSR does not support unpublishing. Consider publishing a patch version."
+                echo ""
+              fi
+            fi
 
-            body += `### Next Steps\n`;
-            body += `1. Review the workflow logs for specific error details\n`;
-            body += `2. Fix the underlying issue\n`;
-            body += `3. If any registries were published, follow rollback procedures above\n`;
-            body += `4. Re-run the workflow or publish a new patch version\n`;
-
-            await github.rest.issues.create({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              title: `🚨 Publication failed for v${version}`,
-              body: body,
-              labels: ['bug', 'release']
-            });
+            echo "### Next Steps"
+            echo "1. Review the workflow logs above for specific error details"
+            echo "2. Fix the underlying issue"
+            echo "3. If any registries were published, follow rollback procedures above"
+            echo "4. Re-run the workflow or publish a new patch version"
+          } >> $GITHUB_STEP_SUMMARY
