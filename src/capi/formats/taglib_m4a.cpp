@@ -6,7 +6,7 @@
 #include <mp4/mp4item.h>
 #include <mp4/mp4coverart.h>
 #include <toolkit/tbytevectorstream.h>
-// MessagePack removed - using core C API now
+#include <msgpack.hpp>
 #include <cstring>
 #include <memory>
 

@@ -193,7 +193,7 @@ done
 
 # Link everything together with Wasm EH support for TagLib
 "$WASI_SDK_PATH/bin/clang++" "${CAPI_OBJECTS[@]}" \
-    "$BUILD_DIR/taglib/libtag.a" \
+    "$BUILD_DIR/taglib/taglib/libtag.a" \
     "$MPACK_BUILD_DIR/libmpack.a" \
     --target=wasm32-wasi \
     --sysroot="$WASI_SDK_PATH/share/wasi-sysroot" \
