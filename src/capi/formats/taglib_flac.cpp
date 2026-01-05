@@ -11,7 +11,7 @@
 #include <memory>
 
 // External functions
-extern void tl_set_error(tl_error_code code, const char* message);
+extern "C" void tl_set_error(tl_error_code code, const char* message);
 
 // Direct FLAC processing - optimized path
 uint8_t* tl_read_flac(const uint8_t* buf, size_t len, size_t* out_size) {
