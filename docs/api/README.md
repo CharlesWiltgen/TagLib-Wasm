@@ -380,8 +380,9 @@ The Folder API provides batch operations for processing multiple audio files in
 directories. This API is ideal for building music library managers, duplicate
 finders, and batch metadata editors.
 
-::: tip The folder API requires filesystem access and is only available in Deno,
-Node.js, and Bun environments. :::
+::: tip
+The folder API requires filesystem access and is only available in Deno, Node.js, and Bun environments.
+:::
 
 ### Import
 
