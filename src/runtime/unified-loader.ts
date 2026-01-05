@@ -348,6 +348,7 @@ export function getRecommendedConfig(): UnifiedLoaderOptions {
     return {
       forceWasmType: "wasi",
       useInlineWasm: false,
+      disableOptimizations: false,
     };
   }
 
