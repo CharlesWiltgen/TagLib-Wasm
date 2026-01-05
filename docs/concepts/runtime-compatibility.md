@@ -117,6 +117,52 @@ export default {
 };
 ```
 
+## 🔄 WebAssembly Runtime Selection
+
+taglib-wasm includes two WebAssembly implementations and automatically selects the optimal one for your environment:
+
+| Environment            | Implementation | Reason                                       |
+| ---------------------- | -------------- | -------------------------------------------- |
+| **Deno**               | WASI           | Native filesystem, best performance          |
+| **Node.js 16+**        | WASI           | Native filesystem, MessagePack serialization |
+| **Browsers**           | Emscripten     | Required for web compatibility               |
+| **Cloudflare Workers** | Emscripten     | WASI not available                           |
+| **Bun**                | Emscripten     | Better compatibility                         |
+
+### Checking the Active Implementation
+
+```typescript
+const taglib = await TagLib.initialize();
+
+console.log(taglib.isWasi); // true for Deno/Node.js
+console.log(taglib.isEmscripten); // true for browsers/Workers
+```
+
+### Performance Benefits
+
+WASI mode provides:
+
+- **10x faster serialization** via MessagePack (vs JSON in Emscripten)
+- **Native memory management** with RAII patterns
+- **Smaller binary size** (~28KB vs ~2MB)
+
+### Advanced: Manual Override
+
+In rare cases, you may want to force a specific implementation:
+
+```typescript
+import { loadUnifiedTagLibModule } from "taglib-wasm";
+
+const module = await loadUnifiedTagLibModule({
+  forceWasmType: "emscripten", // or "wasi"
+  debug: true, // Enable loader debug output
+});
+```
+
+::: tip
+Most users never need to configure this. The automatic selection provides optimal performance for each environment.
+:::
+
 ## 🔧 Runtime-Specific Features
 
 ### Memory Management

@@ -41,6 +41,8 @@ TagLib itself is legendary, and a core dependency of many music apps.
 - **✅ Format abstraction** – Handles container format details automagically
   when possible
 - **✅ Zero dependencies** – Self-contained Wasm bundle
+- **✅ Automatic runtime optimization** – Uses WASI for Deno/Node.js, Emscripten
+  for browsers
 - **✅ Production ready** – Growing test suite helps ensure safety and
   reliability
 - **✅ Two API styles** – Use the “Simple” API (3 functions), or the full “Core”
@@ -237,6 +239,30 @@ const modifiedBuffer = await setCoverArt("song.mp3", imageData, "image/jpeg");
 // Save modifiedBuffer to file if needed
 ```
 
+### Working with Ratings
+
+```typescript
+import { RatingUtils, TagLib } from "taglib-wasm";
+
+const taglib = await TagLib.initialize();
+const file = await taglib.open("song.mp3");
+
+// Read rating (normalized 0.0-1.0)
+const rating = file.getRating();
+if (rating !== undefined) {
+  console.log(`Rating: ${RatingUtils.toStars(rating)} stars`);
+}
+
+// Set rating (4 out of 5 stars)
+file.setRating(0.8);
+file.save();
+
+file.dispose();
+```
+
+See the [Track Ratings Guide](https://charleswiltgen.github.io/taglib-wasm/guide/ratings.html)
+for RatingUtils API and cross-format conversion details.
+
 ### Container Format and Codec Detection
 
 ```typescript
@@ -285,6 +311,7 @@ Supported formats:
 - [Album Processing Guide](https://charleswiltgen.github.io/taglib-wasm/guide/album-processing.html) - Process entire albums in seconds
 - [Platform Examples](https://charleswiltgen.github.io/taglib-wasm/guide/platform-examples.html)
 - [Working with Cover Art](https://charleswiltgen.github.io/taglib-wasm/guide/cover-art.html)
+- [Track Ratings](https://charleswiltgen.github.io/taglib-wasm/guide/ratings.html)
 - [Cloudflare Workers Setup](https://charleswiltgen.github.io/taglib-wasm/guide/workers-setup.html)
 - [Error Handling](https://charleswiltgen.github.io/taglib-wasm/concepts/error-handling.html)
 
