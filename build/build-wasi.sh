@@ -135,9 +135,10 @@ echo "Linking C API with TagLib and MessagePack..."
 # Compile C API sources - Minimal version (no memory pooling for now)
 CAPI_SOURCES=(
     "$SRC_DIR/taglib_boundary.c"           # Pure C boundary (no exceptions) - WASI exports
-    "$SRC_DIR/taglib_shim.cpp"            # Tiny C++ shim with Wasm EH - TagLib exception boundary  
+    "$SRC_DIR/taglib_shim.cpp"            # Tiny C++ shim with Wasm EH - TagLib exception boundary
     "$SRC_DIR/core/taglib_error.cpp"      # C++ with pure C internals - compiled with Wasm EH
     "$SRC_DIR/core/taglib_msgpack.c"      # Pure C (no exceptions) - MessagePack implementation
+    "$SRC_DIR/core/cxa_stubs.c"           # EH stubs for Itanium symbols from TagLib
 )
 
 # Compile C API sources with proper flags per file type
