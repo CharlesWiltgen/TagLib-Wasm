@@ -49,7 +49,7 @@ jobs:
       - name: Copy WASM files to dist
         run: |
           mkdir -p dist
-          cp build/taglib.wasm dist/
+          cp build/taglib-web.wasm dist/
           cp build/taglib-wrapper.js dist/
           cp build/taglib-wrapper.d.ts dist/
 
@@ -65,7 +65,7 @@ jobs:
           name: dist
           path: |
             dist/
-            build/taglib.wasm
+            build/taglib-web.wasm
             build/taglib-wrapper.js
             build/taglib-wrapper.d.ts
 
