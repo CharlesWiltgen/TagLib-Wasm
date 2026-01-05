@@ -24,6 +24,9 @@
   },
   "files": [
     "dist/**/*",
+    "!dist/poc",
+    "!dist/browser",
+    "!dist/deno-compile",
     "README.md",
     "LICENSE"
   ],

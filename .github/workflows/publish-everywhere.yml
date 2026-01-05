@@ -128,11 +128,11 @@ jobs:
           # Check that all required files exist
           test -f dist/index.js || (echo "Missing dist/index.js" && exit 1)
           test -f dist/index.d.ts || (echo "Missing dist/index.d.ts" && exit 1)
-          test -f dist/taglib.wasm || (echo "Missing dist/taglib.wasm" && exit 1)
+          test -f dist/taglib-web.wasm || (echo "Missing dist/taglib-web.wasm" && exit 1)
           test -f dist/taglib-wrapper.js || (echo "Missing dist/taglib-wrapper.js" && exit 1)
 
           # Check file sizes are reasonable
-          WASM_SIZE=$(stat -c%s dist/taglib.wasm 2>/dev/null || stat -f%z dist/taglib.wasm)
+          WASM_SIZE=$(stat -c%s dist/taglib-web.wasm 2>/dev/null || stat -f%z dist/taglib-web.wasm)
           if [ "$WASM_SIZE" -lt 1000 ]; then
             echo "WASM file too small: $WASM_SIZE bytes"
             exit 1
