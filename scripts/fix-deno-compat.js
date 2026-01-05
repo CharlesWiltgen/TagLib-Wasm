@@ -5,9 +5,11 @@
  * This script patches the Emscripten-generated code to properly handle Deno environment
  */
 
-const { readFileSync, writeFileSync } = require("fs");
-const { join } = require("path");
+import { readFileSync, writeFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 
+const __dirname = dirname(fileURLToPath(import.meta.url));
 const wrapperPath = join(__dirname, "../build/taglib-wrapper.js");
 
 console.log("🔧 Applying Deno compatibility fixes to taglib-wrapper.js...");
