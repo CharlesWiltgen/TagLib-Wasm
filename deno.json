@@ -1,7 +1,7 @@
 {
   "name": "@charlesw/taglib-wasm",
   "version": "0.9.0",
-  "description": "TagLib for TypeScript: Read and write audio metadata (MP3, FLAC, M4A, OGG, WAV) across Deno, Node.js, Bun, browsers, and Cloudflare Workers",
+  "description": "TagLib in WebAssembly with TypeScript bindings, for universal audio metadata handling in browsers, Node.js, Deno, Bun, and Cloudflare Workers",
   "nodeModulesDir": "auto",
   "exports": {
     ".": "./index.ts",

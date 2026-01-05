@@ -5,7 +5,7 @@
 
 // Export from taglib.ts
 export { AudioFileImpl, createTagLib, TagLib } from "./taglib.ts";
-export type { AudioFile, Tag } from "./taglib.ts"; // Export the interfaces
+export type { AudioFile, MutableTag } from "./taglib.ts"; // Export the interfaces
 
 // Export from types.ts (except Tag to avoid conflict)
 export type {
