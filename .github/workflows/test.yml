@@ -218,8 +218,8 @@ jobs:
 
       - name: NPM - arethetypeswrong
         run: |
-          npx @arethetypeswrong/cli --pack
-          echo "Note: node10 failures and CJS dynamic import warnings are expected for ESM packages"
+          npx @arethetypeswrong/cli --pack --profile esm-only
+          echo "Note: Using esm-only profile (CJS dynamic import warnings are expected)"
 
       - name: JSR - deno doc lint
         run: |
