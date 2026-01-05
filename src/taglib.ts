@@ -45,7 +45,7 @@ import {
  * file.save();
  * ```
  */
-export interface Tag extends BasicTag {
+export interface MutableTag extends BasicTag {
   /** Set the track title */
   setTitle(value: string): void;
   /** Set the artist name */
@@ -103,7 +103,7 @@ export interface AudioFile {
    * @returns Tag object with getters and setters for metadata fields
    * @throws {Error} If unable to get tag from file
    */
-  tag(): Tag;
+  tag(): MutableTag;
 
   /**
    * Get audio properties (duration, bitrate, sample rate, etc.).
@@ -404,7 +404,7 @@ export interface AudioFile {
  */
 export class AudioFileImpl implements AudioFile {
   private fileHandle: any;
-  private cachedTag: Tag | null = null;
+  private cachedTag: MutableTag | null = null;
   private cachedAudioProperties: AudioProperties | null = null;
   private readonly sourcePath?: string;
   private originalSource?: AudioFileInput;
@@ -432,7 +432,7 @@ export class AudioFileImpl implements AudioFile {
   }
 
   /** @inheritdoc */
-  tag(): Tag {
+  tag(): MutableTag {
     const tagWrapper = this.fileHandle.getTag();
     if (!tagWrapper) {
       throw new MetadataError(
