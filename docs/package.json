@@ -2,17 +2,13 @@
   "name": "taglib-wasm-docs",
   "version": "1.0.0",
   "private": true,
+  "type": "module",
   "scripts": {
-    "dev": "vuepress dev .",
-    "build": "vuepress build .",
-    "preview": "vuepress preview ."
+    "dev": "vitepress dev .",
+    "build": "vitepress build .",
+    "preview": "vitepress preview ."
   },
   "devDependencies": {
-    "vuepress": "next",
-    "@vuepress/bundler-vite": "next",
-    "@vuepress/theme-default": "next",
-    "@vuepress/helper": "next",
-    "@vuepress/plugin-search": "next",
-    "sass": "^1.80.0"
+    "vitepress": "2.0.0-alpha.15"
   }
 }

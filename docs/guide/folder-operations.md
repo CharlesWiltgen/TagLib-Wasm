@@ -17,14 +17,15 @@ import {
 } from "taglib-wasm/folder";
 ```
 
-::: tip Runtime Support Folder operations require filesystem access and are
-available in:
+::: tip Runtime Support
+Folder operations require filesystem access and are available in:
 
 - ✅ Deno
 - ✅ Node.js
 - ✅ Bun
 - ❌ Browsers (no filesystem access)
-- ❌ Cloudflare Workers (no filesystem access) :::
+- ❌ Cloudflare Workers (no filesystem access)
+  :::
 
 ## Scanning Folders
 
