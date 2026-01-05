@@ -2,25 +2,34 @@
 
 ## Package Managers
 
-::: code-tabs @tab Deno
+::: code-group
 
-From JSR (recommended):
-
-```typescript
+```typescript [Deno (JSR)]
 import { TagLib } from "@charlesw/taglib-wasm";
 ```
 
-From NPM:
-
-```typescript
+```typescript [Deno (NPM)]
 import { TagLib } from "npm:taglib-wasm";
 ```
 
-@tab Node.js
-
-```bash
+```bash [Node.js]
 npm install taglib-wasm
 ```
+
+```bash [Bun]
+bun add taglib-wasm
+```
+
+```html [Browser]
+<!-- Use a bundler like Vite, Webpack, or Parcel -->
+<script type="module">
+  import { TagLib } from "taglib-wasm";
+</script>
+```
+
+:::
+
+### Node.js Requirements
 
 **Requirements:** Node.js v22.6.0 or higher
 
@@ -46,23 +55,6 @@ import { applyTags, readTags } from "taglib-wasm/simple";
 const taglib = await TagLib.initialize();
 const tags = await readTags("song.mp3");
 ```
-
-@tab Bun
-
-```bash
-bun add taglib-wasm
-```
-
-@tab Browsers
-
-```html
-<!-- Use a bundler like Vite, Webpack, or Parcel -->
-<script type="module">
-  import { TagLib } from "taglib-wasm";
-</script>
-```
-
-:::
 
 ## Runtime Requirements
 
@@ -118,5 +110,4 @@ console.log("TagLib-Wasm initialized successfully!");
 ## Next Steps
 
 - Continue to [Quick Start](./quick-start.md) to write your first code
-- See [Runtime Compatibility](/Runtime-Compatibility.md) for platform-specific
-  details
+- See [Runtime Compatibility](/concepts/runtime-compatibility) for platform-specific details
