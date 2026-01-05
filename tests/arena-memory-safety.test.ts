@@ -122,10 +122,10 @@ describe("Arena Memory Management", () => {
       assertEquals(ptr1, 0); // First allocation at offset 0
 
       const ptr2 = helper.alloc(arenaId, 200);
-      assertEquals(ptr2, 104); // Second allocation (aligned to 8 bytes: 100 + 4 padding)
+      assertEquals(ptr2, 104); // Second allocation (aligned to 8 bytes: 100 → 104)
 
       const stats = helper.getStats(arenaId);
-      assertEquals(stats?.used, 312); // 104 + 208 (200 + 8 padding)
+      assertEquals(stats?.used, 304); // 104 + 200 (200 is already 8-byte aligned)
     });
 
     it("should align allocations to 8-byte boundaries", () => {
