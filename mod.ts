@@ -23,7 +23,7 @@
 
 // Export Full API
 export { TagLib } from "./src/taglib.ts";
-export type { AudioFile, Tag } from "./src/taglib.ts";
+export type { AudioFile, MutableTag } from "./src/taglib.ts";
 export type { AudioProperties } from "./src/types.ts";
 
 // Export Simple API

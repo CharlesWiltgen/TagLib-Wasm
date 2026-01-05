@@ -30,6 +30,12 @@ export type TagLibErrorCode =
  * Base error class for all taglib-wasm errors
  */
 export class TagLibError extends Error {
+  /**
+   * Creates a new TagLibError
+   * @param code - Error code for programmatic handling
+   * @param message - Human-readable error message
+   * @param details - Additional context about the error
+   */
   constructor(
     public readonly code: string,
     message: string,
@@ -45,6 +51,11 @@ export class TagLibError extends Error {
  * Error thrown when the Wasm module fails to initialize
  */
 export class TagLibInitializationError extends TagLibError {
+  /**
+   * Creates a new TagLibInitializationError
+   * @param message - Description of the initialization failure
+   * @param details - Additional context about the error
+   */
   constructor(message: string, details?: Record<string, any>) {
     super(
       "INITIALIZATION",
@@ -60,6 +71,12 @@ export class TagLibInitializationError extends TagLibError {
  * Error thrown when an audio file format is invalid or corrupted
  */
 export class InvalidFormatError extends TagLibError {
+  /**
+   * Creates a new InvalidFormatError
+   * @param message - Description of the format error
+   * @param bufferSize - Size of the audio buffer in bytes
+   * @param details - Additional context about the error
+   */
   constructor(
     message: string,
     public readonly bufferSize?: number,
@@ -90,6 +107,12 @@ export class InvalidFormatError extends TagLibError {
  * Error thrown when an audio format is recognized but not supported
  */
 export class UnsupportedFormatError extends TagLibError {
+  /**
+   * Creates a new UnsupportedFormatError
+   * @param format - The unsupported format that was encountered
+   * @param supportedFormats - List of formats that are supported
+   * @param details - Additional context about the error
+   */
   constructor(
     public readonly format: string,
     public readonly supportedFormats: readonly string[] = SUPPORTED_FORMATS,
@@ -111,6 +134,13 @@ export class UnsupportedFormatError extends TagLibError {
  * Error thrown during file operations (read, write, save)
  */
 export class FileOperationError extends TagLibError {
+  /**
+   * Creates a new FileOperationError
+   * @param operation - The file operation that failed
+   * @param message - Description of the failure
+   * @param path - File path involved in the operation
+   * @param details - Additional context about the error
+   */
   constructor(
     public readonly operation: "read" | "write" | "save" | "stat",
     message: string,
@@ -137,6 +167,13 @@ export class FileOperationError extends TagLibError {
  * Error thrown when metadata operations fail
  */
 export class MetadataError extends TagLibError {
+  /**
+   * Creates a new MetadataError
+   * @param operation - The metadata operation that failed
+   * @param message - Description of the failure
+   * @param field - The metadata field involved
+   * @param details - Additional context about the error
+   */
   constructor(
     public readonly operation: "read" | "write",
     message: string,
@@ -163,6 +200,11 @@ export class MetadataError extends TagLibError {
  * Error thrown when Wasm memory operations fail
  */
 export class MemoryError extends TagLibError {
+  /**
+   * Creates a new MemoryError
+   * @param message - Description of the memory failure
+   * @param details - Additional context about the error
+   */
   constructor(message: string, details?: Record<string, any>) {
     super(
       "MEMORY",
@@ -178,6 +220,12 @@ export class MemoryError extends TagLibError {
  * Error thrown when the environment doesn't support required features
  */
 export class EnvironmentError extends TagLibError {
+  /**
+   * Creates a new EnvironmentError
+   * @param environment - The runtime environment name
+   * @param reason - Why the environment is incompatible
+   * @param requiredFeature - The feature that is missing
+   */
   constructor(
     public readonly environment: string,
     public readonly reason: string,
@@ -201,6 +249,11 @@ export class EnvironmentError extends TagLibError {
  * ```
  */
 export class WorkerError extends TagLibError {
+  /**
+   * Creates a new WorkerError
+   * @param message - Description of the worker failure
+   * @param details - Additional context about the error
+   */
   constructor(message: string, details?: Record<string, any>) {
     super("WORKER", message, details);
     this.name = "WorkerError";
