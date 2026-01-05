@@ -8,6 +8,7 @@ import type {
   PropertyMap,
   Tag as BasicTag,
 } from "./types.ts";
+import type { Rating } from "./constants/complex-properties.ts";
 import {
   InvalidFormatError,
   MetadataError,
@@ -236,6 +237,34 @@ export interface AudioFile {
    * Remove all pictures from the audio file.
    */
   removePictures(): void;
+
+  /**
+   * Get all ratings from the audio file.
+   * Returns normalized 0.0-1.0 values across all formats.
+   * @returns Array of Rating objects
+   */
+  getRatings(): Rating[];
+
+  /**
+   * Set ratings in the audio file (replaces all existing).
+   * @param ratings - Array of Rating objects with normalized 0.0-1.0 values
+   */
+  setRatings(ratings: Rating[]): void;
+
+  /**
+   * Get the primary rating (first one found).
+   * Convenience method for files with single ratings.
+   * @returns Normalized rating 0.0-1.0 or undefined if no rating
+   */
+  getRating(): number | undefined;
+
+  /**
+   * Set the primary rating.
+   * Convenience method for setting a single rating.
+   * @param rating - Normalized rating 0.0-1.0
+   * @param email - Optional rater email/ID (for POPM compatibility)
+   */
+  setRating(rating: number, email?: string): void;
 
   /**
    * Release all resources associated with this file.
@@ -681,6 +710,37 @@ export class AudioFileImpl implements AudioFile {
   /** @inheritdoc */
   removePictures(): void {
     this.fileHandle.removePictures();
+  }
+
+  /** @inheritdoc */
+  getRatings(): Rating[] {
+    const ratingsArray = this.fileHandle.getRatings();
+    return ratingsArray.map((r) => ({
+      rating: r.rating,
+      email: r.email || undefined,
+      counter: r.counter || undefined,
+    }));
+  }
+
+  /** @inheritdoc */
+  setRatings(ratings: Rating[]): void {
+    const ratingsArray = ratings.map((r) => ({
+      rating: r.rating,
+      email: r.email ?? "",
+      counter: r.counter ?? 0,
+    }));
+    this.fileHandle.setRatings(ratingsArray);
+  }
+
+  /** @inheritdoc */
+  getRating(): number | undefined {
+    const ratings = this.getRatings();
+    return ratings.length > 0 ? ratings[0].rating : undefined;
+  }
+
+  /** @inheritdoc */
+  setRating(rating: number, email?: string): void {
+    this.setRatings([{ rating, email, counter: 0 }]);
   }
 
   /** @inheritdoc */

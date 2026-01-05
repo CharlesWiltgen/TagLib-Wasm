@@ -26,6 +26,7 @@
 #include <aiffproperties.h>
 #include <id3v2tag.h>
 #include <attachedpictureframe.h>
+#include <popularimeterframe.h>
 #include <xiphcomment.h>
 #include <memory>
 #include <string>
@@ -860,7 +861,265 @@ public:
         val emptyArray = val::array();
         setPictures(emptyArray);
     }
-    
+
+    // Get all ratings from the audio file
+    // Returns array of {rating: number (0.0-1.0), email: string, counter: number}
+    val getRatings() const {
+        val ratings = val::array();
+
+        if (!fileRef || !fileRef->file()) return ratings;
+
+        TagLib::File* f = fileRef->file();
+
+        // Handle MP3 files (ID3v2 POPM frames)
+        if (TagLib::MPEG::File* mpegFile = dynamic_cast<TagLib::MPEG::File*>(f)) {
+            if (mpegFile->hasID3v2Tag()) {
+                TagLib::ID3v2::Tag* id3v2Tag = mpegFile->ID3v2Tag();
+                const TagLib::ID3v2::FrameList& frameList = id3v2Tag->frameList("POPM");
+
+                for (const auto& frame : frameList) {
+                    if (TagLib::ID3v2::PopularimeterFrame* popmFrame =
+                        dynamic_cast<TagLib::ID3v2::PopularimeterFrame*>(frame)) {
+
+                        val ratingObj = val::object();
+                        // Normalize rating from 0-255 to 0.0-1.0
+                        ratingObj.set("rating", popmFrame->rating() / 255.0);
+                        ratingObj.set("email", std::string(popmFrame->email().toCString(true)));
+                        ratingObj.set("counter", static_cast<unsigned int>(popmFrame->counter()));
+
+                        ratings.call<void>("push", ratingObj);
+                    }
+                }
+            }
+        }
+        // Handle FLAC files (Vorbis RATING field)
+        else if (TagLib::FLAC::File* flacFile = dynamic_cast<TagLib::FLAC::File*>(f)) {
+            if (flacFile->xiphComment()) {
+                TagLib::Ogg::XiphComment* xiphComment = flacFile->xiphComment();
+                if (xiphComment->contains("RATING")) {
+                    TagLib::StringList ratingValues = xiphComment->fieldListMap()["RATING"];
+                    for (const auto& ratingStr : ratingValues) {
+                        try {
+                            double r = std::stod(ratingStr.toCString());
+                            // Normalize to 0.0-1.0 if not already
+                            if (r > 1.0) r = r / 100.0;
+
+                            val ratingObj = val::object();
+                            ratingObj.set("rating", r);
+                            ratingObj.set("email", std::string(""));
+                            ratingObj.set("counter", 0);
+
+                            ratings.call<void>("push", ratingObj);
+                        } catch (...) {
+                            // Skip invalid rating values
+                        }
+                    }
+                }
+            }
+        }
+        // Handle Ogg Vorbis files (Vorbis RATING field)
+        else if (TagLib::Ogg::Vorbis::File* vorbisFile = dynamic_cast<TagLib::Ogg::Vorbis::File*>(f)) {
+            if (vorbisFile->tag()) {
+                TagLib::Ogg::XiphComment* xiphComment = vorbisFile->tag();
+                if (xiphComment->contains("RATING")) {
+                    TagLib::StringList ratingValues = xiphComment->fieldListMap()["RATING"];
+                    for (const auto& ratingStr : ratingValues) {
+                        try {
+                            double r = std::stod(ratingStr.toCString());
+                            // Normalize to 0.0-1.0 if not already
+                            if (r > 1.0) r = r / 100.0;
+
+                            val ratingObj = val::object();
+                            ratingObj.set("rating", r);
+                            ratingObj.set("email", std::string(""));
+                            ratingObj.set("counter", 0);
+
+                            ratings.call<void>("push", ratingObj);
+                        } catch (...) {
+                            // Skip invalid rating values
+                        }
+                    }
+                }
+            }
+        }
+        // Handle Ogg Opus files (Vorbis RATING field)
+        else if (TagLib::Ogg::Opus::File* opusFile = dynamic_cast<TagLib::Ogg::Opus::File*>(f)) {
+            if (opusFile->tag()) {
+                TagLib::Ogg::XiphComment* xiphComment = opusFile->tag();
+                if (xiphComment->contains("RATING")) {
+                    TagLib::StringList ratingValues = xiphComment->fieldListMap()["RATING"];
+                    for (const auto& ratingStr : ratingValues) {
+                        try {
+                            double r = std::stod(ratingStr.toCString());
+                            // Normalize to 0.0-1.0 if not already
+                            if (r > 1.0) r = r / 100.0;
+
+                            val ratingObj = val::object();
+                            ratingObj.set("rating", r);
+                            ratingObj.set("email", std::string(""));
+                            ratingObj.set("counter", 0);
+
+                            ratings.call<void>("push", ratingObj);
+                        } catch (...) {
+                            // Skip invalid rating values
+                        }
+                    }
+                }
+            }
+        }
+        // Handle MP4/M4A files (freeform rating atom)
+        else if (TagLib::MP4::File* mp4File = dynamic_cast<TagLib::MP4::File*>(f)) {
+            if (mp4File->tag()) {
+                // Try various known rating atoms
+                const char* ratingAtoms[] = {
+                    "----:com.apple.iTunes:RATING",
+                    "----:com.apple.iTunes:rating",
+                    "rate"
+                };
+
+                for (const char* atomName : ratingAtoms) {
+                    if (mp4File->tag()->contains(atomName)) {
+                        TagLib::MP4::Item item = mp4File->tag()->item(atomName);
+                        if (item.isValid()) {
+                            double r = 0.0;
+                            if (item.type() == TagLib::MP4::Item::Type::Int) {
+                                // Integer rating (0-100 or 0-255)
+                                int intVal = item.toInt();
+                                r = (intVal > 100) ? intVal / 255.0 : intVal / 100.0;
+                            } else if (item.type() == TagLib::MP4::Item::Type::StringList &&
+                                       !item.toStringList().isEmpty()) {
+                                try {
+                                    r = std::stod(item.toStringList().front().toCString());
+                                    if (r > 1.0) r = r / 100.0;
+                                } catch (...) {}
+                            }
+
+                            val ratingObj = val::object();
+                            ratingObj.set("rating", r);
+                            ratingObj.set("email", std::string(""));
+                            ratingObj.set("counter", 0);
+
+                            ratings.call<void>("push", ratingObj);
+                            break; // Found a rating, stop searching
+                        }
+                    }
+                }
+            }
+        }
+
+        return ratings;
+    }
+
+    // Set ratings in the audio file (replace all existing)
+    void setRatings(const val& ratings) {
+        if (!fileRef || !fileRef->file() || !ratings.isArray()) return;
+
+        TagLib::File* f = fileRef->file();
+        int length = ratings["length"].as<int>();
+
+        // Handle MP3 files (ID3v2 POPM frames)
+        if (TagLib::MPEG::File* mpegFile = dynamic_cast<TagLib::MPEG::File*>(f)) {
+            if (!mpegFile->hasID3v2Tag()) {
+                mpegFile->ID3v2Tag(true); // Create ID3v2 tag if it doesn't exist
+            }
+
+            TagLib::ID3v2::Tag* id3v2Tag = mpegFile->ID3v2Tag();
+
+            // Remove all existing POPM frames
+            id3v2Tag->removeFrames("POPM");
+
+            // Add new POPM frames
+            for (int i = 0; i < length; i++) {
+                val r = ratings[i];
+
+                auto* popmFrame = new TagLib::ID3v2::PopularimeterFrame();
+
+                // Convert normalized 0.0-1.0 to 0-255
+                double normalized = r["rating"].as<double>();
+                popmFrame->setRating(static_cast<int>(normalized * 255));
+
+                if (r.hasOwnProperty("email") && !r["email"].isNull() && !r["email"].isUndefined()) {
+                    std::string email = r["email"].as<std::string>();
+                    popmFrame->setEmail(TagLib::String(email, TagLib::String::UTF8));
+                }
+
+                if (r.hasOwnProperty("counter") && !r["counter"].isNull() && !r["counter"].isUndefined()) {
+                    popmFrame->setCounter(r["counter"].as<unsigned int>());
+                }
+
+                id3v2Tag->addFrame(popmFrame);
+            }
+        }
+        // Handle FLAC files (Vorbis RATING field)
+        else if (TagLib::FLAC::File* flacFile = dynamic_cast<TagLib::FLAC::File*>(f)) {
+            if (flacFile->xiphComment()) {
+                TagLib::Ogg::XiphComment* xiphComment = flacFile->xiphComment();
+
+                // Remove existing RATING fields
+                xiphComment->removeFields("RATING");
+
+                // Add new RATING fields (store as 0.0-1.0 string)
+                for (int i = 0; i < length; i++) {
+                    val r = ratings[i];
+                    double normalized = r["rating"].as<double>();
+                    std::string ratingStr = std::to_string(normalized);
+                    xiphComment->addField("RATING", TagLib::String(ratingStr, TagLib::String::UTF8));
+                }
+            }
+        }
+        // Handle Ogg Vorbis files (Vorbis RATING field)
+        else if (TagLib::Ogg::Vorbis::File* vorbisFile = dynamic_cast<TagLib::Ogg::Vorbis::File*>(f)) {
+            if (vorbisFile->tag()) {
+                TagLib::Ogg::XiphComment* xiphComment = vorbisFile->tag();
+
+                // Remove existing RATING fields
+                xiphComment->removeFields("RATING");
+
+                // Add new RATING fields
+                for (int i = 0; i < length; i++) {
+                    val r = ratings[i];
+                    double normalized = r["rating"].as<double>();
+                    std::string ratingStr = std::to_string(normalized);
+                    xiphComment->addField("RATING", TagLib::String(ratingStr, TagLib::String::UTF8));
+                }
+            }
+        }
+        // Handle Ogg Opus files (Vorbis RATING field)
+        else if (TagLib::Ogg::Opus::File* opusFile = dynamic_cast<TagLib::Ogg::Opus::File*>(f)) {
+            if (opusFile->tag()) {
+                TagLib::Ogg::XiphComment* xiphComment = opusFile->tag();
+
+                // Remove existing RATING fields
+                xiphComment->removeFields("RATING");
+
+                // Add new RATING fields
+                for (int i = 0; i < length; i++) {
+                    val r = ratings[i];
+                    double normalized = r["rating"].as<double>();
+                    std::string ratingStr = std::to_string(normalized);
+                    xiphComment->addField("RATING", TagLib::String(ratingStr, TagLib::String::UTF8));
+                }
+            }
+        }
+        // Handle MP4/M4A files (freeform rating atom)
+        else if (TagLib::MP4::File* mp4File = dynamic_cast<TagLib::MP4::File*>(f)) {
+            if (mp4File->tag()) {
+                // Remove existing rating atoms
+                mp4File->tag()->removeItem("----:com.apple.iTunes:RATING");
+
+                // Add new rating (use first one, MP4 typically has single rating)
+                if (length > 0) {
+                    val r = ratings[0];
+                    double normalized = r["rating"].as<double>();
+                    std::string ratingStr = std::to_string(normalized);
+
+                    mp4File->tag()->setItem("----:com.apple.iTunes:RATING",
+                        TagLib::MP4::Item(TagLib::StringList(TagLib::String(ratingStr, TagLib::String::UTF8))));
+                }
+            }
+        }
+    }
+
     // Explicitly destroy all resources
     void destroy() {
         // Reset unique_ptrs to release memory immediately
@@ -893,6 +1152,8 @@ EMSCRIPTEN_BINDINGS(taglib) {
         .function("setPictures", &FileHandle::setPictures)
         .function("addPicture", &FileHandle::addPicture)
         .function("removePictures", &FileHandle::removePictures)
+        .function("getRatings", &FileHandle::getRatings)
+        .function("setRatings", &FileHandle::setRatings)
         .function("destroy", &FileHandle::destroy);
     
     // TagWrapper class

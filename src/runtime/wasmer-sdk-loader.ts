@@ -243,8 +243,8 @@ async function instantiateWasi(
 function validateWasiExports(exports: WebAssembly.Exports): void {
   const requiredExports = [
     "memory",
-    "malloc",
-    "free",
+    "tl_malloc",
+    "tl_free",
     "tl_version",
     "tl_read_tags",
     "tl_write_tags",
@@ -328,8 +328,8 @@ function createWasiInterface(
 
     // Memory management
     malloc: (size: number) =>
-      (exports.malloc as (size: number) => number)(size),
-    free: (ptr: number) => (exports.free as (ptr: number) => void)(ptr),
+      (exports.tl_malloc as (size: number) => number)(size),
+    free: (ptr: number) => (exports.tl_free as (ptr: number) => void)(ptr),
 
     // MessagePack API
     tl_read_tags: (pathPtr, bufPtr, len, outSizePtr) =>
