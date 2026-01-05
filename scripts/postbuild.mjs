@@ -27,7 +27,7 @@ if (!existsSync(distDir)) {
 const wasmFiles = [
   "taglib-wrapper.js",
   "taglib-wrapper.d.ts",
-  "taglib.wasm",
+  "taglib-web.wasm",
 ];
 
 console.log("📦 Copying runtime files to dist...");
