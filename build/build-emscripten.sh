@@ -84,6 +84,40 @@ if [ ! -f "$MSGPACK_DIR/include/msgpack.hpp" ]; then
 fi
 echo -e "${GREEN}✅ MessagePack headers found${NC}"
 
+# Step 1.6: Build mpack library for Emscripten
+echo ""
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "📦 Step 1.6: Building mpack library"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+MPACK_DIR="$PROJECT_ROOT/lib/mpack"
+MPACK_BUILD_DIR="$BUILD_DIR/mpack"
+
+if [ ! -f "$MPACK_BUILD_DIR/libmpack.a" ]; then
+    echo "Building mpack library with Emscripten..."
+    mkdir -p "$MPACK_BUILD_DIR"
+    cd "$MPACK_BUILD_DIR"
+
+    # Compile mpack source files
+    emcc \
+        "$MPACK_DIR/src/mpack/mpack-common.c" \
+        "$MPACK_DIR/src/mpack/mpack-expect.c" \
+        "$MPACK_DIR/src/mpack/mpack-node.c" \
+        "$MPACK_DIR/src/mpack/mpack-platform.c" \
+        "$MPACK_DIR/src/mpack/mpack-reader.c" \
+        "$MPACK_DIR/src/mpack/mpack-writer.c" \
+        -I"$MPACK_DIR/src" \
+        -O3 -c
+
+    # Create static library
+    emar rcs libmpack.a *.o
+
+    echo -e "${GREEN}✅ mpack library built successfully${NC}"
+    ls -lh "$MPACK_BUILD_DIR/libmpack.a"
+else
+    echo -e "${GREEN}✅ mpack library already present${NC}"
+fi
+
 # Step 2: Link final WASM module
 echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
@@ -95,11 +129,12 @@ cd "$PROJECT_ROOT"
 # Compile and link the C API with TagLib and MessagePack
 echo "Linking C API with TagLib and MessagePack..."
 
-# Compile all C API source files
+# Compile all C API source files (C++ and C)
 CAPI_SOURCES=(
     "$SRC_DIR/taglib_api.cpp"
     "$SRC_DIR/core/taglib_memory.cpp"
     "$SRC_DIR/core/taglib_error.cpp"
+    "$SRC_DIR/core/taglib_msgpack.c"
     "$SRC_DIR/io/taglib_stream.cpp"
     "$SRC_DIR/io/taglib_buffer.cpp"
     "$SRC_DIR/formats/taglib_mp3.cpp"
@@ -109,7 +144,9 @@ CAPI_SOURCES=(
 
 emcc "${CAPI_SOURCES[@]}" \
     "$BUILD_DIR/taglib/taglib/libtag.a" \
+    "$MPACK_BUILD_DIR/libmpack.a" \
     -I"$SRC_DIR" \
+    -I"$MPACK_DIR/src" \
     -I"$TAGLIB_DIR" \
     -I"$TAGLIB_DIR/taglib" \
     -I"$TAGLIB_DIR/taglib/toolkit" \
@@ -129,7 +166,7 @@ emcc "${CAPI_SOURCES[@]}" \
     -DMSGPACK_ENDIAN_LITTLE_BYTE=1 \
     -DMSGPACK_ENDIAN_BIG_BYTE=0 \
     -o "$DIST_DIR/taglib_emscripten.js" \
-    -s EXPORTED_FUNCTIONS='["_tl_read_tags","_tl_read_tags_ex","_tl_write_tags","_tl_free","_tl_malloc","_tl_version","_tl_get_last_error","_tl_get_last_error_code","_tl_clear_error","_tl_api_version","_tl_has_capability","_tl_detect_format","_tl_format_name","_tl_read_tags_json","_tl_write_tags_json","_tl_stream_open","_tl_stream_read_metadata","_tl_stream_read_artwork","_tl_stream_close","_tl_read_mp3","_tl_write_mp3","_tl_read_flac","_tl_write_flac","_tl_read_m4a","_tl_write_m4a","_tl_pool_create","_tl_pool_alloc","_tl_pool_reset","_tl_pool_destroy","_malloc","_free"]' \
+    -s EXPORTED_FUNCTIONS='["_tl_read_tags","_tl_read_tags_ex","_tl_write_tags","_tl_free","_tl_malloc","_tl_version","_tl_get_last_error","_tl_get_last_error_code","_tl_clear_error","_tl_api_version","_tl_has_capability","_tl_detect_format","_tl_format_name","_tl_read_tags_json","_tl_stream_open","_tl_stream_read_metadata","_tl_stream_read_artwork","_tl_stream_close","_tl_read_mp3","_tl_write_mp3","_tl_read_flac","_tl_write_flac","_tl_read_m4a","_tl_write_m4a","_tl_pool_create","_tl_pool_alloc","_tl_pool_reset","_tl_pool_destroy","_malloc","_free"]' \
     -s EXPORTED_RUNTIME_METHODS='["ccall","cwrap","UTF8ToString","stringToUTF8","lengthBytesUTF8","allocate","ALLOC_NORMAL","getValue","setValue"]' \
     -s ALLOW_MEMORY_GROWTH=1 \
     -s MODULARIZE=1 \

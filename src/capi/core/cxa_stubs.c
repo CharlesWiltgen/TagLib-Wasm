@@ -68,3 +68,28 @@ void __cxa_deleted_virtual(void) {
     fprintf(stderr, "FATAL: Deleted virtual function called\n");
     abort();
 }
+
+// WASI-specific unwinding stubs
+// These are required when mixing Wasm EH and Itanium EH models
+
+// Wasm landing pad context - used by SJLJ-style exception handling
+int __wasm_lpad_context = 0;
+
+// Call personality function during unwinding
+int _Unwind_CallPersonality(void* exception) {
+    (void)exception;
+    return 0;  // _URC_CONTINUE_UNWIND
+}
+
+// Get exception class from exception object
+unsigned long long _Unwind_GetExceptionClass(void* exception) {
+    (void)exception;
+    return 0;
+}
+
+// Resume unwinding after catch block
+void _Unwind_Resume(void* exception) {
+    (void)exception;
+    fprintf(stderr, "FATAL: _Unwind_Resume called in WASI module\n");
+    abort();
+}
