@@ -106,14 +106,18 @@ export async function loadUnifiedTagLibModule(
     );
   }
 
-  // Load the appropriate module
-  const module = await loadModule(wasmType, runtime, options);
+  // Load the appropriate module (with fallback tracking)
+  const { module, actualWasmType } = await loadModule(
+    wasmType,
+    runtime,
+    options,
+  );
 
-  // Wrap with unified interface
+  // Wrap with unified interface using actual type (may differ due to fallback)
   const unifiedModule = await createUnifiedModule(
     module,
     runtime,
-    wasmType,
+    actualWasmType,
     startTime,
   );
 
@@ -151,27 +155,35 @@ async function selectWasmType(
   return "emscripten";
 }
 
+interface LoadModuleResult {
+  module: TagLibModule | WasiModule;
+  actualWasmType: "wasi" | "emscripten";
+}
+
 /**
- * Load the appropriate WASM module
+ * Load the appropriate WASM module with fallback tracking
  */
 async function loadModule(
   wasmType: "wasi" | "emscripten",
   _runtime: RuntimeDetectionResult,
   options: UnifiedLoaderOptions,
-): Promise<TagLibModule | WasiModule> {
+): Promise<LoadModuleResult> {
   if (wasmType === "wasi") {
-    return await loadWasiModule(options);
+    return await loadWasiModuleWithFallback(options);
   } else {
-    return await loadEmscriptenModule(options);
+    return {
+      module: await loadEmscriptenModule(options),
+      actualWasmType: "emscripten",
+    };
   }
 }
 
 /**
- * Load WASI module with proper error handling
+ * Load WASI module with proper error handling and fallback to Emscripten
  */
-async function loadWasiModule(
+async function loadWasiModuleWithFallback(
   options: UnifiedLoaderOptions,
-): Promise<WasiModule> {
+): Promise<LoadModuleResult> {
   try {
     // Initialize Wasmer SDK
     await initializeWasmer(options.useInlineWasm);
@@ -183,7 +195,7 @@ async function loadWasiModule(
       debug: options.debug,
     });
 
-    return wasiModule;
+    return { module: wasiModule, actualWasmType: "wasi" };
   } catch (error) {
     // If WASI fails, fall back to Emscripten
     if (options.debug) {
@@ -193,8 +205,11 @@ async function loadWasiModule(
       );
     }
 
-    // Fallback to Emscripten
-    return (await loadEmscriptenModule(options)) as unknown as WasiModule;
+    // Fallback to Emscripten - return correct type
+    return {
+      module: await loadEmscriptenModule(options),
+      actualWasmType: "emscripten",
+    };
   }
 }
 
@@ -263,8 +278,9 @@ async function createUnifiedModule(
     // Wrap WASI module to match TagLibModule interface
     const wasiModule = module as WasiModule;
     const adapter = await createWasiAdapter(wasiModule);
-    return {
-      ...adapter,
+    // Add additional properties to the adapter instance
+    // Note: Object.assign copies to the instance, preserving prototype methods
+    return Object.assign(adapter, {
       runtime,
       isWasi: true,
       isEmscripten: false,
@@ -274,7 +290,7 @@ async function createUnifiedModule(
         environment: runtime.environment,
         memoryUsage: wasiModule.memory.buffer.byteLength,
       }),
-    };
+    }) as UnifiedTagLibModule;
   } else {
     // Emscripten module already has correct interface
     const emscriptenModule = module as TagLibModule;
