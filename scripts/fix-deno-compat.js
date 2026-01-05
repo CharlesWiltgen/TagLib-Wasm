@@ -16,11 +16,11 @@ let content = readFileSync(wrapperPath, "utf8");
 let modified = false;
 
 // Fix 1: Add ENVIRONMENT_IS_DENO detection
-// Find where ENVIRONMENT_IS_NODE is defined and add Deno detection
+// Find where ENVIRONMENT_IS_NODE is defined and add Deno detection before it
 const nodeDetectionPattern =
-  /(var ENVIRONMENT_IS_NODE=typeof process=="object"&&process\.versions\?\.node&&process\.type!="renderer")/;
+  /var ENVIRONMENT_IS_NODE=globalThis\.process\?\.versions\?\.node&&globalThis\.process\?\.type!="renderer"/;
 const newNodeDetection =
-  `var ENVIRONMENT_IS_DENO=typeof Deno!=="undefined";$1&&!ENVIRONMENT_IS_DENO`;
+  `var ENVIRONMENT_IS_DENO=typeof Deno!=="undefined";var ENVIRONMENT_IS_NODE=globalThis.process?.versions?.node&&globalThis.process?.type!="renderer"&&!ENVIRONMENT_IS_DENO`;
 
 if (nodeDetectionPattern.test(content)) {
   content = content.replace(nodeDetectionPattern, newNodeDetection);
@@ -29,11 +29,11 @@ if (nodeDetectionPattern.test(content)) {
 }
 
 // Fix 2: Fix the Node.js module loading block
-// Find the if(ENVIRONMENT_IS_NODE) block that loads modules
+// Find the if(ENVIRONMENT_IS_NODE) block that loads modules - support both patched and unpatched versions
 const nodeModulePattern =
-  /if\(ENVIRONMENT_IS_NODE\)\{const\{createRequire\}=await import\("module"\);var require=createRequire\(import\.meta\.url\)\}/;
+  /if\(ENVIRONMENT_IS_NODE(?:&&!ENVIRONMENT_IS_DENO)?\)\{const\{createRequire\}=await import\("module"\);var require=createRequire\(import\.meta\.url\)\}/;
 const newNodeModule =
-  `if(ENVIRONMENT_IS_NODE&&!ENVIRONMENT_IS_DENO){const{createRequire}=await import("module");var require=createRequire(import.meta.url)}`;
+  `if(ENVIRONMENT_IS_NODE){const{createRequire}=await import("module");var require=createRequire(import.meta.url)}`;
 
 if (nodeModulePattern.test(content)) {
   content = content.replace(nodeModulePattern, newNodeModule);

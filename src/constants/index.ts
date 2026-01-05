@@ -14,3 +14,6 @@ export * from "./format-mappings.ts";
 
 // Re-export all utility functions
 export * from "./utilities.ts";
+
+// Re-export complex property types and constants
+export * from "./complex-properties.ts";

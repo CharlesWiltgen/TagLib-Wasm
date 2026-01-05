@@ -71,6 +71,10 @@ export interface FileHandle {
   setPictures(pictures: any[]): void;
   addPicture(picture: any): void;
   removePictures(): void;
+  getRatings(): { rating: number; email: string; counter: number }[];
+  setRatings(
+    ratings: { rating: number; email?: string; counter?: number }[],
+  ): void;
   destroy(): void;
 }
 
