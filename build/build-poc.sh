@@ -119,7 +119,7 @@ if [ -n "$WASI_SDK_PATH" ] && [ -f "$WASI_SDK_PATH/bin/clang++" ]; then
         "$BUILD_DIR/wasi/taglib_api.o" \
         "$TAGLIB_LIB" \
         --target=wasm32-wasi \
-        -o "$DIST_DIR/taglib_wasi.wasm" \
+        -o "$DIST_DIR/taglib-wasi.wasm" \
         -Wl,--export=tl_read_tags \
         -Wl,--export=tl_write_tags \
         -Wl,--export=tl_free \
@@ -130,16 +130,16 @@ if [ -n "$WASI_SDK_PATH" ] && [ -f "$WASI_SDK_PATH/bin/clang++" ]; then
         -Oz \
         2>&1 | tee -a "$BUILD_DIR/wasi/compile.log"
     
-    if [ -f "$DIST_DIR/taglib_wasi.wasm" ]; then
+    if [ -f "$DIST_DIR/taglib-wasi.wasm" ]; then
         # Optimize with wasm-opt if available
         if command -v wasm-opt &> /dev/null; then
             echo "Optimizing with wasm-opt..."
-            wasm-opt -Oz "$DIST_DIR/taglib_wasi.wasm" -o "$DIST_DIR/taglib_wasi.wasm"
+            wasm-opt -Oz "$DIST_DIR/taglib-wasi.wasm" -o "$DIST_DIR/taglib-wasi.wasm"
         fi
-        
-        WASI_SIZE=$(ls -lh "$DIST_DIR/taglib_wasi.wasm" | awk '{print $5}')
+
+        WASI_SIZE=$(ls -lh "$DIST_DIR/taglib-wasi.wasm" | awk '{print $5}')
         echo -e "${GREEN}✅ WASI SDK build successful${NC}"
-        echo "   Output: $DIST_DIR/taglib_wasi.wasm ($WASI_SIZE)"
+        echo "   Output: $DIST_DIR/taglib-wasi.wasm ($WASI_SIZE)"
     else
         echo -e "${RED}❌ WASI SDK build failed${NC}"
     fi
@@ -159,8 +159,8 @@ else
     echo -e "Emscripten: ${RED}❌ Failed${NC}"
 fi
 
-if [ -f "$DIST_DIR/taglib_wasi.wasm" ]; then
-    WASI_SIZE=$(ls -lh "$DIST_DIR/taglib_wasi.wasm" | awk '{print $5}')
+if [ -f "$DIST_DIR/taglib-wasi.wasm" ]; then
+    WASI_SIZE=$(ls -lh "$DIST_DIR/taglib-wasi.wasm" | awk '{print $5}')
     echo -e "WASI SDK:   ${GREEN}✅${NC} $WASI_SIZE"
 else
     echo -e "WASI SDK:   ${RED}❌ Failed${NC}"

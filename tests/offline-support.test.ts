@@ -19,7 +19,7 @@ Deno.test("isDenoCompiled detects development environment", () => {
 
 Deno.test("loadTagLibModule with wasmBinary option", async () => {
   // Load the WASM file
-  const wasmPath = new URL("../dist/taglib.wasm", import.meta.url);
+  const wasmPath = new URL("../dist/taglib-web.wasm", import.meta.url);
   const wasmBinary = await Deno.readFile(wasmPath);
 
   // Initialize with binary
@@ -42,7 +42,7 @@ Deno.test("loadTagLibModule with wasmBinary option", async () => {
 
 Deno.test("loadTagLibModule with custom wasmUrl", async () => {
   // Use the actual WASM file URL
-  const wasmUrl = new URL("../dist/taglib.wasm", import.meta.url).href;
+  const wasmUrl = new URL("../dist/taglib-web.wasm", import.meta.url).href;
 
   // Initialize with custom URL
   const module = await loadTagLibModule({ wasmUrl });
@@ -64,7 +64,7 @@ Deno.test("loadTagLibModule with custom wasmUrl", async () => {
 
 Deno.test("TagLib.initialize with wasmBinary", async () => {
   // Load the WASM file
-  const wasmPath = new URL("../dist/taglib.wasm", import.meta.url);
+  const wasmPath = new URL("../dist/taglib-web.wasm", import.meta.url);
   const wasmBinary = await Deno.readFile(wasmPath);
 
   // Initialize TagLib with binary
@@ -82,7 +82,7 @@ Deno.test("TagLib.initialize with wasmBinary", async () => {
 
 Deno.test("TagLib.initialize with custom wasmUrl", async () => {
   // Use the actual WASM file URL
-  const wasmUrl = new URL("../dist/taglib.wasm", import.meta.url).href;
+  const wasmUrl = new URL("../dist/taglib-web.wasm", import.meta.url).href;
 
   // Initialize with custom URL
   const taglib = await TagLib.initialize({ wasmUrl });

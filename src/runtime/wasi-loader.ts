@@ -96,7 +96,7 @@ export interface WasiLoaderConfig {
  * Default WASI loader configuration
  */
 const DEFAULT_CONFIG: WasiLoaderConfig = {
-  wasmPath: "./dist/wasi/taglib_wasi.wasm",
+  wasmPath: "./dist/taglib-wasi.wasm",
   initialMemory: 256, // 16MB
   maxMemory: 32768, // 2GB
   preopens: {},
