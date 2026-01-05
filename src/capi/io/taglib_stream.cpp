@@ -9,7 +9,7 @@
 #include <cstring>
 
 // External error handling
-extern void tl_set_error(tl_error_code code, const char* message);
+extern "C" void tl_set_error(tl_error_code code, const char* message);
 
 // Forward declaration - defined in taglib_api.cpp
 uint8_t* pack_tags_to_msgpack(TagLib::Tag* tag, 
