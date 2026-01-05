@@ -21,7 +21,7 @@
 #include <vector>
 
 // External error handling functions from taglib_error.cpp
-extern void tl_set_error(tl_error_code code, const char* message);
+extern "C" void tl_set_error(tl_error_code code, const char* message);
 
 // Helper to detect format from buffer
 static tl_format detect_format_from_buffer(const uint8_t* buf, size_t len) {
