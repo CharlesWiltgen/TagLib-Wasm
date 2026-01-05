@@ -44,6 +44,15 @@ echo "━━━━━━━━━━━━━━━━━━━━━━━━�
 
 cd "$BUILD_DIR/taglib"
 
+# Clear CMake cache if toolchain path changed (common in CI)
+if [ -f CMakeCache.txt ]; then
+    CACHED_TOOLCHAIN=$(grep "CMAKE_TOOLCHAIN_FILE:" CMakeCache.txt 2>/dev/null | cut -d= -f2)
+    if [ -n "$CACHED_TOOLCHAIN" ] && [ ! -f "$CACHED_TOOLCHAIN" ]; then
+        echo "CMake cache has stale toolchain path, clearing cache..."
+        rm -rf CMakeCache.txt CMakeFiles
+    fi
+fi
+
 # Configure TagLib with CMake for Emscripten
 echo "Configuring TagLib with CMake..."
 emcmake cmake "$TAGLIB_DIR" \
