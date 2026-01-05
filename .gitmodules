@@ -1,0 +1,6 @@
+[submodule "lib/taglib"]
+	path = lib/taglib
+	url = https://github.com/taglib/taglib.git
+[submodule "lib/mpack"]
+	path = lib/mpack
+	url = https://github.com/ludocode/mpack.git
