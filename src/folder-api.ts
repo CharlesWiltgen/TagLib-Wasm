@@ -23,9 +23,6 @@ function extname(path: string): string {
 }
 
 /**
- * Metadata for a single audio file including path information
- */
-/**
  * Audio dynamics data (ReplayGain and Apple Sound Check)
  */
 export interface AudioDynamics {
@@ -41,6 +38,10 @@ export interface AudioDynamics {
   appleSoundCheck?: string;
 }
 
+/**
+ * Metadata for a single audio file including path and tag information.
+ * Returned by folder scanning operations.
+ */
 export interface AudioFileMetadata {
   /** Absolute or relative path to the audio file */
   path: string;
