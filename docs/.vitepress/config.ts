@@ -59,6 +59,7 @@ export default defineConfig({
           text: "Features",
           items: [
             { text: "Cover Art", link: "/guide/cover-art" },
+            { text: "Track Ratings", link: "/guide/ratings" },
             { text: "Folder Operations", link: "/guide/folder-operations" },
             { text: "Examples", link: "/guide/examples" },
             { text: "Workers Setup", link: "/guide/workers-setup" },
