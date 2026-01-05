@@ -14,7 +14,7 @@
 #include <memory>
 
 // External functions
-extern void tl_set_error(tl_error_code code, const char* message);
+extern "C" void tl_set_error(tl_error_code code, const char* message);
 
 // Pack MP3-specific tags to MessagePack with ID3v2 frame details
 static uint8_t* pack_mp3_tags(TagLib::MPEG::File* file, size_t* out_size) {
