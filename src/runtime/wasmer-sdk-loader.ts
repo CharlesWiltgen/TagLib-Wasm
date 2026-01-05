@@ -16,24 +16,24 @@ import {
 // Branded error types for proper error handling
 export class WasmerInitError extends Error {
   readonly code = "WASMER_INIT_ERROR" as const;
-  constructor(message: string, public readonly cause?: unknown) {
-    super(message);
+  constructor(message: string, cause?: unknown) {
+    super(message, { cause });
     this.name = "WasmerInitError";
   }
 }
 
 export class WasmerLoadError extends Error {
   readonly code = "WASMER_LOAD_ERROR" as const;
-  constructor(message: string, public readonly cause?: unknown) {
-    super(message);
+  constructor(message: string, cause?: unknown) {
+    super(message, { cause });
     this.name = "WasmerLoadError";
   }
 }
 
 export class WasmerExecutionError extends Error {
   readonly code = "WASMER_EXECUTION_ERROR" as const;
-  constructor(message: string, public readonly cause?: unknown) {
-    super(message);
+  constructor(message: string, cause?: unknown) {
+    super(message, { cause });
     this.name = "WasmerExecutionError";
   }
 }
@@ -67,7 +67,7 @@ export interface WasiModule {
     outSizePtr: number,
   ): number;
 
-  // Error handling
+  // Error handling (returns pointer to error string)
   tl_get_last_error(): number;
   tl_get_last_error_code(): number;
   tl_clear_error(): void;
@@ -153,7 +153,7 @@ export async function loadWasmerWasi(
     const wasmBytes = await loadWasmBinary(wasmPath);
 
     // Create WebAssembly module
-    const wasmModule = await WebAssembly.compile(wasmBytes);
+    const wasmModule = await WebAssembly.compile(wasmBytes as BufferSource);
 
     // Set up file system mounts
     const mountConfig: Record<string, Directory> = {
@@ -373,7 +373,7 @@ function createWasiInterface(
       ) as number,
 
     // Error handling
-    tl_get_last_error: () => (exports.tl_get_last_error as () => string)(),
+    tl_get_last_error: () => (exports.tl_get_last_error as () => number)(),
     tl_get_last_error_code: () =>
       (exports.tl_get_last_error_code as () => number)(),
     tl_clear_error: () => (exports.tl_clear_error as () => void)(),

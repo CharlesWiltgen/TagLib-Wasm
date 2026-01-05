@@ -5,6 +5,7 @@
 
 import { beforeEach, describe, it } from "@std/testing/bdd";
 import { assert, assertEquals, assertNotEquals } from "@std/assert";
+import { expect } from "@std/expect";
 
 // Mock arena implementation for testing the interface
 // In actual tests, this would call into the WASI module

@@ -3,14 +3,8 @@
  * Following TDD principles - tests written before implementation fixes
  */
 
-import {
-  afterEach,
-  beforeEach,
-  describe,
-  type expect,
-  it,
-} from "@std/testing/bdd";
-import { loadWasiModule } from "../src/runtime/wasi-adapter.ts";
+import { afterEach, beforeEach, describe, it } from "@std/testing/bdd";
+import { loadWasmerWasi } from "../src/runtime/wasmer-sdk-loader.ts";
 
 // Test data structures
 interface TestTagData {
@@ -106,12 +100,12 @@ describe("MessagePack C API", () => {
 
   beforeEach(async () => {
     // Load WASI module for testing
-    const wasmPath =
-      "/Users/Charles/Projects/taglib-wasm/dist/taglib-wasi.wasm";
+    const wasmPath = "./dist/wasi/taglib_wasi.wasm";
     try {
-      wasiModule = await loadWasiModule(wasmPath);
+      wasiModule = await loadWasmerWasi({ wasmPath });
     } catch (error) {
-      console.warn("WASM module not available, skipping tests:", error.message);
+      const message = error instanceof Error ? error.message : String(error);
+      console.warn("WASM module not available, skipping tests:", message);
     }
   });
 

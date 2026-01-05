@@ -226,11 +226,15 @@ async function loadEmscriptenModule(
     // Try different paths for the wrapper
     try {
       const module = await import("../../build/taglib-wrapper.js");
-      createModule = module.default;
+      createModule = module.default as (
+        config?: unknown,
+      ) => Promise<TagLibModule>;
     } catch {
       try {
         const module = await import("../../dist/taglib-wrapper.js");
-        createModule = module.default;
+        createModule = module.default as (
+          config?: unknown,
+        ) => Promise<TagLibModule>;
       } catch {
         throw new ModuleLoadError(
           "Could not load Emscripten module from build or dist",
