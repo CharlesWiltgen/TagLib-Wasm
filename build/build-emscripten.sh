@@ -55,7 +55,7 @@ emcmake cmake "$TAGLIB_DIR" \
     -DBUILD_EXAMPLES=OFF \
     -DBUILD_TESTS=OFF \
     -DBUILD_BINDINGS=OFF \
-    -DCMAKE_CXX_FLAGS="-O3 -fno-exceptions -fno-rtti" \
+    -DCMAKE_CXX_FLAGS="-O3 -fno-exceptions" \
     -DCMAKE_C_FLAGS="-O3"
 
 # Build TagLib
@@ -129,8 +129,10 @@ emcc "${CAPI_SOURCES[@]}" \
     -I"$TAGLIB_DIR/taglib/mp4" \
     -I"$TAGLIB_DIR/taglib/ogg" \
     -I"$TAGLIB_DIR/taglib/ogg/vorbis" \
+    -I"$TAGLIB_DIR/taglib/ogg/opus" \
     -I"$TAGLIB_DIR/taglib/riff" \
     -I"$TAGLIB_DIR/taglib/riff/wav" \
+    -I"$TAGLIB_DIR/taglib/riff/aiff" \
     -I"$BUILD_DIR/taglib" \
     -I"$PROJECT_ROOT/lib/msgpack/include" \
     -DMSGPACK_NO_BOOST=1 \
@@ -151,7 +153,6 @@ emcc "${CAPI_SOURCES[@]}" \
     -DTAGLIB_VERSION=\"2.0.2\" \
     -O3 \
     -fno-exceptions \
-    -fno-rtti \
     -std=c++17
 
 # Check results

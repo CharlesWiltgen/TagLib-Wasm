@@ -143,8 +143,10 @@ for src in "${CAPI_SOURCES[@]}"; do
             -I"$TAGLIB_DIR/taglib/mp4" \
             -I"$TAGLIB_DIR/taglib/ogg" \
             -I"$TAGLIB_DIR/taglib/ogg/vorbis" \
+            -I"$TAGLIB_DIR/taglib/ogg/opus" \
             -I"$TAGLIB_DIR/taglib/riff" \
             -I"$TAGLIB_DIR/taglib/riff/wav" \
+            -I"$TAGLIB_DIR/taglib/riff/aiff" \
             -I"$BUILD_DIR/taglib" \
             -I"$MPACK_DIR/src" \
             -O3 -std=c++17 -fwasm-exceptions \
