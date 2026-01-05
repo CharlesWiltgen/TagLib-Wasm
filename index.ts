@@ -304,7 +304,7 @@ export async function loadTagLibModule(
   // Use unified loader for optimal performance
   try {
     const { loadUnifiedTagLibModule } = await import(
-      "./src/runtime/unified-loader-v2.ts"
+      "./src/runtime/unified-loader.ts"
     );
     return await loadUnifiedTagLibModule({
       wasmBinary: options?.wasmBinary,

@@ -14,7 +14,7 @@ echo "━━━━━━━━━━━━━━━━━━━━━━━━�
 # Setup paths
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
-DIST_DIR="$PROJECT_ROOT/dist/wasi"
+DIST_DIR="$PROJECT_ROOT/dist"
 
 # Source WASI environment
 source "$SCRIPT_DIR/wasi-env.sh"
@@ -35,7 +35,7 @@ echo "Building minimal WASI test binary..."
     "$SCRIPT_DIR/test-wasi-minimal.cpp" \
     --target=wasm32-wasi \
     --sysroot="$WASI_SDK_PATH/share/wasi-sysroot" \
-    -o "$DIST_DIR/taglib_wasi.wasm" \
+    -o "$DIST_DIR/taglib-wasi.wasm" \
     -Wl,--export=malloc \
     -Wl,--export=free \
     -Wl,--export=tl_version \
@@ -55,15 +55,15 @@ echo "Building minimal WASI test binary..."
     -std=c++17
 
 # Check results
-if [ ! -f "$DIST_DIR/taglib_wasi.wasm" ]; then
+if [ ! -f "$DIST_DIR/taglib-wasi.wasm" ]; then
     echo "❌ WASM test build failed"
     exit 1
 fi
 
 # Generate metadata
-cat > "$DIST_DIR/taglib_wasi.json" << EOF
+cat > "$DIST_DIR/taglib-wasi.json" << EOF
 {
-  "name": "taglib_wasi_test",
+  "name": "taglib-wasi-test",
   "version": "3.0.0-test",
   "target": "wasm32-wasi",
   "description": "Minimal test binary for unified loader demonstration",
@@ -86,14 +86,14 @@ cat > "$DIST_DIR/taglib_wasi.json" << EOF
 }
 EOF
 
-WASM_SIZE=$(ls -lh "$DIST_DIR/taglib_wasi.wasm" | awk '{print $5}')
+WASM_SIZE=$(ls -lh "$DIST_DIR/taglib-wasi.wasm" | awk '{print $5}')
 
 echo ""
 echo -e "${GREEN}✅ WASI test build successful${NC}"
 echo ""
 echo "Output files:"
-echo "  📦 WASM: $DIST_DIR/taglib_wasi.wasm ($WASM_SIZE)"
-echo "  📝 Meta: $DIST_DIR/taglib_wasi.json"
+echo "  📦 WASM: $DIST_DIR/taglib-wasi.wasm ($WASM_SIZE)"
+echo "  📝 Meta: $DIST_DIR/taglib-wasi.json"
 echo ""
 echo "This is a minimal test binary for demonstrating the unified loader."
 echo "It returns test data and validates the WASI integration pipeline."

@@ -107,7 +107,7 @@ describe("MessagePack C API", () => {
   beforeEach(async () => {
     // Load WASI module for testing
     const wasmPath =
-      "/Users/Charles/Projects/taglib-wasm/dist/wasi/taglib_wasi.wasm";
+      "/Users/Charles/Projects/taglib-wasm/dist/taglib-wasi.wasm";
     try {
       wasiModule = await loadWasiModule(wasmPath);
     } catch (error) {

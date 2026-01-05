@@ -56,7 +56,7 @@ export async function loadWasmForDeno(
     async () => {
       if (typeof Deno !== "undefined" && !isDenoCompiled()) {
         try {
-          const path = options.wasmPath ?? "./build/taglib.wasm";
+          const path = options.wasmPath ?? "./build/taglib-web.wasm";
           return await Deno.readFile(path);
         } catch {
           // File not found, try next strategy
@@ -67,7 +67,7 @@ export async function loadWasmForDeno(
     // 3. Fetch from URL
     async () => {
       const url = options.wasmUrl ?? options.fallbackUrl ??
-        "https://cdn.jsdelivr.net/npm/taglib-wasm@latest/dist/taglib.wasm";
+        "https://cdn.jsdelivr.net/npm/taglib-wasm@latest/dist/taglib-web.wasm";
       try {
         const response = await fetch(url);
         if (response.ok) {
