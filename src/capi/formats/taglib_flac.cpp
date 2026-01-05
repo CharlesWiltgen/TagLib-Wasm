@@ -6,7 +6,7 @@
 #include <ogg/xiphcomment.h>
 #include <mpeg/id3v2/id3v2framefactory.h>
 #include <toolkit/tbytevectorstream.h>
-// MessagePack removed - using core C API now
+#include <msgpack.hpp>
 #include <cstring>
 #include <memory>
 
