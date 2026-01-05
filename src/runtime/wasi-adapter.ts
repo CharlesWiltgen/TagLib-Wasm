@@ -28,9 +28,32 @@ export class WasiToTagLibAdapter implements TagLibModule {
     this.heap = new Uint8Array(wasiModule.memory.buffer);
   }
 
+  // Embind class constructors (stubs for WASI compatibility)
+  FileHandle = class {
+    constructor() {
+      throw new WasmerExecutionError(
+        "Use createFileHandle() instead of new FileHandle()",
+      );
+    }
+  } as unknown as new () => FileHandle;
+
+  TagWrapper = class {
+    constructor() {
+      throw new WasmerExecutionError("TagWrapper not directly constructable");
+    }
+  } as unknown as new () => import("../wasm.ts").TagWrapper;
+
+  AudioPropertiesWrapper = class {
+    constructor() {
+      throw new WasmerExecutionError(
+        "AudioPropertiesWrapper not directly constructable",
+      );
+    }
+  } as unknown as new () => import("../wasm.ts").AudioPropertiesWrapper;
+
   // Emscripten compatibility properties
-  get ready(): Promise<void> {
-    return Promise.resolve();
+  get ready(): Promise<this> {
+    return Promise.resolve(this);
   }
 
   get HEAP8(): Int8Array {
@@ -45,8 +68,24 @@ export class WasiToTagLibAdapter implements TagLibModule {
     return new Uint8Array(this.wasi.memory.buffer);
   }
 
+  get HEAP32(): Int32Array {
+    return new Int32Array(this.wasi.memory.buffer);
+  }
+
+  get HEAPU16(): Uint16Array {
+    return new Uint16Array(this.wasi.memory.buffer);
+  }
+
   get HEAPU32(): Uint32Array {
     return new Uint32Array(this.wasi.memory.buffer);
+  }
+
+  get HEAPF32(): Float32Array {
+    return new Float32Array(this.wasi.memory.buffer);
+  }
+
+  get HEAPF64(): Float64Array {
+    return new Float64Array(this.wasi.memory.buffer);
   }
 
   // Memory management
@@ -78,11 +117,12 @@ export class WasiToTagLibAdapter implements TagLibModule {
     return new TextDecoder().decode(this.heap.slice(ptr, end));
   }
 
-  stringToUTF8(str: string, ptr: number, maxBytes: number): void {
+  stringToUTF8(str: string, ptr: number, maxBytes: number): number {
     const bytes = new TextEncoder().encode(str);
     const len = Math.min(bytes.length, maxBytes - 1);
     this.heap.set(bytes.slice(0, len), ptr);
     this.heap[ptr + len] = 0; // Null terminator
+    return len;
   }
 
   lengthBytesUTF8(str: string): number {
@@ -373,9 +413,103 @@ class WasiFileHandle implements FileHandle {
     return "Unknown";
   }
 
-  getBuffer(): Uint8Array | null {
+  getBuffer(): Uint8Array {
     this.checkNotDestroyed();
-    return this.fileData;
+    return this.fileData ?? new Uint8Array(0);
+  }
+
+  getProperties(): any {
+    this.checkNotDestroyed();
+    return this.tagData ?? {};
+  }
+
+  setProperties(props: any): void {
+    this.checkNotDestroyed();
+    this.tagData = { ...this.tagData, ...props };
+  }
+
+  getProperty(key: string): string {
+    this.checkNotDestroyed();
+    const props = this.tagData as Record<string, unknown>;
+    return props?.[key]?.toString() ?? "";
+  }
+
+  setProperty(key: string, value: string): void {
+    this.checkNotDestroyed();
+    this.tagData = { ...this.tagData, [key]: value };
+  }
+
+  isMP4(): boolean {
+    this.checkNotDestroyed();
+    if (!this.fileData || this.fileData.length < 8) return false;
+    // Check for ftyp box
+    const magic = this.fileData.slice(4, 8);
+    return (
+      magic[0] === 0x66 &&
+      magic[1] === 0x74 &&
+      magic[2] === 0x79 &&
+      magic[3] === 0x70
+    );
+  }
+
+  getMP4Item(key: string): string {
+    this.checkNotDestroyed();
+    return this.getProperty(key);
+  }
+
+  setMP4Item(key: string, value: string): void {
+    this.checkNotDestroyed();
+    this.setProperty(key, value);
+  }
+
+  removeMP4Item(key: string): void {
+    this.checkNotDestroyed();
+    if (this.tagData) {
+      const props = this.tagData as Record<string, unknown>;
+      delete props[key];
+    }
+  }
+
+  getPictures(): any[] {
+    this.checkNotDestroyed();
+    return (this.tagData as any)?.pictures ?? [];
+  }
+
+  setPictures(pictures: any[]): void {
+    this.checkNotDestroyed();
+    this.tagData = { ...this.tagData } as ExtendedTag;
+    (this.tagData as Record<string, unknown>).pictures = pictures;
+  }
+
+  addPicture(picture: any): void {
+    this.checkNotDestroyed();
+    const pictures = this.getPictures();
+    pictures.push(picture);
+    this.setPictures(pictures);
+  }
+
+  removePictures(): void {
+    this.checkNotDestroyed();
+    this.tagData = { ...this.tagData } as ExtendedTag;
+    (this.tagData as Record<string, unknown>).pictures = [];
+  }
+
+  getRatings(): { rating: number; email: string; counter: number }[] {
+    this.checkNotDestroyed();
+    return (this.tagData as any)?.ratings ?? [];
+  }
+
+  setRatings(
+    ratings: { rating: number; email?: string; counter?: number }[],
+  ): void {
+    this.checkNotDestroyed();
+    const normalizedRatings = ratings.map((r) => ({
+      rating: r.rating,
+      email: r.email ?? "",
+      counter: r.counter ?? 0,
+    }));
+    this.tagData = { ...this.tagData } as ExtendedTag;
+    (this.tagData as Record<string, unknown>).ratings = normalizedRatings;
   }
 
   destroy(): void {

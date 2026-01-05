@@ -154,7 +154,7 @@ async function loadWithWasmerWasi(
     }
 
     // Compile and instantiate using WASI's instantiate method (v1.x API)
-    const module = await WebAssembly.compile(wasmBytes);
+    const module = await WebAssembly.compile(wasmBytes as BufferSource);
     const instance = await wasi.instantiate(module, {});
 
     // Start WASI (instance already set by instantiate in v1.x)
@@ -218,7 +218,7 @@ async function loadWithNodeWasi(
     }
 
     // Compile and instantiate
-    const module = await WebAssembly.compile(wasmBytes);
+    const module = await WebAssembly.compile(wasmBytes as BufferSource);
     const instance = await WebAssembly.instantiate(
       module,
       wasi.getImportObject() as any,
