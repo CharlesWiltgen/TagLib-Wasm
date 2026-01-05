@@ -908,6 +908,11 @@ export class TagLib {
   private readonly module: TagLibModule;
   private workerPool?: TagLibWorkerPool;
 
+  /**
+   * Create a new TagLib instance with a pre-loaded WASM module.
+   * @param module - The loaded WebAssembly module
+   * @internal Use {@link TagLib.initialize} instead for automatic module loading
+   */
   constructor(module: WasmModule) {
     this.module = module as TagLibModule;
   }
