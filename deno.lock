@@ -26,7 +26,8 @@
     "npm:esbuild@~0.27.2": "0.27.2",
     "npm:fast-check@^4.5.3": "4.5.3",
     "npm:tsx@^4.21.0": "4.21.0",
-    "npm:typescript@^5.9.3": "5.9.3"
+    "npm:typescript@^5.9.3": "5.9.3",
+    "npm:yaml@*": "2.8.2"
   },
   "jsr": {
     "@std/assert@0.220.1": {
@@ -318,6 +319,10 @@
     },
     "web-worker@1.5.0": {
       "integrity": "sha512-RiMReJrTAiA+mBjGONMnjVDP2u3p9R1vkcGz6gDIrOMT3oGuYwX2WRMYI9ipkphSuE5XKEhydbhNEJh4NY9mlw=="
+    },
+    "yaml@2.8.2": {
+      "integrity": "sha512-mplynKqc1C2hTVYxd0PU2xQAc22TI1vShAYGksCCfxbn/dFwnHTNi1bvYsBTkhdUNtGIf5xNOg938rrSSYvS9A==",
+      "bin": true
     }
   },
   "remote": {
