@@ -355,6 +355,6 @@ When contributing tests:
 
 ## Next Steps
 
-- See [Contributing Guidelines](/CONTRIBUTING.md) for more details
+- See [Contributing Guidelines](https://github.com/CharlesWiltgen/taglib-wasm/blob/main/CONTRIBUTING.md) for more details
 - Check [Performance Guide](/concepts/performance.md) for benchmark guidelines
 - Read [Error Handling](/concepts/error-handling.md) for error testing patterns

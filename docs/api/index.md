@@ -1393,7 +1393,7 @@ The `Tags` object provides constants for all standard tag names:
 - **Sorting**: `TitleSort`, `ArtistSort`, `AlbumSort`, `AlbumArtistSort`
 - And many more...
 
-See [Tag Name Constants](Tag-Name-Constants.md) for the complete reference.
+See [Tag Name Constants](/api/tag-constants) for the complete reference.
 
 ## Memory Management
 
