@@ -715,11 +715,13 @@ export class AudioFileImpl implements AudioFile {
   /** @inheritdoc */
   getRatings(): Rating[] {
     const ratingsArray = this.fileHandle.getRatings();
-    return ratingsArray.map((r) => ({
-      rating: r.rating,
-      email: r.email || undefined,
-      counter: r.counter || undefined,
-    }));
+    return ratingsArray.map(
+      (r: { rating: number; email: string; counter: number }) => ({
+        rating: r.rating,
+        email: r.email || undefined,
+        counter: r.counter || undefined,
+      }),
+    );
   }
 
   /** @inheritdoc */
