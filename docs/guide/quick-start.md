@@ -277,8 +277,8 @@ try {
 
 ## Next Steps
 
-- Explore [Tag Name Constants](/Tag-Name-Constants.md) for format-agnostic
+- Explore [Tag Name Constants](/api/tag-constants) for format-agnostic
   metadata handling
-- Learn about [Runtime Compatibility](/Runtime-Compatibility.md) for your
+- Learn about [Runtime Compatibility](/concepts/runtime-compatibility) for your
   platform
-- Check the [API Reference](/API.md) for all available methods
+- Check the [API Reference](/api/) for all available methods

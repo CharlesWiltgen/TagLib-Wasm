@@ -100,7 +100,7 @@ const tagFile = taglib.openFile(audioData);
   - Global deployment
   - KV/R2/D1 integration
 - **File Loading**: Request body or fetch from storage
-- **Documentation**: See [Cloudflare Workers Guide](/Cloudflare-Workers.md)
+- **Documentation**: See [Cloudflare Workers Guide](/advanced/cloudflare-workers)
 
 ```typescript
 export default {
