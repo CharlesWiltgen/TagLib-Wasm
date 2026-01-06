@@ -103,7 +103,7 @@ export function setWorkerPoolMode(
  * @example
  * ```typescript
  * // Enable sidecar with directory preopens
- * setSidecarConfig({
+ * await setSidecarConfig({
  *   preopens: { "/music": "/Users/me/Music" }
  * });
  *
@@ -111,21 +111,21 @@ export function setWorkerPoolMode(
  * const tags = await readTags("/music/song.mp3");
  *
  * // Disable sidecar
- * setSidecarConfig(null);
+ * await setSidecarConfig(null);
  * ```
  */
-export function setSidecarConfig(
+export async function setSidecarConfig(
   config: {
     preopens: Record<string, string>;
     wasmtimePath?: string;
     wasmPath?: string;
   } | null,
-): void {
+): Promise<void> {
   sidecarConfig = config;
   // Clear cached TagLib so next call reinitializes with new config
   if (cachedTagLib) {
     // Shutdown sidecar if it was running
-    cachedTagLib.sidecar?.shutdown();
+    await cachedTagLib.sidecar?.shutdown();
     cachedTagLib = null;
   }
 }
@@ -157,6 +157,11 @@ async function getTagLib(): Promise<TagLib> {
  *
  * @param file - File path, Uint8Array buffer, ArrayBuffer, or File object
  * @returns Object containing all metadata tags
+ *
+ * @remarks
+ * When sidecar mode is enabled via {@link setSidecarConfig}, the returned object
+ * may contain additional fields from ExtendedTag (e.g., albumArtist, composer,
+ * discNumber, copyright, etc.). ExtendedTag extends Tag, so this is type-safe.
  *
  * @example
  * ```typescript
