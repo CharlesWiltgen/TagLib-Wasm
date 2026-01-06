@@ -54,6 +54,13 @@ let cachedTagLib: TagLib | null = null;
 let useWorkerPool = false;
 let workerPoolInstance: TagLibWorkerPool | null = null;
 
+// Sidecar mode configuration
+let sidecarConfig: {
+  preopens: Record<string, string>;
+  wasmtimePath?: string;
+  wasmPath?: string;
+} | null = null;
+
 /**
  * Enable or disable worker pool mode for Simple API operations.
  * When enabled, operations will be processed in parallel using Web Workers.
@@ -87,6 +94,43 @@ export function setWorkerPoolMode(
 }
 
 /**
+ * Configure sidecar mode for Simple API operations.
+ * When configured, path-based operations will use the Wasmtime sidecar
+ * for direct filesystem access instead of reading files into memory.
+ *
+ * @param config - Sidecar configuration with preopens, or null to disable
+ *
+ * @example
+ * ```typescript
+ * // Enable sidecar with directory preopens
+ * setSidecarConfig({
+ *   preopens: { "/music": "/Users/me/Music" }
+ * });
+ *
+ * // Now path-based calls use the sidecar
+ * const tags = await readTags("/music/song.mp3");
+ *
+ * // Disable sidecar
+ * setSidecarConfig(null);
+ * ```
+ */
+export function setSidecarConfig(
+  config: {
+    preopens: Record<string, string>;
+    wasmtimePath?: string;
+    wasmPath?: string;
+  } | null,
+): void {
+  sidecarConfig = config;
+  // Clear cached TagLib so next call reinitializes with new config
+  if (cachedTagLib) {
+    // Shutdown sidecar if it was running
+    cachedTagLib.sidecar?.shutdown();
+    cachedTagLib = null;
+  }
+}
+
+/**
  * Get or create a TagLib instance with auto-initialization.
  * Uses a cached instance for performance.
  *
@@ -95,9 +139,15 @@ export function setWorkerPoolMode(
  */
 async function getTagLib(): Promise<TagLib> {
   if (!cachedTagLib) {
-    // Use the NPM version for compatibility
     const { TagLib } = await import("./taglib.ts");
-    cachedTagLib = await TagLib.initialize();
+    cachedTagLib = await TagLib.initialize(
+      sidecarConfig
+        ? {
+          useSidecar: true,
+          sidecarConfig,
+        }
+        : undefined,
+    );
   }
   return cachedTagLib;
 }
@@ -126,6 +176,12 @@ export async function readTags(
   }
 
   const taglib = await getTagLib();
+
+  // Route to sidecar for path-based access when available
+  if (typeof file === "string" && taglib.sidecar?.isRunning()) {
+    return taglib.sidecar.readTags(file);
+  }
+
   const audioFile = await taglib.open(file);
   try {
     if (!audioFile.isValid()) {
@@ -246,6 +302,17 @@ export async function updateTags(
   // Use worker pool if enabled
   if (useWorkerPool && workerPoolInstance) {
     return workerPoolInstance.updateTags(file, tags);
+  }
+
+  const taglib = await getTagLib();
+
+  // Route to sidecar for path-based access when available
+  if (taglib.sidecar?.isRunning()) {
+    // Read existing tags and merge with new ones
+    const existing = await taglib.sidecar.readTags(file);
+    const merged = { ...existing, ...tags };
+    await taglib.sidecar.writeTags(file, merged);
+    return;
   }
 
   // Get the modified buffer

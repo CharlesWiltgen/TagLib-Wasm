@@ -9,6 +9,7 @@ import type {
   Tag as BasicTag,
 } from "./types.ts";
 import type { Rating } from "./constants/complex-properties.ts";
+import type { WasmtimeSidecar } from "./runtime/wasmtime-sidecar.ts";
 import {
   InvalidFormatError,
   MetadataError,
@@ -907,6 +908,7 @@ export class AudioFileImpl implements AudioFile {
 export class TagLib {
   private readonly module: TagLibModule;
   private workerPool?: TagLibWorkerPool;
+  private _sidecar?: WasmtimeSidecar;
 
   /**
    * Create a new TagLib instance with a pre-loaded WASM module.
@@ -915,6 +917,14 @@ export class TagLib {
    */
   constructor(module: WasmModule) {
     this.module = module as TagLibModule;
+  }
+
+  /**
+   * Get the sidecar instance if configured and running.
+   * The sidecar provides direct filesystem access via Wasmtime.
+   */
+  get sidecar(): WasmtimeSidecar | undefined {
+    return this._sidecar;
   }
 
   /**
@@ -952,6 +962,13 @@ export class TagLib {
     legacyMode?: boolean;
     forceWasmType?: "wasi" | "emscripten";
     disableOptimizations?: boolean;
+    // Sidecar options for direct filesystem access
+    useSidecar?: boolean;
+    sidecarConfig?: {
+      preopens: Record<string, string>;
+      wasmtimePath?: string;
+      wasmPath?: string;
+    };
   }): Promise<TagLib> {
     // Use the loadTagLibModule function
     const { loadTagLibModule } = await import("../index.ts");
@@ -961,6 +978,19 @@ export class TagLib {
     // Initialize worker pool if requested
     if (options?.useWorkerPool) {
       taglib.workerPool = getGlobalWorkerPool(options.workerPoolOptions);
+    }
+
+    // Initialize sidecar if requested
+    if (options?.useSidecar && options.sidecarConfig) {
+      const { WasmtimeSidecar } = await import("./runtime/wasmtime-sidecar.ts");
+      const sidecarWasmPath = options.sidecarConfig.wasmPath ??
+        new URL("../dist/wasi/taglib-sidecar.wasm", import.meta.url).pathname;
+      taglib._sidecar = new WasmtimeSidecar({
+        wasmPath: sidecarWasmPath,
+        preopens: options.sidecarConfig.preopens,
+        wasmtimePath: options.sidecarConfig.wasmtimePath,
+      });
+      await taglib._sidecar.start();
     }
 
     return taglib;
