@@ -1,243 +1,329 @@
-# WASI Direct Filesystem Implementation Plan
+# WASI Direct Filesystem Implementation Plan (Revised)
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
-**Goal:** Enable WASI to read/write files directly via preopened directories, eliminating host filesystem round-trips.
+**Goal:** Enable true WASI direct filesystem access via Wasmtime sidecar with `--dir` preopened directories.
 
-**Architecture:** Replace stub WASI imports in `wasmer-sdk-loader.ts` with real `runWasix()` from @wasmer/sdk. The C API already supports path-based access (`tl_read_tags(path, ...)`) - we just need to wire it through the TypeScript layer.
+**Architecture:** Long-lived Wasmtime subprocess with stdin/stdout MessagePack protocol. Host sends file paths, sidecar reads files directly via WASI, returns tags.
 
-**Tech Stack:** @wasmer/sdk `runWasix()`, Deno test runner, `Deno.bench()` for benchmarks
+**Tech Stack:** Wasmtime CLI, MessagePack (mpack), Deno subprocess API
 
 ---
 
-## Task 1: Replace WASI Stubs with Real Wasmer SDK
+## Architecture Overview
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    JavaScript Host                          │
+│  readTags("/music/song.mp3") → send path to sidecar        │
+└─────────────────────────┬───────────────────────────────────┘
+                          │ stdin/stdout (MessagePack)
+                          ▼
+┌─────────────────────────────────────────────────────────────┐
+│              Wasmtime Sidecar (long-lived)                  │
+│  wasmtime run --dir=/music taglib-wasi.wasm                 │
+│                                                             │
+│  • Receives path via stdin                                  │
+│  • Opens file directly (true WASI filesystem)               │
+│  • Returns MessagePack tags via stdout                      │
+└─────────────────────────────────────────────────────────────┘
+```
+
+**Why Wasmtime sidecar:**
+
+- Real filesystem via `--dir` preopened directories (not MemFS)
+- Long-lived process amortizes WASM startup cost
+- High throughput for batch operations
+- Reference WASI implementation
+
+**What we already have:**
+
+- C API with path support: `tl_read_tags(path, NULL, 0, &out_size)` ✅
+- MessagePack wire format ✅
+- Compiled `taglib-wasi.wasm` ✅
+
+---
+
+## Task 1: Build Sidecar Main Loop (C)
 
 **Files:**
 
-- Modify: `src/runtime/wasmer-sdk-loader.ts:199-238`
+- Create: `src/capi/taglib_sidecar.c`
+- Modify: `build/build-wasi.sh` (add sidecar target)
 
-**Step 1: Write the failing test**
+**Goal:** A WASI binary that reads requests from stdin, processes them, writes responses to stdout.
 
-Create test file `tests/wasi-filesystem.test.ts`:
+**Protocol (MessagePack):**
+
+Request:
+
+```
+{
+  "op": "read_tags",      // or "write_tags"
+  "path": "/music/song.mp3",
+  "tags": {...}           // only for write_tags
+}
+```
+
+Response:
+
+```
+{
+  "ok": true,
+  "tags": {...},          // for read_tags
+  "error": "message"      // if ok=false
+}
+```
+
+**Step 1: Write the sidecar main loop**
+
+```c
+// src/capi/taglib_sidecar.c
+#include "taglib_api.h"
+#include "core/taglib_msgpack.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+// Read length-prefixed message from stdin
+static int read_request(uint8_t** buf, size_t* len) {
+    uint32_t msg_len;
+    if (fread(&msg_len, 4, 1, stdin) != 1) return -1;
+
+    *buf = malloc(msg_len);
+    if (fread(*buf, 1, msg_len, stdin) != msg_len) {
+        free(*buf);
+        return -1;
+    }
+    *len = msg_len;
+    return 0;
+}
+
+// Write length-prefixed response to stdout
+static void write_response(const uint8_t* buf, size_t len) {
+    uint32_t msg_len = (uint32_t)len;
+    fwrite(&msg_len, 4, 1, stdout);
+    fwrite(buf, 1, len, stdout);
+    fflush(stdout);
+}
+
+int main() {
+    uint8_t* req_buf;
+    size_t req_len;
+
+    // Main loop - process requests until EOF
+    while (read_request(&req_buf, &req_len) == 0) {
+        // Decode request (get op and path)
+        // ... decode msgpack request ...
+
+        // Call appropriate API
+        size_t out_size;
+        uint8_t* result = tl_read_tags(path, NULL, 0, &out_size);
+
+        // Encode and send response
+        // ... encode msgpack response ...
+        write_response(response_buf, response_len);
+
+        free(req_buf);
+    }
+
+    return 0;
+}
+```
+
+**Step 2: Add build target**
+
+In `build/build-wasi.sh`, add:
+
+```bash
+# Build sidecar binary
+$WASI_SDK/bin/clang \
+    src/capi/taglib_sidecar.c \
+    src/capi/taglib_api.cpp \
+    ... \
+    -o dist/taglib-sidecar.wasm
+```
+
+**Step 3: Test manually**
+
+```bash
+echo '{"op":"read_tags","path":"./test.mp3"}' | \
+  wasmtime run --dir=. dist/taglib-sidecar.wasm
+```
+
+**Step 4: Commit**
+
+```bash
+git add src/capi/taglib_sidecar.c build/build-wasi.sh
+git commit -m "feat(wasi): add sidecar main loop for stdin/stdout protocol"
+```
+
+---
+
+## Task 2: TypeScript WasmtimeSidecar Class
+
+**Files:**
+
+- Create: `src/runtime/wasmtime-sidecar.ts`
+- Create: `tests/wasmtime-sidecar.test.ts`
+
+**Goal:** Manage long-lived Wasmtime subprocess, send/receive MessagePack messages.
+
+**Step 1: Write failing test**
 
 ```typescript
+// tests/wasmtime-sidecar.test.ts
 import { assertEquals, assertExists } from "@std/assert";
-import { describe, it } from "@std/testing/bdd";
-import { loadWasmerWasi } from "../src/runtime/wasmer-sdk-loader.ts";
+import { afterEach, describe, it } from "@std/testing/bdd";
+import { WasmtimeSidecar } from "../src/runtime/wasmtime-sidecar.ts";
 
-describe("WASI filesystem access", () => {
-  it("should read file via preopened directory", async () => {
-    const module = await loadWasmerWasi({
-      wasmPath: "./dist/taglib-wasi.wasm",
-      mounts: {
-        "/test": "./tests/test-files",
-      },
-      debug: true,
+describe("WasmtimeSidecar", () => {
+  let sidecar: WasmtimeSidecar | null = null;
+
+  afterEach(async () => {
+    await sidecar?.shutdown();
+  });
+
+  it("should spawn wasmtime process", async () => {
+    sidecar = new WasmtimeSidecar({
+      wasmPath: "./dist/taglib-sidecar.wasm",
+      preopens: { "/test": "./tests/test-files" },
     });
 
-    assertExists(module);
-    // The module should be able to access /test/mp3/kiss-snippet.mp3
+    await sidecar.start();
+    assertEquals(sidecar.isRunning(), true);
+  });
+
+  it("should read tags from path", async () => {
+    sidecar = new WasmtimeSidecar({
+      wasmPath: "./dist/taglib-sidecar.wasm",
+      preopens: { "/test": "./tests/test-files" },
+    });
+
+    await sidecar.start();
+    const tags = await sidecar.readTags("/test/mp3/kiss-snippet.mp3");
+
+    assertExists(tags);
+    assertEquals(typeof tags.title, "string");
   });
 });
 ```
 
-**Step 2: Run test to verify it fails**
-
-Run: `deno test tests/wasi-filesystem.test.ts --allow-read --allow-env`
-Expected: FAIL - current stubs don't provide real filesystem
-
-**Step 3: Replace stub implementation with runWasix**
-
-In `src/runtime/wasmer-sdk-loader.ts`, replace `instantiateWasi()`:
+**Step 2: Implement WasmtimeSidecar**
 
 ```typescript
-import { Directory, init, runWasix } from "@wasmer/sdk";
+// src/runtime/wasmtime-sidecar.ts
+import { decodeTagData, encodeTagData } from "../msgpack/index.ts";
 
-async function instantiateWasi(
-  wasmModule: WebAssembly.Module,
-  config: {
-    env: Record<string, string>;
-    args: string[];
-    mount: Record<string, Directory>;
-  },
-): Promise<WebAssembly.Instance> {
-  // Use runWasix for real WASI with filesystem support
-  const instance = await runWasix(wasmModule, {
-    program: "taglib",
-    args: config.args,
-    env: config.env,
-    mount: config.mount,
-  });
-
-  return instance;
+export interface SidecarConfig {
+  wasmPath: string;
+  preopens: Record<string, string>; // WASI path → host path
+  wasmtimePath?: string; // Default: "wasmtime"
 }
-```
 
-Also update `loadWasmerWasi()` to create Directory objects:
+export class WasmtimeSidecar {
+  private process: Deno.ChildProcess | null = null;
+  private stdin: WritableStreamDefaultWriter<Uint8Array> | null = null;
+  private stdout: ReadableStreamDefaultReader<Uint8Array> | null = null;
+  private config: SidecarConfig;
 
-```typescript
-export async function loadWasmerWasi(
-  config: WasmerLoaderConfig = {},
-): Promise<WasiModule> {
-  const {
-    wasmPath = "./dist/taglib-wasi.wasm",
-    useInlineWasm = false,
-    mounts = {},
-    env = {},
-    args = [],
-    debug = false,
-  } = config;
-
-  await initializeWasmer(useInlineWasm);
-
-  if (debug) {
-    console.log("[WasmerSDK] Loading WASI module from:", wasmPath);
+  constructor(config: SidecarConfig) {
+    this.config = config;
   }
 
-  const wasmBytes = await loadWasmBinary(wasmPath);
-  const wasmModule = await WebAssembly.compile(wasmBytes as BufferSource);
+  async start(): Promise<void> {
+    const args = ["run"];
 
-  // Convert string paths to Directory objects
-  const mountConfig: Record<string, Directory> = {};
-  for (const [wasiPath, hostPath] of Object.entries(mounts)) {
-    mountConfig[wasiPath] = new Directory();
-    // Populate directory from host path
-    await populateDirectory(mountConfig[wasiPath], hostPath);
-  }
+    // Add --dir flags for each preopen
+    for (const [wasiPath, hostPath] of Object.entries(this.config.preopens)) {
+      args.push(`--dir=${hostPath}::${wasiPath}`);
+    }
 
-  const instance = await instantiateWasi(wasmModule, {
-    env,
-    args,
-    mount: mountConfig,
-  });
+    args.push(this.config.wasmPath);
 
-  return createWasiModule(instance, debug);
-}
-
-async function populateDirectory(
-  dir: Directory,
-  hostPath: string,
-): Promise<void> {
-  // For now, we'll let WASI access the directory directly
-  // The Directory class handles this internally
-}
-```
-
-**Step 4: Run test to verify it passes**
-
-Run: `deno test tests/wasi-filesystem.test.ts --allow-read --allow-env`
-Expected: PASS
-
-**Step 5: Commit**
-
-```bash
-git add src/runtime/wasmer-sdk-loader.ts tests/wasi-filesystem.test.ts
-git commit -m "feat(wasi): replace stubs with real Wasmer SDK runWasix"
-```
-
----
-
-## Task 2: Implement loadFromPath in WASI Adapter
-
-**Files:**
-
-- Modify: `src/runtime/wasi-adapter.ts:257-262`
-- Modify: `src/runtime/wasmer-sdk-loader.ts` (add WasiModule.tl_read_tags_path)
-
-**Step 1: Write the failing test**
-
-Add to `tests/wasi-filesystem.test.ts`:
-
-```typescript
-import { WasiToTagLibAdapter } from "../src/runtime/wasi-adapter.ts";
-
-describe("WasiFileHandle.loadFromPath", () => {
-  it("should load tags from path via WASI filesystem", async () => {
-    const module = await loadWasmerWasi({
-      wasmPath: "./dist/taglib-wasi.wasm",
-      mounts: {
-        "/test": "./tests/test-files",
-      },
+    const command = new Deno.Command(this.config.wasmtimePath ?? "wasmtime", {
+      args,
+      stdin: "piped",
+      stdout: "piped",
+      stderr: "inherit",
     });
 
-    const adapter = new WasiToTagLibAdapter(module);
-    const handle = adapter.createFileHandle();
-
-    const result = handle.loadFromPath("/test/mp3/kiss-snippet.mp3");
-
-    assertEquals(result, true);
-    assertEquals(handle.isValid(), true);
-  });
-});
-```
-
-**Step 2: Run test to verify it fails**
-
-Run: `deno test tests/wasi-filesystem.test.ts --allow-read --allow-env`
-Expected: FAIL - "loadFromPath not implemented for WASI"
-
-**Step 3: Implement loadFromPath**
-
-In `src/runtime/wasi-adapter.ts`, replace the stub:
-
-```typescript
-loadFromPath(path: string): boolean {
-  this.checkNotDestroyed();
-
-  try {
-    // Use WASI to read tags directly from path
-    const msgpackData = this.readTagsFromPath(path);
-    this.tagData = decodeTagData(msgpackData);
-    this.filePath = path;  // Store path for later save operations
-    return true;
-  } catch (error) {
-    console.error("Failed to load from path:", error);
-    return false;
-  }
-}
-
-private readTagsFromPath(path: string): Uint8Array {
-  using arena = new WasmArena(this.wasi as WasmExports);
-
-  // Allocate path string
-  const pathBytes = new TextEncoder().encode(path + "\0");
-  const pathBuf = arena.allocBuffer(pathBytes);
-  const outSizePtr = arena.allocUint32();
-
-  // Call tl_read_tags with path (first arg) instead of buffer
-  const result = this.wasi.tl_read_tags(
-    pathBuf.ptr,  // path pointer (non-zero means use path)
-    0,            // buf = null
-    0,            // len = 0
-    outSizePtr.ptr,
-  );
-
-  if (result === 0) {
-    throw new WasmMemoryError(
-      `Failed to read tags from path: ${path}`,
-      "read tags from path",
-      this.wasi.tl_get_last_error_code(),
-    );
+    this.process = command.spawn();
+    this.stdin = this.process.stdin.getWriter();
+    this.stdout = this.process.stdout.getReader();
   }
 
-  // Result pointer is in the return value
-  const outputSize = outSizePtr.readUint32();
-  const outputData = new Uint8Array(this.wasi.memory.buffer, result, outputSize);
+  async readTags(path: string): Promise<Record<string, unknown>> {
+    // Send request
+    const request = { op: "read_tags", path };
+    await this.sendMessage(request);
 
-  return new Uint8Array(outputData);  // Copy before arena cleanup
+    // Receive response
+    const response = await this.receiveMessage();
+    if (!response.ok) {
+      throw new Error(response.error);
+    }
+    return response.tags;
+  }
+
+  async writeTags(path: string, tags: Record<string, unknown>): Promise<void> {
+    const request = { op: "write_tags", path, tags };
+    await this.sendMessage(request);
+
+    const response = await this.receiveMessage();
+    if (!response.ok) {
+      throw new Error(response.error);
+    }
+  }
+
+  private async sendMessage(msg: unknown): Promise<void> {
+    const encoded = encodeRequest(msg);
+    const lenBuf = new Uint8Array(4);
+    new DataView(lenBuf.buffer).setUint32(0, encoded.length, true);
+
+    await this.stdin!.write(lenBuf);
+    await this.stdin!.write(encoded);
+  }
+
+  private async receiveMessage(): Promise<any> {
+    // Read 4-byte length prefix
+    const lenBuf = await this.readExact(4);
+    const len = new DataView(lenBuf.buffer).getUint32(0, true);
+
+    // Read message body
+    const msgBuf = await this.readExact(len);
+    return decodeResponse(msgBuf);
+  }
+
+  private async readExact(n: number): Promise<Uint8Array> {
+    const result = new Uint8Array(n);
+    let offset = 0;
+    while (offset < n) {
+      const { value, done } = await this.stdout!.read();
+      if (done) throw new Error("Unexpected EOF from sidecar");
+      result.set(value.slice(0, n - offset), offset);
+      offset += value.length;
+    }
+    return result;
+  }
+
+  isRunning(): boolean {
+    return this.process !== null;
+  }
+
+  async shutdown(): Promise<void> {
+    this.stdin?.close();
+    await this.process?.status;
+    this.process = null;
+  }
 }
 ```
 
-**Step 4: Run test to verify it passes**
-
-Run: `deno test tests/wasi-filesystem.test.ts --allow-read --allow-env`
-Expected: PASS
-
-**Step 5: Commit**
+**Step 3: Commit**
 
 ```bash
-git add src/runtime/wasi-adapter.ts tests/wasi-filesystem.test.ts
-git commit -m "feat(wasi): implement loadFromPath for direct filesystem access"
+git add src/runtime/wasmtime-sidecar.ts tests/wasmtime-sidecar.test.ts
+git commit -m "feat(wasi): add WasmtimeSidecar class for long-lived worker"
 ```
 
 ---
@@ -246,113 +332,46 @@ git commit -m "feat(wasi): implement loadFromPath for direct filesystem access"
 
 **Files:**
 
-- Modify: `src/simple.ts:117-141` (readTags)
-- Modify: `src/simple.ts:237-256` (updateTags)
-- Modify: `src/taglib.ts` (add supportsDirectFilesystem check)
+- Modify: `src/simple.ts`
+- Modify: `src/taglib.ts` (add sidecar initialization option)
 
-**Step 1: Write the failing test**
+**Goal:** When WASI sidecar is configured, route path-based calls through it.
 
-Add to `tests/wasi-filesystem.test.ts`:
+**Step 1: Add initialization option**
 
 ```typescript
-import { readTags } from "../src/simple.ts";
-
-describe("Simple API with WASI filesystem", () => {
-  it("should automatically use WASI path when available", async () => {
-    // Configure WASI with preopens
-    const { TagLib } = await import("../src/taglib.ts");
-    await TagLib.initialize({
-      forceWasmType: "wasi",
-      wasiPreopens: {
-        "/test": "./tests/test-files",
-      },
-    });
-
-    // This should use WASI direct path access
-    const tags = await readTags("/test/mp3/kiss-snippet.mp3");
-
-    assertExists(tags);
-    assertEquals(typeof tags.title, "string");
-  });
-});
+// In TagLib.initialize()
+export interface InitOptions {
+  // ... existing options ...
+  useSidecar?: boolean;
+  sidecarConfig?: {
+    preopens: Record<string, string>;
+    wasmtimePath?: string;
+  };
+}
 ```
 
-**Step 2: Run test to verify it fails**
-
-Run: `deno test tests/wasi-filesystem.test.ts --allow-read --allow-env`
-Expected: FAIL - routing not implemented
-
-**Step 3: Add routing logic**
-
-In `src/simple.ts`, modify `readTags()`:
+**Step 2: Add routing in readTags**
 
 ```typescript
 export async function readTags(file: AudioFileInput): Promise<Tag> {
-  if (useWorkerPool && workerPoolInstance) {
-    return workerPoolInstance.readTags(file);
-  }
-
   const taglib = await getTagLib();
 
-  // NEW: Direct WASI filesystem path when available
-  if (typeof file === "string" && taglib.supportsDirectFilesystem?.()) {
-    return taglib.readTagsFromPath(file);
+  // Route to sidecar for path-based access when available
+  if (typeof file === "string" && taglib.sidecar?.isRunning()) {
+    return taglib.sidecar.readTags(file);
   }
 
   // Existing buffer-based path
-  const audioFile = await taglib.open(file);
-  try {
-    if (!audioFile.isValid()) {
-      throw new InvalidFormatError(
-        "File may be corrupted or in an unsupported format",
-      );
-    }
-    return audioFile.tag();
-  } finally {
-    audioFile.dispose();
-  }
+  // ...
 }
 ```
 
-Similarly for `updateTags()`:
-
-```typescript
-export async function updateTags(
-  file: string,
-  tags: Partial<Tag>,
-  options?: number,
-): Promise<void> {
-  if (typeof file !== "string") {
-    throw new Error("updateTags requires a file path string to save changes");
-  }
-
-  if (useWorkerPool && workerPoolInstance) {
-    return workerPoolInstance.updateTags(file, tags);
-  }
-
-  const taglib = await getTagLib();
-
-  // NEW: Direct WASI write when available
-  if (taglib.supportsDirectFilesystem?.()) {
-    return taglib.writeTagsToPath(file, tags);
-  }
-
-  // Fallback: read → modify → write
-  const modifiedBuffer = await applyTags(file, tags, options);
-  await writeFileData(file, modifiedBuffer);
-}
-```
-
-**Step 4: Run test to verify it passes**
-
-Run: `deno test tests/wasi-filesystem.test.ts --allow-read --allow-env`
-Expected: PASS
-
-**Step 5: Commit**
+**Step 3: Commit**
 
 ```bash
-git add src/simple.ts tests/wasi-filesystem.test.ts
-git commit -m "feat(simple): add automatic WASI filesystem routing"
+git add src/simple.ts src/taglib.ts
+git commit -m "feat(simple): add sidecar routing for path-based access"
 ```
 
 ---
@@ -361,50 +380,36 @@ git commit -m "feat(simple): add automatic WASI filesystem routing"
 
 **Files:**
 
-- Create: `tests/wasi-vs-emscripten.bench.ts`
+- Create: `tests/sidecar-benchmark.bench.ts`
 
-**Step 1: Create benchmark file**
+**Goal:** Quantify performance difference between buffer-based and sidecar approaches.
 
 ```typescript
-/**
- * Benchmark: WASI direct filesystem vs Emscripten buffer-based
- *
- * Run: deno bench tests/wasi-vs-emscripten.bench.ts --allow-read --allow-env
- */
-
-import { readTags } from "../src/simple.ts";
-
 const TEST_FILE = "./tests/test-files/mp3/kiss-snippet.mp3";
 
-// Pre-load buffer for fair comparison
-const testBuffer = await Deno.readFile(TEST_FILE);
-
+// Baseline: Host reads file, passes buffer
 Deno.bench({
-  name: "readTags - buffer input (host reads file)",
-  group: "readTags",
+  name: "readTags - buffer (host reads file)",
+  group: "single-file",
   baseline: true,
   async fn() {
-    await readTags(testBuffer);
+    const buffer = await Deno.readFile(TEST_FILE);
+    await readTags(buffer);
   },
 });
 
+// Sidecar: WASI reads file directly
 Deno.bench({
-  name: "readTags - path input (WASI reads file)",
-  group: "readTags",
+  name: "readTags - sidecar (WASI reads file)",
+  group: "single-file",
   async fn() {
-    await readTags(TEST_FILE);
+    await readTags(TEST_FILE); // Routes to sidecar
   },
 });
 
-// Batch comparison
-const testFiles = [
-  "./tests/test-files/mp3/kiss-snippet.mp3",
-  "./tests/test-files/flac/kiss-snippet.flac",
-  "./tests/test-files/ogg/kiss-snippet.ogg",
-];
-
+// Batch: Where sidecar really shines
 Deno.bench({
-  name: "batch readTags - buffer input (3 files)",
+  name: "batch 10 files - buffer",
   group: "batch",
   baseline: true,
   async fn() {
@@ -416,7 +421,7 @@ Deno.bench({
 });
 
 Deno.bench({
-  name: "batch readTags - path input (3 files)",
+  name: "batch 10 files - sidecar",
   group: "batch",
   async fn() {
     for (const file of testFiles) {
@@ -424,18 +429,6 @@ Deno.bench({
     }
   },
 });
-```
-
-**Step 2: Run benchmarks**
-
-Run: `deno bench tests/wasi-vs-emscripten.bench.ts --allow-read --allow-env`
-Expected: Shows comparison between buffer and path-based approaches
-
-**Step 3: Commit**
-
-```bash
-git add tests/wasi-vs-emscripten.bench.ts
-git commit -m "test: add WASI vs Emscripten benchmark tests"
 ```
 
 ---
@@ -446,67 +439,56 @@ git commit -m "test: add WASI vs Emscripten benchmark tests"
 
 - Modify: `docs/concepts/runtime-compatibility.md`
 - Modify: `LLMs.md`
+- Modify: `README.md`
 
-**Step 1: Update runtime-compatibility.md**
-
-Add section explaining WASI filesystem optimization:
+Add section on Wasmtime sidecar mode:
 
 ````markdown
-## WASI Direct Filesystem Access
+## High-Performance Mode: Wasmtime Sidecar
 
-When running in Deno, Node.js, or Bun with WASI enabled, taglib-wasm can read
-files directly without host round-trips:
+For server-side batch operations, enable the Wasmtime sidecar for true
+direct filesystem access:
 
-### Configuration
+### Prerequisites
+
+Install Wasmtime: `curl https://wasmtime.dev/install.sh -sSf | bash`
+
+### Usage
 
 ```typescript
-import { TagLib } from "taglib-wasm";
+import { readTags, TagLib } from "taglib-wasm";
 
-const taglib = await TagLib.initialize({
-  forceWasmType: "wasi",
-  wasiPreopens: {
-    "/music": "/Users/me/Music", // WASI path → host path
+await TagLib.initialize({
+  useSidecar: true,
+  sidecarConfig: {
+    preopens: {
+      "/music": "/home/user/Music",
+    },
   },
 });
 
-// Now paths are accessed directly by WASM
-const tags = await readTags("/music/song.mp3"); // No JS file read!
+// Now path-based calls use direct WASI filesystem access
+const tags = await readTags("/music/song.mp3");
 ```
 ````
 
-### Performance Impact
+### When to Use
 
-| Operation      | Buffer-based | WASI Direct |
-| -------------- | ------------ | ----------- |
-| Read 1 file    | ~3ms         | ~2ms        |
-| Read 100 files | ~300ms       | ~150ms      |
-| Write 1 file   | ~8ms         | ~3ms        |
+| Scenario                        | Recommended Mode       |
+| ------------------------------- | ---------------------- |
+| Browser                         | Buffer-based (default) |
+| Single file CLI                 | Buffer-based           |
+| Batch processing (100+ files)   | Sidecar                |
+| Electron app with large library | Sidecar                |
 
-````
-**Step 2: Update LLMs.md**
-
-Add brief mention of WASI optimization.
-
-**Step 3: Commit**
-
-```bash
-git add docs/concepts/runtime-compatibility.md LLMs.md
-git commit -m "docs: document WASI direct filesystem access"
-````
-
+```
 ---
-
-## Implementation Order Summary
-
-1. **Task 1**: Replace stubs → enables real WASI filesystem
-2. **Task 2**: Implement loadFromPath → WASI can load from paths
-3. **Task 3**: Add routing → automatic optimization
-4. **Task 4**: Benchmarks → quantify the improvement
-5. **Task 5**: Documentation → explain to users
 
 ## Success Criteria
 
-- [ ] `readTags("/path/to/file.mp3")` works with WASI
-- [ ] `updateTags("/path/to/file.mp3", tags)` writes directly via WASI
-- [ ] Benchmark shows measurable improvement for path-based access
-- [ ] Fallback to buffer-based still works when path not in preopens
+- [ ] `taglib-sidecar.wasm` builds and responds to stdin requests
+- [ ] `WasmtimeSidecar` class spawns and manages wasmtime process
+- [ ] `readTags("/path")` routes to sidecar when configured
+- [ ] Benchmarks show measurable improvement for batch operations
+- [ ] Documentation explains when/how to use sidecar mode
+```
