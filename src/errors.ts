@@ -262,6 +262,27 @@ export class WorkerError extends TagLibError {
 }
 
 /**
+ * Error thrown when sidecar process operations fail
+ *
+ * @example
+ * ```typescript
+ * throw new SidecarError("Sidecar not running: Call start() first.");
+ * ```
+ */
+export class SidecarError extends TagLibError {
+  /**
+   * Creates a new SidecarError
+   * @param message - Description of the sidecar failure
+   * @param details - Additional context about the error
+   */
+  constructor(message: string, details?: Record<string, any>) {
+    super("SIDECAR", message, details);
+    this.name = "SidecarError";
+    Object.setPrototypeOf(this, SidecarError.prototype);
+  }
+}
+
+/**
  * Helper function to create consistent error messages
  */
 function createErrorMessage(prefix: string, details: string): string {
@@ -312,4 +333,8 @@ export function isMemoryError(error: unknown): error is MemoryError {
 
 export function isEnvironmentError(error: unknown): error is EnvironmentError {
   return error instanceof EnvironmentError;
+}
+
+export function isSidecarError(error: unknown): error is SidecarError {
+  return error instanceof SidecarError;
 }
