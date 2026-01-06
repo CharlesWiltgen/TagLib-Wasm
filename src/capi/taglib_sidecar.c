@@ -18,7 +18,6 @@
 #include <string.h>
 
 #define MAX_REQUEST_SIZE (64 * 1024 * 1024)
-#define RESPONSE_BUFFER_SIZE 8192
 
 static int read_request(uint8_t** buf, size_t* len) {
     uint32_t msg_len;
@@ -65,10 +64,11 @@ static void write_error_response(const char* error_msg) {
     mpack_write_cstr(&writer, error_msg);
     mpack_finish_map(&writer);
 
-    if (mpack_writer_destroy(&writer) == mpack_ok && data) {
+    mpack_error_t error = mpack_writer_destroy(&writer);
+    if (error == mpack_ok && data) {
         write_response((uint8_t*)data, size);
-        free(data);
     }
+    if (data) free(data);
 }
 
 static void write_success_response(const uint8_t* tags_data, size_t tags_size) {
@@ -84,10 +84,11 @@ static void write_success_response(const uint8_t* tags_data, size_t tags_size) {
     mpack_write_bin(&writer, (const char*)tags_data, (uint32_t)tags_size);
     mpack_finish_map(&writer);
 
-    if (mpack_writer_destroy(&writer) == mpack_ok && data) {
+    mpack_error_t error = mpack_writer_destroy(&writer);
+    if (error == mpack_ok && data) {
         write_response((uint8_t*)data, size);
-        free(data);
     }
+    if (data) free(data);
 }
 
 static void write_write_success_response(void) {
@@ -101,10 +102,11 @@ static void write_write_success_response(void) {
     mpack_write_true(&writer);
     mpack_finish_map(&writer);
 
-    if (mpack_writer_destroy(&writer) == mpack_ok && data) {
+    mpack_error_t error = mpack_writer_destroy(&writer);
+    if (error == mpack_ok && data) {
         write_response((uint8_t*)data, size);
-        free(data);
     }
+    if (data) free(data);
 }
 
 typedef struct {
@@ -275,7 +277,7 @@ int main(void) {
         } else if (strcmp(req.op, "write_tags") == 0) {
             handle_write_tags(&req);
         } else {
-            write_error_response("Unknown operation");
+            write_error_response("Unknown operation: expected 'read_tags' or 'write_tags'");
         }
 
         free_request(&req);
