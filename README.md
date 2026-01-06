@@ -417,6 +417,39 @@ await file.saveToFile(); // Full file loaded only here
 - **Initial load**: 50x faster (50ms vs 2500ms)
 - **Memory peak**: 3.3MB instead of 1.5GB
 
+### High-Performance Mode: Wasmtime Sidecar
+
+For server-side batch operations, enable the Wasmtime sidecar for true direct
+filesystem access:
+
+```bash
+# Prerequisites: Install Wasmtime
+curl https://wasmtime.dev/install.sh -sSf | bash
+```
+
+```typescript
+import { readTags, setSidecarConfig } from "taglib-wasm/simple";
+
+// Enable sidecar mode
+await setSidecarConfig({
+  preopens: { "/music": "/home/user/Music" },
+});
+
+// Now path-based calls use direct WASI filesystem access
+const tags = await readTags("/music/song.mp3");
+```
+
+| Scenario                        | Recommended Mode       |
+| ------------------------------- | ---------------------- |
+| Browser                         | Buffer-based (default) |
+| Single file CLI                 | Buffer-based           |
+| Batch processing (100+ files)   | Sidecar                |
+| Electron app with large library | Sidecar                |
+
+See the
+[Runtime Compatibility Guide](https://charleswiltgen.github.io/taglib-wasm/concepts/runtime-compatibility.html)
+for full sidecar configuration options.
+
 ### WebAssembly Streaming
 
 For web applications, use CDN URLs to enable WebAssembly streaming compilation:
