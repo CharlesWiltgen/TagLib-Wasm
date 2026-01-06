@@ -8,6 +8,7 @@
 import { decode, encode } from "@msgpack/msgpack";
 import type { ExtendedTag } from "../types.ts";
 import { decodeTagData } from "../msgpack/decoder.ts";
+import { SidecarError } from "../errors.ts";
 
 /**
  * Configuration for WasmtimeSidecar
@@ -56,7 +57,7 @@ export class WasmtimeSidecar {
    */
   async start(): Promise<void> {
     if (this.#process) {
-      throw new Error("Sidecar already running: Call shutdown() first.");
+      throw new SidecarError("Sidecar already running: Call shutdown() first.");
     }
 
     const wasmtimePath = this.#config.wasmtimePath ?? "wasmtime";
@@ -74,7 +75,7 @@ export class WasmtimeSidecar {
     this.#stdoutReader = this.#process.stdout.getReader();
 
     // Start collecting stderr in background for debugging
-    this.#collectStderr();
+    void this.#collectStderr();
 
     // Wait briefly to ensure process started
     await this.#waitForReady();
@@ -92,7 +93,7 @@ export class WasmtimeSidecar {
    */
   async readTags(path: string): Promise<ExtendedTag> {
     if (!this.#process) {
-      throw new Error("Sidecar not running: Call start() first.");
+      throw new SidecarError("Sidecar not running: Call start() first.");
     }
 
     const request: SidecarRequest = { op: "read_tags", path };
@@ -101,7 +102,9 @@ export class WasmtimeSidecar {
     const response = await this.#receiveResponse();
 
     if (!response.ok) {
-      throw new Error(`Failed to read tags: ${response.error}`);
+      throw new SidecarError(`Failed to read tags: ${response.error}`, {
+        path,
+      });
     }
 
     return decodeTagData(response.tags);
@@ -112,7 +115,7 @@ export class WasmtimeSidecar {
    */
   async writeTags(path: string, tags: ExtendedTag): Promise<void> {
     if (!this.#process) {
-      throw new Error("Sidecar not running: Call start() first.");
+      throw new SidecarError("Sidecar not running: Call start() first.");
     }
 
     const tagsEncoded = encode(tags);
@@ -126,7 +129,9 @@ export class WasmtimeSidecar {
     const response = await this.#receiveResponse();
 
     if (!response.ok) {
-      throw new Error(`Failed to write tags: ${response.error}`);
+      throw new SidecarError(`Failed to write tags: ${response.error}`, {
+        path,
+      });
     }
   }
 
@@ -161,6 +166,14 @@ export class WasmtimeSidecar {
   }
 
   /**
+   * Async dispose for RAII pattern support
+   * Allows `await using sidecar = new WasmtimeSidecar(config);`
+   */
+  async [Symbol.asyncDispose](): Promise<void> {
+    await this.shutdown();
+  }
+
+  /**
    * Build wasmtime command arguments
    */
   #buildArgs(): string[] {
@@ -184,12 +197,16 @@ export class WasmtimeSidecar {
    */
   async #sendRequest(request: SidecarRequest): Promise<void> {
     if (!this.#stdin) {
-      throw new Error("Stdin not available.");
+      throw new SidecarError("Stdin not available.");
     }
 
     const payload = encode(request);
     const lengthPrefix = new Uint8Array(4);
-    const view = new DataView(lengthPrefix.buffer);
+    const view = new DataView(
+      lengthPrefix.buffer,
+      lengthPrefix.byteOffset,
+      lengthPrefix.byteLength,
+    );
     view.setUint32(0, payload.length, true); // Little-endian
 
     await this.#stdin.write(lengthPrefix);
@@ -202,7 +219,11 @@ export class WasmtimeSidecar {
   async #receiveResponse(): Promise<SidecarResponse> {
     // Read length prefix (4 bytes, LE uint32)
     const lengthBytes = await this.#readExact(4);
-    const view = new DataView(lengthBytes.buffer);
+    const view = new DataView(
+      lengthBytes.buffer,
+      lengthBytes.byteOffset,
+      lengthBytes.byteLength,
+    );
     const payloadLength = view.getUint32(0, true);
 
     // Read payload
@@ -219,7 +240,7 @@ export class WasmtimeSidecar {
       const result = await this.#stdoutReader!.read();
 
       if (result.done) {
-        throw new Error("Sidecar process ended unexpectedly.");
+        throw new SidecarError("Sidecar process ended unexpectedly.");
       }
 
       // Append to buffer
@@ -284,8 +305,9 @@ export class WasmtimeSidecar {
       if (result !== null) {
         const status = result as Deno.CommandStatus;
         this.#process = null;
-        throw new Error(
-          `Sidecar process exited with code ${status.code}. Check wasmtime installation and WASM path.`,
+        throw new SidecarError(
+          `Sidecar process exited with code ${status.code}: Check wasmtime installation and WASM path.`,
+          { exitCode: status.code },
         );
       }
     }
