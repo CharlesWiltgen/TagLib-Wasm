@@ -38,7 +38,7 @@ describe(
   { name: "WASI Host - In-Process Filesystem", ignore: !HAS_WASM },
   () => {
     it("should load wasi module with preopens", async () => {
-      const wasi = await loadWasiHost({
+      using wasi = await loadWasiHost({
         wasmPath: WASM_PATH,
         preopens: { "/test": TEST_FILES_DIR },
       });
@@ -49,7 +49,7 @@ describe(
     });
 
     it("should read tags from file path (FLAC)", async () => {
-      const wasi = await loadWasiHost({
+      using wasi = await loadWasiHost({
         wasmPath: WASM_PATH,
         preopens: { "/test": TEST_FILES_DIR },
       });
@@ -79,7 +79,7 @@ describe(
     });
 
     it("should read tags from buffer (FLAC)", async () => {
-      const wasi = await loadWasiHost({
+      using wasi = await loadWasiHost({
         wasmPath: WASM_PATH,
         preopens: { "/test": TEST_FILES_DIR },
       });
@@ -111,7 +111,7 @@ describe(
     });
 
     it("should produce same tags from path and buffer reads", async () => {
-      const wasi = await loadWasiHost({
+      using wasi = await loadWasiHost({
         wasmPath: WASM_PATH,
         preopens: { "/test": TEST_FILES_DIR },
       });
@@ -170,7 +170,7 @@ describe(
     });
 
     it("should return error for non-existent path", async () => {
-      const wasi = await loadWasiHost({
+      using wasi = await loadWasiHost({
         wasmPath: WASM_PATH,
         preopens: { "/test": TEST_FILES_DIR },
       });
@@ -190,7 +190,7 @@ describe(
     });
 
     it("should reject paths outside preopens", async () => {
-      const wasi = await loadWasiHost({
+      using wasi = await loadWasiHost({
         wasmPath: WASM_PATH,
         preopens: { "/test": TEST_FILES_DIR },
       });
@@ -216,7 +216,7 @@ describe(
       await Deno.copyFile(srcPath, destPath);
 
       try {
-        const wasi = await loadWasiHost({
+        using wasi = await loadWasiHost({
           wasmPath: WASM_PATH,
           preopens: { "/tmp": tempDir },
         });
@@ -243,7 +243,7 @@ describe(
         }
 
         // Re-instantiate to read back (fresh file handles)
-        const wasi2 = await loadWasiHost({
+        using wasi2 = await loadWasiHost({
           wasmPath: WASM_PATH,
           preopens: { "/tmp": tempDir },
         });

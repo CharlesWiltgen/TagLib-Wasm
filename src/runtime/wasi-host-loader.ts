@@ -100,7 +100,7 @@ function createWasiModuleFromInstance(
     if (!ptr) return "";
     const u8 = new Uint8Array(memory.buffer);
     let end = ptr;
-    while (u8[end] !== 0) end++;
+    while (end < u8.length && u8[end] !== 0) end++;
     return new TextDecoder().decode(u8.slice(ptr, end));
   }
 

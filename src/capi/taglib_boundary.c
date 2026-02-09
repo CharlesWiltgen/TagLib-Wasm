@@ -110,11 +110,8 @@ int tl_write_tags(const char* path, const uint8_t* buf, size_t len,
             case TL_ERROR_INVALID_INPUT:
                 error_msg = "Invalid input for writing";
                 break;
-            case TL_ERROR_IO_READ:
-                error_msg = "Failed to open file for writing";
-                break;
             case TL_ERROR_IO_WRITE:
-                error_msg = "Failed to save tags to file";
+                error_msg = "Failed to write tags to file";
                 break;
             case TL_ERROR_UNSUPPORTED_FORMAT:
                 error_msg = "Unsupported format for writing";

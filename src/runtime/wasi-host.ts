@@ -59,7 +59,10 @@ export function createWasiImports(
     );
 
     const normalized = relPath.replace(/\\/g, "/");
-    if (normalized.includes("..") || normalized.startsWith("/")) return null;
+    const segments = normalized.split("/");
+    if (segments.some((s) => s === "..") || normalized.startsWith("/")) {
+      return null;
+    }
 
     return `${dir.realPath}/${normalized}`;
   }
@@ -188,7 +191,7 @@ export function createWasiImports(
       for (let i = 0; i < iovsLen; i++) {
         const bufPtr = dv.getUint32(iovsPtr + i * 8, true);
         const bufLen = dv.getUint32(iovsPtr + i * 8 + 4, true);
-        const data = u8.slice(bufPtr, bufPtr + bufLen);
+        const data = u8.subarray(bufPtr, bufPtr + bufLen);
 
         if (fd === 1) {
           config.stdout?.(data);
@@ -243,6 +246,21 @@ export function createWasiImports(
         if (e instanceof Deno.errors.NotFound) return WASI_ENOENT;
         return WASI_EINVAL;
       }
+    },
+
+    environ_get: (_environ: number, _buf: number) => WASI_ESUCCESS,
+
+    environ_sizes_get: (countPtr: number, bufSzPtr: number) => {
+      const { dv } = getMemory();
+      dv.setUint32(countPtr, 0, true);
+      dv.setUint32(bufSzPtr, 0, true);
+      return WASI_ESUCCESS;
+    },
+
+    clock_time_get: (_id: number, _precision: bigint, timePtr: number) => {
+      const { dv } = getMemory();
+      dv.setBigUint64(timePtr, BigInt(Date.now()) * 1_000_000n, true);
+      return WASI_ESUCCESS;
     },
 
     proc_exit: (code: number) => {
