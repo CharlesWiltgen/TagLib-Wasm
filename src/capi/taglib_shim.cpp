@@ -30,6 +30,7 @@
 #include <memory>
 #include <cstring>
 #include <cstdlib>
+#include <cstdio>
 
 // Helper to convert TagLib::String to C string (caller owns the memory)
 static char* string_to_cstr(const TagLib::String& str) {
@@ -139,6 +140,139 @@ static void free_tag_data_strings(TagData* data) {
     if (data->genre) { free((void*)data->genre); data->genre = nullptr; }
 }
 
+// Encode TagData to MessagePack output buffer
+static tl_error_code encode_tag_data(TagData* tag_data,
+                                     uint8_t** out_buf, size_t* out_size) {
+    size_t required_size;
+    mp_status status = tags_encode_size(tag_data, &required_size);
+    if (status != MP_OK) {
+        free_tag_data_strings(tag_data);
+        return TL_ERROR_SERIALIZE_FAILED;
+    }
+
+    uint8_t* buffer = (uint8_t*)malloc(required_size);
+    if (!buffer) {
+        free_tag_data_strings(tag_data);
+        return TL_ERROR_MEMORY_ALLOCATION;
+    }
+
+    size_t actual_size;
+    status = tags_encode(tag_data, buffer, required_size, &actual_size);
+    free_tag_data_strings(tag_data);
+
+    if (status != MP_OK) {
+        free(buffer);
+        return TL_ERROR_SERIALIZE_FAILED;
+    }
+
+    *out_buf = buffer;
+    *out_size = actual_size;
+    return TL_SUCCESS;
+}
+
+// Read tags from in-memory buffer
+static tl_error_code read_from_buffer(const uint8_t* buf, size_t len,
+                                      tl_format format,
+                                      uint8_t** out_buf, size_t* out_size) {
+    if (format == TL_FORMAT_AUTO) {
+        format = detect_format_from_buffer(buf, len);
+        if (format == TL_FORMAT_AUTO) {
+            return TL_ERROR_UNSUPPORTED_FORMAT;
+        }
+    }
+
+    try {
+        TagLib::ByteVector byteVector(reinterpret_cast<const char*>(buf),
+                                      static_cast<unsigned int>(len));
+        TagLib::ByteVectorStream stream(byteVector);
+
+        std::unique_ptr<TagLib::File> file(
+            create_file_from_buffer(&stream, format));
+        if (!file || !file->isValid()) {
+            return TL_ERROR_PARSE_FAILED;
+        }
+
+        TagData tag_data = {0};
+        extract_tags(file.get(), &tag_data);
+        extract_properties(file.get(), &tag_data);
+
+        return encode_tag_data(&tag_data, out_buf, out_size);
+    } catch (...) {
+        return TL_ERROR_PARSE_FAILED;
+    }
+}
+
+// Read tags via path: open file with C I/O, then parse via buffer path.
+// Uses fopen/fread (backed by WASI syscalls) to avoid FileRef virtual dispatch
+// which triggers call_indirect type mismatches in the current Wasm binary.
+static tl_error_code read_from_path(const char* path,
+                                    uint8_t** out_buf, size_t* out_size) {
+    FILE* f = fopen(path, "rb");
+    if (!f) return TL_ERROR_IO_READ;
+
+    fseek(f, 0, SEEK_END);
+    long file_size = ftell(f);
+    fseek(f, 0, SEEK_SET);
+
+    if (file_size <= 0) {
+        fclose(f);
+        return TL_ERROR_IO_READ;
+    }
+
+    uint8_t* file_buf = (uint8_t*)malloc((size_t)file_size);
+    if (!file_buf) {
+        fclose(f);
+        return TL_ERROR_MEMORY_ALLOCATION;
+    }
+
+    size_t bytes_read = fread(file_buf, 1, (size_t)file_size, f);
+    fclose(f);
+
+    if (bytes_read != (size_t)file_size) {
+        free(file_buf);
+        return TL_ERROR_IO_READ;
+    }
+
+    tl_error_code result = read_from_buffer(file_buf, bytes_read,
+                                            TL_FORMAT_AUTO, out_buf, out_size);
+    free(file_buf);
+    return result;
+}
+
+// Write tags to file via path using TagLib::FileRef
+static tl_error_code write_to_path(const char* path, const TagData* tag_data) {
+    try {
+        TagLib::FileRef fileRef(path);
+        if (fileRef.isNull() || !fileRef.tag()) {
+            return TL_ERROR_IO_READ;
+        }
+
+        TagLib::Tag* tag = fileRef.tag();
+        if (tag_data->title)
+            tag->setTitle(TagLib::String(tag_data->title, TagLib::String::UTF8));
+        if (tag_data->artist)
+            tag->setArtist(TagLib::String(tag_data->artist, TagLib::String::UTF8));
+        if (tag_data->album)
+            tag->setAlbum(TagLib::String(tag_data->album, TagLib::String::UTF8));
+        if (tag_data->comment)
+            tag->setComment(TagLib::String(tag_data->comment, TagLib::String::UTF8));
+        if (tag_data->genre)
+            tag->setGenre(TagLib::String(tag_data->genre, TagLib::String::UTF8));
+        if (tag_data->year)
+            tag->setYear(tag_data->year);
+        if (tag_data->track)
+            tag->setTrack(tag_data->track);
+
+        if (!fileRef.save()) {
+            return TL_ERROR_IO_WRITE;
+        }
+
+        return TL_SUCCESS;
+    } catch (...) {
+        return TL_ERROR_PARSE_FAILED;
+    }
+}
+
 extern "C" {
 
 tl_error_code taglib_read_shim(const char* path, const uint8_t* buf, size_t len,
@@ -150,69 +284,12 @@ tl_error_code taglib_read_shim(const char* path, const uint8_t* buf, size_t len,
     *out_buf = nullptr;
     *out_size = 0;
 
-    // Must have buffer data
-    if (!buf || len == 0) {
+    if (path && path[0] != '\0') {
+        return read_from_path(path, out_buf, out_size);
+    } else if (buf && len > 0) {
+        return read_from_buffer(buf, len, format, out_buf, out_size);
+    } else {
         return TL_ERROR_INVALID_INPUT;
-    }
-
-    // Auto-detect format if not specified
-    if (format == TL_FORMAT_AUTO) {
-        format = detect_format_from_buffer(buf, len);
-        if (format == TL_FORMAT_AUTO) {
-            return TL_ERROR_UNSUPPORTED_FORMAT;
-        }
-    }
-
-    try {
-        // Create byte vector from input buffer
-        TagLib::ByteVector byteVector(reinterpret_cast<const char*>(buf),
-                                      static_cast<unsigned int>(len));
-
-        // Create stream from byte vector (read-only)
-        TagLib::ByteVectorStream stream(byteVector);
-
-        // Create format-specific file
-        std::unique_ptr<TagLib::File> file(create_file_from_buffer(&stream, format));
-        if (!file || !file->isValid()) {
-            return TL_ERROR_PARSE_FAILED;
-        }
-
-        // Extract data
-        TagData tag_data = {0};
-        extract_tags(file.get(), &tag_data);
-        extract_properties(file.get(), &tag_data);
-
-        // Encode to MessagePack
-        size_t required_size;
-        mp_status status = tags_encode_size(&tag_data, &required_size);
-        if (status != MP_OK) {
-            free_tag_data_strings(&tag_data);
-            return TL_ERROR_SERIALIZE_FAILED;
-        }
-
-        uint8_t* buffer = (uint8_t*)malloc(required_size);
-        if (!buffer) {
-            free_tag_data_strings(&tag_data);
-            return TL_ERROR_MEMORY_ALLOCATION;
-        }
-
-        size_t actual_size;
-        status = tags_encode(&tag_data, buffer, required_size, &actual_size);
-        free_tag_data_strings(&tag_data);
-
-        if (status != MP_OK) {
-            free(buffer);
-            return TL_ERROR_SERIALIZE_FAILED;
-        }
-
-        *out_buf = buffer;
-        *out_size = actual_size;
-
-        return TL_SUCCESS;
-
-    } catch (...) {
-        // Catch any TagLib exceptions
-        return TL_ERROR_PARSE_FAILED;
     }
 }
 
@@ -222,9 +299,13 @@ tl_error_code taglib_write_shim(const char* path, const uint8_t* buf, size_t len
         return TL_ERROR_INVALID_INPUT;
     }
 
-    // For now, buffer-to-buffer write is not supported
-    // File-based writes would use TagLib::FileRef with path
-    return TL_ERROR_NOT_IMPLEMENTED;
+    if (path && path[0] != '\0') {
+        return write_to_path(path, tag_data);
+    } else if (buf && len > 0) {
+        return TL_ERROR_NOT_IMPLEMENTED;
+    } else {
+        return TL_ERROR_INVALID_INPUT;
+    }
 }
 
 } // extern "C"

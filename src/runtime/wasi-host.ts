@@ -1,0 +1,245 @@
+/**
+ * @fileoverview WASI P1 syscall implementations backed by real filesystem
+ *
+ * Provides synchronous WASI imports for in-process Wasm execution.
+ * Uses Deno 2 FsFile API for synchronous file operations.
+ */
+
+export interface WasiHostConfig {
+  preopens: Record<string, string>;
+  stdout?: (data: Uint8Array) => void;
+  stderr?: (data: Uint8Array) => void;
+}
+
+const WASI_ESUCCESS = 0;
+const WASI_EBADF = 8;
+const WASI_EINVAL = 28;
+const WASI_ENOENT = 44;
+const WASI_ENOTCAPABLE = 76;
+
+type FdEntry =
+  | { type: "preopen"; realPath: string; virtualPath: string }
+  | { type: "file"; file: Deno.FsFile; path: string };
+
+// deno-lint-ignore no-explicit-any
+type WasiImports = Record<string, (...args: any[]) => number | void>;
+
+export function createWasiImports(
+  memory: { buffer: ArrayBuffer },
+  config: WasiHostConfig,
+): WasiImports {
+  const fds = new Map<number, FdEntry>();
+  let nextFd = 3;
+
+  for (const [virtualPath, realPath] of Object.entries(config.preopens)) {
+    fds.set(nextFd, { type: "preopen", realPath, virtualPath });
+    nextFd++;
+  }
+
+  function getMemory(): { u8: Uint8Array; dv: DataView } {
+    return {
+      u8: new Uint8Array(memory.buffer),
+      dv: new DataView(memory.buffer),
+    };
+  }
+
+  function resolvePath(
+    dirFd: number,
+    pathPtr: number,
+    pathLen: number,
+  ): string | null {
+    const dir = fds.get(dirFd);
+    if (!dir || dir.type !== "preopen") return null;
+
+    const { u8 } = getMemory();
+    const relPath = new TextDecoder().decode(
+      u8.slice(pathPtr, pathPtr + pathLen),
+    );
+
+    const normalized = relPath.replace(/\\/g, "/");
+    if (normalized.includes("../") || normalized.startsWith("/")) return null;
+
+    return `${dir.realPath}/${relPath}`;
+  }
+
+  return {
+    args_get: (_argv: number, _buf: number) => WASI_ESUCCESS,
+
+    args_sizes_get: (argcPtr: number, bufSzPtr: number) => {
+      const { dv } = getMemory();
+      dv.setUint32(argcPtr, 0, true);
+      dv.setUint32(bufSzPtr, 0, true);
+      return WASI_ESUCCESS;
+    },
+
+    fd_close: (fd: number) => {
+      const entry = fds.get(fd);
+      if (!entry) return WASI_EBADF;
+      if (entry.type === "file") {
+        try {
+          entry.file.close();
+        } catch { /* already closed */ }
+      }
+      fds.delete(fd);
+      return WASI_ESUCCESS;
+    },
+
+    fd_fdstat_get: (fd: number, buf: number) => {
+      const entry = fds.get(fd);
+      if (!entry) return WASI_EBADF;
+      const { dv } = getMemory();
+      const fileType = entry.type === "preopen" ? 3 : 4;
+      dv.setUint8(buf, fileType);
+      dv.setUint16(buf + 2, 0, true);
+      dv.setBigUint64(buf + 8, 0xFFFFFFFFFFFFFFFFn, true);
+      dv.setBigUint64(buf + 16, 0xFFFFFFFFFFFFFFFFn, true);
+      return WASI_ESUCCESS;
+    },
+
+    fd_fdstat_set_flags: (_fd: number, _flags: number) => WASI_ESUCCESS,
+
+    fd_filestat_set_size: (fd: number, size: bigint) => {
+      const entry = fds.get(fd);
+      if (!entry || entry.type !== "file") return WASI_EBADF;
+      try {
+        entry.file.truncateSync(Number(size));
+        return WASI_ESUCCESS;
+      } catch {
+        return WASI_EINVAL;
+      }
+    },
+
+    fd_prestat_get: (fd: number, buf: number) => {
+      const entry = fds.get(fd);
+      if (!entry || entry.type !== "preopen") return WASI_EBADF;
+      const { dv } = getMemory();
+      const pathBytes = new TextEncoder().encode(entry.virtualPath);
+      dv.setUint32(buf, 0, true);
+      dv.setUint32(buf + 4, pathBytes.length, true);
+      return WASI_ESUCCESS;
+    },
+
+    fd_prestat_dir_name: (fd: number, pathPtr: number, pathLen: number) => {
+      const entry = fds.get(fd);
+      if (!entry || entry.type !== "preopen") return WASI_EBADF;
+      const { u8 } = getMemory();
+      const pathBytes = new TextEncoder().encode(entry.virtualPath);
+      u8.set(pathBytes.subarray(0, pathLen), pathPtr);
+      return WASI_ESUCCESS;
+    },
+
+    fd_read: (
+      fd: number,
+      iovsPtr: number,
+      iovsLen: number,
+      nreadPtr: number,
+    ) => {
+      const entry = fds.get(fd);
+      if (!entry || entry.type !== "file") return WASI_EBADF;
+      const { u8, dv } = getMemory();
+      let totalRead = 0;
+      for (let i = 0; i < iovsLen; i++) {
+        const bufPtr = dv.getUint32(iovsPtr + i * 8, true);
+        const bufLen = dv.getUint32(iovsPtr + i * 8 + 4, true);
+        const target = u8.subarray(bufPtr, bufPtr + bufLen);
+        const n = entry.file.readSync(target);
+        if (n === null) break;
+        totalRead += n;
+        if (n < bufLen) break;
+      }
+      dv.setUint32(nreadPtr, totalRead, true);
+      return WASI_ESUCCESS;
+    },
+
+    fd_seek: (
+      fd: number,
+      offset: bigint,
+      whence: number,
+      newoffsetPtr: number,
+    ) => {
+      const entry = fds.get(fd);
+      if (!entry || entry.type !== "file") return WASI_EBADF;
+      const seekMode: Deno.SeekMode = whence === 0
+        ? Deno.SeekMode.Start
+        : whence === 1
+        ? Deno.SeekMode.Current
+        : Deno.SeekMode.End;
+      try {
+        const newPos = entry.file.seekSync(Number(offset), seekMode);
+        const { dv } = getMemory();
+        dv.setBigInt64(newoffsetPtr, BigInt(newPos), true);
+        return WASI_ESUCCESS;
+      } catch {
+        return WASI_EINVAL;
+      }
+    },
+
+    fd_write: (
+      fd: number,
+      iovsPtr: number,
+      iovsLen: number,
+      nwrittenPtr: number,
+    ) => {
+      const { u8, dv } = getMemory();
+      let totalWritten = 0;
+
+      for (let i = 0; i < iovsLen; i++) {
+        const bufPtr = dv.getUint32(iovsPtr + i * 8, true);
+        const bufLen = dv.getUint32(iovsPtr + i * 8 + 4, true);
+        const data = u8.slice(bufPtr, bufPtr + bufLen);
+
+        if (fd === 1 && config.stdout) {
+          config.stdout(data);
+          totalWritten += bufLen;
+        } else if (fd === 2 && config.stderr) {
+          config.stderr(data);
+          totalWritten += bufLen;
+        } else {
+          const entry = fds.get(fd);
+          if (!entry || entry.type !== "file") return WASI_EBADF;
+          totalWritten += entry.file.writeSync(data);
+        }
+      }
+
+      dv.setUint32(nwrittenPtr, totalWritten, true);
+      return WASI_ESUCCESS;
+    },
+
+    path_open: (
+      dirFd: number,
+      _dirflags: number,
+      pathPtr: number,
+      pathLen: number,
+      oflags: number,
+      _rightsBase: bigint,
+      _rightsInheriting: bigint,
+      _fdflags: number,
+      openedFdPtr: number,
+    ) => {
+      const realPath = resolvePath(dirFd, pathPtr, pathLen);
+      if (!realPath) return WASI_ENOTCAPABLE;
+
+      const OFLAGS_CREAT = 1;
+      const OFLAGS_TRUNC = 8;
+
+      try {
+        const options: Deno.OpenOptions = { read: true, write: true };
+        if (oflags & OFLAGS_CREAT) options.create = true;
+        if (oflags & OFLAGS_TRUNC) options.truncate = true;
+
+        const file = Deno.openSync(realPath, options);
+        const fd = nextFd++;
+        fds.set(fd, { type: "file", file, path: realPath });
+
+        const { dv } = getMemory();
+        dv.setUint32(openedFdPtr, fd, true);
+        return WASI_ESUCCESS;
+      } catch (e) {
+        if (e instanceof Deno.errors.NotFound) return WASI_ENOENT;
+        return WASI_EINVAL;
+      }
+    },
+
+    proc_exit: (_code: number) => {},
+  };
+}

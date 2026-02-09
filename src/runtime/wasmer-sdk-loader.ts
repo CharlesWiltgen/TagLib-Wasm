@@ -204,26 +204,50 @@ async function instantiateWasi(
     mount: Record<string, Directory>;
   },
 ): Promise<WebAssembly.Instance> {
-  // For now, use plain WebAssembly without WASI imports
-  // The test binary doesn't need full WASI, just memory management
+  // WASI P1 stubs for buffer-only mode (no filesystem access).
+  // Signatures must match Wasm type section exactly (i64 → bigint in JS).
+  const EBADF = 8;
   const importObject = {
     wasi_snapshot_preview1: {
-      // Minimal WASI stubs for the test binary
-      fd_write: () => 0,
-      fd_read: () => 0,
-      fd_close: () => 0,
-      fd_seek: () => 0,
-      environ_get: () => 0,
-      environ_sizes_get: () => 0,
-      args_get: () => 0,
-      args_sizes_get: () => 0,
-      proc_exit: () => {},
-      clock_time_get: () => 0,
-      random_get: () => 0,
+      // (i32, i32, i32, i32) -> i32
+      fd_write: (_fd: number, _iovs: number, _len: number, _nw: number) => 0,
+      // (i32, i32, i32, i32) -> i32
+      fd_read: (_fd: number, _iovs: number, _len: number, _nr: number) => EBADF,
+      // (i32) -> i32
+      fd_close: (_fd: number) => 0,
+      // (i32, i64, i32, i32) -> i32
+      fd_seek: (_fd: number, _off: bigint, _whence: number, _new: number) =>
+        EBADF,
+      // (i32, i32) -> i32
+      fd_fdstat_get: (_fd: number, _buf: number) => EBADF,
+      // (i32, i32) -> i32
+      fd_fdstat_set_flags: (_fd: number, _flags: number) => EBADF,
+      // (i32, i64) -> i32
+      fd_filestat_set_size: (_fd: number, _size: bigint) => EBADF,
+      // (i32, i32) -> i32
+      fd_prestat_get: (_fd: number, _buf: number) => EBADF,
+      // (i32, i32, i32) -> i32
+      fd_prestat_dir_name: (_fd: number, _path: number, _len: number) => EBADF,
+      // (i32, i32, i32, i32, i32, i64, i64, i32, i32) -> i32
+      path_open: (
+        _fd: number,
+        _df: number,
+        _p: number,
+        _pl: number,
+        _of: number,
+        _rbBase: bigint,
+        _rbInherit: bigint,
+        _ff: number,
+        _ofd: number,
+      ) => 76, // ENOTCAPABLE
+      // (i32, i32) -> i32
+      args_get: (_argv: number, _buf: number) => 0,
+      // (i32, i32) -> i32
+      args_sizes_get: (_argc: number, _bufsz: number) => 0,
+      // (i32) -> nil
+      proc_exit: (_code: number) => {},
     },
-    env: {
-      // Environment imports if needed
-    },
+    env: {},
   };
 
   // Instantiate the module
