@@ -1,92 +1,73 @@
-#!/bin/bash
+#!/bin/sh
+#
+# bd (beads) pre-commit hook (chained)
+#
+# This hook chains bd functionality with your existing pre-commit hook.
 
-# Pre-commit hook to ensure deno.json and package.json versions are in sync
+# Run existing hook first
+if [ -x "/Users/Charles/Projects/taglib-wasm/.githooks/pre-commit.old" ]; then
+    "/Users/Charles/Projects/taglib-wasm/.githooks/pre-commit.old" "$@"
+    EXIT_CODE=$?
+    if [ $EXIT_CODE -ne 0 ]; then
+        exit $EXIT_CODE
+    fi
+fi
 
-# Colors for output
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-NC='\033[0m' # No Color
-
-echo "🔍 Checking version synchronization..."
-
-# Extract versions
-PACKAGE_VERSION=$(grep -E '"version"' package.json | sed -E 's/.*"version": "([^"]+)".*/\1/')
-DENO_VERSION=$(grep -E '"version"' deno.json | sed -E 's/.*"version": "([^"]+)".*/\1/')
-
-# Check if files exist
-if [ ! -f "package.json" ]; then
-    echo -e "${YELLOW}⚠️  Warning: package.json not found${NC}"
+# Check if bd is available
+if ! command -v bd >/dev/null 2>&1; then
+    echo "Warning: bd command not found, skipping pre-commit flush" >&2
     exit 0
 fi
 
-if [ ! -f "deno.json" ]; then
-    echo -e "${YELLOW}⚠️  Warning: deno.json not found${NC}"
-    exit 0
-fi
-
-# Compare versions
-if [ "$PACKAGE_VERSION" != "$DENO_VERSION" ]; then
-    echo -e "${RED}❌ Version mismatch detected!${NC}"
-    echo -e "   package.json: ${YELLOW}$PACKAGE_VERSION${NC}"
-    echo -e "   deno.json:    ${YELLOW}$DENO_VERSION${NC}"
-    echo ""
-    echo -e "${YELLOW}To fix this, run one of:${NC}"
-    echo "  deno task version:patch  # Increment patch version"
-    echo "  deno task version:minor  # Increment minor version"
-    echo "  deno task version:major  # Increment major version"
-    echo "  deno task version:set <version>  # Set specific version"
-    echo ""
-    echo -e "${RED}Commit aborted.${NC}"
-    exit 1
-fi
-
-echo -e "${GREEN}✅ Versions are in sync: $PACKAGE_VERSION${NC}"
-
-# Run deno fmt
-echo "🎨 Running deno fmt..."
-deno fmt
-
-# Check if formatting changed any files
-if ! git diff --exit-code > /dev/null 2>&1; then
-    echo -e "${YELLOW}📝 Files were formatted. Adding changes to commit...${NC}"
-    # Get list of modified files that were already staged
-    STAGED_FILES=$(git diff --cached --name-only)
-    # Re-add any staged files that were formatted
-    for file in $STAGED_FILES; do
-        if git diff --name-only | grep -q "^$file$"; then
-            git add "$file"
-            echo "  Re-staged: $file"
+# Check if we're in a bd workspace
+# For worktrees, .beads is in the main repository root, not the worktree
+BEADS_DIR=""
+if git rev-parse --git-dir >/dev/null 2>&1; then
+    # Check if we're in a worktree
+    if [ "$(git rev-parse --git-dir)" != "$(git rev-parse --git-common-dir)" ]; then
+        # Worktree: .beads is in main repo root
+        MAIN_REPO_ROOT="$(git rev-parse --git-common-dir)"
+        MAIN_REPO_ROOT="$(dirname "$MAIN_REPO_ROOT")"
+        if [ -d "$MAIN_REPO_ROOT/.beads" ]; then
+            BEADS_DIR="$MAIN_REPO_ROOT/.beads"
         fi
-    done
-fi
-
-# Run deno lint
-echo "🔍 Running deno lint..."
-if ! deno lint; then
-    echo -e "${RED}❌ Linting failed!${NC}"
-    echo "Please fix the linting errors before committing."
-    exit 1
-fi
-
-echo -e "${GREEN}✅ Formatting and linting passed${NC}"
-
-# Check if either version file is staged
-if git diff --cached --name-only | grep -E "(package\.json|deno\.json)" > /dev/null; then
-    # Double-check that both files have the same version in staged changes
-    STAGED_PACKAGE_VERSION=$(git show :package.json 2>/dev/null | grep -E '"version"' | sed -E 's/.*"version": "([^"]+)".*/\1/')
-    STAGED_DENO_VERSION=$(git show :deno.json 2>/dev/null | grep -E '"version"' | sed -E 's/.*"version": "([^"]+)".*/\1/')
-    
-    if [ -n "$STAGED_PACKAGE_VERSION" ] && [ -n "$STAGED_DENO_VERSION" ]; then
-        if [ "$STAGED_PACKAGE_VERSION" != "$STAGED_DENO_VERSION" ]; then
-            echo -e "${RED}❌ Staged files have version mismatch!${NC}"
-            echo -e "   Staged package.json: ${YELLOW}$STAGED_PACKAGE_VERSION${NC}"
-            echo -e "   Staged deno.json:    ${YELLOW}$STAGED_DENO_VERSION${NC}"
-            echo ""
-            echo -e "${YELLOW}Both files must be staged with the same version.${NC}"
-            exit 1
+    else
+        # Regular repo: check current directory
+        if [ -d .beads ]; then
+            BEADS_DIR=".beads"
         fi
     fi
+fi
+
+if [ -z "$BEADS_DIR" ]; then
+    exit 0
+fi
+
+# Skip for Dolt backend (uses its own sync mechanism, not JSONL)
+if [ -f "$BEADS_DIR/metadata.json" ]; then
+    if grep -q '"backend"[[:space:]]*:[[:space:]]*"dolt"' "$BEADS_DIR/metadata.json" 2>/dev/null; then
+        exit 0
+    fi
+fi
+
+# Flush pending changes to JSONL
+if ! bd sync --flush-only >/dev/null 2>&1; then
+    echo "Error: Failed to flush bd changes to storage" >&2
+    echo "Run 'bd sync --flush-only' manually to diagnose" >&2
+    exit 1
+fi
+
+# If the JSONL file was modified, stage it
+# For worktrees, the JSONL is in the main repo's working tree, not the worktree,
+# so we can't use git add. Skip this step for worktrees.
+if [ -f "$BEADS_DIR/issues.jsonl" ]; then
+    if [ "$(git rev-parse --git-dir)" = "$(git rev-parse --git-common-dir)" ]; then
+        # Regular repo: file is in the working tree, safe to add
+        git add "$BEADS_DIR/issues.jsonl" 2>/dev/null || true
+    fi
+    # For worktrees: .beads is in the main repo's working tree, not this worktree
+    # Git rejects adding files outside the worktree, so we skip it.
+    # The main repo will see the changes on the next pull/sync.
 fi
 
 exit 0
