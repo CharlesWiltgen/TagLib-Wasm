@@ -25,7 +25,6 @@
 #include <opusfile.h>
 #include <mp4file.h>
 #include <wavfile.h>
-#include <aifffile.h>
 
 #include <memory>
 #include <cstring>
@@ -199,7 +198,7 @@ static tl_error_code read_from_path(const char* path,
 static tl_error_code write_to_path(const char* path, const TagData* tag_data) {
     try {
         TagLib::FileStream stream(path, false);
-        if (!stream.isOpen()) return TL_ERROR_IO_READ;
+        if (!stream.isOpen()) return TL_ERROR_IO_WRITE;
 
         tl_error_code err;
         std::unique_ptr<TagLib::File> file(detect_and_open(&stream, &err));
