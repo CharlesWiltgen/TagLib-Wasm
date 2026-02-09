@@ -10,11 +10,11 @@
 #include "core/taglib_core.h"
 
 // TagLib headers
-#include <fileref.h>
 #include <tag.h>
 #include <tpropertymap.h>
 #include <tbytevector.h>
 #include <tbytevectorstream.h>
+#include <tfilestream.h>
 #include <audioproperties.h>
 
 // Format-specific headers for buffer parsing
@@ -202,52 +202,60 @@ static tl_error_code read_from_buffer(const uint8_t* buf, size_t len,
     }
 }
 
-// Read tags via path: open file with C I/O, then parse via buffer path.
-// Uses fopen/fread (backed by WASI syscalls) to avoid FileRef virtual dispatch
-// which triggers call_indirect type mismatches in the current Wasm binary.
+// Read tags via path using TagLib::FileStream for efficient seek-based I/O.
+// FileStream uses fopen/fread/fseek (backed by WASI syscalls), letting TagLib
+// read only tag headers/footers instead of loading the entire file.
+// Bypasses FileRef to avoid call_indirect type mismatches from virtual dispatch.
 static tl_error_code read_from_path(const char* path,
                                     uint8_t** out_buf, size_t* out_size) {
-    FILE* f = fopen(path, "rb");
-    if (!f) return TL_ERROR_IO_READ;
+    try {
+        TagLib::FileStream stream(path, true);
+        if (!stream.isOpen()) return TL_ERROR_IO_READ;
 
-    fseek(f, 0, SEEK_END);
-    long file_size = ftell(f);
-    fseek(f, 0, SEEK_SET);
+        TagLib::ByteVector header = stream.readBlock(200);
+        if (header.isEmpty()) return TL_ERROR_IO_READ;
 
-    if (file_size <= 0) {
-        fclose(f);
-        return TL_ERROR_IO_READ;
+        tl_format format = detect_format_from_buffer(
+            reinterpret_cast<const uint8_t*>(header.data()), header.size());
+        if (format == TL_FORMAT_AUTO) return TL_ERROR_UNSUPPORTED_FORMAT;
+
+        stream.seek(0);
+
+        std::unique_ptr<TagLib::File> file(
+            create_file_from_buffer(&stream, format));
+        if (!file || !file->isValid()) return TL_ERROR_PARSE_FAILED;
+
+        TagData tag_data = {0};
+        extract_tags(file.get(), &tag_data);
+        extract_properties(file.get(), &tag_data);
+
+        return encode_tag_data(&tag_data, out_buf, out_size);
+    } catch (...) {
+        return TL_ERROR_PARSE_FAILED;
     }
-
-    uint8_t* file_buf = (uint8_t*)malloc((size_t)file_size);
-    if (!file_buf) {
-        fclose(f);
-        return TL_ERROR_MEMORY_ALLOCATION;
-    }
-
-    size_t bytes_read = fread(file_buf, 1, (size_t)file_size, f);
-    fclose(f);
-
-    if (bytes_read != (size_t)file_size) {
-        free(file_buf);
-        return TL_ERROR_IO_READ;
-    }
-
-    tl_error_code result = read_from_buffer(file_buf, bytes_read,
-                                            TL_FORMAT_AUTO, out_buf, out_size);
-    free(file_buf);
-    return result;
 }
 
-// Write tags to file via path using TagLib::FileRef
+// Write tags to file via path using TagLib::FileStream for efficient I/O.
+// Bypasses FileRef to avoid call_indirect type mismatches from virtual dispatch.
 static tl_error_code write_to_path(const char* path, const TagData* tag_data) {
     try {
-        TagLib::FileRef fileRef(path);
-        if (fileRef.isNull() || !fileRef.tag()) {
-            return TL_ERROR_IO_READ;
-        }
+        TagLib::FileStream stream(path, false);
+        if (!stream.isOpen()) return TL_ERROR_IO_READ;
 
-        TagLib::Tag* tag = fileRef.tag();
+        TagLib::ByteVector header = stream.readBlock(200);
+        if (header.isEmpty()) return TL_ERROR_IO_READ;
+
+        tl_format format = detect_format_from_buffer(
+            reinterpret_cast<const uint8_t*>(header.data()), header.size());
+        if (format == TL_FORMAT_AUTO) return TL_ERROR_UNSUPPORTED_FORMAT;
+
+        stream.seek(0);
+
+        std::unique_ptr<TagLib::File> file(
+            create_file_from_buffer(&stream, format));
+        if (!file || !file->isValid() || !file->tag()) return TL_ERROR_PARSE_FAILED;
+
+        TagLib::Tag* tag = file->tag();
         if (tag_data->title)
             tag->setTitle(TagLib::String(tag_data->title, TagLib::String::UTF8));
         if (tag_data->artist)
@@ -263,9 +271,7 @@ static tl_error_code write_to_path(const char* path, const TagData* tag_data) {
         if (tag_data->track)
             tag->setTrack(tag_data->track);
 
-        if (!fileRef.save()) {
-            return TL_ERROR_IO_WRITE;
-        }
+        if (!file->save()) return TL_ERROR_IO_WRITE;
 
         return TL_SUCCESS;
     } catch (...) {
