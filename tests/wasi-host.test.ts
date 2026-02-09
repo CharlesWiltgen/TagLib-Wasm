@@ -10,7 +10,6 @@ import {
   assertExists,
   assertGreater,
   assertRejects,
-  assertThrows,
 } from "@std/assert";
 import { describe, it } from "@std/testing/bdd";
 import { resolve } from "@std/path";
@@ -210,50 +209,66 @@ describe(
       assertEquals(resultPtr, 0, "Should reject paths outside preopens");
     });
 
-    // write_to_path uses TagLib::FileRef which triggers call_indirect type
-    // mismatch in the current Wasm binary (same root cause as MP3 parsing).
-    // This test documents the known crash until FileRef virtual dispatch is fixed.
-    it("should crash on write via path (FileRef call_indirect issue)", async () => {
-      const wasi = await loadWasiHost({
-        wasmPath: WASM_PATH,
-        preopens: { "/test": TEST_FILES_DIR },
-      });
-
-      // Copy test file to temp dir so we don't modify the original
+    it("should write tags via path and read them back", async () => {
       const tempDir = await Deno.makeTempDir();
       const srcPath = resolve(TEST_FILES_DIR, "flac/kiss-snippet.flac");
       const destPath = resolve(tempDir, "test-write.flac");
       await Deno.copyFile(srcPath, destPath);
 
       try {
-        const wasiWithTemp = await loadWasiHost({
+        const wasi = await loadWasiHost({
           wasmPath: WASM_PATH,
           preopens: { "/tmp": tempDir },
         });
 
-        using arena = new WasmArena(wasiWithTemp as WasmExports);
-        const pathAlloc = arena.allocString("/tmp/test-write.flac");
-        const tags: ExtendedTag = { title: "New Title" };
-        const tagBytes = encodeTagData(tags);
-        const tagBuf = arena.allocBuffer(tagBytes);
-        const outSizePtr = arena.allocUint32();
+        // Write new tags
+        {
+          using arena = new WasmArena(wasi as WasmExports);
+          const pathAlloc = arena.allocString("/tmp/test-write.flac");
+          const tags: ExtendedTag = { title: "New Title" };
+          const tagBytes = encodeTagData(tags);
+          const tagBuf = arena.allocBuffer(tagBytes);
+          const outSizePtr = arena.allocUint32();
 
-        assertThrows(
-          () => {
-            wasiWithTemp.tl_write_tags(
-              pathAlloc.ptr,
-              0,
-              0,
-              tagBuf.ptr,
-              tagBuf.size,
-              0,
-              outSizePtr.ptr,
-            );
-          },
-          // FileRef virtual dispatch causes Wasm trap
-          Error,
-          "function signature mismatch",
-        );
+          const result = wasi.tl_write_tags(
+            pathAlloc.ptr,
+            0,
+            0,
+            tagBuf.ptr,
+            tagBuf.size,
+            0,
+            outSizePtr.ptr,
+          );
+          assertEquals(result, 0, "Write should succeed (return 0)");
+        }
+
+        // Re-instantiate to read back (fresh file handles)
+        const wasi2 = await loadWasiHost({
+          wasmPath: WASM_PATH,
+          preopens: { "/tmp": tempDir },
+        });
+
+        // Read tags back and verify
+        {
+          using arena = new WasmArena(wasi2 as WasmExports);
+          const pathAlloc = arena.allocString("/tmp/test-write.flac");
+          const outSizePtr = arena.allocUint32();
+
+          const resultPtr = wasi2.tl_read_tags(
+            pathAlloc.ptr,
+            0,
+            0,
+            outSizePtr.ptr,
+          );
+          assertGreater(resultPtr, 0, "Read-back should return valid pointer");
+
+          const outSize = outSizePtr.readUint32();
+          const u8 = new Uint8Array(wasi2.memory.buffer);
+          const readTags = decodeTagData(
+            new Uint8Array(u8.slice(resultPtr, resultPtr + outSize)),
+          );
+          assertEquals(readTags.title, "New Title");
+        }
       } finally {
         await Deno.remove(tempDir, { recursive: true });
       }
