@@ -163,8 +163,13 @@ tl_format tl_detect_format(const uint8_t* buf, size_t len) {
         return TL_FORMAT_M4A;
     }
     
-    // OGG: "OggS" signature
+    // OGG: "OggS" signature (could be Vorbis or Opus)
     if (memcmp(buf, "OggS", 4) == 0) {
+        for (size_t i = 0; i + 8 < len && i < 200; i++) {
+            if (memcmp(buf + i, "OpusHead", 8) == 0) {
+                return TL_FORMAT_OPUS;
+            }
+        }
         return TL_FORMAT_OGG;
     }
     

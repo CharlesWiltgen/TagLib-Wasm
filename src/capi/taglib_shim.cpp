@@ -30,62 +30,16 @@
 #include <memory>
 #include <cstring>
 #include <cstdlib>
-#include <cstdio>
 
-// Helper to convert TagLib::String to C string (caller owns the memory)
 static char* string_to_cstr(const TagLib::String& str) {
-    if (str.isEmpty()) {
-        return nullptr;
-    }
+    if (str.isEmpty()) return nullptr;
     std::string utf8 = str.to8Bit(true);
     char* result = (char*)malloc(utf8.size() + 1);
-    if (result) {
-        std::memcpy(result, utf8.c_str(), utf8.size() + 1);
-    }
+    if (result) std::memcpy(result, utf8.c_str(), utf8.size() + 1);
     return result;
 }
 
-// Helper to detect format from buffer signature
-static tl_format detect_format_from_buffer(const uint8_t* buf, size_t len) {
-    if (len < 12) return TL_FORMAT_AUTO;
-
-    // MP3: ID3 tag or MPEG sync
-    if ((buf[0] == 'I' && buf[1] == 'D' && buf[2] == '3') ||
-        (buf[0] == 0xFF && (buf[1] & 0xE0) == 0xE0)) {
-        return TL_FORMAT_MP3;
-    }
-
-    // FLAC: "fLaC" signature
-    if (std::memcmp(buf, "fLaC", 4) == 0) {
-        return TL_FORMAT_FLAC;
-    }
-
-    // M4A/MP4: "ftyp" at offset 4
-    if (len > 8 && std::memcmp(buf + 4, "ftyp", 4) == 0) {
-        return TL_FORMAT_M4A;
-    }
-
-    // OGG: "OggS" signature (could be Vorbis or Opus)
-    if (std::memcmp(buf, "OggS", 4) == 0) {
-        // Check for Opus by looking for "OpusHead" later in the stream
-        for (size_t i = 0; i + 8 < len && i < 200; i++) {
-            if (std::memcmp(buf + i, "OpusHead", 8) == 0) {
-                return TL_FORMAT_OPUS;
-            }
-        }
-        return TL_FORMAT_OGG;
-    }
-
-    // WAV: "RIFF" and "WAVE"
-    if (len > 12 && std::memcmp(buf, "RIFF", 4) == 0 &&
-        std::memcmp(buf + 8, "WAVE", 4) == 0) {
-        return TL_FORMAT_WAV;
-    }
-
-    return TL_FORMAT_AUTO;
-}
-
-// Create TagLib file from buffer based on format
+// Create TagLib file from IOStream based on format
 static TagLib::File* create_file_from_buffer(TagLib::IOStream* stream, tl_format format) {
     switch (format) {
         case TL_FORMAT_MP3:
@@ -175,7 +129,7 @@ static tl_error_code read_from_buffer(const uint8_t* buf, size_t len,
                                       tl_format format,
                                       uint8_t** out_buf, size_t* out_size) {
     if (format == TL_FORMAT_AUTO) {
-        format = detect_format_from_buffer(buf, len);
+        format = tl_detect_format(buf, len);
         if (format == TL_FORMAT_AUTO) {
             return TL_ERROR_UNSUPPORTED_FORMAT;
         }
@@ -202,28 +156,34 @@ static tl_error_code read_from_buffer(const uint8_t* buf, size_t len,
     }
 }
 
+// Detect format from stream header and create format-specific TagLib::File.
+// Returns nullptr on failure and sets *error to the specific error code.
+static TagLib::File* detect_and_open(TagLib::IOStream* stream,
+                                     tl_error_code* error) {
+    TagLib::ByteVector header = stream->readBlock(200);
+    if (header.isEmpty()) { *error = TL_ERROR_IO_READ; return nullptr; }
+
+    tl_format format = tl_detect_format(
+        reinterpret_cast<const uint8_t*>(header.data()), header.size());
+    if (format == TL_FORMAT_AUTO) { *error = TL_ERROR_UNSUPPORTED_FORMAT; return nullptr; }
+
+    stream->seek(0);
+    return create_file_from_buffer(stream, format);
+}
+
 // Read tags via path using TagLib::FileStream for efficient seek-based I/O.
-// FileStream uses fopen/fread/fseek (backed by WASI syscalls), letting TagLib
+// FileStream uses fopen/fseek/fread (backed by WASI syscalls), letting TagLib
 // read only tag headers/footers instead of loading the entire file.
-// Bypasses FileRef to avoid call_indirect type mismatches from virtual dispatch.
 static tl_error_code read_from_path(const char* path,
                                     uint8_t** out_buf, size_t* out_size) {
     try {
         TagLib::FileStream stream(path, true);
         if (!stream.isOpen()) return TL_ERROR_IO_READ;
 
-        TagLib::ByteVector header = stream.readBlock(200);
-        if (header.isEmpty()) return TL_ERROR_IO_READ;
-
-        tl_format format = detect_format_from_buffer(
-            reinterpret_cast<const uint8_t*>(header.data()), header.size());
-        if (format == TL_FORMAT_AUTO) return TL_ERROR_UNSUPPORTED_FORMAT;
-
-        stream.seek(0);
-
-        std::unique_ptr<TagLib::File> file(
-            create_file_from_buffer(&stream, format));
-        if (!file || !file->isValid()) return TL_ERROR_PARSE_FAILED;
+        tl_error_code err;
+        std::unique_ptr<TagLib::File> file(detect_and_open(&stream, &err));
+        if (!file) return err;
+        if (!file->isValid()) return TL_ERROR_PARSE_FAILED;
 
         TagData tag_data = {0};
         extract_tags(file.get(), &tag_data);
@@ -236,24 +196,15 @@ static tl_error_code read_from_path(const char* path,
 }
 
 // Write tags to file via path using TagLib::FileStream for efficient I/O.
-// Bypasses FileRef to avoid call_indirect type mismatches from virtual dispatch.
 static tl_error_code write_to_path(const char* path, const TagData* tag_data) {
     try {
         TagLib::FileStream stream(path, false);
         if (!stream.isOpen()) return TL_ERROR_IO_READ;
 
-        TagLib::ByteVector header = stream.readBlock(200);
-        if (header.isEmpty()) return TL_ERROR_IO_READ;
-
-        tl_format format = detect_format_from_buffer(
-            reinterpret_cast<const uint8_t*>(header.data()), header.size());
-        if (format == TL_FORMAT_AUTO) return TL_ERROR_UNSUPPORTED_FORMAT;
-
-        stream.seek(0);
-
-        std::unique_ptr<TagLib::File> file(
-            create_file_from_buffer(&stream, format));
-        if (!file || !file->isValid() || !file->tag()) return TL_ERROR_PARSE_FAILED;
+        tl_error_code err;
+        std::unique_ptr<TagLib::File> file(detect_and_open(&stream, &err));
+        if (!file) return err;
+        if (!file->isValid() || !file->tag()) return TL_ERROR_PARSE_FAILED;
 
         TagLib::Tag* tag = file->tag();
         if (tag_data->title)
