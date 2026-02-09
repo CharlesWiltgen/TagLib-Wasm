@@ -10,174 +10,264 @@ import {
   assertExists,
   assertGreater,
   assertRejects,
+  assertThrows,
 } from "@std/assert";
 import { describe, it } from "@std/testing/bdd";
 import { resolve } from "@std/path";
 import { loadWasiHost } from "../src/runtime/wasi-host-loader.ts";
 import { WasmArena, type WasmExports } from "../src/runtime/wasi-memory.ts";
 import { decodeTagData } from "../src/msgpack/decoder.ts";
+import { encodeTagData } from "../src/msgpack/encoder.ts";
+import type { ExtendedTag } from "../src/types.ts";
 
 const PROJECT_ROOT = resolve(Deno.cwd());
 const TEST_FILES_DIR = resolve(PROJECT_ROOT, "tests/test-files");
 const WASM_PATH = resolve(PROJECT_ROOT, "dist/wasi/taglib_wasi.wasm");
 
-async function wasmBinaryExists(): Promise<boolean> {
+function wasmBinaryExists(): boolean {
   try {
-    await Deno.stat(WASM_PATH);
+    Deno.statSync(WASM_PATH);
     return true;
   } catch {
     return false;
   }
 }
 
-describe("WASI Host - In-Process Filesystem", () => {
-  it("should load wasi module with preopens", async () => {
-    if (!(await wasmBinaryExists())) {
-      console.log("Skipping: WASI binary not found");
-      return;
-    }
+const HAS_WASM = wasmBinaryExists();
 
-    const wasi = await loadWasiHost({
-      wasmPath: WASM_PATH,
-      preopens: { "/test": TEST_FILES_DIR },
+describe(
+  { name: "WASI Host - In-Process Filesystem", ignore: !HAS_WASM },
+  () => {
+    it("should load wasi module with preopens", async () => {
+      const wasi = await loadWasiHost({
+        wasmPath: WASM_PATH,
+        preopens: { "/test": TEST_FILES_DIR },
+      });
+
+      assertExists(wasi);
+      assertEquals(typeof wasi.tl_version(), "string");
+      assertGreater(wasi.tl_version().length, 0);
     });
 
-    assertExists(wasi);
-    assertEquals(typeof wasi.tl_version(), "string");
-    assertGreater(wasi.tl_version().length, 0);
-  });
+    it("should read tags from file path (FLAC)", async () => {
+      const wasi = await loadWasiHost({
+        wasmPath: WASM_PATH,
+        preopens: { "/test": TEST_FILES_DIR },
+      });
 
-  it("should read tags from file path (FLAC)", async () => {
-    if (!(await wasmBinaryExists())) {
-      console.log("Skipping: WASI binary not found");
-      return;
-    }
+      using arena = new WasmArena(wasi as WasmExports);
+      const pathAlloc = arena.allocString("/test/flac/kiss-snippet.flac");
+      const outSizePtr = arena.allocUint32();
 
-    const wasi = await loadWasiHost({
-      wasmPath: WASM_PATH,
-      preopens: { "/test": TEST_FILES_DIR },
+      const resultPtr = wasi.tl_read_tags(
+        pathAlloc.ptr,
+        0,
+        0,
+        outSizePtr.ptr,
+      );
+
+      assertGreater(resultPtr, 0, "tl_read_tags should return valid pointer");
+
+      const outSize = outSizePtr.readUint32();
+      assertGreater(outSize, 0, "Output should have non-zero size");
+
+      const u8 = new Uint8Array(wasi.memory.buffer);
+      const msgpackData = u8.slice(resultPtr, resultPtr + outSize);
+      const tags = decodeTagData(new Uint8Array(msgpackData));
+
+      assertExists(tags.title);
+      assertEquals(tags.title, "Kiss");
     });
 
-    using arena = new WasmArena(wasi as WasmExports);
-    const pathAlloc = arena.allocString("/test/flac/kiss-snippet.flac");
-    const outSizePtr = arena.allocUint32();
+    it("should read tags from buffer (FLAC)", async () => {
+      const wasi = await loadWasiHost({
+        wasmPath: WASM_PATH,
+        preopens: { "/test": TEST_FILES_DIR },
+      });
 
-    const resultPtr = wasi.tl_read_tags(
-      pathAlloc.ptr,
-      0,
-      0,
-      outSizePtr.ptr,
-    );
+      const fileData = await Deno.readFile(
+        resolve(TEST_FILES_DIR, "flac/kiss-snippet.flac"),
+      );
 
-    assertGreater(resultPtr, 0, "tl_read_tags should return valid pointer");
+      using arena = new WasmArena(wasi as WasmExports);
+      const inputBuf = arena.allocBuffer(fileData);
+      const outSizePtr = arena.allocUint32();
 
-    const outSize = outSizePtr.readUint32();
-    assertGreater(outSize, 0, "Output should have non-zero size");
+      const resultPtr = wasi.tl_read_tags(
+        0,
+        inputBuf.ptr,
+        inputBuf.size,
+        outSizePtr.ptr,
+      );
 
-    const u8 = new Uint8Array(wasi.memory.buffer);
-    const msgpackData = u8.slice(resultPtr, resultPtr + outSize);
-    const tags = decodeTagData(new Uint8Array(msgpackData));
+      assertGreater(resultPtr, 0, "Buffer read should return valid pointer");
 
-    assertExists(tags.title);
-    assertEquals(tags.title, "Kiss");
-  });
+      const outSize = outSizePtr.readUint32();
+      const u8 = new Uint8Array(wasi.memory.buffer);
+      const tags = decodeTagData(
+        new Uint8Array(u8.slice(resultPtr, resultPtr + outSize)),
+      );
 
-  it("should read tags from buffer (FLAC)", async () => {
-    if (!(await wasmBinaryExists())) {
-      console.log("Skipping: WASI binary not found");
-      return;
-    }
-
-    const wasi = await loadWasiHost({
-      wasmPath: WASM_PATH,
-      preopens: { "/test": TEST_FILES_DIR },
+      assertEquals(tags.title, "Kiss");
     });
 
-    const fileData = await Deno.readFile(
-      resolve(TEST_FILES_DIR, "flac/kiss-snippet.flac"),
-    );
+    it("should produce same tags from path and buffer reads", async () => {
+      const wasi = await loadWasiHost({
+        wasmPath: WASM_PATH,
+        preopens: { "/test": TEST_FILES_DIR },
+      });
 
-    using arena = new WasmArena(wasi as WasmExports);
-    const inputBuf = arena.allocBuffer(fileData);
-    const outSizePtr = arena.allocUint32();
+      const flacPath = "/test/flac/kiss-snippet.flac";
+      const fileData = await Deno.readFile(
+        resolve(TEST_FILES_DIR, "flac/kiss-snippet.flac"),
+      );
 
-    const resultPtr = wasi.tl_read_tags(
-      0,
-      inputBuf.ptr,
-      inputBuf.size,
-      outSizePtr.ptr,
-    );
+      using arena = new WasmArena(wasi as WasmExports);
 
-    assertGreater(resultPtr, 0, "Buffer read should return valid pointer");
+      // Read via path
+      const pathAlloc = arena.allocString(flacPath);
+      const pathOutSize = arena.allocUint32();
+      const pathResult = wasi.tl_read_tags(
+        pathAlloc.ptr,
+        0,
+        0,
+        pathOutSize.ptr,
+      );
+      assertGreater(pathResult, 0);
+      const pathSize = pathOutSize.readUint32();
+      const pathTags = decodeTagData(
+        new Uint8Array(
+          new Uint8Array(wasi.memory.buffer).slice(
+            pathResult,
+            pathResult + pathSize,
+          ),
+        ),
+      );
 
-    const outSize = outSizePtr.readUint32();
-    const u8 = new Uint8Array(wasi.memory.buffer);
-    const tags = decodeTagData(
-      new Uint8Array(u8.slice(resultPtr, resultPtr + outSize)),
-    );
+      // Read via buffer
+      const bufAlloc = arena.allocBuffer(fileData);
+      const bufOutSize = arena.allocUint32();
+      const bufResult = wasi.tl_read_tags(
+        0,
+        bufAlloc.ptr,
+        bufAlloc.size,
+        bufOutSize.ptr,
+      );
+      assertGreater(bufResult, 0);
+      const bufSize = bufOutSize.readUint32();
+      const bufTags = decodeTagData(
+        new Uint8Array(
+          new Uint8Array(wasi.memory.buffer).slice(
+            bufResult,
+            bufResult + bufSize,
+          ),
+        ),
+      );
 
-    assertEquals(tags.title, "Kiss");
-  });
-
-  it("should return error for non-existent path", async () => {
-    if (!(await wasmBinaryExists())) {
-      console.log("Skipping: WASI binary not found");
-      return;
-    }
-
-    const wasi = await loadWasiHost({
-      wasmPath: WASM_PATH,
-      preopens: { "/test": TEST_FILES_DIR },
+      assertEquals(pathTags.title, bufTags.title);
+      assertEquals(pathTags.artist, bufTags.artist);
+      assertEquals(pathTags.album, bufTags.album);
+      assertEquals(pathTags.year, bufTags.year);
     });
 
-    using arena = new WasmArena(wasi as WasmExports);
-    const pathAlloc = arena.allocString("/test/nonexistent.mp3");
-    const outSizePtr = arena.allocUint32();
+    it("should return error for non-existent path", async () => {
+      const wasi = await loadWasiHost({
+        wasmPath: WASM_PATH,
+        preopens: { "/test": TEST_FILES_DIR },
+      });
 
-    const resultPtr = wasi.tl_read_tags(
-      pathAlloc.ptr,
-      0,
-      0,
-      outSizePtr.ptr,
-    );
+      using arena = new WasmArena(wasi as WasmExports);
+      const pathAlloc = arena.allocString("/test/nonexistent.mp3");
+      const outSizePtr = arena.allocUint32();
 
-    assertEquals(resultPtr, 0, "Should return NULL for missing file");
-  });
+      const resultPtr = wasi.tl_read_tags(
+        pathAlloc.ptr,
+        0,
+        0,
+        outSizePtr.ptr,
+      );
 
-  it("should reject paths outside preopens", async () => {
-    if (!(await wasmBinaryExists())) {
-      console.log("Skipping: WASI binary not found");
-      return;
-    }
-
-    const wasi = await loadWasiHost({
-      wasmPath: WASM_PATH,
-      preopens: { "/test": TEST_FILES_DIR },
+      assertEquals(resultPtr, 0, "Should return NULL for missing file");
     });
 
-    using arena = new WasmArena(wasi as WasmExports);
-    // Absolute path not in preopens
-    const pathAlloc = arena.allocString("/etc/passwd");
-    const outSizePtr = arena.allocUint32();
+    it("should reject paths outside preopens", async () => {
+      const wasi = await loadWasiHost({
+        wasmPath: WASM_PATH,
+        preopens: { "/test": TEST_FILES_DIR },
+      });
 
-    const resultPtr = wasi.tl_read_tags(
-      pathAlloc.ptr,
-      0,
-      0,
-      outSizePtr.ptr,
-    );
+      using arena = new WasmArena(wasi as WasmExports);
+      const pathAlloc = arena.allocString("/etc/passwd");
+      const outSizePtr = arena.allocUint32();
 
-    assertEquals(resultPtr, 0, "Should reject paths outside preopens");
-  });
+      const resultPtr = wasi.tl_read_tags(
+        pathAlloc.ptr,
+        0,
+        0,
+        outSizePtr.ptr,
+      );
 
-  it("should throw for invalid wasm path", async () => {
-    await assertRejects(
-      () =>
-        loadWasiHost({
-          wasmPath: "/nonexistent/taglib.wasm",
-          preopens: {},
-        }),
-      Error,
-    );
-  });
-});
+      assertEquals(resultPtr, 0, "Should reject paths outside preopens");
+    });
+
+    // write_to_path uses TagLib::FileRef which triggers call_indirect type
+    // mismatch in the current Wasm binary (same root cause as MP3 parsing).
+    // This test documents the known crash until FileRef virtual dispatch is fixed.
+    it("should crash on write via path (FileRef call_indirect issue)", async () => {
+      const wasi = await loadWasiHost({
+        wasmPath: WASM_PATH,
+        preopens: { "/test": TEST_FILES_DIR },
+      });
+
+      // Copy test file to temp dir so we don't modify the original
+      const tempDir = await Deno.makeTempDir();
+      const srcPath = resolve(TEST_FILES_DIR, "flac/kiss-snippet.flac");
+      const destPath = resolve(tempDir, "test-write.flac");
+      await Deno.copyFile(srcPath, destPath);
+
+      try {
+        const wasiWithTemp = await loadWasiHost({
+          wasmPath: WASM_PATH,
+          preopens: { "/tmp": tempDir },
+        });
+
+        using arena = new WasmArena(wasiWithTemp as WasmExports);
+        const pathAlloc = arena.allocString("/tmp/test-write.flac");
+        const tags: ExtendedTag = { title: "New Title" };
+        const tagBytes = encodeTagData(tags);
+        const tagBuf = arena.allocBuffer(tagBytes);
+        const outSizePtr = arena.allocUint32();
+
+        assertThrows(
+          () => {
+            wasiWithTemp.tl_write_tags(
+              pathAlloc.ptr,
+              0,
+              0,
+              tagBuf.ptr,
+              tagBuf.size,
+              0,
+              outSizePtr.ptr,
+            );
+          },
+          // FileRef virtual dispatch causes Wasm trap
+          Error,
+          "function signature mismatch",
+        );
+      } finally {
+        await Deno.remove(tempDir, { recursive: true });
+      }
+    });
+
+    it("should throw for invalid wasm path", async () => {
+      await assertRejects(
+        () =>
+          loadWasiHost({
+            wasmPath: "/nonexistent/taglib.wasm",
+            preopens: {},
+          }),
+        Error,
+      );
+    });
+  },
+);
