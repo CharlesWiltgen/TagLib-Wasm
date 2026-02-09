@@ -1,2 +1,5 @@
 # Exclude vendored TagLib C++ source from GitHub language statistics
 lib/** linguist-vendored
+
+# Use bd merge for beads JSONL files
+.beads/issues.jsonl merge=beads
