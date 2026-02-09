@@ -24,10 +24,12 @@ type FdEntry =
 // deno-lint-ignore no-explicit-any
 type WasiImports = Record<string, (...args: any[]) => number | void>;
 
+export type WasiImportDisposable = WasiImports & { [Symbol.dispose](): void };
+
 export function createWasiImports(
   memory: { buffer: ArrayBuffer },
   config: WasiHostConfig,
-): WasiImports {
+): WasiImportDisposable {
   const fds = new Map<number, FdEntry>();
   let nextFd = 3;
 
@@ -57,9 +59,9 @@ export function createWasiImports(
     );
 
     const normalized = relPath.replace(/\\/g, "/");
-    if (normalized.includes("../") || normalized.startsWith("/")) return null;
+    if (normalized.includes("..") || normalized.startsWith("/")) return null;
 
-    return `${dir.realPath}/${relPath}`;
+    return `${dir.realPath}/${normalized}`;
   }
 
   return {
@@ -188,11 +190,11 @@ export function createWasiImports(
         const bufLen = dv.getUint32(iovsPtr + i * 8 + 4, true);
         const data = u8.slice(bufPtr, bufPtr + bufLen);
 
-        if (fd === 1 && config.stdout) {
-          config.stdout(data);
+        if (fd === 1) {
+          config.stdout?.(data);
           totalWritten += bufLen;
-        } else if (fd === 2 && config.stderr) {
-          config.stderr(data);
+        } else if (fd === 2) {
+          config.stderr?.(data);
           totalWritten += bufLen;
         } else {
           const entry = fds.get(fd);
@@ -221,9 +223,12 @@ export function createWasiImports(
 
       const OFLAGS_CREAT = 1;
       const OFLAGS_TRUNC = 8;
+      const RIGHTS_FD_WRITE = 1n << 6n;
 
       try {
-        const options: Deno.OpenOptions = { read: true, write: true };
+        const wantWrite = (_rightsBase & RIGHTS_FD_WRITE) !== 0n ||
+          (oflags & (OFLAGS_CREAT | OFLAGS_TRUNC)) !== 0;
+        const options: Deno.OpenOptions = { read: true, write: wantWrite };
         if (oflags & OFLAGS_CREAT) options.create = true;
         if (oflags & OFLAGS_TRUNC) options.truncate = true;
 
@@ -240,6 +245,19 @@ export function createWasiImports(
       }
     },
 
-    proc_exit: (_code: number) => {},
+    proc_exit: (code: number) => {
+      throw new Error(`WASI proc_exit called: code ${code}`);
+    },
+
+    [Symbol.dispose]: () => {
+      for (const [fd, entry] of fds) {
+        if (entry.type === "file") {
+          try {
+            entry.file.close();
+          } catch { /* already closed */ }
+        }
+        fds.delete(fd);
+      }
+    },
   };
 }
