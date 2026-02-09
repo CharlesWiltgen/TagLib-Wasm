@@ -71,6 +71,9 @@ const char* tl_version(void);
 int tl_api_version(void);
 bool tl_has_capability(const char* capability);
 
+// Format detection from buffer magic bytes
+tl_format tl_detect_format(const uint8_t* buf, size_t len);
+
 #ifdef __cplusplus
 }
 #endif

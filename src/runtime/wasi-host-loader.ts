@@ -6,7 +6,11 @@
  * the Wasmtime sidecar subprocess.
  */
 
-import { createWasiImports, type WasiHostConfig } from "./wasi-host.ts";
+import {
+  createWasiImports,
+  type WasiHostConfig,
+  type WasiImportDisposable,
+} from "./wasi-host.ts";
 import type { WasiModule } from "./wasmer-sdk-loader.ts";
 
 export interface WasiHostLoaderConfig {
@@ -24,7 +28,7 @@ export class WasiHostLoadError extends Error {
 
 export async function loadWasiHost(
   config: WasiHostLoaderConfig,
-): Promise<WasiModule> {
+): Promise<WasiModule & Disposable> {
   const wasmPath = config.wasmPath ?? "./dist/wasi/taglib_wasi.wasm";
   const preopens = config.preopens ?? {};
 
@@ -62,7 +66,7 @@ export async function loadWasiHost(
     (instance.exports._initialize as () => void)();
   }
 
-  return createWasiModuleFromInstance(instance, memory);
+  return createWasiModuleFromInstance(instance, memory, wasiImports);
 }
 
 async function loadWasmBinary(path: string): Promise<Uint8Array> {
@@ -88,7 +92,8 @@ async function loadWasmBinary(path: string): Promise<Uint8Array> {
 function createWasiModuleFromInstance(
   instance: WebAssembly.Instance,
   memory: WebAssembly.Memory,
-): WasiModule {
+  wasiImports: WasiImportDisposable,
+): WasiModule & Disposable {
   const exports = instance.exports;
 
   function readCString(ptr: number): string {
@@ -131,5 +136,6 @@ function createWasiModuleFromInstance(
       (exports.tl_get_last_error_code as () => number)(),
     tl_clear_error: () => (exports.tl_clear_error as () => void)(),
     memory,
+    [Symbol.dispose]: () => wasiImports[Symbol.dispose](),
   };
 }
