@@ -1,0 +1,135 @@
+/**
+ * @fileoverview WASI host loader for in-process filesystem access
+ *
+ * Loads the taglib_wasi.wasm binary with real WASI filesystem
+ * implementations, enabling efficient seek-based file I/O without
+ * the Wasmtime sidecar subprocess.
+ */
+
+import { createWasiImports, type WasiHostConfig } from "./wasi-host.ts";
+import type { WasiModule } from "./wasmer-sdk-loader.ts";
+
+export interface WasiHostLoaderConfig {
+  wasmPath?: string;
+  preopens?: Record<string, string>;
+}
+
+export class WasiHostLoadError extends Error {
+  readonly code = "WASI_HOST_LOAD_ERROR" as const;
+  constructor(message: string, cause?: unknown) {
+    super(message, { cause });
+    this.name = "WasiHostLoadError";
+  }
+}
+
+export async function loadWasiHost(
+  config: WasiHostLoaderConfig,
+): Promise<WasiModule> {
+  const wasmPath = config.wasmPath ?? "./dist/wasi/taglib_wasi.wasm";
+  const preopens = config.preopens ?? {};
+
+  const wasmBytes = await loadWasmBinary(wasmPath);
+  const wasmModule = await WebAssembly.compile(wasmBytes as BufferSource);
+
+  // We need a Memory object before creating imports, but Wasm defines its own.
+  // Create a placeholder that will be updated after instantiation.
+  const memoryProxy = { buffer: new ArrayBuffer(0) };
+
+  const hostConfig: WasiHostConfig = {
+    preopens,
+    stderr: (data) => {
+      const text = new TextDecoder().decode(data);
+      if (text.trim()) console.error(`[wasi-host] ${text}`);
+    },
+  };
+
+  const wasiImports = createWasiImports(memoryProxy, hostConfig);
+
+  const importObject = {
+    wasi_snapshot_preview1: wasiImports,
+    env: {},
+  };
+
+  const instance = await WebAssembly.instantiate(wasmModule, importObject);
+  const memory = instance.exports.memory as WebAssembly.Memory;
+
+  // Patch the memory proxy to point at real memory
+  Object.defineProperty(memoryProxy, "buffer", {
+    get: () => memory.buffer,
+  });
+
+  if (instance.exports._initialize) {
+    (instance.exports._initialize as () => void)();
+  }
+
+  return createWasiModuleFromInstance(instance, memory);
+}
+
+async function loadWasmBinary(path: string): Promise<Uint8Array> {
+  if (path.startsWith("http://") || path.startsWith("https://")) {
+    const response = await fetch(path);
+    if (!response.ok) {
+      throw new WasiHostLoadError(
+        `Failed to fetch Wasm binary: ${response.statusText}`,
+      );
+    }
+    return new Uint8Array(await response.arrayBuffer());
+  }
+  try {
+    return await Deno.readFile(path);
+  } catch (cause) {
+    throw new WasiHostLoadError(
+      `Failed to read Wasm binary: ${path}`,
+      cause,
+    );
+  }
+}
+
+function createWasiModuleFromInstance(
+  instance: WebAssembly.Instance,
+  memory: WebAssembly.Memory,
+): WasiModule {
+  const exports = instance.exports;
+
+  function readCString(ptr: number): string {
+    if (!ptr) return "";
+    const u8 = new Uint8Array(memory.buffer);
+    let end = ptr;
+    while (u8[end] !== 0) end++;
+    return new TextDecoder().decode(u8.slice(ptr, end));
+  }
+
+  return {
+    tl_version: () => {
+      const ptr = (exports.tl_version as () => number)();
+      return readCString(ptr);
+    },
+    tl_api_version: () =>
+      exports.tl_api_version ? (exports.tl_api_version as () => number)() : 100,
+    malloc: (size: number) =>
+      (exports.tl_malloc as (size: number) => number)(size),
+    free: (ptr: number) => (exports.tl_free as (ptr: number) => void)(ptr),
+    tl_read_tags: (pathPtr, bufPtr, len, outSizePtr) =>
+      (exports.tl_read_tags as (
+        p: number,
+        b: number,
+        l: number,
+        o: number,
+      ) => number)(pathPtr, bufPtr, len, outSizePtr),
+    tl_write_tags: (pathPtr, bufPtr, len, tagsPtr, tagsSz, outPtr, outSzPtr) =>
+      (exports.tl_write_tags as (
+        p: number,
+        b: number,
+        l: number,
+        t: number,
+        ts: number,
+        o: number,
+        os: number,
+      ) => number)(pathPtr, bufPtr, len, tagsPtr, tagsSz, outPtr, outSzPtr),
+    tl_get_last_error: () => (exports.tl_get_last_error as () => number)(),
+    tl_get_last_error_code: () =>
+      (exports.tl_get_last_error_code as () => number)(),
+    tl_clear_error: () => (exports.tl_clear_error as () => void)(),
+    memory,
+  };
+}
