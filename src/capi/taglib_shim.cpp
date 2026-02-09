@@ -173,6 +173,8 @@ static TagLib::File* detect_and_open(TagLib::IOStream* stream,
 // Read tags via path using TagLib::FileStream for efficient seek-based I/O.
 // FileStream uses fopen/fseek/fread (backed by WASI syscalls), letting TagLib
 // read only tag headers/footers instead of loading the entire file.
+// NOTE: Cannot use FileRef here — its internal factory pattern crashes with
+// call_indirect type mismatch in Wasm (even with consistent -fwasm-exceptions).
 static tl_error_code read_from_path(const char* path,
                                     uint8_t** out_buf, size_t* out_size) {
     try {
