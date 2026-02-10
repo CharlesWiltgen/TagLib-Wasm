@@ -147,7 +147,7 @@ export class EmscriptenBackendAdapter implements BackendAdapter {
 
   async init(): Promise<void> {
     const { TagLib } = await import("../src/mod.ts");
-    this.#taglib = await TagLib.initialize({ legacyMode: true });
+    this.#taglib = await TagLib.initialize({ forceBufferMode: true });
   }
 
   async dispose(): Promise<void> {

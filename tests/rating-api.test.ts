@@ -1,6 +1,6 @@
 /**
  * @fileoverview Tests for Rating API integration
- * Uses legacy (Emscripten) mode to test the Embind bindings
+ * Uses buffer mode (Emscripten) to test the Embind bindings
  */
 
 import { assertEquals, assertExists } from "@std/assert";
@@ -17,7 +17,7 @@ const TEST_FILES = {
 };
 
 Deno.test("Rating API - getRatings returns empty array for files without ratings", async () => {
-  const taglib = await TagLib.initialize({ legacyMode: true });
+  const taglib = await TagLib.initialize({ forceBufferMode: true });
   const audioData = await Deno.readFile(TEST_FILES.mp3);
   const file = await taglib.open(audioData.buffer);
 
@@ -29,7 +29,7 @@ Deno.test("Rating API - getRatings returns empty array for files without ratings
 });
 
 Deno.test("Rating API - setRatings and getRatings roundtrip for MP3", async () => {
-  const taglib = await TagLib.initialize({ legacyMode: true });
+  const taglib = await TagLib.initialize({ forceBufferMode: true });
   const audioData = await Deno.readFile(TEST_FILES.mp3);
   const file = await taglib.open(audioData.buffer);
 
@@ -54,7 +54,7 @@ Deno.test("Rating API - setRatings and getRatings roundtrip for MP3", async () =
 });
 
 Deno.test("Rating API - convenience methods getRating/setRating", async () => {
-  const taglib = await TagLib.initialize({ legacyMode: true });
+  const taglib = await TagLib.initialize({ forceBufferMode: true });
   const audioData = await Deno.readFile(TEST_FILES.mp3);
   const file = await taglib.open(audioData.buffer);
 
@@ -73,7 +73,7 @@ Deno.test("Rating API - convenience methods getRating/setRating", async () => {
 });
 
 Deno.test("Rating API - multiple ratings", async () => {
-  const taglib = await TagLib.initialize({ legacyMode: true });
+  const taglib = await TagLib.initialize({ forceBufferMode: true });
   const audioData = await Deno.readFile(TEST_FILES.mp3);
   const file = await taglib.open(audioData.buffer);
 
@@ -95,7 +95,7 @@ Deno.test("Rating API - multiple ratings", async () => {
 });
 
 Deno.test("Rating API - FLAC format support", async () => {
-  const taglib = await TagLib.initialize({ legacyMode: true });
+  const taglib = await TagLib.initialize({ forceBufferMode: true });
   const audioData = await Deno.readFile(TEST_FILES.flac);
   const file = await taglib.open(audioData.buffer);
 
@@ -112,7 +112,7 @@ Deno.test("Rating API - FLAC format support", async () => {
 });
 
 Deno.test("Rating API - OGG format support", async () => {
-  const taglib = await TagLib.initialize({ legacyMode: true });
+  const taglib = await TagLib.initialize({ forceBufferMode: true });
   const audioData = await Deno.readFile(TEST_FILES.ogg);
   const file = await taglib.open(audioData.buffer);
 
@@ -129,7 +129,7 @@ Deno.test("Rating API - OGG format support", async () => {
 });
 
 Deno.test("Rating API - M4A/MP4 format support", async () => {
-  const taglib = await TagLib.initialize({ legacyMode: true });
+  const taglib = await TagLib.initialize({ forceBufferMode: true });
   const audioData = await Deno.readFile(TEST_FILES.m4a);
   const file = await taglib.open(audioData.buffer);
 
@@ -146,7 +146,7 @@ Deno.test("Rating API - M4A/MP4 format support", async () => {
 });
 
 Deno.test("Rating API - Opus format support", async () => {
-  const taglib = await TagLib.initialize({ legacyMode: true });
+  const taglib = await TagLib.initialize({ forceBufferMode: true });
   const audioData = await Deno.readFile(TEST_FILES.opus);
   const file = await taglib.open(audioData.buffer);
 

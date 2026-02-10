@@ -10,11 +10,7 @@ editors.
 The folder API is available through a dedicated import path:
 
 ```typescript
-import {
-  findDuplicates,
-  scanFolder,
-  updateFolderTags,
-} from "taglib-wasm/folder";
+import { findDuplicates, scanFolder, updateFolderTags } from "taglib-wasm";
 ```
 
 ::: tip Runtime Support
@@ -119,8 +115,8 @@ for (const failure of result.failed) {
 Find duplicate audio files based on metadata criteria:
 
 ```typescript
-// Find duplicates by artist and title
-const duplicates = await findDuplicates("/path/to/music", ["artist", "title"]);
+// Find duplicates by artist and title (default criteria)
+const duplicates = await findDuplicates("/path/to/music");
 
 console.log(`Found ${duplicates.size} groups of duplicates`);
 
@@ -136,13 +132,12 @@ for (const [key, files] of duplicates) {
 }
 
 // Find duplicates by different criteria
-const albumDuplicates = await findDuplicates("/music", ["album", "artist"]);
-const exactDuplicates = await findDuplicates("/music", [
-  "artist",
-  "album",
-  "title",
-  "track",
-]);
+const albumDuplicates = await findDuplicates("/music", {
+  criteria: ["album", "artist"],
+});
+const exactDuplicates = await findDuplicates("/music", {
+  criteria: ["artist", "album", "title", "track"],
+});
 ```
 
 ## Exporting Metadata
@@ -293,7 +288,7 @@ await updateFolderTags(updates);
 
 ```typescript
 // Find and handle duplicates
-const duplicates = await findDuplicates("/music", ["artist", "title"]);
+const duplicates = await findDuplicates("/music");
 
 for (const [key, files] of duplicates) {
   // Sort by quality (highest bitrate first)

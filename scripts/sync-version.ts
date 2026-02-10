@@ -45,17 +45,20 @@ async function writeJsonFile(path: string, data: unknown): Promise<void> {
  */
 function parseVersion(
   version: string,
-): { major: number; minor: number; patch: number } {
-  const match = version.match(/^(\d+)\.(\d+)\.(\d+)$/);
+): { major: number; minor: number; patch: number; prerelease?: string } {
+  const match = version.match(
+    /^(\d+)\.(\d+)\.(\d+)(?:-([a-zA-Z0-9.]+))?$/,
+  );
   if (!match) {
     throw new Error(
-      `Invalid version format: ${version}. Expected: major.minor.patch`,
+      `Invalid version format: ${version}. Expected: major.minor.patch[-prerelease]`,
     );
   }
   return {
     major: parseInt(match[1], 10),
     minor: parseInt(match[2], 10),
     patch: parseInt(match[3], 10),
+    prerelease: match[4],
   };
 }
 

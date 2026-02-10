@@ -9,7 +9,7 @@ import { join } from "@std/path";
 const TEST_FILES_DIR = join(Deno.cwd(), "tests/test-files");
 
 Deno.test("Partial Loading", async (t) => {
-  const taglib = await TagLib.initialize();
+  const taglib = await TagLib.initialize({ forceBufferMode: true });
 
   await t.step("should load file with partial option", async () => {
     const filePath = join(TEST_FILES_DIR, "mp3/kiss-snippet.mp3");

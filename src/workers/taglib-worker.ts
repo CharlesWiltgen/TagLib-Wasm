@@ -10,9 +10,13 @@ import type { Tag } from "../types.ts";
 import {
   applyTags,
   readProperties,
+  setBufferMode,
   setCoverArt,
   updateTags,
 } from "../simple.ts";
+
+// Force Emscripten buffer mode in workers (WASI Wasmer SDK not yet stable)
+setBufferMode(true);
 
 // Cached TagLib instance
 let taglib: TagLib | null = null;
@@ -23,7 +27,7 @@ let taglib: TagLib | null = null;
 async function initializeTagLib(): Promise<void> {
   if (!taglib) {
     const { TagLib } = await import("../taglib.ts");
-    taglib = await TagLib.initialize();
+    taglib = await TagLib.initialize({ forceBufferMode: true });
   }
 }
 

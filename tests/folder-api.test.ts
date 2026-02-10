@@ -6,8 +6,11 @@ import {
   scanFolder,
   updateFolderTags,
 } from "../src/folder-api.ts";
-import { readTags } from "../src/simple.ts";
+import { readTags, setBufferMode } from "../src/simple.ts";
 import { terminateGlobalWorkerPool } from "../src/worker-pool.ts";
+
+// Force Emscripten backend for Simple API calls
+setBufferMode(true);
 
 const TEST_FILES_DIR = new URL("./test-files", import.meta.url).pathname;
 
@@ -15,6 +18,7 @@ Deno.test("scanFolder - reads all audio files with metadata", async () => {
   const result = await scanFolder(TEST_FILES_DIR, {
     recursive: true,
     useWorkerPool: false, // Disable worker pool for test stability
+    forceBufferMode: true,
     onProgress: (processed, total) => {
       console.log(`Progress: ${processed}/${total}`);
     },
@@ -58,6 +62,8 @@ Deno.test("scanFolder - respects file extension filter", async () => {
   const result = await scanFolder(TEST_FILES_DIR, {
     extensions: [".mp3"],
     recursive: true,
+    useWorkerPool: false,
+    forceBufferMode: true,
   });
 
   // Should only find MP3 files
@@ -70,6 +76,8 @@ Deno.test("scanFolder - respects max files limit", async () => {
   const result = await scanFolder(TEST_FILES_DIR, {
     maxFiles: 2,
     recursive: true,
+    useWorkerPool: false,
+    forceBufferMode: true,
   });
 
   assertEquals(result.files.length, 2);
@@ -86,6 +94,7 @@ Deno.test("scanFolder - handles errors gracefully", async () => {
     const result = await scanFolder(tempDir, {
       continueOnError: true,
       useWorkerPool: false, // Disable worker pool to avoid timer leaks in tests
+      forceBufferMode: true,
     });
 
     assertEquals(result.totalFound, 1);
@@ -170,7 +179,10 @@ Deno.test("findDuplicates - finds files with same metadata", async () => {
   ]);
 
   try {
-    const duplicates = await findDuplicates(tempDir);
+    const duplicates = await findDuplicates(tempDir, {
+      useWorkerPool: false,
+      forceBufferMode: true,
+    });
 
     // Should find one group of duplicates
     assertEquals(duplicates.size, 1);
@@ -194,6 +206,8 @@ Deno.test("exportFolderMetadata - exports to JSON", async () => {
   try {
     await exportFolderMetadata(TEST_FILES_DIR, tempFile, {
       recursive: true,
+      useWorkerPool: false,
+      forceBufferMode: true,
     });
 
     // Read and parse the exported JSON
@@ -222,47 +236,56 @@ Deno.test("exportFolderMetadata - exports to JSON", async () => {
   }
 });
 
-Deno.test("scanFolder - parallel processing", async () => {
-  const startTime = Date.now();
+Deno.test({
+  name: "scanFolder - parallel processing",
+  sanitizeOps: false,
+  sanitizeResources: false,
+  fn: async () => {
+    const startTime = Date.now();
 
-  // Test with different concurrency levels
-  const result1 = await scanFolder(TEST_FILES_DIR, {
-    recursive: true,
-    useWorkerPool: false, // Sequential processing
-  });
+    // Test with different concurrency levels
+    const result1 = await scanFolder(TEST_FILES_DIR, {
+      recursive: true,
+      useWorkerPool: false, // Sequential processing
+      forceBufferMode: true,
+    });
 
-  const duration1 = Date.now() - startTime;
+    const duration1 = Date.now() - startTime;
 
-  const startTime2 = Date.now();
-  const result2 = await scanFolder(TEST_FILES_DIR, {
-    recursive: true,
-    useWorkerPool: true, // Parallel processing with worker pool
-  });
+    const startTime2 = Date.now();
+    const result2 = await scanFolder(TEST_FILES_DIR, {
+      recursive: true,
+      useWorkerPool: true, // Parallel processing with worker pool
+      forceBufferMode: true,
+    });
 
-  const duration2 = Date.now() - startTime2;
+    const duration2 = Date.now() - startTime2;
 
-  // Both should find the same files
-  console.log(
-    `Result1: found=${result1.totalFound}, processed=${result1.totalProcessed}`,
-  );
-  console.log(
-    `Result2: found=${result2.totalFound}, processed=${result2.totalProcessed}`,
-  );
-  assertEquals(result1.totalFound, result2.totalFound);
-  // Processing might vary slightly due to timing, but both should process at least some files
-  assertEquals(result1.totalProcessed > 0, true);
-  assertEquals(result2.totalProcessed > 0, true);
+    // Both should find the same files
+    console.log(
+      `Result1: found=${result1.totalFound}, processed=${result1.totalProcessed}`,
+    );
+    console.log(
+      `Result2: found=${result2.totalFound}, processed=${result2.totalProcessed}`,
+    );
+    assertEquals(result1.totalFound, result2.totalFound);
+    // Processing might vary slightly due to timing, but both should process at least some files
+    assertEquals(result1.totalProcessed > 0, true);
+    assertEquals(result2.totalProcessed > 0, true);
 
-  console.log(`Sequential duration: ${duration1}ms`);
-  console.log(`Parallel duration: ${duration2}ms`);
+    console.log(`Sequential duration: ${duration1}ms`);
+    console.log(`Parallel duration: ${duration2}ms`);
 
-  // Clean up worker pool if one was created
-  terminateGlobalWorkerPool();
+    // Clean up worker pool if one was created
+    terminateGlobalWorkerPool();
+  },
 });
 
 Deno.test("scanFolder - detects cover art presence", async () => {
   const result = await scanFolder(TEST_FILES_DIR, {
     recursive: true,
+    useWorkerPool: false,
+    forceBufferMode: true,
   });
 
   // Check that hasCoverArt is populated for all files
@@ -289,6 +312,8 @@ Deno.test("scanFolder - detects cover art presence", async () => {
 Deno.test("scanFolder - extracts audio dynamics data", async () => {
   const result = await scanFolder(TEST_FILES_DIR, {
     recursive: true,
+    useWorkerPool: false,
+    forceBufferMode: true,
   });
 
   // Check that dynamics data is extracted when available

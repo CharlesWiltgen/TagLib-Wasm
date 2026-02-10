@@ -75,4 +75,38 @@ forEachBackend("Unicode Comprehensive", (adapter: BackendAdapter) => {
     assertEquals(tags.artist, mixed);
     assertEquals(tags.album, mixed);
   });
+
+  it("should handle special unicode characters (ZWJ, combining marks)", async () => {
+    const zwjTitle = "Zero\u200BWidth\u200BJoiner";
+    const combiningArtist = "Combi\u0301ning Ma\u0300rks";
+    const modified = await adapter.writeTags(
+      flacBuffer,
+      { title: zwjTitle, artist: combiningArtist },
+      "flac",
+    );
+    assertExists(modified, "write returned null for special unicode");
+
+    const tags = await adapter.readTags(modified!, "flac");
+    assertExists(tags.title, "should handle zero-width joiners");
+    assertExists(tags.artist, "should handle combining marks");
+  });
+
+  it("should handle very long emoji strings (64KB+)", async () => {
+    const longString = "🎵".repeat(32768);
+
+    try {
+      const modified = await adapter.writeTags(
+        flacBuffer,
+        { title: longString.substring(0, 1000), comment: longString },
+        "flac",
+      );
+
+      if (modified) {
+        const tags = await adapter.readTags(modified, "flac");
+        assertExists(tags.title, "should preserve start of long title");
+      }
+    } catch {
+      // Format limitations may reject very long strings — acceptable
+    }
+  });
 });

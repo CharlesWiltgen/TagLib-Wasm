@@ -385,10 +385,12 @@ const taglib = await initializeForDenoCompile();
 
 ### Runtime Detection (WASI vs Emscripten)
 
-taglib-wasm automatically selects the optimal WebAssembly implementation:
+taglib-wasm automatically selects the optimal WebAssembly backend:
 
-- **Deno/Node.js**: Uses WASI (10x faster MessagePack serialization)
-- **Browsers/Workers**: Uses Emscripten (web compatibility)
+| Environment            | Backend           | How it works                                                          |
+| ---------------------- | ----------------- | --------------------------------------------------------------------- |
+| **Deno / Node.js**     | WASI (auto)       | Seek-based filesystem I/O — reads only headers/tags, not entire files |
+| **Browsers / Workers** | Emscripten (auto) | Entire file loaded into memory as buffer                              |
 
 ```typescript
 const taglib = await TagLib.initialize();
@@ -398,7 +400,21 @@ console.log(taglib.isWasi); // true for Deno/Node.js
 console.log(taglib.isEmscripten); // true for browsers/Workers
 ```
 
-Most users don't need to configure this - it's automatic.
+Most users don't need to configure this — it's automatic.
+
+To force a specific backend (e.g., for testing or compatibility):
+
+```typescript
+// Force Emscripten buffer mode (in-memory I/O)
+const taglib = await TagLib.initialize({ forceBufferMode: true });
+
+// Force a specific Wasm backend
+const taglib = await TagLib.initialize({ forceWasmType: "emscripten" });
+
+// For Simple API, set buffer mode globally
+import { setBufferMode } from "taglib-wasm";
+setBufferMode(true); // All subsequent Simple API calls use Emscripten
+```
 
 ### Module Systems
 
@@ -759,7 +775,9 @@ const updateResult = await updateFolderTags(updates);
 console.log(`Updated ${updateResult.successful} files`);
 
 // Find duplicates
-const duplicates = await findDuplicates("/music", ["artist", "title"]);
+const duplicates = await findDuplicates("/music", {
+  criteria: ["artist", "title"],
+});
 console.log(`Found ${duplicates.size} groups of duplicates`);
 
 // Export metadata to JSON
@@ -1067,7 +1085,9 @@ await updateTags("song.m4a", mp3Tags);
 import { findDuplicates } from "taglib-wasm";
 import { readProperties } from "taglib-wasm/simple";
 
-const duplicates = await findDuplicates("/music", ["artist", "title"]);
+const duplicates = await findDuplicates("/music", {
+  criteria: ["artist", "title"],
+});
 
 for (const [key, files] of duplicates) {
   console.log(`\nDuplicate: ${key}`);
@@ -1797,7 +1817,9 @@ async function analyzeMusicLibrary(directory: string) {
   console.log(`- Files with Sound Check: ${filesWithSoundCheck}`);
 
   // Find duplicates
-  const duplicates = await findDuplicates(directory, ["artist", "title"]);
+  const duplicates = await findDuplicates(directory, {
+    criteria: ["artist", "title"],
+  });
   console.log(`\nFound ${duplicates.size} duplicate groups`);
 
   // Export full catalog

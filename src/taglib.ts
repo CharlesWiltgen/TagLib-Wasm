@@ -959,7 +959,7 @@ export class TagLib {
       debug?: boolean;
     };
     // New unified loader options
-    legacyMode?: boolean;
+    forceBufferMode?: boolean;
     forceWasmType?: "wasi" | "emscripten";
     disableOptimizations?: boolean;
     // Sidecar options for direct filesystem access
@@ -1300,10 +1300,10 @@ export class TagLib {
  *
  * @example
  * ```typescript
- * import { loadTagLibModule, createTagLib } from "taglib-wasm";
+ * import { loadTagLibModule, TagLib } from "taglib-wasm";
  *
  * const module = await loadTagLibModule();
- * const taglib = await createTagLib(module);
+ * const taglib = new TagLib(module);
  * ```
  */
 export async function createTagLib(module: WasmModule): Promise<TagLib> {

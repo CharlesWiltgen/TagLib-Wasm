@@ -57,8 +57,8 @@ export async function initializeForDenoCompile(
       // @ts-ignore: Deno global is only available in Deno runtime
       const wasmBinary = await Deno.readFile(wasmUrl);
 
-      // Initialize with the embedded binary
-      return await TagLib.initialize({ wasmBinary });
+      // Initialize with the embedded binary (Deno compile uses Emscripten)
+      return await TagLib.initialize({ wasmBinary, forceBufferMode: true });
     } catch (error) {
       // Log warning but don't fail - fall back to network
       console.warn(
@@ -69,8 +69,8 @@ export async function initializeForDenoCompile(
     }
   }
 
-  // Fall back to default network-based initialization
-  return await TagLib.initialize();
+  // Fall back to default network-based initialization (Emscripten for compile targets)
+  return await TagLib.initialize({ forceBufferMode: true });
 }
 
 /**

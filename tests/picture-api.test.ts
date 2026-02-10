@@ -15,6 +15,7 @@ import {
   getPictureMetadata,
   readPictures,
   replacePictureByType,
+  setBufferMode,
   setCoverArt,
 } from "../src/simple.ts";
 import {
@@ -37,12 +38,15 @@ import {
 import type { PictureType } from "../src/types.ts";
 import { PICTURE_TYPE_VALUES } from "../src/types.ts";
 
+// Force Emscripten backend for Simple API calls
+setBufferMode(true);
+
 // =============================================================================
 // Core Picture API Tests
 // =============================================================================
 
 Deno.test("Picture API: Read pictures from files", async () => {
-  const taglib = await TagLib.initialize();
+  const taglib = await TagLib.initialize({ forceBufferMode: true });
 
   // Test MP3 file with no pictures
   const mp3File = await taglib.open(TEST_FILES.mp3);
@@ -68,7 +72,7 @@ Deno.test("Picture API: Read pictures from files", async () => {
 });
 
 Deno.test("Picture API: Add and retrieve pictures", async () => {
-  const taglib = await TagLib.initialize();
+  const taglib = await TagLib.initialize({ forceBufferMode: true });
 
   // Test with MP3
   {
@@ -130,7 +134,7 @@ Deno.test("Picture API: Add and retrieve pictures", async () => {
 });
 
 Deno.test("Picture API: Remove pictures", async () => {
-  const taglib = await TagLib.initialize();
+  const taglib = await TagLib.initialize({ forceBufferMode: true });
   const buffer = await readFileData(TEST_FILES.mp3);
   const file = await taglib.open(buffer);
 
@@ -154,7 +158,7 @@ Deno.test("Picture API: Remove pictures", async () => {
 });
 
 Deno.test("Picture API: Different picture types", async () => {
-  const taglib = await TagLib.initialize();
+  const taglib = await TagLib.initialize({ forceBufferMode: true });
   const buffer = await readFileData(TEST_FILES.flac);
   const file = await taglib.open(buffer);
 

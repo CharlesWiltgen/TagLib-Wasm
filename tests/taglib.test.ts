@@ -22,10 +22,14 @@ import {
   isValidAudioFile,
   readProperties,
   readTags,
+  setBufferMode,
 } from "../src/simple.ts";
 import { processAudioMetadata, TagLibWorkers } from "../src/workers.ts";
 import { isCloudflareWorkers } from "../src/wasm-workers.ts";
 import { EXPECTED_FORMATS, TEST_FILES } from "./test-utils.ts";
+
+// Force Emscripten backend for Simple API calls
+setBufferMode(true);
 
 // =============================================================================
 // Initialization Tests
@@ -33,7 +37,7 @@ import { EXPECTED_FORMATS, TEST_FILES } from "./test-utils.ts";
 
 Deno.test("TagLib: Initialization", async () => {
   // Test initialization
-  const taglib = await TagLib.initialize();
+  const taglib = await TagLib.initialize({ forceBufferMode: true });
   assertExists(taglib, "TagLib instance should exist after init");
 });
 
@@ -42,7 +46,7 @@ Deno.test("TagLib: Initialization", async () => {
 // =============================================================================
 
 Deno.test("Full API: Basic Operations", async () => {
-  const taglib = await TagLib.initialize();
+  const taglib = await TagLib.initialize({ forceBufferMode: true });
   assertExists(taglib, "TagLib instance should exist");
 
   // Test version method
@@ -51,7 +55,7 @@ Deno.test("Full API: Basic Operations", async () => {
 });
 
 Deno.test("Full API: Format Detection", async () => {
-  const taglib = await TagLib.initialize();
+  const taglib = await TagLib.initialize({ forceBufferMode: true });
 
   for (const [format, path] of Object.entries(TEST_FILES)) {
     const audioData = await Deno.readFile(path);
@@ -69,7 +73,7 @@ Deno.test("Full API: Format Detection", async () => {
 });
 
 Deno.test("Full API: Audio Properties", async () => {
-  const taglib = await TagLib.initialize();
+  const taglib = await TagLib.initialize({ forceBufferMode: true });
   const audioData = await Deno.readFile(TEST_FILES.mp3);
   const file = await taglib.open(audioData.buffer);
 
@@ -84,7 +88,7 @@ Deno.test("Full API: Audio Properties", async () => {
 });
 
 Deno.test("Full API: Tag Reading", async () => {
-  const taglib = await TagLib.initialize();
+  const taglib = await TagLib.initialize({ forceBufferMode: true });
   const audioData = await Deno.readFile(TEST_FILES.mp3);
   const file = await taglib.open(audioData.buffer);
 
@@ -102,7 +106,7 @@ Deno.test("Full API: Tag Reading", async () => {
 });
 
 Deno.test("Full API: Tag Writing", async () => {
-  const taglib = await TagLib.initialize();
+  const taglib = await TagLib.initialize({ forceBufferMode: true });
   const audioData = await Deno.readFile(TEST_FILES.mp3);
   const file = await taglib.open(audioData.buffer);
 
@@ -134,7 +138,7 @@ Deno.test("Full API: Tag Writing", async () => {
 });
 
 Deno.test("Full API: Extended Tag Support", async () => {
-  const taglib = await TagLib.initialize();
+  const taglib = await TagLib.initialize({ forceBufferMode: true });
   const audioData = await Deno.readFile(TEST_FILES.mp3);
   const file = await taglib.open(audioData.buffer);
 
@@ -149,7 +153,7 @@ Deno.test("Full API: Extended Tag Support", async () => {
 });
 
 Deno.test("Full API: Memory Management", async () => {
-  const taglib = await TagLib.initialize();
+  const taglib = await TagLib.initialize({ forceBufferMode: true });
 
   // Test multiple file operations
   for (let i = 0; i < 10; i++) {
@@ -267,7 +271,7 @@ Deno.test("Error Handling: Non-existent File", async () => {
 });
 
 Deno.test("Error Handling: Invalid Audio Data", async () => {
-  const taglib = await TagLib.initialize();
+  const taglib = await TagLib.initialize({ forceBufferMode: true });
   const invalidData = new Uint8Array([0, 1, 2, 3, 4, 5]);
 
   try {
@@ -286,7 +290,7 @@ Deno.test("Error Handling: Invalid Audio Data", async () => {
 });
 
 Deno.test("Error Handling: Empty Buffer", async () => {
-  const taglib = await TagLib.initialize();
+  const taglib = await TagLib.initialize({ forceBufferMode: true });
   const emptyData = new Uint8Array(0);
 
   try {
@@ -333,7 +337,7 @@ Deno.test("Workers API: Module Structure", async () => {
 // =============================================================================
 
 Deno.test("Performance: Format Processing Speed", async () => {
-  const taglib = await TagLib.initialize();
+  const taglib = await TagLib.initialize({ forceBufferMode: true });
   const results: Record<string, number> = {};
 
   for (const [format, path] of Object.entries(TEST_FILES)) {
@@ -360,7 +364,7 @@ Deno.test("Performance: API Comparison", async () => {
 
   // Full API timing
   const coreStart = performance.now();
-  const taglib = await TagLib.initialize();
+  const taglib = await TagLib.initialize({ forceBufferMode: true });
   const file = await taglib.open(audioData.buffer);
   file.tag();
   file.dispose();
@@ -419,7 +423,7 @@ Deno.test("Format Tests: File Headers", async () => {
 });
 
 Deno.test("Format Tests: Systematic All Formats", async () => {
-  const taglib = await TagLib.initialize();
+  const taglib = await TagLib.initialize({ forceBufferMode: true });
   const results: Record<string, boolean> = {};
 
   console.log("\n🎵 Systematic Format Testing");
@@ -652,7 +656,7 @@ Deno.test({
   fn: async () => {
     let taglib: TagLib | undefined;
     try {
-      taglib = await TagLib.initialize();
+      taglib = await TagLib.initialize({ forceBufferMode: true });
       const { createTestFiles, measureTime } = await import("./test-utils.ts");
 
       const files = await createTestFiles(20, "mp3");
@@ -746,7 +750,7 @@ Deno.test("readMetadataBatch - processes files with dynamics metadata", async ()
 
   try {
     // Add ReplayGain data using full API
-    const taglib = await TagLib.initialize();
+    const taglib = await TagLib.initialize({ forceBufferMode: true });
     const audioFile = await taglib.open(tempFile);
     audioFile.setProperty("REPLAYGAIN_TRACK_GAIN", "-6.5 dB");
     audioFile.setProperty("REPLAYGAIN_TRACK_PEAK", "0.95");
