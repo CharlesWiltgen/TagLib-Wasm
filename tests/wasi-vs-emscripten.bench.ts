@@ -5,20 +5,25 @@
  * 1. WASI host: Seek-based filesystem I/O via WASI syscalls (reads only headers/tags)
  * 2. Emscripten: Host reads entire file into memory, passes buffer to Wasm
  *
- * All formats (FLAC, OGG, MP3, WAV, M4A) are supported via the EH-enabled sysroot.
+ * Emscripten benchmarks intentionally include host file I/O (Deno.readFile) to
+ * measure end-to-end cost — the real-world workflow requires loading the full
+ * file before passing it to the Wasm module.
  *
  * Run with: deno bench --allow-read --allow-write --allow-env tests/wasi-vs-emscripten.bench.ts
  */
 
 import { resolve } from "@std/path";
 import { loadWasiHost } from "../src/runtime/wasi-host-loader.ts";
-import { WasmArena, type WasmExports } from "../src/runtime/wasi-memory.ts";
-import { decodeTagData } from "../src/msgpack/decoder.ts";
-import { encodeTagData } from "../src/msgpack/encoder.ts";
 import { TagLib } from "../src/taglib.ts";
 import type { WasiModule } from "../src/runtime/wasmer-sdk-loader.ts";
-import type { ExtendedTag, Tag } from "../src/types.ts";
+import type { Tag } from "../src/types.ts";
 import { TEST_FILES } from "./test-utils.ts";
+import {
+  fileExists,
+  FORMAT_FILES,
+  readTagsViaPath,
+  writeTagsWasi,
+} from "./wasi-test-helpers.ts";
 
 const PROJECT_ROOT = resolve(Deno.cwd());
 const TEST_FILES_DIR = resolve(PROJECT_ROOT, "tests/test-files");
@@ -27,56 +32,6 @@ const WASM_PATH = resolve(PROJECT_ROOT, "dist/wasi/taglib_wasi.wasm");
 const DEEZER_DIR = "/Volumes/T9 (4TB)/Downloads/Deezer";
 const REAL_FLAC_SRC =
   `${DEEZER_DIR}/Various Artists - 90s Acoustic Hits/Counting Crows - Mr. Jones.flac`;
-
-function fileExists(path: string): boolean {
-  try {
-    Deno.statSync(path);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-function readTagsWasi(
-  wasi: WasiModule,
-  virtualPath: string,
-): ReturnType<typeof decodeTagData> {
-  using arena = new WasmArena(wasi as WasmExports);
-  const pathAlloc = arena.allocString(virtualPath);
-  const outSizePtr = arena.allocUint32();
-
-  const resultPtr = wasi.tl_read_tags(pathAlloc.ptr, 0, 0, outSizePtr.ptr);
-  if (resultPtr === 0) throw new Error(`WASI read failed: ${virtualPath}`);
-
-  const outSize = outSizePtr.readUint32();
-  const u8 = new Uint8Array(wasi.memory.buffer);
-  return decodeTagData(
-    new Uint8Array(u8.slice(resultPtr, resultPtr + outSize)),
-  );
-}
-
-function writeTagsWasi(
-  wasi: WasiModule,
-  virtualPath: string,
-  tags: ExtendedTag,
-): void {
-  using arena = new WasmArena(wasi as WasmExports);
-  const pathAlloc = arena.allocString(virtualPath);
-  const tagBytes = encodeTagData(tags);
-  const tagBuf = arena.allocBuffer(tagBytes);
-  const outSizePtr = arena.allocUint32();
-
-  const result = wasi.tl_write_tags(
-    pathAlloc.ptr,
-    0,
-    0,
-    tagBuf.ptr,
-    tagBuf.size,
-    0,
-    outSizePtr.ptr,
-  );
-  if (result !== 0) throw new Error(`WASI write failed: ${virtualPath}`);
-}
 
 async function readTagsEmscripten(
   taglib: TagLib,
@@ -104,7 +59,6 @@ if (!HAS_DEEZER) {
   );
 }
 
-// Pre-init WASI host module (reused across bench iterations)
 let wasi: (WasiModule & Disposable) | null = null;
 if (HAS_WASM) {
   wasi = await loadWasiHost({
@@ -113,13 +67,11 @@ if (HAS_WASM) {
   });
 }
 
-// Pre-init Emscripten TagLib (legacy mode forces Emscripten binary)
 let emTagLib: TagLib | null = null;
 if (HAS_WASM) {
   emTagLib = await TagLib.initialize({ legacyMode: true });
 }
 
-// Copy real-world FLAC to temp dir (if available)
 let realTempDir: string | null = null;
 let realWasi: (WasiModule & Disposable) | null = null;
 
@@ -133,7 +85,6 @@ if (HAS_WASM && HAS_DEEZER) {
   });
 }
 
-// Write benchmark temp dir
 let writeTempDir: string | null = null;
 let writeWasi: (WasiModule & Disposable) | null = null;
 const WRITE_FLAC_SRC = resolve(TEST_FILES_DIR, "flac/kiss-snippet.flac");
@@ -159,134 +110,40 @@ globalThis.addEventListener("unload", () => {
   }
 });
 
-// --- Benchmark groups ---
+// --- Per-format benchmarks (data-driven) ---
+for (const [format, paths] of Object.entries(FORMAT_FILES)) {
+  const group = `read-${format.toLowerCase()}`;
+  Deno.bench({
+    name: "WASI host (path I/O)",
+    group,
+    ignore: !HAS_WASM,
+    fn() {
+      readTagsViaPath(wasi!, paths.virtual);
+    },
+  });
+  Deno.bench({
+    name: "Emscripten (buffer I/O)",
+    group,
+    baseline: true,
+    ignore: !HAS_WASM,
+    async fn() {
+      const key = format.toLowerCase() as keyof typeof TEST_FILES;
+      const buf = await Deno.readFile(resolve(PROJECT_ROOT, TEST_FILES[key]));
+      await readTagsEmscripten(emTagLib!, buf);
+    },
+  });
+}
 
-// read-flac (both engines support FLAC)
-Deno.bench({
-  name: "WASI host (path I/O)",
-  group: "read-flac",
-  ignore: !HAS_WASM,
-  fn() {
-    readTagsWasi(wasi!, "/test/flac/kiss-snippet.flac");
-  },
-});
+// --- Aggregate benchmarks ---
 
-Deno.bench({
-  name: "Emscripten (buffer I/O)",
-  group: "read-flac",
-  baseline: true,
-  ignore: !HAS_WASM,
-  async fn() {
-    const buf = await Deno.readFile(
-      resolve(PROJECT_ROOT, TEST_FILES.flac),
-    );
-    await readTagsEmscripten(emTagLib!, buf);
-  },
-});
-
-// read-ogg (both engines support OGG)
-Deno.bench({
-  name: "WASI host (path I/O)",
-  group: "read-ogg",
-  ignore: !HAS_WASM,
-  fn() {
-    readTagsWasi(wasi!, "/test/ogg/kiss-snippet.ogg");
-  },
-});
-
-Deno.bench({
-  name: "Emscripten (buffer I/O)",
-  group: "read-ogg",
-  baseline: true,
-  ignore: !HAS_WASM,
-  async fn() {
-    const buf = await Deno.readFile(
-      resolve(PROJECT_ROOT, TEST_FILES.ogg),
-    );
-    await readTagsEmscripten(emTagLib!, buf);
-  },
-});
-
-// read-mp3 (MPEG format)
-Deno.bench({
-  name: "WASI host (path I/O)",
-  group: "read-mp3",
-  ignore: !HAS_WASM,
-  fn() {
-    readTagsWasi(wasi!, "/test/mp3/kiss-snippet.mp3");
-  },
-});
-
-Deno.bench({
-  name: "Emscripten (buffer I/O)",
-  group: "read-mp3",
-  baseline: true,
-  ignore: !HAS_WASM,
-  async fn() {
-    const buf = await Deno.readFile(
-      resolve(PROJECT_ROOT, TEST_FILES.mp3),
-    );
-    await readTagsEmscripten(emTagLib!, buf);
-  },
-});
-
-// read-wav (RIFF/WAV format)
-Deno.bench({
-  name: "WASI host (path I/O)",
-  group: "read-wav",
-  ignore: !HAS_WASM,
-  fn() {
-    readTagsWasi(wasi!, "/test/wav/kiss-snippet.wav");
-  },
-});
-
-Deno.bench({
-  name: "Emscripten (buffer I/O)",
-  group: "read-wav",
-  baseline: true,
-  ignore: !HAS_WASM,
-  async fn() {
-    const buf = await Deno.readFile(
-      resolve(PROJECT_ROOT, TEST_FILES.wav),
-    );
-    await readTagsEmscripten(emTagLib!, buf);
-  },
-});
-
-// read-m4a (MP4/AAC format)
-Deno.bench({
-  name: "WASI host (path I/O)",
-  group: "read-m4a",
-  ignore: !HAS_WASM,
-  fn() {
-    readTagsWasi(wasi!, "/test/mp4/kiss-snippet.m4a");
-  },
-});
-
-Deno.bench({
-  name: "Emscripten (buffer I/O)",
-  group: "read-m4a",
-  baseline: true,
-  ignore: !HAS_WASM,
-  async fn() {
-    const buf = await Deno.readFile(
-      resolve(PROJECT_ROOT, TEST_FILES.m4a),
-    );
-    await readTagsEmscripten(emTagLib!, buf);
-  },
-});
-
-// read-all-formats (all 5 formats sequentially)
 Deno.bench({
   name: "WASI host (path I/O)",
   group: "read-all-formats",
   ignore: !HAS_WASM,
   fn() {
-    readTagsWasi(wasi!, "/test/flac/kiss-snippet.flac");
-    readTagsWasi(wasi!, "/test/ogg/kiss-snippet.ogg");
-    readTagsWasi(wasi!, "/test/mp3/kiss-snippet.mp3");
-    readTagsWasi(wasi!, "/test/wav/kiss-snippet.wav");
-    readTagsWasi(wasi!, "/test/mp4/kiss-snippet.m4a");
+    for (const paths of Object.values(FORMAT_FILES)) {
+      readTagsViaPath(wasi!, paths.virtual);
+    }
   },
 });
 
@@ -296,22 +153,15 @@ Deno.bench({
   baseline: true,
   ignore: !HAS_WASM,
   async fn() {
-    for (
-      const disk of [
-        TEST_FILES.flac,
-        TEST_FILES.ogg,
-        TEST_FILES.mp3,
-        TEST_FILES.wav,
-        TEST_FILES.m4a,
-      ]
-    ) {
-      const buf = await Deno.readFile(resolve(PROJECT_ROOT, disk));
+    for (const file of Object.values(TEST_FILES)) {
+      const buf = await Deno.readFile(resolve(PROJECT_ROOT, file));
       await readTagsEmscripten(emTagLib!, buf);
     }
   },
 });
 
-// write-roundtrip (FLAC temp copy)
+// --- Write roundtrip ---
+
 Deno.bench({
   name: "WASI host (path I/O)",
   group: "write-roundtrip",
@@ -322,7 +172,7 @@ Deno.bench({
     writeTagsWasi(writeWasi!, "/tmp/bench-write.flac", {
       title: "Bench Title",
     });
-    readTagsWasi(writeWasi!, "/tmp/bench-write.flac");
+    readTagsViaPath(writeWasi!, "/tmp/bench-write.flac");
   },
 });
 
@@ -349,14 +199,15 @@ Deno.bench({
   },
 });
 
-// batch-10 (same FLAC x10 — simulates scanning)
+// --- Batch scanning ---
+
 Deno.bench({
   name: "WASI host (path I/O)",
   group: "batch-10",
   ignore: !HAS_WASM,
   fn() {
     for (let i = 0; i < 10; i++) {
-      readTagsWasi(wasi!, "/test/flac/kiss-snippet.flac");
+      readTagsViaPath(wasi!, "/test/flac/kiss-snippet.flac");
     }
   },
 });
@@ -376,13 +227,14 @@ Deno.bench({
   },
 });
 
-// real-world FLAC (~33MB) — key test: WASI should dominate
+// --- Real-world FLAC (~33MB) ---
+
 Deno.bench({
   name: "WASI host (path I/O)",
   group: "read-real-flac",
   ignore: !HAS_WASM || !HAS_DEEZER,
   fn() {
-    readTagsWasi(realWasi!, "/real/real.flac");
+    readTagsViaPath(realWasi!, "/real/real.flac");
   },
 });
 
