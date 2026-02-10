@@ -70,7 +70,7 @@ cmake "$TAGLIB_DIR" \
     -DBUILD_EXAMPLES=OFF \
     -DBUILD_TESTS=OFF \
     -DBUILD_BINDINGS=OFF \
-    -DCMAKE_CXX_FLAGS="-O3 -fwasm-exceptions" \
+    -DCMAKE_CXX_FLAGS="-O3 -fwasm-exceptions -mllvm -wasm-use-legacy-eh=false" \
     -DCMAKE_C_FLAGS="-O3"
 
 # Build TagLib
@@ -138,7 +138,6 @@ CAPI_SOURCES=(
     "$SRC_DIR/taglib_shim.cpp"            # Tiny C++ shim with Wasm EH - TagLib exception boundary
     "$SRC_DIR/core/taglib_error.cpp"      # C++ with pure C internals - compiled with Wasm EH
     "$SRC_DIR/core/taglib_msgpack.c"      # Pure C (no exceptions) - MessagePack implementation
-    "$SRC_DIR/core/cxa_stubs.c"           # EH stubs for Itanium symbols from TagLib
 )
 
 # Compile C API sources with proper flags per file type
@@ -164,29 +163,19 @@ for src in "${CAPI_SOURCES[@]}"; do
             -I"$TAGLIB_DIR" \
             -I"$TAGLIB_DIR/taglib" \
             -I"$TAGLIB_DIR/taglib/toolkit" \
-            -I"$TAGLIB_DIR/taglib/mpeg" \
-            -I"$TAGLIB_DIR/taglib/mpeg/id3v2" \
-            -I"$TAGLIB_DIR/taglib/flac" \
-            -I"$TAGLIB_DIR/taglib/mp4" \
-            -I"$TAGLIB_DIR/taglib/ogg" \
-            -I"$TAGLIB_DIR/taglib/ogg/vorbis" \
-            -I"$TAGLIB_DIR/taglib/ogg/opus" \
-            -I"$TAGLIB_DIR/taglib/riff" \
-            -I"$TAGLIB_DIR/taglib/riff/wav" \
-            -I"$TAGLIB_DIR/taglib/riff/aiff" \
             -I"$BUILD_DIR/taglib" \
             -I"$MPACK_DIR/src" \
-            -O3 -std=c++17 -fwasm-exceptions \
+            -O3 -std=c++17 -fwasm-exceptions -mllvm -wasm-use-legacy-eh=false \
             -c -o "$BUILD_DIR/$obj_name"
     else
-        echo "Compiling C++ support file with Wasm EH: $src"  
+        echo "Compiling C++ support file with Wasm EH: $src"
         # C++ support files - use Wasm EH for std::string compatibility
         "$WASI_SDK_PATH/bin/clang++" "$src" \
             --target=wasm32-wasi \
             --sysroot="$WASI_SDK_PATH/share/wasi-sysroot" \
             -I"$SRC_DIR" \
             -I"$MPACK_DIR/src" \
-            -O3 -std=c++17 -fwasm-exceptions \
+            -O3 -std=c++17 -fwasm-exceptions -mllvm -wasm-use-legacy-eh=false \
             -c -o "$BUILD_DIR/$obj_name"
     fi
     CAPI_OBJECTS+=("$BUILD_DIR/$obj_name")
@@ -218,10 +207,12 @@ done
     -Wl,--export=__data_end \
     -Wl,--initial-memory=16777216 \
     -Wl,--max-memory=2147483648 \
-    -DTAGLIB_VERSION=\"2.0.2\" \
+    -DTAGLIB_VERSION=\"2.1.1\" \
     -O3 \
     -std=c++17 \
-    -fwasm-exceptions
+    -fwasm-exceptions \
+    -mllvm -wasm-use-legacy-eh=false \
+    -lunwind
 
 # Check results
 if [ ! -f "$DIST_DIR/taglib_wasi.wasm" ]; then
@@ -252,7 +243,6 @@ echo "Linking sidecar binary..."
     "$BUILD_DIR/taglib_shim.obj" \
     "$BUILD_DIR/taglib_error.obj" \
     "$BUILD_DIR/taglib_msgpack.obj" \
-    "$BUILD_DIR/cxa_stubs.obj" \
     "$BUILD_DIR/taglib/taglib/libtag.a" \
     "$MPACK_BUILD_DIR/libmpack.a" \
     --target=wasm32-wasi \
@@ -262,7 +252,9 @@ echo "Linking sidecar binary..."
     -Wl,--max-memory=2147483648 \
     -O3 \
     -std=c++17 \
-    -fwasm-exceptions
+    -fwasm-exceptions \
+    -mllvm -wasm-use-legacy-eh=false \
+    -lunwind
 
 if [ ! -f "$DIST_DIR/taglib-sidecar.wasm" ]; then
     echo -e "${RED}❌ Sidecar build failed${NC}"
@@ -281,13 +273,13 @@ echo "━━━━━━━━━━━━━━━━━━━━━━━━�
 if command -v wasm-opt &> /dev/null; then
     echo "Optimizing with wasm-opt..."
     wasm-opt -Oz \
-        --enable-simd \
         --enable-bulk-memory \
+        --enable-exception-handling \
         "$DIST_DIR/taglib_wasi.wasm" \
         -o "$DIST_DIR/taglib_wasi.wasm"
     wasm-opt -Oz \
-        --enable-simd \
         --enable-bulk-memory \
+        --enable-exception-handling \
         "$DIST_DIR/taglib-sidecar.wasm" \
         -o "$DIST_DIR/taglib-sidecar.wasm"
     echo -e "${GREEN}✅ Optimization complete${NC}"
@@ -325,21 +317,29 @@ cat > "$DIST_DIR/taglib_wasi.json" << EOF
   "target": "wasm32-wasi",
   "exports": [
     "tl_read_tags",
+    "tl_read_tags_ex",
     "tl_write_tags",
     "tl_free",
+    "tl_malloc",
     "tl_version",
     "tl_get_last_error",
+    "tl_get_last_error_code",
+    "tl_clear_error",
+    "tl_api_version",
+    "tl_has_capability",
+    "tl_detect_format",
+    "tl_format_name",
     "malloc",
     "free"
   ],
   "memory": {
     "initial": 16777216,
-    "maximum": 1073741824
+    "maximum": 2147483648
   },
   "features": {
     "filesystem": true,
-    "simd": false,
-    "bulk_memory": false,
+    "bulk_memory": true,
+    "exception_handling": true,
     "threads": false
   },
   "optimized_for": ["Deno", "Node.js", "Cloudflare Workers"]

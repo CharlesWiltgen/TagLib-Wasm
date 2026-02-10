@@ -331,9 +331,9 @@ All WASI binaries use a hybrid C/C++ approach to avoid Wasm EH model conflicts:
 - **Pure C** (`taglib_boundary.c`, `taglib_sidecar.c`, `taglib_msgpack.c`): No exception handling
 - **C++ shim** (`taglib_shim.cpp`): `-fwasm-exceptions` to catch TagLib C++ exceptions
 - **C++ support** (`taglib_error.cpp`): `-fwasm-exceptions` for std::string compatibility
-- **EH stubs** (`cxa_stubs.c`): Stubs for any residual Itanium EH symbols from TagLib
+- **EH sysroot**: libc++abi + libunwind rebuilt with `-fwasm-exceptions` (via `build/build-eh-sysroot.sh`)
 
-Mixing `-fwasm-exceptions` and `-fexceptions` (Itanium) causes linker errors. See `.claude/rules/wasm-exception-handling.md`.
+All C++ code uses consistent Wasm EH flags (`-fwasm-exceptions -mllvm -wasm-use-legacy-eh=false`). See `.claude/rules/wasm-exception-handling.md`.
 
 ### Sidecar IPC Protocol
 
