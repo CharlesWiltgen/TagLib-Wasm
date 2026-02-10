@@ -31,8 +31,10 @@ TagLib itself is legendary, and a core dependency of many music apps.
 
 ## Features
 
-- **Blazing fast performance** – Batch processing delivers 10-20x speedup for
-  multiple files
+- **Local filesystem support** – On Deno and Node.js, WASI enables seek-based
+  I/O that reads only headers and tags from disk — not entire files
+- **Automatic runtime optimization** – Auto-selects WASI (server) or Emscripten
+  (browser) for optimal performance with no configuration
 - **Full audio format support** – Supports all audio formats supported by TagLib
 - **TypeScript first** – Complete type definitions and modern API
 - **Wide TS/JS runtime support** – Deno, Node.js, Bun, Electron, Cloudflare
@@ -40,8 +42,6 @@ TagLib itself is legendary, and a core dependency of many music apps.
 - **Format abstraction** – Handles container format details automagically when
   possible
 - **Zero dependencies** – Self-contained Wasm bundle
-- **Automatic runtime optimization** – Uses WASI for Deno/Node.js, Emscripten
-  for browsers
 - **Production ready** – Growing test suite helps ensure safety and reliability
 - **Two API styles** – Use the "Simple" API (3 functions), or the full "Core"
   API for more advanced applications
@@ -195,7 +195,7 @@ file.dispose();
 Process entire music collections efficiently:
 
 ```typescript
-import { findDuplicates, scanFolder } from "taglib-wasm/folder";
+import { findDuplicates, scanFolder } from "taglib-wasm";
 
 // Scan a music library
 const result = await scanFolder("/path/to/music", {
@@ -216,7 +216,9 @@ for (const file of result.files) {
 }
 
 // Find duplicates
-const duplicates = await findDuplicates("/path/to/music", ["artist", "title"]);
+const duplicates = await findDuplicates("/path/to/music", {
+  criteria: ["artist", "title"],
+});
 console.log(`Found ${duplicates.size} groups of duplicates`);
 ```
 
@@ -417,20 +419,29 @@ await file.saveToFile(); // Full file loaded only here
 - **Initial load**: 50x faster (50ms vs 2500ms)
 - **Memory peak**: 3.3MB instead of 1.5GB
 
-### High-Performance Mode: Wasmtime Sidecar
+### Runtime Optimization Tiers
 
-For server-side batch operations, enable the Wasmtime sidecar for true direct
-filesystem access:
+taglib-wasm auto-selects the fastest available backend — no configuration needed:
+
+| Environment            | Backend           | How it works                                           | Performance    |
+| ---------------------- | ----------------- | ------------------------------------------------------ | -------------- |
+| **Deno / Node.js**     | WASI (auto)       | Seek-based filesystem I/O; reads only headers and tags | Fastest        |
+| **Browsers / Workers** | Emscripten (auto) | Entire file loaded into memory as buffer               | Baseline       |
+| **Opt-in**             | Wasmtime sidecar  | Out-of-process WASI with direct filesystem access      | Best for batch |
+
+On Deno and Node.js you get WASI automatically — nothing to configure. For
+heavy batch workloads, the optional Wasmtime sidecar provides direct filesystem
+access via a sandboxed subprocess:
 
 ```bash
-# Prerequisites: Install Wasmtime
+# Optional: Install Wasmtime for sidecar mode
 curl https://wasmtime.dev/install.sh -sSf | bash
 ```
 
 ```typescript
 import { readTags, setSidecarConfig } from "taglib-wasm/simple";
 
-// Enable sidecar mode
+// Enable sidecar mode (requires Wasmtime)
 await setSidecarConfig({
   preopens: { "/music": "/home/user/Music" },
 });
@@ -438,13 +449,6 @@ await setSidecarConfig({
 // Now path-based calls use direct WASI filesystem access
 const tags = await readTags("/music/song.mp3");
 ```
-
-| Scenario                        | Recommended Mode       |
-| ------------------------------- | ---------------------- |
-| Browser                         | Buffer-based (default) |
-| Single file CLI                 | Buffer-based           |
-| Batch processing (100+ files)   | Sidecar                |
-| Electron app with large library | Sidecar                |
 
 See the
 [Runtime Compatibility Guide](https://charleswiltgen.github.io/taglib-wasm/concepts/runtime-compatibility.html)
@@ -503,8 +507,8 @@ npm test
 
 ## Known Limitations
 
-- **Memory Usage** – Entire file must be loaded into memory (may be an issue for
-  very large files)
+- **Memory Usage (browsers)** – In browser environments, entire files are loaded
+  into memory. On Deno/Node.js, WASI reads only headers and tags from disk.
 - **Concurrent Access** – Not thread-safe (JavaScript single-threaded nature
   mitigates this)
 - **Cloudflare Workers** – Limited to 128MB memory per request; files larger

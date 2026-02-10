@@ -17,7 +17,7 @@ import {
 Deno.test({
   name: "Extended Metadata - MusicBrainz IDs",
   fn: async () => {
-    const taglib = await TagLib.initialize();
+    const taglib = await TagLib.initialize({ forceBufferMode: true });
 
     // Test with MP3 (ID3v2)
     const mp3Buffer = await readFileData(TEST_FILES.mp3);
@@ -53,7 +53,7 @@ Deno.test({
 Deno.test({
   name: "Extended Metadata - ReplayGain values",
   fn: async () => {
-    const taglib = await TagLib.initialize();
+    const taglib = await TagLib.initialize({ forceBufferMode: true });
 
     // Test with FLAC (native ReplayGain support)
     const flacBuffer = await readFileData(TEST_FILES.flac);
@@ -92,7 +92,7 @@ Deno.test({
 Deno.test({
   name: "Extended Metadata - AcoustID fingerprint",
   fn: async () => {
-    const taglib = await TagLib.initialize();
+    const taglib = await TagLib.initialize({ forceBufferMode: true });
 
     // Test across different formats
     for (const [format, path] of Object.entries(TEST_FILES)) {
@@ -120,7 +120,7 @@ Deno.test({
 Deno.test({
   name: "Extended Metadata - Apple Sound Check",
   fn: async () => {
-    const taglib = await TagLib.initialize();
+    const taglib = await TagLib.initialize({ forceBufferMode: true });
 
     // Test with M4A (iTunes metadata)
     const m4aBuffer = await readFileData(TEST_FILES.m4a);
@@ -145,7 +145,7 @@ Deno.test({
 Deno.test({
   name: "Extended Metadata - Performance",
   fn: async () => {
-    const taglib = await TagLib.initialize();
+    const taglib = await TagLib.initialize({ forceBufferMode: true });
     const buffer = await readFileData(TEST_FILES.flac);
 
     const { timeMs } = await measureTime(async () => {
@@ -169,7 +169,7 @@ Deno.test({
 Deno.test({
   name: "Extended Metadata - Cross-format compatibility",
   fn: async () => {
-    const taglib = await TagLib.initialize();
+    const taglib = await TagLib.initialize({ forceBufferMode: true });
 
     // Test that extended metadata works across all formats
     const formats = ["mp3", "flac", "m4a", "ogg"] as const;
@@ -204,7 +204,7 @@ Deno.test({
 Deno.test({
   name: "Extended Metadata - Persistence after save",
   fn: async () => {
-    const taglib = await TagLib.initialize();
+    const taglib = await TagLib.initialize({ forceBufferMode: true });
 
     // Create a file with extended metadata
     const originalBuffer = await readFileData(TEST_FILES.flac);
@@ -259,7 +259,7 @@ Deno.test({
 Deno.test({
   name: "Extended Metadata - Empty value handling",
   fn: async () => {
-    const taglib = await TagLib.initialize();
+    const taglib = await TagLib.initialize({ forceBufferMode: true });
     const buffer = await readFileData(TEST_FILES.mp3);
     const file = await taglib.open(buffer);
 
@@ -288,7 +288,7 @@ Deno.test({
 Deno.test({
   name: "Extended Metadata - PropertyMap integration",
   fn: async () => {
-    const taglib = await TagLib.initialize();
+    const taglib = await TagLib.initialize({ forceBufferMode: true });
     const buffer = await readFileData(TEST_FILES.flac);
     const file = await taglib.open(buffer);
 
@@ -329,7 +329,7 @@ Deno.test({
 Deno.test({
   name: "Extended Metadata - Complex Apple Sound Check scenarios",
   fn: async () => {
-    const taglib = await TagLib.initialize();
+    const taglib = await TagLib.initialize({ forceBufferMode: true });
 
     // Test with M4A (native support)
     const m4aBuffer = await readFileData(TEST_FILES.m4a);

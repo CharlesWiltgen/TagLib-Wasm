@@ -112,22 +112,22 @@ Deno.test("Main API - backward compatibility with auto-selection", async () => {
   }
 });
 
-Deno.test("Main API - legacy mode still works", async () => {
+Deno.test("Main API - buffer mode still works", async () => {
   try {
-    // Test that legacy mode explicitly disables unified features
-    const module = await loadTagLibModule({ legacyMode: true });
+    // Test that buffer mode explicitly disables unified features
+    const module = await loadTagLibModule({ forceBufferMode: true });
 
     assertExists(module);
     assertExists(module.createFileHandle);
 
-    // Legacy module should not have unified features
+    // Buffer mode module should not have unified features
     assertEquals("runtime" in module, false);
     assertEquals("isWasi" in module, false);
     assertEquals("isEmscripten" in module, false);
 
-    console.log("Legacy mode compatibility verified");
+    console.log("Buffer mode compatibility verified");
   } catch (error) {
-    console.warn(`Legacy mode test skipped due to error: ${error}`);
+    console.warn(`Buffer mode test skipped due to error: ${error}`);
   }
 });
 
@@ -151,8 +151,8 @@ Deno.test("TagLib.initialize - works with options", async () => {
     const taglib1 = await TagLib.initialize({ forceWasmType: "wasi" });
     assertExists(taglib1);
 
-    // Test with legacy mode
-    const taglib2 = await TagLib.initialize({ legacyMode: true });
+    // Test with buffer mode
+    const taglib2 = await TagLib.initialize({ forceBufferMode: true });
     assertExists(taglib2);
 
     // Test with optimizations disabled

@@ -151,13 +151,20 @@ WASI mode provides:
 In rare cases, you may want to force a specific implementation:
 
 ```typescript
-import { loadUnifiedTagLibModule } from "taglib-wasm";
+// Force Emscripten buffer mode (in-memory I/O, works everywhere)
+const taglib = await TagLib.initialize({ forceBufferMode: true });
 
-const module = await loadUnifiedTagLibModule({
-  forceWasmType: "emscripten", // or "wasi"
-  debug: true, // Enable loader debug output
-});
+// Force a specific Wasm backend
+const taglib = await TagLib.initialize({ forceWasmType: "emscripten" });
+
+// For Simple API, set buffer mode globally
+import { setBufferMode } from "taglib-wasm";
+setBufferMode(true); // All subsequent Simple API calls use Emscripten
 ```
+
+`forceBufferMode` forces Emscripten-based in-memory I/O regardless of
+environment. `forceWasmType` lets you choose the specific Wasm backend
+(`"wasi"` or `"emscripten"`).
 
 ::: tip
 Most users never need to configure this. The automatic selection provides optimal performance for each environment.

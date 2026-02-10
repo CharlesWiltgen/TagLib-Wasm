@@ -37,13 +37,8 @@
  * Full API exports for advanced usage with full control.
  * @see {@link TagLib} - Main TagLib class
  * @see {@link AudioFile} - Audio file interface
- * @see {@link createTagLib} - Factory function for creating TagLib instances
  */
-export {
-  AudioFileImpl as AudioFile,
-  createTagLib,
-  TagLib,
-} from "./src/taglib.ts";
+export { AudioFileImpl as AudioFile, TagLib } from "./src/taglib.ts";
 export type {
   AudioFile as AudioFileInterface,
   MutableTag,
@@ -115,7 +110,9 @@ export {
   readTags,
   readTagsBatch,
   replacePictureByType,
+  setBufferMode,
   setCoverArt,
+  setSidecarConfig,
   setWorkerPoolMode,
   updateTags,
 } from "./src/simple.ts";
@@ -325,14 +322,14 @@ import type { LoadTagLibOptions } from "./src/runtime/loader-types.ts";
  *
  * @example
  * ```typescript
- * import { loadTagLibModule, createTagLib } from "taglib-wasm";
+ * import { loadTagLibModule, TagLib } from "taglib-wasm";
  *
  * // Auto-select optimal implementation
  * const module = await loadTagLibModule();
- * const taglib = await createTagLib(module);
+ * const taglib = new TagLib(module);
  *
- * // Force Emscripten mode
- * const module = await loadTagLibModule({ legacyMode: true });
+ * // Force buffer mode (Emscripten-based in-memory I/O)
+ * const module = await loadTagLibModule({ forceBufferMode: true });
  *
  * // Force WASI mode (Deno/Node.js only)
  * const module = await loadTagLibModule({ forceWasmType: "wasi" });
@@ -348,9 +345,9 @@ import type { LoadTagLibOptions } from "./src/runtime/loader-types.ts";
 export async function loadTagLibModule(
   options?: LoadTagLibOptions,
 ): Promise<TagLibModule> {
-  // Use legacy Emscripten-only mode if requested
-  if (options?.legacyMode) {
-    return loadLegacyTagLibModule(options);
+  // Use buffer mode (Emscripten in-memory I/O) if requested
+  if (options?.forceBufferMode) {
+    return loadBufferModeTagLibModule(options);
   }
 
   // Use unified loader for optimal performance
@@ -361,26 +358,26 @@ export async function loadTagLibModule(
     return await loadUnifiedTagLibModule({
       wasmBinary: options?.wasmBinary,
       wasmUrl: options?.wasmUrl,
-      // These options exist in the v2 loader
+      forceWasmType: options?.forceWasmType,
       debug: false,
       useInlineWasm: false,
     });
   } catch (error) {
     console.warn(
-      `[TagLib] Unified loader failed, falling back to legacy mode: ${error}`,
+      `[TagLib] Unified loader failed, falling back to buffer mode: ${error}`,
     );
-    // Fall back to legacy mode if unified loader fails
-    return loadLegacyTagLibModule(options || {});
+    // Fall back to buffer mode (Emscripten) if unified loader fails
+    return loadBufferModeTagLibModule(options || {});
   }
 }
 
 /**
- * Legacy Emscripten-only module loader.
- * Used for fallback compatibility and when legacyMode is explicitly requested.
+ * Emscripten-only module loader for buffer mode (in-memory I/O).
+ * Used for fallback compatibility and when forceBufferMode is explicitly requested.
  *
  * @internal
  */
-async function loadLegacyTagLibModule(
+async function loadBufferModeTagLibModule(
   options: LoadTagLibOptions,
 ): Promise<TagLibModule> {
   // Try different paths for the wrapper module

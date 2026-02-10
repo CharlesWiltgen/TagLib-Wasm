@@ -4,7 +4,12 @@
 
 import { assertEquals, assertRejects, assertThrows } from "@std/assert";
 import { TagLib } from "../src/taglib.ts";
-import { type applyTags, readProperties, readTags } from "../src/simple.ts";
+import {
+  type applyTags,
+  readProperties,
+  readTags,
+  setBufferMode,
+} from "../src/simple.ts";
 import {
   FileOperationError,
   InvalidFormatError,
@@ -18,11 +23,14 @@ import {
   UnsupportedFormatError,
 } from "../src/errors.ts";
 
+// Force Emscripten backend for Simple API calls
+setBufferMode(true);
+
 /**
  * Test error context and helpful messages
  */
 Deno.test("error messages include helpful context", async () => {
-  const taglib = await TagLib.initialize();
+  const taglib = await TagLib.initialize({ forceBufferMode: true });
 
   // Test with a tiny buffer
   const tinyBuffer = new Uint8Array(100);
@@ -53,7 +61,7 @@ Deno.test("error messages include helpful context", async () => {
  * Test format-specific errors
  */
 Deno.test("format-specific errors provide clear guidance", async () => {
-  const taglib = await TagLib.initialize();
+  const taglib = await TagLib.initialize({ forceBufferMode: true });
 
   // Use a real MP3 file for testing
   const mp3Buffer = await Deno.readFile(
@@ -135,7 +143,7 @@ Deno.test("environment errors indicate missing features", async () => {
  * Test error type guards
  */
 Deno.test("error type guards work correctly", async () => {
-  const taglib = await TagLib.initialize();
+  const taglib = await TagLib.initialize({ forceBufferMode: true });
 
   try {
     await taglib.open(new Uint8Array(50).buffer);
@@ -226,7 +234,7 @@ Deno.test("metadata errors include field context", async () => {
  * Test error code usage for programmatic handling
  */
 Deno.test("error codes enable programmatic error handling", async () => {
-  const taglib = await TagLib.initialize();
+  const taglib = await TagLib.initialize({ forceBufferMode: true });
 
   try {
     await taglib.open(new Uint8Array(10).buffer);

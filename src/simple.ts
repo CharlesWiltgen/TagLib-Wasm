@@ -54,6 +54,9 @@ let cachedTagLib: TagLib | null = null;
 let useWorkerPool = false;
 let workerPoolInstance: TagLibWorkerPool | null = null;
 
+// Buffer mode flag (forces Emscripten in-memory I/O, bypasses unified loader)
+let bufferModeEnabled = false;
+
 // Sidecar mode configuration
 let sidecarConfig: {
   preopens: Record<string, string>;
@@ -122,12 +125,31 @@ export async function setSidecarConfig(
   } | null,
 ): Promise<void> {
   sidecarConfig = config;
+  if (config) {
+    bufferModeEnabled = false;
+  }
   // Clear cached TagLib so next call reinitializes with new config
   if (cachedTagLib) {
-    // Shutdown sidecar if it was running
     await cachedTagLib.sidecar?.shutdown();
     cachedTagLib = null;
   }
+}
+
+/**
+ * Enable or disable buffer mode for Simple API operations.
+ * When enabled, `getTagLib()` passes `{ forceBufferMode: true }` to
+ * `TagLib.initialize()`, forcing the Emscripten in-memory I/O backend.
+ *
+ * Mutually exclusive with sidecar mode — enabling buffer mode disables sidecar.
+ *
+ * @param enabled - Whether to enable buffer mode
+ */
+export function setBufferMode(enabled: boolean): void {
+  bufferModeEnabled = enabled;
+  if (enabled) {
+    sidecarConfig = null;
+  }
+  cachedTagLib = null;
 }
 
 /**
@@ -142,10 +164,9 @@ async function getTagLib(): Promise<TagLib> {
     const { TagLib } = await import("./taglib.ts");
     cachedTagLib = await TagLib.initialize(
       sidecarConfig
-        ? {
-          useSidecar: true,
-          sidecarConfig,
-        }
+        ? { useSidecar: true, sidecarConfig }
+        : bufferModeEnabled
+        ? { forceBufferMode: true }
         : undefined,
     );
   }

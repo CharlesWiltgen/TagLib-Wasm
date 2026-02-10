@@ -6,7 +6,7 @@ import { join } from "@std/path";
 
 // Test codec detection, container format detection, and lossless detection
 Deno.test("codec and container detection", async (t) => {
-  const taglib = await TagLib.initialize();
+  const taglib = await TagLib.initialize({ forceBufferMode: true });
 
   await t.step("MP3 - both container and codec", async () => {
     const mp3Path = join("tests", "test-files", "mp3", "kiss-snippet.mp3");

@@ -23,7 +23,7 @@ Deno.test("loadTagLibModule with wasmBinary option", async () => {
   const wasmBinary = await Deno.readFile(wasmPath);
 
   // Initialize with binary
-  const module = await loadTagLibModule({ wasmBinary });
+  const module = await loadTagLibModule({ wasmBinary, forceBufferMode: true });
   assertExists(module);
 
   // Test that we can create a TagLib instance
@@ -45,7 +45,7 @@ Deno.test("loadTagLibModule with custom wasmUrl", async () => {
   const wasmUrl = new URL("../dist/taglib-web.wasm", import.meta.url).href;
 
   // Initialize with custom URL
-  const module = await loadTagLibModule({ wasmUrl });
+  const module = await loadTagLibModule({ wasmUrl, forceBufferMode: true });
   assertExists(module);
 
   // Test that we can create a TagLib instance
@@ -68,7 +68,7 @@ Deno.test("TagLib.initialize with wasmBinary", async () => {
   const wasmBinary = await Deno.readFile(wasmPath);
 
   // Initialize TagLib with binary
-  const taglib = await TagLib.initialize({ wasmBinary });
+  const taglib = await TagLib.initialize({ wasmBinary, forceBufferMode: true });
   assertExists(taglib);
 
   // Test that it works by loading a test file

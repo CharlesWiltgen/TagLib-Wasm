@@ -14,7 +14,7 @@ import {
   type FolderScanResult,
   scanFolder,
   updateFolderTags,
-} from "taglib-wasm/folder";
+} from "taglib-wasm";
 ```
 
 ## Functions
@@ -108,24 +108,30 @@ Finds duplicate audio files based on metadata criteria.
 ```typescript
 function findDuplicates(
   folderPath: string,
-  criteria?: Array<keyof Tag>,
+  options?: FolderScanOptions,
 ): Promise<Map<string, AudioFileMetadata[]>>;
 ```
 
 **Parameters:**
 
 - `folderPath` - Directory to search for duplicates
-- `criteria` - Fields to compare (default: `["artist", "title"]`)
+- `options` - Optional configuration (includes all `FolderScanOptions` fields)
+  - `criteria` - Tag fields to compare (default: `["artist", "title"]`)
 
 **Returns:** Map of duplicate groups keyed by composite metadata
 
 **Example:**
 
 ```typescript
-const duplicates = await findDuplicates("/music", ["artist", "title"]);
+const duplicates = await findDuplicates("/music");
 for (const [key, files] of duplicates) {
   console.log(`Found ${files.length} copies of: ${key}`);
 }
+
+// Custom criteria
+const albumDuplicates = await findDuplicates("/music", {
+  criteria: ["album", "artist"],
+});
 ```
 
 ### exportFolderMetadata()
@@ -187,6 +193,9 @@ interface FolderScanOptions {
 
   /** Parallel processing limit (default: 4) */
   concurrency?: number;
+
+  /** Tag fields to compare for duplicate detection (default: ["artist", "title"]) */
+  criteria?: Array<keyof Tag>;
 }
 ```
 

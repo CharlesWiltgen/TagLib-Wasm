@@ -1,6 +1,6 @@
 {
   "name": "taglib-wasm",
-  "version": "0.9.1",
+  "version": "1.0.0-beta.1",
   "description": "TagLib-Wasm is the universal tagging library for TypeScript/JavaScript platforms: Browsers, Node.js, Deno, Bun, Cloudflare Workers, and Electron apps",
   "type": "module",
   "main": "dist/index.js",

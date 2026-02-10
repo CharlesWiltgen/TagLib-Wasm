@@ -11,11 +11,15 @@ import {
   readProperties,
   readTags,
   scanFolder,
+  setBufferMode,
   setWorkerPoolMode,
   TagLib,
   TagLibWorkerPool,
   terminateGlobalWorkerPool,
 } from "../index.ts";
+
+// Force Emscripten backend for direct Simple API calls in tests
+setBufferMode(true);
 
 const TEST_MP3 = "./tests/test-files/mp3/kiss-snippet.mp3";
 const TEST_FLAC = "./tests/test-files/flac/kiss-snippet.flac";
@@ -86,7 +90,10 @@ if (hasWorkerSupport) {
   });
 
   Deno.test("Worker Pool: Full API Batch Operations", async () => {
-    const taglib = await TagLib.initialize({ useWorkerPool: true });
+    const taglib = await TagLib.initialize({
+      useWorkerPool: true,
+      forceBufferMode: true,
+    });
 
     try {
       const result = await taglib.batchOperations(TEST_MP3, [

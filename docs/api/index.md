@@ -387,11 +387,7 @@ The folder API requires filesystem access and is only available in Deno, Node.js
 ### Import
 
 ```typescript
-import {
-  findDuplicates,
-  scanFolder,
-  updateFolderTags,
-} from "taglib-wasm/folder";
+import { findDuplicates, scanFolder, updateFolderTags } from "taglib-wasm";
 ```
 
 ### scanFolder()
@@ -453,17 +449,22 @@ Find duplicate audio files based on metadata criteria.
 ```typescript
 function findDuplicates(
   folderPath: string,
-  criteria?: Array<keyof Tag>,
+  options?: FolderScanOptions,
 ): Promise<Map<string, AudioFileMetadata[]>>;
 ```
 
 #### Example
 
 ```typescript
-const duplicates = await findDuplicates("/music", ["artist", "title"]);
+const duplicates = await findDuplicates("/music");
 for (const [key, files] of duplicates) {
   console.log(`Found ${files.length} copies of: ${key}`);
 }
+
+// Custom criteria
+const albumDuplicates = await findDuplicates("/music", {
+  criteria: ["album", "artist"],
+});
 ```
 
 ### exportFolderMetadata()

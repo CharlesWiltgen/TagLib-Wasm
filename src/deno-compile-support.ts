@@ -115,5 +115,5 @@ export async function initializeForDeno(options: DenoCompileOptions = {}) {
     );
   }
 
-  return TagLib.initialize({ wasmBinary });
+  return TagLib.initialize({ wasmBinary, forceBufferMode: true });
 }

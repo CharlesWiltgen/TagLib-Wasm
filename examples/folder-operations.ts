@@ -56,10 +56,7 @@ async function scanAndDisplay() {
 async function findDuplicateSongs() {
   console.log("\n🔍 Finding duplicate songs...\n");
 
-  const duplicates = await findDuplicates("./examples/sample-music", [
-    "artist",
-    "title",
-  ]);
+  const duplicates = await findDuplicates("./examples/sample-music");
 
   if (duplicates.size === 0) {
     console.log("No duplicates found!");

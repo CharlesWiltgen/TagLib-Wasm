@@ -77,6 +77,10 @@ export interface FolderScanOptions {
   useWorkerPool?: boolean;
   /** Worker pool instance to use (creates one if not provided) */
   workerPool?: TagLibWorkerPool;
+  /** Force buffer mode: Emscripten in-memory I/O (bypasses unified loader) */
+  forceBufferMode?: boolean;
+  /** Tag fields to compare when finding duplicates (default: ["artist", "title"]) */
+  criteria?: Array<keyof Tag>;
 }
 
 /**
@@ -388,6 +392,7 @@ export async function scanFolder(
     useWorkerPool = true,
     workerPool,
     onProgress,
+    forceBufferMode,
   } = options;
 
   const files: AudioFileMetadata[] = [];
@@ -415,7 +420,9 @@ export async function scanFolder(
   }
 
   // Initialize TagLib if not using worker pool
-  const taglib = shouldUseWorkerPool ? null : await TagLib.initialize();
+  const taglib = shouldUseWorkerPool ? null : await TagLib.initialize(
+    forceBufferMode ? { forceBufferMode: true } : undefined,
+  );
 
   try {
     // Process files based on whether we're using worker pool
@@ -618,14 +625,15 @@ export async function updateFolderTags(
  * Find duplicate audio files based on metadata
  *
  * @param folderPath - Path to scan for duplicates
- * @param criteria - Which fields to compare (default: artist and title)
+ * @param options - Scan options (includes `criteria` for which fields to compare)
  * @returns Groups of potential duplicate files
  */
 export async function findDuplicates(
   folderPath: string,
-  criteria: Array<keyof Tag> = ["artist", "title"],
+  options?: FolderScanOptions,
 ): Promise<Map<string, AudioFileMetadata[]>> {
-  const result = await scanFolder(folderPath);
+  const { criteria = ["artist", "title"], ...scanOptions } = options ?? {};
+  const result = await scanFolder(folderPath, scanOptions);
   const duplicates = new Map<string, AudioFileMetadata[]>();
 
   // Group by composite key

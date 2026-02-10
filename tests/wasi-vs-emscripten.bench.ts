@@ -69,7 +69,7 @@ if (HAS_WASM) {
 
 let emTagLib: TagLib | null = null;
 if (HAS_WASM) {
-  emTagLib = await TagLib.initialize({ legacyMode: true });
+  emTagLib = await TagLib.initialize({ forceBufferMode: true });
 }
 
 let realTempDir: string | null = null;

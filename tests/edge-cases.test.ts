@@ -1,210 +1,35 @@
 /**
  * @fileoverview Edge case tests for taglib-wasm
- * Tests Unicode handling, input validation, and illegal audio properties
+ * Tests input validation and illegal audio properties.
+ * Unicode tests live in unicode-comprehensive.test.ts (forEachBackend).
  */
 
 import {
   assert,
-  assertEquals,
-  assertExists,
+  type assertEquals,
   assertRejects,
   type assertThrows,
 } from "@std/assert";
 import { TagLib } from "../src/mod.ts";
 import type { AudioFile } from "../src/mod.ts";
-import { applyTags, readProperties, readTags } from "../src/simple.ts";
+import { readProperties, readTags, setBufferMode } from "../src/simple.ts";
 import {
   FileOperationError,
   InvalidFormatError,
-  MetadataError,
+  type MetadataError,
   type TagLibInitializationError,
 } from "../src/errors.ts";
 import { TEST_FILES } from "./test-utils.ts";
 
-// Test data path - using an existing valid file as base
-const TEST_MP3 = TEST_FILES.mp3;
-
-// =============================================================================
-// Unicode and Special Characters Tests
-// =============================================================================
-
-Deno.test("Unicode: Emoji in tags", async () => {
-  const audioData = await Deno.readFile(TEST_MP3);
-  const tags = await readTags(audioData);
-
-  // Test writing emoji in various tag fields
-  const emojiTags = {
-    title: "🎵 Music Track 🎸",
-    artist: "DJ 🎧 Emoji",
-    album: "💿 Greatest Hits",
-    comment: "🔥 Hot track! 🎶",
-    genre: "🎼 Electronic",
-  };
-
-  const modifiedBuffer = await applyTags(audioData, emojiTags);
-  const readBack = await readTags(modifiedBuffer);
-
-  assertEquals(
-    readBack.title,
-    emojiTags.title,
-    "Should preserve emoji in title",
-  );
-  assertEquals(
-    readBack.artist,
-    emojiTags.artist,
-    "Should preserve emoji in artist",
-  );
-  assertEquals(
-    readBack.album,
-    emojiTags.album,
-    "Should preserve emoji in album",
-  );
-  assertEquals(
-    readBack.comment,
-    emojiTags.comment,
-    "Should preserve emoji in comment",
-  );
-  assertEquals(
-    readBack.genre,
-    emojiTags.genre,
-    "Should preserve emoji in genre",
-  );
-});
-
-Deno.test("Unicode: CJK characters", async () => {
-  const audioData = await Deno.readFile(TEST_MP3);
-
-  const cjkTags = {
-    title: "这是中文标题", // Chinese
-    artist: "アーティスト名", // Japanese
-    album: "한국어 앨범", // Korean
-    comment: "Mixed: 中文/日本語/한글",
-  };
-
-  const modifiedBuffer = await applyTags(audioData, cjkTags);
-  const readBack = await readTags(modifiedBuffer);
-
-  assertEquals(
-    readBack.title,
-    cjkTags.title,
-    "Should preserve Chinese characters",
-  );
-  assertEquals(
-    readBack.artist,
-    cjkTags.artist,
-    "Should preserve Japanese characters",
-  );
-  assertEquals(
-    readBack.album,
-    cjkTags.album,
-    "Should preserve Korean characters",
-  );
-  assertEquals(readBack.comment, cjkTags.comment, "Should preserve mixed CJK");
-});
-
-Deno.test("Unicode: RTL text (Arabic/Hebrew)", async () => {
-  const audioData = await Deno.readFile(TEST_MP3);
-
-  const rtlTags = {
-    title: "مرحبا بالعالم", // Arabic: Hello World
-    artist: "שלום עולם", // Hebrew: Hello World
-    album: "Mixed מעורב و مختلط",
-  };
-
-  const modifiedBuffer = await applyTags(audioData, rtlTags);
-  const readBack = await readTags(modifiedBuffer);
-
-  assertEquals(readBack.title, rtlTags.title, "Should preserve Arabic text");
-  assertEquals(readBack.artist, rtlTags.artist, "Should preserve Hebrew text");
-  assertEquals(readBack.album, rtlTags.album, "Should preserve mixed RTL/LTR");
-});
-
-Deno.test("Unicode: Special Unicode characters", async () => {
-  const audioData = await Deno.readFile(TEST_MP3);
-
-  const specialTags = {
-    title: "Zero\u200BWidth\u200BJoiner", // Zero-width joiner
-    artist: "Combi\u0301ning Ma\u0300rks", // Combining marks
-    album: "Line\nBreaks\tAnd\rReturns",
-    comment: "Null\0Byte", // Note: null bytes might be stripped
-  };
-
-  const modifiedBuffer = await applyTags(audioData, specialTags);
-  const readBack = await readTags(modifiedBuffer);
-
-  // Some characters might be normalized or stripped
-  assertExists(readBack.title, "Should handle zero-width joiners");
-  assertExists(readBack.artist, "Should handle combining marks");
-  assertExists(readBack.album, "Should handle control characters");
-  assertExists(readBack.comment, "Should handle or strip null bytes");
-});
-
-Deno.test("Unicode: Very long strings", async () => {
-  const audioData = await Deno.readFile(TEST_MP3);
-
-  // Create a very long string (64KB+)
-  const longString = "🎵".repeat(32768); // 32K emoji = ~128KB UTF-8
-
-  const longTags = {
-    title: longString.substring(0, 1000), // Reasonable length
-    comment: longString, // Very long
-  };
-
-  // This might succeed or fail depending on format limitations
-  try {
-    const modifiedBuffer = await applyTags(audioData, longTags);
-    const readBack = await readTags(modifiedBuffer);
-
-    // If it succeeds, verify data integrity
-    assert(
-      readBack.title?.startsWith("🎵"),
-      "Should preserve start of long title",
-    );
-    assert((readBack.comment?.length ?? 0) > 0, "Should handle long comment");
-  } catch (error) {
-    // If it fails, ensure it's a proper error
-    assert(
-      error instanceof MetadataError || error instanceof Error,
-      "Should throw proper error for very long strings",
-    );
-  }
-});
-
-Deno.test("Unicode: Mixed scripts and languages", async () => {
-  const audioData = await Deno.readFile(TEST_MP3);
-
-  const mixedTags = {
-    title: "Hello Привет مرحبا こんにちは",
-    artist: "Café Москва القاهرة 東京",
-    album: "🌍 World 世界 мир عالم",
-  };
-
-  const modifiedBuffer = await applyTags(audioData, mixedTags);
-  const readBack = await readTags(modifiedBuffer);
-
-  assertEquals(
-    readBack.title,
-    mixedTags.title,
-    "Should preserve mixed scripts in title",
-  );
-  assertEquals(
-    readBack.artist,
-    mixedTags.artist,
-    "Should preserve mixed scripts in artist",
-  );
-  assertEquals(
-    readBack.album,
-    mixedTags.album,
-    "Should preserve mixed scripts in album",
-  );
-});
+// Force Emscripten backend for Simple API calls
+setBufferMode(true);
 
 // =============================================================================
 // Input Validation Tests
 // =============================================================================
 
 Deno.test("Input Validation: Too small buffers", async () => {
-  const taglib = await TagLib.initialize();
+  const taglib = await TagLib.initialize({ forceBufferMode: true });
 
   // Test various small buffer sizes
   const sizes = [0, 1, 10, 100, 500, 999];
@@ -222,7 +47,7 @@ Deno.test("Input Validation: Too small buffers", async () => {
 });
 
 Deno.test("Input Validation: Null and undefined inputs", async () => {
-  const taglib = await TagLib.initialize();
+  const taglib = await TagLib.initialize({ forceBufferMode: true });
 
   // Test Full API
   await assertRejects(
@@ -276,7 +101,7 @@ Deno.test("Input Validation: Wrong input types", async () => {
 });
 
 Deno.test("Input Validation: Empty buffers", async () => {
-  const taglib = await TagLib.initialize();
+  const taglib = await TagLib.initialize({ forceBufferMode: true });
 
   // Test completely empty buffer
   const emptyBuffer = new Uint8Array(0);
@@ -300,7 +125,7 @@ Deno.test("Input Validation: Empty buffers", async () => {
 });
 
 Deno.test("Input Validation: Non-audio data", async () => {
-  const taglib = await TagLib.initialize();
+  const taglib = await TagLib.initialize({ forceBufferMode: true });
 
   // Test with plain text
   const textData = new TextEncoder().encode("This is not an audio file!");
@@ -346,10 +171,10 @@ Deno.test("Input Validation: Non-audio data", async () => {
 // =============================================================================
 
 Deno.test("Audio Properties: Invalid values handling", async () => {
-  const taglib = await TagLib.initialize();
+  const taglib = await TagLib.initialize({ forceBufferMode: true });
 
   // We'll use a valid file and check that properties are reasonable
-  const audioData = await Deno.readFile(TEST_MP3);
+  const audioData = await Deno.readFile(TEST_FILES.mp3);
   const file = await taglib.open(audioData.buffer);
 
   try {
@@ -422,7 +247,7 @@ Deno.test("Audio Properties: Edge case values", async () => {
 });
 
 Deno.test("Audio Properties: Corrupted header handling", async () => {
-  const taglib = await TagLib.initialize();
+  const taglib = await TagLib.initialize({ forceBufferMode: true });
 
   // Create a buffer that looks like MP3 but has corrupted header
   const corruptedMP3 = new Uint8Array(2048);

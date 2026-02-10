@@ -9,7 +9,7 @@ import { TEST_FILES } from "./test-utils.ts";
 const TEST_FILE = TEST_FILES.mp3;
 
 Deno.test("dispose() prevents memory accumulation", async () => {
-  const taglib = await TagLib.initialize();
+  const taglib = await TagLib.initialize({ forceBufferMode: true });
 
   // Get initial heap size if available
   const getHeapSize = () => {
@@ -55,7 +55,7 @@ Deno.test("dispose() prevents memory accumulation", async () => {
 });
 
 Deno.test("dispose() can be called multiple times safely", async () => {
-  const taglib = await TagLib.initialize();
+  const taglib = await TagLib.initialize({ forceBufferMode: true });
   const audioFile = await taglib.open(TEST_FILE);
 
   // First dispose
@@ -80,7 +80,7 @@ Deno.test("dispose() can be called multiple times safely", async () => {
 });
 
 Deno.test("memory usage scales with file size", async () => {
-  const taglib = await TagLib.initialize();
+  const taglib = await TagLib.initialize({ forceBufferMode: true });
 
   const files = [
     TEST_FILES.wav, // Larger
