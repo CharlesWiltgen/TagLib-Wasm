@@ -96,6 +96,7 @@
     "version:major": "deno run --allow-read --allow-write scripts/sync-version.ts major",
     "version:set": "deno run --allow-read --allow-write scripts/sync-version.ts set",
     "version:check": "deno run --allow-read --allow-write scripts/sync-version.ts check",
+    "bench": "deno bench --allow-read --allow-write --allow-env tests/wasi-vs-emscripten.bench.ts",
     "release": "./scripts/release-safe.sh",
     "release:quick": "./scripts/release.sh"
   },

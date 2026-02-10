@@ -110,8 +110,8 @@ if [ ! -f "$MPACK_BUILD_DIR/libmpack.a" ]; then
         --target=wasm32-wasi \
         --sysroot="$WASI_SDK_PATH/share/wasi-sysroot" \
         -I"$MPACK_DIR/src" \
-        -O3 -c
-    
+        -O3 -fwasm-exceptions -c
+
     # Create static library
     "$WASI_SDK_PATH/bin/llvm-ar" rcs libmpack.a *.o
     
@@ -147,12 +147,12 @@ for src in "${CAPI_SOURCES[@]}"; do
     if [[ "$src" == *.c ]]; then
         obj_name="$(basename "$src" .c).obj"
         echo "Compiling C file: $src"
-        # Compile C files - no exceptions
+        # Compile C files with -fwasm-exceptions for feature flag consistency
         "$WASI_SDK_PATH/bin/clang" "$src" \
             --target=wasm32-wasi \
             --sysroot="$WASI_SDK_PATH/share/wasi-sysroot" \
             -I"$SRC_DIR" -I"$MPACK_DIR/src" \
-            -O3 -c -o "$BUILD_DIR/$obj_name"
+            -O3 -fwasm-exceptions -c -o "$BUILD_DIR/$obj_name"
     elif [[ "$(basename "$src")" == "taglib_shim.cpp" ]]; then
         echo "Compiling C++ shim with Wasm EH: $src"
         # C++ shim - needs Wasm EH to catch TagLib exceptions
@@ -187,6 +187,7 @@ done
     "$MPACK_BUILD_DIR/libmpack.a" \
     --target=wasm32-wasi \
     --sysroot="$WASI_SDK_PATH/share/wasi-sysroot" \
+    -mexec-model=reactor \
     -o "$DIST_DIR/taglib_wasi.wasm" \
     -Wl,--export=tl_read_tags \
     -Wl,--export=tl_read_tags_ex \
@@ -228,12 +229,12 @@ echo "━━━━━━━━━━━━━━━━━━━━━━━━�
 
 echo "Compiling sidecar main loop..."
 
-# Compile sidecar source (pure C, no exceptions)
+# Compile sidecar source (pure C, with EH flag for feature consistency)
 "$WASI_SDK_PATH/bin/clang" "$SRC_DIR/taglib_sidecar.c" \
     --target=wasm32-wasi \
     --sysroot="$WASI_SDK_PATH/share/wasi-sysroot" \
     -I"$SRC_DIR" -I"$MPACK_DIR/src" \
-    -O3 -c -o "$BUILD_DIR/taglib_sidecar.obj"
+    -O3 -fwasm-exceptions -c -o "$BUILD_DIR/taglib_sidecar.obj"
 
 # Link sidecar with all dependencies
 echo "Linking sidecar binary..."
