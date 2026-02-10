@@ -5,13 +5,6 @@
 #include <tag.h>
 #include <toolkit/tpropertymap.h>
 #include <toolkit/tbytevectorstream.h>
-#include <mpeg/mpegfile.h>
-#include <mpeg/id3v2/id3v2tag.h>
-#include <mpeg/id3v2/frames/attachedpictureframe.h>
-#include <flac/flacfile.h>
-#include <mp4/mp4file.h>
-#include <ogg/vorbis/vorbisfile.h>
-#include <riff/wav/wavfile.h>
 #include <audioproperties.h>
 #include "core/taglib_msgpack.h"
 #include <cstring>
@@ -54,56 +47,6 @@ static tl_format detect_format_from_buffer(const uint8_t* buf, size_t len) {
     }
     
     return TL_FORMAT_AUTO;
-}
-
-// Helper to create appropriate TagLib file object
-static std::unique_ptr<TagLib::File> create_file_from_buffer(
-    const uint8_t* buf, size_t len, tl_format format) {
-    
-    TagLib::ByteVector data(reinterpret_cast<const char*>(buf), len);
-    
-    // Use RAII for stream management - all TagLib file constructors take ownership
-    std::unique_ptr<TagLib::ByteVectorStream> stream = 
-        std::make_unique<TagLib::ByteVectorStream>(data);
-    
-    // If no format hint, detect it
-    if (format == TL_FORMAT_AUTO) {
-        format = detect_format_from_buffer(buf, len);
-    }
-    
-    // TagLib file constructors take ownership of the stream pointer
-    // so we need to release() ownership to avoid double-delete
-    TagLib::ByteVectorStream* stream_ptr = stream.release();
-    
-    try {
-        switch (format) {
-            case TL_FORMAT_MP3:
-                return std::make_unique<TagLib::MPEG::File>(
-                    stream_ptr, TagLib::ID3v2::FrameFactory::instance());
-            
-            case TL_FORMAT_FLAC:
-                return std::make_unique<TagLib::FLAC::File>(
-                    stream_ptr, TagLib::ID3v2::FrameFactory::instance());
-            
-            case TL_FORMAT_M4A:
-                return std::make_unique<TagLib::MP4::File>(stream_ptr);
-            
-            case TL_FORMAT_OGG:
-                return std::make_unique<TagLib::Ogg::Vorbis::File>(stream_ptr);
-            
-            case TL_FORMAT_WAV:
-                return std::make_unique<TagLib::RIFF::WAV::File>(stream_ptr);
-            
-            default:
-                // No format detected - clean up and return nullptr
-                delete stream_ptr;
-                return nullptr;
-        }
-    } catch (...) {
-        // If file constructor throws, we need to clean up the stream
-        delete stream_ptr;
-        throw;  // Re-throw the exception
-    }
 }
 
 // Pack tag data into MessagePack using pure C API
@@ -201,50 +144,49 @@ uint8_t* tl_read_tags_ex(const char* path, const uint8_t* buf, size_t len,
     
     *out_size = 0;
     
-    // Exception boundary - catch all TagLib exceptions
     try {
         std::unique_ptr<TagLib::FileRef> file_ref;
-        std::unique_ptr<TagLib::File> file;
-        
+        TagLib::ByteVector bv;
+        std::unique_ptr<TagLib::ByteVectorStream> stream;
+
         if (path) {
-            // Direct filesystem access (WASI optimized path)
             file_ref = std::make_unique<TagLib::FileRef>(path);
             if (file_ref->isNull()) {
                 tl_set_error(TL_ERROR_IO_READ, "Failed to open file");
                 return nullptr;
             }
         } else if (buf && len > 0) {
-            // Memory buffer access
-            file = create_file_from_buffer(buf, len, format);
-            if (!file || !file->isValid()) {
+            bv = TagLib::ByteVector(reinterpret_cast<const char*>(buf),
+                                    static_cast<unsigned int>(len));
+            stream = std::make_unique<TagLib::ByteVectorStream>(bv);
+            file_ref = std::make_unique<TagLib::FileRef>(stream.get());
+            if (file_ref->isNull()) {
                 tl_set_error(TL_ERROR_UNSUPPORTED_FORMAT, "Invalid or unsupported audio format");
                 return nullptr;
             }
-            file_ref = std::make_unique<TagLib::FileRef>(file.get());
         } else {
             tl_set_error(TL_ERROR_INVALID_INPUT, "No input provided");
             return nullptr;
         }
-        
+
         if (!file_ref->tag()) {
             tl_set_error(TL_ERROR_PARSE_FAILED, "No tags found in file");
             return nullptr;
         }
-        
-        // Pack tags to MessagePack
+
         uint8_t* result = pack_tags_to_msgpack(
-            file_ref->tag(), 
+            file_ref->tag(),
             file_ref->audioProperties(),
             out_size
         );
-        
+
         if (!result) {
             tl_set_error(TL_ERROR_MEMORY_ALLOCATION, "Failed to allocate memory for result");
             return nullptr;
         }
-        
+
         return result;
-        
+
     } catch (const std::bad_alloc&) {
         tl_set_error(TL_ERROR_MEMORY_ALLOCATION, "Memory allocation failed in TagLib");
         *out_size = 0;
@@ -286,12 +228,11 @@ int tl_write_tags(const char* path, const uint8_t* buf, size_t len,
         return TL_ERROR_PARSE_FAILED;
     }
     
-    // Exception boundary - catch all TagLib exceptions
     try {
-        // Open file for modification
         std::unique_ptr<TagLib::FileRef> file_ref;
-        std::unique_ptr<TagLib::File> file;
-        
+        TagLib::ByteVector bv;
+        std::unique_ptr<TagLib::ByteVectorStream> stream;
+
         if (path) {
             file_ref = std::make_unique<TagLib::FileRef>(path);
             if (file_ref->isNull()) {
@@ -300,29 +241,28 @@ int tl_write_tags(const char* path, const uint8_t* buf, size_t len,
                 return TL_ERROR_IO_READ;
             }
         } else if (buf && len > 0) {
-            // For buffer mode, we need to detect format and create appropriate file
-            tl_format format = detect_format_from_buffer(buf, len);
-            file = create_file_from_buffer(buf, len, format);
-            if (!file || !file->isValid()) {
+            bv = TagLib::ByteVector(reinterpret_cast<const char*>(buf),
+                                    static_cast<unsigned int>(len));
+            stream = std::make_unique<TagLib::ByteVectorStream>(bv);
+            file_ref = std::make_unique<TagLib::FileRef>(stream.get());
+            if (file_ref->isNull()) {
                 arena_destroy(arena);
                 tl_set_error(TL_ERROR_UNSUPPORTED_FORMAT, "Invalid audio format for writing");
                 return TL_ERROR_UNSUPPORTED_FORMAT;
             }
-            file_ref = std::make_unique<TagLib::FileRef>(file.get());
         } else {
             arena_destroy(arena);
             tl_set_error(TL_ERROR_INVALID_INPUT, "No input provided for writing");
             return TL_ERROR_INVALID_INPUT;
         }
-        
+
         TagLib::Tag* tag = file_ref->tag();
         if (!tag) {
             arena_destroy(arena);
             tl_set_error(TL_ERROR_PARSE_FAILED, "Cannot access tags for writing");
             return TL_ERROR_PARSE_FAILED;
         }
-        
-        // Apply tags from decoded data
+
         if (decoded_tags->title) {
             tag->setTitle(TagLib::String(decoded_tags->title, TagLib::String::UTF8));
         }
@@ -344,38 +284,25 @@ int tl_write_tags(const char* path, const uint8_t* buf, size_t len,
         if (decoded_tags->track > 0) {
             tag->setTrack(decoded_tags->track);
         }
-        // Extended properties would need additional TagLib API calls for setting
-        // (albumArtist, composer, disc, bpm not directly settable via Tag interface)
-        
-        // Save changes
+
         bool success = false;
         if (path) {
-            // Direct file save
             success = file_ref->save();
         } else if (buf && out_buf && out_size) {
-            // Save to buffer
-            if (file) {
-                success = file->save();
-                if (success) {
-                    // Note: Buffer-to-buffer operations not supported in this simplified version
-                    // Users should save to file path instead
-                    *out_size = 0;
-                    *out_buf = nullptr;
-                    tl_set_error(TL_ERROR_NOT_IMPLEMENTED, "Buffer-to-buffer save not supported");
-                    success = false;
-                }
-            }
+            arena_destroy(arena);
+            tl_set_error(TL_ERROR_NOT_IMPLEMENTED, "Buffer-to-buffer save not supported");
+            return TL_ERROR_NOT_IMPLEMENTED;
         }
-        
+
         if (!success) {
             arena_destroy(arena);
             tl_set_error(TL_ERROR_IO_WRITE, "Failed to save tags");
             return TL_ERROR_IO_WRITE;
         }
-        
+
         arena_destroy(arena);
         return TL_SUCCESS;
-        
+
     } catch (const std::bad_alloc&) {
         arena_destroy(arena);
         tl_set_error(TL_ERROR_MEMORY_ALLOCATION, "Memory allocation failed in TagLib");

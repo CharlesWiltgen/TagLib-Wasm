@@ -135,7 +135,7 @@ echo "🔧 Setting up WASI SDK"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
 WASI_SDK_DIR="$PROJECT_ROOT/build/wasi-sdk"
-WASI_VERSION="27.0"
+WASI_VERSION="30.0"
 
 # Determine WASI SDK download URL based on OS and architecture
 WASI_SDK_NAME=""

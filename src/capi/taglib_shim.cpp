@@ -2,29 +2,25 @@
  * @fileoverview C++ Shim Layer - Real TagLib implementation for WASI
  *
  * This file bridges the pure C boundary to TagLib's C++ API.
+ * Uses FileRef for automatic format detection and dispatch.
  * Compiled with -fwasm-exceptions for proper exception handling.
+ *
+ * Requires an EH-enabled WASI sysroot (libc++abi + libunwind built with
+ * -fwasm-exceptions). Without it, FileRef's dynamic_cast crashes with
+ * call_indirect type mismatch. See docs/fileref-wasm-crash.md.
  */
 
 #include "taglib_shim.h"
 #include "core/taglib_msgpack.h"
 #include "core/taglib_core.h"
 
-// TagLib headers
+#include <fileref.h>
 #include <tag.h>
 #include <tpropertymap.h>
 #include <tbytevector.h>
 #include <tbytevectorstream.h>
 #include <tfilestream.h>
 #include <audioproperties.h>
-
-// Format-specific headers for buffer parsing
-#include <mpegfile.h>
-#include <flacfile.h>
-#include <oggfile.h>
-#include <vorbisfile.h>
-#include <opusfile.h>
-#include <mp4file.h>
-#include <wavfile.h>
 
 #include <memory>
 #include <cstring>
@@ -38,27 +34,6 @@ static char* string_to_cstr(const TagLib::String& str) {
     return result;
 }
 
-// Create TagLib file from IOStream based on format
-static TagLib::File* create_file_from_buffer(TagLib::IOStream* stream, tl_format format) {
-    switch (format) {
-        case TL_FORMAT_MP3:
-            return new TagLib::MPEG::File(stream, TagLib::ID3v2::FrameFactory::instance());
-        case TL_FORMAT_FLAC:
-            return new TagLib::FLAC::File(stream, TagLib::ID3v2::FrameFactory::instance());
-        case TL_FORMAT_OGG:
-            return new TagLib::Ogg::Vorbis::File(stream);
-        case TL_FORMAT_OPUS:
-            return new TagLib::Ogg::Opus::File(stream);
-        case TL_FORMAT_M4A:
-            return new TagLib::MP4::File(stream);
-        case TL_FORMAT_WAV:
-            return new TagLib::RIFF::WAV::File(stream);
-        default:
-            return nullptr;
-    }
-}
-
-// Extract tags from TagLib file
 static void extract_tags(TagLib::File* file, TagData* data) {
     TagLib::Tag* tag = file->tag();
     if (!tag) return;
@@ -72,7 +47,6 @@ static void extract_tags(TagLib::File* file, TagData* data) {
     data->track = tag->track();
 }
 
-// Extract audio properties
 static void extract_properties(TagLib::File* file, TagData* data) {
     TagLib::AudioProperties* props = file->audioProperties();
     if (!props) return;
@@ -84,7 +58,6 @@ static void extract_properties(TagLib::File* file, TagData* data) {
     data->lengthMs = props->lengthInMilliseconds();
 }
 
-// Free TagData string fields
 static void free_tag_data_strings(TagData* data) {
     if (data->title) { free((void*)data->title); data->title = nullptr; }
     if (data->artist) { free((void*)data->artist); data->artist = nullptr; }
@@ -93,7 +66,6 @@ static void free_tag_data_strings(TagData* data) {
     if (data->genre) { free((void*)data->genre); data->genre = nullptr; }
 }
 
-// Encode TagData to MessagePack output buffer
 static tl_error_code encode_tag_data(TagData* tag_data,
                                      uint8_t** out_buf, size_t* out_size) {
     size_t required_size;
@@ -123,91 +95,46 @@ static tl_error_code encode_tag_data(TagData* tag_data,
     return TL_SUCCESS;
 }
 
-// Read tags from in-memory buffer
 static tl_error_code read_from_buffer(const uint8_t* buf, size_t len,
-                                      tl_format format,
+                                      tl_format /* format */,
                                       uint8_t** out_buf, size_t* out_size) {
-    if (format == TL_FORMAT_AUTO) {
-        format = tl_detect_format(buf, len);
-        if (format == TL_FORMAT_AUTO) {
-            return TL_ERROR_UNSUPPORTED_FORMAT;
-        }
-    }
-
     try {
-        TagLib::ByteVector byteVector(reinterpret_cast<const char*>(buf),
-                                      static_cast<unsigned int>(len));
-        TagLib::ByteVectorStream stream(byteVector);
-
-        std::unique_ptr<TagLib::File> file(
-            create_file_from_buffer(&stream, format));
-        if (!file || !file->isValid()) {
-            return TL_ERROR_PARSE_FAILED;
-        }
+        TagLib::ByteVector bv(reinterpret_cast<const char*>(buf),
+                              static_cast<unsigned int>(len));
+        TagLib::ByteVectorStream stream(bv);
+        TagLib::FileRef ref(&stream);
+        if (ref.isNull()) return TL_ERROR_PARSE_FAILED;
 
         TagData tag_data = {0};
-        extract_tags(file.get(), &tag_data);
-        extract_properties(file.get(), &tag_data);
-
+        extract_tags(ref.file(), &tag_data);
+        extract_properties(ref.file(), &tag_data);
         return encode_tag_data(&tag_data, out_buf, out_size);
     } catch (...) {
         return TL_ERROR_PARSE_FAILED;
     }
 }
 
-// Detect format from stream header and create format-specific TagLib::File.
-// Returns nullptr on failure and sets *error to the specific error code.
-static TagLib::File* detect_and_open(TagLib::IOStream* stream,
-                                     tl_error_code* error) {
-    TagLib::ByteVector header = stream->readBlock(200);
-    if (header.isEmpty()) { *error = TL_ERROR_IO_READ; return nullptr; }
-
-    tl_format format = tl_detect_format(
-        reinterpret_cast<const uint8_t*>(header.data()), header.size());
-    if (format == TL_FORMAT_AUTO) { *error = TL_ERROR_UNSUPPORTED_FORMAT; return nullptr; }
-
-    stream->seek(0);
-    return create_file_from_buffer(stream, format);
-}
-
-// Read tags via path using TagLib::FileStream for efficient seek-based I/O.
-// FileStream uses fopen/fseek/fread (backed by WASI syscalls), letting TagLib
-// read only tag headers/footers instead of loading the entire file.
-// NOTE: Cannot use FileRef here — its internal factory pattern crashes with
-// call_indirect type mismatch in Wasm (even with consistent -fwasm-exceptions).
 static tl_error_code read_from_path(const char* path,
                                     uint8_t** out_buf, size_t* out_size) {
     try {
-        TagLib::FileStream stream(path, true);
-        if (!stream.isOpen()) return TL_ERROR_IO_READ;
-
-        tl_error_code err;
-        std::unique_ptr<TagLib::File> file(detect_and_open(&stream, &err));
-        if (!file) return err;
-        if (!file->isValid()) return TL_ERROR_PARSE_FAILED;
+        TagLib::FileRef ref(path);
+        if (ref.isNull()) return TL_ERROR_IO_READ;
 
         TagData tag_data = {0};
-        extract_tags(file.get(), &tag_data);
-        extract_properties(file.get(), &tag_data);
-
+        extract_tags(ref.file(), &tag_data);
+        extract_properties(ref.file(), &tag_data);
         return encode_tag_data(&tag_data, out_buf, out_size);
     } catch (...) {
         return TL_ERROR_PARSE_FAILED;
     }
 }
 
-// Write tags to file via path using TagLib::FileStream for efficient I/O.
 static tl_error_code write_to_path(const char* path, const TagData* tag_data) {
     try {
-        TagLib::FileStream stream(path, false);
-        if (!stream.isOpen()) return TL_ERROR_IO_WRITE;
+        TagLib::FileRef ref(path);
+        if (ref.isNull() || !ref.tag()) return TL_ERROR_IO_WRITE;
 
-        tl_error_code err;
-        std::unique_ptr<TagLib::File> file(detect_and_open(&stream, &err));
-        if (!file) return err;
-        if (!file->isValid() || !file->tag()) return TL_ERROR_PARSE_FAILED;
-
-        TagLib::Tag* tag = file->tag();
+        TagLib::Tag* tag = ref.tag();
         if (tag_data->title)
             tag->setTitle(TagLib::String(tag_data->title, TagLib::String::UTF8));
         if (tag_data->artist)
@@ -223,8 +150,7 @@ static tl_error_code write_to_path(const char* path, const TagData* tag_data) {
         if (tag_data->track)
             tag->setTrack(tag_data->track);
 
-        if (!file->save()) return TL_ERROR_IO_WRITE;
-
+        if (!ref.save()) return TL_ERROR_IO_WRITE;
         return TL_SUCCESS;
     } catch (...) {
         return TL_ERROR_PARSE_FAILED;

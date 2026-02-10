@@ -76,27 +76,41 @@ jobs:
 
       - name: Setup WASI SDK
         run: |
-          WASI_VERSION=27.0
+          WASI_VERSION=30.0
           WASI_URL="https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-${WASI_VERSION%%.*}/wasi-sdk-${WASI_VERSION}-x86_64-linux.tar.gz"
           mkdir -p build/wasi-sdk
           cd build/wasi-sdk
           wget -q "$WASI_URL"
           tar xf wasi-sdk-*.tar.gz
           rm wasi-sdk-*.tar.gz
-          mv wasi-sdk-* wasi-sdk-${WASI_VERSION}
-          echo "WASI_SDK_PATH=$PWD/wasi-sdk-${WASI_VERSION}" >> $GITHUB_ENV
-          echo "$PWD/wasi-sdk-${WASI_VERSION}/bin" >> $GITHUB_PATH
+          echo "WASI_SDK_PATH=$PWD/wasi-sdk-${WASI_VERSION}-x86_64-linux" >> $GITHUB_ENV
+          echo "$PWD/wasi-sdk-${WASI_VERSION}-x86_64-linux/bin" >> $GITHUB_PATH
 
-      - name: Install wasm-opt
+      - name: Install wasm-opt and ninja
         run: |
           npm install -g wasm-opt
+          sudo apt-get install -y ninja-build
+
+      - name: Cache EH sysroot
+        uses: actions/cache@v4
+        with:
+          path: |
+            build/wasi-sdk-src
+            build/sysroot-build
+          key: ${{ runner.os }}-eh-sysroot-${{ hashFiles('build/build-eh-sysroot.sh') }}
+
+      - name: Build EH sysroot
+        run: |
+          printf '#!/bin/bash\nexport WASI_SDK_PATH="%s"\nexport PATH="$WASI_SDK_PATH/bin:$PATH"\n' "$WASI_SDK_PATH" > build/wasi-env.sh
+          chmod +x build/build-eh-sysroot.sh
+          ./build/build-eh-sysroot.sh
 
       - name: Cache WASI build
         uses: actions/cache@v4
         with:
           path: |
             build/wasi
-          key: ${{ runner.os }}-wasi-${{ hashFiles('lib/taglib/**/*.cpp', 'lib/taglib/**/*.h') }}
+          key: ${{ runner.os }}-wasi-${{ hashFiles('lib/taglib/**/*.cpp', 'lib/taglib/**/*.h', 'build/build-eh-sysroot.sh') }}
           restore-keys: |
             ${{ runner.os }}-wasi-
 

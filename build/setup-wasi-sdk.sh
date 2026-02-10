@@ -5,8 +5,8 @@
 set -e
 
 # Configuration - Using latest stable version
-WASI_SDK_VERSION="27"
-WASI_SDK_VERSION_FULL="27.0"
+WASI_SDK_VERSION="30"
+WASI_SDK_VERSION_FULL="30.0"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 WASI_SDK_DIR="$PROJECT_ROOT/build/wasi-sdk"
@@ -44,21 +44,23 @@ case "$OS" in
         ;;
 esac
 
-# Check if WASI SDK is already installed
-if [ -d "$WASI_SDK_DIR/wasi-sdk-${WASI_SDK_VERSION_FULL}" ]; then
-    echo -e "${GREEN}✅ WASI SDK ${WASI_SDK_VERSION_FULL} is already installed${NC}"
-    echo "   Path: $WASI_SDK_DIR/wasi-sdk-${WASI_SDK_VERSION_FULL}"
-    echo ""
-    echo "To use it, set:"
-    echo "export WASI_SDK_PATH=\"$WASI_SDK_DIR/wasi-sdk-${WASI_SDK_VERSION_FULL}\""
-    exit 0
+# Construct expected directory name and download URL
+if [ "$PLATFORM" = "macos" ]; then
+    SDK_DIR_NAME="wasi-sdk-${WASI_SDK_VERSION_FULL}-${ARCH}-macos"
+    TARBALL="${SDK_DIR_NAME}.tar.gz"
+else
+    SDK_DIR_NAME="wasi-sdk-${WASI_SDK_VERSION_FULL}-${ARCH}-${PLATFORM}"
+    TARBALL="${SDK_DIR_NAME}.tar.gz"
 fi
 
-# Construct download URL
-if [ "$PLATFORM" = "macos" ]; then
-    TARBALL="wasi-sdk-${WASI_SDK_VERSION_FULL}-${ARCH}-macos.tar.gz"
-else
-    TARBALL="wasi-sdk-${WASI_SDK_VERSION_FULL}-${ARCH}-${PLATFORM}.tar.gz"
+# Check if WASI SDK is already installed
+if [ -d "$WASI_SDK_DIR/${SDK_DIR_NAME}" ] && [ -f "$WASI_SDK_DIR/${SDK_DIR_NAME}/bin/clang" ]; then
+    echo -e "${GREEN}✅ WASI SDK ${WASI_SDK_VERSION_FULL} is already installed${NC}"
+    echo "   Path: $WASI_SDK_DIR/${SDK_DIR_NAME}"
+    echo ""
+    echo "To use it, set:"
+    echo "export WASI_SDK_PATH=\"$WASI_SDK_DIR/${SDK_DIR_NAME}\""
+    exit 0
 fi
 DOWNLOAD_URL="https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-${WASI_SDK_VERSION}/${TARBALL}"
 
@@ -88,12 +90,7 @@ tar xzf "$TARBALL"
 # Clean up tarball
 rm "$TARBALL"
 
-# Verify installation - handle different directory naming conventions
-WASI_SDK_PATH="$WASI_SDK_DIR/wasi-sdk-${WASI_SDK_VERSION_FULL}"
-# Check for architecture-specific directory name
-if [ "$PLATFORM" = "macos" ]; then
-    WASI_SDK_PATH="$WASI_SDK_DIR/wasi-sdk-${WASI_SDK_VERSION_FULL}-${ARCH}-macos"
-fi
+WASI_SDK_PATH="$WASI_SDK_DIR/${SDK_DIR_NAME}"
 
 if [ -f "$WASI_SDK_PATH/bin/clang" ]; then
     echo -e "${GREEN}✅ WASI SDK ${WASI_SDK_VERSION_FULL} installed successfully!${NC}"

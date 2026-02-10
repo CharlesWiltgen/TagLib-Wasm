@@ -13,6 +13,7 @@ KNOWN_ISSUES.md
 build/*/
 build/*.wasm
 build/*.js
+build/wasi-env.sh
 dist/
 
 # Test files backup
