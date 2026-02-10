@@ -4,7 +4,14 @@
 
 // Declare Deno global for TypeScript when not in Deno environment
 declare global {
-  // Only declare if not already defined by Deno runtime
+  namespace Deno {
+    type FsFile = any;
+    type SeekMode = any;
+    type OpenOptions = any;
+    type ChildProcess = any;
+    type CommandStatus = any;
+  }
+
   // @ts-ignore: Suppress duplicate identifier error in Deno
   const Deno: any;
 }

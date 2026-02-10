@@ -186,6 +186,7 @@ index 72088d979..7be2a18ec 100644
 +        "git apply ${CMAKE_SOURCE_DIR}/src/llvm-pr-168449.patch || git apply ${CMAKE_SOURCE_DIR}/src/llvm-pr-168449.patch -R --check"
    )
  endfunction()
+ 
 CMAKEPATCH
 
     git apply /tmp/wasi-sdk-eh-cmake.patch || {
