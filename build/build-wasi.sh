@@ -47,6 +47,9 @@ echo "━━━━━━━━━━━━━━━━━━━━━━━━�
 
 cd "$BUILD_DIR/taglib"
 
+# Clear stale cmake cache (CI cache may contain paths from a different SDK version)
+rm -f CMakeCache.txt
+
 # Configure TagLib with CMake for WASI
 echo "Configuring TagLib with CMake for WASI..."
 

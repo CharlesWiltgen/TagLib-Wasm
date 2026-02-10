@@ -111,8 +111,6 @@ jobs:
           path: |
             build/wasi
           key: ${{ runner.os }}-wasi-${{ hashFiles('lib/taglib/**/*.cpp', 'lib/taglib/**/*.h', 'build/build-eh-sysroot.sh') }}
-          restore-keys: |
-            ${{ runner.os }}-wasi-
 
       - name: Build with WASI SDK
         run: |
