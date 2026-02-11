@@ -155,4 +155,8 @@ export abstract class BaseAudioFileImpl {
       this.cachedAudioProperties = null;
     }
   }
+
+  [Symbol.dispose](): void {
+    this.dispose();
+  }
 }

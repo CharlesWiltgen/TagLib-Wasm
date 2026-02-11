@@ -202,47 +202,30 @@ async function initializeWithRetry(maxAttempts = 3) {
 ```typescript
 async function processFileWithCleanup(buffer: Uint8Array) {
   const taglib = await TagLib.initialize();
-  let file: AudioFile | null = null;
+  using file = taglib.openFile(buffer);
 
-  try {
-    // Open file
-    file = taglib.openFile(buffer);
-
-    // Validate
-    if (!file.isValid()) {
-      throw new Error("Invalid audio file");
-    }
-
-    // Process
-    const format = file.getFormat();
-    if (format === "UNKNOWN") {
-      throw new Error("Unknown audio format");
-    }
-
-    // Modify
-    file.setTitle("New Title");
-
-    // Save
-    if (!file.save()) {
-      throw new Error("Failed to save modifications");
-    }
-
-    // Return modified buffer
-    return file.toBuffer();
-  } catch (error) {
-    // Log detailed error info
-    console.error("Error processing file:", {
-      message: error.message,
-      format: file?.format(),
-      valid: file?.isValid(),
-    });
-    throw error;
-  } finally {
-    // Always clean up
-    if (file) {
-      file.dispose();
-    }
+  // Validate
+  if (!file.isValid()) {
+    throw new Error("Invalid audio file");
   }
+
+  // Process
+  const format = file.getFormat();
+  if (format === "UNKNOWN") {
+    throw new Error("Unknown audio format");
+  }
+
+  // Modify
+  file.setTitle("New Title");
+
+  // Save
+  if (!file.save()) {
+    throw new Error("Failed to save modifications");
+  }
+
+  // Return modified buffer
+  return file.toBuffer();
+  // file is automatically disposed when scope exits, even on throw
 }
 ```
 
@@ -268,10 +251,8 @@ class BatchProcessor {
   }
 
   private async processFile(filename: string, buffer: Uint8Array) {
-    let file: AudioFile | null = null;
-
     try {
-      file = this.taglib.openFile(buffer);
+      using file = this.taglib.openFile(buffer);
 
       if (!file.isValid()) {
         return {
@@ -297,8 +278,6 @@ class BatchProcessor {
         error: error.message,
         filename,
       };
-    } finally {
-      file?.dispose();
     }
   }
 }
@@ -348,11 +327,9 @@ async function processLargeFile(filePath: string) {
   try {
     const taglib = await TagLib.initialize({ memory: memoryConfig });
     const buffer = await Deno.readFile(filePath);
-    const file = taglib.openFile(buffer);
+    using file = taglib.openFile(buffer);
 
     // Process...
-
-    file.dispose();
   } catch (error) {
     if (error.message.includes("memory")) {
       throw new Error(`File too large (${fileSizeMB}MB): ${error.message}`);
@@ -517,27 +494,23 @@ async function safeReadMetadata(buffer: Uint8Array): Promise<SafeMetadata> {
 
   try {
     const taglib = await TagLib.initialize();
-    const file = taglib.openFile(buffer);
+    using file = taglib.openFile(buffer);
 
     if (!file.isValid()) {
       return { ...defaults, error: "Invalid file" };
     }
 
-    try {
-      const tags = file.tag();
-      const props = file.audioProperties();
+    const tags = file.tag();
+    const props = file.audioProperties();
 
-      return {
-        title: tags.title || defaults.title,
-        artist: tags.artist || defaults.artist,
-        album: tags.album || defaults.album,
-        year: tags.year || undefined,
-        duration: props.length,
-        format: file.getFormat(),
-      };
-    } finally {
-      file.dispose();
-    }
+    return {
+      title: tags.title || defaults.title,
+      artist: tags.artist || defaults.artist,
+      album: tags.album || defaults.album,
+      year: tags.year || undefined,
+      duration: props.length,
+      format: file.getFormat(),
+    };
   } catch (error) {
     return {
       ...defaults,
@@ -602,13 +575,11 @@ class MemoryMonitor {
 
   async processFile(buffer: Uint8Array) {
     const beforeMemory = this.getMemoryUsage();
-    const file = this.taglib.openFile(buffer);
 
-    try {
+    {
+      using file = this.taglib.openFile(buffer);
       // Process...
       this.filesProcessed++;
-    } finally {
-      file.dispose();
     }
 
     const afterMemory = this.getMemoryUsage();

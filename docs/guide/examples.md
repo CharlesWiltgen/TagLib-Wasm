@@ -101,7 +101,7 @@ import { TagLib } from "taglib-wasm";
 const taglib = await TagLib.load();
 
 // Read an audio file
-const audioFile = taglib.openFile(audioBuffer);
+using audioFile = taglib.openFile(audioBuffer);
 
 // Read tags
 const tag = audioFile.getTag();
@@ -115,9 +115,6 @@ tag.setArtist("New Artist");
 // Save changes
 audioFile.save();
 const modifiedBuffer = audioFile.getFileBuffer();
-
-// Clean up
-audioFile.dispose();
 ```
 
 ### Simple API

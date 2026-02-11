@@ -204,12 +204,8 @@ const pool = new TagLibPool();
 // Usage
 async function processFile(buffer: Uint8Array) {
   const taglib = await pool.getInstance();
-  const file = taglib.openFile(buffer);
-  try {
-    // Process...
-  } finally {
-    file.dispose();
-  }
+  using file = taglib.openFile(buffer);
+  // Process...
 }
 ```
 
@@ -317,7 +313,7 @@ The "smart save" feature ensures data integrity:
 // Example: Safe editing with partial loading
 async function editLargeFile(path: string) {
   // Fast partial load (only metadata)
-  const file = await taglib.open(path, { partial: true });
+  using file = await taglib.open(path, { partial: true });
 
   // Make multiple changes (no I/O yet)
   const tag = file.tag();
@@ -329,8 +325,7 @@ async function editLargeFile(path: string) {
 
   // Smart save - loads full file only when needed
   await file.saveToFile(); // Full file loaded and saved here
-
-  file.dispose();
+  // file automatically disposed when scope exits
 }
 ```
 
@@ -381,24 +376,26 @@ try {
 
 ```typescript
 // ❌ Inefficient: Multiple operations
-const file1 = taglib.openFile(buffer);
-file1.setTitle("Title");
-file1.dispose();
-
-const file2 = taglib.openFile(buffer);
-file2.setArtist("Artist");
-file2.dispose();
-
-const file3 = taglib.openFile(buffer);
-file3.setAlbum("Album");
-file3.dispose();
+{
+  using file1 = taglib.openFile(buffer);
+  file1.setTitle("Title");
+}
+{
+  using file2 = taglib.openFile(buffer);
+  file2.setArtist("Artist");
+}
+{
+  using file3 = taglib.openFile(buffer);
+  file3.setAlbum("Album");
+}
 
 // ✅ Efficient: Single operation
-const file = taglib.openFile(buffer);
-file.setTitle("Title");
-file.setArtist("Artist");
-file.setAlbum("Album");
-file.dispose();
+{
+  using file = taglib.openFile(buffer);
+  file.setTitle("Title");
+  file.setArtist("Artist");
+  file.setAlbum("Album");
+}
 ```
 
 ### Lazy Loading
@@ -434,9 +431,15 @@ class LazyAudioFile {
     return this._props;
   }
 
-  dispose() {
+  [Symbol.dispose]() {
     this.file.dispose();
   }
+}
+
+// Usage
+{
+  using lazy = new LazyAudioFile(taglib.openFile(buffer));
+  console.log(lazy.tags.title);
 }
 ```
 
@@ -637,18 +640,14 @@ async function processSequentially(files: string[]) {
 
   for (const filePath of files) {
     const buffer = await Deno.readFile(filePath);
-    const file = taglib.openFile(buffer);
+    using file = taglib.openFile(buffer);
 
-    try {
-      const result = {
-        path: filePath,
-        tags: file.tag(),
-        properties: file.audioProperties(),
-      };
-      results.push(result);
-    } finally {
-      file.dispose();
-    }
+    const result = {
+      path: filePath,
+      tags: file.tag(),
+      properties: file.audioProperties(),
+    };
+    results.push(result);
 
     // Optional: Force garbage collection between files
     if (globalThis.gc) {
@@ -684,17 +683,13 @@ async function processInParallel(files: string[], concurrency = 4) {
     const chunkResults = await Promise.all(
       chunk.map(async (filePath) => {
         const buffer = await Deno.readFile(filePath);
-        const file = taglib.openFile(buffer);
+        using file = taglib.openFile(buffer);
 
-        try {
-          return {
-            path: filePath,
-            tags: file.tag(),
-            properties: file.audioProperties(),
-          };
-        } finally {
-          file.dispose();
-        }
+        return {
+          path: filePath,
+          tags: file.tag(),
+          properties: file.audioProperties(),
+        };
       }),
     );
 
@@ -716,16 +711,13 @@ async function* streamProcess(files: string[]) {
   for (const filePath of files) {
     try {
       const buffer = await Deno.readFile(filePath);
-      const file = taglib.openFile(buffer);
+      using file = taglib.openFile(buffer);
 
-      const result = {
+      yield {
         path: filePath,
         tags: file.tag(),
         properties: file.audioProperties(),
       };
-
-      file.dispose();
-      yield result;
     } catch (error) {
       yield {
         path: filePath,
@@ -763,9 +755,8 @@ self.onmessage = async (e) => {
   const { cmd, buffer } = e.data;
   if (cmd === "process") {
     const taglib = await TagLib.initialize();
-    const file = taglib.openFile(buffer);
+    using file = taglib.openFile(buffer);
     const tags = file.tag();
-    file.dispose();
     self.postMessage({ tags });
   }
 };
@@ -867,14 +858,12 @@ export default {
     (async () => {
       try {
         const buffer = new Uint8Array(await request.arrayBuffer());
-        const file = taglib.openFile(buffer);
+        using file = taglib.openFile(buffer);
 
         const metadata = {
           tags: file.tag(),
           properties: file.audioProperties(),
         };
-
-        file.dispose();
 
         await writer.write(
           new TextEncoder().encode(JSON.stringify(metadata)),
@@ -963,23 +952,20 @@ for (const file of testFiles) {
   const buffer = await Deno.readFile(file);
 
   await monitor.measure("open", () => {
-    const f = taglib.openFile(buffer);
-    f.dispose();
+    using f = taglib.openFile(buffer);
     return Promise.resolve();
   });
 
   await monitor.measure("read_tags", () => {
-    const f = taglib.openFile(buffer);
+    using f = taglib.openFile(buffer);
     const tags = f.tag();
-    f.dispose();
     return Promise.resolve(tags);
   });
 
   await monitor.measure("write_tags", () => {
-    const f = taglib.openFile(buffer);
+    using f = taglib.openFile(buffer);
     f.setTitle("New Title");
     f.save();
-    f.dispose();
     return Promise.resolve();
   });
 }
@@ -1043,13 +1029,13 @@ profiler.sample("After init");
 const buffer = await Deno.readFile("large-file.flac");
 profiler.sample("After file read");
 
-const file = taglib.openFile(buffer);
-profiler.sample("After file open");
+{
+  using file = taglib.openFile(buffer);
+  profiler.sample("After file open");
 
-const tags = file.tag();
-profiler.sample("After tag read");
-
-file.dispose();
+  const tags = file.tag();
+  profiler.sample("After tag read");
+}
 profiler.sample("After dispose");
 
 profiler.report();

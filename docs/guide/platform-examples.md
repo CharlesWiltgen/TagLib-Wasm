@@ -15,8 +15,8 @@ import { TagLib } from "npm:taglib-wasm";
 const taglib = await TagLib.initialize();
 
 // Load audio file (can pass file path or buffer)
-const file = await taglib.open("song.mp3"); // Direct file path (simpler)
-// Or from buffer: const file = await taglib.open(await Deno.readFile("song.mp3"));
+using file = await taglib.open("song.mp3"); // Direct file path (simpler)
+// Or from buffer: using file = await taglib.open(await Deno.readFile("song.mp3"));
 
 // Read metadata
 const tags = file.tag();
@@ -40,9 +40,6 @@ tag.setAlbum("New Album");
 file.save();
 
 console.log("Updated tags:", file.tag());
-
-// Clean up
-file.dispose();
 ```
 
 ### Deno-Specific Tips
@@ -65,8 +62,8 @@ import { readFile } from "fs/promises";
 const taglib = await TagLib.initialize();
 
 // Load audio file (can pass file path or buffer)
-const file = await taglib.open("song.mp3"); // Direct file path (simpler)
-// Or from buffer: const file = await taglib.open(await readFile("song.mp3"));
+using file = await taglib.open("song.mp3"); // Direct file path (simpler)
+// Or from buffer: using file = await taglib.open(await readFile("song.mp3"));
 
 // Read metadata
 const tags = file.tag();
@@ -90,9 +87,6 @@ tag.setAlbum("New Album");
 file.save();
 
 console.log("Updated tags:", file.tag());
-
-// Clean up
-file.dispose();
 ```
 
 ### Node.js-Specific Tips
@@ -113,8 +107,8 @@ import { TagLib } from "taglib-wasm";
 const taglib = await TagLib.initialize();
 
 // Load audio file (can pass file path or buffer)
-const file = await taglib.open("song.mp3"); // Direct file path (simpler)
-// Or from buffer: const file = await taglib.open(new Uint8Array(await Bun.file("song.mp3").arrayBuffer()));
+using file = await taglib.open("song.mp3"); // Direct file path (simpler)
+// Or from buffer: using file = await taglib.open(new Uint8Array(await Bun.file("song.mp3").arrayBuffer()));
 
 // Read metadata
 const tags = file.tag();
@@ -138,9 +132,6 @@ tag.setAlbum("New Album");
 file.save();
 
 console.log("Updated tags:", file.tag());
-
-// Clean up
-file.dispose();
 ```
 
 ### Bun-Specific Tips
@@ -163,7 +154,7 @@ const taglib = await TagLib.initialize();
 const fileInput = document.querySelector('input[type="file"]');
 const audioFile = fileInput.files[0];
 const audioData = new Uint8Array(await audioFile.arrayBuffer());
-const file = await taglib.open(audioData); // Browser requires buffer
+using file = await taglib.open(audioData); // Browser requires buffer
 
 // Read metadata
 const tags = file.tag();
@@ -187,9 +178,6 @@ tag.setAlbum("New Album");
 file.save();
 
 console.log("Updated tags:", file.tag());
-
-// Clean up
-file.dispose();
 ```
 
 ### Browser-Specific Tips
@@ -224,7 +212,7 @@ file.dispose();
 
         const taglib = await TagLib.initialize();
         const audioData = new Uint8Array(await file.arrayBuffer());
-        const audioFile = await taglib.open(audioData);
+        using audioFile = await taglib.open(audioData);
 
         const tags = audioFile.tag();
         const props = audioFile.audioProperties();
@@ -237,8 +225,6 @@ file.dispose();
                 <p>Duration: ${props.length}s</p>
                 <p>Bitrate: ${props.bitrate} kbps</p>
             `;
-
-        audioFile.dispose();
       });
     </script>
   </body>
@@ -264,7 +250,7 @@ export default {
 
         // Get audio data from request
         const audioData = new Uint8Array(await request.arrayBuffer());
-        const file = await taglib.open(audioData); // Workers require buffer
+        using file = await taglib.open(audioData); // Workers require buffer
 
         // Read metadata
         const tags = file.tag();
@@ -281,9 +267,6 @@ export default {
           bitrate: props.bitrate,
           format: file.getFormat(),
         };
-
-        // Clean up
-        file.dispose();
 
         return Response.json({
           success: true,
@@ -324,21 +307,18 @@ import { readFile } from "fs/promises";
 
 async function getMetadata(filePath: string) {
   const taglib = await TagLib.initialize();
-  const file = await taglib.open(filePath);
+  using file = await taglib.open(filePath);
 
   const tags = file.tag();
   const props = file.audioProperties();
 
-  const metadata = {
+  return {
     title: tags.title,
     artist: tags.artist,
     album: tags.album,
     duration: props.length,
     bitrate: props.bitrate,
   };
-
-  file.dispose();
-  return metadata;
 }
 
 // IPC handler
@@ -387,12 +367,10 @@ const taglib = await TagLib.initialize();
 const files = await glob("music/**/*.mp3");
 
 for (const filePath of files) {
-  const file = await taglib.open(filePath);
+  using file = await taglib.open(filePath);
   const tags = file.tag();
 
   console.log(`${filePath}: ${tags.artist} - ${tags.title}`);
-
-  file.dispose();
 }
 ```
 
@@ -408,11 +386,9 @@ async function processFiles(
   for (let i = 0; i < files.length; i++) {
     const file = files[i];
     const audioData = new Uint8Array(await file.arrayBuffer());
-    const audioFile = await taglib.open(audioData);
+    using audioFile = await taglib.open(audioData);
 
     // Process file...
-
-    audioFile.dispose();
     onProgress((i + 1) / files.length * 100);
   }
 }

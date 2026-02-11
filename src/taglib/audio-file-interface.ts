@@ -99,6 +99,9 @@ export interface AudioFile {
   /** Release all resources associated with this file. */
   dispose(): void;
 
+  /** Enable `using file = ...` for automatic cleanup. */
+  [Symbol.dispose](): void;
+
   /** Get MusicBrainz Track ID. */
   getMusicBrainzTrackId(): string | undefined;
 

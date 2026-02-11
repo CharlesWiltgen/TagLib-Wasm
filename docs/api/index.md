@@ -720,6 +720,13 @@ Returns version string (e.g., "2.1.0")
 ### AudioFile Class
 
 Represents an open audio file with methods to read and write metadata.
+AudioFile implements `Symbol.dispose`, enabling automatic cleanup with the
+`using` keyword:
+
+```typescript
+using file = await taglib.open("song.mp3");
+// file is automatically disposed when it goes out of scope
+```
 
 #### Validation Methods
 
@@ -1109,11 +1116,10 @@ changes.
 ##### Example
 
 ```typescript
-const file = await taglib.open("song.mp3");
+using file = await taglib.open("song.mp3");
 file.setTitle("New Title");
 file.setArtist("New Artist");
 await file.saveToFile("song-updated.mp3");
-file.dispose();
 ```
 
 ##### getFileBuffer()
@@ -1135,8 +1141,8 @@ Clean up resources and free memory.
 dispose(): void
 ```
 
-**Important**: Always call `dispose()` when done with a file to prevent memory
-leaks.
+**Tip**: Prefer `using file = await taglib.open(...)` for automatic cleanup.
+Call `dispose()` manually only when `using` is not available.
 
 ### Types and Interfaces
 
@@ -1182,10 +1188,9 @@ import { TagLib } from "taglib-wasm";
 const taglib = await TagLib.initialize();
 
 // Use the same API as in other environments
-const file = await taglib.open(audioBuffer);
+using file = await taglib.open(audioBuffer);
 const tag = file.tag();
 console.log(tag.title);
-file.dispose();
 ```
 
 The WebAssembly module automatically detects the Workers environment and optimizes memory usage accordingly.
@@ -1321,24 +1326,20 @@ try {
    }
    ```
 
-3. **Use try-catch for file operations**:
+3. **Use `using` for automatic cleanup**:
    ```typescript
-   try {
-     const file = await taglib.open("song.mp3");
-     // ... operations
-     file.dispose();
-   } catch (error) {
-     console.error("Error processing file:", error);
-   }
+   using file = await taglib.open("song.mp3");
+   // ... operations
+   // file is automatically disposed when it goes out of scope
    ```
 
-4. **Always dispose of files**:
+4. **Wrap with try-catch for error reporting**:
    ```typescript
-   const file = await taglib.open(buffer);
    try {
+     using file = await taglib.open("song.mp3");
      // ... operations
-   } finally {
-     file.dispose(); // Ensures cleanup even on error
+   } catch (error) {
+     console.error("Error processing file:", error);
    }
    ```
 
@@ -1407,17 +1408,14 @@ The Simple API automatically manages memory:
 const tags = await readTags("song.mp3");
 ```
 
-### Manual Cleanup (Full API)
+### Automatic Cleanup (Full API)
 
-With the Full API, you must manually dispose of files:
+With the Full API, use `using` for automatic cleanup:
 
 ```typescript
-const file = await taglib.open("song.mp3");
-try {
-  // ... do work
-} finally {
-  file.dispose(); // Always dispose!
-}
+using file = await taglib.open("song.mp3");
+// ... do work
+// file is automatically disposed when it goes out of scope
 ```
 
 ### Memory Configuration
@@ -1452,7 +1450,7 @@ const taglib = await TagLib.initialize({
 
 ### Preventing Memory Leaks
 
-1. **Always dispose of AudioFile instances**
+1. **Use `using` for AudioFile instances (automatic disposal)**
 2. **Process files sequentially in memory-constrained environments**
 3. **Monitor memory usage in long-running applications**
 4. **Use the Simple API when possible (automatic cleanup)**
@@ -1466,49 +1464,44 @@ async function processAudioFile(filePath: string) {
   // Initialize TagLib
   const taglib = await TagLib.initialize();
 
-  try {
-    // Open file directly from path
-    const file = await taglib.open(filePath);
+  // Open file directly from path
+  using file = await taglib.open(filePath);
 
-    // Validate
-    if (!file.isValid()) {
-      throw new Error("Invalid audio file");
-    }
-
-    // Read current metadata
-    console.log("Current tags:", file.tag());
-    console.log("Format:", file.getFormat());
-    console.log("Properties:", file.audioProperties());
-
-    // Update metadata
-    const tag = file.tag();
-    tag.setTitle("New Title");
-    tag.setArtist("New Artist");
-    tag.setAlbum("New Album");
-    tag.setYear(2024);
-
-    // Add extended metadata using properties
-    file.setProperties({
-      ALBUMARTIST: "Various Artists",
-      COMPOSER: "Composer Name",
-      BPM: "120",
-      REPLAYGAIN_TRACK_GAIN: "-6.5 dB",
-    });
-
-    // Add identifiers
-    file.setAcoustIdFingerprint("AQADtMmybfGO8NCN...");
-    file.setMusicBrainzTrackId("f4d1b6b8-8c1e-4d9a-9f2a-1234567890ab");
-
-    // Save changes to a new file
-    const outputPath = filePath.replace(/\.(\w+)$/, "-modified.$1");
-    await file.saveToFile(outputPath);
-    console.log("Saved to:", outputPath);
-
-    // Clean up
-    file.dispose();
-  } catch (error) {
-    console.error("Error:", error);
+  // Validate
+  if (!file.isValid()) {
+    throw new Error("Invalid audio file");
   }
+
+  // Read current metadata
+  console.log("Current tags:", file.tag());
+  console.log("Format:", file.getFormat());
+  console.log("Properties:", file.audioProperties());
+
+  // Update metadata
+  const tag = file.tag();
+  tag.setTitle("New Title");
+  tag.setArtist("New Artist");
+  tag.setAlbum("New Album");
+  tag.setYear(2024);
+
+  // Add extended metadata using properties
+  file.setProperties({
+    ALBUMARTIST: "Various Artists",
+    COMPOSER: "Composer Name",
+    BPM: "120",
+    REPLAYGAIN_TRACK_GAIN: "-6.5 dB",
+  });
+
+  // Add identifiers
+  file.setAcoustIdFingerprint("AQADtMmybfGO8NCN...");
+  file.setMusicBrainzTrackId("f4d1b6b8-8c1e-4d9a-9f2a-1234567890ab");
+
+  // Save changes to a new file
+  const outputPath = filePath.replace(/\.(\w+)$/, "-modified.$1");
+  await file.saveToFile(outputPath);
+  console.log("Saved to:", outputPath);
+
+  // file is automatically disposed when it goes out of scope
 }
 
 // Usage
