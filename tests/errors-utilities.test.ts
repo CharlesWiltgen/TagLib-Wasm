@@ -23,10 +23,10 @@ import {
 } from "../src/errors.ts";
 
 Deno.test("TagLibError - base error class", () => {
-  const error = new TagLibError("TEST_CODE", "Test message", { foo: "bar" });
+  const error = new TagLibError("MEMORY", "Test message", { foo: "bar" });
 
   assertEquals(error.name, "TagLibError");
-  assertEquals(error.code, "TEST_CODE");
+  assertEquals(error.code, "MEMORY");
   assertEquals(error.message, "Test message");
   assertEquals(error.details, { foo: "bar" });
   assertInstanceOf(error, Error);
@@ -228,7 +228,7 @@ Deno.test("WorkerError - worker pool errors", () => {
 });
 
 Deno.test("isTagLibError - type guard for base error", () => {
-  assertEquals(isTagLibError(new TagLibError("TEST", "message")), true);
+  assertEquals(isTagLibError(new TagLibError("MEMORY", "message")), true);
   assertEquals(isTagLibError(new TagLibInitializationError("failed")), true);
   assertEquals(isTagLibError(new InvalidFormatError("bad format")), true);
   assertEquals(isTagLibError(new UnsupportedFormatError("WMA")), true);
@@ -249,7 +249,7 @@ Deno.test("isInvalidFormatError - type guard", () => {
   assertEquals(isInvalidFormatError(new InvalidFormatError("bad")), true);
   assertEquals(isInvalidFormatError(new InvalidFormatError("bad", 100)), true);
 
-  assertEquals(isInvalidFormatError(new TagLibError("TEST", "msg")), false);
+  assertEquals(isInvalidFormatError(new TagLibError("MEMORY", "msg")), false);
   assertEquals(isInvalidFormatError(new UnsupportedFormatError("WMA")), false);
   assertEquals(isInvalidFormatError(new Error("regular")), false);
   assertEquals(isInvalidFormatError("not an error"), false);
@@ -266,7 +266,10 @@ Deno.test("isUnsupportedFormatError - type guard", () => {
   );
 
   assertEquals(isUnsupportedFormatError(new InvalidFormatError("bad")), false);
-  assertEquals(isUnsupportedFormatError(new TagLibError("TEST", "msg")), false);
+  assertEquals(
+    isUnsupportedFormatError(new TagLibError("MEMORY", "msg")),
+    false,
+  );
   assertEquals(isUnsupportedFormatError(new Error("regular")), false);
   assertEquals(isUnsupportedFormatError(null), false);
 });
@@ -281,7 +284,7 @@ Deno.test("isFileOperationError - type guard", () => {
     true,
   );
 
-  assertEquals(isFileOperationError(new TagLibError("TEST", "msg")), false);
+  assertEquals(isFileOperationError(new TagLibError("MEMORY", "msg")), false);
   assertEquals(
     isFileOperationError(new MetadataError("read", "failed")),
     false,
@@ -301,7 +304,7 @@ Deno.test("isMetadataError - type guard", () => {
     isMetadataError(new FileOperationError("read", "failed")),
     false,
   );
-  assertEquals(isMetadataError(new TagLibError("TEST", "msg")), false);
+  assertEquals(isMetadataError(new TagLibError("MEMORY", "msg")), false);
   assertEquals(isMetadataError("not an error"), false);
 });
 
@@ -312,7 +315,7 @@ Deno.test("isMemoryError - type guard", () => {
     true,
   );
 
-  assertEquals(isMemoryError(new TagLibError("TEST", "msg")), false);
+  assertEquals(isMemoryError(new TagLibError("MEMORY", "msg")), false);
   assertEquals(isMemoryError(new Error("regular")), false);
   assertEquals(isMemoryError({}), false);
 });
@@ -327,7 +330,7 @@ Deno.test("isEnvironmentError - type guard", () => {
     true,
   );
 
-  assertEquals(isEnvironmentError(new TagLibError("TEST", "msg")), false);
+  assertEquals(isEnvironmentError(new TagLibError("MEMORY", "msg")), false);
   assertEquals(isEnvironmentError(new WorkerError("failed")), false);
   assertEquals(isEnvironmentError(123), false);
 });

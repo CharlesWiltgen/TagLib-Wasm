@@ -39,7 +39,7 @@ export class TagLibError extends Error {
    * @param details - Additional context about the error
    */
   constructor(
-    public readonly code: string,
+    public readonly code: TagLibErrorCode,
     message: string,
     public readonly details?: Record<string, any>,
   ) {
