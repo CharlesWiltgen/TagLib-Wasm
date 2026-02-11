@@ -17,10 +17,12 @@ import type {
 } from "./types.ts";
 import {
   cStringToJS,
-  jsToCString,
+  emscriptenToWasmExports,
   loadTagLibModuleForWorkers,
   type TagLibModule,
+  WasmAlloc,
 } from "./wasm-workers.ts";
+import type { WasmExports } from "./runtime/wasi-memory.ts";
 import { EnvironmentError, InvalidFormatError, MemoryError } from "./errors.ts";
 
 /**
@@ -45,15 +47,30 @@ import { EnvironmentError, InvalidFormatError, MemoryError } from "./errors.ts";
  */
 export class AudioFileWorkers {
   private readonly module: TagLibModule;
+  private readonly wasmExports: WasmExports;
   private fileId: number;
   private readonly tagPtr: number;
   private readonly propsPtr: number;
 
   constructor(module: TagLibModule, fileId: number) {
     this.module = module;
+    this.wasmExports = emscriptenToWasmExports(module);
     this.fileId = fileId;
     this.tagPtr = module._taglib_file_tag?.(fileId) ?? 0;
     this.propsPtr = module._taglib_file_audioproperties?.(fileId) ?? 0;
+  }
+
+  private setStringTag(
+    setter: ((tagPtr: number, strPtr: number) => void) | undefined,
+    value: string,
+  ): void {
+    if (this.tagPtr === 0) return;
+    using alloc = new WasmAlloc(
+      this.wasmExports,
+      new TextEncoder().encode(value).length + 1,
+    );
+    alloc.writeCString(value);
+    setter?.(this.tagPtr, alloc.ptr);
   }
 
   /**
@@ -136,13 +153,7 @@ export class AudioFileWorkers {
    * @param title - New title value
    */
   setTitle(title: string): void {
-    if (this.tagPtr === 0) return;
-    const titlePtr = jsToCString(this.module, title);
-    try {
-      this.module._taglib_tag_set_title?.(this.tagPtr, titlePtr);
-    } finally {
-      this.module._free(titlePtr);
-    }
+    this.setStringTag(this.module._taglib_tag_set_title, title);
   }
 
   /**
@@ -150,13 +161,7 @@ export class AudioFileWorkers {
    * @param artist - New artist value
    */
   setArtist(artist: string): void {
-    if (this.tagPtr === 0) return;
-    const artistPtr = jsToCString(this.module, artist);
-    try {
-      this.module._taglib_tag_set_artist?.(this.tagPtr, artistPtr);
-    } finally {
-      this.module._free(artistPtr);
-    }
+    this.setStringTag(this.module._taglib_tag_set_artist, artist);
   }
 
   /**
@@ -164,13 +169,7 @@ export class AudioFileWorkers {
    * @param album - New album value
    */
   setAlbum(album: string): void {
-    if (this.tagPtr === 0) return;
-    const albumPtr = jsToCString(this.module, album);
-    try {
-      this.module._taglib_tag_set_album?.(this.tagPtr, albumPtr);
-    } finally {
-      this.module._free(albumPtr);
-    }
+    this.setStringTag(this.module._taglib_tag_set_album, album);
   }
 
   /**
@@ -178,13 +177,7 @@ export class AudioFileWorkers {
    * @param comment - New comment value
    */
   setComment(comment: string): void {
-    if (this.tagPtr === 0) return;
-    const commentPtr = jsToCString(this.module, comment);
-    try {
-      this.module._taglib_tag_set_comment?.(this.tagPtr, commentPtr);
-    } finally {
-      this.module._free(commentPtr);
-    }
+    this.setStringTag(this.module._taglib_tag_set_comment, comment);
   }
 
   /**
@@ -192,13 +185,7 @@ export class AudioFileWorkers {
    * @param genre - New genre value
    */
   setGenre(genre: string): void {
-    if (this.tagPtr === 0) return;
-    const genrePtr = jsToCString(this.module, genre);
-    try {
-      this.module._taglib_tag_set_genre?.(this.tagPtr, genrePtr);
-    } finally {
-      this.module._free(genrePtr);
-    }
+    this.setStringTag(this.module._taglib_tag_set_genre, genre);
   }
 
   /**
@@ -304,6 +291,10 @@ export class AudioFileWorkers {
       this.fileId = 0;
     }
   }
+
+  [Symbol.dispose](): void {
+    this.dispose();
+  }
 }
 
 /**
@@ -378,47 +369,33 @@ export class TagLibWorkers {
       );
     }
 
-    // Use Emscripten's allocate function for proper memory management
-    let dataPtr: number = 0;
-    try {
-      if (this.module.allocate && this.module.ALLOC_NORMAL !== undefined) {
-        dataPtr = this.module.allocate(buffer, this.module.ALLOC_NORMAL);
-      } else {
-        dataPtr = this.module._malloc(buffer.length);
-        this.module.HEAPU8.set(buffer, dataPtr);
-      }
+    if (!this.module._taglib_file_new_from_buffer) {
+      throw new EnvironmentError(
+        "Workers",
+        "requires C-style functions which are not available. Use the Full API instead for this environment",
+        "C-style function exports",
+      );
+    }
 
-      if (!this.module._taglib_file_new_from_buffer) {
-        throw new EnvironmentError(
-          "Workers",
-          "requires C-style functions which are not available. Use the Full API instead for this environment",
-          "C-style function exports",
-        );
-      }
+    using alloc = new WasmAlloc(
+      emscriptenToWasmExports(this.module),
+      buffer.length,
+    );
+    alloc.write(buffer);
 
-      const fileId = this.module._taglib_file_new_from_buffer(
-        dataPtr,
+    const fileId = this.module._taglib_file_new_from_buffer(
+      alloc.ptr,
+      buffer.length,
+    );
+
+    if (fileId === 0) {
+      throw new InvalidFormatError(
+        "Failed to open audio file. File format may be invalid or not supported",
         buffer.length,
       );
-
-      if (fileId === 0) {
-        throw new InvalidFormatError(
-          "Failed to open audio file. File format may be invalid or not supported",
-          buffer.length,
-        );
-      }
-
-      // Free the temporary buffer copy (TagLib has made its own copy in ByteVector)
-      this.module._free(dataPtr);
-
-      return new AudioFileWorkers(this.module, fileId);
-    } catch (error) {
-      // Always free allocated memory on error
-      if (dataPtr) {
-        this.module._free(dataPtr);
-      }
-      throw error;
     }
+
+    return new AudioFileWorkers(this.module, fileId);
   }
 
   /**
@@ -465,17 +442,13 @@ export async function processAudioMetadata(
   { tag: Tag; properties: AudioProperties | null; format: AudioFormat }
 > {
   const taglib = await TagLibWorkers.initialize(wasmBinary, config);
-  const file = taglib.open(audioData);
+  using file = taglib.open(audioData);
 
-  try {
-    const tag = file.tag();
-    const properties = file.audioProperties();
-    const format = file.format();
-
-    return { tag, properties, format };
-  } finally {
-    file.dispose();
-  }
+  return {
+    tag: file.tag(),
+    properties: file.audioProperties(),
+    format: file.format(),
+  };
 }
 
 /**
