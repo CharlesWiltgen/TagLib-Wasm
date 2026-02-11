@@ -6,10 +6,16 @@
  */
 
 /**
+ * Minimal memory interface: only `.buffer` is used (never `.grow()`).
+ * Accepts both real WebAssembly.Memory and plain buffer-only shims.
+ */
+export type WasmMemoryLike = { readonly buffer: ArrayBufferLike };
+
+/**
  * WASM exports interface matching our C API
  */
 export interface WasmExports {
-  memory: WebAssembly.Memory;
+  memory: WasmMemoryLike;
   malloc(size: number): number;
   free(ptr: number): void;
 }
@@ -17,7 +23,7 @@ export interface WasmExports {
 /**
  * Re-usable heap views (must be refreshed after any memory growth!)
  */
-export const heapViews = (mem: WebAssembly.Memory) => ({
+export const heapViews = (mem: WasmMemoryLike) => ({
   u8: new Uint8Array(mem.buffer),
   i8: new Int8Array(mem.buffer),
   u16: new Uint16Array(mem.buffer),
@@ -74,10 +80,13 @@ export class WasmAlloc {
   }
 
   /**
-   * Write C string with null terminator
+   * Write C string with null terminator.
+   * Accepts a string or pre-encoded UTF-8 bytes (avoids double-encoding).
    */
-  writeCString(str: string): void {
-    const bytes = new TextEncoder().encode(str);
+  writeCString(input: string | Uint8Array): void {
+    const bytes = typeof input === "string"
+      ? new TextEncoder().encode(input)
+      : input;
     if (bytes.length >= this.#size) {
       throw new Error(`String too long for allocation`);
     }
@@ -153,12 +162,12 @@ export class WasmArena {
   }
 
   /**
-   * Allocate and write string
+   * Allocate and write string (encodes once)
    */
   allocString(str: string): WasmAlloc {
     const bytes = new TextEncoder().encode(str);
     const allocation = this.alloc(bytes.length + 1);
-    allocation.writeCString(str);
+    allocation.writeCString(bytes);
     return allocation;
   }
 
