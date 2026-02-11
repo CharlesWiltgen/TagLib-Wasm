@@ -79,7 +79,7 @@ And `false` for lossy formats (AAC, MP3, Vorbis, Opus).
 import { TagLib } from "taglib-wasm";
 
 const taglib = await TagLib.initialize();
-const file = await taglib.open(audioBuffer);
+using file = await taglib.open(audioBuffer);
 const props = file.audioProperties();
 
 if (props) {

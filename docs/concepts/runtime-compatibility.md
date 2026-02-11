@@ -22,7 +22,7 @@ import { TagLib } from "npm:taglib-wasm";
 
 const taglib = await TagLib.initialize();
 const audioData = await Deno.readFile("song.mp3");
-const file = taglib.openFile(audioData);
+using file = taglib.openFile(audioData);
 ```
 
 ### ✅ Bun 1.0+
@@ -41,7 +41,7 @@ import { TagLib } from "taglib-wasm";
 
 const taglib = await TagLib.initialize();
 const audioData = await Bun.file("song.mp3").arrayBuffer();
-const file = taglib.openFile(new Uint8Array(audioData));
+using file = taglib.openFile(new Uint8Array(audioData));
 ```
 
 ### ✅ Node.js 22.6.0+
@@ -60,7 +60,7 @@ import { readFile } from "fs/promises";
 
 const taglib = await TagLib.initialize();
 const audioData = await readFile("song.mp3");
-const file = taglib.openFile(audioData);
+using file = taglib.openFile(audioData);
 ```
 
 ### ✅ Browsers (Chrome 57+, Firefox 52+, Safari 11+)
@@ -82,12 +82,12 @@ const taglib = await TagLib.initialize();
 const fileInput = document.querySelector('input[type="file"]');
 const file = fileInput.files[0];
 const audioData = new Uint8Array(await file.arrayBuffer());
-const tagFile = taglib.openFile(audioData);
+using tagFile = taglib.openFile(audioData);
 
 // From fetch
 const response = await fetch("song.mp3");
 const audioData = new Uint8Array(await response.arrayBuffer());
-const tagFile = taglib.openFile(audioData);
+using tagFile = taglib.openFile(audioData);
 ```
 
 ### ✅ Cloudflare Workers

@@ -119,7 +119,7 @@ function detectFormat(buffer: Uint8Array): string {
 
 // 3. Handle corrupt files
 try {
-  const file = taglib.openFile(buffer);
+  using file = taglib.openFile(buffer);
   if (!file.isValid()) {
     throw new Error("File is corrupt or invalid");
   }
@@ -348,7 +348,7 @@ function decodeString(bytes: Uint8Array, encoding = "utf-8"): string {
 
 ```typescript
 // 1. Check ID3 version
-const file = taglib.openFile(mp3Buffer);
+using file = taglib.openFile(mp3Buffer);
 
 // Force ID3v2.4 for better compatibility
 // (TagLib handles this internally)
@@ -363,7 +363,7 @@ if (file.getFormat() === "MP3") {
 function cleanMP3Tags(buffer: Uint8Array): Uint8Array {
   // This is handled internally by TagLib
   const taglib = await TagLib.initialize();
-  const file = taglib.openFile(buffer);
+  using file = taglib.openFile(buffer);
 
   if (file.isValid()) {
     // Re-save to clean up
@@ -383,7 +383,7 @@ function cleanMP3Tags(buffer: Uint8Array): Uint8Array {
 
 ```typescript
 // Use standard atom names
-const file = taglib.openFile(m4aBuffer);
+using file = taglib.openFile(m4aBuffer);
 
 // These map to iTunes-compatible atoms
 file.setTitle("Title"); // ©nam
@@ -408,7 +408,7 @@ file.setExtendedTag({
 
 ```typescript
 // FLAC uses Vorbis comments
-const file = taglib.openFile(flacBuffer);
+using file = taglib.openFile(flacBuffer);
 
 // Standard fields work automatically
 file.setTitle("Title");

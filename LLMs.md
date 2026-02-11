@@ -1642,7 +1642,7 @@ const file = taglib.open(buffer); // This will fail
 
 // ✅ DO: Always await async operations
 const taglib = await TagLib.initialize();
-const file = await taglib.open(buffer);
+using file = await taglib.open(buffer);
 
 // ❌ DON'T: Assume operations are instant
 audioFile.save();

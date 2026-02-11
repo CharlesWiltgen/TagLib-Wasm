@@ -41,7 +41,7 @@ await updateTags("song.mp3", { title: "New Title" });
 
 ```typescript
 const taglib = await TagLib.initialize();
-const file = taglib.openFile(audioData);
+using file = taglib.openFile(audioData);
 file.setTitle("New Title");
 file.save();
 ```
