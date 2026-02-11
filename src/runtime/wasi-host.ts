@@ -235,8 +235,8 @@ export function createWasiImports(
         const options = {
           read: true,
           write: wantWrite,
-          create: (oflags & OFLAGS_CREAT) !== 0 || undefined,
-          truncate: (oflags & OFLAGS_TRUNC) !== 0 || undefined,
+          create: (oflags & OFLAGS_CREAT) !== 0,
+          truncate: (oflags & OFLAGS_TRUNC) !== 0,
         };
 
         const file = config.fs.openSync(realPath, options);

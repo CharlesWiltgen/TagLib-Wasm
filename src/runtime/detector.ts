@@ -7,7 +7,7 @@
  *
  * Priority order:
  * 1. Deno + WASI (optimal filesystem performance)
- * 2. Bun + Emscripten (Bun mimics Node, must check first)
+ * 2. Bun + WASI (via node:fs, check before Node)
  * 3. Node.js + WASI (when available)
  * 4. Browser + Emscripten (required for web)
  * 5. Node.js + Emscripten (fallback compatibility)

@@ -15,6 +15,7 @@ type NodeFs = typeof import("node:fs");
 
 function mapOpenFlags(options: WasiOpenOptions): string {
   if (options.create && options.truncate) return "w+";
+  if (options.create) return "a+";
   if (options.write) return "r+";
   return "r";
 }
@@ -43,6 +44,7 @@ function createNodeFileHandle(fs: NodeFs, fd: number): WasiFileHandle {
         const stat = fs.fstatSync(fd);
         position = stat.size + offset;
       }
+      if (position < 0) position = 0;
       return position;
     },
     truncateSync(size: number): void {
@@ -56,6 +58,7 @@ function createNodeFileHandle(fs: NodeFs, fd: number): WasiFileHandle {
 
 export async function createNodeFsProvider(): Promise<FileSystemProvider> {
   const fs = await import("node:fs");
+  const fsp = await import("node:fs/promises");
 
   return {
     openSync(path: string, options: WasiOpenOptions): WasiFileHandle {
@@ -64,8 +67,7 @@ export async function createNodeFsProvider(): Promise<FileSystemProvider> {
       return createNodeFileHandle(fs, fd);
     },
     async readFile(path: string): Promise<Uint8Array> {
-      const { readFile } = await import("node:fs/promises");
-      return new Uint8Array(await readFile(path));
+      return new Uint8Array(await fsp.readFile(path));
     },
     isNotFoundError(error: unknown): boolean {
       return (error as NodeJS.ErrnoException)?.code === "ENOENT";
