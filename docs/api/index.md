@@ -1225,7 +1225,7 @@ Thrown when attempting to open an unsupported file format.
 import { SUPPORTED_FORMATS, UnsupportedFormatError } from "taglib-wasm";
 
 try {
-  const file = await taglib.open("file.xyz");
+  using file = await taglib.open("file.xyz");
 } catch (error) {
   if (error instanceof UnsupportedFormatError) {
     console.error(
@@ -1245,7 +1245,7 @@ Thrown when the file is corrupted or has an invalid format.
 import { InvalidFormatError } from "taglib-wasm";
 
 try {
-  const file = await taglib.open(corruptedBuffer);
+  using file = await taglib.open(corruptedBuffer);
 } catch (error) {
   if (error instanceof InvalidFormatError) {
     console.error("File is corrupted or invalid:", error.message);

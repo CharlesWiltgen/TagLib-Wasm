@@ -235,7 +235,7 @@ For a 500MB audio file, Smart Partial Loading:
 
 ```typescript
 // Enable partial loading for large files
-const file = await taglib.open(largeFile, {
+using file = await taglib.open(largeFile, {
   partial: true,
   maxHeaderSize: 2 * 1024 * 1024, // 2MB header
   maxFooterSize: 256 * 1024, // 256KB footer
@@ -252,6 +252,7 @@ file.tag().setAlbum("New Album");
 
 // Save automatically loads the full file when needed
 await file.saveToFile(); // Full file loaded here
+// file automatically disposed when scope exits
 ```
 
 ### Supported Environments
@@ -269,11 +270,11 @@ Partial loading works with:
 // Benchmark: 500MB FLAC file
 const benchmark = async () => {
   console.time("Full Load");
-  const full = await taglib.open("large.flac");
+  using full = await taglib.open("large.flac");
   console.timeEnd("Full Load"); // ~2500ms
 
   console.time("Partial Load");
-  const partial = await taglib.open("large.flac", { partial: true });
+  using partial = await taglib.open("large.flac", { partial: true });
   console.timeEnd("Partial Load"); // ~50ms
 
   // 50x faster initial load!
@@ -360,12 +361,13 @@ async function openAdaptive(file: File | string) {
 
 ```typescript
 try {
-  const file = await taglib.open(largePath, { partial: true });
+  using file = await taglib.open(largePath, { partial: true });
   // ... process ...
 } catch (error) {
   if (error.message.includes("partial loading not supported")) {
     // Fall back to full loading
-    const file = await taglib.open(largePath);
+    using file = await taglib.open(largePath);
+    // ... process ...
   }
 }
 ```

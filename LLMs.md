@@ -320,16 +320,16 @@ audioFile2.dispose();
 const taglib = await TagLib.initialize();
 
 // From file path (Node.js/Deno/Bun)
-const audioFile1 = await taglib.open("path/to/song.mp3");
+using audioFile1 = await taglib.open("path/to/song.mp3");
 
 // From buffer (all environments)
 // Node.js example:
 import { readFile } from "fs/promises";
 const buffer = await readFile("song.mp3");
-const audioFile2 = await taglib.open(buffer);
+using audioFile2 = await taglib.open(buffer);
 
 // From browser File object
-const audioFile3 = await taglib.open(fileFromInput);
+using audioFile3 = await taglib.open(fileFromInput);
 ```
 
 ## Important Distinctions
