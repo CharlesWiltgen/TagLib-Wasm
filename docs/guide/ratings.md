@@ -8,7 +8,7 @@ taglib-wasm provides a unified API for reading and writing track ratings that wo
 import { RatingUtils, TagLib } from "taglib-wasm";
 
 const taglib = await TagLib.initialize();
-const file = await taglib.open("song.mp3");
+using file = await taglib.open("song.mp3");
 
 // Read rating (normalized 0.0-1.0)
 const rating = file.getRating();
@@ -19,8 +19,6 @@ if (rating !== undefined) {
 // Set rating (4 out of 5 stars)
 file.setRating(0.8);
 file.save();
-
-file.dispose();
 ```
 
 ## Understanding Ratings
@@ -212,10 +210,9 @@ const files = ["track1.mp3", "track2.mp3", "track3.mp3"];
 const ratings = [0.8, 0.6, 1.0]; // 4, 3, 5 stars
 
 for (let i = 0; i < files.length; i++) {
-  const file = await taglib.open(files[i]);
+  using file = await taglib.open(files[i]);
   file.setRating(ratings[i]);
   file.save();
-  file.dispose();
 }
 ```
 

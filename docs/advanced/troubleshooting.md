@@ -250,13 +250,11 @@ function checkMemory() {
 **Solutions**:
 
 ```typescript
-// 1. Ensure proper cleanup
-const file = taglib.openFile(buffer);
-try {
+// 1. Ensure proper cleanup with `using`
+{
+  using file = taglib.openFile(buffer);
   // Operations...
   file.save();
-} finally {
-  file.dispose(); // Always dispose
 }
 
 // 2. Use locks for concurrent access
@@ -433,14 +431,26 @@ file.setArtist(newArtist || existing.artist);
 **Solutions**:
 
 ```typescript
-// 1. Track disposals
+// 1. Use `using` for automatic cleanup
+{
+  using file = taglib.openFile(buffer);
+  const tags = file.tag();
+  // file is automatically disposed when it goes out of scope
+}
+
+// 2. For async operations
+{
+  using file = await taglib.open(buffer);
+  const tags = file.tag();
+}
+
+// 3. Track active files in long-running applications
 class DisposalTracker {
   private active = new Set<string>();
 
   track(id: string, file: AudioFile): AudioFile {
     this.active.add(id);
 
-    // Wrap dispose
     const originalDispose = file.dispose.bind(file);
     file.dispose = () => {
       originalDispose();
@@ -458,29 +468,6 @@ class DisposalTracker {
     return Array.from(this.active);
   }
 }
-
-// 2. Auto-disposal wrapper
-class AutoDispose {
-  static async withFile<T>(
-    taglib: TagLib,
-    buffer: Uint8Array,
-    operation: (file: AudioFile) => T | Promise<T>,
-  ): Promise<T> {
-    const file = taglib.openFile(buffer);
-    try {
-      return await operation(file);
-    } finally {
-      file.dispose();
-    }
-  }
-}
-
-// Usage
-const result = await AutoDispose.withFile(
-  taglib,
-  buffer,
-  (file) => file.tag(),
-);
 ```
 
 ### Stack Overflow
@@ -625,11 +612,10 @@ export default {
       memory: { initial: 8 * 1024 * 1024 }, // 8MB max
     });
 
-    // Process and dispose immediately
+    // Process with automatic cleanup
     const buffer = new Uint8Array(await request.arrayBuffer());
-    const file = taglib.openFile(buffer);
+    using file = taglib.openFile(buffer);
     const tags = file.tag();
-    file.dispose();
 
     return Response.json(tags);
   },
@@ -725,7 +711,7 @@ async function validateAudioFile(path: string) {
 
     // Open with taglib
     const taglib = await TagLib.initialize();
-    const file = taglib.openFile(buffer);
+    using file = taglib.openFile(buffer);
 
     report.valid = file.isValid();
     report.format = file.getFormat();
@@ -735,8 +721,6 @@ async function validateAudioFile(path: string) {
 
     // Try to save
     report.writable = file.save();
-
-    file.dispose();
   } catch (error) {
     report.errors.push(error.message);
   }

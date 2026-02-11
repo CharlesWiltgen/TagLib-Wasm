@@ -13,32 +13,42 @@ optimal performance.
 
 ### Memory Usage by Operation
 
-| Operation    | Memory Usage  | Duration        |
-| ------------ | ------------- | --------------- |
-| Loading file | 2x file size  | Until dispose() |
-| Reading tags | No additional | Instant         |
-| Writing tags | No additional | Instant         |
-| Saving file  | 3x file size  | During save()   |
+| Operation    | Memory Usage  | Duration       |
+| ------------ | ------------- | -------------- |
+| Loading file | 2x file size  | Until disposed |
+| Reading tags | No additional | Instant        |
+| Writing tags | No additional | Instant        |
+| Saving file  | 3x file size  | During save()  |
 
 ## Explicit Memory Management
 
-taglib-wasm provides explicit memory management through the `dispose()` method:
+taglib-wasm provides explicit memory management through the `using` keyword
+(via `Symbol.dispose`):
+
+```typescript
+using audioFile = await taglib.open("song.mp3");
+// Work with the file
+const tags = audioFile.tag();
+console.log(tags.title());
+// Automatically disposed when audioFile goes out of scope
+```
+
+The `dispose()` method is also available as a fallback for environments that
+don't support `using`:
 
 ```typescript
 const audioFile = await taglib.open("song.mp3");
 try {
-  // Work with the file
   const tags = audioFile.tag();
   console.log(tags.title());
 } finally {
-  // Always dispose to free memory immediately
   audioFile.dispose();
 }
 ```
 
-### What dispose() Does
+### What Disposal Does
 
-As of v0.3.6+, `dispose()`:
+Disposal (whether via `using` or `dispose()`):
 
 1. Explicitly destroys the C++ object, freeing Wasm heap memory immediately
 2. Clears all JavaScript references
@@ -46,15 +56,13 @@ As of v0.3.6+, `dispose()`:
 
 ## Best Practices
 
-### 1. Always Use Try-Finally
+### 1. Always Use `using` Statements
 
 ```typescript
-const audioFile = await taglib.open(buffer);
-try {
+{
+  using audioFile = await taglib.open(buffer);
   // Your code here
-} finally {
-  audioFile.dispose(); // Guaranteed cleanup
-}
+} // Guaranteed cleanup when scope exits
 ```
 
 ### 2. Process Files Sequentially for Large Batches
@@ -62,12 +70,8 @@ try {
 ```typescript
 // Good: Process one at a time
 for (const file of files) {
-  const audio = await taglib.open(file);
-  try {
-    await processFile(audio);
-  } finally {
-    audio.dispose();
-  }
+  using audio = await taglib.open(file);
+  await processFile(audio);
 }
 
 // Bad: Loading all at once
@@ -112,10 +116,10 @@ if (stats.size > 100 * 1024 * 1024) {
 
 ### 1. Memory Accumulation
 
-**Problem**: Not calling dispose() leads to memory accumulation.
+**Problem**: Not disposing files leads to memory accumulation.
 
-**Solution**: Always use try-finally or the Simple API which handles disposal
-automatically.
+**Solution**: Always use `using` statements or the Simple API which handles
+disposal automatically.
 
 ### 2. Out of Memory Errors
 
@@ -149,7 +153,8 @@ console.log(tags.title);
 
 1. **Reuse TagLib Instance**: The TagLib instance can be reused for multiple
    files
-2. **Dispose Early**: Call dispose() as soon as you're done with a file
+2. **Dispose Early**: Use `using` to ensure files are disposed as soon as the
+   scope exits
 3. **Batch Wisely**: Balance between memory usage and performance
 4. **Monitor Production**: Add memory monitoring in production applications
 
@@ -166,14 +171,9 @@ async function processMusicLibrary(files: string[]) {
     const batch = files.slice(i, i + batchSize);
 
     await Promise.all(batch.map(async (file) => {
-      const audio = await taglib.open(file);
-      try {
-        // Process file
-        const tags = audio.tag();
-        console.log(`${file}: ${tags.artist()} - ${tags.title()}`);
-      } finally {
-        audio.dispose();
-      }
+      using audio = await taglib.open(file);
+      const tags = audio.tag();
+      console.log(`${file}: ${tags.artist()} - ${tags.title()}`);
     }));
 
     // Optional: Log memory usage after each batch

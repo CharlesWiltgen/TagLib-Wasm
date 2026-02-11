@@ -133,8 +133,8 @@ formats:
    transparency
 2. **Image Size**: Keep cover art under 1MB for better performance
 3. **Resolution**: 600x600 pixels is a good standard for album art
-4. **Memory**: Remember to dispose of AudioFile objects after processing large
-   images
+4. **Memory**: Use `using` declarations with AudioFile objects to ensure cleanup
+   after processing large images
 5. **MIME Types**: Always specify the correct MIME type when setting pictures
 
 ## Format Support

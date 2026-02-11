@@ -76,12 +76,11 @@ const taglib = await TagLib.initialize();
 
 // Load audio file
 const audioData = await readFile("song.mp3");
-const file = await taglib.open(new Uint8Array(audioData));
+using file = await taglib.open(new Uint8Array(audioData));
 
 // Check if file is valid
 if (!file.isValid()) {
   console.error("Invalid audio file");
-  file.dispose();
   return;
 }
 
@@ -111,9 +110,6 @@ if (success) {
   const updatedBuffer = file.getFileBuffer();
   // Write updatedBuffer to file if needed
 }
-
-// Clean up
-file.dispose();
 ```
 
 ### Advanced Metadata
@@ -192,7 +188,7 @@ import { readFile, writeFile } from "fs/promises";
 
 const taglib = await TagLib.initialize();
 const audioData = await readFile("input.mp3");
-const file = await taglib.open(new Uint8Array(audioData));
+using file = await taglib.open(new Uint8Array(audioData));
 
 file.setTitle("Node.js Title");
 file.save();
@@ -200,8 +196,6 @@ file.save();
 // Get updated buffer after saving
 const updatedData = file.getFileBuffer();
 await writeFile("output.mp3", updatedData);
-
-file.dispose();
 ```
 
 ### Browser
@@ -215,13 +209,11 @@ const audioFile = fileInput.files[0];
 const audioData = new Uint8Array(await audioFile.arrayBuffer());
 
 const taglib = await TagLib.initialize();
-const file = await taglib.open(audioData);
+using file = await taglib.open(audioData);
 
 // Display metadata
 document.getElementById("title").textContent = file.tag().title;
 document.getElementById("artist").textContent = file.tag().artist;
-
-file.dispose();
 ```
 
 ### Cloudflare Workers
@@ -237,15 +229,13 @@ export default {
       });
 
       const audioData = new Uint8Array(await request.arrayBuffer());
-      const file = await taglib.open(audioData);
+      using file = await taglib.open(audioData);
 
       const metadata = {
         title: file.tag().title,
         artist: file.tag().artist,
         duration: file.audioProperties().length,
       };
-
-      file.dispose();
 
       return Response.json({ success: true, metadata });
     }
@@ -261,15 +251,13 @@ Always handle potential errors:
 
 ```typescript
 try {
-  const file = taglib.openFile(audioData);
+  using file = taglib.openFile(audioData);
 
   if (!file.isValid()) {
     throw new Error("Invalid audio file format");
   }
 
   // Process file...
-
-  file.dispose();
 } catch (error) {
   console.error("Error processing audio file:", error);
 }

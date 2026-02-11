@@ -31,7 +31,7 @@ import { EnvironmentError, InvalidFormatError, MemoryError } from "./errors.ts";
  *
  * @example
  * ```typescript
- * const file = taglib.openFile(audioBuffer);
+ * using file = taglib.open(audioBuffer);
  *
  * // Get metadata
  * const tag = file.tag();
@@ -40,9 +40,7 @@ import { EnvironmentError, InvalidFormatError, MemoryError } from "./errors.ts";
  * // Modify metadata
  * file.setTitle("New Title");
  * file.save();
- *
- * // Clean up
- * file.dispose();
+ * // automatically cleaned up at scope exit
  * ```
  */
 export class AudioFileWorkers {
@@ -308,9 +306,8 @@ export class AudioFileWorkers {
  * const taglib = await TagLibWorkers.initialize(wasmBinary);
  *
  * // Process audio file
- * const file = taglib.openFile(audioBuffer);
+ * using file = taglib.open(audioBuffer);
  * const metadata = file.tag();
- * file.dispose();
  * ```
  */
 export class TagLibWorkers {

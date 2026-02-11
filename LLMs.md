@@ -190,8 +190,8 @@ import {
 ### Memory Management Checklist
 
 - ✅ Call `TagLib.initialize()` once and reuse
-- ✅ Always use try/finally with `dispose()`
-- ✅ Don't access AudioFile after `dispose()`
+- ✅ Use `using` for automatic cleanup (`dispose()` is the manual fallback)
+- ✅ Don't access AudioFile after disposal
 - ✅ Simple API handles memory automatically
 - ✅ Folder API manages memory for batch operations
 
@@ -217,7 +217,7 @@ if (isDenoCompiled()) {
 }
 
 // Use taglib normally
-const file = await taglib.open("audio.mp3");
+using file = await taglib.open("audio.mp3");
 ```
 
 ### Preparing for Offline
@@ -264,7 +264,7 @@ import { TagLib } from "taglib-wasm";
 const taglib = await TagLib.initialize();
 
 // Read tags from an audio file (accepts path, buffer, or File)
-const audioFile = await taglib.open("song.mp3"); // or buffer/File
+using audioFile = await taglib.open("song.mp3"); // or buffer/File
 const tag = audioFile.tag();
 
 console.log({
@@ -273,9 +273,7 @@ console.log({
   album: tag.album,
   year: tag.year,
 });
-
-// IMPORTANT: Always clean up
-audioFile.dispose();
+// Automatically cleaned up when audioFile goes out of scope
 ```
 
 ## Key Concepts
@@ -290,20 +288,24 @@ audioFile.dispose();
 
 ### 2. Memory Management
 
-- **CRITICAL**: Always call `dispose()` on AudioFile instances when done
-- Forgetting to dispose causes memory leaks as C++ objects aren't garbage
+- **CRITICAL**: Always ensure AudioFile instances are cleaned up when done
+- Forgetting to clean up causes memory leaks as C++ objects aren't garbage
   collected
-- Use try/finally blocks to ensure cleanup:
+- Use `using` for automatic cleanup (preferred), or call `dispose()` manually as
+  a fallback:
 
 ```typescript
 const taglib = await TagLib.initialize();
-let audioFile;
-try {
-  audioFile = await taglib.open("song.mp3"); // or buffer/File
-  // ... work with file
-} finally {
-  audioFile?.dispose();
-}
+
+// ✅ PREFERRED: Automatic cleanup with `using`
+using audioFile = await taglib.open("song.mp3"); // or buffer/File
+// ... work with file
+// Automatically cleaned up when audioFile goes out of scope
+
+// ✅ FALLBACK: Manual cleanup with dispose()
+const audioFile2 = await taglib.open("song.mp3");
+// ... work with file
+audioFile2.dispose();
 ```
 
 ### 3. File Loading
@@ -441,7 +443,7 @@ import { TagLib } from "npm:taglib-wasm";
 
 ```typescript
 const taglib = await TagLib.initialize();
-const audioFile = await taglib.open(buffer);
+using audioFile = await taglib.open(buffer);
 const tag = audioFile.tag();
 
 // Tags are accessed as properties, not methods
@@ -454,15 +456,13 @@ const metadata = {
   genre: tag.genre, // string
   comment: tag.comment, // string
 };
-
-audioFile.dispose();
 ```
 
 ### Writing Tags
 
 ```typescript
 const taglib = await TagLib.initialize();
-const audioFile = await taglib.open(buffer);
+using audioFile = await taglib.open(buffer);
 const tag = audioFile.tag();
 
 // Set individual tags using setter methods
@@ -482,15 +482,13 @@ if (success) {
   // Write back to storage
   await fs.writeFile("modified.mp3", modifiedBuffer);
 }
-
-audioFile.dispose();
 ```
 
 ### Audio Properties
 
 ```typescript
 const taglib = await TagLib.initialize();
-const audioFile = await taglib.open(buffer);
+using audioFile = await taglib.open(buffer);
 const props = audioFile.audioProperties();
 
 // Properties are accessed directly, not via methods
@@ -504,15 +502,13 @@ const audioInfo = {
   containerFormat: props.containerFormat, // Container (e.g., "MP4", "OGG")
   isLossless: props.isLossless, // true for lossless formats
 };
-
-audioFile.dispose();
 ```
 
 ### Working with Ratings
 
 ```typescript
 const taglib = await TagLib.initialize();
-const audioFile = await taglib.open(buffer);
+using audioFile = await taglib.open(buffer);
 
 // Read rating (normalized 0.0-1.0)
 const rating = audioFile.getRating(); // undefined if no rating
@@ -526,7 +522,6 @@ audioFile.setRating(0.8); // 4 out of 5 stars
 audioFile.setRating(0.8, "user@example.com"); // With rater ID
 
 audioFile.save();
-audioFile.dispose();
 ```
 
 ### RatingUtils for Conversions
@@ -799,7 +794,7 @@ import { TagLib } from "taglib-wasm";
 import { PROPERTIES, PropertyKey } from "taglib-wasm/constants";
 
 const taglib = await TagLib.initialize();
-const audioFile = taglib.openFile(buffer);
+using audioFile = taglib.openFile(buffer);
 
 // Get complete property map - all metadata as key-value pairs
 const properties = audioFile.properties();
@@ -837,7 +832,6 @@ audioFile.setProperties({
 // Save and get modified buffer
 audioFile.save();
 const modifiedBuffer = audioFile.getFileBuffer();
-audioFile.dispose();
 ```
 
 #### Property Discovery Functions
@@ -893,9 +887,8 @@ import {
 } from "taglib-wasm";
 
 try {
-  const audioFile = await taglib.open(buffer);
+  using audioFile = await taglib.open(buffer);
   // ... use audioFile
-  audioFile.dispose();
 } catch (error) {
   if (isUnsupportedFormatError(error)) {
     console.error("Unsupported format:", error.format);
@@ -1208,7 +1201,7 @@ import { TagLib } from "taglib-wasm";
 import { PROPERTIES } from "taglib-wasm/constants";
 
 const taglib = await TagLib.initialize();
-const audioFile = await taglib.open("song.mp3");
+using audioFile = await taglib.open("song.mp3");
 
 // Set ReplayGain values (you'd calculate these with an audio analysis tool)
 audioFile.setProperty(PROPERTIES.REPLAYGAIN_TRACK_GAIN.key, "-3.21 dB");
@@ -1224,7 +1217,6 @@ audioFile.setReplayGainAlbumPeak("0.998871");
 
 audioFile.save();
 const buffer = audioFile.getFileBuffer();
-audioFile.dispose();
 
 // For batch processing entire albums
 import { scanFolder, TagLib } from "taglib-wasm";
@@ -1233,13 +1225,12 @@ const result = await scanFolder("/album");
 const taglib = await TagLib.initialize();
 
 for (const file of result.files) {
-  const audioFile = await taglib.open(file.path);
+  using audioFile = await taglib.open(file.path);
 
   audioFile.setReplayGainAlbumGain("-4.19 dB");
   audioFile.setProperty("REPLAYGAIN_REFERENCE_LOUDNESS", "89.0 dB");
 
   await audioFile.saveToFile(); // Save back to original file
-  audioFile.dispose();
 }
 ```
 
@@ -1284,7 +1275,7 @@ await updateFolderTags(updates.filter((u) => Object.keys(u.tags).length > 0));
 | "Invalid audio file format"      | Unsupported/corrupted file   | Check file extension and size (>1KB)         |
 | "Cannot read property of null"   | Accessing disposed AudioFile | Check disposal order in code                 |
 | "File too small"                 | Empty or truncated file      | Validate file size before processing         |
-| "Failed to allocate memory"      | Large file or memory leak    | Check for missing `dispose()` calls          |
+| "Failed to allocate memory"      | Large file or memory leak    | Use `using` or check for missing `dispose()` |
 | "File not found"                 | Wrong path or permissions    | Verify file exists and is readable           |
 | "Save failed"                    | Write permissions            | Check file/directory write permissions       |
 | "WebAssembly.instantiate failed" | CORS or network issue        | Check WASM URL and CORS headers              |
@@ -1299,19 +1290,17 @@ if (buffer.byteLength < 1024) {
 
 // Pattern 2: Track memory usage
 let activeFiles = 0;
-try {
-  const audioFile = await taglib.open(buffer);
+{
+  using audioFile = await taglib.open(buffer);
   activeFiles++;
   console.log(`Active AudioFiles: ${activeFiles}`);
   // ... work with file
-} finally {
-  audioFile?.dispose();
-  activeFiles--;
-}
+} // audioFile automatically disposed here
+activeFiles--;
 
 // Pattern 3: Detailed error logging
 try {
-  const audioFile = await taglib.open(buffer);
+  using audioFile = await taglib.open(buffer);
   // ...
 } catch (error) {
   console.error({
@@ -1334,19 +1323,15 @@ for (const file of files.files) {
   // Forgot to dispose!
 }
 
-// ✅ GOOD: Proper cleanup
+// ✅ GOOD: Automatic cleanup with `using`
 const files = await scanFolder("/music");
 for (const file of files.files) {
-  const audioFile = await taglib.open(file.path);
-  try {
-    const tag = audioFile.tag();
-    // ... work with tag
-  } finally {
-    audioFile.dispose();
-  }
-}
+  using audioFile = await taglib.open(file.path);
+  const tag = audioFile.tag();
+  // ... work with tag
+} // audioFile automatically disposed each iteration
 
-// ✅ BETTER: Use Simple API for automatic cleanup
+// ✅ ALSO GOOD: Use Simple API for automatic cleanup
 for (const file of files.files) {
   const tags = await readTags(file.path);
   // No disposal needed!
@@ -1438,11 +1423,10 @@ const taglib = await TagLib.initialize({
 // Your application logic
 if (import.meta.main) {
   const [filePath] = Deno.args;
-  const audioFile = await taglib.open(filePath);
+  using audioFile = await taglib.open(filePath);
   const tag = audioFile.tag();
   console.log(`Title: ${tag.title}`);
   console.log(`Artist: ${tag.artist}`);
-  audioFile.dispose();
 }
 ```
 
@@ -1475,7 +1459,7 @@ export default {
     // Fetch audio from R2 or external URL
     const audioBuffer = await fetch(audioUrl).then((r) => r.arrayBuffer());
 
-    const audioFile = await taglib.open(audioBuffer);
+    using audioFile = await taglib.open(audioBuffer);
     const tag = audioFile.tag();
 
     const metadata = {
@@ -1483,8 +1467,6 @@ export default {
       artist: tag.artist,
       album: tag.album,
     };
-
-    audioFile.dispose();
 
     return Response.json(metadata);
   },
@@ -1521,7 +1503,7 @@ export default {
 
 4. **Memory Management**
    - Simple API: Automatic cleanup (recommended)
-   - Full API: Always call `dispose()` in try/finally blocks
+   - Full API: Use `using` for automatic cleanup, or `dispose()` as fallback
    - Each file uses ~2x its size in memory during processing
 
 5. **Album/Folder Processing**
@@ -1611,7 +1593,7 @@ export default {
 | `TagLib.open(buffer)`            | `const taglib = await TagLib.initialize();`<br>`await taglib.open(buffer)` |
 | `audioFile.tag().getTitle()`     | `audioFile.tag().title`                                                    |
 | `tag.title = "New"`              | `tag.setTitle("New")`                                                      |
-| Forget to dispose                | Always use try/finally with `dispose()`                                    |
+| Forget to dispose                | Use `using` for automatic cleanup (or `dispose()` manually)                |
 | Use AudioFile after dispose      | Dispose should be the last operation                                       |
 | Load Wasm multiple times         | Initialize once, reuse the instance                                        |
 | Process files sequentially       | Use Folder API for batch operations                                        |
@@ -1628,22 +1610,18 @@ async function getTitles(files) {
   for (const file of files) {
     const audioFile = await taglib.open(file);
     titles.push(audioFile.tag().title);
-    // MISSING: audioFile.dispose()
+    // MISSING: cleanup!
   }
   return titles;
 }
 
-// ✅ DO: Proper cleanup
+// ✅ DO: Automatic cleanup with `using`
 async function getTitles(files) {
   const titles = [];
   for (const file of files) {
-    const audioFile = await taglib.open(file);
-    try {
-      titles.push(audioFile.tag().title);
-    } finally {
-      audioFile.dispose();
-    }
-  }
+    using audioFile = await taglib.open(file);
+    titles.push(audioFile.tag().title);
+  } // audioFile automatically disposed each iteration
   return titles;
 }
 
@@ -1877,7 +1855,7 @@ async function scanMusicLibraryManual(directory: string) {
     try {
       const path = join(directory, file);
       const buffer = await readFile(path);
-      const audioFile = await taglib.open(buffer);
+      using audioFile = await taglib.open(buffer);
 
       const tag = audioFile.tag();
       const props = audioFile.audioProperties();
@@ -1890,8 +1868,6 @@ async function scanMusicLibraryManual(directory: string) {
         duration: props.length,
         bitrate: props.bitrate,
       });
-
-      audioFile.dispose();
     } catch (error) {
       console.error(`Failed to read ${file}:`, error.message);
     }
@@ -2021,7 +1997,7 @@ Different audio formats use different tag names. taglib-wasm handles this automa
 
 ```typescript
 const taglib = await TagLib.initialize();
-const audioFile = await taglib.open("song.mp3");
+using audioFile = await taglib.open("song.mp3");
 const propMap = audioFile.propertyMap();
 const props = propMap.properties();
 
@@ -2034,8 +2010,6 @@ const vorbisAlbumArtist = props["ALBUMARTIST"]?.[0];
 // Unified access (recommended)
 const albumArtist = props["ALBUMARTIST"]?.[0] || props["TPE2"]?.[0] ||
   props["aART"]?.[0];
-
-audioFile.dispose();
 ```
 
 ## Format Conversion Workflows
@@ -2054,16 +2028,18 @@ async function convertMetadata(sourcePath: string, targetPath: string) {
 
   // Step 2: Read advanced metadata using Full API
   const taglib = await TagLib.initialize();
-  const sourceFile = await taglib.open(sourcePath);
-  const propMap = sourceFile.propertyMap();
-  const advancedProps = propMap.properties();
-  sourceFile.dispose();
+  let advancedProps;
+  {
+    using sourceFile = await taglib.open(sourcePath);
+    const propMap = sourceFile.propertyMap();
+    advancedProps = propMap.properties();
+  }
 
   // Step 3: Apply to target file
   const modifiedTarget = await applyTags(targetPath, sourceTags);
 
   // Step 4: Apply advanced metadata
-  const targetFile = await taglib.open(modifiedTarget);
+  using targetFile = await taglib.open(modifiedTarget);
   const targetPropMap = targetFile.propertyMap();
 
   // Copy all properties that make sense for the target format
@@ -2075,7 +2051,6 @@ async function convertMetadata(sourcePath: string, targetPath: string) {
 
   targetFile.save();
   const finalBuffer = targetFile.getFileBuffer();
-  targetFile.dispose();
 
   return finalBuffer;
 }
@@ -2129,7 +2104,7 @@ async function batchConvertMetadata(
 
     try {
       // Read all metadata from source
-      const sourceFile = await taglib.open(file.path);
+      using sourceFile = await taglib.open(file.path);
       const sourceTag = sourceFile.tag();
       const sourcePropMap = sourceFile.propertyMap();
       const sourceProps = sourcePropMap.properties();
@@ -2148,11 +2123,9 @@ async function batchConvertMetadata(
         advanced: sourceProps,
       };
 
-      sourceFile.dispose();
-
       // Apply to target (after audio conversion)
       const targetBuffer = await readFile(targetPath);
-      const targetFile = await taglib.open(targetBuffer);
+      using targetFile = await taglib.open(targetBuffer);
       const targetTag = targetFile.tag();
       const targetPropMap = targetFile.propertyMap();
 
@@ -2174,7 +2147,6 @@ async function batchConvertMetadata(
 
       targetFile.save();
       await writeFile(targetPath, targetFile.getFileBuffer());
-      targetFile.dispose();
 
       conversionMap.set(file.path, targetPath);
     } catch (error) {
@@ -2237,23 +2209,26 @@ function mapPropertyName(
 // Preserve iTunes-specific metadata when converting M4A files
 async function preserveITunesMetadata(m4aPath: string, targetPath: string) {
   const taglib = await TagLib.initialize();
-  const m4aFile = await taglib.open(m4aPath);
-  const propMap = m4aFile.propertyMap();
-  const props = propMap.properties();
 
-  // iTunes-specific properties to preserve
-  const itunesProps = {
-    purchaseDate: props["----:com.apple.iTunes:PURCHASE_DATE"]?.[0],
-    gapless: props["----:com.apple.iTunes:GAPLESS"]?.[0],
-    soundCheck: props["----:com.apple.iTunes:SOUNDCHECK"]?.[0],
-    mediaType: props["stik"]?.[0],
-    contentRating: props["rtng"]?.[0],
-  };
+  // Read iTunes metadata from source
+  let itunesProps;
+  {
+    using m4aFile = await taglib.open(m4aPath);
+    const propMap = m4aFile.propertyMap();
+    const props = propMap.properties();
 
-  m4aFile.dispose();
+    // iTunes-specific properties to preserve
+    itunesProps = {
+      purchaseDate: props["----:com.apple.iTunes:PURCHASE_DATE"]?.[0],
+      gapless: props["----:com.apple.iTunes:GAPLESS"]?.[0],
+      soundCheck: props["----:com.apple.iTunes:SOUNDCHECK"]?.[0],
+      mediaType: props["stik"]?.[0],
+      contentRating: props["rtng"]?.[0],
+    };
+  }
 
   // Store as custom tags in target format
-  const targetFile = await taglib.open(targetPath);
+  using targetFile = await taglib.open(targetPath);
   const targetPropMap = targetFile.propertyMap();
 
   if (targetPath.endsWith(".flac") || targetPath.endsWith(".ogg")) {
@@ -2274,10 +2249,7 @@ async function preserveITunesMetadata(m4aPath: string, targetPath: string) {
   }
 
   targetFile.save();
-  const buffer = targetFile.getFileBuffer();
-  targetFile.dispose();
-
-  return buffer;
+  return targetFile.getFileBuffer();
 }
 ```
 
@@ -2420,13 +2392,11 @@ async function processLargeLibraryStream(rootDir: string) {
       // Process batch
       await Promise.all(batch.map(async (path) => {
         try {
-          const audioFile = await taglib.open(path);
+          using audioFile = await taglib.open(path);
           const tag = audioFile.tag();
 
           // Process metadata
           console.log(`${path}: ${tag.artist} - ${tag.title}`);
-
-          audioFile.dispose(); // Critical for memory management
         } catch (error) {
           console.error(`Error processing ${path}:`, error);
         }
@@ -2534,7 +2504,7 @@ async function streamingUpdate(
   // Second pass: process files
   for await (const filePath of scanDirectoryStream(directory)) {
     try {
-      const audioFile = await taglib.open(filePath);
+      using audioFile = await taglib.open(filePath);
       const tag = audioFile.tag();
 
       const currentTags = {
@@ -2553,8 +2523,6 @@ async function streamingUpdate(
         updateQueue.push({ path: filePath, updates });
         updatedFiles++;
       }
-
-      audioFile.dispose();
 
       // Process queue when it reaches size limit
       if (updateQueue.length >= QUEUE_SIZE) {
@@ -2806,9 +2774,8 @@ async function safelyProcessUserFile(
 
   try {
     const taglib = await TagLib.initialize();
-    const audioFile = await taglib.open(buffer);
+    using audioFile = await taglib.open(buffer);
     // Process...
-    audioFile.dispose();
   } finally {
     clearTimeout(timeout);
   }
@@ -2874,7 +2841,7 @@ test("should read and write tags", async () => {
   const taglib = await TagLib.initialize();
   const buffer = await readFile("test-files/sample.mp3");
 
-  const audioFile = await taglib.open(buffer);
+  using audioFile = await taglib.open(buffer);
   const tag = audioFile.tag();
 
   // Test reading
@@ -2884,9 +2851,6 @@ test("should read and write tags", async () => {
   tag.setTitle("New Title");
   const success = audioFile.save();
   expect(success).toBe(true);
-
-  // Cleanup
-  audioFile.dispose();
 });
 ```
 
@@ -3073,7 +3037,8 @@ function renderAccessibleMetadata(tags: Tag): string {
 - **AudioFile**: Object representing an open audio file
 - **Tag**: Basic metadata interface (title, artist, etc.)
 - **AudioProperties**: Technical properties (duration, bitrate, etc.)
-- **dispose()**: Release C++ memory (critical for Full API)
+- **dispose()**: Release C++ memory (use `using` for automatic disposal, or call
+  manually)
 - **Wasm**: WebAssembly - allows C++ TagLib to run in JavaScript
 - **JSR**: JavaScript Registry - Deno's package registry
 - **npm**: Node Package Manager - Node.js package registry
@@ -3082,5 +3047,6 @@ function renderAccessibleMetadata(tags: Tag): string {
 
 - **WebAssembly Streaming**: Compile WASM while downloading for faster startup
 - **Concurrency**: Number of files processed in parallel
-- **Memory Leak**: Unreleased C++ objects from missing dispose() calls
+- **Memory Leak**: Unreleased C++ objects from missing cleanup — use `using` to
+  prevent
 - **Buffer**: Binary data in memory (ArrayBuffer/Uint8Array)

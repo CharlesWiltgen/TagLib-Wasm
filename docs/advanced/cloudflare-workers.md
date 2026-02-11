@@ -67,8 +67,8 @@ async function handleMetadata(
     // Get audio data from request
     const audioData = new Uint8Array(await request.arrayBuffer());
 
-    // Open and process file
-    const file = taglib.openFile(audioData);
+    // Open and process file — automatically disposed when out of scope
+    using file = taglib.openFile(audioData);
     if (!file) {
       return new Response("Invalid audio file", { status: 400 });
     }
@@ -92,9 +92,6 @@ async function handleMetadata(
       },
       format: file.format,
     };
-
-    // Clean up
-    file.dispose();
 
     return new Response(JSON.stringify(metadata), {
       headers: {
@@ -165,21 +162,18 @@ async function handleBatch(
           atob(file.data),
           (c) => c.charCodeAt(0),
         );
-        const tagFile = taglib.openFile(audioData);
+        using tagFile = taglib.openFile(audioData);
 
         if (!tagFile) {
           return { name: file.name, error: "Invalid file" };
         }
 
-        const metadata = {
+        return {
           name: file.name,
           title: tagFile.tag.title,
           artist: tagFile.tag.artist,
           duration: tagFile.audioProperties.length,
         };
-
-        tagFile.dispose();
-        return metadata;
       } catch (error) {
         return { name: file.name, error: error.message };
       }
@@ -225,9 +219,8 @@ export default {
     }
 
     // Process file
-    const file = taglib.openFile(audioData);
+    using file = taglib.openFile(audioData);
     const metadata = extractMetadata(file);
-    file.dispose();
 
     // Cache for 1 hour
     await env.METADATA_CACHE.put(cacheKey, JSON.stringify(metadata), {
@@ -261,11 +254,10 @@ export class AudioProcessor {
 
     // Process request with persistent TagLib instance
     const audioData = new Uint8Array(await request.arrayBuffer());
-    const file = this.taglib.openFile(audioData);
+    using file = this.taglib.openFile(audioData);
 
     // ... process file ...
 
-    file.dispose();
     return new Response(JSON.stringify(metadata));
   }
 }
@@ -481,14 +473,13 @@ async function handleRequest(request: Request): Promise<Response> {
 
     // Process audio
     const audioData = new Uint8Array(await request.arrayBuffer());
-    const file = taglib.openFile(audioData);
+    using file = taglib.openFile(audioData);
 
     if (!file) {
       throw new AudioMetadataError("Invalid audio file", 400);
     }
 
     const metadata = extractMetadata(file);
-    file.dispose();
 
     return new Response(JSON.stringify(metadata), {
       headers: { "content-type": "application/json" },

@@ -24,9 +24,8 @@ const taglib = await TagLib.initialize({
 });
 
 // Use the library
-const file = await taglib.open("audio.mp3");
+using file = await taglib.open("audio.mp3");
 console.log(file.tag().title);
-file.dispose();
 ```
 
 **Compile command:**

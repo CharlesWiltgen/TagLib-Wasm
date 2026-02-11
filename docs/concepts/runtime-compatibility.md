@@ -107,11 +107,10 @@ export default {
   async fetch(request: Request): Promise<Response> {
     const taglib = await TagLib.initialize();
     const audioData = new Uint8Array(await request.arrayBuffer());
-    const file = taglib.openFile(audioData);
+    using file = taglib.openFile(audioData);
 
     // Process metadata...
 
-    file.dispose();
     return new Response(JSON.stringify(metadata));
   },
 };
@@ -244,9 +243,10 @@ await setSidecarConfig(null);
 
 All runtimes use the same memory management approach:
 
-- Emscripten's `allocate()` for JS↔Wasm data transfer
+- Emscripten's `allocate()` for JS/Wasm data transfer
 - Automatic garbage collection for JavaScript objects
-- Manual disposal required for C++ objects: `file.dispose()`
+- Use `using` statements for automatic C++ object disposal (or `dispose()` as
+  fallback)
 
 ### File System Access
 

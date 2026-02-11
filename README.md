@@ -175,8 +175,8 @@ import { TagLib } from "taglib-wasm";
 // Initialize taglib-wasm
 const taglib = await TagLib.initialize();
 
-// Load audio file
-const file = await taglib.open("song.mp3");
+// Load audio file (automatically cleaned up when scope exits)
+using file = await taglib.open("song.mp3");
 
 // Read and update metadata
 const tag = file.tag();
@@ -185,9 +185,6 @@ tag.setArtist("New Artist");
 
 // Save changes
 file.save();
-
-// Clean up
-file.dispose();
 ```
 
 ### Batch Folder Operations
@@ -245,7 +242,7 @@ const modifiedBuffer = await setCoverArt("song.mp3", imageData, "image/jpeg");
 import { RatingUtils, TagLib } from "taglib-wasm";
 
 const taglib = await TagLib.initialize();
-const file = await taglib.open("song.mp3");
+using file = await taglib.open("song.mp3");
 
 // Read rating (normalized 0.0-1.0)
 const rating = file.getRating();
@@ -256,8 +253,6 @@ if (rating !== undefined) {
 // Set rating (4 out of 5 stars)
 file.setRating(0.8);
 file.save();
-
-file.dispose();
 ```
 
 See the [Track Ratings Guide](https://charleswiltgen.github.io/taglib-wasm/guide/ratings.html)
@@ -399,7 +394,7 @@ For large audio files (>50MB), enable partial loading to dramatically reduce mem
 
 ```typescript
 // Enable partial loading for large files
-const file = await taglib.open("large-concert.flac", {
+using file = await taglib.open("large-concert.flac", {
   partial: true,
   maxHeaderSize: 2 * 1024 * 1024, // 2MB header
   maxFooterSize: 256 * 1024, // 256KB footer
