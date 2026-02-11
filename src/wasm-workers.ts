@@ -4,9 +4,26 @@
 
 import type { TagLibModule, TagLibWorkersConfig } from "./types.ts";
 import { TagLibInitializationError } from "./errors.ts";
+import type { WasmExports } from "./runtime/wasi-memory.ts";
 
 // Re-export TagLibModule for convenience
 export type { TagLibModule };
+
+export { WasmAlloc, WasmArena } from "./runtime/wasi-memory.ts";
+
+/**
+ * Bridge Emscripten module to WasmExports interface for RAII memory management.
+ * Uses wasmMemory when available, falls back to HEAPU8.buffer.
+ */
+export function emscriptenToWasmExports(module: TagLibModule): WasmExports {
+  const memory = module.wasmMemory ??
+    { buffer: module.HEAPU8.buffer } as unknown as WebAssembly.Memory;
+  return {
+    memory,
+    malloc: (size: number) => module._malloc(size),
+    free: (ptr: number) => module._free(ptr),
+  };
+}
 
 /**
  * Default configuration for taglib-wasm module in Workers environment
@@ -157,6 +174,7 @@ export function cStringToJS(module: TagLibModule, ptr: number): string {
 /**
  * Convert JavaScript string to C string (Workers-compatible)
  * Note: This function allocates memory that must be freed by the caller
+ * @deprecated Use WasmAlloc.writeCString() with emscriptenToWasmExports() instead
  */
 export function jsToCString(module: TagLibModule, str: string): number {
   const encoder = new TextEncoder();

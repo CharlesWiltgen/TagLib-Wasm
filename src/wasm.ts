@@ -13,6 +13,7 @@ export interface EmscriptenModule {
   HEAPU32: Uint32Array;
   HEAPF32: Float32Array;
   HEAPF64: Float64Array;
+  wasmMemory?: WebAssembly.Memory;
 
   // Memory management
   _malloc(size: number): number;

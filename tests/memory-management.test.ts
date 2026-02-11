@@ -2,7 +2,8 @@
 // NOSONAR: This file contains Deno tests which SonarQube doesn't recognize
 
 import { assertEquals, assertThrows } from "@std/assert";
-import { jsToCString } from "../src/wasm-workers.ts";
+import { emscriptenToWasmExports, jsToCString } from "../src/wasm-workers.ts";
+import { WasmAlloc, WasmArena } from "../src/runtime/wasi-memory.ts";
 import type { TagLibModule } from "../src/wasm.ts";
 
 // Extended module type for testing
@@ -10,7 +11,7 @@ interface TestTagLibModule extends TagLibModule {
   getAllocatedPointers(): Set<number>;
 }
 
-// Mock module for testing
+// Mock module for testing (plain ArrayBuffer heap)
 function createMockModule(): TestTagLibModule {
   const allocatedPointers = new Set<number>();
   let nextPointer = 1000;
@@ -19,6 +20,30 @@ function createMockModule(): TestTagLibModule {
 
   const mockModule: Partial<TestTagLibModule> = {
     HEAPU8: heap,
+    _malloc: (size: number) => {
+      const ptr = nextPointer;
+      nextPointer += size;
+      allocatedPointers.add(ptr);
+      return ptr;
+    },
+    _free: (ptr: number) => {
+      allocatedPointers.delete(ptr);
+    },
+    getAllocatedPointers: () => allocatedPointers,
+  };
+
+  return mockModule as TestTagLibModule;
+}
+
+// Mock module with real WebAssembly.Memory (for RAII adapter tests)
+function createMockModuleWithMemory(): TestTagLibModule {
+  const wasmMemory = new WebAssembly.Memory({ initial: 16 }); // 1MB
+  const allocatedPointers = new Set<number>();
+  let nextPointer = 1000;
+
+  const mockModule: Partial<TestTagLibModule> = {
+    HEAPU8: new Uint8Array(wasmMemory.buffer),
+    wasmMemory,
     _malloc: (size: number) => {
       const ptr = nextPointer;
       nextPointer += size;
@@ -180,4 +205,82 @@ Deno.test("Memory Management - Verify null terminator in jsToCString", () => {
 
   // Clean up
   mockModule._free(ptr);
+});
+
+// --- Adapter tests ---
+
+Deno.test("emscriptenToWasmExports - uses wasmMemory when present", () => {
+  const mockModule = createMockModuleWithMemory();
+  const exports = emscriptenToWasmExports(mockModule);
+
+  assertEquals(exports.memory, mockModule.wasmMemory);
+  assertEquals(typeof exports.malloc, "function");
+  assertEquals(typeof exports.free, "function");
+});
+
+Deno.test("emscriptenToWasmExports - falls back to HEAPU8.buffer when wasmMemory absent", () => {
+  const mockModule = createMockModule(); // no wasmMemory
+  const exports = emscriptenToWasmExports(mockModule);
+
+  assertEquals(exports.memory.buffer, mockModule.HEAPU8.buffer);
+});
+
+Deno.test("emscriptenToWasmExports - malloc/free delegate to module", () => {
+  const mockModule = createMockModuleWithMemory();
+  const exports = emscriptenToWasmExports(mockModule);
+
+  const ptr = exports.malloc(64);
+  assertEquals(mockModule.getAllocatedPointers().has(ptr), true);
+
+  exports.free(ptr);
+  assertEquals(mockModule.getAllocatedPointers().has(ptr), false);
+});
+
+Deno.test("WasmAlloc works through emscripten adapter", () => {
+  const mockModule = createMockModuleWithMemory();
+  const exports = emscriptenToWasmExports(mockModule);
+
+  const testData = new Uint8Array([1, 2, 3, 4, 5]);
+  {
+    using alloc = new WasmAlloc(exports, testData.length);
+    alloc.write(testData);
+
+    const result = alloc.read();
+    assertEquals(result[0], 1);
+    assertEquals(result[4], 5);
+    assertEquals(alloc.size, testData.length);
+  }
+  // After scope exit, allocation should be freed
+  assertEquals(mockModule.getAllocatedPointers().size, 0);
+});
+
+Deno.test("WasmAlloc.writeCString works through emscripten adapter", () => {
+  const mockModule = createMockModuleWithMemory();
+  const exports = emscriptenToWasmExports(mockModule);
+
+  const testString = "Hello, Workers!";
+  {
+    using alloc = new WasmAlloc(exports, testString.length + 1);
+    alloc.writeCString(testString);
+
+    const result = alloc.readCString();
+    assertEquals(result, testString);
+  }
+  assertEquals(mockModule.getAllocatedPointers().size, 0);
+});
+
+Deno.test("WasmArena.allocString works through emscripten adapter", () => {
+  const mockModule = createMockModuleWithMemory();
+  const exports = emscriptenToWasmExports(mockModule);
+
+  {
+    using arena = new WasmArena(exports);
+    const titleAlloc = arena.allocString("My Title");
+    const artistAlloc = arena.allocString("My Artist");
+
+    assertEquals(titleAlloc.readCString(), "My Title");
+    assertEquals(artistAlloc.readCString(), "My Artist");
+    assertEquals(mockModule.getAllocatedPointers().size, 2);
+  }
+  assertEquals(mockModule.getAllocatedPointers().size, 0);
 });
