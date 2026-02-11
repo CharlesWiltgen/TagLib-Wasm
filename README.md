@@ -122,6 +122,9 @@ const taglib = await TagLib.initialize({ wasmBinary });
 
 ## Quick Start
 
+> **Import paths:** Deno uses `@charlesw/taglib-wasm`, npm uses `taglib-wasm`.
+> Examples below use npm paths — substitute accordingly.
+
 ### Simple API
 
 ```typescript

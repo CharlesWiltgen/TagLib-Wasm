@@ -39,10 +39,7 @@
  * @see {@link AudioFile} - Audio file interface
  */
 export { AudioFileImpl as AudioFile, TagLib } from "./src/taglib.ts";
-export type {
-  AudioFile as AudioFileInterface,
-  MutableTag,
-} from "./src/taglib.ts";
+export type { MutableTag } from "./src/taglib.ts";
 
 /**
  * Error types for proper error handling and debugging.
