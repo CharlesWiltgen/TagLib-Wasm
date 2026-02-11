@@ -18,13 +18,15 @@ export const SUPPORTED_FORMATS = [
  * Error codes for programmatic error handling
  */
 export type TagLibErrorCode =
-  | "INITIALIZATION_FAILED"
+  | "INITIALIZATION"
   | "INVALID_FORMAT"
   | "UNSUPPORTED_FORMAT"
-  | "FILE_OPERATION_FAILED"
-  | "METADATA_ERROR"
-  | "MEMORY_ERROR"
-  | "ENVIRONMENT_ERROR";
+  | "FILE_OPERATION"
+  | "METADATA"
+  | "MEMORY"
+  | "ENVIRONMENT"
+  | "WORKER"
+  | "SIDECAR";
 
 /**
  * Base error class for all taglib-wasm errors
@@ -337,4 +339,8 @@ export function isEnvironmentError(error: unknown): error is EnvironmentError {
 
 export function isSidecarError(error: unknown): error is SidecarError {
   return error instanceof SidecarError;
+}
+
+export function isWorkerError(error: unknown): error is WorkerError {
+  return error instanceof WorkerError;
 }
