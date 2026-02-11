@@ -105,7 +105,7 @@ Object.values(PROPERTIES).forEach((prop) => {
 import { TagLib } from "taglib-wasm";
 
 const taglib = await TagLib.initialize();
-const file = taglib.openFile(audioBuffer);
+using file = taglib.openFile(audioBuffer);
 
 // Set AcoustID data (works for ANY format)
 file.setAcoustidFingerprint("AQADtMmybfGO8NCNEESLnzHyXNOHeHnG...");

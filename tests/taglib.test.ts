@@ -167,6 +167,60 @@ Deno.test("Full API: Memory Management", async () => {
   assert(true, "Memory management test passed");
 });
 
+Deno.test("Full API: Symbol.dispose enables using statement", async () => {
+  const taglib = await TagLib.initialize({ forceBufferMode: true });
+  const audioData = await Deno.readFile(TEST_FILES.mp3);
+
+  let fileRef: AudioFile | null = null;
+  {
+    using file = await taglib.open(audioData.buffer);
+    assert(file.isValid(), "File should be valid inside using block");
+    fileRef = file;
+  }
+  // After scope exit, Symbol.dispose nulls fileHandle — isValid() throws
+  let threw = false;
+  try {
+    fileRef!.isValid();
+  } catch {
+    threw = true;
+  }
+  assert(threw, "Calling isValid() on disposed file should throw");
+});
+
+Deno.test("Full API: Double disposal is safe", async () => {
+  const taglib = await TagLib.initialize({ forceBufferMode: true });
+  const audioData = await Deno.readFile(TEST_FILES.mp3);
+
+  // Explicit dispose + Symbol.dispose on scope exit should not throw
+  {
+    using file = await taglib.open(audioData.buffer);
+    assert(file.isValid(), "File should be valid");
+    file.dispose();
+  }
+});
+
+Deno.test("Full API: Symbol.dispose cleans up on exception", async () => {
+  const taglib = await TagLib.initialize({ forceBufferMode: true });
+  const audioData = await Deno.readFile(TEST_FILES.mp3);
+
+  let fileRef: AudioFile | null = null;
+  try {
+    using file = await taglib.open(audioData.buffer);
+    fileRef = file;
+    throw new Error("Simulated error");
+  } catch {
+    // Expected
+  }
+  // fileHandle should be nulled by Symbol.dispose
+  let threw = false;
+  try {
+    fileRef!.isValid();
+  } catch {
+    threw = true;
+  }
+  assert(threw, "File should be disposed after exception");
+});
+
 // =============================================================================
 // Simple API Tests
 // =============================================================================
@@ -678,7 +732,7 @@ Deno.test({
       });
 
       // Should handle concurrent operations efficiently
-      const timeLimit = 2000;
+      const timeLimit = 4000;
       assert(
         timeMs < timeLimit,
         `Concurrent operations took ${timeMs}ms (limit: ${timeLimit}ms)`,

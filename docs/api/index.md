@@ -567,22 +567,22 @@ Promise resolving to an `AudioFile` instance.
 
 ```typescript
 // From file path (Node.js/Deno/Bun only)
-const file = await taglib.open("song.mp3");
+using file = await taglib.open("song.mp3");
 
 // From buffer
 const audioData = await Deno.readFile("song.mp3");
-const file = await taglib.open(audioData);
+using file = await taglib.open(audioData);
 
 // From ArrayBuffer
 const arrayBuffer = await fetch("song.mp3").then((r) => r.arrayBuffer());
-const file = await taglib.open(arrayBuffer);
+using file = await taglib.open(arrayBuffer);
 
 // From File object (browsers)
 const fileInput = document.getElementById("file-input").files[0];
-const file = await taglib.open(fileInput);
+using file = await taglib.open(fileInput);
 
 // With partial loading for large files
-const largeFile = await taglib.open("large-concert.flac", {
+using largeFile = await taglib.open("large-concert.flac", {
   partial: true,
   maxHeaderSize: 2 * 1024 * 1024, // 2MB
   maxFooterSize: 256 * 1024, // 256KB
@@ -1313,7 +1313,7 @@ try {
 
 1. **Always check file validity**:
    ```typescript
-   const file = await taglib.open(buffer);
+   using file = await taglib.open(buffer);
    if (!file.isValid()) {
      throw new Error("Invalid file");
    }

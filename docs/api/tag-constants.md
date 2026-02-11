@@ -319,7 +319,7 @@ import { TagLib } from "taglib-wasm";
 import { PROPERTIES, Tags } from "taglib-wasm/constants";
 
 const taglib = await TagLib.initialize();
-const file = taglib.openFile(audioBuffer);
+using file = taglib.openFile(audioBuffer);
 
 // Using PROPERTIES constant (recommended - provides rich metadata)
 const properties = file.properties();

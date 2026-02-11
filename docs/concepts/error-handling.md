@@ -21,14 +21,14 @@ Errors related to unsupported or invalid file formats.
 ```typescript
 // Unsupported format
 try {
-  const file = taglib.openFile(pdfBuffer); // PDF is not an audio file
+  using file = taglib.openFile(pdfBuffer); // PDF is not an audio file
 } catch (error) {
   // Error: Unsupported format or corrupted file
 }
 
 // Corrupted file
 try {
-  const file = taglib.openFile(corruptedMp3);
+  using file = taglib.openFile(corruptedMp3);
 } catch (error) {
   // Error: Failed to parse file
 }
@@ -50,7 +50,7 @@ try {
 
 // Out of memory during processing
 try {
-  const file = taglib.openFile(veryLargeFile); // 500MB file
+  using file = taglib.openFile(veryLargeFile); // 500MB file
 } catch (error) {
   // Error: Cannot allocate memory
 }
@@ -61,7 +61,7 @@ try {
 Errors when working with invalid files.
 
 ```typescript
-const file = taglib.openFile(buffer);
+using file = taglib.openFile(buffer);
 if (!file.isValid()) {
   throw new Error("File validation failed");
 }
@@ -544,7 +544,7 @@ function logError(context: string, error: any, additionalInfo?: any) {
 
 // Usage
 try {
-  const file = taglib.openFile(buffer);
+  using file = taglib.openFile(buffer);
 } catch (error) {
   logError("openFile", error, {
     bufferSize: buffer.length,
@@ -714,7 +714,7 @@ The `isTagLibError` type guard helps identify any taglib-wasm error:
 
 ```typescript
 try {
-  const file = await taglib.open("song.mp3");
+  using file = await taglib.open("song.mp3");
   // Process file...
 } catch (error) {
   if (error instanceof InvalidFormatError) {
