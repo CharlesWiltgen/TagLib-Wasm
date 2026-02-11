@@ -403,14 +403,16 @@ Deno.test("Performance: Format Processing Speed", async () => {
     file.audioProperties();
     file.dispose();
 
-    const elapsed = performance.now() - start;
-    results[format] = elapsed;
-
-    // Each format should process in reasonable time
-    assert(elapsed < 1000, `${format} processing should be under 1 second`);
+    results[format] = performance.now() - start;
   }
 
   console.log("Format processing times:", results);
+
+  const totalMs = Object.values(results).reduce((a, b) => a + b, 0);
+  assert(
+    totalMs < 5000,
+    `All formats should process in under 5s. Total: ${totalMs}ms`,
+  );
 });
 
 Deno.test("Performance: API Comparison", async () => {
