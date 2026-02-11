@@ -64,14 +64,18 @@ export {
   isInvalidFormatError,
   isMemoryError,
   isMetadataError,
+  isSidecarError,
   isTagLibError,
   isUnsupportedFormatError,
+  isWorkerError,
   MemoryError,
   MetadataError,
+  SidecarError,
   SUPPORTED_FORMATS,
   TagLibError,
   TagLibInitializationError,
   UnsupportedFormatError,
+  WorkerError,
 } from "./src/errors.ts";
 
 /**
@@ -79,7 +83,6 @@ export {
  * @see {@link readTags} - Read metadata from audio files
  * @see {@link applyTags} - Apply metadata changes and return modified buffer
  * @see {@link updateTags} - Update metadata and save to disk
- * @see {@link writeTags} - Deprecated alias for applyTags
  * @see {@link readProperties} - Read audio properties
  * @see {@link readPictures} - Read cover art/pictures
  * @see {@link applyPictures} - Apply pictures to audio files
@@ -224,8 +227,17 @@ export type { PropertyKey, PropertyValue } from "./src/constants.ts";
 /**
  * Type and constant exports
  */
-export type { OpenOptions, PictureType } from "./src/types.ts";
-export { PICTURE_TYPE_NAMES, PICTURE_TYPE_VALUES } from "./src/types.ts";
+export type {
+  BitrateControlMode,
+  OpenOptions,
+  PictureType,
+} from "./src/types.ts";
+export {
+  BITRATE_CONTROL_MODE_NAMES,
+  BITRATE_CONTROL_MODE_VALUES,
+  PICTURE_TYPE_NAMES,
+  PICTURE_TYPE_VALUES,
+} from "./src/types.ts";
 
 /**
  * Complex property types and constants for structured metadata.
