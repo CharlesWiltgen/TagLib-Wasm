@@ -65,11 +65,9 @@ export class AudioFileWorkers {
     value: string,
   ): void {
     if (this.tagPtr === 0) return;
-    using alloc = new WasmAlloc(
-      this.wasmExports,
-      new TextEncoder().encode(value).length + 1,
-    );
-    alloc.writeCString(value);
+    const encoded = new TextEncoder().encode(value);
+    using alloc = new WasmAlloc(this.wasmExports, encoded.length + 1);
+    alloc.writeCString(encoded);
     setter?.(this.tagPtr, alloc.ptr);
   }
 

@@ -259,8 +259,9 @@ Deno.test("WasmAlloc.writeCString works through emscripten adapter", () => {
   const exports = emscriptenToWasmExports(mockModule);
 
   const testString = "Hello, Workers!";
+  const encoded = new TextEncoder().encode(testString);
   {
-    using alloc = new WasmAlloc(exports, testString.length + 1);
+    using alloc = new WasmAlloc(exports, encoded.length + 1);
     alloc.writeCString(testString);
 
     const result = alloc.readCString();
@@ -284,3 +285,97 @@ Deno.test("WasmArena.allocString works through emscripten adapter", () => {
   }
   assertEquals(mockModule.getAllocatedPointers().size, 0);
 });
+
+Deno.test("WasmAlloc.writeCString handles multi-byte UTF-8 (emoji, CJK)", () => {
+  const mockModule = createMockModuleWithMemory();
+  const exports = emscriptenToWasmExports(mockModule);
+
+  const testCases = [
+    "\u{1F3B5} Music", // emoji: 4-byte codepoint + ASCII
+    "\u4F60\u597D\u4E16\u754C", // CJK: 你好世界 (3 bytes each)
+    "caf\u00E9", // Latin-1: 2-byte codepoint
+  ];
+
+  for (const str of testCases) {
+    const encoded = new TextEncoder().encode(str);
+    {
+      using alloc = new WasmAlloc(exports, encoded.length + 1);
+      alloc.writeCString(encoded);
+      assertEquals(alloc.readCString(), str);
+    }
+  }
+  assertEquals(mockModule.getAllocatedPointers().size, 0);
+});
+
+// --- setStringTag behavior tests ---
+
+Deno.test("setStringTag skips when tagPtr is 0", async () => {
+  const mockModule = createMockModuleWithMemory();
+  let setterCalled = false;
+
+  // Simulate AudioFileWorkers with tagPtr=0 (no tag available)
+  mockModule._taglib_file_tag = () => 0;
+  mockModule._taglib_file_audioproperties = () => 0;
+  mockModule._taglib_tag_set_title = () => {
+    setterCalled = true;
+  };
+
+  // Import the class dynamically isn't practical, so test the pattern directly
+  const { AudioFileWorkers } = await importWorkersModule();
+  const file = new AudioFileWorkers(mockModule, 1);
+  file.setTitle("test");
+
+  assertEquals(setterCalled, false);
+  assertEquals(mockModule.getAllocatedPointers().size, 0);
+  file.dispose();
+});
+
+Deno.test("setStringTag handles undefined setter gracefully", async () => {
+  const mockModule = createMockModuleWithMemory();
+
+  // Module with tag pointer but WITHOUT set_title export
+  mockModule._taglib_file_tag = () => 42;
+  mockModule._taglib_file_audioproperties = () => 0;
+  // _taglib_tag_set_title intentionally NOT set (undefined)
+
+  const { AudioFileWorkers } = await importWorkersModule();
+  const file = new AudioFileWorkers(mockModule, 1);
+
+  // Should not throw, and should clean up the allocation
+  file.setTitle("test");
+  assertEquals(mockModule.getAllocatedPointers().size, 0);
+  file.dispose();
+});
+
+Deno.test("setStringTag correctly writes multi-byte strings", async () => {
+  const mockModule = createMockModuleWithMemory();
+  let writtenPtr = 0;
+
+  mockModule._taglib_file_tag = () => 42;
+  mockModule._taglib_file_audioproperties = () => 0;
+  mockModule._taglib_tag_set_title = (_tagPtr: number, strPtr: number) => {
+    writtenPtr = strPtr;
+  };
+
+  const { AudioFileWorkers } = await importWorkersModule();
+  const file = new AudioFileWorkers(mockModule, 1);
+
+  const emoji = "\u{1F3B5} Music";
+  file.setTitle(emoji);
+
+  // Verify the string was written correctly to Wasm memory
+  const memory = mockModule.wasmMemory!;
+  const u8 = new Uint8Array(memory.buffer);
+  let end = writtenPtr;
+  while (u8[end] !== 0) end++;
+  const written = new TextDecoder().decode(u8.subarray(writtenPtr, end));
+  assertEquals(written, emoji);
+
+  // Allocation freed after setter returned
+  assertEquals(mockModule.getAllocatedPointers().size, 0);
+  file.dispose();
+});
+
+async function importWorkersModule() {
+  return await import("../src/workers.ts");
+}

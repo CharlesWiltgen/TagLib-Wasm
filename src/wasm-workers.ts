@@ -13,11 +13,12 @@ export { WasmAlloc, WasmArena } from "./runtime/wasi-memory.ts";
 
 /**
  * Bridge Emscripten module to WasmExports interface for RAII memory management.
- * Uses wasmMemory when available, falls back to HEAPU8.buffer.
+ * Prefers wasmMemory (live .buffer getter survives memory growth). Falls back
+ * to a snapshot of HEAPU8.buffer — safe for short-lived allocations but would
+ * go stale if Emscripten grows memory between adapter creation and use.
  */
 export function emscriptenToWasmExports(module: TagLibModule): WasmExports {
-  const memory = module.wasmMemory ??
-    { buffer: module.HEAPU8.buffer } as unknown as WebAssembly.Memory;
+  const memory = module.wasmMemory ?? { buffer: module.HEAPU8.buffer };
   return {
     memory,
     malloc: (size: number) => module._malloc(size),
