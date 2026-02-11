@@ -5,8 +5,6 @@
  * enabling parallel processing of audio files.
  */
 
-/// <reference lib="webworker" />
-
 import type { TagLib } from "../taglib.ts";
 import type { Tag } from "../types.ts";
 import {
@@ -17,8 +15,13 @@ import {
   updateTags,
 } from "../simple.ts";
 
-const workerSelf: DedicatedWorkerGlobalScope =
-  self as unknown as DedicatedWorkerGlobalScope;
+type WorkerSelf = {
+  onmessage: ((event: MessageEvent) => void) | null;
+  onerror: ((event: ErrorEvent) => void) | null;
+  postMessage(message: unknown): void;
+};
+
+const workerSelf = self as unknown as WorkerSelf;
 
 // Force Emscripten buffer mode in workers (WASI Wasmer SDK not yet stable)
 setBufferMode(true);
