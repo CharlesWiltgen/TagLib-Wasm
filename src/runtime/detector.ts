@@ -7,9 +7,10 @@
  *
  * Priority order:
  * 1. Deno + WASI (optimal filesystem performance)
- * 2. Node.js + WASI (when available)
- * 3. Browser + Emscripten (required for web)
- * 4. Node.js + Emscripten (fallback compatibility)
+ * 2. Bun + Emscripten (Bun mimics Node, must check first)
+ * 3. Node.js + WASI (when available)
+ * 4. Browser + Emscripten (required for web)
+ * 5. Node.js + Emscripten (fallback compatibility)
  */
 
 /**
@@ -18,6 +19,7 @@
 export type RuntimeEnvironment =
   | "deno-wasi" // Deno with WASI support
   | "node-wasi" // Node.js with WASI support
+  | "bun-emscripten" // Bun runtime (Emscripten)
   | "browser" // Browser environment
   | "node-emscripten" // Node.js fallback
   | "worker" // Web Worker environment
@@ -95,6 +97,13 @@ function isCloudflareWorker(): boolean {
 }
 
 /**
+ * Check if running in Bun (must check before Node — Bun sets process.versions.node)
+ */
+function isBun(): boolean {
+  return typeof (globalThis as Record<string, unknown>).Bun !== "undefined";
+}
+
+/**
  * Check if running in Node.js
  */
 function isNode(): boolean {
@@ -125,7 +134,18 @@ export function detectRuntime(): RuntimeDetectionResult {
     };
   }
 
-  // Priority 2: Node.js with WASI (good performance)
+  // Priority 2: Bun (uses Emscripten — Bun sets process.versions.node, so check before Node)
+  if (isBun()) {
+    return {
+      environment: "bun-emscripten",
+      wasmType: "emscripten",
+      supportsFilesystem: true,
+      supportsStreaming: true,
+      performanceTier: 2,
+    };
+  }
+
+  // Priority 3: Node.js with WASI (good performance)
   if (isNode() && hasWASISupport()) {
     return {
       environment: "node-wasi",
@@ -136,7 +156,7 @@ export function detectRuntime(): RuntimeDetectionResult {
     };
   }
 
-  // Priority 3: Browser (requires Emscripten)
+  // Priority 4: Browser (requires Emscripten)
   if (isBrowser()) {
     return {
       environment: "browser",
@@ -147,7 +167,7 @@ export function detectRuntime(): RuntimeDetectionResult {
     };
   }
 
-  // Priority 4: Web Worker (requires Emscripten)
+  // Priority 5: Web Worker (requires Emscripten)
   if (isWebWorker()) {
     return {
       environment: "worker",
@@ -158,7 +178,7 @@ export function detectRuntime(): RuntimeDetectionResult {
     };
   }
 
-  // Priority 5: Cloudflare Workers (requires Emscripten)
+  // Priority 6: Cloudflare Workers (requires Emscripten)
   if (isCloudflareWorker()) {
     return {
       environment: "cloudflare",
@@ -199,6 +219,8 @@ export function getEnvironmentDescription(env: RuntimeEnvironment): string {
       return "Deno with WASI (optimal filesystem performance)";
     case "node-wasi":
       return "Node.js with WASI (high performance)";
+    case "bun-emscripten":
+      return "Bun with Emscripten";
     case "browser":
       return "Browser with Emscripten (web compatibility)";
     case "worker":
