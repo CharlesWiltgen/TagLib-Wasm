@@ -174,41 +174,50 @@ async function loadModule(
 }
 
 /**
- * Load WASI module with proper error handling and fallback to Emscripten
+ * Load WASI module: try wasi-host-loader first (no deps), then wasmer-sdk, then Emscripten
  */
 async function loadWasiModuleWithFallback(
   options: UnifiedLoaderOptions,
 ): Promise<LoadModuleResult> {
+  // Strategy 1: In-process WASI host (Deno, Node, Bun — no external deps)
   try {
-    // Lazy-load Wasmer SDK (avoids failing in environments without @wasmer/sdk)
+    const { loadWasiHost } = await import("./wasi-host-loader.ts");
+    const wasiModule = await loadWasiHost({
+      wasmPath: options.wasmUrl || "./dist/wasi/taglib_wasi.wasm",
+    });
+    return { module: wasiModule, actualWasmType: "wasi" };
+  } catch (hostError) {
+    if (options.debug) {
+      console.warn(`[UnifiedLoader] WASI host failed:`, hostError);
+    }
+  }
+
+  // Strategy 2: Wasmer SDK (fallback for environments without native fs)
+  try {
     const { initializeWasmer, loadWasmerWasi } = await import(
       "./wasmer-sdk-loader.ts"
     );
-
     await initializeWasmer(options.useInlineWasm);
-
     const wasiModule = await loadWasmerWasi({
       wasmPath: options.wasmUrl || "./dist/taglib-wasi.wasm",
       useInlineWasm: options.useInlineWasm,
       debug: options.debug,
     });
-
     return { module: wasiModule, actualWasmType: "wasi" };
-  } catch (error) {
-    // If WASI fails, fall back to Emscripten
+  } catch (sdkError) {
     if (options.debug) {
-      console.warn(
-        `[UnifiedLoader] WASI loading failed, falling back to Emscripten:`,
-        error,
-      );
+      console.warn(`[UnifiedLoader] Wasmer SDK failed:`, sdkError);
     }
-
-    // Fallback to Emscripten - return correct type
-    return {
-      module: await loadEmscriptenModule(options),
-      actualWasmType: "emscripten",
-    };
   }
+
+  // Strategy 3: Emscripten fallback
+  if (options.debug) {
+    console.warn(`[UnifiedLoader] All WASI loaders failed, using Emscripten`);
+  }
+  return {
+    module: await loadEmscriptenModule(options),
+    actualWasmType: "emscripten",
+  };
 }
 
 /**

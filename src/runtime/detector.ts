@@ -19,7 +19,7 @@
 export type RuntimeEnvironment =
   | "deno-wasi" // Deno with WASI support
   | "node-wasi" // Node.js with WASI support
-  | "bun-emscripten" // Bun runtime (Emscripten)
+  | "bun-wasi" // Bun with WASI support (via node:fs)
   | "browser" // Browser environment
   | "node-emscripten" // Node.js fallback
   | "worker" // Web Worker environment
@@ -134,14 +134,14 @@ export function detectRuntime(): RuntimeDetectionResult {
     };
   }
 
-  // Priority 2: Bun (uses Emscripten — Bun sets process.versions.node, so check before Node)
+  // Priority 2: Bun with WASI (via node:fs provider — check before Node)
   if (isBun()) {
     return {
-      environment: "bun-emscripten",
-      wasmType: "emscripten",
+      environment: "bun-wasi",
+      wasmType: "wasi",
       supportsFilesystem: true,
       supportsStreaming: true,
-      performanceTier: 2,
+      performanceTier: 1,
     };
   }
 
@@ -219,8 +219,8 @@ export function getEnvironmentDescription(env: RuntimeEnvironment): string {
       return "Deno with WASI (optimal filesystem performance)";
     case "node-wasi":
       return "Node.js with WASI (high performance)";
-    case "bun-emscripten":
-      return "Bun with Emscripten";
+    case "bun-wasi":
+      return "Bun with WASI (via node:fs)";
     case "browser":
       return "Browser with Emscripten (web compatibility)";
     case "worker":
@@ -242,7 +242,8 @@ export function canLoadWasmType(wasmType: WasmBinaryType): boolean {
 
   if (wasmType === "wasi") {
     return result.environment === "deno-wasi" ||
-      result.environment === "node-wasi";
+      result.environment === "node-wasi" ||
+      result.environment === "bun-wasi";
   }
 
   // Emscripten can be loaded in all environments
