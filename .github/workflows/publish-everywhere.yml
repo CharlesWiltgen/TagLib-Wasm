@@ -32,9 +32,19 @@ jobs:
       should-publish: ${{ steps.check.outputs.should-publish }}
     steps:
       - uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          submodules: recursive
+
+      - name: Init submodules with retry
+        run: |
+          for i in 1 2 3; do
+            if git submodule update --init --recursive; then
+              echo "✅ Submodules initialized"
+              exit 0
+            fi
+            echo "⚠️ Attempt $i failed, retrying in 10s..."
+            sleep 10
+          done
+          echo "❌ Failed to init submodules after 3 attempts"
+          exit 1
 
       - name: Verify Tests workflow passed
         env:
@@ -206,14 +216,20 @@ jobs:
           retry_wait_seconds: 30
           command: |
             # Use OIDC for authentication (no token needed)
-            if deno publish --allow-slow-types --allow-dirty; then
+            OUTPUT=$(deno publish --allow-slow-types --allow-dirty 2>&1) && {
               echo "JSR publish successful"
               echo "published=true" >> $GITHUB_OUTPUT
-            else
-              echo "JSR publish failed"
-              echo "published=false" >> $GITHUB_OUTPUT
-              exit 1
+              exit 0
+            }
+            # Treat "already published" as success
+            if echo "$OUTPUT" | grep -qi "already published\|already exists"; then
+              echo "JSR version already published, continuing"
+              echo "published=true" >> $GITHUB_OUTPUT
+              exit 0
             fi
+            echo "JSR publish failed: $OUTPUT"
+            echo "published=false" >> $GITHUB_OUTPUT
+            exit 1
           on_retry_command: |
             echo "Retrying JSR publish..."
 
@@ -248,6 +264,16 @@ jobs:
           echo "Contents of dist:"
           ls -la dist/
 
+      - name: Determine NPM tag
+        id: npm-tag
+        run: |
+          VERSION="${{ needs.prepare-and-build.outputs.version }}"
+          if [[ "$VERSION" == *-* ]]; then
+            echo "tag=beta" >> $GITHUB_OUTPUT
+          else
+            echo "tag=latest" >> $GITHUB_OUTPUT
+          fi
+
       - name: Publish to NPM with retry
         id: publish
         uses: nick-invision/retry@v3
@@ -258,7 +284,7 @@ jobs:
           max_attempts: 3
           retry_wait_seconds: 30
           command: |
-            cd publish-dir && npm publish --access public
+            cd publish-dir && npm publish --access public --tag ${{ steps.npm-tag.outputs.tag }}
             echo "published=true" >> $GITHUB_OUTPUT
           on_retry_command: |
             echo "Retrying NPM publish..."
@@ -332,6 +358,16 @@ jobs:
             console.log('Updated package.json for GitHub Packages');
           "
 
+      - name: Determine NPM tag
+        id: npm-tag
+        run: |
+          VERSION="${{ needs.prepare-and-build.outputs.version }}"
+          if [[ "$VERSION" == *-* ]]; then
+            echo "tag=beta" >> $GITHUB_OUTPUT
+          else
+            echo "tag=latest" >> $GITHUB_OUTPUT
+          fi
+
       - name: Publish to GitHub with retry
         id: publish
         uses: nick-invision/retry@v3
@@ -342,7 +378,7 @@ jobs:
           max_attempts: 3
           retry_wait_seconds: 30
           command: |
-            cd publish-dir && npm publish
+            cd publish-dir && npm publish --tag ${{ steps.npm-tag.outputs.tag }}
             echo "published=true" >> $GITHUB_OUTPUT
           on_retry_command: |
             echo "Retrying GitHub publish..."
