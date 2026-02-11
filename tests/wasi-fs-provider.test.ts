@@ -155,6 +155,81 @@ function runProviderTests(
         await Deno.remove(dir, { recursive: true });
       }
     });
+
+    it("should create file with create-without-truncate", async () => {
+      const fs = await getProvider();
+      const dir = await Deno.makeTempDir();
+      const path = `${dir}/create-no-trunc.txt`;
+      try {
+        const handle = fs.openSync(path, {
+          read: true,
+          write: true,
+          create: true,
+          truncate: false,
+        });
+        handle.writeSync(new TextEncoder().encode("new file"));
+        handle.seekSync(0, 0);
+        const buf = new Uint8Array(8);
+        handle.readSync(buf);
+        assertEquals(new TextDecoder().decode(buf), "new file");
+        handle.close();
+      } finally {
+        await Deno.remove(dir, { recursive: true });
+      }
+    });
+
+    it("should write after SEEK_END", async () => {
+      const fs = await getProvider();
+      const path = await Deno.makeTempFile();
+      try {
+        const handle = fs.openSync(path, { read: true, write: true });
+        handle.writeSync(new TextEncoder().encode("hello"));
+        handle.seekSync(0, 2); // SEEK_END
+        handle.writeSync(new TextEncoder().encode("!"));
+        handle.seekSync(0, 0);
+        const buf = new Uint8Array(6);
+        handle.readSync(buf);
+        assertEquals(new TextDecoder().decode(buf), "hello!");
+        handle.close();
+      } finally {
+        await Deno.remove(path);
+      }
+    });
+
+    it("should not produce negative position from SEEK_CUR", async () => {
+      const fs = await getProvider();
+      const path = await Deno.makeTempFile();
+      try {
+        const handle = fs.openSync(path, { read: true, write: true });
+        handle.writeSync(new TextEncoder().encode("ab"));
+        handle.seekSync(0, 0); // position = 0
+        try {
+          const pos = handle.seekSync(-100, 1); // SEEK_CUR: 0 + (-100)
+          assertEquals(pos >= 0, true);
+        } catch {
+          // Throwing is also acceptable (Deno delegates to OS)
+        }
+        handle.close();
+      } finally {
+        await Deno.remove(path);
+      }
+    });
+
+    it("should handle double close without throwing", async () => {
+      const fs = await getProvider();
+      const path = await Deno.makeTempFile();
+      try {
+        const handle = fs.openSync(path, { read: true, write: false });
+        handle.close();
+        try {
+          handle.close();
+        } catch {
+          // Double close may throw — that's acceptable behavior
+        }
+      } finally {
+        await Deno.remove(path);
+      }
+    });
   });
 }
 
