@@ -11,11 +11,13 @@ import {
   type WasiHostConfig,
   type WasiImportDisposable,
 } from "./wasi-host.ts";
+import type { FileSystemProvider } from "./wasi-fs-provider.ts";
 import type { WasiModule } from "./wasmer-sdk-loader.ts";
 
 export interface WasiHostLoaderConfig {
   wasmPath?: string;
   preopens?: Record<string, string>;
+  fs?: FileSystemProvider;
 }
 
 export class WasiHostLoadError extends Error {
@@ -26,13 +28,26 @@ export class WasiHostLoadError extends Error {
   }
 }
 
+async function resolveFs(
+  provided?: FileSystemProvider,
+): Promise<FileSystemProvider> {
+  if (provided) return provided;
+  if (typeof Deno !== "undefined") {
+    const { createDenoFsProvider } = await import("./wasi-fs-deno.ts");
+    return createDenoFsProvider();
+  }
+  const { createNodeFsProvider } = await import("./wasi-fs-node.ts");
+  return createNodeFsProvider();
+}
+
 export async function loadWasiHost(
   config: WasiHostLoaderConfig,
 ): Promise<WasiModule & Disposable> {
   const wasmPath = config.wasmPath ?? "./dist/wasi/taglib_wasi.wasm";
   const preopens = config.preopens ?? {};
+  const fs = await resolveFs(config.fs);
 
-  const wasmBytes = await loadWasmBinary(wasmPath);
+  const wasmBytes = await loadWasmBinary(wasmPath, fs);
   const wasmModule = await WebAssembly.compile(wasmBytes as BufferSource);
 
   // We need a Memory object before creating imports, but Wasm defines its own.
@@ -41,6 +56,7 @@ export async function loadWasiHost(
 
   const hostConfig: WasiHostConfig = {
     preopens,
+    fs,
     stderr: (data) => {
       const text = new TextDecoder().decode(data);
       if (text.trim()) console.error(`[wasi-host] ${text}`);
@@ -69,7 +85,10 @@ export async function loadWasiHost(
   return createWasiModuleFromInstance(instance, memory, wasiImports);
 }
 
-async function loadWasmBinary(path: string): Promise<Uint8Array> {
+async function loadWasmBinary(
+  path: string,
+  fs: FileSystemProvider,
+): Promise<Uint8Array> {
   if (path.startsWith("http://") || path.startsWith("https://")) {
     const response = await fetch(path);
     if (!response.ok) {
@@ -80,7 +99,7 @@ async function loadWasmBinary(path: string): Promise<Uint8Array> {
     return new Uint8Array(await response.arrayBuffer());
   }
   try {
-    return await Deno.readFile(path);
+    return await fs.readFile(path);
   } catch (cause) {
     throw new WasiHostLoadError(
       `Failed to read Wasm binary: ${path}`,

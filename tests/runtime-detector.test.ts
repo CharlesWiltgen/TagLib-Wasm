@@ -46,7 +46,7 @@ Deno.test("detectRuntime - Deno environment detection", () => {
   assertEquals(result.performanceTier, 1);
 });
 
-Deno.test("detectRuntime - Bun environment returns bun-emscripten", () => {
+Deno.test("detectRuntime - Bun environment returns bun-wasi", () => {
   const globalAny = globalThis as Record<string, unknown>;
   const savedDeno = globalAny.Deno;
   try {
@@ -55,11 +55,11 @@ Deno.test("detectRuntime - Bun environment returns bun-emscripten", () => {
     globalAny.Bun = { version: "1.3.8" };
 
     const result = detectRuntime();
-    assertEquals(result.environment, "bun-emscripten");
-    assertEquals(result.wasmType, "emscripten");
+    assertEquals(result.environment, "bun-wasi");
+    assertEquals(result.wasmType, "wasi");
     assertEquals(result.supportsFilesystem, true);
     assertEquals(result.supportsStreaming, true);
-    assertEquals(result.performanceTier, 2);
+    assertEquals(result.performanceTier, 1);
   } finally {
     globalAny.Deno = savedDeno;
     delete globalAny.Bun;
@@ -70,7 +70,7 @@ Deno.test("getEnvironmentDescription - provides human-readable descriptions", ()
   const environments: RuntimeEnvironment[] = [
     "deno-wasi",
     "node-wasi",
-    "bun-emscripten",
+    "bun-wasi",
     "browser",
     "worker",
     "cloudflare",
@@ -187,7 +187,7 @@ Deno.test("WASM binary type selection matches environment", () => {
   }> = [
     { environment: "deno-wasi", expectedWasmType: "wasi" },
     { environment: "node-wasi", expectedWasmType: "wasi" },
-    { environment: "bun-emscripten", expectedWasmType: "emscripten" },
+    { environment: "bun-wasi", expectedWasmType: "wasi" },
     { environment: "browser", expectedWasmType: "emscripten" },
     { environment: "worker", expectedWasmType: "emscripten" },
     { environment: "cloudflare", expectedWasmType: "emscripten" },
@@ -221,7 +221,7 @@ Deno.test("filesystem support matches environment capabilities", () => {
   const testCases = [
     { env: "deno-wasi", shouldSupportFS: true },
     { env: "node-wasi", shouldSupportFS: true },
-    { env: "bun-emscripten", shouldSupportFS: true },
+    { env: "bun-wasi", shouldSupportFS: true },
     { env: "node-emscripten", shouldSupportFS: true },
     { env: "browser", shouldSupportFS: false },
     { env: "worker", shouldSupportFS: false },

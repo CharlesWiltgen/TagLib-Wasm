@@ -2,11 +2,14 @@
  * @fileoverview WASI P1 syscall implementations backed by real filesystem
  *
  * Provides synchronous WASI imports for in-process Wasm execution.
- * Uses Deno 2 FsFile API for synchronous file operations.
+ * Uses a FileSystemProvider for runtime-agnostic file operations.
  */
+
+import type { FileSystemProvider, WasiFileHandle } from "./wasi-fs-provider.ts";
 
 export interface WasiHostConfig {
   preopens: Record<string, string>;
+  fs: FileSystemProvider;
   stdout?: (data: Uint8Array) => void;
   stderr?: (data: Uint8Array) => void;
 }
@@ -19,7 +22,7 @@ const WASI_ENOTCAPABLE = 76;
 
 type FdEntry =
   | { type: "preopen"; realPath: string; virtualPath: string }
-  | { type: "file"; file: Deno.FsFile; path: string };
+  | { type: "file"; file: WasiFileHandle; path: string };
 
 // deno-lint-ignore no-explicit-any
 type WasiImports = Record<string, (...args: any[]) => number | void>;
@@ -164,13 +167,11 @@ export function createWasiImports(
     ) => {
       const entry = fds.get(fd);
       if (!entry || entry.type !== "file") return WASI_EBADF;
-      const seekMode: Deno.SeekMode = whence === 0
-        ? Deno.SeekMode.Start
-        : whence === 1
-        ? Deno.SeekMode.Current
-        : Deno.SeekMode.End;
       try {
-        const newPos = entry.file.seekSync(Number(offset), seekMode);
+        const newPos = entry.file.seekSync(
+          Number(offset),
+          whence as 0 | 1 | 2,
+        );
         const { dv } = getMemory();
         dv.setBigInt64(newoffsetPtr, BigInt(newPos), true);
         return WASI_ESUCCESS;
@@ -231,11 +232,14 @@ export function createWasiImports(
       try {
         const wantWrite = (_rightsBase & RIGHTS_FD_WRITE) !== 0n ||
           (oflags & (OFLAGS_CREAT | OFLAGS_TRUNC)) !== 0;
-        const options: Deno.OpenOptions = { read: true, write: wantWrite };
-        if (oflags & OFLAGS_CREAT) options.create = true;
-        if (oflags & OFLAGS_TRUNC) options.truncate = true;
+        const options = {
+          read: true,
+          write: wantWrite,
+          create: (oflags & OFLAGS_CREAT) !== 0 || undefined,
+          truncate: (oflags & OFLAGS_TRUNC) !== 0 || undefined,
+        };
 
-        const file = Deno.openSync(realPath, options);
+        const file = config.fs.openSync(realPath, options);
         const fd = nextFd++;
         fds.set(fd, { type: "file", file, path: realPath });
 
@@ -243,7 +247,7 @@ export function createWasiImports(
         dv.setUint32(openedFdPtr, fd, true);
         return WASI_ESUCCESS;
       } catch (e) {
-        if (e instanceof Deno.errors.NotFound) return WASI_ENOENT;
+        if (config.fs.isNotFoundError(e)) return WASI_ENOENT;
         return WASI_EINVAL;
       }
     },
