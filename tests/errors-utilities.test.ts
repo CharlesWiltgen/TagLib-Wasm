@@ -12,10 +12,13 @@ import {
   isInvalidFormatError,
   isMemoryError,
   isMetadataError,
+  isSidecarError,
   isTagLibError,
   isUnsupportedFormatError,
+  isWorkerError,
   MemoryError,
   MetadataError,
+  SidecarError,
   TagLibError,
   TagLibInitializationError,
   UnsupportedFormatError,
@@ -227,6 +230,20 @@ Deno.test("WorkerError - worker pool errors", () => {
   assertInstanceOf(error, WorkerError);
 });
 
+Deno.test("SidecarError - sidecar process errors", () => {
+  const error = new SidecarError("Sidecar not running: Call start() first.", {
+    pid: 456,
+  });
+
+  assertEquals(error.name, "SidecarError");
+  assertEquals(error.code, "SIDECAR");
+  assertEquals(error.message, "Sidecar not running: Call start() first.");
+  assertEquals(error.details, { pid: 456 });
+
+  assertInstanceOf(error, TagLibError);
+  assertInstanceOf(error, SidecarError);
+});
+
 Deno.test("isTagLibError - type guard for base error", () => {
   assertEquals(isTagLibError(new TagLibError("MEMORY", "message")), true);
   assertEquals(isTagLibError(new TagLibInitializationError("failed")), true);
@@ -333,6 +350,26 @@ Deno.test("isEnvironmentError - type guard", () => {
   assertEquals(isEnvironmentError(new TagLibError("MEMORY", "msg")), false);
   assertEquals(isEnvironmentError(new WorkerError("failed")), false);
   assertEquals(isEnvironmentError(123), false);
+});
+
+Deno.test("isWorkerError - type guard", () => {
+  assertEquals(isWorkerError(new WorkerError("timeout")), true);
+  assertEquals(isWorkerError(new WorkerError("failed", { id: 1 })), true);
+
+  assertEquals(isWorkerError(new TagLibError("MEMORY", "msg")), false);
+  assertEquals(isWorkerError(new SidecarError("failed")), false);
+  assertEquals(isWorkerError(new Error("regular")), false);
+  assertEquals(isWorkerError(null), false);
+});
+
+Deno.test("isSidecarError - type guard", () => {
+  assertEquals(isSidecarError(new SidecarError("not running")), true);
+  assertEquals(isSidecarError(new SidecarError("crashed", { pid: 1 })), true);
+
+  assertEquals(isSidecarError(new TagLibError("MEMORY", "msg")), false);
+  assertEquals(isSidecarError(new WorkerError("failed")), false);
+  assertEquals(isSidecarError(new Error("regular")), false);
+  assertEquals(isSidecarError(undefined), false);
 });
 
 Deno.test("formatFileSize helper - human readable sizes", () => {
