@@ -46,10 +46,31 @@ Deno.test("detectRuntime - Deno environment detection", () => {
   assertEquals(result.performanceTier, 1);
 });
 
+Deno.test("detectRuntime - Bun environment returns bun-emscripten", () => {
+  const globalAny = globalThis as Record<string, unknown>;
+  const savedDeno = globalAny.Deno;
+  try {
+    // Hide Deno global so isBun() path is reached (Deno has higher priority)
+    delete globalAny.Deno;
+    globalAny.Bun = { version: "1.3.8" };
+
+    const result = detectRuntime();
+    assertEquals(result.environment, "bun-emscripten");
+    assertEquals(result.wasmType, "emscripten");
+    assertEquals(result.supportsFilesystem, true);
+    assertEquals(result.supportsStreaming, true);
+    assertEquals(result.performanceTier, 2);
+  } finally {
+    globalAny.Deno = savedDeno;
+    delete globalAny.Bun;
+  }
+});
+
 Deno.test("getEnvironmentDescription - provides human-readable descriptions", () => {
   const environments: RuntimeEnvironment[] = [
     "deno-wasi",
     "node-wasi",
+    "bun-emscripten",
     "browser",
     "worker",
     "cloudflare",
@@ -166,6 +187,7 @@ Deno.test("WASM binary type selection matches environment", () => {
   }> = [
     { environment: "deno-wasi", expectedWasmType: "wasi" },
     { environment: "node-wasi", expectedWasmType: "wasi" },
+    { environment: "bun-emscripten", expectedWasmType: "emscripten" },
     { environment: "browser", expectedWasmType: "emscripten" },
     { environment: "worker", expectedWasmType: "emscripten" },
     { environment: "cloudflare", expectedWasmType: "emscripten" },
@@ -199,6 +221,7 @@ Deno.test("filesystem support matches environment capabilities", () => {
   const testCases = [
     { env: "deno-wasi", shouldSupportFS: true },
     { env: "node-wasi", shouldSupportFS: true },
+    { env: "bun-emscripten", shouldSupportFS: true },
     { env: "node-emscripten", shouldSupportFS: true },
     { env: "browser", shouldSupportFS: false },
     { env: "worker", shouldSupportFS: false },

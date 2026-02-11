@@ -14,12 +14,7 @@
  */
 
 import { detectRuntime, type RuntimeDetectionResult } from "./detector.ts";
-import {
-  initializeWasmer,
-  isWasmerAvailable,
-  loadWasmerWasi,
-  type WasiModule,
-} from "./wasmer-sdk-loader.ts";
+import type { WasiModule } from "./wasmer-sdk-loader.ts";
 import type { TagLibModule } from "../wasm.ts";
 
 // Branded error types
@@ -98,7 +93,7 @@ export async function loadUnifiedTagLibModule(
   }
 
   // Determine which WASM type to use
-  const wasmType = await selectWasmType(runtime, options);
+  const wasmType = selectWasmType(runtime, options);
 
   if (options.debug) {
     console.log(
@@ -132,10 +127,10 @@ export async function loadUnifiedTagLibModule(
 /**
  * Select optimal WASM type based on runtime and options
  */
-async function selectWasmType(
+function selectWasmType(
   runtime: RuntimeDetectionResult,
   options: UnifiedLoaderOptions,
-): Promise<"wasi" | "emscripten"> {
+): "wasi" | "emscripten" {
   // Honor forced type if specified
   if (options.forceWasmType) {
     return options.forceWasmType;
@@ -146,8 +141,8 @@ async function selectWasmType(
     return "emscripten";
   }
 
-  // Check if WASI is available and suitable
-  if (runtime.supportsFilesystem && (await isWasmerAvailable())) {
+  // Use WASI when the detector determined it's the optimal path
+  if (runtime.wasmType === "wasi" && runtime.supportsFilesystem) {
     return "wasi";
   }
 
@@ -185,10 +180,13 @@ async function loadWasiModuleWithFallback(
   options: UnifiedLoaderOptions,
 ): Promise<LoadModuleResult> {
   try {
-    // Initialize Wasmer SDK
+    // Lazy-load Wasmer SDK (avoids failing in environments without @wasmer/sdk)
+    const { initializeWasmer, loadWasmerWasi } = await import(
+      "./wasmer-sdk-loader.ts"
+    );
+
     await initializeWasmer(options.useInlineWasm);
 
-    // Load WASI module
     const wasiModule = await loadWasmerWasi({
       wasmPath: options.wasmUrl || "./dist/taglib-wasi.wasm",
       useInlineWasm: options.useInlineWasm,
