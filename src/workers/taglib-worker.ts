@@ -5,6 +5,8 @@
  * enabling parallel processing of audio files.
  */
 
+/// <reference lib="webworker" />
+
 import type { TagLib } from "../taglib.ts";
 import type { Tag } from "../types.ts";
 import {
@@ -14,6 +16,9 @@ import {
   setCoverArt,
   updateTags,
 } from "../simple.ts";
+
+const workerSelf: DedicatedWorkerGlobalScope =
+  self as unknown as DedicatedWorkerGlobalScope;
 
 // Force Emscripten buffer mode in workers (WASI Wasmer SDK not yet stable)
 setBufferMode(true);
@@ -135,7 +140,7 @@ async function handleBatchOperations(
 /**
  * Worker message handler
  */
-self.onmessage = async (event: MessageEvent) => {
+workerSelf.onmessage = async (event: MessageEvent) => {
   try {
     const { op, ...params } = event.data;
 
@@ -143,10 +148,10 @@ self.onmessage = async (event: MessageEvent) => {
       case "init":
         try {
           await initializeTagLib();
-          self.postMessage({ type: "initialized" });
+          workerSelf.postMessage({ type: "initialized" });
         } catch (initError) {
           console.error("Worker initialization failed:", initError);
-          self.postMessage({
+          workerSelf.postMessage({
             type: "error",
             error: initError instanceof Error
               ? initError.message
@@ -171,7 +176,7 @@ self.onmessage = async (event: MessageEvent) => {
             year: tag.year,
             track: tag.track,
           };
-          self.postMessage({ type: "result", result });
+          workerSelf.postMessage({ type: "result", result });
         } finally {
           audioFile.dispose();
         }
@@ -180,19 +185,19 @@ self.onmessage = async (event: MessageEvent) => {
 
       case "readProperties": {
         const properties = await readProperties(params.file);
-        self.postMessage({ type: "result", result: properties });
+        workerSelf.postMessage({ type: "result", result: properties });
         break;
       }
 
       case "applyTags": {
         const buffer = await applyTags(params.file, params.tags);
-        self.postMessage({ type: "result", result: buffer });
+        workerSelf.postMessage({ type: "result", result: buffer });
         break;
       }
 
       case "updateTags": {
         await updateTags(params.file, params.tags);
-        self.postMessage({ type: "result", result: undefined });
+        workerSelf.postMessage({ type: "result", result: undefined });
         break;
       }
 
@@ -202,7 +207,7 @@ self.onmessage = async (event: MessageEvent) => {
         const audioFile = await taglib!.open(params.file);
         try {
           const pictures = audioFile.getPictures();
-          self.postMessage({ type: "result", result: pictures });
+          workerSelf.postMessage({ type: "result", result: pictures });
         } finally {
           audioFile.dispose();
         }
@@ -215,7 +220,7 @@ self.onmessage = async (event: MessageEvent) => {
           params.coverArt,
           params.mimeType,
         );
-        self.postMessage({ type: "result", result: buffer });
+        workerSelf.postMessage({ type: "result", result: buffer });
         break;
       }
 
@@ -224,7 +229,7 @@ self.onmessage = async (event: MessageEvent) => {
           params.file,
           params.operations,
         );
-        self.postMessage({ type: "result", result });
+        workerSelf.postMessage({ type: "result", result });
         break;
       }
 
@@ -232,7 +237,7 @@ self.onmessage = async (event: MessageEvent) => {
         throw new Error(`Unknown operation: ${op}`);
     }
   } catch (error) {
-    self.postMessage({
+    workerSelf.postMessage({
       type: "error",
       error: error instanceof Error ? error.message : String(error),
     });
@@ -240,9 +245,9 @@ self.onmessage = async (event: MessageEvent) => {
 };
 
 // Handle worker errors
-self.onerror = (event) => {
+workerSelf.onerror = (event) => {
   const message = event instanceof ErrorEvent ? event.message : String(event);
-  self.postMessage({
+  workerSelf.postMessage({
     type: "error",
     error: `Worker error: ${message}`,
   });
