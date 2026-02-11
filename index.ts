@@ -54,6 +54,8 @@ export type {
  * @see {@link MetadataError} - Tag reading/writing failures
  * @see {@link MemoryError} - Wasm memory allocation issues
  * @see {@link EnvironmentError} - Runtime/environment issues
+ * @see {@link WorkerError} - Worker pool operation failures
+ * @see {@link SidecarError} - Sidecar process failures
  */
 export {
   EnvironmentError,
@@ -77,6 +79,7 @@ export {
   UnsupportedFormatError,
   WorkerError,
 } from "./src/errors.ts";
+export type { TagLibErrorCode } from "./src/errors.ts";
 
 /**
  * Simple API exports for easy tag reading and writing.
