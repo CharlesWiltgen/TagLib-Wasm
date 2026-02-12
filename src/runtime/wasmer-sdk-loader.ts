@@ -229,7 +229,7 @@ async function instantiateWasi(
       // (i32, i32, i32) -> i32
       fd_prestat_dir_name: (_fd: number, _path: number, _len: number) => EBADF,
       // (i32, i32, i32, i32, i32, i64, i64, i32, i32) -> i32
-      path_open: (
+      path_open: ( // NOSONAR — WASI P1 spec mandates 9 parameters
         _fd: number,
         _df: number,
         _p: number,

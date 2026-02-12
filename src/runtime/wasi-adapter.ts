@@ -174,8 +174,8 @@ export class WasiToTagLibAdapter implements TagLibModule {
  * WASI-based FileHandle implementation
  */
 class WasiFileHandle implements FileHandle {
-  private wasi: WasiModule;
-  private heap: Uint8Array;
+  private readonly wasi: WasiModule;
+  private readonly heap: Uint8Array;
   private fileData: Uint8Array | null = null;
   private tagData: ExtendedTag | null = null;
   private destroyed = false;

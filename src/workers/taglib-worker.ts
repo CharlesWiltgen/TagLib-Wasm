@@ -16,7 +16,7 @@ import {
 } from "../simple.ts";
 
 type WorkerSelf = {
-  onmessage: ((event: MessageEvent) => void) | null;
+  onmessage: ((event: MessageEvent) => void | Promise<void>) | null;
   onerror: ((event: ErrorEvent) => void) | null;
   postMessage(message: unknown): void;
 };
