@@ -103,22 +103,6 @@ export default defineConfig({
             },
           ],
         },
-        {
-          text: "Development",
-          items: [
-            { text: "Testing", link: "/development/testing" },
-            {
-              text: "Version Management",
-              link: "/development/version-management",
-            },
-            { text: "Improvements", link: "/development/improvements" },
-            {
-              text: "Deno Compatibility Fix",
-              link: "/development/deno-compatibility-fix",
-            },
-            { text: "Publishing", link: "/advanced/publishing" },
-          ],
-        },
       ],
       "/api/": [
         {
@@ -154,24 +138,6 @@ export default defineConfig({
             {
               text: "Cloudflare Workers",
               link: "/advanced/cloudflare-workers",
-            },
-            { text: "Publishing", link: "/advanced/publishing" },
-          ],
-        },
-      ],
-      "/development/": [
-        {
-          text: "Development",
-          items: [
-            { text: "Testing", link: "/development/testing" },
-            {
-              text: "Version Management",
-              link: "/development/version-management",
-            },
-            { text: "Improvements", link: "/development/improvements" },
-            {
-              text: "Deno Compatibility Fix",
-              link: "/development/deno-compatibility-fix",
             },
           ],
         },
