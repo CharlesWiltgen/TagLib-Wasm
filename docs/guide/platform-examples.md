@@ -1,402 +1,246 @@
-# Platform-Specific Examples
+# Platform Guide
 
-This guide shows how to use taglib-wasm in different JavaScript runtime
-environments. Each platform has slightly different requirements and best
-practices.
+taglib-wasm works across all major JavaScript runtimes. The API is the same
+everywhere — the only meaningful difference is how your platform accesses files.
+
+## Filesystem vs. Buffer Platforms
+
+| Platform               | File paths               | Buffers | Install                                                            |
+| ---------------------- | ------------------------ | ------- | ------------------------------------------------------------------ |
+| **Deno**               | Yes                      | Yes     | `import from "@charlesw/taglib-wasm"` (JSR) or `"npm:taglib-wasm"` |
+| **Node.js**            | Yes                      | Yes     | `npm install taglib-wasm`                                          |
+| **Bun**                | Yes                      | Yes     | `bun add taglib-wasm`                                              |
+| **Browser**            | No                       | Yes     | Use a bundler (Vite, Webpack, Parcel)                              |
+| **Cloudflare Workers** | No                       | Yes     | `npm install taglib-wasm`                                          |
+| **Electron**           | Main: Yes / Renderer: No | Yes     | `npm install taglib-wasm`                                          |
+
+**Filesystem platforms** (Deno, Node.js, Bun) can pass file paths directly.
+Changes save to disk without extra steps:
+
+```typescript
+// Read from path
+const tags = await readTags("song.mp3");
+
+// Write to disk (path in, void out)
+await updateTags("song.mp3", { title: "New Title" });
+
+// edit() with a path saves to disk and returns void
+await taglib.edit("song.mp3", (file) => {
+  file.tag().setTitle("New Title");
+});
+```
+
+**Buffer platforms** (Browser, Cloudflare Workers) must provide audio data as a
+`Uint8Array` or `ArrayBuffer`. Write operations return a modified buffer that
+you handle yourself:
+
+```typescript
+// Read from buffer
+const tags = await readTags(audioData);
+
+// Write returns a new buffer (buffer in, buffer out)
+const modified = await applyTags(audioData, { title: "New Title" });
+
+// edit() with a buffer returns the modified Uint8Array
+const modified = await taglib.edit(audioData, (file) => {
+  file.tag().setTitle("New Title");
+});
+```
+
+::: tip Both modes work everywhere
+Filesystem platforms can also accept buffers. This is useful for processing
+in-memory data on Node.js/Deno/Bun without touching disk.
+:::
 
 ## Deno
 
-Deno has native TypeScript support and uses the npm: specifier for npm packages:
-
 ```typescript
-import { TagLib } from "npm:taglib-wasm";
+import { readTags, updateTags } from "@charlesw/taglib-wasm/simple";
 
-// Initialize taglib-wasm
-const taglib = await TagLib.initialize();
+// Read tags from file path
+const tags = await readTags("song.mp3");
 
-// Load audio file (can pass file path or buffer)
-using file = await taglib.open("song.mp3"); // Direct file path (simpler)
-// Or from buffer: using file = await taglib.open(await Deno.readFile("song.mp3"));
-
-// Read metadata
-const tags = file.tag();
-const props = file.audioProperties();
-
-console.log(`Title: ${tags.title}`);
-console.log(`Artist: ${tags.artist}`);
-console.log(`Duration: ${props.length}s`);
-console.log(`Bitrate: ${props.bitrate} kbps`);
-console.log(`Container: ${props.containerFormat}`);
-console.log(`Codec: ${props.codec}`);
-console.log(`Lossless: ${props.isLossless}`);
-
-// Write metadata
-const tag = file.tag();
-tag.setTitle("New Title");
-tag.setArtist("New Artist");
-tag.setAlbum("New Album");
-
-// Save changes
-file.save();
-
-console.log("Updated tags:", file.tag());
+// Update tags on disk
+await updateTags("song.mp3", { title: "New Title", artist: "New Artist" });
 ```
 
-### Deno-Specific Tips
+Run with: `deno run --allow-read --allow-write script.ts`
 
-- Use `Deno.readFile()` for reading files as Uint8Array
-- Use `Deno.writeFile()` for saving modified buffers
-- Permissions: `--allow-read` and `--allow-write` are required for file
-  operations
+Deno requires explicit permissions: `--allow-read` for reading files,
+`--allow-write` for `updateTags` or any operation that saves to disk.
+
+### Deno Compile
+
+taglib-wasm supports `deno compile` for building standalone executables.
+See [Deno Compile](./deno-compile.md) for details on embedding the Wasm binary.
 
 ## Node.js
 
-Node.js requires the TypeScript loader (tsx) or native TypeScript support
-(Node.js 22.6+):
-
 ```typescript
-import { TagLib } from "taglib-wasm";
-import { readFile } from "fs/promises";
+import { readTags, updateTags } from "taglib-wasm/simple";
 
-// Initialize taglib-wasm
-const taglib = await TagLib.initialize();
-
-// Load audio file (can pass file path or buffer)
-using file = await taglib.open("song.mp3"); // Direct file path (simpler)
-// Or from buffer: using file = await taglib.open(await readFile("song.mp3"));
-
-// Read metadata
-const tags = file.tag();
-const props = file.audioProperties();
-
-console.log(`Title: ${tags.title}`);
-console.log(`Artist: ${tags.artist}`);
-console.log(`Duration: ${props.length}s`);
-console.log(`Bitrate: ${props.bitrate} kbps`);
-console.log(`Container: ${props.containerFormat}`);
-console.log(`Codec: ${props.codec}`);
-console.log(`Lossless: ${props.isLossless}`);
-
-// Write metadata
-const tag = file.tag();
-tag.setTitle("New Title");
-tag.setArtist("New Artist");
-tag.setAlbum("New Album");
-
-// Save changes
-file.save();
-
-console.log("Updated tags:", file.tag());
+const tags = await readTags("song.mp3");
+await updateTags("song.mp3", { title: "New Title", artist: "New Artist" });
 ```
 
-### Node.js-Specific Tips
+**Requirements:** Node.js v22.6.0 or higher.
 
-- Use `fs.promises` for async file operations
-- For Node.js < 22.6, use tsx: `npx tsx script.ts`
-- For Node.js 22.6+: `node --experimental-strip-types script.ts`
-- For Node.js 23.6+: `node script.ts` (no flag needed)
+| Node.js version | TypeScript support                          |
+| --------------- | ------------------------------------------- |
+| 23.6+           | Native (`node script.ts`)                   |
+| 22.6+           | `node --experimental-strip-types script.ts` |
+| Older           | `npx tsx script.ts`                         |
 
 ## Bun
 
-Bun has native TypeScript support and optimized file APIs:
-
 ```typescript
-import { TagLib } from "taglib-wasm";
+import { readTags, updateTags } from "taglib-wasm/simple";
 
-// Initialize taglib-wasm
-const taglib = await TagLib.initialize();
-
-// Load audio file (can pass file path or buffer)
-using file = await taglib.open("song.mp3"); // Direct file path (simpler)
-// Or from buffer: using file = await taglib.open(new Uint8Array(await Bun.file("song.mp3").arrayBuffer()));
-
-// Read metadata
-const tags = file.tag();
-const props = file.audioProperties();
-
-console.log(`Title: ${tags.title}`);
-console.log(`Artist: ${tags.artist}`);
-console.log(`Duration: ${props.length}s`);
-console.log(`Bitrate: ${props.bitrate} kbps`);
-console.log(`Container: ${props.containerFormat}`);
-console.log(`Codec: ${props.codec}`);
-console.log(`Lossless: ${props.isLossless}`);
-
-// Write metadata
-const tag = file.tag();
-tag.setTitle("New Title");
-tag.setArtist("New Artist");
-tag.setAlbum("New Album");
-
-// Save changes
-file.save();
-
-console.log("Updated tags:", file.tag());
+const tags = await readTags("song.mp3");
+await updateTags("song.mp3", { title: "New Title", artist: "New Artist" });
 ```
 
-### Bun-Specific Tips
+Run with: `bun run script.ts`
 
-- Use `Bun.file()` for optimized file operations
-- Use `Bun.write()` for saving files
-- Bun's performance is excellent for processing many files
+Bun has native TypeScript support with no additional configuration.
 
 ## Browser
 
-Browsers require loading files via File API or fetch:
+Browsers have no filesystem access. Audio data comes from the
+[File API](https://developer.mozilla.org/en-US/docs/Web/API/File_API),
+`fetch()`, or drag-and-drop — always as an `ArrayBuffer` or `Uint8Array`.
 
 ```typescript
-import { TagLib } from "taglib-wasm";
+import { applyTags, readTags } from "taglib-wasm/simple";
 
-// Initialize taglib-wasm
-const taglib = await TagLib.initialize();
+// Get audio data from a file input
+const input = document.querySelector('input[type="file"]');
+const audioData = new Uint8Array(await input.files[0].arrayBuffer());
 
-// Load from file input or fetch
-const fileInput = document.querySelector('input[type="file"]');
-const audioFile = fileInput.files[0];
-const audioData = new Uint8Array(await audioFile.arrayBuffer());
-using file = await taglib.open(audioData); // Browser requires buffer
+// Read
+const tags = await readTags(audioData);
 
-// Read metadata
-const tags = file.tag();
-const props = file.audioProperties();
-
-console.log(`Title: ${tags.title}`);
-console.log(`Artist: ${tags.artist}`);
-console.log(`Duration: ${props.length}s`);
-console.log(`Bitrate: ${props.bitrate} kbps`);
-console.log(`Container: ${props.containerFormat}`);
-console.log(`Codec: ${props.codec}`);
-console.log(`Lossless: ${props.isLossless}`);
-
-// Write metadata
-const tag = file.tag();
-tag.setTitle("New Title");
-tag.setArtist("New Artist");
-tag.setAlbum("New Album");
-
-// Save changes
-file.save();
-
-console.log("Updated tags:", file.tag());
+// Write — returns modified buffer (you decide what to do with it)
+const modified = await applyTags(audioData, { title: "New Title" });
 ```
 
-### Browser-Specific Tips
+Use `applyTags` (not `updateTags`) since there's no file path to write back to.
+To let the user save the result:
 
-- Always load from ArrayBuffer/Uint8Array (no file path support)
-- Use FileReader API for file inputs
-- Use fetch() for remote files
-- Consider using a bundler (Vite, Webpack, Parcel)
-- For downloads, create a Blob and use URL.createObjectURL()
-
-### Example: Complete Browser Application
-
-```html
-<!DOCTYPE html>
-<html>
-  <head>
-    <title>Audio Metadata Editor</title>
-  </head>
-  <body>
-    <input type="file" id="fileInput" accept="audio/*">
-    <div id="metadata"></div>
-
-    <script type="module">
-      import { TagLib } from "taglib-wasm";
-
-      const fileInput = document.getElementById("fileInput");
-      const metadataDiv = document.getElementById("metadata");
-
-      fileInput.addEventListener("change", async (event) => {
-        const file = event.target.files[0];
-        if (!file) return;
-
-        const taglib = await TagLib.initialize();
-        const audioData = new Uint8Array(await file.arrayBuffer());
-        using audioFile = await taglib.open(audioData);
-
-        const tags = audioFile.tag();
-        const props = audioFile.audioProperties();
-
-        metadataDiv.innerHTML = `
-                <h3>Metadata:</h3>
-                <p>Title: ${tags.title || "Unknown"}</p>
-                <p>Artist: ${tags.artist || "Unknown"}</p>
-                <p>Album: ${tags.album || "Unknown"}</p>
-                <p>Duration: ${props.length}s</p>
-                <p>Bitrate: ${props.bitrate} kbps</p>
-            `;
-      });
-    </script>
-  </body>
-</html>
+```typescript
+const blob = new Blob([modified], { type: "audio/mpeg" });
+const url = URL.createObjectURL(blob);
+const a = document.createElement("a");
+a.href = url;
+a.download = "modified.mp3";
+a.click();
+URL.revokeObjectURL(url);
 ```
+
+::: tip Bundler required
+taglib-wasm uses ES modules. Use Vite, Webpack, Parcel, or another bundler
+that can resolve `taglib-wasm` and serve the `.wasm` file.
+:::
 
 ## Cloudflare Workers
 
-Workers require the special workers import and memory configuration:
+Workers are buffer-only with constrained memory. Use the `/workers` import path
+for the optimized build, and configure initial memory:
 
 ```typescript
 import { TagLib } from "taglib-wasm/workers";
 
 export default {
   async fetch(request: Request): Promise<Response> {
-    if (request.method === "POST") {
-      try {
-        // Initialize taglib-wasm with Workers-specific configuration
-        // See docs/Cloudflare-Workers.md for memory configuration details
-        const taglib = await TagLib.initialize({
-          memory: { initial: 8 * 1024 * 1024 }, // 8MB for Workers
-        });
+    const taglib = await TagLib.initialize({
+      memory: { initial: 8 * 1024 * 1024 }, // 8MB (Workers have 128MB limit)
+    });
 
-        // Get audio data from request
-        const audioData = new Uint8Array(await request.arrayBuffer());
-        using file = await taglib.open(audioData); // Workers require buffer
+    const audioData = new Uint8Array(await request.arrayBuffer());
+    using file = await taglib.open(audioData);
 
-        // Read metadata
-        const tags = file.tag();
-        const props = file.audioProperties();
-
-        // Extract metadata
-        const metadata = {
-          title: tags.title,
-          artist: tags.artist,
-          album: tags.album,
-          year: tags.year,
-          genre: tags.genre,
-          duration: props.length,
-          bitrate: props.bitrate,
-          format: file.getFormat(),
-        };
-
-        return Response.json({
-          success: true,
-          metadata,
-          fileSize: audioData.length,
-        });
-      } catch (error) {
-        return Response.json({
-          error: "Failed to process audio file",
-          message: (error as Error).message,
-        }, { status: 500 });
-      }
-    }
-
-    return new Response("Send POST request with audio file", { status: 400 });
+    return Response.json({
+      title: file.tag().title,
+      artist: file.tag().artist,
+      duration: file.audioProperties().length,
+    });
   },
 };
 ```
 
-### Workers-Specific Tips
+Key differences from other platforms:
 
-- Use the `/workers` import path for optimized Workers build
-- Configure memory limits (Workers have 128MB limit)
-- Always load from ArrayBuffer (no file system)
-- Consider using Durable Objects for caching
-- See [Cloudflare Workers Guide](../advanced/cloudflare-workers.md) for detailed
-  configuration
+- **Import path**: `taglib-wasm/workers` (not `taglib-wasm`)
+- **Memory limit**: 128MB per request — set `memory.initial` to avoid
+  growing from the default 16MB
+- **No filesystem**: Buffer-only
+
+See [Cloudflare Workers Guide](../advanced/cloudflare-workers.md) for detailed
+configuration.
 
 ## Electron
 
-Electron supports both main and renderer processes:
+Electron spans both categories. The **main process** has filesystem access; the
+**renderer process** does not (unless `nodeIntegration` is enabled, which is
+discouraged for security).
 
-### Main Process
-
-```typescript
-import { TagLib } from "taglib-wasm";
-import { readFile } from "fs/promises";
-
-async function getMetadata(filePath: string) {
-  const taglib = await TagLib.initialize();
-  using file = await taglib.open(filePath);
-
-  const tags = file.tag();
-  const props = file.audioProperties();
-
-  return {
-    title: tags.title,
-    artist: tags.artist,
-    album: tags.album,
-    duration: props.length,
-    bitrate: props.bitrate,
-  };
-}
-
-// IPC handler
-ipcMain.handle("get-metadata", async (event, filePath) => {
-  return await getMetadata(filePath);
-});
-```
-
-### Renderer Process
+### Main Process (filesystem)
 
 ```typescript
-// With nodeIntegration: true
-const { TagLib } = require("taglib-wasm");
-
-// Or with preload script
-const metadata = await window.api.getMetadata(filePath);
-```
-
-### Electron-Specific Tips
-
-- Works in both main and renderer processes
-- Use IPC for secure file operations
-- Consider preload scripts for security
-- Bundle size matters less in Electron apps
-
-## Performance Tips by Platform
-
-| Platform     | Best Practice               | Notes                            |
-| ------------ | --------------------------- | -------------------------------- |
-| **Deno**     | Use file paths directly     | Fastest file I/O                 |
-| **Node.js**  | Use streams for large files | Good for batch processing        |
-| **Bun**      | Use Bun.file() API          | Optimized native performance     |
-| **Browser**  | Process in Web Workers      | Prevents UI blocking             |
-| **Workers**  | Minimize memory usage       | 128MB limit per request          |
-| **Electron** | Use main process for I/O    | Better performance than renderer |
-
-## Common Patterns
-
-### Batch Processing (Node.js/Deno/Bun)
-
-```typescript
-import { glob } from "glob";
 import { TagLib } from "taglib-wasm";
 
 const taglib = await TagLib.initialize();
-const files = await glob("music/**/*.mp3");
 
-for (const filePath of files) {
+ipcMain.handle("get-metadata", async (_event, filePath: string) => {
   using file = await taglib.open(filePath);
-  const tags = file.tag();
+  return {
+    title: file.tag().title,
+    artist: file.tag().artist,
+    duration: file.audioProperties().length,
+  };
+});
 
-  console.log(`${filePath}: ${tags.artist} - ${tags.title}`);
-}
+ipcMain.handle("update-tags", async (_event, filePath: string, tags) => {
+  await taglib.edit(filePath, (file) => {
+    const tag = file.tag();
+    if (tags.title) tag.setTitle(tags.title);
+    if (tags.artist) tag.setArtist(tags.artist);
+  });
+});
 ```
 
-### Progress Tracking (Browser)
+### Renderer Process (via IPC)
 
 ```typescript
-async function processFiles(
-  files: FileList,
-  onProgress: (percent: number) => void,
-) {
-  const taglib = await TagLib.initialize();
+const metadata = await window.api.getMetadata("/path/to/song.mp3");
+await window.api.updateTags("/path/to/song.mp3", { title: "New Title" });
+```
 
-  for (let i = 0; i < files.length; i++) {
-    const file = files[i];
-    const audioData = new Uint8Array(await file.arrayBuffer());
-    using audioFile = await taglib.open(audioData);
+Keep taglib-wasm in the main process and expose it through IPC handlers.
+This avoids bundling Wasm into the renderer and keeps file access secure.
 
-    // Process file...
-    onProgress((i + 1) / files.length * 100);
-  }
+## Cross-Platform Code
+
+The `edit()` method is designed for code that runs on both filesystem and buffer
+platforms. The mutation callback is identical — only the call site differs:
+
+```typescript
+const taglib = await TagLib.initialize();
+
+function setMetadata(file: AudioFile) {
+  file.tag().setTitle("Title").setArtist("Artist").setYear(2026);
 }
+
+// Filesystem platform — saves to disk, returns void
+await taglib.edit("/path/to/song.mp3", setMetadata);
+
+// Buffer platform — returns modified Uint8Array
+const modified = await taglib.edit(audioData, setMetadata);
 ```
 
 ## Next Steps
 
-- Check out the [Examples](./examples.md) for more code samples
-- Read the [API Reference](/api/) for detailed documentation
-- See [Runtime Compatibility](../concepts/runtime-compatibility.md) for
-  platform-specific details
+- [Quick Start](./quick-start.md) for a full walkthrough
+- [API Reference](/api/) for all available methods
+- [Runtime Compatibility](../concepts/runtime-compatibility.md) for detailed
+  platform support matrix
