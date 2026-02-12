@@ -162,13 +162,13 @@ export function setBufferMode(enabled: boolean): void {
 async function getTagLib(): Promise<TagLib> {
   if (!cachedTagLib) {
     const { TagLib } = await import("./taglib.ts");
-    cachedTagLib = await TagLib.initialize(
-      sidecarConfig
-        ? { useSidecar: true, sidecarConfig }
-        : bufferModeEnabled
-        ? { forceBufferMode: true }
-        : undefined,
-    );
+    let initOptions;
+    if (sidecarConfig) {
+      initOptions = { useSidecar: true, sidecarConfig } as const;
+    } else if (bufferModeEnabled) {
+      initOptions = { forceBufferMode: true } as const;
+    }
+    cachedTagLib = await TagLib.initialize(initOptions);
   }
   return cachedTagLib;
 }

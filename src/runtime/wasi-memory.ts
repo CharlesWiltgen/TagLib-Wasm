@@ -37,9 +37,9 @@ export const heapViews = (mem: WasmMemoryLike) => ({
  * Implements proper RAII with Symbol.dispose
  */
 export class WasmAlloc {
-  #wasm: WasmExports;
+  readonly #wasm: WasmExports;
   #ptr: number;
-  #size: number;
+  readonly #size: number;
 
   constructor(wasm: WasmExports, size: number) {
     this.#wasm = wasm;
@@ -145,8 +145,8 @@ export class WasmAlloc {
  * Useful for operations that need multiple related allocations
  */
 export class WasmArena {
-  #wasm: WasmExports;
-  #allocs: WasmAlloc[] = [];
+  readonly #wasm: WasmExports;
+  readonly #allocs: WasmAlloc[] = [];
 
   constructor(wasm: WasmExports) {
     this.#wasm = wasm;

@@ -125,6 +125,28 @@ export function decodeMessagePack<T = unknown>(
   }
 }
 
+function isAudioProperties(obj: Record<string, unknown>): boolean {
+  return "bitrate" in obj && "sampleRate" in obj && "length" in obj;
+}
+
+function isPicture(obj: Record<string, unknown>): boolean {
+  return "mimeType" in obj && "data" in obj;
+}
+
+function coercePictureData(obj: Record<string, unknown>): void {
+  if (obj.data && !(obj.data instanceof Uint8Array)) {
+    obj.data = new Uint8Array(obj.data as ArrayLike<number>);
+  }
+}
+
+function isTagLike(obj: Record<string, unknown>): boolean {
+  return "title" in obj || "artist" in obj || "album" in obj;
+}
+
+function isPropertyMap(obj: Record<string, unknown>): boolean {
+  return Object.values(obj).every((value) => Array.isArray(value));
+}
+
 /**
  * Decode MessagePack with automatic type detection based on structure
  */
@@ -132,38 +154,19 @@ export function decodeMessagePackAuto(
   msgpackBuffer: Uint8Array,
 ): ExtendedTag | AudioProperties | Picture | PropertyMap | unknown {
   try {
-    const decoded = decode(msgpackBuffer, MSGPACK_DECODE_OPTIONS) as any;
+    const decoded = decode(msgpackBuffer, MSGPACK_DECODE_OPTIONS);
 
-    // Type detection based on known fields
     if (decoded && typeof decoded === "object") {
-      // Check for AudioProperties structure
-      if (
-        "bitrate" in decoded && "sampleRate" in decoded && "length" in decoded
-      ) {
-        return decoded as AudioProperties;
+      const obj = decoded as Record<string, unknown>;
+      if (isAudioProperties(obj)) return obj as unknown as AudioProperties;
+      if (isPicture(obj)) {
+        coercePictureData(obj);
+        return obj as unknown as Picture;
       }
-
-      // Check for Picture structure
-      if ("mimeType" in decoded && "data" in decoded) {
-        // Ensure binary data is Uint8Array
-        if (decoded.data && !(decoded.data instanceof Uint8Array)) {
-          decoded.data = new Uint8Array(decoded.data);
-        }
-        return decoded as Picture;
-      }
-
-      // Check for tag structure (has common tag fields)
-      if ("title" in decoded || "artist" in decoded || "album" in decoded) {
-        return decoded as ExtendedTag;
-      }
-
-      // Check for property map (string keys with array values)
-      if (Object.values(decoded).every((value) => Array.isArray(value))) {
-        return decoded as PropertyMap;
-      }
+      if (isTagLike(obj)) return obj as unknown as ExtendedTag;
+      if (isPropertyMap(obj)) return obj as unknown as PropertyMap;
     }
 
-    // Return as unknown if type cannot be determined
     return decoded;
   } catch (error) {
     throw new Error(

@@ -54,16 +54,16 @@ export function createWasiImports(
     pathLen: number,
   ): string | null {
     const dir = fds.get(dirFd);
-    if (!dir || dir.type !== "preopen") return null;
+    if (dir?.type !== "preopen") return null;
 
     const { u8 } = getMemory();
     const relPath = new TextDecoder().decode(
       u8.slice(pathPtr, pathPtr + pathLen),
     );
 
-    const normalized = relPath.replace(/\\/g, "/");
+    const normalized = relPath.replaceAll("\\", "/");
     const segments = normalized.split("/");
-    if (segments.some((s) => s === "..") || normalized.startsWith("/")) {
+    if (segments.includes("..") || normalized.startsWith("/")) {
       return null;
     }
 
@@ -108,7 +108,7 @@ export function createWasiImports(
 
     fd_filestat_set_size: (fd: number, size: bigint) => {
       const entry = fds.get(fd);
-      if (!entry || entry.type !== "file") return WASI_EBADF;
+      if (entry?.type !== "file") return WASI_EBADF;
       try {
         entry.file.truncateSync(Number(size));
         return WASI_ESUCCESS;
@@ -119,7 +119,7 @@ export function createWasiImports(
 
     fd_prestat_get: (fd: number, buf: number) => {
       const entry = fds.get(fd);
-      if (!entry || entry.type !== "preopen") return WASI_EBADF;
+      if (entry?.type !== "preopen") return WASI_EBADF;
       const { dv } = getMemory();
       const pathBytes = new TextEncoder().encode(entry.virtualPath);
       dv.setUint32(buf, 0, true);
@@ -129,7 +129,7 @@ export function createWasiImports(
 
     fd_prestat_dir_name: (fd: number, pathPtr: number, pathLen: number) => {
       const entry = fds.get(fd);
-      if (!entry || entry.type !== "preopen") return WASI_EBADF;
+      if (entry?.type !== "preopen") return WASI_EBADF;
       const { u8 } = getMemory();
       const pathBytes = new TextEncoder().encode(entry.virtualPath);
       u8.set(pathBytes.subarray(0, pathLen), pathPtr);
@@ -143,7 +143,7 @@ export function createWasiImports(
       nreadPtr: number,
     ) => {
       const entry = fds.get(fd);
-      if (!entry || entry.type !== "file") return WASI_EBADF;
+      if (entry?.type !== "file") return WASI_EBADF;
       const { u8, dv } = getMemory();
       let totalRead = 0;
       for (let i = 0; i < iovsLen; i++) {
@@ -166,7 +166,7 @@ export function createWasiImports(
       newoffsetPtr: number,
     ) => {
       const entry = fds.get(fd);
-      if (!entry || entry.type !== "file") return WASI_EBADF;
+      if (entry?.type !== "file") return WASI_EBADF;
       try {
         const newPos = entry.file.seekSync(
           Number(offset),
@@ -202,7 +202,7 @@ export function createWasiImports(
           totalWritten += bufLen;
         } else {
           const entry = fds.get(fd);
-          if (!entry || entry.type !== "file") return WASI_EBADF;
+          if (entry?.type !== "file") return WASI_EBADF;
           totalWritten += entry.file.writeSync(data);
         }
       }
@@ -211,7 +211,7 @@ export function createWasiImports(
       return WASI_ESUCCESS;
     },
 
-    path_open: (
+    path_open: ( // NOSONAR — WASI P1 spec mandates 9 parameters
       dirFd: number,
       _dirflags: number,
       pathPtr: number,
