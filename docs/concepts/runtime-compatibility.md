@@ -100,7 +100,8 @@ using tagFile = taglib.openFile(audioData);
   - Global deployment
   - KV/R2/D1 integration
 - **File Loading**: Request body or fetch from storage
-- **Documentation**: See [Cloudflare Workers Guide](/advanced/cloudflare-workers)
+- **Documentation**: See
+  [Cloudflare Workers Guide](/advanced/cloudflare-workers)
 
 ```typescript
 export default {
@@ -118,15 +119,16 @@ export default {
 
 ## 🔄 WebAssembly Runtime Selection
 
-taglib-wasm includes two WebAssembly implementations and automatically selects the optimal one for your environment:
+taglib-wasm includes two WebAssembly implementations and automatically selects
+the optimal one for your environment:
 
-| Environment            | Implementation | Reason                                       |
-| ---------------------- | -------------- | -------------------------------------------- |
-| **Deno**               | WASI           | Native filesystem, best performance          |
-| **Node.js 16+**        | WASI           | Native filesystem, MessagePack serialization |
-| **Browsers**           | Emscripten     | Required for web compatibility               |
-| **Cloudflare Workers** | Emscripten     | WASI not available                           |
-| **Bun**                | Emscripten     | Better compatibility                         |
+| Environment            | Implementation | Reason                                                    |
+| ---------------------- | -------------- | --------------------------------------------------------- |
+| **Deno**               | WASI           | Native filesystem, best performance                       |
+| **Bun**                | WASI           | Native filesystem via node:fs provider                    |
+| **Node.js 22+**        | WASI           | Native filesystem (requires `--experimental-wasm-exnref`) |
+| **Browsers**           | Emscripten     | Required for web compatibility                            |
+| **Cloudflare Workers** | Emscripten     | WASI not available                                        |
 
 ### Checking the Active Implementation
 
@@ -162,18 +164,17 @@ setBufferMode(true); // All subsequent Simple API calls use Emscripten
 ```
 
 `forceBufferMode` forces Emscripten-based in-memory I/O regardless of
-environment. `forceWasmType` lets you choose the specific Wasm backend
-(`"wasi"` or `"emscripten"`).
+environment. `forceWasmType` lets you choose the specific Wasm backend (`"wasi"`
+or `"emscripten"`).
 
-::: tip
-Most users never need to configure this. The automatic selection provides optimal performance for each environment.
-:::
+::: tip Most users never need to configure this. The automatic selection
+provides optimal performance for each environment. :::
 
 ## High-Performance Mode: Wasmtime Sidecar
 
 For server-side batch operations, enable the Wasmtime sidecar for true direct
-filesystem access. This bypasses buffer copying overhead for significantly faster
-processing of large file collections.
+filesystem access. This bypasses buffer copying overhead for significantly
+faster processing of large file collections.
 
 ### Prerequisites
 
@@ -324,8 +325,9 @@ npm test
 
 #### Node.js
 
+- Requires `--experimental-wasm-exnref` flag for Wasm exception handling
 - Requires TypeScript loader for direct .ts execution
-- Older versions (<18) may have limited Wasm support
+- Requires Node.js 22.6.0 or higher
 
 #### Browser
 
