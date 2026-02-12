@@ -75,7 +75,7 @@ npm install --no-save
 
 # Create CommonJS test
 cat > "$NODE_CJS_DIR/test.js" << 'EOF'
-const { readTags, readProperties, getFormat } = require("taglib-wasm/simple");
+const { readTags, readProperties, readFormat } = require("taglib-wasm/simple");
 const fs = require("fs");
 const path = require("path");
 
@@ -102,12 +102,12 @@ async function test() {
     0x00, 0x00, 0x00, 0x00, // chunk size
   ]);
   
-  const format = await getFormat(testData);
+  const format = await readFormat(testData);
   console.log(`Format: ${format}`);
-  
+
   const tags = await readTags(testData);
   console.log(`Tags:`, tags);
-  
+
   console.log("✅ CommonJS test passed!");
 }
 
@@ -140,7 +140,7 @@ npm install --no-save
 
 # Create ESM test
 cat > "$NODE_ESM_DIR/test.js" << 'EOF'
-import { readTags, readProperties, getFormat } from "taglib-wasm/simple";
+import { readTags, readProperties, readFormat } from "taglib-wasm/simple";
 
 async function test() {
   console.log("Testing ESM import...");
@@ -165,9 +165,9 @@ async function test() {
     0x00, 0x00, 0x00, 0x00, // chunk size
   ]);
   
-  const format = await getFormat(testData);
+  const format = await readFormat(testData);
   console.log(`Format: ${format}`);
-  
+
   const props = await readProperties(testData);
   console.log(`Properties:`, props);
   
