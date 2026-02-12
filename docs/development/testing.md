@@ -127,24 +127,24 @@ deno test --allow-read --allow-write tests/ --filter "Performance"
 Follow this pattern for consistency:
 
 ```typescript
-import {
-  assertEquals,
-  assertExists,
-} from "https://deno.land/std@0.223.0/assert/mod.ts";
+import { assertEquals, assertExists } from "@std/assert";
+import { describe, it } from "@std/testing/bdd";
 import { measureTime, TEST_FILES, TEST_TAGS } from "./test-utils.ts";
 
-Deno.test("Feature: Description", async () => {
-  // Arrange
-  const testData = await createTestFileWithMetadata("mp3", TEST_TAGS.basic);
+describe("Feature", () => {
+  it("Description", async () => {
+    // Arrange
+    const testData = await createTestFileWithMetadata("mp3", TEST_TAGS.basic);
 
-  // Act
-  const result = await performOperation(testData);
+    // Act
+    const result = await performOperation(testData);
 
-  // Assert
-  assertEquals(result.expected, actual);
+    // Assert
+    assertEquals(result.expected, actual);
 
-  // Cleanup (if needed)
-  await cleanup();
+    // Cleanup (if needed)
+    await cleanup();
+  });
 });
 ```
 
@@ -161,11 +161,13 @@ Deno.test("Feature: Description", async () => {
 
 2. **Test Across Formats**
    ```typescript
-   for (const [format, path] of Object.entries(TEST_FILES)) {
-     Deno.test(`Feature works with ${format}`, async () => {
-       // Test implementation
-     });
-   }
+   describe("Feature", () => {
+     for (const [format, path] of Object.entries(TEST_FILES)) {
+       it(`works with ${format}`, async () => {
+         // Test implementation
+       });
+     }
+   });
    ```
 
 3. **Clean Up Resources**
@@ -187,9 +189,11 @@ Deno.test("Feature: Description", async () => {
 
 5. **Document Fixed Issues**
    ```typescript
-   Deno.test("Unicode: Works correctly", async () => {
-     // Unicode support was fixed in v0.3.12
-     // All Unicode characters now work correctly
+   describe("Unicode", () => {
+     it("works correctly", async () => {
+       // Unicode support was fixed in v0.3.12
+       // All Unicode characters now work correctly
+     });
    });
    ```
 
@@ -240,10 +244,12 @@ The test suite includes real-world scenarios:
 Simulates processing an album:
 
 ```typescript
-Deno.test("Integration: Music library processing", async () => {
-  // Create album structure
-  // Process all tracks
-  // Verify consistency
+describe("Integration", () => {
+  it("Music library processing", async () => {
+    // Create album structure
+    // Process all tracks
+    // Verify consistency
+  });
 });
 ```
 
@@ -252,10 +258,12 @@ Deno.test("Integration: Music library processing", async () => {
 Tests concurrent file processing:
 
 ```typescript
-Deno.test("Integration: Concurrent operations", async () => {
-  // Process 20 files simultaneously
-  // Measure performance
-  // Verify correctness
+describe("Integration", () => {
+  it("Concurrent operations", async () => {
+    // Process 20 files simultaneously
+    // Measure performance
+    // Verify correctness
+  });
 });
 ```
 
@@ -264,10 +272,12 @@ Deno.test("Integration: Concurrent operations", async () => {
 Tests tag transfer between formats:
 
 ```typescript
-Deno.test("Integration: Cross-format tag transfer", async () => {
-  // Read tags from MP3
-  // Write to FLAC
-  // Verify preservation
+describe("Integration", () => {
+  it("Cross-format tag transfer", async () => {
+    // Read tags from MP3
+    // Write to FLAC
+    // Verify preservation
+  });
 });
 ```
 
@@ -279,8 +289,8 @@ Deno.test("Integration: Cross-format tag transfer", async () => {
 # Run with verbose logging
 DEBUG=* deno test tests/
 
-# Or set in test
-Deno.test("Debug test", async () => {
+# Or add logging in a test
+it("Debug test", async () => {
   console.log("Debug info:", data);
 });
 ```
