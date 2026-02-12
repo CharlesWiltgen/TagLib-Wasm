@@ -125,6 +125,24 @@ export class TagLib {
     );
   }
 
+  async edit(
+    input: string | Uint8Array | ArrayBuffer | File,
+    fn: (file: AudioFile) => void | Promise<void>,
+  ): Promise<void | Uint8Array> {
+    const file = await this.open(input);
+    try {
+      await fn(file);
+      if (typeof input === "string") {
+        await file.saveToFile();
+      } else {
+        file.save();
+        return file.getFileBuffer();
+      }
+    } finally {
+      file.dispose();
+    }
+  }
+
   async updateFile(path: string, tags: Partial<BasicTag>): Promise<void> {
     const file = await this.open(path);
     try {

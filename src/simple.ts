@@ -459,18 +459,18 @@ export async function isValidAudioFile(
 }
 
 /**
- * Get the audio format of a file
+ * Read the audio format of a file
  *
  * @param file - File path, Uint8Array buffer, ArrayBuffer, or File object
  * @returns Audio format string (e.g., "MP3", "FLAC", "OGG") or undefined
  *
  * @example
  * ```typescript
- * const format = await getFormat("song.mp3");
+ * const format = await readFormat("song.mp3");
  * console.log(`File format: ${format}`); // "MP3"
  * ```
  */
-export async function getFormat(
+export async function readFormat(
   file: string | Uint8Array | ArrayBuffer | File,
 ): Promise<string | undefined> {
   const taglib = await getTagLib();
@@ -485,6 +485,11 @@ export async function getFormat(
     audioFile.dispose();
   }
 }
+
+/**
+ * @deprecated Use {@link readFormat} instead.
+ */
+export const getFormat = readFormat;
 
 /**
  * Clear all tags from a file
@@ -675,7 +680,7 @@ export async function clearPictures(
 }
 
 /**
- * Get the primary cover art from an audio file
+ * Read the primary cover art from an audio file
  *
  * Returns the front cover if available, otherwise the first picture found.
  * Returns null if no pictures are present.
@@ -685,13 +690,13 @@ export async function clearPictures(
  *
  * @example
  * ```typescript
- * const coverArt = await getCoverArt("song.mp3");
+ * const coverArt = await readCoverArt("song.mp3");
  * if (coverArt) {
  *   console.log(`Cover art size: ${coverArt.length} bytes`);
  * }
  * ```
  */
-export async function getCoverArt(
+export async function readCoverArt(
   file: string | Uint8Array | ArrayBuffer | File,
 ): Promise<Uint8Array | null> {
   const pictures = await readPictures(file);
@@ -712,7 +717,12 @@ export async function getCoverArt(
 }
 
 /**
- * Set the primary cover art for an audio file
+ * @deprecated Use {@link readCoverArt} instead.
+ */
+export const getCoverArt = readCoverArt;
+
+/**
+ * Apply primary cover art to an audio file and return the modified buffer
  *
  * Replaces all existing pictures with a single front cover image.
  *
@@ -724,10 +734,10 @@ export async function getCoverArt(
  * @example
  * ```typescript
  * const jpegData = await Deno.readFile("cover.jpg");
- * const modifiedBuffer = await setCoverArt("song.mp3", jpegData, "image/jpeg");
+ * const modifiedBuffer = await applyCoverArt("song.mp3", jpegData, "image/jpeg");
  * ```
  */
-export async function setCoverArt(
+export async function applyCoverArt(
   file: string | Uint8Array | ArrayBuffer | File,
   imageData: Uint8Array,
   mimeType: string,
@@ -748,6 +758,11 @@ export async function setCoverArt(
   };
   return applyPictures(file, [picture]);
 }
+
+/**
+ * @deprecated Use {@link applyCoverArt} instead.
+ */
+export const setCoverArt = applyCoverArt;
 
 /**
  * Find a picture by its type
@@ -812,7 +827,7 @@ export async function replacePictureByType(
 }
 
 /**
- * Get picture metadata without the actual image data
+ * Read picture metadata without the actual image data
  *
  * Useful for checking what pictures are present without loading
  * potentially large image data into memory.
@@ -822,13 +837,13 @@ export async function replacePictureByType(
  *
  * @example
  * ```typescript
- * const metadata = await getPictureMetadata("song.mp3");
+ * const metadata = await readPictureMetadata("song.mp3");
  * for (const info of metadata) {
  *   console.log(`${info.description}: ${info.mimeType}, ${info.size} bytes`);
  * }
  * ```
  */
-export async function getPictureMetadata(
+export async function readPictureMetadata(
   file: string | Uint8Array | ArrayBuffer | File,
 ): Promise<
   Array<{
@@ -846,6 +861,11 @@ export async function getPictureMetadata(
     size: pic.data.length,
   }));
 }
+
+/**
+ * @deprecated Use {@link readPictureMetadata} instead.
+ */
+export const getPictureMetadata = readPictureMetadata;
 
 /**
  * Options for batch operations

@@ -86,8 +86,8 @@ export type { TagLibErrorCode } from "./src/errors.ts";
  * @see {@link readProperties} - Read audio properties
  * @see {@link readPictures} - Read cover art/pictures
  * @see {@link applyPictures} - Apply pictures to audio files
- * @see {@link getCoverArt} - Get primary cover art data
- * @see {@link setCoverArt} - Set primary cover art
+ * @see {@link readCoverArt} - Read primary cover art data
+ * @see {@link applyCoverArt} - Apply primary cover art
  * @see {@link readTagsBatch} - Read tags from multiple files efficiently
  * @see {@link readPropertiesBatch} - Read properties from multiple files efficiently
  * @see {@link readMetadataBatch} - Read complete metadata from multiple files efficiently
@@ -95,6 +95,7 @@ export type { TagLibErrorCode } from "./src/errors.ts";
  */
 export {
   addPicture,
+  applyCoverArt,
   applyPictures,
   applyTags,
   type BatchOptions,
@@ -106,7 +107,10 @@ export {
   getFormat,
   getPictureMetadata,
   isValidAudioFile,
+  readCoverArt,
+  readFormat,
   readMetadataBatch,
+  readPictureMetadata,
   readPictures,
   readProperties,
   readPropertiesBatch,
