@@ -189,7 +189,8 @@ async function loadWasmBinary(path: string): Promise<Uint8Array> {
     }
     return new Uint8Array(await response.arrayBuffer());
   } else {
-    return await Deno.readFile(path);
+    const { readFileData } = await import("../utils/file.ts");
+    return await readFileData(path);
   }
 }
 
