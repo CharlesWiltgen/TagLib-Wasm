@@ -33,15 +33,18 @@ bun add taglib-wasm
 
 **Requirements:** Node.js v22.6.0 or higher
 
+Node.js requires the `--experimental-wasm-exnref` flag for taglib-wasm's Wasm
+exception handling. Deno and Bun work without any flags.
+
 #### TypeScript Usage
 
-```typescript
-// Option 1: Node's experimental TypeScript support (v22.6.0+)
-node --experimental-strip-types your-script.ts
+```bash
+# Option 1: Node's experimental TypeScript support (v22.6.0+)
+node --experimental-wasm-exnref --experimental-strip-types your-script.ts
 
-// Option 2: TypeScript loader (recommended)
+# Option 2: TypeScript loader (recommended)
 npm install --save-dev tsx
-npx tsx your-script.ts
+node --experimental-wasm-exnref --import tsx your-script.ts
 ```
 
 #### JavaScript Usage
@@ -110,4 +113,5 @@ console.log("TagLib-Wasm initialized successfully!");
 ## Next Steps
 
 - Continue to [Quick Start](./quick-start.md) to write your first code
-- See [Runtime Compatibility](/concepts/runtime-compatibility) for platform-specific details
+- See [Runtime Compatibility](/concepts/runtime-compatibility) for
+  platform-specific details
