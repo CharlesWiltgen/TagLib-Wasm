@@ -233,7 +233,7 @@
       import {
         addPicture,
         applyPictures,
-        getPictureMetadata,
+        readPictureMetadata,
         readPictures,
       } from "../../src/simple.ts";
       import {
@@ -330,7 +330,7 @@
         });
 
         // Display metadata
-        const metadata = await getPictureMetadata(currentAudioBuffer);
+        const metadata = await readPictureMetadata(currentAudioBuffer);
         const metadataText = metadata.map((info, i) =>
           `Picture ${i + 1}: ${
             PictureType[info.type]
