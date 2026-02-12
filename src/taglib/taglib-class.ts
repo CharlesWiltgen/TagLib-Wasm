@@ -126,6 +126,14 @@ export class TagLib {
   }
 
   async edit(
+    input: string,
+    fn: (file: AudioFile) => void | Promise<void>,
+  ): Promise<void>;
+  async edit(
+    input: Uint8Array | ArrayBuffer | File,
+    fn: (file: AudioFile) => void | Promise<void>,
+  ): Promise<Uint8Array>;
+  async edit(
     input: string | Uint8Array | ArrayBuffer | File,
     fn: (file: AudioFile) => void | Promise<void>,
   ): Promise<void | Uint8Array> {

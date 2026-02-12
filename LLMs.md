@@ -45,7 +45,7 @@ taglib-wasm provides three APIs for different use cases:
 - **Best for**: Quick reads, one-off operations, cover art handling, batch processing
 - **Memory**: Automatically managed
 - **Functions**: `readTags()`, `applyTags()`, `updateTags()`, `readProperties()`,
-  `getCoverArt()`, `setCoverArt()`
+  `readCoverArt()`, `applyCoverArt()`
 - **Batch Functions**: `readTagsBatch()`, `readPropertiesBatch()`, `readMetadataBatch()`
   - 10-20x faster than sequential processing
   - Configurable concurrency and progress tracking
@@ -108,7 +108,7 @@ const tags = await readTagsBatch(files, { concurrency: 8 });
 - **Memory constrained environment?** → Simple API (automatic cleanup)
 - **Building a music player?** → Simple API for metadata, **batch functions for libraries**
 - **Building a tag editor?** → Full API for complete control
-- **Working with cover art?** → Simple API: `getCoverArt()`, `setCoverArt()`
+- **Working with cover art?** → Simple API: `readCoverArt()`, `applyCoverArt()`
 - **Working with ratings?** → Full API: `getRating()`, `setRating()`, `RatingUtils`
 - **Identifying files missing artwork?** → Folder API: `scanFolder()` or Simple API: `readMetadataBatch()` with `hasCoverArt` field
 - **Analyzing volume normalization?** → Folder API: `scanFolder()` or Simple API: `readMetadataBatch()` with `dynamics` field
@@ -124,8 +124,8 @@ const tags = await readTagsBatch(files, { concurrency: 8 });
 | Get duration         | `(await readProperties("file.mp3")).length`           | `audioFile.audioProperties().length`          |
 | Get codec/container  | `(await readProperties("file.mp3")).codec`            | `audioFile.audioProperties().codec`           |
 | Get modified buffer  | `await applyTags("file.mp3", tags)`                   | `audioFile.save(); audioFile.getFileBuffer()` |
-| Get cover art        | `await getCoverArt("file.mp3")`                       | Use PropertyMap API                           |
-| Set cover art        | `await setCoverArt("file.mp3", data, type)`           | Use PropertyMap API                           |
+| Get cover art        | `await readCoverArt("file.mp3")`                      | Use PropertyMap API                           |
+| Set cover art        | `await applyCoverArt("file.mp3", data, type)`         | Use PropertyMap API                           |
 | Get rating           | N/A (use Full API)                                    | `audioFile.getRating()`                       |
 | Set rating           | N/A (use Full API)                                    | `audioFile.setRating(0.8)`                    |
 | **Batch read tags**  | `await readTagsBatch(files)` **10-20x faster**        | Manual loop with disposal                     |
@@ -140,13 +140,13 @@ const tags = await readTagsBatch(files, { concurrency: 8 });
 // Deno (JSR - Preferred)
 import { TagLib } from "jsr:@charlesw/taglib-wasm";
 import {
+  applyCoverArt,
   applyTags,
-  getCoverArt,
+  readCoverArt,
   readMetadataBatch,
   readPropertiesBatch,
   readTags,
   readTagsBatch,
-  setCoverArt,
   updateTags,
 } from "jsr:@charlesw/taglib-wasm/simple";
 import { findDuplicates, scanFolder } from "jsr:@charlesw/taglib-wasm";
@@ -164,13 +164,13 @@ import { findDuplicates, scanFolder } from "npm:taglib-wasm";
 // Node.js/Bun
 import { TagLib } from "taglib-wasm";
 import {
+  applyCoverArt,
   applyTags,
-  getCoverArt,
+  readCoverArt,
   readMetadataBatch,
   readPropertiesBatch,
   readTags,
   readTagsBatch,
-  setCoverArt,
   updateTags,
 } from "taglib-wasm/simple";
 import { findDuplicates, scanFolder } from "taglib-wasm";
@@ -559,28 +559,28 @@ For basic operations without manual memory management:
 ```typescript
 // Deno (JSR)
 import {
+  applyCoverArt,
   applyTags,
-  getCoverArt,
+  readCoverArt,
   readTags,
-  setCoverArt,
   updateTags,
 } from "jsr:@charlesw/taglib-wasm/simple";
 
 // Deno (NPM)
 import {
+  applyCoverArt,
   applyTags,
-  getCoverArt,
+  readCoverArt,
   readTags,
-  setCoverArt,
   updateTags,
 } from "npm:taglib-wasm/simple";
 
 // Node.js/Bun
 import {
+  applyCoverArt,
   applyTags,
-  getCoverArt,
+  readCoverArt,
   readTags,
-  setCoverArt,
   updateTags,
 } from "taglib-wasm/simple";
 
@@ -601,14 +601,14 @@ await updateTags("song.mp3", {
 });
 
 // Handle cover art
-const coverData = await getCoverArt("song.mp3");
+const coverData = await readCoverArt("song.mp3");
 if (coverData) {
   await fs.writeFile("cover.jpg", coverData);
 }
 
 // Set cover art
 const imageData = await fs.readFile("album-art.jpg");
-const bufferWithArt = await setCoverArt("song.mp3", imageData, "image/jpeg");
+const bufferWithArt = await applyCoverArt("song.mp3", imageData, "image/jpeg");
 ```
 
 ### Batch Processing with Simple API (10-20x Performance Boost)
@@ -946,17 +946,17 @@ for (const file of files) {
 ### Recipe: Add Album Art / Cover Image
 
 ```typescript
-import { getCoverArt, setCoverArt } from "taglib-wasm/simple";
+import { applyCoverArt, readCoverArt } from "taglib-wasm/simple";
 
 // Read existing cover art
-const coverData = await getCoverArt("song.mp3");
+const coverData = await readCoverArt("song.mp3");
 if (coverData) {
   await Deno.writeFile("cover.jpg", coverData);
 }
 
 // Set new cover art
 const imageData = await Deno.readFile("album-art.jpg");
-const modifiedBuffer = await setCoverArt("song.mp3", imageData, "image/jpeg");
+const modifiedBuffer = await applyCoverArt("song.mp3", imageData, "image/jpeg");
 await Deno.writeFile("song-with-art.mp3", modifiedBuffer);
 ```
 
@@ -2256,18 +2256,18 @@ async function preserveITunesMetadata(m4aPath: string, targetPath: string) {
 ### Handling Cover Art During Conversion
 
 ```typescript
-import { getCoverArt, setCoverArt } from "taglib-wasm/simple";
+import { applyCoverArt, readCoverArt } from "taglib-wasm/simple";
 
 async function convertWithCoverArt(sourcePath: string, targetPath: string) {
   // Extract cover art from source
-  const coverData = await getCoverArt(sourcePath);
+  const coverData = await readCoverArt(sourcePath);
 
   if (coverData) {
     // Detect image type
     const imageType = detectImageType(coverData);
 
     // Apply cover art to target
-    const targetWithArt = await setCoverArt(targetPath, coverData, imageType);
+    const targetWithArt = await applyCoverArt(targetPath, coverData, imageType);
     return targetWithArt;
   }
 

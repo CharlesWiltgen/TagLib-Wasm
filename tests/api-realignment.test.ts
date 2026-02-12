@@ -81,12 +81,8 @@ Deno.test("edit(buffer, fn) applies tags and returns modified Uint8Array", async
     file.tag().setTitle("Edited Title").setArtist("Edited Artist");
   });
 
-  assert(
-    result instanceof Uint8Array,
-    "Should return Uint8Array for buffer input",
-  );
-
-  const verifyFile = await taglib.open(result!);
+  // With overload signatures, result is typed as Uint8Array (not void | Uint8Array)
+  const verifyFile = await taglib.open(result);
   const tags = verifyFile.tag();
   assertEquals(tags.title, "Edited Title");
   assertEquals(tags.artist, "Edited Artist");
@@ -121,8 +117,7 @@ Deno.test("edit() supports async callbacks", async () => {
     file.tag().setTitle("Async Edit");
   });
 
-  assertExists(result);
-  const verifyFile = await taglib.open(result!);
+  const verifyFile = await taglib.open(result);
   assertEquals(verifyFile.tag().title, "Async Edit");
   verifyFile.dispose();
 });
@@ -190,8 +185,7 @@ Deno.test("fluent setters work inside edit() callback", async () => {
       .setYear(2026);
   });
 
-  assertExists(result);
-  const verifyFile = await taglib.open(result!);
+  const verifyFile = await taglib.open(result);
   const tags = verifyFile.tag();
   assertEquals(tags.title, "Chained in Edit");
   assertEquals(tags.artist, "Chain Artist");

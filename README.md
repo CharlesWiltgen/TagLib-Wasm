@@ -225,17 +225,17 @@ console.log(`Found ${duplicates.size} groups of duplicates`);
 ### Working with Cover Art
 
 ```typescript
-import { getCoverArt, setCoverArt } from "taglib-wasm/simple";
+import { applyCoverArt, readCoverArt } from "taglib-wasm/simple";
 
 // Extract cover art
-const coverData = await getCoverArt("song.mp3");
+const coverData = await readCoverArt("song.mp3");
 if (coverData) {
   await Deno.writeFile("cover.jpg", coverData);
 }
 
 // Set new cover art
 const imageData = await Deno.readFile("new-cover.jpg");
-const modifiedBuffer = await setCoverArt("song.mp3", imageData, "image/jpeg");
+const modifiedBuffer = await applyCoverArt("song.mp3", imageData, "image/jpeg");
 // Save modifiedBuffer to file if needed
 ```
 
