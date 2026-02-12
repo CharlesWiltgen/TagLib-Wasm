@@ -5,6 +5,7 @@
  */
 
 import { assertEquals, type assertExists } from "@std/assert";
+import { describe, it } from "@std/testing/bdd";
 import { TagLib } from "../src/taglib.ts";
 import { readFileData } from "../src/utils/file.ts";
 import {
@@ -14,9 +15,8 @@ import {
   TEST_FILES,
 } from "./test-utils.ts";
 
-Deno.test({
-  name: "Extended Metadata - MusicBrainz IDs",
-  fn: async () => {
+describe("Extended Metadata", () => {
+  it("MusicBrainz IDs", async () => {
     const taglib = await TagLib.initialize({ forceBufferMode: true });
 
     // Test with MP3 (ID3v2)
@@ -47,12 +47,9 @@ Deno.test({
     );
 
     mp3File.dispose();
-  },
-});
+  });
 
-Deno.test({
-  name: "Extended Metadata - ReplayGain values",
-  fn: async () => {
+  it("ReplayGain values", async () => {
     const taglib = await TagLib.initialize({ forceBufferMode: true });
 
     // Test with FLAC (native ReplayGain support)
@@ -86,12 +83,9 @@ Deno.test({
     );
 
     flacFile.dispose();
-  },
-});
+  });
 
-Deno.test({
-  name: "Extended Metadata - AcoustID fingerprint",
-  fn: async () => {
+  it("AcoustID fingerprint", async () => {
     const taglib = await TagLib.initialize({ forceBufferMode: true });
 
     // Test across different formats
@@ -114,12 +108,9 @@ Deno.test({
 
       file.dispose();
     }
-  },
-});
+  });
 
-Deno.test({
-  name: "Extended Metadata - Apple Sound Check",
-  fn: async () => {
+  it("Apple Sound Check", async () => {
     const taglib = await TagLib.initialize({ forceBufferMode: true });
 
     // Test with M4A (iTunes metadata)
@@ -138,13 +129,9 @@ Deno.test({
     );
 
     m4aFile.dispose();
-  },
-});
+  });
 
-// Performance test for extended metadata operations
-Deno.test({
-  name: "Extended Metadata - Performance",
-  fn: async () => {
+  it("Performance", async () => {
     const taglib = await TagLib.initialize({ forceBufferMode: true });
     const buffer = await readFileData(TEST_FILES.flac);
 
@@ -163,12 +150,9 @@ Deno.test({
     // Extended metadata operations should be reasonably fast
     // Performance should be under 100ms for basic operations
     console.log(`Extended metadata operations took ${timeMs}ms`);
-  },
-});
+  });
 
-Deno.test({
-  name: "Extended Metadata - Cross-format compatibility",
-  fn: async () => {
+  it("Cross-format compatibility", async () => {
     const taglib = await TagLib.initialize({ forceBufferMode: true });
 
     // Test that extended metadata works across all formats
@@ -198,12 +182,9 @@ Deno.test({
 
       file.dispose();
     }
-  },
-});
+  });
 
-Deno.test({
-  name: "Extended Metadata - Persistence after save",
-  fn: async () => {
+  it("Persistence after save", async () => {
     const taglib = await TagLib.initialize({ forceBufferMode: true });
 
     // Create a file with extended metadata
@@ -253,12 +234,9 @@ Deno.test({
     assertEquals(file2.getAcoustIdId(), TEST_EXTENDED_METADATA.acoustidId);
 
     file2.dispose();
-  },
-});
+  });
 
-Deno.test({
-  name: "Extended Metadata - Empty value handling",
-  fn: async () => {
+  it("Empty value handling", async () => {
     const taglib = await TagLib.initialize({ forceBufferMode: true });
     const buffer = await readFileData(TEST_FILES.mp3);
     const file = await taglib.open(buffer);
@@ -282,12 +260,9 @@ Deno.test({
     assertEquals(file.getMusicBrainzTrackId(), undefined);
 
     file.dispose();
-  },
-});
+  });
 
-Deno.test({
-  name: "Extended Metadata - PropertyMap integration",
-  fn: async () => {
+  it("PropertyMap integration", async () => {
     const taglib = await TagLib.initialize({ forceBufferMode: true });
     const buffer = await readFileData(TEST_FILES.flac);
     const file = await taglib.open(buffer);
@@ -323,12 +298,9 @@ Deno.test({
     );
 
     file.dispose();
-  },
-});
+  });
 
-Deno.test({
-  name: "Extended Metadata - Complex Apple Sound Check scenarios",
-  fn: async () => {
+  it("Complex Apple Sound Check scenarios", async () => {
     const taglib = await TagLib.initialize({ forceBufferMode: true });
 
     // Test with M4A (native support)
@@ -368,5 +340,5 @@ Deno.test({
     );
 
     mp3File.dispose();
-  },
+  });
 });
