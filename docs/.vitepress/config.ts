@@ -51,7 +51,7 @@ export default defineConfig({
             { text: "Introduction", link: "/guide/" },
             { text: "Installation", link: "/guide/installation" },
             { text: "Quick Start", link: "/guide/quick-start" },
-            { text: "Platform Examples", link: "/guide/platform-examples" },
+            { text: "Platform Guide", link: "/guide/platform-examples" },
             { text: "Deno Compile", link: "/guide/deno-compile" },
           ],
         },
