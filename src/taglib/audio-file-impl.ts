@@ -39,7 +39,6 @@ export class AudioFileImpl extends ExtendedAudioFileImpl implements AudioFile {
       );
     }
 
-    this.cachedTag = null;
     this.cachedAudioProperties = null;
     return this.fileHandle.save();
   }

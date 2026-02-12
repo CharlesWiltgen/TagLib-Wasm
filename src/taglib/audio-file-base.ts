@@ -17,7 +17,6 @@ import type { MutableTag } from "./mutable-tag.ts";
  */
 export abstract class BaseAudioFileImpl {
   protected fileHandle: any;
-  protected cachedTag: MutableTag | null = null;
   protected cachedAudioProperties: AudioProperties | null = null;
   protected readonly sourcePath?: string;
   protected originalSource?: AudioFileInput;
@@ -173,7 +172,6 @@ export abstract class BaseAudioFileImpl {
         this.fileHandle.destroy();
       }
       this.fileHandle = null;
-      this.cachedTag = null;
       this.cachedAudioProperties = null;
     }
   }

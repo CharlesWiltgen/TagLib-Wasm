@@ -272,7 +272,7 @@ await updateAlbumMetadata("/music/Album", {
 ### 3. Add Album Art to All Tracks
 
 ```typescript
-import { readMetadataBatch, setCoverArt } from "taglib-wasm/simple";
+import { applyCoverArt, readMetadataBatch } from "taglib-wasm/simple";
 import { readFile } from "fs/promises";
 
 async function addAlbumArt(albumPath: string, artworkPath: string) {
@@ -299,7 +299,7 @@ async function addAlbumArt(albumPath: string, artworkPath: string) {
     const batch = filesNeedingArt.slice(i, i + batchSize);
 
     await Promise.all(batch.map(async (file) => {
-      const updatedBuffer = await setCoverArt(file, artworkData, mimeType);
+      const updatedBuffer = await applyCoverArt(file, artworkData, mimeType);
       await writeFile(file, updatedBuffer);
     }));
 

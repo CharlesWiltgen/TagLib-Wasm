@@ -8,17 +8,17 @@ embedded pictures in audio files with both basic and advanced APIs.
 The Simple API provides the easiest way to work with cover art:
 
 ```typescript
-import { getCoverArt, setCoverArt } from "taglib-wasm/simple";
+import { applyCoverArt, readCoverArt } from "taglib-wasm/simple";
 
 // Extract primary cover art (super simple!)
-const coverData = await getCoverArt("song.mp3");
+const coverData = await readCoverArt("song.mp3");
 if (coverData) {
   await Deno.writeFile("cover.jpg", coverData);
 }
 
 // Set cover art from image file
 const imageData = await Deno.readFile("new-cover.jpg");
-const modifiedBuffer = await setCoverArt("song.mp3", imageData, "image/jpeg");
+const modifiedBuffer = await applyCoverArt("song.mp3", imageData, "image/jpeg");
 ```
 
 ## File I/O Helpers
@@ -152,7 +152,7 @@ Different audio formats have varying levels of picture support:
 Here's a complete example of managing album artwork:
 
 ```typescript
-import { PictureType, readPictures, setCoverArt } from "taglib-wasm/simple";
+import { applyCoverArt, PictureType, readPictures } from "taglib-wasm/simple";
 import { readFile, writeFile } from "fs/promises";
 
 async function updateAlbumArt(audioFile: string, artworkFile: string) {
@@ -172,7 +172,11 @@ async function updateAlbumArt(audioFile: string, artworkFile: string) {
   }
 
   // Set the new cover art
-  const updatedBuffer = await setCoverArt(audioFile, artworkData, "image/jpeg");
+  const updatedBuffer = await applyCoverArt(
+    audioFile,
+    artworkData,
+    "image/jpeg",
+  );
 
   // Save the updated file
   await writeFile(audioFile, updatedBuffer);
