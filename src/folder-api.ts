@@ -8,6 +8,16 @@ import { type Tag, updateTags } from "./simple.ts";
 import type { AudioProperties } from "./types.ts";
 import { getGlobalWorkerPool, type TagLibWorkerPool } from "./worker-pool.ts";
 
+const EMPTY_TAG: Tag = {
+  title: "",
+  artist: "",
+  album: "",
+  comment: "",
+  genre: "",
+  year: 0,
+  track: 0,
+};
+
 /**
  * Cross-runtime path utilities
  */
@@ -351,6 +361,117 @@ async function processFileWithTagLib(
   }
 }
 
+interface ScanProcessOptions {
+  includeProperties: boolean;
+  continueOnError: boolean;
+  onProgress?: (processed: number, total: number, currentFile: string) => void;
+  totalFound: number;
+}
+
+interface ScanProcessResult {
+  files: AudioFileMetadata[];
+  errors: Array<{ path: string; error: Error }>;
+  processed: number;
+}
+
+async function scanWithWorkerPool(
+  pool: TagLibWorkerPool,
+  filePaths: string[],
+  opts: ScanProcessOptions,
+): Promise<ScanProcessResult> {
+  const { includeProperties, continueOnError, onProgress, totalFound } = opts;
+  const files: AudioFileMetadata[] = [];
+  const errors: Array<{ path: string; error: Error }> = [];
+  const progress = { count: 0 };
+  const batchSize = Math.min(50, filePaths.length);
+
+  for (let i = 0; i < filePaths.length; i += batchSize) {
+    const batch = filePaths.slice(
+      i,
+      Math.min(i + batchSize, filePaths.length),
+    );
+
+    const batchPromises = batch.map(async (filePath) => {
+      try {
+        return await processFileWithWorker(
+          filePath,
+          pool,
+          includeProperties,
+          onProgress,
+          progress,
+          totalFound,
+        );
+      } catch (error) {
+        const err = error instanceof Error ? error : new Error(String(error));
+
+        if (continueOnError) {
+          errors.push({ path: filePath, error: err });
+          progress.count++;
+          onProgress?.(progress.count, totalFound, filePath);
+          return { path: filePath, tags: EMPTY_TAG, error: err };
+        } else {
+          throw err;
+        }
+      }
+    });
+
+    const batchResults = await Promise.all(batchPromises);
+    files.push(...batchResults.filter((r) => !r.error));
+  }
+
+  return { files, errors, processed: progress.count };
+}
+
+async function scanWithTagLib(
+  taglib: TagLib,
+  filePaths: string[],
+  opts: ScanProcessOptions,
+): Promise<ScanProcessResult> {
+  const { includeProperties, continueOnError, onProgress, totalFound } = opts;
+  const files: AudioFileMetadata[] = [];
+  const errors: Array<{ path: string; error: Error }> = [];
+  const progress = { count: 0 };
+
+  const processor = async (
+    filePath: string,
+  ): Promise<AudioFileMetadata> => {
+    try {
+      return await processFileWithTagLib(
+        filePath,
+        taglib,
+        includeProperties,
+        onProgress,
+        progress,
+        totalFound,
+      );
+    } catch (error) {
+      const err = error instanceof Error ? error : new Error(String(error));
+
+      if (continueOnError) {
+        errors.push({ path: filePath, error: err });
+        progress.count++;
+        onProgress?.(progress.count, totalFound, filePath);
+        return { path: filePath, tags: EMPTY_TAG, error: err };
+      } else {
+        throw err;
+      }
+    }
+  };
+
+  const concurrency = 4;
+  const batchSize = concurrency * 10;
+  for (let i = 0; i < filePaths.length; i += batchSize) {
+    const batch = filePaths.slice(
+      i,
+      Math.min(i + batchSize, filePaths.length),
+    );
+    const batchResults = await processBatch(batch, processor, concurrency);
+    files.push(...batchResults.filter((r) => !r.error));
+  }
+
+  return { files, errors, processed: progress.count };
+}
+
 /**
  * Scan a folder and read metadata from all audio files
  *
@@ -395,11 +516,8 @@ export async function scanFolder(
     forceBufferMode,
   } = options;
 
-  const files: AudioFileMetadata[] = [];
-  const errors: Array<{ path: string; error: Error }> = [];
   const filePaths: string[] = [];
 
-  // Collect all file paths first
   let fileCount = 0;
   for await (const filePath of walkDirectory(folderPath, options)) {
     filePaths.push(filePath);
@@ -408,9 +526,7 @@ export async function scanFolder(
   }
 
   const totalFound = filePaths.length;
-  let processed = 0;
 
-  // Determine if we should use worker pool
   const shouldUseWorkerPool = useWorkerPool &&
     (workerPool ?? typeof Worker !== "undefined");
   let pool: TagLibWorkerPool | null = null;
@@ -419,134 +535,30 @@ export async function scanFolder(
     pool = workerPool ?? getGlobalWorkerPool();
   }
 
-  // Initialize TagLib if not using worker pool
-  const taglib = shouldUseWorkerPool ? null : await TagLib.initialize(
-    forceBufferMode ? { forceBufferMode: true } : undefined,
-  );
-
-  try {
-    // Process files based on whether we're using worker pool
-    if (pool) {
-      // Worker pool processing
-      const batchSize = Math.min(50, filePaths.length); // Process in reasonable chunks
-
-      for (let i = 0; i < filePaths.length; i += batchSize) {
-        const batch = filePaths.slice(
-          i,
-          Math.min(i + batchSize, filePaths.length),
-        );
-
-        // Process batch in parallel using worker pool
-        const batchPromises = batch.map(async (filePath) => {
-          try {
-            // Pre-fetch data to warm up the worker pool
-            await Promise.all([
-              pool!.readTags(filePath),
-              includeProperties
-                ? pool!.readProperties(filePath)
-                : Promise.resolve(null),
-              pool!.readPictures(filePath),
-            ]);
-
-            return await processFileWithWorker(
-              filePath,
-              pool!,
-              includeProperties,
-              onProgress,
-              { count: processed },
-              totalFound,
-            ).then((result) => {
-              processed++;
-              return result;
-            });
-          } catch (error) {
-            const err = error instanceof Error
-              ? error
-              : new Error(String(error));
-
-            if (continueOnError) {
-              errors.push({ path: filePath, error: err });
-              processed++;
-              onProgress?.(processed, totalFound, filePath);
-              return { path: filePath, tags: {}, error: err };
-            } else {
-              throw err;
-            }
-          }
-        });
-
-        const batchResults = await Promise.all(batchPromises);
-        files.push(...batchResults.filter((r) => !r.error));
-      }
-    } else {
-      // Original non-worker processing
-      const processor = async (
-        filePath: string,
-      ): Promise<AudioFileMetadata> => {
-        try {
-          // Open file once and read both tags and properties
-          const audioFile = await taglib!.open(filePath);
-          try {
-            // Pre-read data to ensure file is valid
-            audioFile.tag();
-            if (includeProperties) {
-              audioFile.audioProperties();
-            }
-            // Check if the file has cover art
-            audioFile.getPictures();
-
-            return await processFileWithTagLib(
-              filePath,
-              taglib!,
-              includeProperties,
-              onProgress,
-              { count: processed },
-              totalFound,
-            ).then((result) => {
-              processed++;
-              return result;
-            });
-          } finally {
-            audioFile.dispose();
-          }
-        } catch (error) {
-          const err = error instanceof Error ? error : new Error(String(error));
-
-          if (continueOnError) {
-            errors.push({ path: filePath, error: err });
-            processed++;
-            onProgress?.(processed, totalFound, filePath);
-            return { path: filePath, tags: {}, error: err };
-          } else {
-            throw err;
-          }
-        }
-      };
-
-      // Process in batches with concurrency control
-      const concurrency = 4; // Default concurrency for non-worker processing
-      const batchSize = concurrency * 10; // Process in chunks
-      for (let i = 0; i < filePaths.length; i += batchSize) {
-        const batch = filePaths.slice(
-          i,
-          Math.min(i + batchSize, filePaths.length),
-        );
-        const batchResults = await processBatch(batch, processor, concurrency);
-        files.push(...batchResults.filter((r) => !r.error));
-      }
-    }
-  } finally {
-    // Clean up worker pool if we created it
-    if (pool && !workerPool) {
-      // Don't terminate global pool, only if we created a temporary one
-    }
+  let initOptions;
+  if (forceBufferMode) {
+    initOptions = { forceBufferMode: true } as const;
   }
+  const taglib = shouldUseWorkerPool
+    ? null
+    : await TagLib.initialize(initOptions);
+
+  const processOpts: ScanProcessOptions = {
+    includeProperties,
+    continueOnError,
+    onProgress,
+    totalFound,
+  };
+
+  const result = pool
+    ? await scanWithWorkerPool(pool, filePaths, processOpts)
+    : await scanWithTagLib(taglib!, filePaths, processOpts);
 
   return {
-    files,
-    errors,
+    files: result.files,
+    errors: result.errors,
     totalFound,
-    totalProcessed: processed,
+    totalProcessed: result.processed,
     duration: Date.now() - startTime,
   };
 }
@@ -608,7 +620,7 @@ export async function updateFolderTags(
       async (path) => {
         const update = batch.find((u) => u.path === path)!;
         await processor(update);
-        return { path, tags: {} }; // Dummy return for type compatibility
+        return { path, tags: EMPTY_TAG };
       },
       concurrency,
     );
