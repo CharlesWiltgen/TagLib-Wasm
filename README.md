@@ -313,10 +313,6 @@ Supported formats:
 - [Cloudflare Workers Setup](https://charleswiltgen.github.io/taglib-wasm/guide/workers-setup.html)
 - [Error Handling](https://charleswiltgen.github.io/taglib-wasm/concepts/error-handling.html)
 
-### Development
-
-- [Testing Guide](https://charleswiltgen.github.io/taglib-wasm/development/testing.html)
-- [Future Improvements](https://charleswiltgen.github.io/taglib-wasm/development/improvements.html)
 - [Contributing](CONTRIBUTING.md)
 
 ## Supported Formats
@@ -357,7 +353,7 @@ file.setProperty(Tags.TrackGain, "-6.54 dB");
 file.setProperty(Tags.TrackPeak, "0.987654");
 ```
 
-[View all supported tag constants →](https://charleswiltgen.github.io/taglib-wasm/api/tag-name-constants.html)
+[View all supported tag constants →](https://charleswiltgen.github.io/taglib-wasm/api/tag-constants.html)
 
 ## Performance and Best Practices
 
