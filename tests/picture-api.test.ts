@@ -8,15 +8,15 @@ import { TagLib } from "../src/taglib.ts";
 import { readFileData } from "../src/utils/file.ts";
 import {
   addPicture,
+  applyCoverArt,
   applyPictures,
   clearPictures,
   findPictureByType,
-  getCoverArt,
-  getPictureMetadata,
+  readCoverArt,
+  readPictureMetadata,
   readPictures,
   replacePictureByType,
   setBufferMode,
-  setCoverArt,
 } from "../src/simple.ts";
 import {
   copyCoverArt,
@@ -197,32 +197,32 @@ Deno.test("Picture API: Different picture types", async () => {
 // Simple API Cover Art Tests
 // =============================================================================
 
-Deno.test("Simple API: getCoverArt and setCoverArt", async () => {
+Deno.test("Simple API: readCoverArt and applyCoverArt roundtrip", async () => {
   const testFile = TEST_FILES.mp3;
 
   // Test getting cover art from file with no pictures
-  const noCover = await getCoverArt(testFile);
+  const noCover = await readCoverArt(testFile);
   assertEquals(noCover, null, "Should return null when no cover art");
 
   // Set cover art
-  const modifiedBuffer = await setCoverArt(testFile, RED_PNG, "image/png");
+  const modifiedBuffer = await applyCoverArt(testFile, RED_PNG, "image/png");
   assertExists(modifiedBuffer, "Should return modified buffer");
 
   // Get the cover art back
-  const coverData = await getCoverArt(modifiedBuffer);
+  const coverData = await readCoverArt(modifiedBuffer);
   assertExists(coverData, "Should return cover art data");
   assertEquals(coverData.length, RED_PNG.length, "Cover art size should match");
   assertEquals(coverData, RED_PNG, "Cover art data should match");
 
-  // Test with multiple pictures - getCoverArt should return front cover
+  // Test with multiple pictures - readCoverArt should return front cover
   const pictures = await readPictures(modifiedBuffer);
   pictures.push(TEST_PICTURES.backCover);
 
   // Apply both pictures
   const bufferWithTwo = await applyPictures(modifiedBuffer, pictures);
 
-  // getCoverArt should still return the front cover
-  const frontCover = await getCoverArt(bufferWithTwo);
+  // readCoverArt should still return the front cover
+  const frontCover = await readCoverArt(bufferWithTwo);
   assertEquals(
     frontCover,
     RED_PNG,
@@ -329,7 +329,7 @@ Deno.test("Simple API: replacePictureByType", async () => {
   );
 });
 
-Deno.test("Simple API: getPictureMetadata", async () => {
+Deno.test("Simple API: readPictureMetadata", async () => {
   const testFile = TEST_FILES.flac;
 
   // Add some pictures
@@ -346,7 +346,7 @@ Deno.test("Simple API: getPictureMetadata", async () => {
   const bufferWithPics = await applyPictures(testFile, pictures);
 
   // Get metadata without loading image data
-  const metadata = await getPictureMetadata(bufferWithPics);
+  const metadata = await readPictureMetadata(bufferWithPics);
   assertEquals(metadata.length, 2);
 
   assertEquals(metadata[0].type, PICTURE_TYPE_VALUES.FrontCover);
@@ -456,7 +456,7 @@ Deno.test("File Utils: copyCoverArt", async () => {
     await copyCoverArt(tempSourcePath, tempTargetPath);
 
     // Verify target has cover
-    const targetCover = await getCoverArt(tempTargetPath);
+    const targetCover = await readCoverArt(tempTargetPath);
     assertExists(targetCover);
     assertEquals(targetCover, RED_PNG);
   } finally {

@@ -487,11 +487,6 @@ export async function readFormat(
 }
 
 /**
- * @deprecated Use {@link readFormat} instead.
- */
-export const getFormat = readFormat;
-
-/**
  * Clear all tags from a file
  *
  * @param file - File path, Uint8Array buffer, ArrayBuffer, or File object
@@ -717,11 +712,6 @@ export async function readCoverArt(
 }
 
 /**
- * @deprecated Use {@link readCoverArt} instead.
- */
-export const getCoverArt = readCoverArt;
-
-/**
  * Apply primary cover art to an audio file and return the modified buffer
  *
  * Replaces all existing pictures with a single front cover image.
@@ -758,11 +748,6 @@ export async function applyCoverArt(
   };
   return applyPictures(file, [picture]);
 }
-
-/**
- * @deprecated Use {@link applyCoverArt} instead.
- */
-export const setCoverArt = applyCoverArt;
 
 /**
  * Find a picture by its type
@@ -861,11 +846,6 @@ export async function readPictureMetadata(
     size: pic.data.length,
   }));
 }
-
-/**
- * @deprecated Use {@link readPictureMetadata} instead.
- */
-export const getPictureMetadata = readPictureMetadata;
 
 /**
  * Options for batch operations

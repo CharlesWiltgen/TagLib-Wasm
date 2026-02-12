@@ -18,8 +18,8 @@ import { TagLib } from "../src/mod.ts";
 import type { AudioFile } from "../src/mod.ts";
 import {
   applyTags,
-  getFormat,
   isValidAudioFile,
+  readFormat,
   readProperties,
   readTags,
   setBufferMode,
@@ -239,7 +239,7 @@ Deno.test("Simple API: File Validation", async () => {
 
 Deno.test("Simple API: Format Detection", async () => {
   for (const [format, path] of Object.entries(TEST_FILES)) {
-    const detectedFormat = await getFormat(path);
+    const detectedFormat = await readFormat(path);
     assertEquals(
       detectedFormat,
       EXPECTED_FORMATS[format as keyof typeof EXPECTED_FORMATS],
@@ -555,7 +555,7 @@ Deno.test("Integration: Complete Workflow", async () => {
   assertEquals(isValid, true, "File should be valid");
 
   // 2. Detect format
-  const format = await getFormat(TEST_FILES.mp3);
+  const format = await readFormat(TEST_FILES.mp3);
   assertEquals(format, "MP3", "Should detect MP3 format");
 
   // 3. Read properties
@@ -609,7 +609,7 @@ Deno.test("Integration: All Formats", async () => {
 // ============================================================================
 
 Deno.test("Integration: Music Library Processing", async () => {
-  const { applyTags, readTags, getCoverArt, setCoverArt } = await import(
+  const { applyTags, readTags, applyCoverArt } = await import(
     "../src/simple.ts"
   );
   const { RED_PNG, createTestFiles, measureTime } = await import(
@@ -640,7 +640,7 @@ Deno.test("Integration: Music Library Processing", async () => {
 
       // Add cover art to first track, then copy to others
       if (index === 0) {
-        return await setCoverArt(tagged, RED_PNG, "image/png");
+        return await applyCoverArt(tagged, RED_PNG, "image/png");
       } else {
         // In real scenario, would copy from first track
         return tagged;

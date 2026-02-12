@@ -17,14 +17,14 @@ import type { PictureType } from "../src/types.ts";
 import { PICTURE_TYPE_NAMES, PICTURE_TYPE_VALUES } from "../src/types.ts";
 import {
   addPicture,
+  applyCoverArt,
   applyPictures,
   clearPictures,
   findPictureByType,
-  getCoverArt,
-  getPictureMetadata,
+  readCoverArt,
+  readPictureMetadata,
   readPictures,
   replacePictureByType,
-  setCoverArt,
 } from "../src/simple.ts";
 import {
   copyCoverArt,
@@ -270,7 +270,7 @@ async function quickExtractCover() {
   console.log("\n🎯 Example 7: Quick cover extraction with new helpers");
 
   // Extract just the primary cover art
-  const coverData = await getCoverArt("song.mp3");
+  const coverData = await readCoverArt("song.mp3");
   if (coverData) {
     console.log(`Found cover art: ${coverData.length} bytes`);
 
@@ -292,7 +292,11 @@ async function quickSetCover() {
 
   // Or if you want the modified buffer without saving
   const jpegData = await loadImage("new-cover.jpg");
-  const modifiedBuffer = await setCoverArt("song.mp3", jpegData, "image/jpeg");
+  const modifiedBuffer = await applyCoverArt(
+    "song.mp3",
+    jpegData,
+    "image/jpeg",
+  );
   console.log("✅ Got modified buffer with new cover");
 }
 
@@ -336,7 +340,7 @@ async function manageCompleteArtwork() {
   console.log(`✅ Applied ${artworks.length} pictures`);
 
   // Check what we have
-  const metadata = await getPictureMetadata(audioFile);
+  const metadata = await readPictureMetadata(audioFile);
   for (const info of metadata) {
     console.log(
       `  ${PictureType[info.type]}: ${info.mimeType}, ${info.size} bytes`,
@@ -351,7 +355,7 @@ async function smartCoverReplacement() {
   const audioFile = "song.mp3";
 
   // Get current picture metadata without loading image data
-  const metadata = await getPictureMetadata(audioFile);
+  const metadata = await readPictureMetadata(audioFile);
   console.log(`Current pictures: ${metadata.length}`);
 
   // Replace just the front cover, keep other artwork
