@@ -7,7 +7,7 @@
  *
  * Requires an EH-enabled WASI sysroot (libc++abi + libunwind built with
  * -fwasm-exceptions). Without it, FileRef's dynamic_cast crashes with
- * call_indirect type mismatch. See docs/fileref-wasm-crash.md.
+ * call_indirect type mismatch (mixed EH/non-EH function table entries).
  */
 
 #include "taglib_shim.h"

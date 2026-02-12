@@ -219,7 +219,7 @@ Update documentation when you:
 ### Documentation Structure
 
 - `README.md` - Main project documentation
-- `docs/API-Reference.md` - Complete API documentation
+- `docs/api/` - API reference
 - `docs/guide/` - User guides and tutorials
 - `examples/` - Working code examples
 
