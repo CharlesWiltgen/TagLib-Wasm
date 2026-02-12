@@ -94,7 +94,7 @@ npm run test:watch
 
 ### Writing Tests
 
-- Use Deno's built-in test framework
+- Use BDD syntax (`describe`/`it`) from `@std/testing/bdd`
 - Place tests in `tests/` directory
 - Follow existing test patterns
 - Test both success and error cases
@@ -103,15 +103,20 @@ npm run test:watch
 Example test:
 
 ```typescript
-Deno.test("feature description", async () => {
-  const taglib = await TagLib.initialize();
-  const audioFile = await taglib.open(testFile);
-  try {
-    // Test your feature
-    assertEquals(result, expected);
-  } finally {
-    audioFile.dispose();
-  }
+import { assertEquals } from "@std/assert";
+import { describe, it } from "@std/testing/bdd";
+
+describe("Feature", () => {
+  it("description", async () => {
+    const taglib = await TagLib.initialize();
+    const audioFile = await taglib.open(testFile);
+    try {
+      // Test your feature
+      assertEquals(result, expected);
+    } finally {
+      audioFile.dispose();
+    }
+  });
 });
 ```
 
