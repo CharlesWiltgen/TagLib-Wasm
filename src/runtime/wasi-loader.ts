@@ -106,6 +106,7 @@ const DEFAULT_CONFIG: WasiLoaderConfig = {
 
 /**
  * Load WASI WebAssembly module with Deno's @wasmer/wasi
+ * @deprecated Use {@link loadWasiHost} from `./wasi-host-loader.ts` instead.
  */
 async function loadWithWasmerWasi(
   config: WasiLoaderConfig,
@@ -172,6 +173,7 @@ async function loadWithWasmerWasi(
 
 /**
  * Load WASI WebAssembly module with Node.js built-in WASI (experimental)
+ * @deprecated Use {@link loadWasiHost} from `./wasi-host-loader.ts` instead.
  */
 async function loadWithNodeWasi(
   config: WasiLoaderConfig,
@@ -239,6 +241,7 @@ async function loadWithNodeWasi(
 
 /**
  * Primary WASI loader function with automatic runtime detection
+ * @deprecated Use {@link loadWasiHost} from `./wasi-host-loader.ts` instead.
  */
 export async function loadWasi(
   userConfig: Partial<WasiLoaderConfig> = {},
@@ -283,6 +286,7 @@ export async function loadWasi(
 
 /**
  * Check if WASI is available in the current environment
+ * @deprecated Use {@link loadWasiHost} from `./wasi-host-loader.ts` instead.
  */
 export async function isWasiAvailable(): Promise<boolean> {
   try {
@@ -320,6 +324,7 @@ export async function isWasiAvailable(): Promise<boolean> {
 
 /**
  * Get WASI capability information for the current environment
+ * @deprecated Use {@link loadWasiHost} from `./wasi-host-loader.ts` instead.
  */
 export async function getWasiCapabilities(): Promise<{
   available: boolean;
@@ -376,6 +381,7 @@ export async function getWasiCapabilities(): Promise<{
 /**
  * Create a WASI loader instance with caching
  * Useful for applications that need to load multiple files
+ * @deprecated Use {@link loadWasiHost} from `./wasi-host-loader.ts` instead.
  */
 export class CachedWasiLoader {
   private instance: WasiExports | null = null;

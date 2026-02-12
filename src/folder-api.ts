@@ -6,6 +6,7 @@
 import { TagLib } from "./taglib.ts";
 import { type Tag, updateTags } from "./simple.ts";
 import type { AudioProperties } from "./types.ts";
+import { writeFileData } from "./utils/write.ts";
 import { getGlobalWorkerPool, type TagLibWorkerPool } from "./worker-pool.ts";
 
 const EMPTY_TAG = Object.freeze(
@@ -701,11 +702,6 @@ export async function exportFolderMetadata(
     errors: result.errors,
   };
 
-  // Runtime-specific file writing
-  if (typeof Deno !== "undefined") {
-    await Deno.writeTextFile(outputPath, JSON.stringify(data, null, 2));
-  } else if (typeof (globalThis as any).process !== "undefined") {
-    const fs = await import("fs/promises");
-    await fs.writeFile(outputPath, JSON.stringify(data, null, 2));
-  }
+  const jsonBytes = new TextEncoder().encode(JSON.stringify(data, null, 2));
+  await writeFileData(outputPath, jsonBytes);
 }
