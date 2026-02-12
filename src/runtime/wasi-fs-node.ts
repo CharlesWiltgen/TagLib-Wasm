@@ -44,7 +44,7 @@ function createNodeFileHandle(fs: NodeFs, fd: number): WasiFileHandle {
         const stat = fs.fstatSync(fd);
         position = stat.size + offset;
       }
-      if (position < 0) position = 0;
+      if (position < 0) throw new Error(`Invalid seek position: ${position}`);
       return position;
     },
     truncateSync(size: number): void {

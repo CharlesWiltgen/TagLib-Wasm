@@ -196,36 +196,21 @@ function runProviderTests(
       }
     });
 
-    it("should not produce negative position from SEEK_CUR", async () => {
+    it("should throw on negative seek position", async () => {
       const fs = await getProvider();
       const path = await Deno.makeTempFile();
       try {
         const handle = fs.openSync(path, { read: true, write: true });
         handle.writeSync(new TextEncoder().encode("ab"));
-        handle.seekSync(0, 0); // position = 0
+        handle.seekSync(0, 0);
+        let threw = false;
         try {
-          const pos = handle.seekSync(-100, 1); // SEEK_CUR: 0 + (-100)
-          assertEquals(pos >= 0, true);
+          handle.seekSync(-100, 1); // SEEK_CUR: 0 + (-100)
         } catch {
-          // Throwing is also acceptable (Deno delegates to OS)
+          threw = true;
         }
+        assertEquals(threw, true);
         handle.close();
-      } finally {
-        await Deno.remove(path);
-      }
-    });
-
-    it("should handle double close without throwing", async () => {
-      const fs = await getProvider();
-      const path = await Deno.makeTempFile();
-      try {
-        const handle = fs.openSync(path, { read: true, write: false });
-        handle.close();
-        try {
-          handle.close();
-        } catch {
-          // Double close may throw — that's acceptable behavior
-        }
       } finally {
         await Deno.remove(path);
       }
