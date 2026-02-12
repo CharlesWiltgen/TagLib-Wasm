@@ -8,15 +8,17 @@ import { type Tag, updateTags } from "./simple.ts";
 import type { AudioProperties } from "./types.ts";
 import { getGlobalWorkerPool, type TagLibWorkerPool } from "./worker-pool.ts";
 
-const EMPTY_TAG: Tag = {
-  title: "",
-  artist: "",
-  album: "",
-  comment: "",
-  genre: "",
-  year: 0,
-  track: 0,
-};
+const EMPTY_TAG = Object.freeze(
+  {
+    title: "",
+    artist: "",
+    album: "",
+    comment: "",
+    genre: "",
+    year: 0,
+    track: 0,
+  } satisfies Required<Tag>,
+);
 
 /**
  * Cross-runtime path utilities
@@ -281,9 +283,9 @@ async function processFileWithWorker(
   const hasCoverArt = pictures.length > 0;
   const dynamics = extractDynamicsData(tags);
 
-  if (processed && totalFound) {
-    processed.count++;
-    onProgress?.(processed.count, totalFound, filePath);
+  if (processed !== undefined && totalFound !== undefined) {
+    const current = ++processed.count;
+    onProgress?.(current, totalFound, filePath);
   }
 
   return {
@@ -344,9 +346,9 @@ async function processFileWithTagLib(
     }
     if (appleSoundCheck) dynamics.appleSoundCheck = appleSoundCheck;
 
-    if (processed && totalFound) {
-      processed.count++;
-      onProgress?.(processed.count, totalFound, filePath);
+    if (processed !== undefined && totalFound !== undefined) {
+      const current = ++processed.count;
+      onProgress?.(current, totalFound, filePath);
     }
 
     return {
@@ -406,8 +408,8 @@ async function scanWithWorkerPool(
 
         if (continueOnError) {
           errors.push({ path: filePath, error: err });
-          progress.count++;
-          onProgress?.(progress.count, totalFound, filePath);
+          const current = ++progress.count;
+          onProgress?.(current, totalFound, filePath);
           return { path: filePath, tags: EMPTY_TAG, error: err };
         } else {
           throw err;
@@ -449,8 +451,8 @@ async function scanWithTagLib(
 
       if (continueOnError) {
         errors.push({ path: filePath, error: err });
-        progress.count++;
-        onProgress?.(progress.count, totalFound, filePath);
+        const current = ++progress.count;
+        onProgress?.(current, totalFound, filePath);
         return { path: filePath, tags: EMPTY_TAG, error: err };
       } else {
         throw err;
