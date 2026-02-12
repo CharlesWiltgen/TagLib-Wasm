@@ -7,7 +7,7 @@ echo "=============================================="
 # Create a simple test file
 cat > runtime-test.ts << 'EOF'
 // Simple runtime test
-import { readTags, readProperties, getFormat } from "./src/simple.ts";
+import { readTags, readProperties, readFormat } from "./src/simple.ts";
 
 const testFile = "./tests/test-files/mp3/kiss-snippet.mp3";
 
@@ -19,7 +19,7 @@ async function test() {
   console.log(`\n🏃 Running on: ${runtime}`);
   
   try {
-    const format = await getFormat(testFile);
+    const format = await readFormat(testFile);
     console.log(`📄 Format: ${format || '(empty)'}`);
     
     const tags = await readTags(testFile);
