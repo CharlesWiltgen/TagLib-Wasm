@@ -17,88 +17,43 @@ setBufferMode(true);
 // Renamed Simple API Functions
 // =============================================================================
 
-Deno.test("readCoverArt returns same result as deprecated getCoverArt", async () => {
-  const {
-    readCoverArt,
-    getCoverArt,
-    applyCoverArt,
-    setCoverArt,
-  } = await import("../src/simple.ts");
+Deno.test("readFormat detects audio formats", async () => {
+  const { readFormat } = await import("../src/simple.ts");
+
+  assertEquals(await readFormat(TEST_FILES.mp3), "MP3");
+  assertEquals(await readFormat(TEST_FILES.flac), "FLAC");
+  assertEquals(await readFormat(TEST_FILES.ogg), "OGG");
+});
+
+Deno.test("readCoverArt reads primary cover art", async () => {
+  const { readCoverArt, applyCoverArt } = await import("../src/simple.ts");
   const { RED_PNG } = await import("./test-utils.ts");
 
-  // Set cover art first
   const buffer = await readFileData(TEST_FILES.mp3);
+
+  const noCover = await readCoverArt(buffer);
+  assertEquals(noCover, null);
+
   const withArt = await applyCoverArt(buffer, RED_PNG, "image/png");
-
-  // Both should return the same data
-  const fromNew = await readCoverArt(withArt);
-  const fromOld = await getCoverArt(withArt);
-  assertEquals(fromNew, fromOld);
+  const cover = await readCoverArt(withArt);
+  assertExists(cover);
+  assertEquals(cover!.length, RED_PNG.length);
 });
 
-Deno.test("readFormat returns same result as deprecated getFormat", async () => {
-  const { readFormat, getFormat } = await import("../src/simple.ts");
-
-  const fromNew = await readFormat(TEST_FILES.mp3);
-  const fromOld = await getFormat(TEST_FILES.mp3);
-  assertEquals(fromNew, fromOld);
-  assertEquals(fromNew, "MP3");
-});
-
-Deno.test("readPictureMetadata returns same result as deprecated getPictureMetadata", async () => {
-  const {
-    readPictureMetadata,
-    getPictureMetadata,
-    applyPictures,
-  } = await import("../src/simple.ts");
+Deno.test("applyCoverArt sets primary cover art", async () => {
+  const { applyCoverArt, readCoverArt } = await import("../src/simple.ts");
   const { RED_PNG } = await import("./test-utils.ts");
 
   const buffer = await readFileData(TEST_FILES.mp3);
-  const withPic = await applyPictures(buffer, [
-    { mimeType: "image/png", data: RED_PNG, type: 3, description: "Cover" },
-  ]);
+  const result = await applyCoverArt(buffer, RED_PNG, "image/png");
+  assert(result.length > buffer.length);
 
-  const fromNew = await readPictureMetadata(withPic);
-  const fromOld = await getPictureMetadata(withPic);
-  assertEquals(fromNew, fromOld);
-});
-
-Deno.test("applyCoverArt returns same result as deprecated setCoverArt", async () => {
-  const { applyCoverArt, setCoverArt, readCoverArt } = await import(
-    "../src/simple.ts"
-  );
-  const { RED_PNG } = await import("./test-utils.ts");
-
-  const buffer = await readFileData(TEST_FILES.mp3);
-  const fromNew = await applyCoverArt(buffer, RED_PNG, "image/png");
-  const fromOld = await setCoverArt(buffer, RED_PNG, "image/png");
-
-  // Both should produce buffers with cover art
-  const artNew = await readCoverArt(fromNew);
-  const artOld = await readCoverArt(fromOld);
-  assertExists(artNew);
-  assertExists(artOld);
-  assertEquals(artNew!.length, artOld!.length);
-});
-
-Deno.test("deprecated getCoverArt still works", async () => {
-  const { getCoverArt, setCoverArt } = await import("../src/simple.ts");
-  const { RED_PNG } = await import("./test-utils.ts");
-
-  const buffer = await readFileData(TEST_FILES.mp3);
-  const withArt = await setCoverArt(buffer, RED_PNG, "image/png");
-  const cover = await getCoverArt(withArt);
+  const cover = await readCoverArt(result);
   assertExists(cover);
 });
 
-Deno.test("deprecated getFormat still works", async () => {
-  const { getFormat } = await import("../src/simple.ts");
-  const format = await getFormat(TEST_FILES.mp3);
-  assertEquals(format, "MP3");
-});
-
-Deno.test("deprecated getPictureMetadata still works", async () => {
-  const { getPictureMetadata, applyPictures } = await import(
+Deno.test("readPictureMetadata returns metadata without data", async () => {
+  const { readPictureMetadata, applyPictures } = await import(
     "../src/simple.ts"
   );
   const { RED_PNG } = await import("./test-utils.ts");
@@ -107,18 +62,11 @@ Deno.test("deprecated getPictureMetadata still works", async () => {
   const withPic = await applyPictures(buffer, [
     { mimeType: "image/png", data: RED_PNG, type: 3, description: "Cover" },
   ]);
-  const metadata = await getPictureMetadata(withPic);
+
+  const metadata = await readPictureMetadata(withPic);
   assertEquals(metadata.length, 1);
-});
-
-Deno.test("deprecated setCoverArt still works", async () => {
-  const { setCoverArt, getCoverArt } = await import("../src/simple.ts");
-  const { RED_PNG } = await import("./test-utils.ts");
-
-  const buffer = await readFileData(TEST_FILES.mp3);
-  const withArt = await setCoverArt(buffer, RED_PNG, "image/png");
-  const cover = await getCoverArt(withArt);
-  assertExists(cover);
+  assertEquals(metadata[0].mimeType, "image/png");
+  assertEquals(metadata[0].size, RED_PNG.length);
 });
 
 // =============================================================================
@@ -138,7 +86,6 @@ Deno.test("edit(buffer, fn) applies tags and returns modified Uint8Array", async
     "Should return Uint8Array for buffer input",
   );
 
-  // Verify the tags were written
   const verifyFile = await taglib.open(result!);
   const tags = verifyFile.tag();
   assertEquals(tags.title, "Edited Title");
@@ -157,7 +104,6 @@ Deno.test("edit(path, fn) writes to disk and returns void", async () => {
 
     assertEquals(result, undefined, "Should return void for path input");
 
-    // Verify changes were saved to disk
     const verifyFile = await taglib.open(path);
     const tags = verifyFile.tag();
     assertEquals(tags.title, "Disk Edit");
@@ -171,7 +117,6 @@ Deno.test("edit() supports async callbacks", async () => {
   const buffer = await readFileData(TEST_FILES.flac);
 
   const result = await taglib.edit(buffer, async (file) => {
-    // Simulate async operation
     await new Promise((resolve) => setTimeout(resolve, 10));
     file.tag().setTitle("Async Edit");
   });
@@ -220,10 +165,8 @@ Deno.test("MutableTag setters return the tag for chaining", async () => {
     .setGenre("Electronic")
     .setComment("Fluent comment");
 
-  // Result should be the same tag object
   assertEquals(result, tag);
 
-  // Verify all values were set
   const updated = file.tag();
   assertEquals(updated.title, "Fluent Title");
   assertEquals(updated.artist, "Fluent Artist");

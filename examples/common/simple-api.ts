@@ -10,8 +10,8 @@
 import {
   applyTags,
   clearTags,
-  getFormat,
   isValidAudioFile,
+  readFormat,
   readProperties,
   readTags,
 } from "../src/simple.ts";
@@ -58,7 +58,7 @@ async function demonstrateSimpleAPI() {
 
   // Example 5: Get format
   console.log("\n📄 Example 5: Format detection");
-  const format = await getFormat(testFile);
+  const format = await readFormat(testFile);
   console.log(`File format: ${format}`);
 
   // Example 6: Apply tags (in-memory only)
@@ -101,7 +101,7 @@ async function demonstrateBatchProcessing() {
 
   for (const file of files) {
     try {
-      const format = await getFormat(file);
+      const format = await readFormat(file);
       const props = await readProperties(file);
       const tags = await readTags(file);
 
@@ -135,7 +135,7 @@ async function demonstrateRealWorldUsage() {
 
   // Pattern 2: Format-specific processing
   console.log("\n🎯 Pattern 2: Format-specific processing");
-  const format = await getFormat(testFile);
+  const format = await readFormat(testFile);
   switch (format) {
     case "MP3":
       console.log("Processing MP3 file...");
