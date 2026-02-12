@@ -8,10 +8,10 @@
 import type { TagLib } from "../taglib.ts";
 import type { Tag } from "../types.ts";
 import {
+  applyCoverArt,
   applyTags,
   readProperties,
   setBufferMode,
-  setCoverArt,
   updateTags,
 } from "../simple.ts";
 
@@ -218,7 +218,7 @@ workerSelf.onmessage = async (event: MessageEvent) => {
       }
 
       case "setCoverArt": {
-        const buffer = await setCoverArt(
+        const buffer = await applyCoverArt(
           params.file,
           params.coverArt,
           params.mimeType,

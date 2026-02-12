@@ -52,7 +52,7 @@ export abstract class BaseAudioFileImpl {
       );
     }
 
-    return {
+    const tag: MutableTag = {
       title: tagWrapper.title(),
       artist: tagWrapper.artist(),
       album: tagWrapper.album(),
@@ -60,14 +60,36 @@ export abstract class BaseAudioFileImpl {
       genre: tagWrapper.genre(),
       year: tagWrapper.year(),
       track: tagWrapper.track(),
-      setTitle: (value: string) => tagWrapper.setTitle(value),
-      setArtist: (value: string) => tagWrapper.setArtist(value),
-      setAlbum: (value: string) => tagWrapper.setAlbum(value),
-      setComment: (value: string) => tagWrapper.setComment(value),
-      setGenre: (value: string) => tagWrapper.setGenre(value),
-      setYear: (value: number) => tagWrapper.setYear(value),
-      setTrack: (value: number) => tagWrapper.setTrack(value),
+      setTitle: (value: string) => {
+        tagWrapper.setTitle(value);
+        return tag;
+      },
+      setArtist: (value: string) => {
+        tagWrapper.setArtist(value);
+        return tag;
+      },
+      setAlbum: (value: string) => {
+        tagWrapper.setAlbum(value);
+        return tag;
+      },
+      setComment: (value: string) => {
+        tagWrapper.setComment(value);
+        return tag;
+      },
+      setGenre: (value: string) => {
+        tagWrapper.setGenre(value);
+        return tag;
+      },
+      setYear: (value: number) => {
+        tagWrapper.setYear(value);
+        return tag;
+      },
+      setTrack: (value: number) => {
+        tagWrapper.setTrack(value);
+        return tag;
+      },
     };
+    return tag;
   }
 
   audioProperties(): AudioProperties | null {

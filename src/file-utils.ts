@@ -19,11 +19,11 @@
 import type { Picture, PictureType } from "./types.ts";
 import { PICTURE_TYPE_VALUES } from "./types.ts";
 import {
+  applyCoverArt,
   applyPictures,
-  getCoverArt,
+  readCoverArt,
   readPictures,
   replacePictureByType,
-  setCoverArt,
 } from "./simple.ts";
 import { readFileData } from "./utils/file.ts";
 import { writeFileData } from "./utils/write.ts";
@@ -49,7 +49,7 @@ export async function exportCoverArt(
   audioPath: string,
   imagePath: string,
 ): Promise<void> {
-  const coverData = await getCoverArt(audioPath);
+  const coverData = await readCoverArt(audioPath);
   if (!coverData) {
     throw new Error(`No cover art found in: ${audioPath}`);
   }
@@ -226,7 +226,7 @@ export async function importCoverArt(
     mimeType = mimeTypes[ext ?? ""] ?? "image/jpeg";
   }
 
-  const modifiedBuffer = await setCoverArt(audioPath, imageData, mimeType);
+  const modifiedBuffer = await applyCoverArt(audioPath, imageData, mimeType);
   await writeFileData(audioPath, modifiedBuffer);
 }
 
@@ -396,7 +396,7 @@ export async function copyCoverArt(
     await writeFileData(targetPath, modifiedBuffer);
   } else {
     // Copy just the primary cover art
-    const coverData = await getCoverArt(sourcePath);
+    const coverData = await readCoverArt(sourcePath);
     if (!coverData) {
       throw new Error(`No cover art found in: ${sourcePath}`);
     }
@@ -407,7 +407,7 @@ export async function copyCoverArt(
       p.type === PICTURE_TYPE_VALUES.FrontCover
     ) ?? pictures[0];
 
-    const modifiedBuffer = await setCoverArt(
+    const modifiedBuffer = await applyCoverArt(
       targetPath,
       coverData,
       coverPicture.mimeType,

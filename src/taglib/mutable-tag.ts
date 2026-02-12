@@ -20,17 +20,17 @@ import type { Tag as BasicTag } from "../types.ts";
  */
 export interface MutableTag extends BasicTag {
   /** Set the track title */
-  setTitle(value: string): void;
+  setTitle(value: string): MutableTag;
   /** Set the artist name */
-  setArtist(value: string): void;
+  setArtist(value: string): MutableTag;
   /** Set the album name */
-  setAlbum(value: string): void;
+  setAlbum(value: string): MutableTag;
   /** Set the comment */
-  setComment(value: string): void;
+  setComment(value: string): MutableTag;
   /** Set the genre */
-  setGenre(value: string): void;
+  setGenre(value: string): MutableTag;
   /** Set the release year */
-  setYear(value: number): void;
+  setYear(value: number): MutableTag;
   /** Set the track number */
-  setTrack(value: number): void;
+  setTrack(value: number): MutableTag;
 }
