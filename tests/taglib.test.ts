@@ -24,8 +24,8 @@ import {
   readProperties,
   readTags,
   setBufferMode,
-} from "../src/simple.ts";
-import { processAudioMetadata, TagLibWorkers } from "../src/workers.ts";
+} from "../src/simple/index.ts";
+import { processAudioMetadata, TagLibWorkers } from "../src/workers/index.ts";
 import { isCloudflareWorkers } from "../src/wasm-workers.ts";
 import { EXPECTED_FORMATS, TEST_FILES } from "./test-utils.ts";
 
@@ -546,7 +546,7 @@ describe("Integration", () => {
 
   it("Music Library Processing", async () => {
     const { applyTags, readTags, applyCoverArt } = await import(
-      "../src/simple.ts"
+      "../src/simple/index.ts"
     );
     const { RED_PNG, createTestFiles, measureTime } = await import(
       "./test-utils.ts"
@@ -587,7 +587,7 @@ describe("Integration", () => {
   });
 
   it("Batch Tag Updates", async () => {
-    const { applyTags, readTags } = await import("../src/simple.ts");
+    const { applyTags, readTags } = await import("../src/simple/index.ts");
     const { createTestFiles } = await import("./test-utils.ts");
 
     const files = await createTestFiles(10, "flac");
@@ -611,7 +611,7 @@ describe("Integration", () => {
   });
 
   it("Cross-Format Tag Transfer", async () => {
-    const { readTags, applyTags } = await import("../src/simple.ts");
+    const { readTags, applyTags } = await import("../src/simple/index.ts");
     const { readFileData } = await import("../src/utils/file.ts");
     const { TEST_TAGS } = await import("./test-utils.ts");
 
@@ -669,7 +669,7 @@ describe("Integration", () => {
   });
 
   it("readMetadataBatch - includes cover art and dynamics data", async () => {
-    const { readMetadataBatch } = await import("../src/simple.ts");
+    const { readMetadataBatch } = await import("../src/simple/index.ts");
     const { readFileData } = await import("../src/utils/file.ts");
 
     const testFiles = [
@@ -710,7 +710,9 @@ describe("Integration", () => {
   });
 
   it("readMetadataBatch - processes files with dynamics metadata", async () => {
-    const { readMetadataBatch, updateTags } = await import("../src/simple.ts");
+    const { readMetadataBatch, updateTags } = await import(
+      "../src/simple/index.ts"
+    );
     const { TagLib } = await import("../src/taglib.ts");
 
     const tempFile = await Deno.makeTempFile({ suffix: ".mp3" });

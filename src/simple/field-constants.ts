@@ -1,0 +1,10 @@
+export const Title = "title";
+export const Artist = "artist";
+export const Album = "album";
+export const Comment = "comment";
+export const Genre = "genre";
+export const Year = "year";
+export const Track = "track";
+export const AlbumArtist = "albumartist";
+export const Composer = "composer";
+export const DiscNumber = "discnumber";

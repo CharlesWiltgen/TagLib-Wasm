@@ -13,7 +13,7 @@
 
 import { resolve } from "@std/path";
 import { WasmtimeSidecar } from "../src/runtime/wasmtime-sidecar.ts";
-import { readTags } from "../src/simple.ts";
+import { readTags } from "../src/simple/index.ts";
 import { TEST_FILES } from "./test-utils.ts";
 
 const PROJECT_ROOT = resolve(Deno.cwd());

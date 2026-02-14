@@ -13,7 +13,11 @@ import {
 } from "@std/assert";
 import { TagLib } from "../src/mod.ts";
 import type { AudioFile } from "../src/mod.ts";
-import { readProperties, readTags, setBufferMode } from "../src/simple.ts";
+import {
+  readProperties,
+  readTags,
+  setBufferMode,
+} from "../src/simple/index.ts";
 import {
   FileOperationError,
   InvalidFormatError,

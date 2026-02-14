@@ -12,7 +12,7 @@ import {
   getRecommendedConfig,
   isWasiAvailable,
   loadUnifiedTagLibModule,
-} from "../src/runtime/unified-loader.ts";
+} from "../src/runtime/unified-loader/index.ts";
 import { loadTagLibModule, TagLib } from "../index.ts";
 
 describe("Runtime detection", () => {

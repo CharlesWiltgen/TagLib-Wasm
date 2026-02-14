@@ -25,7 +25,7 @@ import {
   readPictureMetadata,
   readPictures,
   replacePictureByType,
-} from "../src/simple.ts";
+} from "../src/simple/index.ts";
 import {
   copyCoverArt,
   exportAllPictures,
@@ -33,7 +33,7 @@ import {
   findCoverArtFiles,
   importCoverArt,
   loadPictureFromFile,
-} from "../src/file-utils.ts";
+} from "../src/file-utils/index.ts";
 
 // Helper to load an image file
 async function loadImage(path: string): Promise<Uint8Array> {

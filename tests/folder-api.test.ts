@@ -6,9 +6,9 @@ import {
   findDuplicates,
   scanFolder,
   updateFolderTags,
-} from "../src/folder-api.ts";
-import { readTags, setBufferMode } from "../src/simple.ts";
-import { terminateGlobalWorkerPool } from "../src/worker-pool.ts";
+} from "../src/folder-api/index.ts";
+import { readTags, setBufferMode } from "../src/simple/index.ts";
+import { terminateGlobalWorkerPool } from "../src/worker-pool/index.ts";
 
 // Force Emscripten backend for Simple API calls
 setBufferMode(true);

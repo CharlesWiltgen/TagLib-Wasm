@@ -13,7 +13,7 @@ import {
   readProperties,
   setBufferMode,
   updateTags,
-} from "../simple.ts";
+} from "../simple/index.ts";
 
 type WorkerSelf = {
   onmessage: ((event: MessageEvent) => void | Promise<void>) | null;

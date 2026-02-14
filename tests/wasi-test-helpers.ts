@@ -5,7 +5,7 @@
 import { WasmArena, type WasmExports } from "../src/runtime/wasi-memory.ts";
 import { decodeTagData } from "../src/msgpack/decoder.ts";
 import { encodeTagData } from "../src/msgpack/encoder.ts";
-import type { WasiModule } from "../src/runtime/wasmer-sdk-loader.ts";
+import type { WasiModule } from "../src/runtime/wasmer-sdk-loader/index.ts";
 import type { ExtendedTag } from "../src/types.ts";
 
 export const FORMAT_FILES: Record<string, { virtual: string; real: string }> = {

@@ -24,6 +24,9 @@ eslint-report.json
 test-results-sonar.*
 sonarcloud-report-*.*
 
+# Deno coverage
+cov_profile/
+
 # ===================
 # Development tools
 # ===================

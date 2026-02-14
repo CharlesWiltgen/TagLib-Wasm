@@ -298,7 +298,7 @@ describe("setStringTag", () => {
       setterCalled = true;
     };
 
-    const { AudioFileWorkers } = await import("../src/workers.ts");
+    const { AudioFileWorkers } = await import("../src/workers/index.ts");
     const file = new AudioFileWorkers(mockModule, 1);
     file.setTitle("test");
 
@@ -313,7 +313,7 @@ describe("setStringTag", () => {
     mockModule._taglib_file_tag = () => 42;
     mockModule._taglib_file_audioproperties = () => 0;
 
-    const { AudioFileWorkers } = await import("../src/workers.ts");
+    const { AudioFileWorkers } = await import("../src/workers/index.ts");
     const file = new AudioFileWorkers(mockModule, 1);
 
     file.setTitle("test");
@@ -331,7 +331,7 @@ describe("setStringTag", () => {
       writtenPtr = strPtr;
     };
 
-    const { AudioFileWorkers } = await import("../src/workers.ts");
+    const { AudioFileWorkers } = await import("../src/workers/index.ts");
     const file = new AudioFileWorkers(mockModule, 1);
 
     const emoji = "\u{1F3B5} Music";

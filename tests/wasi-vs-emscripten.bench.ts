@@ -15,7 +15,7 @@
 import { resolve } from "@std/path";
 import { loadWasiHost } from "../src/runtime/wasi-host-loader.ts";
 import { TagLib } from "../src/taglib.ts";
-import type { WasiModule } from "../src/runtime/wasmer-sdk-loader.ts";
+import type { WasiModule } from "../src/runtime/wasmer-sdk-loader/index.ts";
 import type { Tag } from "../src/types.ts";
 import { TEST_FILES } from "./test-utils.ts";
 import {

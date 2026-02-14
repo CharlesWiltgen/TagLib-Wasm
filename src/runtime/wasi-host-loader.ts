@@ -12,7 +12,7 @@ import {
   type WasiImportDisposable,
 } from "./wasi-host.ts";
 import type { FileSystemProvider } from "./wasi-fs-provider.ts";
-import type { WasiModule } from "./wasmer-sdk-loader.ts";
+import type { WasiModule } from "./wasmer-sdk-loader/index.ts";
 
 export interface WasiHostLoaderConfig {
   wasmPath?: string;

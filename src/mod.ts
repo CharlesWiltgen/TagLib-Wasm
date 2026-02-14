@@ -24,9 +24,9 @@ export {
   getGlobalWorkerPool,
   TagLibWorkerPool,
   terminateGlobalWorkerPool,
-} from "./worker-pool.ts";
+} from "./worker-pool/index.ts";
 export type {
   BatchOperation,
   WorkerPoolOptions,
   WorkerTask,
-} from "./worker-pool.ts";
+} from "./worker-pool/index.ts";

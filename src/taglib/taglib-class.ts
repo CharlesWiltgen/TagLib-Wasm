@@ -6,7 +6,7 @@ import {
   type BatchOperation,
   getGlobalWorkerPool,
   type TagLibWorkerPool,
-} from "../worker-pool.ts";
+} from "../worker-pool/index.ts";
 import type { AudioFile } from "./audio-file-interface.ts";
 import { AudioFileImpl } from "./audio-file-impl.ts";
 import { loadAudioData } from "./load-audio-data.ts";
@@ -106,23 +106,29 @@ export class TagLib {
     );
     const uint8Array = new Uint8Array(buffer);
     const fileHandle = this.module.createFileHandle();
+    try {
+      const success = fileHandle.loadFromBuffer(uint8Array);
+      if (!success) {
+        throw new InvalidFormatError(
+          "Failed to load audio file. File may be corrupted or in an unsupported format",
+          buffer.byteLength,
+        );
+      }
 
-    const success = fileHandle.loadFromBuffer(uint8Array);
-    if (!success) {
-      throw new InvalidFormatError(
-        "Failed to load audio file. File may be corrupted or in an unsupported format",
-        buffer.byteLength,
+      return new AudioFileImpl(
+        this.module,
+        fileHandle,
+        sourcePath,
+        input,
+        isPartiallyLoaded,
+        opts,
       );
+    } catch (error) {
+      if (typeof fileHandle.destroy === "function") {
+        fileHandle.destroy();
+      }
+      throw error;
     }
-
-    return new AudioFileImpl(
-      this.module,
-      fileHandle,
-      sourcePath,
-      input,
-      isPartiallyLoaded,
-      opts,
-    );
   }
 
   async edit(

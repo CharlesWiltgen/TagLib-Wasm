@@ -18,7 +18,7 @@ import {
   readPictures,
   replacePictureByType,
   setBufferMode,
-} from "../src/simple.ts";
+} from "../src/simple/index.ts";
 import {
   copyCoverArt,
   exportAllPictures,
@@ -26,8 +26,8 @@ import {
   importCoverArt,
   loadPictureFromFile,
   savePictureToFile,
-} from "../src/file-utils.ts";
-import { dataURLToPicture, pictureToDataURL } from "../src/web-utils.ts";
+} from "../src/file-utils/index.ts";
+import { dataURLToPicture, pictureToDataURL } from "../src/web-utils/index.ts";
 import {
   BLUE_JPEG,
   cleanupTestImages,

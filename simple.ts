@@ -19,4 +19,4 @@
  * ```
  */
 
-export * from "./src/simple.ts";
+export * from "./src/simple/index.ts";
