@@ -222,11 +222,15 @@ create_release() {
         exit 1
     fi
 
-    # Commit version changes
-    print_step "Committing version changes..."
+    # Commit version changes (skip if already at target version)
     git add package.json deno.json
-    git commit -m "chore: bump version to $version"
-    print_success "Version bump committed"
+    if git diff --cached --quiet; then
+        print_warning "Version already at $version, skipping commit"
+    else
+        print_step "Committing version changes..."
+        git commit -m "chore: bump version to $version"
+        print_success "Version bump committed"
+    fi
 
     # Create tag
     print_step "Creating tag $tag_name..."
