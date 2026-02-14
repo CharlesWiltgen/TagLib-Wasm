@@ -11,16 +11,16 @@
       "default": "./dist/index.js"
     },
     "./workers": {
-      "types": "./dist/src/workers.d.ts",
-      "default": "./dist/src/workers.js"
+      "types": "./dist/src/workers/index.d.ts",
+      "default": "./dist/src/workers/index.js"
     },
     "./simple": {
-      "types": "./dist/src/simple.d.ts",
-      "default": "./dist/src/simple.js"
+      "types": "./dist/src/simple/index.d.ts",
+      "default": "./dist/src/simple/index.js"
     },
     "./folder": {
-      "types": "./dist/src/folder-api.d.ts",
-      "default": "./dist/src/folder-api.js"
+      "types": "./dist/src/folder-api/index.d.ts",
+      "default": "./dist/src/folder-api/index.js"
     }
   },
   "files": [
