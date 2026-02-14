@@ -256,6 +256,12 @@ create_release() {
             changelog_link="**Full Changelog**: https://github.com/CharlesWiltgen/taglib-wasm/compare/${prev_tag}...${tag_name}"
         fi
         
+        # Mark pre-release versions appropriately
+        local release_flags="--latest"
+        if [[ "$version" == *-* ]]; then
+            release_flags="--prerelease"
+        fi
+
         gh release create "$tag_name" \
             --title "Release $tag_name" \
             --notes "## What's Changed
@@ -263,7 +269,7 @@ create_release() {
 - Version bump to $version
 
 $changelog_link" \
-            --latest
+            $release_flags
             
         print_success "GitHub release created"
     else
@@ -299,10 +305,10 @@ main() {
     else
         new_version=$1
         
-        # Validate version format
-        if ! [[ "$new_version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+        # Validate version format (semver with optional pre-release)
+        if ! [[ "$new_version" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-.+)?$ ]]; then
             print_error "Invalid version format: $new_version"
-            print_warning "Version must be in format X.Y.Z (e.g., 2.2.5)"
+            print_warning "Version must be in format X.Y.Z or X.Y.Z-pre (e.g., 2.2.5, 1.0.0-beta.5)"
             exit 1
         fi
     fi
