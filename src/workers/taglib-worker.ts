@@ -1,12 +1,4 @@
-/**
- * @fileoverview Web Worker implementation for TagLib operations
- *
- * This worker handles TagLib operations in a separate thread,
- * enabling parallel processing of audio files.
- */
-
 import type { TagLib } from "../taglib.ts";
-import type { Tag } from "../types.ts";
 import {
   applyCoverArt,
   applyTags,
@@ -14,6 +6,7 @@ import {
   setBufferMode,
   updateTags,
 } from "../simple/index.ts";
+import { handleBatchOperations } from "./batch-handler.ts";
 
 type WorkerSelf = {
   onmessage: ((event: MessageEvent) => void | Promise<void>) | null;
@@ -23,15 +16,10 @@ type WorkerSelf = {
 
 const workerSelf = self as unknown as WorkerSelf;
 
-// Force Emscripten buffer mode in workers (WASI Wasmer SDK not yet stable)
 setBufferMode(true);
 
-// Cached TagLib instance
 let taglib: TagLib | null = null;
 
-/**
- * Initialize TagLib instance in the worker
- */
 async function initializeTagLib(): Promise<void> {
   if (!taglib) {
     const { TagLib } = await import("../taglib.ts");
@@ -39,110 +27,6 @@ async function initializeTagLib(): Promise<void> {
   }
 }
 
-/**
- * Handle batch operations using Full API
- */
-async function handleBatchOperations(
-  file: string | Uint8Array,
-  operations: Array<{ method: string; args?: any[] }>,
-): Promise<any> {
-  if (!taglib) await initializeTagLib();
-
-  const audioFile = await taglib!.open(file);
-  const result: any = {};
-
-  try {
-    for (const op of operations) {
-      const { method, args = [] } = op;
-
-      switch (method) {
-        // Tag operations
-        case "setTitle":
-          audioFile.tag().setTitle(args[0]);
-          break;
-        case "setArtist":
-          audioFile.tag().setArtist(args[0]);
-          break;
-        case "setAlbum":
-          audioFile.tag().setAlbum(args[0]);
-          break;
-        case "setComment":
-          audioFile.tag().setComment(args[0]);
-          break;
-        case "setGenre":
-          audioFile.tag().setGenre(args[0]);
-          break;
-        case "setYear":
-          audioFile.tag().setYear(args[0]);
-          break;
-        case "setTrack":
-          audioFile.tag().setTrack(args[0]);
-          break;
-
-        // Property operations
-        case "setProperty":
-          audioFile.setProperty(args[0], args[1]);
-          break;
-        case "setProperties":
-          audioFile.setProperties(args[0]);
-          break;
-
-        // Picture operations
-        case "setPictures":
-          audioFile.setPictures(args[0]);
-          break;
-        case "addPicture":
-          audioFile.addPicture(args[0]);
-          break;
-        case "removePictures":
-          audioFile.removePictures();
-          break;
-
-        // Save operation
-        case "save":
-          result.saved = audioFile.save();
-          result.buffer = audioFile.getFileBuffer();
-          break;
-
-        // Read operations
-        case "tag": {
-          const tag = audioFile.tag();
-          // Return plain object without functions
-          result.tag = {
-            title: tag.title,
-            artist: tag.artist,
-            album: tag.album,
-            comment: tag.comment,
-            genre: tag.genre,
-            year: tag.year,
-            track: tag.track,
-          };
-          break;
-        }
-        case "properties":
-          result.properties = audioFile.properties();
-          break;
-        case "audioProperties":
-          result.audioProperties = audioFile.audioProperties();
-          break;
-        case "getPictures":
-          result.pictures = audioFile.getPictures();
-          break;
-
-        default:
-          throw new Error(`Unknown batch operation: ${method}`);
-      }
-    }
-
-    return result;
-  } finally {
-    audioFile.dispose();
-  }
-}
-
-/**
- * Worker message handler
- */
 workerSelf.onmessage = async (event: MessageEvent) => {
   try {
     const { op, ...params } = event.data;
@@ -228,7 +112,9 @@ workerSelf.onmessage = async (event: MessageEvent) => {
       }
 
       case "batch": {
+        if (!taglib) await initializeTagLib();
         const result = await handleBatchOperations(
+          taglib!,
           params.file,
           params.operations,
         );
