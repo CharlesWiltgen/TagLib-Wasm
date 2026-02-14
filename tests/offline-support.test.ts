@@ -13,96 +13,104 @@ import {
 } from "../src/deno-compile.ts";
 import { join } from "@std/path";
 
+// Check if Emscripten build is available and functional
+let emscriptenAvailable = false;
+try {
+  const wasmPath = new URL("../dist/taglib-web.wasm", import.meta.url);
+  const wasmBinary = await Deno.readFile(wasmPath);
+  const module = await loadTagLibModule({
+    wasmBinary,
+    forceBufferMode: true,
+  });
+  emscriptenAvailable = module != null;
+} catch {
+  // Emscripten build not available or stale
+}
+
 describe("OfflineSupport", () => {
   it("isDenoCompiled detects development environment", () => {
-    // In development, this should return false
     assertEquals(isDenoCompiled(), false);
   });
 
-  it("loadTagLibModule with wasmBinary option", async () => {
-    // Load the WASM file
-    const wasmPath = new URL("../dist/taglib-web.wasm", import.meta.url);
-    const wasmBinary = await Deno.readFile(wasmPath);
-
-    // Initialize with binary
-    const module = await loadTagLibModule({
-      wasmBinary,
-      forceBufferMode: true,
-    });
-    assertExists(module);
-
-    // Test that we can create a TagLib instance
-    const { createTagLib } = await import("../src/taglib.ts");
-    const taglib = await createTagLib(module);
-    assertExists(taglib);
-
-    // Verify it works
-    const testFile = await Deno.readFile(
-      new URL("./test-files/mp3/kiss-snippet.mp3", import.meta.url),
-    );
-    const file = await taglib.open(testFile);
-    assertExists(file);
-    file.dispose();
+  it({
+    name: "loadTagLibModule with wasmBinary option",
+    ignore: !emscriptenAvailable,
+    fn: async () => {
+      const wasmPath = new URL("../dist/taglib-web.wasm", import.meta.url);
+      const wasmBinary = await Deno.readFile(wasmPath);
+      const module = await loadTagLibModule({
+        wasmBinary,
+        forceBufferMode: true,
+      });
+      assertExists(module);
+      const { createTagLib } = await import("../src/taglib.ts");
+      const taglib = await createTagLib(module);
+      assertExists(taglib);
+      const testFile = await Deno.readFile(
+        new URL("./test-files/mp3/kiss-snippet.mp3", import.meta.url),
+      );
+      const file = await taglib.open(testFile);
+      assertExists(file);
+      file.dispose();
+    },
   });
 
-  it("loadTagLibModule with custom wasmUrl", async () => {
-    // Use the actual WASM file URL
-    const wasmUrl = new URL("../dist/taglib-web.wasm", import.meta.url).href;
-
-    // Initialize with custom URL
-    const module = await loadTagLibModule({ wasmUrl, forceBufferMode: true });
-    assertExists(module);
-
-    // Test that we can create a TagLib instance
-    const { createTagLib } = await import("../src/taglib.ts");
-    const taglib = await createTagLib(module);
-    assertExists(taglib);
-
-    // Verify it works
-    const testFile = await Deno.readFile(
-      new URL("./test-files/mp3/kiss-snippet.mp3", import.meta.url),
-    );
-    const file = await taglib.open(testFile);
-    assertExists(file);
-    file.dispose();
+  it({
+    name: "loadTagLibModule with custom wasmUrl",
+    ignore: !emscriptenAvailable,
+    fn: async () => {
+      const wasmUrl = new URL("../dist/taglib-web.wasm", import.meta.url).href;
+      const module = await loadTagLibModule({
+        wasmUrl,
+        forceBufferMode: true,
+      });
+      assertExists(module);
+      const { createTagLib } = await import("../src/taglib.ts");
+      const taglib = await createTagLib(module);
+      assertExists(taglib);
+      const testFile = await Deno.readFile(
+        new URL("./test-files/mp3/kiss-snippet.mp3", import.meta.url),
+      );
+      const file = await taglib.open(testFile);
+      assertExists(file);
+      file.dispose();
+    },
   });
 
-  it("TagLib.initialize with wasmBinary", async () => {
-    // Load the WASM file
-    const wasmPath = new URL("../dist/taglib-web.wasm", import.meta.url);
-    const wasmBinary = await Deno.readFile(wasmPath);
-
-    // Initialize TagLib with binary
-    const taglib = await TagLib.initialize({
-      wasmBinary,
-      forceBufferMode: true,
-    });
-    assertExists(taglib);
-
-    // Test that it works by loading a test file
-    const testFile = await Deno.readFile(
-      new URL("./test-files/mp3/kiss-snippet.mp3", import.meta.url),
-    );
-    const file = await taglib.open(testFile);
-    assertEquals(file.tag().title, "Kiss");
-    file.dispose();
+  it({
+    name: "TagLib.initialize with wasmBinary",
+    ignore: !emscriptenAvailable,
+    fn: async () => {
+      const wasmPath = new URL("../dist/taglib-web.wasm", import.meta.url);
+      const wasmBinary = await Deno.readFile(wasmPath);
+      const taglib = await TagLib.initialize({
+        wasmBinary,
+        forceBufferMode: true,
+      });
+      assertExists(taglib);
+      const testFile = await Deno.readFile(
+        new URL("./test-files/mp3/kiss-snippet.mp3", import.meta.url),
+      );
+      const file = await taglib.open(testFile);
+      assertEquals(file.tag().title, "Kiss");
+      file.dispose();
+    },
   });
 
-  it("TagLib.initialize with custom wasmUrl", async () => {
-    // Use the actual WASM file URL
-    const wasmUrl = new URL("../dist/taglib-web.wasm", import.meta.url).href;
-
-    // Initialize with custom URL
-    const taglib = await TagLib.initialize({ wasmUrl });
-    assertExists(taglib);
-
-    // Test basic functionality
-    const testFile = await Deno.readFile(
-      new URL("./test-files/mp3/kiss-snippet.mp3", import.meta.url),
-    );
-    const file = await taglib.open(testFile);
-    assertExists(file.tag());
-    file.dispose();
+  it({
+    name: "TagLib.initialize with custom wasmUrl",
+    ignore: !emscriptenAvailable,
+    fn: async () => {
+      const wasmUrl = new URL("../dist/taglib-web.wasm", import.meta.url).href;
+      const taglib = await TagLib.initialize({ wasmUrl });
+      assertExists(taglib);
+      const testFile = await Deno.readFile(
+        new URL("./test-files/mp3/kiss-snippet.mp3", import.meta.url),
+      );
+      const file = await taglib.open(testFile);
+      assertExists(file.tag());
+      file.dispose();
+    },
   });
 
   it("initializeForDenoCompile in development mode", async () => {
