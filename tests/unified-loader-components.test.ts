@@ -54,7 +54,7 @@ describe("UnifiedLoaderComponents", () => {
     // Test that the unified loader falls back to Emscripten when WASI is unavailable
     try {
       const { loadUnifiedTagLibModule } = await import(
-        "../src/runtime/unified-loader.ts"
+        "../src/runtime/unified-loader/index.ts"
       );
 
       // Should fallback to Emscripten, not throw
@@ -100,7 +100,7 @@ describe("UnifiedLoaderComponents", () => {
   it("File handle factory - graceful fallback behavior", async () => {
     try {
       const { loadUnifiedTagLibModule } = await import(
-        "../src/runtime/unified-loader.ts"
+        "../src/runtime/unified-loader/index.ts"
       );
 
       // Load module (will fallback to Emscripten)
@@ -309,7 +309,7 @@ describe("UnifiedLoaderComponents", () => {
   it("Module loading fallback works correctly", async () => {
     try {
       const { loadUnifiedTagLibModule } = await import(
-        "../src/runtime/unified-loader.ts"
+        "../src/runtime/unified-loader/index.ts"
       );
 
       // Test that WASI failure falls back to Emscripten

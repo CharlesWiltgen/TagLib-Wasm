@@ -1,6 +1,6 @@
 {
   "name": "@charlesw/taglib-wasm",
-  "version": "1.0.0-beta.4",
+  "version": "1.0.0",
   "description": "TagLib-Wasm is the universal tagging library for TypeScript/JavaScript platforms: Browsers, Node.js, Deno, Bun, Cloudflare Workers, and Electron apps",
   "license": "MIT",
   "nodeModulesDir": "auto",
@@ -8,7 +8,7 @@
     ".": "./index.ts",
     "./simple": "./simple.ts",
     "./workers": "./workers.ts",
-    "./folder": "./src/folder-api.ts"
+    "./folder": "./src/folder-api/index.ts"
   },
   "compilerOptions": {
     "lib": [

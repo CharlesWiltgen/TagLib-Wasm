@@ -12,7 +12,7 @@ import {
   loadWasmerWasi,
   readTagsWithWasi,
   type WasiModule,
-} from "../src/runtime/wasmer-sdk-loader.ts";
+} from "../src/runtime/wasmer-sdk-loader/index.ts";
 import { decodeTagData } from "../src/msgpack/decoder.ts";
 import { assertEquals, assertExists } from "@std/assert";
 

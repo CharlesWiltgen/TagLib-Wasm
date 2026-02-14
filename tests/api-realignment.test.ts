@@ -9,7 +9,7 @@ import { describe, it } from "@std/testing/bdd";
 import { TagLib } from "../src/mod.ts";
 import { TEST_FILES, withTempFile } from "./test-utils.ts";
 import { readFileData } from "../src/utils/file.ts";
-import { setBufferMode } from "../src/simple.ts";
+import { setBufferMode } from "../src/simple/index.ts";
 
 // Force Emscripten backend for Simple API calls
 setBufferMode(true);
@@ -17,7 +17,7 @@ setBufferMode(true);
 describe("API Realignment", () => {
   describe("Renamed Simple API Functions", () => {
     it("readFormat detects audio formats", async () => {
-      const { readFormat } = await import("../src/simple.ts");
+      const { readFormat } = await import("../src/simple/index.ts");
 
       assertEquals(await readFormat(TEST_FILES.mp3), "MP3");
       assertEquals(await readFormat(TEST_FILES.flac), "FLAC");
@@ -25,7 +25,9 @@ describe("API Realignment", () => {
     });
 
     it("readCoverArt reads primary cover art", async () => {
-      const { readCoverArt, applyCoverArt } = await import("../src/simple.ts");
+      const { readCoverArt, applyCoverArt } = await import(
+        "../src/simple/index.ts"
+      );
       const { RED_PNG } = await import("./test-utils.ts");
 
       const buffer = await readFileData(TEST_FILES.mp3);
@@ -40,7 +42,9 @@ describe("API Realignment", () => {
     });
 
     it("applyCoverArt sets primary cover art", async () => {
-      const { applyCoverArt, readCoverArt } = await import("../src/simple.ts");
+      const { applyCoverArt, readCoverArt } = await import(
+        "../src/simple/index.ts"
+      );
       const { RED_PNG } = await import("./test-utils.ts");
 
       const buffer = await readFileData(TEST_FILES.mp3);
@@ -53,7 +57,7 @@ describe("API Realignment", () => {
 
     it("readPictureMetadata returns metadata without data", async () => {
       const { readPictureMetadata, applyPictures } = await import(
-        "../src/simple.ts"
+        "../src/simple/index.ts"
       );
       const { RED_PNG } = await import("./test-utils.ts");
 

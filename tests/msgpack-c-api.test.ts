@@ -4,7 +4,7 @@
  */
 
 import { afterEach, beforeEach, describe, it } from "@std/testing/bdd";
-import { loadWasmerWasi } from "../src/runtime/wasmer-sdk-loader.ts";
+import { loadWasmerWasi } from "../src/runtime/wasmer-sdk-loader/index.ts";
 
 // Test data structures
 interface TestTagData {

@@ -22,4 +22,4 @@
  * ```
  */
 
-export * from "./src/workers.ts";
+export * from "./src/workers/index.ts";

@@ -27,7 +27,7 @@ export type { AudioFile, MutableTag } from "./src/taglib.ts";
 export type { AudioProperties } from "./src/types.ts";
 
 // Export Simple API
-export * from "./src/simple.ts";
+export * from "./src/simple/index.ts";
 
 // Export error types
 export {
@@ -53,7 +53,7 @@ export {
 } from "./src/errors.ts";
 
 // Export Workers API for Cloudflare Workers
-export { AudioFileWorkers, TagLibWorkers } from "./src/workers.ts";
+export { AudioFileWorkers, TagLibWorkers } from "./src/workers/index.ts";
 
 // Export additional types
 export type { PictureType } from "./src/types.ts";
@@ -75,9 +75,9 @@ export {
   findDuplicates,
   scanFolder,
   updateFolderTags,
-} from "./src/folder-api.ts";
+} from "./src/folder-api/index.ts";
 export type {
   AudioFileMetadata,
   FolderScanOptions,
   FolderScanResult,
-} from "./src/folder-api.ts";
+} from "./src/folder-api/index.ts";

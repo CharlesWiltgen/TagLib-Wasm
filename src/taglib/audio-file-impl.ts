@@ -59,37 +59,39 @@ export class AudioFileImpl extends ExtendedAudioFileImpl implements AudioFile {
     if (this.isPartiallyLoaded && this.originalSource) {
       const fullData = await readFileData(this.originalSource);
       const fullFileHandle = this.module.createFileHandle();
-      const success = fullFileHandle.loadFromBuffer(fullData);
-      if (!success) {
-        throw new InvalidFormatError(
-          "Failed to load full audio file for saving",
-          fullData.byteLength,
-        );
-      }
+      try {
+        const success = fullFileHandle.loadFromBuffer(fullData);
+        if (!success) {
+          throw new InvalidFormatError(
+            "Failed to load full audio file for saving",
+            fullData.byteLength,
+          );
+        }
 
-      const partialTag = this.fileHandle.getTag();
-      const fullTag = fullFileHandle.getTag();
-      if (partialTag && fullTag) {
-        fullTag.setTitle(partialTag.title());
-        fullTag.setArtist(partialTag.artist());
-        fullTag.setAlbum(partialTag.album());
-        fullTag.setComment(partialTag.comment());
-        fullTag.setGenre(partialTag.genre());
-        fullTag.setYear(partialTag.year());
-        fullTag.setTrack(partialTag.track());
-      }
+        const partialTag = this.fileHandle.getTag();
+        const fullTag = fullFileHandle.getTag();
+        if (partialTag && fullTag) {
+          fullTag.setTitle(partialTag.title());
+          fullTag.setArtist(partialTag.artist());
+          fullTag.setAlbum(partialTag.album());
+          fullTag.setComment(partialTag.comment());
+          fullTag.setGenre(partialTag.genre());
+          fullTag.setYear(partialTag.year());
+          fullTag.setTrack(partialTag.track());
+        }
 
-      fullFileHandle.setProperties(this.fileHandle.getProperties());
-      fullFileHandle.setPictures(this.fileHandle.getPictures());
+        fullFileHandle.setProperties(this.fileHandle.getProperties());
+        fullFileHandle.setPictures(this.fileHandle.getPictures());
 
-      if (!fullFileHandle.save()) {
+        if (!fullFileHandle.save()) {
+          throw new Error("Failed to save changes to full file");
+        }
+
+        const buffer = fullFileHandle.getBuffer();
+        await writeFileData(targetPath, buffer);
+      } finally {
         fullFileHandle.destroy();
-        throw new Error("Failed to save changes to full file");
       }
-
-      const buffer = fullFileHandle.getBuffer();
-      fullFileHandle.destroy();
-      await writeFileData(targetPath, buffer);
 
       this.isPartiallyLoaded = false;
       this.originalSource = undefined;

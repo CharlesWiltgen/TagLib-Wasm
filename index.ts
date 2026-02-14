@@ -118,7 +118,7 @@ export {
   setSidecarConfig,
   setWorkerPoolMode,
   updateTags,
-} from "./src/simple.ts";
+} from "./src/simple/index.ts";
 
 /**
  * Enhanced property constants and utilities with rich metadata.
@@ -161,7 +161,7 @@ export {
   importPictureWithType,
   loadPictureFromFile,
   savePictureToFile,
-} from "./src/file-utils.ts";
+} from "./src/file-utils/index.ts";
 
 /**
  * Folder/batch operations for processing multiple audio files.
@@ -179,7 +179,7 @@ export {
   type FolderScanResult,
   scanFolder,
   updateFolderTags,
-} from "./src/folder-api.ts";
+} from "./src/folder-api/index.ts";
 
 /**
  * Web browser utilities for cover art operations.
@@ -196,7 +196,7 @@ export {
   imageFileToPicture,
   pictureToDataURL,
   setCoverArtFromCanvas,
-} from "./src/web-utils.ts";
+} from "./src/web-utils/index.ts";
 
 /**
  * Type exports for TypeScript users.
@@ -296,12 +296,12 @@ export {
   getGlobalWorkerPool,
   TagLibWorkerPool,
   terminateGlobalWorkerPool,
-} from "./src/worker-pool.ts";
+} from "./src/worker-pool/index.ts";
 export type {
   BatchOperation,
   WorkerPoolOptions,
   WorkerTask,
-} from "./src/worker-pool.ts";
+} from "./src/worker-pool/index.ts";
 
 /**
  * Wasm module types for advanced usage.
@@ -365,7 +365,7 @@ export async function loadTagLibModule(
   // Use unified loader for optimal performance
   try {
     const { loadUnifiedTagLibModule } = await import(
-      "./src/runtime/unified-loader.ts"
+      "./src/runtime/unified-loader/index.ts"
     );
     return await loadUnifiedTagLibModule({
       wasmBinary: options?.wasmBinary,

@@ -10,7 +10,7 @@ import {
   readProperties,
   readTags,
   setBufferMode,
-} from "../src/simple.ts";
+} from "../src/simple/index.ts";
 import {
   FileOperationError,
   InvalidFormatError,

@@ -14,7 +14,7 @@ import {
   loadWasi,
   type WasiExports,
   type WasiLoaderConfig,
-} from "../src/runtime/wasi-loader.ts";
+} from "../src/runtime/wasi-loader/index.ts";
 
 describe("WASI Availability", () => {
   it("isWasiAvailable - detects WASI support in Deno", async () => {
