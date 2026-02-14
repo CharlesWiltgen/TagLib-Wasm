@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.0.0
+## 1.0.0-beta.5
 
 ### Breaking Changes
 
@@ -28,6 +28,7 @@
 ### Internal
 
 - Migrated all tests to BDD syntax (135 tests passing)
-- Split 10 oversized source files into directory modules (all under 250 lines)
+- Split 10 oversized source files into directory modules
+- Deduplicated batch operation scaffolding with shared `executeBatch` helper
 - Removed stale build scripts and migration guides
 - Updated SonarCloud configuration

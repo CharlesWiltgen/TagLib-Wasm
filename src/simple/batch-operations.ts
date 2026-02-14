@@ -1,3 +1,4 @@
+import type { AudioFile } from "../taglib.ts";
 import type { AudioProperties, Tag } from "../types.ts";
 import { InvalidFormatError } from "../errors.ts";
 import { getTagLib } from "./config.ts";
@@ -14,32 +15,25 @@ export interface BatchResult<T> {
   duration: number;
 }
 
-export async function readTagsBatch(
-  files: Array<string | Uint8Array | ArrayBuffer | File>,
-  options: BatchOptions = {},
-): Promise<BatchResult<Tag>> {
+type FileInput = string | Uint8Array | ArrayBuffer | File;
+
+async function executeBatch<T>(
+  files: FileInput[],
+  options: BatchOptions,
+  processor: (audioFile: AudioFile) => T,
+): Promise<BatchResult<T>> {
   const startTime = Date.now();
-  const {
-    concurrency = 4,
-    continueOnError = true,
-    onProgress,
-  } = options;
-
-  const results: Array<{ file: string; data: Tag }> = [];
+  const { concurrency = 4, continueOnError = true, onProgress } = options;
+  const results: Array<{ file: string; data: T }> = [];
   const errors: Array<{ file: string; error: Error }> = [];
-
   const taglib = await getTagLib();
-
   let processed = 0;
   const total = files.length;
 
   for (let i = 0; i < files.length; i += concurrency) {
     const chunk = files.slice(i, i + concurrency);
-
     const chunkPromises = chunk.map(async (file, idx) => {
-      const fileIndex = i + idx;
-      const fileName = typeof file === "string" ? file : `file-${fileIndex}`;
-
+      const fileName = typeof file === "string" ? file : `file-${i + idx}`;
       try {
         const audioFile = await taglib.open(file);
         try {
@@ -48,217 +42,86 @@ export async function readTagsBatch(
               "File may be corrupted or in an unsupported format",
             );
           }
-          const tags = audioFile.tag();
-          results.push({ file: fileName, data: tags });
+          results.push({ file: fileName, data: processor(audioFile) });
         } finally {
           audioFile.dispose();
         }
       } catch (error) {
         const err = error instanceof Error ? error : new Error(String(error));
         errors.push({ file: fileName, error: err });
-        if (!continueOnError) {
-          throw err;
-        }
+        if (!continueOnError) throw err;
       }
-
       processed++;
       onProgress?.(processed, total, fileName);
     });
-
     await Promise.all(chunkPromises);
   }
-
   return { results, errors, duration: Date.now() - startTime };
+}
+
+export async function readTagsBatch(
+  files: FileInput[],
+  options: BatchOptions = {},
+): Promise<BatchResult<Tag>> {
+  return executeBatch(files, options, (audioFile) => audioFile.tag());
 }
 
 export async function readPropertiesBatch(
-  files: Array<string | Uint8Array | ArrayBuffer | File>,
+  files: FileInput[],
   options: BatchOptions = {},
 ): Promise<BatchResult<AudioProperties | null>> {
-  const startTime = Date.now();
-  const {
-    concurrency = 4,
-    continueOnError = true,
-    onProgress,
-  } = options;
+  return executeBatch(
+    files,
+    options,
+    (audioFile) => audioFile.audioProperties(),
+  );
+}
 
-  const results: Array<{ file: string; data: AudioProperties | null }> = [];
-  const errors: Array<{ file: string; error: Error }> = [];
+interface MetadataDynamics {
+  replayGainTrackGain?: string;
+  replayGainTrackPeak?: string;
+  replayGainAlbumGain?: string;
+  replayGainAlbumPeak?: string;
+  appleSoundCheck?: string;
+}
 
-  const taglib = await getTagLib();
+interface FileMetadata {
+  tags: Tag;
+  properties: AudioProperties | null;
+  hasCoverArt: boolean;
+  dynamics?: MetadataDynamics;
+}
 
-  let processed = 0;
-  const total = files.length;
-
-  for (let i = 0; i < files.length; i += concurrency) {
-    const chunk = files.slice(i, i + concurrency);
-
-    const chunkPromises = chunk.map(async (file, idx) => {
-      const fileIndex = i + idx;
-      const fileName = typeof file === "string" ? file : `file-${fileIndex}`;
-
-      try {
-        const audioFile = await taglib.open(file);
-        try {
-          if (!audioFile.isValid()) {
-            throw new InvalidFormatError(
-              "File may be corrupted or in an unsupported format",
-            );
-          }
-          const properties = audioFile.audioProperties();
-          results.push({ file: fileName, data: properties });
-        } finally {
-          audioFile.dispose();
-        }
-      } catch (error) {
-        const err = error instanceof Error ? error : new Error(String(error));
-        errors.push({ file: fileName, error: err });
-        if (!continueOnError) {
-          throw err;
-        }
-      }
-
-      processed++;
-      onProgress?.(processed, total, fileName);
-    });
-
-    await Promise.all(chunkPromises);
+function extractDynamics(audioFile: AudioFile): MetadataDynamics | undefined {
+  const dynamics: Record<string, string> = {};
+  const props: Array<[string, string]> = [
+    ["REPLAYGAIN_TRACK_GAIN", "replayGainTrackGain"],
+    ["REPLAYGAIN_TRACK_PEAK", "replayGainTrackPeak"],
+    ["REPLAYGAIN_ALBUM_GAIN", "replayGainAlbumGain"],
+    ["REPLAYGAIN_ALBUM_PEAK", "replayGainAlbumPeak"],
+  ];
+  for (const [key, field] of props) {
+    const val = audioFile.getProperty(key);
+    if (val) dynamics[field] = val;
   }
-
-  return { results, errors, duration: Date.now() - startTime };
+  let appleSoundCheck = audioFile.getProperty("ITUNNORM");
+  if (!appleSoundCheck && audioFile.isMP4()) {
+    appleSoundCheck = audioFile.getMP4Item("----:com.apple.iTunes:iTunNORM");
+  }
+  if (appleSoundCheck) dynamics.appleSoundCheck = appleSoundCheck;
+  return Object.keys(dynamics).length > 0
+    ? dynamics as MetadataDynamics
+    : undefined;
 }
 
 export async function readMetadataBatch(
-  files: Array<string | Uint8Array | ArrayBuffer | File>,
+  files: FileInput[],
   options: BatchOptions = {},
-): Promise<
-  BatchResult<{
-    tags: Tag;
-    properties: AudioProperties | null;
-    hasCoverArt: boolean;
-    dynamics?: {
-      replayGainTrackGain?: string;
-      replayGainTrackPeak?: string;
-      replayGainAlbumGain?: string;
-      replayGainAlbumPeak?: string;
-      appleSoundCheck?: string;
-    };
-  }>
-> {
-  const startTime = Date.now();
-  const {
-    concurrency = 4,
-    continueOnError = true,
-    onProgress,
-  } = options;
-
-  const results: Array<{
-    file: string;
-    data: {
-      tags: Tag;
-      properties: AudioProperties | null;
-      hasCoverArt: boolean;
-      dynamics?: {
-        replayGainTrackGain?: string;
-        replayGainTrackPeak?: string;
-        replayGainAlbumGain?: string;
-        replayGainAlbumPeak?: string;
-        appleSoundCheck?: string;
-      };
-    };
-  }> = [];
-  const errors: Array<{ file: string; error: Error }> = [];
-
-  const taglib = await getTagLib();
-
-  let processed = 0;
-  const total = files.length;
-
-  for (let i = 0; i < files.length; i += concurrency) {
-    const chunk = files.slice(i, i + concurrency);
-
-    const chunkPromises = chunk.map(async (file, idx) => {
-      const fileIndex = i + idx;
-      const fileName = typeof file === "string" ? file : `file-${fileIndex}`;
-
-      try {
-        const audioFile = await taglib.open(file);
-        try {
-          if (!audioFile.isValid()) {
-            throw new InvalidFormatError(
-              "File may be corrupted or in an unsupported format",
-            );
-          }
-          const tags = audioFile.tag();
-          const properties = audioFile.audioProperties();
-
-          const pictures = audioFile.getPictures();
-          const hasCoverArt = pictures.length > 0;
-
-          const dynamics: Record<string, string> = {};
-
-          const replayGainTrackGain = audioFile.getProperty(
-            "REPLAYGAIN_TRACK_GAIN",
-          );
-          if (replayGainTrackGain) {
-            dynamics.replayGainTrackGain = replayGainTrackGain;
-          }
-
-          const replayGainTrackPeak = audioFile.getProperty(
-            "REPLAYGAIN_TRACK_PEAK",
-          );
-          if (replayGainTrackPeak) {
-            dynamics.replayGainTrackPeak = replayGainTrackPeak;
-          }
-
-          const replayGainAlbumGain = audioFile.getProperty(
-            "REPLAYGAIN_ALBUM_GAIN",
-          );
-          if (replayGainAlbumGain) {
-            dynamics.replayGainAlbumGain = replayGainAlbumGain;
-          }
-
-          const replayGainAlbumPeak = audioFile.getProperty(
-            "REPLAYGAIN_ALBUM_PEAK",
-          );
-          if (replayGainAlbumPeak) {
-            dynamics.replayGainAlbumPeak = replayGainAlbumPeak;
-          }
-
-          let appleSoundCheck = audioFile.getProperty("ITUNNORM");
-          if (!appleSoundCheck && audioFile.isMP4()) {
-            appleSoundCheck = audioFile.getMP4Item(
-              "----:com.apple.iTunes:iTunNORM",
-            );
-          }
-          if (appleSoundCheck) dynamics.appleSoundCheck = appleSoundCheck;
-
-          results.push({
-            file: fileName,
-            data: {
-              tags,
-              properties,
-              hasCoverArt,
-              dynamics: Object.keys(dynamics).length > 0 ? dynamics : undefined,
-            },
-          });
-        } finally {
-          audioFile.dispose();
-        }
-      } catch (error) {
-        const err = error instanceof Error ? error : new Error(String(error));
-        errors.push({ file: fileName, error: err });
-        if (!continueOnError) {
-          throw err;
-        }
-      }
-
-      processed++;
-      onProgress?.(processed, total, fileName);
-    });
-
-    await Promise.all(chunkPromises);
-  }
-
-  return { results, errors, duration: Date.now() - startTime };
+): Promise<BatchResult<FileMetadata>> {
+  return executeBatch(files, options, (audioFile) => ({
+    tags: audioFile.tag(),
+    properties: audioFile.audioProperties(),
+    hasCoverArt: audioFile.getPictures().length > 0,
+    dynamics: extractDynamics(audioFile),
+  }));
 }
