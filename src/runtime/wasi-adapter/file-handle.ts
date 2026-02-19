@@ -13,6 +13,13 @@ import { decodeTagData } from "../../msgpack/decoder.ts";
 import type { ExtendedTag, Picture } from "../../types.ts";
 import { readTagsFromWasm, writeTagsToWasm } from "./wasm-io.ts";
 
+const PROPERTY_KEY_MAP: Record<string, string> = {
+  ALBUMARTIST: "albumArtist",
+  COMPOSER: "composer",
+  DISCNUMBER: "disc",
+  BPM: "bpm",
+};
+
 export class WasiFileHandle implements FileHandle {
   private readonly wasi: WasiModule;
   private fileData: Uint8Array | null = null;
@@ -110,12 +117,13 @@ export class WasiFileHandle implements FileHandle {
 
   getAudioProperties(): AudioPropertiesWrapper {
     this.checkNotDestroyed();
+    const data = this.tagData as Record<string, unknown> | null;
     return {
-      lengthInSeconds: () => 0,
-      lengthInMilliseconds: () => 0,
-      bitrate: () => 0,
-      sampleRate: () => 0,
-      channels: () => 0,
+      lengthInSeconds: () => (data?.length as number) ?? 0,
+      lengthInMilliseconds: () => (data?.lengthMs as number) ?? 0,
+      bitrate: () => (data?.bitrate as number) ?? 0,
+      sampleRate: () => (data?.sampleRate as number) ?? 0,
+      channels: () => (data?.channels as number) ?? 0,
       bitsPerSample: () => 0,
       codec: () => "",
       containerFormat: () => "",
@@ -156,13 +164,15 @@ export class WasiFileHandle implements FileHandle {
 
   getProperty(key: string): string {
     this.checkNotDestroyed();
+    const mappedKey = PROPERTY_KEY_MAP[key] ?? key;
     const props = this.tagData as Record<string, unknown>;
-    return props?.[key]?.toString() ?? "";
+    return props?.[mappedKey]?.toString() ?? "";
   }
 
   setProperty(key: string, value: string): void {
     this.checkNotDestroyed();
-    this.tagData = { ...this.tagData, [key]: value };
+    const mappedKey = PROPERTY_KEY_MAP[key] ?? key;
+    this.tagData = { ...this.tagData, [mappedKey]: value };
   }
 
   isMP4(): boolean {
