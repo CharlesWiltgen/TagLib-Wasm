@@ -366,28 +366,24 @@ function createMockWasiModule(): any {
 
 /**
  * Create a stub for tl_read_tags that writes a minimal valid msgpack response.
- * The msgpack encodes an empty map {} which decodes to an empty ExtendedTag.
+ * Matches the real C API: returns a pointer to msgpack data (non-zero = success),
+ * writes size to *outPtr. Returns 0 (NULL) on failure.
  */
 function stubTlReadTags(mock: any) {
-  let callCount = 0;
+  const DATA_PTR = 4096;
   return (
-    _mode: number,
-    _inputPtr: number,
-    _inputSize: number,
-    outPtr: number,
+    _pathPtr: number,
+    _bufPtr: number,
+    _bufSize: number,
+    outSizePtr: number,
   ) => {
-    callCount++;
-    if (callCount % 2 === 1) {
-      // First call: write the output size (1 byte for empty map)
-      const heap = new Uint8Array(mock.memory.buffer);
-      const view = new DataView(mock.memory.buffer);
-      view.setUint32(outPtr, 1, true);
-      return 0;
-    } else {
-      // Second call: write the msgpack data (0x80 = empty map)
-      const heap = new Uint8Array(mock.memory.buffer);
-      heap[outPtr] = 0x80;
-      return 0;
-    }
+    const heap = new Uint8Array(mock.memory.buffer);
+    const view = new DataView(mock.memory.buffer);
+    // Write empty msgpack map (0x80) at a fixed location
+    heap[DATA_PTR] = 0x80;
+    // Write size (1 byte) to the out_size pointer
+    view.setUint32(outSizePtr, 1, true);
+    // Return pointer to data (non-zero = success)
+    return DATA_PTR;
   };
 }
