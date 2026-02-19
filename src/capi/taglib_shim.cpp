@@ -76,7 +76,7 @@ static tl_error_code encode_file_to_msgpack(TagLib::File* file,
     for (auto it = props.begin(); it != props.end(); ++it) {
         if (!it->second.isEmpty()) count++;
     }
-    count += 5; // audio properties: bitrate, sampleRate, channels, length, lengthMs
+    if (audio) count += 5;
 
     mpack_writer_t writer;
     char* data = nullptr;
@@ -101,16 +101,18 @@ static tl_error_code encode_file_to_msgpack(TagLib::File* file,
         }
     }
 
-    mpack_write_cstr(&writer, "bitrate");
-    mpack_write_uint(&writer, audio ? audio->bitrate() : 0);
-    mpack_write_cstr(&writer, "sampleRate");
-    mpack_write_uint(&writer, audio ? audio->sampleRate() : 0);
-    mpack_write_cstr(&writer, "channels");
-    mpack_write_uint(&writer, audio ? audio->channels() : 0);
-    mpack_write_cstr(&writer, "length");
-    mpack_write_uint(&writer, audio ? audio->lengthInSeconds() : 0);
-    mpack_write_cstr(&writer, "lengthMs");
-    mpack_write_uint(&writer, audio ? audio->lengthInMilliseconds() : 0);
+    if (audio) {
+        mpack_write_cstr(&writer, "bitrate");
+        mpack_write_uint(&writer, audio->bitrate());
+        mpack_write_cstr(&writer, "sampleRate");
+        mpack_write_uint(&writer, audio->sampleRate());
+        mpack_write_cstr(&writer, "channels");
+        mpack_write_uint(&writer, audio->channels());
+        mpack_write_cstr(&writer, "length");
+        mpack_write_uint(&writer, audio->lengthInSeconds());
+        mpack_write_cstr(&writer, "lengthMs");
+        mpack_write_uint(&writer, audio->lengthInMilliseconds());
+    }
 
     mpack_finish_map(&writer);
 

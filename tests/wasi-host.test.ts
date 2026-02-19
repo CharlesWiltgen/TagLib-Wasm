@@ -328,14 +328,19 @@ describe(
         handle.loadFromBuffer(fileData);
 
         const props = handle.getAudioProperties();
+        assertExists(props, `${format}: audioProperties should not be null`);
         assertGreater(
-          props.sampleRate(),
+          props!.sampleRate(),
           0,
           `${format}: sampleRate should be > 0`,
         );
-        assertGreater(props.channels(), 0, `${format}: channels should be > 0`);
         assertGreater(
-          props.lengthInMilliseconds(),
+          props!.channels(),
+          0,
+          `${format}: channels should be > 0`,
+        );
+        assertGreater(
+          props!.lengthInMilliseconds(),
           0,
           `${format}: lengthMs should be > 0`,
         );

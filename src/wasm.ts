@@ -68,7 +68,7 @@ export interface FileHandle {
   setMP4Item(key: string, value: string): void;
   removeMP4Item(key: string): void;
   getTag(): TagWrapper;
-  getAudioProperties(): AudioPropertiesWrapper;
+  getAudioProperties(): AudioPropertiesWrapper | null;
   getBuffer(): Uint8Array;
   getPictures(): Picture[];
   setPictures(pictures: Picture[]): void;
