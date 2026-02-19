@@ -22,96 +22,106 @@
 #include <tfilestream.h>
 #include <audioproperties.h>
 
+#include <mpack/mpack.h>
+
 #include <memory>
 #include <cstring>
 #include <cstdlib>
 
-static char* string_to_cstr(const TagLib::String& str) {
-    if (str.isEmpty()) return nullptr;
-    std::string utf8 = str.to8Bit(true);
-    char* result = (char*)malloc(utf8.size() + 1);
-    if (result) std::memcpy(result, utf8.c_str(), utf8.size() + 1);
-    return result;
+struct FieldMapping {
+    const char* prop;   // UPPERCASE TagLib property key (sorted for binary search)
+    const char* camel;  // camelCase JS key
+    bool numeric;       // encode as uint instead of string
+};
+
+static const FieldMapping FIELD_MAP[] = {
+    {"ALBUM",        "album",       false},
+    {"ALBUMARTIST",  "albumArtist", false},
+    {"ARTIST",       "artist",      false},
+    {"BPM",          "bpm",         true},
+    {"COMMENT",      "comment",     false},
+    {"COMPOSER",     "composer",    false},
+    {"DATE",         "year",        true},
+    {"DISCNUMBER",   "disc",        true},
+    {"GENRE",        "genre",       false},
+    {"TITLE",        "title",       false},
+    {"TRACKNUMBER",  "track",       true},
+};
+
+static const size_t FIELD_MAP_SIZE = sizeof(FIELD_MAP) / sizeof(FIELD_MAP[0]);
+
+static const FieldMapping* find_by_prop(const char* key) {
+    int left = 0, right = static_cast<int>(FIELD_MAP_SIZE) - 1;
+    while (left <= right) {
+        int mid = left + (right - left) / 2;
+        int cmp = strcmp(key, FIELD_MAP[mid].prop);
+        if (cmp == 0) return &FIELD_MAP[mid];
+        if (cmp < 0) right = mid - 1;
+        else left = mid + 1;
+    }
+    return nullptr;
 }
 
-static void extract_tags(TagLib::File* file, TagData* data) {
-    TagLib::Tag* tag = file->tag();
-    if (!tag) return;
+static void write_mpack_string(mpack_writer_t* w, const TagLib::String& s) {
+    std::string utf8 = s.to8Bit(true);
+    mpack_write_str(w, utf8.c_str(), static_cast<uint32_t>(utf8.size()));
+}
 
-    data->title = string_to_cstr(tag->title());
-    data->artist = string_to_cstr(tag->artist());
-    data->album = string_to_cstr(tag->album());
-    data->comment = string_to_cstr(tag->comment());
-    data->genre = string_to_cstr(tag->genre());
-    data->year = tag->year();
-    data->track = tag->track();
-
+static tl_error_code encode_file_to_msgpack(TagLib::File* file,
+                                            uint8_t** out_buf, size_t* out_size) {
     TagLib::PropertyMap props = file->properties();
+    TagLib::AudioProperties* audio = file->audioProperties();
 
-    auto it = props.find("ALBUMARTIST");
-    if (it != props.end() && !it->second.isEmpty())
-        data->albumArtist = string_to_cstr(it->second.front());
+    uint32_t count = 0;
+    for (auto it = props.begin(); it != props.end(); ++it) {
+        if (!it->second.isEmpty()) count++;
+    }
+    count += 5; // audio properties: bitrate, sampleRate, channels, length, lengthMs
 
-    it = props.find("COMPOSER");
-    if (it != props.end() && !it->second.isEmpty())
-        data->composer = string_to_cstr(it->second.front());
+    mpack_writer_t writer;
+    char* data = nullptr;
+    size_t size = 0;
+    mpack_writer_init_growable(&writer, &data, &size);
+    mpack_start_map(&writer, count);
 
-    it = props.find("DISCNUMBER");
-    if (it != props.end() && !it->second.isEmpty())
-        data->disc = static_cast<uint32_t>(it->second.front().toInt());
+    for (auto it = props.begin(); it != props.end(); ++it) {
+        if (it->second.isEmpty()) continue;
 
-    it = props.find("BPM");
-    if (it != props.end() && !it->second.isEmpty())
-        data->bpm = static_cast<uint32_t>(it->second.front().toInt());
-}
+        std::string propKey = it->first.to8Bit(true);
+        const FieldMapping* mapping = find_by_prop(propKey.c_str());
+        const char* outKey = mapping ? mapping->camel : propKey.c_str();
 
-static void extract_properties(TagLib::File* file, TagData* data) {
-    TagLib::AudioProperties* props = file->audioProperties();
-    if (!props) return;
+        mpack_write_cstr(&writer, outKey);
 
-    data->bitrate = props->bitrate();
-    data->sampleRate = props->sampleRate();
-    data->channels = props->channels();
-    data->length = props->lengthInSeconds();
-    data->lengthMs = props->lengthInMilliseconds();
-}
+        if (mapping && mapping->numeric) {
+            int val = it->second.front().toInt();
+            mpack_write_uint(&writer, static_cast<uint32_t>(val));
+        } else {
+            write_mpack_string(&writer, it->second.front());
+        }
+    }
 
-static void free_tag_data_strings(TagData* data) {
-    if (data->title) { free((void*)data->title); data->title = nullptr; }
-    if (data->artist) { free((void*)data->artist); data->artist = nullptr; }
-    if (data->album) { free((void*)data->album); data->album = nullptr; }
-    if (data->comment) { free((void*)data->comment); data->comment = nullptr; }
-    if (data->genre) { free((void*)data->genre); data->genre = nullptr; }
-    if (data->albumArtist) { free((void*)data->albumArtist); data->albumArtist = nullptr; }
-    if (data->composer) { free((void*)data->composer); data->composer = nullptr; }
-}
+    mpack_write_cstr(&writer, "bitrate");
+    mpack_write_uint(&writer, audio ? audio->bitrate() : 0);
+    mpack_write_cstr(&writer, "sampleRate");
+    mpack_write_uint(&writer, audio ? audio->sampleRate() : 0);
+    mpack_write_cstr(&writer, "channels");
+    mpack_write_uint(&writer, audio ? audio->channels() : 0);
+    mpack_write_cstr(&writer, "length");
+    mpack_write_uint(&writer, audio ? audio->lengthInSeconds() : 0);
+    mpack_write_cstr(&writer, "lengthMs");
+    mpack_write_uint(&writer, audio ? audio->lengthInMilliseconds() : 0);
 
-static tl_error_code encode_tag_data(TagData* tag_data,
-                                     uint8_t** out_buf, size_t* out_size) {
-    size_t required_size;
-    mp_status status = tags_encode_size(tag_data, &required_size);
-    if (status != MP_OK) {
-        free_tag_data_strings(tag_data);
+    mpack_finish_map(&writer);
+
+    if (mpack_writer_error(&writer) != mpack_ok) {
+        mpack_writer_destroy(&writer);
         return TL_ERROR_SERIALIZE_FAILED;
     }
+    mpack_writer_destroy(&writer);
 
-    uint8_t* buffer = (uint8_t*)malloc(required_size);
-    if (!buffer) {
-        free_tag_data_strings(tag_data);
-        return TL_ERROR_MEMORY_ALLOCATION;
-    }
-
-    size_t actual_size;
-    status = tags_encode(tag_data, buffer, required_size, &actual_size);
-    free_tag_data_strings(tag_data);
-
-    if (status != MP_OK) {
-        free(buffer);
-        return TL_ERROR_SERIALIZE_FAILED;
-    }
-
-    *out_buf = buffer;
-    *out_size = actual_size;
+    *out_buf = reinterpret_cast<uint8_t*>(data);
+    *out_size = size;
     return TL_SUCCESS;
 }
 
@@ -125,10 +135,7 @@ static tl_error_code read_from_buffer(const uint8_t* buf, size_t len,
         TagLib::FileRef ref(&stream);
         if (ref.isNull()) return TL_ERROR_PARSE_FAILED;
 
-        TagData tag_data = {0};
-        extract_tags(ref.file(), &tag_data);
-        extract_properties(ref.file(), &tag_data);
-        return encode_tag_data(&tag_data, out_buf, out_size);
+        return encode_file_to_msgpack(ref.file(), out_buf, out_size);
     } catch (...) {
         return TL_ERROR_PARSE_FAILED;
     }
@@ -140,38 +147,166 @@ static tl_error_code read_from_path(const char* path,
         TagLib::FileRef ref(path);
         if (ref.isNull()) return TL_ERROR_IO_READ;
 
-        TagData tag_data = {0};
-        extract_tags(ref.file(), &tag_data);
-        extract_properties(ref.file(), &tag_data);
-        return encode_tag_data(&tag_data, out_buf, out_size);
+        return encode_file_to_msgpack(ref.file(), out_buf, out_size);
     } catch (...) {
         return TL_ERROR_PARSE_FAILED;
     }
 }
 
-static void apply_tag_data(TagLib::Tag* tag, const TagData* tag_data) {
-    if (tag_data->title)
-        tag->setTitle(TagLib::String(tag_data->title, TagLib::String::UTF8));
-    if (tag_data->artist)
-        tag->setArtist(TagLib::String(tag_data->artist, TagLib::String::UTF8));
-    if (tag_data->album)
-        tag->setAlbum(TagLib::String(tag_data->album, TagLib::String::UTF8));
-    if (tag_data->comment)
-        tag->setComment(TagLib::String(tag_data->comment, TagLib::String::UTF8));
-    if (tag_data->genre)
-        tag->setGenre(TagLib::String(tag_data->genre, TagLib::String::UTF8));
-    if (tag_data->year)
-        tag->setYear(tag_data->year);
-    if (tag_data->track)
-        tag->setTrack(tag_data->track);
+static const char* SKIP_KEYS[] = {
+    "bitrate", "channels", "length", "lengthMs", "sampleRate",
+};
+
+static const size_t SKIP_KEYS_SIZE = sizeof(SKIP_KEYS) / sizeof(SKIP_KEYS[0]);
+
+static bool should_skip(const char* key) {
+    for (size_t i = 0; i < SKIP_KEYS_SIZE; i++) {
+        if (strcmp(key, SKIP_KEYS[i]) == 0) return true;
+    }
+    return false;
 }
 
-static tl_error_code write_to_path(const char* path, const TagData* tag_data) {
+static const char* map_camel_to_prop(const char* key) {
+    for (size_t i = 0; i < FIELD_MAP_SIZE; i++) {
+        if (strcmp(key, FIELD_MAP[i].camel) == 0) return FIELD_MAP[i].prop;
+    }
+    return nullptr;
+}
+
+static bool is_uppercase_key(const char* key) {
+    for (const char* p = key; *p; p++) {
+        if (*p >= 'a' && *p <= 'z') return false;
+    }
+    return true;
+}
+
+static tl_error_code decode_msgpack_to_propmap(
+    const uint8_t* data, size_t len, TagLib::PropertyMap& propMap)
+{
+    mpack_reader_t reader;
+    mpack_reader_init_data(&reader, reinterpret_cast<const char*>(data), len);
+
+    uint32_t count = mpack_expect_map(&reader);
+    if (mpack_reader_error(&reader) != mpack_ok) {
+        mpack_reader_destroy(&reader);
+        return TL_ERROR_PARSE_FAILED;
+    }
+
+    for (uint32_t i = 0; i < count; i++) {
+        uint32_t klen = mpack_expect_str(&reader);
+        if (mpack_reader_error(&reader) != mpack_ok) break;
+        char key[256];
+        if (klen >= sizeof(key)) { mpack_reader_destroy(&reader); return TL_ERROR_PARSE_FAILED; }
+        mpack_read_bytes(&reader, key, klen);
+        mpack_done_str(&reader);
+        key[klen] = '\0';
+        if (mpack_reader_error(&reader) != mpack_ok) break;
+
+        if (should_skip(key)) {
+            mpack_discard(&reader);
+            continue;
+        }
+
+        mpack_tag_t tag = mpack_peek_tag(&reader);
+        if (mpack_reader_error(&reader) != mpack_ok) break;
+
+        TagLib::String value;
+        bool has_value = false;
+
+        if (tag.type == mpack_type_str) {
+            uint32_t vlen = mpack_expect_str(&reader);
+            if (mpack_reader_error(&reader) != mpack_ok) break;
+            char vbuf[4096];
+            if (vlen < sizeof(vbuf)) {
+                mpack_read_bytes(&reader, vbuf, vlen);
+                mpack_done_str(&reader);
+                vbuf[vlen] = '\0';
+                if (vlen > 0) {
+                    value = TagLib::String(vbuf, TagLib::String::UTF8);
+                    has_value = true;
+                }
+            } else {
+                char* heap = static_cast<char*>(malloc(vlen + 1));
+                if (!heap) { mpack_reader_destroy(&reader); return TL_ERROR_MEMORY_ALLOCATION; }
+                mpack_read_bytes(&reader, heap, vlen);
+                mpack_done_str(&reader);
+                heap[vlen] = '\0';
+                value = TagLib::String(heap, TagLib::String::UTF8);
+                has_value = true;
+                free(heap);
+            }
+        } else if (tag.type == mpack_type_uint) {
+            uint64_t num = mpack_expect_u64(&reader);
+            if (num > 0 && num <= INT32_MAX) {
+                value = TagLib::String::number(static_cast<int>(num));
+                has_value = true;
+            }
+        } else if (tag.type == mpack_type_int) {
+            int64_t num = mpack_expect_i64(&reader);
+            if (num != 0 && num >= INT32_MIN && num <= INT32_MAX) {
+                value = TagLib::String::number(static_cast<int>(num));
+                has_value = true;
+            }
+        } else {
+            mpack_discard(&reader);
+            continue;
+        }
+
+        if (mpack_reader_error(&reader) != mpack_ok) break;
+        if (!has_value) continue;
+
+        const char* mapped = map_camel_to_prop(key);
+        if (mapped) {
+            propMap[mapped] = TagLib::StringList(value);
+        } else if (is_uppercase_key(key)) {
+            propMap[key] = TagLib::StringList(value);
+        }
+    }
+
+    mpack_done_map(&reader);
+    mpack_error_t error = mpack_reader_destroy(&reader);
+    return (error == mpack_ok) ? TL_SUCCESS : TL_ERROR_PARSE_FAILED;
+}
+
+static void apply_propmap(TagLib::FileRef& ref, const TagLib::PropertyMap& propMap) {
+    ref.file()->setProperties(propMap);
+
+    TagLib::Tag* tag = ref.tag();
+    if (!tag) return;
+    auto it = propMap.find("TITLE");
+    if (it != propMap.end() && !it->second.isEmpty())
+        tag->setTitle(it->second.front());
+    it = propMap.find("ARTIST");
+    if (it != propMap.end() && !it->second.isEmpty())
+        tag->setArtist(it->second.front());
+    it = propMap.find("ALBUM");
+    if (it != propMap.end() && !it->second.isEmpty())
+        tag->setAlbum(it->second.front());
+    it = propMap.find("COMMENT");
+    if (it != propMap.end() && !it->second.isEmpty())
+        tag->setComment(it->second.front());
+    it = propMap.find("GENRE");
+    if (it != propMap.end() && !it->second.isEmpty())
+        tag->setGenre(it->second.front());
+    it = propMap.find("DATE");
+    if (it != propMap.end() && !it->second.isEmpty())
+        tag->setYear(it->second.front().toInt());
+    it = propMap.find("TRACKNUMBER");
+    if (it != propMap.end() && !it->second.isEmpty())
+        tag->setTrack(it->second.front().toInt());
+}
+
+static tl_error_code write_to_path(const char* path,
+                                   const uint8_t* tags_msgpack, size_t tags_msgpack_len) {
     try {
+        TagLib::PropertyMap propMap;
+        tl_error_code rc = decode_msgpack_to_propmap(tags_msgpack, tags_msgpack_len, propMap);
+        if (rc != TL_SUCCESS) return rc;
+
         TagLib::FileRef ref(path);
         if (ref.isNull() || !ref.tag()) return TL_ERROR_IO_WRITE;
 
-        apply_tag_data(ref.tag(), tag_data);
+        apply_propmap(ref, propMap);
 
         if (!ref.save()) return TL_ERROR_IO_WRITE;
         return TL_SUCCESS;
@@ -181,16 +316,20 @@ static tl_error_code write_to_path(const char* path, const TagData* tag_data) {
 }
 
 static tl_error_code write_to_buffer(const uint8_t* buf, size_t len,
-                                     const TagData* tag_data,
+                                     const uint8_t* tags_msgpack, size_t tags_msgpack_len,
                                      uint8_t** out_buf, size_t* out_size) {
     try {
+        TagLib::PropertyMap propMap;
+        tl_error_code rc = decode_msgpack_to_propmap(tags_msgpack, tags_msgpack_len, propMap);
+        if (rc != TL_SUCCESS) return rc;
+
         TagLib::ByteVector bv(reinterpret_cast<const char*>(buf),
                               static_cast<unsigned int>(len));
         TagLib::ByteVectorStream stream(bv);
         TagLib::FileRef ref(&stream);
         if (ref.isNull() || !ref.tag()) return TL_ERROR_PARSE_FAILED;
 
-        apply_tag_data(ref.tag(), tag_data);
+        apply_propmap(ref, propMap);
 
         if (!ref.save()) return TL_ERROR_IO_WRITE;
 
@@ -226,19 +365,19 @@ tl_error_code taglib_read_shim(const char* path, const uint8_t* buf, size_t len,
 }
 
 tl_error_code taglib_write_shim(const char* path, const uint8_t* buf, size_t len,
-                                const TagData* tag_data,
+                                const uint8_t* tags_msgpack, size_t tags_msgpack_len,
                                 uint8_t** out_buf, size_t* out_size) {
-    if (!tag_data) {
+    if (!tags_msgpack || tags_msgpack_len == 0) {
         return TL_ERROR_INVALID_INPUT;
     }
 
     if (path && path[0] != '\0') {
-        return write_to_path(path, tag_data);
+        return write_to_path(path, tags_msgpack, tags_msgpack_len);
     } else if (buf && len > 0) {
         if (!out_buf || !out_size) return TL_ERROR_INVALID_INPUT;
         *out_buf = nullptr;
         *out_size = 0;
-        return write_to_buffer(buf, len, tag_data, out_buf, out_size);
+        return write_to_buffer(buf, len, tags_msgpack, tags_msgpack_len, out_buf, out_size);
     } else {
         return TL_ERROR_INVALID_INPUT;
     }

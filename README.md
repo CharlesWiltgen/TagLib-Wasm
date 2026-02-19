@@ -297,13 +297,12 @@ Supported formats:
 
 - [API Reference](https://charleswiltgen.github.io/taglib-wasm/api/)
 - [Performance Guide](https://charleswiltgen.github.io/taglib-wasm/concepts/performance.html)
-- [Album Processing Guide](https://charleswiltgen.github.io/taglib-wasm/guide/album-processing.html) - Process entire albums in seconds
+- [Album Processing Guide](https://charleswiltgen.github.io/taglib-wasm/guide/album-processing.html)
 - [Platform Examples](https://charleswiltgen.github.io/taglib-wasm/guide/platform-examples.html)
 - [Working with Cover Art](https://charleswiltgen.github.io/taglib-wasm/guide/cover-art.html)
 - [Track Ratings](https://charleswiltgen.github.io/taglib-wasm/guide/ratings.html)
 - [Cloudflare Workers Setup](https://charleswiltgen.github.io/taglib-wasm/guide/workers-setup.html)
 - [Error Handling](https://charleswiltgen.github.io/taglib-wasm/concepts/error-handling.html)
-
 - [Contributing](CONTRIBUTING.md)
 
 ## Supported Formats

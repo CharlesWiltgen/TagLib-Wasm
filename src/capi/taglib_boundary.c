@@ -84,28 +84,12 @@ int tl_write_tags(const char* path, const uint8_t* buf, size_t len,
         return TL_ERROR_INVALID_INPUT;
     }
     
-    // Decode MessagePack data
-    Arena* arena = arena_create(4096);
-    if (!arena) {
-        tl_set_error(TL_ERROR_MEMORY_ALLOCATION, "Failed to create arena for decoding");
-        return TL_ERROR_MEMORY_ALLOCATION;
-    }
-    
-    TagData* decoded_tags = NULL;
-    mp_status mp_status = tags_decode(tags_data, tags_size, arena, &decoded_tags);
-    if (mp_status != MP_OK || !decoded_tags) {
-        arena_destroy(arena);
-        tl_set_error(TL_ERROR_PARSE_FAILED, "Failed to decode MessagePack tag data");
-        return TL_ERROR_PARSE_FAILED;
-    }
-    
-    // Call shim to write tags
+    // Pass raw msgpack bytes to C++ shim for decoding via PropertyMap
     uint8_t* result_buf = NULL;
     size_t result_size = 0;
-    tl_error_code status = taglib_write_shim(path, buf, len, decoded_tags,
+    tl_error_code status = taglib_write_shim(path, buf, len,
+                                             tags_data, tags_size,
                                              &result_buf, &result_size);
-
-    arena_destroy(arena);
 
     if (status != TL_SUCCESS) {
         const char* error_msg = "Failed to write tags";
