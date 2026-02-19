@@ -1451,15 +1451,18 @@ Use the Workers API for edge compatibility:
 
 ```typescript
 import { TagLibWorkers } from "taglib-wasm/workers";
+import wasmBinary from "../build/taglib.wasm";
 
 export default {
   async fetch(request: Request): Promise<Response> {
-    const taglib = await TagLibWorkers.initialize();
+    const taglib = await TagLibWorkers.initialize(wasmBinary);
 
     // Fetch audio from R2 or external URL
-    const audioBuffer = await fetch(audioUrl).then((r) => r.arrayBuffer());
+    const audioBuffer = new Uint8Array(
+      await fetch(audioUrl).then((r) => r.arrayBuffer()),
+    );
 
-    using audioFile = await taglib.open(audioBuffer);
+    using audioFile = taglib.open(audioBuffer);
     const tag = audioFile.tag();
 
     const metadata = {
@@ -1472,6 +1475,13 @@ export default {
   },
 };
 ```
+
+**Workers API limitations:** The `taglib-wasm/workers` path uses C-style
+Emscripten bindings with a reduced feature set. Extended tags (albumArtist,
+MusicBrainz IDs, ReplayGain), cover art, ratings, PropertyMap access, and
+`getFileBuffer()` are not available. Audio properties `codec`, `bitsPerSample`,
+and `containerFormat` return stub values. Use the standard API for full
+functionality.
 
 ## Performance Tips
 

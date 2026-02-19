@@ -16,19 +16,19 @@
  */
 export interface Tag {
   /** Track title */
-  title?: string;
+  readonly title?: string;
   /** Artist name */
-  artist?: string;
+  readonly artist?: string;
   /** Album name */
-  album?: string;
+  readonly album?: string;
   /** Comment */
-  comment?: string;
+  readonly comment?: string;
   /** Genre */
-  genre?: string;
+  readonly genre?: string;
   /** Year */
-  year?: number;
+  readonly year?: number;
   /** Track number */
-  track?: number;
+  readonly track?: number;
 }
 
 /**
@@ -50,55 +50,55 @@ export interface Tag {
  */
 export interface ExtendedTag extends Tag {
   /** AcoustID fingerprint (Chromaprint) */
-  acoustidFingerprint?: string;
+  readonly acoustidFingerprint?: string;
   /** AcoustID UUID */
-  acoustidId?: string;
+  readonly acoustidId?: string;
   /** MusicBrainz Track ID */
-  musicbrainzTrackId?: string;
+  readonly musicbrainzTrackId?: string;
   /** MusicBrainz Release ID */
-  musicbrainzReleaseId?: string;
+  readonly musicbrainzReleaseId?: string;
   /** MusicBrainz Artist ID */
-  musicbrainzArtistId?: string;
+  readonly musicbrainzArtistId?: string;
   /** MusicBrainz Release Group ID */
-  musicbrainzReleaseGroupId?: string;
+  readonly musicbrainzReleaseGroupId?: string;
   /** Album artist (different from track artist) */
-  albumArtist?: string;
+  readonly albumArtist?: string;
   /** Composer */
-  composer?: string;
+  readonly composer?: string;
   /** Disc number */
-  discNumber?: number;
+  readonly discNumber?: number;
   /** Total tracks on album */
-  totalTracks?: number;
+  readonly totalTracks?: number;
   /** Total discs in release */
-  totalDiscs?: number;
+  readonly totalDiscs?: number;
   /** BPM (beats per minute) */
-  bpm?: number;
+  readonly bpm?: number;
   /** Compilation flag */
-  compilation?: boolean;
+  readonly compilation?: boolean;
   /** Sort title for alphabetization */
-  titleSort?: string;
+  readonly titleSort?: string;
   /** Sort artist for alphabetization */
-  artistSort?: string;
+  readonly artistSort?: string;
   /** Sort album for alphabetization */
-  albumSort?: string;
+  readonly albumSort?: string;
 
   // ReplayGain fields
   /** ReplayGain track gain in dB (e.g., "-6.54 dB") */
-  replayGainTrackGain?: string;
+  readonly replayGainTrackGain?: string;
   /** ReplayGain track peak value (0.0-1.0) */
-  replayGainTrackPeak?: string;
+  readonly replayGainTrackPeak?: string;
   /** ReplayGain album gain in dB */
-  replayGainAlbumGain?: string;
+  readonly replayGainAlbumGain?: string;
   /** ReplayGain album peak value (0.0-1.0) */
-  replayGainAlbumPeak?: string;
+  readonly replayGainAlbumPeak?: string;
 
   // Apple Sound Check
   /** Apple Sound Check normalization data (iTunNORM) */
-  appleSoundCheck?: string;
+  readonly appleSoundCheck?: string;
   /** Embedded pictures/artwork */
-  pictures?: import("./pictures.ts").Picture[];
+  readonly pictures?: import("./pictures.ts").Picture[];
   /** Popularity/rating data */
-  ratings?: Array<{ rating: number; email: string; counter: number }>;
+  readonly ratings?: Array<{ rating: number; email: string; counter: number }>;
 }
 
 /**

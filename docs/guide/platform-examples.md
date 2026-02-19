@@ -180,6 +180,10 @@ configuration.
 
 ## Electron
 
+> **Note:** Electron's main process is Node.js. taglib-wasm works via the
+> Node.js WASI path — there is no Electron-specific runtime detection or
+> testing. Keep taglib-wasm in the main process and expose metadata through IPC.
+
 Electron spans both categories. The **main process** has filesystem access; the
 **renderer process** does not (unless `nodeIntegration` is enabled, which is
 discouraged for security).

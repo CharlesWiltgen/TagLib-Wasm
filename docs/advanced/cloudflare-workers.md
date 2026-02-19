@@ -1,8 +1,23 @@
 # Cloudflare Workers
 
-`taglib-wasm` is fully compatible with Cloudflare Workers, enabling serverless
-audio metadata processing at the edge. This guide covers setup, deployment, and
-best practices for using taglib-wasm in Workers.
+`taglib-wasm` supports Cloudflare Workers for serverless audio metadata
+processing at the edge. This guide covers setup, deployment, and best practices.
+
+## Workers API Limitations
+
+The `taglib-wasm/workers` path uses C-style Emscripten bindings with a reduced
+feature set compared to the standard API:
+
+| Feature                                                  | Standard API | Workers API         |
+| -------------------------------------------------------- | ------------ | ------------------- |
+| Basic tags (title, artist, album, etc.)                  | Full         | Full                |
+| Extended tags (albumArtist, MusicBrainz, ReplayGain)     | Full         | Not available       |
+| Audio properties (length, bitrate, sampleRate, channels) | Full         | Full                |
+| Audio properties (codec, bitsPerSample, containerFormat) | Full         | Returns stub values |
+| Cover art / pictures                                     | Full         | Not available       |
+| Ratings                                                  | Full         | Not available       |
+| File buffer export (getFileBuffer)                       | Full         | Not available       |
+| PropertyMap access                                       | Full         | Not available       |
 
 ## Overview
 
@@ -33,13 +48,13 @@ npm install taglib-wasm
 
 ```typescript
 // src/index.ts
-import { TagLib } from "taglib-wasm/workers";
+import { TagLibWorkers } from "taglib-wasm/workers";
+import wasmBinary from "../build/taglib.wasm";
 
 export default {
   async fetch(request: Request): Promise<Response> {
-    // Initialize TagLib with Workers-specific configuration
-    const taglib = await TagLib.initialize({
-      // Reduce memory for Workers environment
+    // Initialize TagLib — wasmBinary is required
+    const taglib = await TagLibWorkers.initialize(wasmBinary, {
       memory: {
         initial: 16 * 1024 * 1024, // 16MB
         maximum: 128 * 1024 * 1024, // 128MB
@@ -61,36 +76,35 @@ export default {
 
 async function handleMetadata(
   request: Request,
-  taglib: TagLib,
+  taglib: TagLibWorkers,
 ): Promise<Response> {
   try {
     // Get audio data from request
     const audioData = new Uint8Array(await request.arrayBuffer());
 
     // Open and process file — automatically disposed when out of scope
-    using file = taglib.openFile(audioData);
-    if (!file) {
-      return new Response("Invalid audio file", { status: 400 });
-    }
+    using file = taglib.open(audioData);
 
     // Extract metadata
+    const tag = file.tag();
+    const props = file.audioProperties();
     const metadata = {
       tag: {
-        title: file.tag.title,
-        artist: file.tag.artist,
-        album: file.tag.album,
-        year: file.tag.year,
-        track: file.tag.track,
-        genre: file.tag.genre,
-        comment: file.tag.comment,
+        title: tag.title,
+        artist: tag.artist,
+        album: tag.album,
+        year: tag.year,
+        track: tag.track,
+        genre: tag.genre,
+        comment: tag.comment,
       },
       audioProperties: {
-        length: file.audioProperties.length,
-        bitrate: file.audioProperties.bitrate,
-        sampleRate: file.audioProperties.sampleRate,
-        channels: file.audioProperties.channels,
+        length: props?.length,
+        bitrate: props?.bitrate,
+        sampleRate: props?.sampleRate,
+        channels: props?.channels,
       },
-      format: file.format,
+      format: file.format(),
     };
 
     return new Response(JSON.stringify(metadata), {
@@ -151,7 +165,7 @@ interface BatchRequest {
 
 async function handleBatch(
   request: Request,
-  taglib: TagLib,
+  taglib: TagLibWorkers,
 ): Promise<Response> {
   const { files } = await request.json<BatchRequest>();
 
@@ -162,17 +176,15 @@ async function handleBatch(
           atob(file.data),
           (c) => c.charCodeAt(0),
         );
-        using tagFile = taglib.openFile(audioData);
-
-        if (!tagFile) {
-          return { name: file.name, error: "Invalid file" };
-        }
+        using tagFile = taglib.open(audioData);
+        const tag = tagFile.tag();
+        const props = tagFile.audioProperties();
 
         return {
           name: file.name,
-          title: tagFile.tag.title,
-          artist: tagFile.tag.artist,
-          duration: tagFile.audioProperties.length,
+          title: tag.title,
+          artist: tag.artist,
+          duration: props?.length,
         };
       } catch (error) {
         return { name: file.name, error: error.message };
@@ -191,7 +203,8 @@ async function handleBatch(
 Cache processed metadata to reduce processing time:
 
 ```typescript
-import { TagLib } from "taglib-wasm/workers";
+import { TagLibWorkers } from "taglib-wasm/workers";
+import wasmBinary from "../build/taglib.wasm";
 
 interface Env {
   METADATA_CACHE: KVNamespace;
@@ -199,7 +212,7 @@ interface Env {
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
-    const taglib = await TagLib.initialize({
+    const taglib = await TagLibWorkers.initialize(wasmBinary, {
       memory: { initial: 16 * 1024 * 1024, maximum: 64 * 1024 * 1024 },
     });
 
@@ -219,8 +232,9 @@ export default {
     }
 
     // Process file
-    using file = taglib.openFile(audioData);
-    const metadata = extractMetadata(file);
+    using file = taglib.open(audioData);
+    const tag = file.tag();
+    const metadata = { title: tag.title, artist: tag.artist };
 
     // Cache for 1 hour
     await env.METADATA_CACHE.put(cacheKey, JSON.stringify(metadata), {
@@ -239,22 +253,23 @@ export default {
 Use Durable Objects for stateful processing:
 
 ```typescript
-import { TagLib } from "taglib-wasm/workers";
+import { TagLibWorkers } from "taglib-wasm/workers";
+import wasmBinary from "../build/taglib.wasm";
 
 export class AudioProcessor {
-  private taglib: TagLib | null = null;
+  private taglib: TagLibWorkers | null = null;
 
   async fetch(request: Request): Promise<Response> {
     // Initialize once per Durable Object instance
     if (!this.taglib) {
-      this.taglib = await TagLib.initialize({
+      this.taglib = await TagLibWorkers.initialize(wasmBinary, {
         memory: { initial: 16 * 1024 * 1024, maximum: 128 * 1024 * 1024 },
       });
     }
 
     // Process request with persistent TagLib instance
     const audioData = new Uint8Array(await request.arrayBuffer());
-    using file = this.taglib.openFile(audioData);
+    using file = this.taglib.open(audioData);
 
     // ... process file ...
 
@@ -297,7 +312,7 @@ adjust memory settings when:
 
 ```typescript
 // Optimize for many small files (< 5MB each)
-const taglib = await TagLib.initialize({
+const taglib = await TagLibWorkers.initialize(wasmBinary, {
   memory: {
     initial: 8 * 1024 * 1024, // 8MB initial
     maximum: 32 * 1024 * 1024, // 32MB maximum
@@ -309,7 +324,7 @@ const taglib = await TagLib.initialize({
 
 ```typescript
 // Optimize for large files (10-50MB)
-const taglib = await TagLib.initialize({
+const taglib = await TagLibWorkers.initialize(wasmBinary, {
   memory: {
     initial: 32 * 1024 * 1024, // 32MB initial
     maximum: 128 * 1024 * 1024, // 128MB maximum (Workers limit)
@@ -321,7 +336,7 @@ const taglib = await TagLib.initialize({
 
 ```typescript
 // Enable debug output for troubleshooting
-const taglib = await TagLib.initialize({
+const taglib = await TagLibWorkers.initialize(wasmBinary, {
   memory: {
     initial: 16 * 1024 * 1024,
     maximum: 64 * 1024 * 1024,
@@ -359,7 +374,10 @@ const taglib = await TagLib.initialize({
 
 ```typescript
 // Production configuration with error handling
-export async function initializeTagLib(fileSize?: number) {
+export async function initializeTagLib(
+  wasmBinary: Uint8Array,
+  fileSize?: number,
+) {
   // Dynamic configuration based on file size
   const config: TagLibConfig = {
     memory: {
@@ -376,11 +394,11 @@ export async function initializeTagLib(fileSize?: number) {
   };
 
   try {
-    return await TagLib.initialize(config);
+    return await TagLibWorkers.initialize(wasmBinary, config);
   } catch (error) {
     console.error("Failed to initialize TagLib:", error);
     // Fallback to minimal configuration
-    return await TagLib.initialize({
+    return await TagLibWorkers.initialize(wasmBinary, {
       memory: { initial: 8 * 1024 * 1024, maximum: 32 * 1024 * 1024 },
     });
   }
@@ -394,11 +412,12 @@ export async function initializeTagLib(fileSize?: number) {
 Process multiple files efficiently in Workers:
 
 ```typescript
-import { TagLib } from "taglib-wasm/workers";
+import { TagLibWorkers } from "taglib-wasm/workers";
+import wasmBinary from "../build/taglib.wasm";
 
 // Process files in chunks to manage memory
 async function processBatch(files: File[]): Promise<any[]> {
-  const taglib = await TagLib.initialize({
+  const taglib = await TagLibWorkers.initialize(wasmBinary, {
     memory: { initial: 16 * 1024 * 1024, maximum: 64 * 1024 * 1024 },
   });
 
@@ -446,7 +465,8 @@ export default {
 Implement comprehensive error handling:
 
 ```typescript
-import { TagLib } from "taglib-wasm/workers";
+import { TagLibWorkers } from "taglib-wasm/workers";
+import wasmBinary from "../build/taglib.wasm";
 
 class AudioMetadataError extends Error {
   constructor(message: string, public statusCode: number = 500) {
@@ -457,7 +477,7 @@ class AudioMetadataError extends Error {
 
 async function handleRequest(request: Request): Promise<Response> {
   try {
-    const taglib = await TagLib.initialize({
+    const taglib = await TagLibWorkers.initialize(wasmBinary, {
       memory: { initial: 16 * 1024 * 1024, maximum: 64 * 1024 * 1024 },
     });
 
@@ -471,15 +491,12 @@ async function handleRequest(request: Request): Promise<Response> {
       throw new AudioMetadataError("Invalid content type", 400);
     }
 
-    // Process audio
+    // Process audio — open() throws InvalidFormatError on bad input
     const audioData = new Uint8Array(await request.arrayBuffer());
-    using file = taglib.openFile(audioData);
+    using file = taglib.open(audioData);
+    const tag = file.tag();
 
-    if (!file) {
-      throw new AudioMetadataError("Invalid audio file", 400);
-    }
-
-    const metadata = extractMetadata(file);
+    const metadata = { title: tag.title, artist: tag.artist };
 
     return new Response(JSON.stringify(metadata), {
       headers: { "content-type": "application/json" },
@@ -709,7 +726,7 @@ const wasmBinary = await env.KV.get("taglib.wasm", "arrayBuffer");
 
 ```typescript
 // Reduce initial memory allocation
-const taglib = await TagLib.initialize({
+const taglib = await TagLibWorkers.initialize(wasmBinary, {
   memory: { initial: 8 * 1024 * 1024 }, // 8MB
 });
 ```

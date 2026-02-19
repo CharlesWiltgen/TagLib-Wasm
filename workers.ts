@@ -1,24 +1,20 @@
 /**
- * Worker pool API for parallel audio metadata processing.
+ * Cloudflare Workers API for audio metadata processing at the edge.
  *
- * Use this module for high-throughput scenarios like batch processing
- * music libraries or handling multiple concurrent requests.
+ * Uses C-style Emscripten bindings optimized for the Workers environment.
+ * Supports basic tags and audio properties; see docs for limitations.
  *
  * @module workers
  *
  * @example
  * ```typescript
  * import { TagLibWorkers } from "@charlesw/taglib-wasm/workers";
+ * import wasmBinary from "../build/taglib.wasm";
  *
- * // Create a worker pool
- * const pool = new TagLibWorkers({ poolSize: 4 });
- *
- * // Process files in parallel
- * const results = await Promise.all(
- *   files.map(file => pool.readTags(file))
- * );
- *
- * pool.terminate();
+ * const taglib = await TagLibWorkers.initialize(wasmBinary);
+ * using file = taglib.open(audioBuffer);
+ * const tag = file.tag();
+ * console.log(tag.title, tag.artist);
  * ```
  */
 
