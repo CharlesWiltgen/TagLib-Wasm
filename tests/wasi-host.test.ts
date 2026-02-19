@@ -192,6 +192,81 @@ describe(
       }
     });
 
+    it("should decode albumArtist from WASI buffer path", async () => {
+      using wasi = await loadWasiHost({
+        wasmPath: WASM_PATH,
+        preopens: { "/test": TEST_FILES_DIR },
+      });
+
+      const fileData = await Deno.readFile(
+        resolve(TEST_FILES_DIR, FORMAT_FILES.FLAC.real),
+      );
+      const tags = readTagsViaBuffer(wasi, fileData);
+      // kiss-snippet files don't have albumArtist set — returns empty string
+      assertEquals(tags.albumArtist, "");
+    });
+
+    it("should decode composer from WASI buffer path", async () => {
+      using wasi = await loadWasiHost({
+        wasmPath: WASM_PATH,
+        preopens: { "/test": TEST_FILES_DIR },
+      });
+
+      const fileData = await Deno.readFile(
+        resolve(TEST_FILES_DIR, FORMAT_FILES.FLAC.real),
+      );
+      const tags = readTagsViaBuffer(wasi, fileData);
+      assertEquals(tags.composer, "");
+    });
+
+    it("should decode disc number from WASI buffer path", async () => {
+      using wasi = await loadWasiHost({
+        wasmPath: WASM_PATH,
+        preopens: { "/test": TEST_FILES_DIR },
+      });
+
+      const fileData = await Deno.readFile(
+        resolve(TEST_FILES_DIR, FORMAT_FILES.FLAC.real),
+      );
+      const tags = readTagsViaBuffer(wasi, fileData);
+      // Wire key is "disc" (from TagData struct), not "discNumber"
+      assertEquals((tags as Record<string, unknown>).disc, 0);
+    });
+
+    it("should decode BPM from WASI buffer path", async () => {
+      using wasi = await loadWasiHost({
+        wasmPath: WASM_PATH,
+        preopens: { "/test": TEST_FILES_DIR },
+      });
+
+      const fileData = await Deno.readFile(
+        resolve(TEST_FILES_DIR, FORMAT_FILES.FLAC.real),
+      );
+      const tags = readTagsViaBuffer(wasi, fileData);
+      assertEquals(tags.bpm, 0);
+    });
+
+    it("should map UPPERCASE property keys to camelCase for WASI", async () => {
+      using _wasi = await loadWasiHost({
+        wasmPath: WASM_PATH,
+        preopens: { "/test": TEST_FILES_DIR },
+      });
+
+      const { WasiFileHandle } = await import(
+        "../src/runtime/wasi-adapter/file-handle.ts"
+      );
+      const handle = new WasiFileHandle(_wasi);
+      const fileData = await Deno.readFile(
+        resolve(TEST_FILES_DIR, FORMAT_FILES.FLAC.real),
+      );
+      handle.loadFromBuffer(fileData);
+
+      // ALBUMARTIST should map to albumArtist key in decoded data
+      const result = handle.getProperty("ALBUMARTIST");
+      assertEquals(typeof result, "string");
+      handle.destroy();
+    });
+
     it("should throw for invalid wasm path", async () => {
       await assertRejects(
         () =>
@@ -235,5 +310,122 @@ describe(
         }
       });
     }
+
+    for (const [format, paths] of Object.entries(FORMAT_FILES)) {
+      it(`should return non-zero audio properties via WasiFileHandle (${format})`, async () => {
+        using wasi = await loadWasiHost({
+          wasmPath: WASM_PATH,
+          preopens: { "/test": TEST_FILES_DIR },
+        });
+
+        const { WasiFileHandle } = await import(
+          "../src/runtime/wasi-adapter/file-handle.ts"
+        );
+        const handle = new WasiFileHandle(wasi);
+        const fileData = await Deno.readFile(
+          resolve(TEST_FILES_DIR, paths.real),
+        );
+        handle.loadFromBuffer(fileData);
+
+        const props = handle.getAudioProperties();
+        assertGreater(
+          props.sampleRate(),
+          0,
+          `${format}: sampleRate should be > 0`,
+        );
+        assertGreater(props.channels(), 0, `${format}: channels should be > 0`);
+        assertGreater(
+          props.lengthInMilliseconds(),
+          0,
+          `${format}: lengthMs should be > 0`,
+        );
+
+        handle.destroy();
+      });
+    }
+
+    for (const [format, paths] of Object.entries(FORMAT_FILES)) {
+      it(`taglib.open() audioProperties() e2e via WASI (${format})`, async () => {
+        const { TagLib } = await import("../src/taglib/taglib-class.ts");
+        const taglib = await TagLib.initialize({ forceWasmType: "wasi" });
+        const filePath = resolve(TEST_FILES_DIR, paths.real);
+        const audioData = await Deno.readFile(filePath);
+
+        const audioFile = await taglib.open(audioData);
+        try {
+          const props = audioFile.audioProperties();
+          assertExists(props, `${format}: audioProperties should not be null`);
+          assertGreater(
+            props!.sampleRate,
+            0,
+            `${format}: sampleRate should be > 0`,
+          );
+          assertGreater(
+            props!.channels,
+            0,
+            `${format}: channels should be > 0`,
+          );
+        } finally {
+          audioFile.dispose();
+        }
+      });
+    }
+
+    it("should write tags via buffer and read them back", async () => {
+      using wasi = await loadWasiHost({
+        wasmPath: WASM_PATH,
+        preopens: { "/test": TEST_FILES_DIR },
+      });
+
+      const { WasiFileHandle } = await import(
+        "../src/runtime/wasi-adapter/file-handle.ts"
+      );
+      const handle = new WasiFileHandle(wasi);
+      const fileData = await Deno.readFile(
+        resolve(TEST_FILES_DIR, FORMAT_FILES.FLAC.real),
+      );
+      handle.loadFromBuffer(fileData);
+
+      const tag = handle.getTag();
+      tag.setTitle("Buffer Write Test");
+      const saved = handle.save();
+      assertEquals(saved, true, "save() should return true for buffer write");
+
+      // Re-read the modified buffer
+      const handle2 = new WasiFileHandle(wasi);
+      handle2.loadFromBuffer(handle.getBuffer());
+      assertEquals(handle2.getTag().title(), "Buffer Write Test");
+
+      handle2.destroy();
+      handle.destroy();
+    });
+
+    it("should saveToFile() via WASI buffer write path", async () => {
+      const { TagLib } = await import("../src/taglib/taglib-class.ts");
+      const taglib = await TagLib.initialize({ forceWasmType: "wasi" });
+
+      const fileData = await Deno.readFile(
+        resolve(TEST_FILES_DIR, FORMAT_FILES.FLAC.real),
+      );
+      const audioFile = await taglib.open(fileData);
+
+      const tempDir = await Deno.makeTempDir();
+      const tempPath = resolve(tempDir, "save-test.flac");
+      try {
+        audioFile.tag().setTitle("SaveToFile Test");
+        await audioFile.saveToFile(tempPath);
+
+        const saved = await Deno.readFile(tempPath);
+        const audioFile2 = await taglib.open(saved);
+        try {
+          assertEquals(audioFile2.tag().title, "SaveToFile Test");
+        } finally {
+          audioFile2.dispose();
+        }
+      } finally {
+        audioFile.dispose();
+        await Deno.remove(tempDir, { recursive: true });
+      }
+    });
   },
 );

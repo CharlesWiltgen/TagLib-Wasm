@@ -56,6 +56,7 @@ export function writeTagsToWasm(
   const tagBytes = encodeTagData(tagData);
   const inputBuf = arena.allocBuffer(fileData);
   const tagBuf = arena.allocBuffer(tagBytes);
+  const outBufPtr = arena.allocUint32();
   const outSizePtr = arena.allocUint32();
 
   const result = wasi.tl_write_tags(
@@ -64,11 +65,19 @@ export function writeTagsToWasm(
     inputBuf.size,
     tagBuf.ptr,
     tagBuf.size,
-    0,
+    outBufPtr.ptr,
     outSizePtr.ptr,
   );
 
-  // Buffer-to-buffer write is not supported by the C API (TL_ERROR_NOT_IMPLEMENTED).
-  // Path-based writes use writeTagsWasi() from wasi-test-helpers instead.
+  if (result === 0) {
+    const bufferPtr = outBufPtr.readUint32();
+    const size = outSizePtr.readUint32();
+    if (bufferPtr && size > 0) {
+      const u8 = new Uint8Array(wasi.memory.buffer);
+      const output = new Uint8Array(u8.slice(bufferPtr, bufferPtr + size));
+      wasi.free(bufferPtr);
+      return output;
+    }
+  }
   return null;
 }

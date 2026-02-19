@@ -45,6 +45,24 @@ static void extract_tags(TagLib::File* file, TagData* data) {
     data->genre = string_to_cstr(tag->genre());
     data->year = tag->year();
     data->track = tag->track();
+
+    TagLib::PropertyMap props = file->properties();
+
+    auto it = props.find("ALBUMARTIST");
+    if (it != props.end() && !it->second.isEmpty())
+        data->albumArtist = string_to_cstr(it->second.front());
+
+    it = props.find("COMPOSER");
+    if (it != props.end() && !it->second.isEmpty())
+        data->composer = string_to_cstr(it->second.front());
+
+    it = props.find("DISCNUMBER");
+    if (it != props.end() && !it->second.isEmpty())
+        data->disc = static_cast<uint32_t>(it->second.front().toInt());
+
+    it = props.find("BPM");
+    if (it != props.end() && !it->second.isEmpty())
+        data->bpm = static_cast<uint32_t>(it->second.front().toInt());
 }
 
 static void extract_properties(TagLib::File* file, TagData* data) {
@@ -64,6 +82,8 @@ static void free_tag_data_strings(TagData* data) {
     if (data->album) { free((void*)data->album); data->album = nullptr; }
     if (data->comment) { free((void*)data->comment); data->comment = nullptr; }
     if (data->genre) { free((void*)data->genre); data->genre = nullptr; }
+    if (data->albumArtist) { free((void*)data->albumArtist); data->albumArtist = nullptr; }
+    if (data->composer) { free((void*)data->composer); data->composer = nullptr; }
 }
 
 static tl_error_code encode_tag_data(TagData* tag_data,
@@ -129,28 +149,56 @@ static tl_error_code read_from_path(const char* path,
     }
 }
 
+static void apply_tag_data(TagLib::Tag* tag, const TagData* tag_data) {
+    if (tag_data->title)
+        tag->setTitle(TagLib::String(tag_data->title, TagLib::String::UTF8));
+    if (tag_data->artist)
+        tag->setArtist(TagLib::String(tag_data->artist, TagLib::String::UTF8));
+    if (tag_data->album)
+        tag->setAlbum(TagLib::String(tag_data->album, TagLib::String::UTF8));
+    if (tag_data->comment)
+        tag->setComment(TagLib::String(tag_data->comment, TagLib::String::UTF8));
+    if (tag_data->genre)
+        tag->setGenre(TagLib::String(tag_data->genre, TagLib::String::UTF8));
+    if (tag_data->year)
+        tag->setYear(tag_data->year);
+    if (tag_data->track)
+        tag->setTrack(tag_data->track);
+}
+
 static tl_error_code write_to_path(const char* path, const TagData* tag_data) {
     try {
         TagLib::FileRef ref(path);
         if (ref.isNull() || !ref.tag()) return TL_ERROR_IO_WRITE;
 
-        TagLib::Tag* tag = ref.tag();
-        if (tag_data->title)
-            tag->setTitle(TagLib::String(tag_data->title, TagLib::String::UTF8));
-        if (tag_data->artist)
-            tag->setArtist(TagLib::String(tag_data->artist, TagLib::String::UTF8));
-        if (tag_data->album)
-            tag->setAlbum(TagLib::String(tag_data->album, TagLib::String::UTF8));
-        if (tag_data->comment)
-            tag->setComment(TagLib::String(tag_data->comment, TagLib::String::UTF8));
-        if (tag_data->genre)
-            tag->setGenre(TagLib::String(tag_data->genre, TagLib::String::UTF8));
-        if (tag_data->year)
-            tag->setYear(tag_data->year);
-        if (tag_data->track)
-            tag->setTrack(tag_data->track);
+        apply_tag_data(ref.tag(), tag_data);
 
         if (!ref.save()) return TL_ERROR_IO_WRITE;
+        return TL_SUCCESS;
+    } catch (...) {
+        return TL_ERROR_PARSE_FAILED;
+    }
+}
+
+static tl_error_code write_to_buffer(const uint8_t* buf, size_t len,
+                                     const TagData* tag_data,
+                                     uint8_t** out_buf, size_t* out_size) {
+    try {
+        TagLib::ByteVector bv(reinterpret_cast<const char*>(buf),
+                              static_cast<unsigned int>(len));
+        TagLib::ByteVectorStream stream(bv);
+        TagLib::FileRef ref(&stream);
+        if (ref.isNull() || !ref.tag()) return TL_ERROR_PARSE_FAILED;
+
+        apply_tag_data(ref.tag(), tag_data);
+
+        if (!ref.save()) return TL_ERROR_IO_WRITE;
+
+        const TagLib::ByteVector* result = stream.data();
+        *out_size = result->size();
+        *out_buf = (uint8_t*)malloc(result->size());
+        if (!*out_buf) return TL_ERROR_MEMORY_ALLOCATION;
+        memcpy(*out_buf, result->data(), result->size());
         return TL_SUCCESS;
     } catch (...) {
         return TL_ERROR_PARSE_FAILED;
@@ -178,7 +226,8 @@ tl_error_code taglib_read_shim(const char* path, const uint8_t* buf, size_t len,
 }
 
 tl_error_code taglib_write_shim(const char* path, const uint8_t* buf, size_t len,
-                                const TagData* tag_data) {
+                                const TagData* tag_data,
+                                uint8_t** out_buf, size_t* out_size) {
     if (!tag_data) {
         return TL_ERROR_INVALID_INPUT;
     }
@@ -186,7 +235,10 @@ tl_error_code taglib_write_shim(const char* path, const uint8_t* buf, size_t len
     if (path && path[0] != '\0') {
         return write_to_path(path, tag_data);
     } else if (buf && len > 0) {
-        return TL_ERROR_NOT_IMPLEMENTED;
+        if (!out_buf || !out_size) return TL_ERROR_INVALID_INPUT;
+        *out_buf = nullptr;
+        *out_size = 0;
+        return write_to_buffer(buf, len, tag_data, out_buf, out_size);
     } else {
         return TL_ERROR_INVALID_INPUT;
     }
