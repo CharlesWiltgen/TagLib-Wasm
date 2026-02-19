@@ -8,6 +8,7 @@
 import type { FileHandle, TagLibModule } from "../../wasm.ts";
 import type { WasiModule } from "../wasmer-sdk-loader/index.ts";
 import { WasmerExecutionError } from "../wasmer-sdk-loader/index.ts";
+import { MemoryError } from "../../errors/classes.ts";
 import { WasiFileHandle } from "./file-handle.ts";
 
 export class WasiToTagLibAdapter implements TagLibModule {
@@ -87,7 +88,12 @@ export class WasiToTagLibAdapter implements TagLibModule {
 
   _realloc(ptr: number, newSize: number): number {
     const newPtr = this.wasi.malloc(newSize);
-    if (newPtr && ptr) {
+    if (!newPtr) {
+      throw new MemoryError(
+        `realloc failed. Requested size: ${newSize} bytes`,
+      );
+    }
+    if (ptr) {
       const oldData = this.heap.slice(ptr, ptr + newSize);
       this.heap.set(oldData, newPtr);
       this.wasi.free(ptr);

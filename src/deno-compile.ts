@@ -8,6 +8,7 @@
  */
 
 import { TagLib } from "./taglib.ts";
+import { FileOperationError } from "./errors/classes.ts";
 
 /**
  * Detects if the code is running in a compiled Deno binary.
@@ -117,7 +118,10 @@ export async function prepareWasmForEmbedding(
     }
 
     if (!wasmData || !sourcePath) {
-      throw new Error("Could not find taglib-web.wasm in expected locations");
+      throw new FileOperationError(
+        "read",
+        "Could not find taglib-web.wasm in expected locations",
+      );
     }
 
     // Write to output path
@@ -129,6 +133,9 @@ export async function prepareWasmForEmbedding(
     );
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    throw new Error(`Failed to prepare WASM for embedding: ${message}`);
+    throw new FileOperationError(
+      "read",
+      `Failed to prepare WASM for embedding: ${message}`,
+    );
   }
 }

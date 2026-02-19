@@ -1,5 +1,6 @@
 import type { Picture, PictureType } from "../types.ts";
 import { PICTURE_TYPE_VALUES } from "../types.ts";
+import { InvalidFormatError } from "../errors/classes.ts";
 
 /**
  * Convert a Picture object to a data URL for display in web browsers
@@ -42,7 +43,7 @@ export function dataURLToPicture(
   const regex = /^data:([^;]+);base64,(.+)$/;
   const matches = regex.exec(dataURL);
   if (!matches) {
-    throw new Error("Invalid data URL format");
+    throw new InvalidFormatError("Invalid data URL format");
   }
 
   const [, mimeType, base64] = matches;

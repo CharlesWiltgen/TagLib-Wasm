@@ -4,6 +4,7 @@
 
 import { init } from "@wasmer/sdk";
 import { WasmerInitError } from "./types.ts";
+import { TagLibInitializationError } from "../../errors/classes.ts";
 
 // Track initialization state
 let isInitialized = false;
@@ -44,7 +45,9 @@ export async function loadWasmBinary(path: string): Promise<Uint8Array> {
   if (path.startsWith("http://") || path.startsWith("https://")) {
     const response = await fetch(path);
     if (!response.ok) {
-      throw new Error(`Failed to fetch WASM: ${response.statusText}`);
+      throw new TagLibInitializationError(
+        `Failed to fetch WASM: ${response.statusText}`,
+      );
     }
     return new Uint8Array(await response.arrayBuffer());
   } else {

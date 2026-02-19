@@ -37,7 +37,7 @@ export class TagLibError extends Error {
   constructor(
     public readonly code: TagLibErrorCode,
     message: string,
-    public readonly details?: Record<string, any>,
+    public readonly details?: Record<string, unknown>,
   ) {
     super(message);
     this.name = "TagLibError";

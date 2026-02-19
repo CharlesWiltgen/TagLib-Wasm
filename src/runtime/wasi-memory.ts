@@ -5,6 +5,8 @@
  * Each allocation has single responsibility with automatic cleanup.
  */
 
+import { MemoryError } from "../errors/classes.ts";
+
 /**
  * Minimal memory interface: only `.buffer` is used (never `.grow()`).
  * Accepts both real WebAssembly.Memory and plain buffer-only shims.
@@ -45,7 +47,9 @@ export class WasmAlloc {
     this.#wasm = wasm;
     this.#ptr = wasm.malloc(size);
     if (this.#ptr === 0) {
-      throw new Error(`malloc(${size}) failed`);
+      throw new MemoryError(
+        `malloc returned null. Requested size: ${size} bytes`,
+      );
     }
     this.#size = size;
   }
@@ -62,7 +66,9 @@ export class WasmAlloc {
    */
   write(bytes: Uint8Array, offset = 0): void {
     if (offset + bytes.length > this.#size) {
-      throw new Error(`Write would exceed allocation bounds`);
+      throw new MemoryError(
+        `Write exceeds allocation bounds. Offset: ${offset}, size: ${bytes.byteLength}, allocated: ${this.#size}`,
+      );
     }
     const { u8 } = heapViews(this.#wasm.memory);
     u8.set(bytes, this.#ptr + offset);
@@ -73,7 +79,9 @@ export class WasmAlloc {
    */
   read(len = this.#size, offset = 0): Uint8Array {
     if (offset + len > this.#size) {
-      throw new Error(`Read would exceed allocation bounds`);
+      throw new MemoryError(
+        `Read exceeds allocation bounds. Offset: ${offset}, size: ${len}, allocated: ${this.#size}`,
+      );
     }
     const { u8 } = heapViews(this.#wasm.memory);
     return u8.subarray(this.#ptr + offset, this.#ptr + offset + len);
@@ -88,7 +96,9 @@ export class WasmAlloc {
       ? new TextEncoder().encode(input)
       : input;
     if (bytes.length >= this.#size) {
-      throw new Error(`String too long for allocation`);
+      throw new MemoryError(
+        `String too long for allocation. String: ${bytes.byteLength} bytes, allocated: ${this.#size}`,
+      );
     }
     const { u8 } = heapViews(this.#wasm.memory);
     u8.set(bytes, this.#ptr);
@@ -112,7 +122,9 @@ export class WasmAlloc {
    */
   writeUint32(value: number, offset = 0): void {
     if (offset + 4 > this.#size) {
-      throw new Error(`Write would exceed allocation bounds`);
+      throw new MemoryError(
+        `Write exceeds allocation bounds. Offset: ${offset}, size: 4, allocated: ${this.#size}`,
+      );
     }
     const { dv } = heapViews(this.#wasm.memory);
     dv.setUint32(this.#ptr + offset, value, true);
@@ -123,7 +135,9 @@ export class WasmAlloc {
    */
   readUint32(offset = 0): number {
     if (offset + 4 > this.#size) {
-      throw new Error(`Read would exceed allocation bounds`);
+      throw new MemoryError(
+        `Read exceeds allocation bounds. Offset: ${offset}, size: 4, allocated: ${this.#size}`,
+      );
     }
     const { dv } = heapViews(this.#wasm.memory);
     return dv.getUint32(this.#ptr + offset, true);

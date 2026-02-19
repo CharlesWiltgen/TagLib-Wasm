@@ -1,7 +1,11 @@
 import type { TagLibModule, WasmModule } from "../wasm.ts";
 import type { OpenOptions, Tag as BasicTag } from "../types.ts";
 import type { WasmtimeSidecar } from "../runtime/wasmtime-sidecar.ts";
-import { InvalidFormatError, TagLibInitializationError } from "../errors.ts";
+import {
+  InvalidFormatError,
+  TagLibInitializationError,
+  WorkerError,
+} from "../errors.ts";
 import {
   type BatchOperation,
   getGlobalWorkerPool,
@@ -186,7 +190,7 @@ export class TagLib {
     operations: BatchOperation[],
   ): Promise<any> {
     if (!this.workerPool) {
-      throw new Error(
+      throw new WorkerError(
         "Worker pool not initialized. Enable it with TagLib.initialize({ useWorkerPool: true })",
       );
     }
@@ -198,7 +202,7 @@ export class TagLib {
     operation: "readTags" | "readProperties",
   ): Promise<T[]> {
     if (!this.workerPool) {
-      throw new Error(
+      throw new WorkerError(
         "Worker pool not initialized. Enable it with TagLib.initialize({ useWorkerPool: true })",
       );
     }

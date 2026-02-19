@@ -1,3 +1,4 @@
+import { MetadataError } from "../errors/classes.ts";
 import type { Picture, PictureType } from "../types.ts";
 import { PICTURE_TYPE_VALUES } from "../types.ts";
 import { readCoverArt, readPictures } from "../simple/index.ts";
@@ -27,7 +28,7 @@ export async function exportCoverArt(
 ): Promise<void> {
   const coverData = await readCoverArt(audioPath);
   if (!coverData) {
-    throw new Error(`No cover art found in: ${audioPath}`);
+    throw new MetadataError("read", `No cover art found. Path: ${audioPath}`);
   }
 
   await writeFileData(imagePath, coverData);
@@ -62,7 +63,10 @@ export async function exportPictureByType(
   const picture = pictures.find((pic: Picture) => pic.type === typeValue);
 
   if (!picture) {
-    throw new Error(`No picture of type ${type} found in: ${audioPath}`);
+    throw new MetadataError(
+      "read",
+      `No picture of type ${type} found. Path: ${audioPath}`,
+    );
   }
 
   await writeFileData(imagePath, picture.data);

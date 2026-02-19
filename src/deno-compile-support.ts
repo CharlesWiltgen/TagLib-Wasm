@@ -6,6 +6,7 @@
  */
 
 import type { LoadTagLibOptions } from "./runtime/loader-types.ts";
+import { TagLibInitializationError } from "./errors/classes.ts";
 
 /**
  * Detects if running in a Deno compiled binary
@@ -109,9 +110,8 @@ export async function initializeForDeno(options: DenoCompileOptions = {}) {
   const wasmBinary = await loadWasmForDeno(options);
 
   if (!wasmBinary) {
-    throw new Error(
-      "Failed to load WASM module. " +
-        "For compiled binaries, either bundle the WASM or ensure network access.",
+    throw new TagLibInitializationError(
+      "Failed to load WASM module. For compiled binaries, either bundle the WASM or ensure network access.",
     );
   }
 

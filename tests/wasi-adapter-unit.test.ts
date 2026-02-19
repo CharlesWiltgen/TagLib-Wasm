@@ -342,7 +342,7 @@ describe("WasiFileHandle", () => {
 
     const props = fh.getAudioProperties() as any;
     assertExists(props);
-    assertEquals(props.length(), 0);
+    assertEquals(props.lengthInSeconds(), 0);
     assertEquals(props.bitrate(), 0);
     assertEquals(props.sampleRate(), 0);
     assertEquals(props.channels(), 0);

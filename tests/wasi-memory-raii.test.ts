@@ -7,6 +7,7 @@
 
 import { assert, assertEquals, assertThrows } from "@std/assert";
 import { describe, it } from "@std/testing/bdd";
+import { MemoryError } from "../src/errors/classes.ts";
 import {
   heapViews,
   WasmAlloc,
@@ -104,16 +105,16 @@ describe("WasmAlloc", () => {
       () => {
         alloc.write(largeData);
       },
-      Error,
-      "Write would exceed allocation bounds",
+      MemoryError,
+      "Write exceeds allocation bounds",
     );
 
     assertThrows(
       () => {
         alloc.read(20);
       },
-      Error,
-      "Read would exceed allocation bounds",
+      MemoryError,
+      "Read exceeds allocation bounds",
     );
   });
 
@@ -224,8 +225,8 @@ describe("RAII Error Scenarios", () => {
       () => {
         new WasmAlloc(wasm, 100);
       },
-      Error,
-      "malloc(100) failed",
+      MemoryError,
+      "malloc returned null",
     );
   });
 

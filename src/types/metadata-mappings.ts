@@ -44,7 +44,10 @@ export interface FieldMapping {
  * const vorbisField = METADATA_MAPPINGS.albumArtist.vorbis; // "ALBUMARTIST"
  * ```
  */
-export const METADATA_MAPPINGS: Record<keyof ExtendedTag, FieldMapping> = {
+export const METADATA_MAPPINGS: Record<
+  Exclude<keyof ExtendedTag, "pictures" | "ratings">,
+  FieldMapping
+> = {
   // Basic fields (already handled by TagLib's standard API)
   title: {
     id3v2: { frame: "TIT2" },
