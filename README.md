@@ -12,17 +12,17 @@
 [![Node.js](https://img.shields.io/badge/Node.js-339933?logo=nodedotjs&logoColor=white)](https://nodejs.org/)
 [![Bun](https://img.shields.io/badge/Bun-000000?logo=bun&logoColor=white)](https://bun.sh/)
 [![Cloudflare Workers](https://img.shields.io/badge/Cloudflare%20Workers-F38020?logo=cloudflare&logoColor=white)](https://workers.cloudflare.com/)
-[![Electron](https://img.shields.io/badge/Electron-47848F?logo=electron&logoColor=white)](https://www.electronjs.org/)
+[![Electron (Node.js)](https://img.shields.io/badge/Electron%20%28Node.js%29-47848F?logo=electron&logoColor=white)](https://www.electronjs.org/)
 [![Browsers](https://img.shields.io/badge/Browsers-E34C26?logo=html5&logoColor=white)](https://html.spec.whatwg.org/multipage/)
 
 TagLib-Wasm is the **universal tagging library for TypeScript/JavaScript**
 (TS|JS) platforms: **Deno**, **Node.js**, **Bun**, **Cloudflare Workers**,
-**Electron**, and **browsers**.
+**Electron** (via Node.js), and **browsers**.
 
 This project exists because the TS|JS ecosystem had no battle-tested audio
 tagging library that supports reading and writing music metadata to all popular
 audio formats. It aspires to be a universal solution for all TS|JS-capable
-platforms — Deno, Node.js, Bun, Electron, Cloudflare Workers, and browsers.
+platforms — Deno, Node.js, Bun, Electron (Node.js), Cloudflare Workers, and browsers.
 
 TagLib-Wasm stands on the shoulders of giants, including
 [TagLib](https://taglib.org/) itself, [Emscripten](https://emscripten.org/), and
@@ -37,8 +37,8 @@ TagLib itself is legendary, and a core dependency of many music apps.
   (browser) for optimal performance with no configuration
 - **Full audio format support** – Supports all audio formats supported by TagLib
 - **TypeScript first** – Complete type definitions and modern API
-- **Wide TS/JS runtime support** – Deno, Node.js, Bun, Electron, Cloudflare
-  Workers, and browsers
+- **Wide TS/JS runtime support** – Deno, Node.js, Bun, Electron (Node.js),
+  Cloudflare Workers, and browsers
 - **Format abstraction** – Handles container format details automagically when
   possible
 - **Zero dependencies** – Self-contained Wasm bundle
@@ -72,21 +72,22 @@ npm install taglib-wasm
 bun add taglib-wasm
 ```
 
-### Electron
+### Electron (Node.js)
 
 ```bash
 npm install taglib-wasm
 ```
 
-Works in both main and renderer processes:
+taglib-wasm works in Electron's main process (which is Node.js). For the
+renderer process, expose metadata through IPC:
 
 ```typescript
 // Main process
 import { TagLib } from "taglib-wasm";
-
-// Renderer process (with nodeIntegration: true)
-const { TagLib } = require("taglib-wasm");
 ```
+
+See [Platform Examples](docs/guide/platform-examples.md#electron) for full IPC
+setup.
 
 ### Deno Compiled Binaries (Offline Support)
 
@@ -417,13 +418,13 @@ await file.saveToFile(); // Full file loaded only here
 
 taglib-wasm auto-selects the fastest available backend — no configuration needed:
 
-| Environment            | Backend           | How it works                                           | Performance    |
-| ---------------------- | ----------------- | ------------------------------------------------------ | -------------- |
-| **Deno / Node.js**     | WASI (auto)       | Seek-based filesystem I/O; reads only headers and tags | Fastest        |
-| **Browsers / Workers** | Emscripten (auto) | Entire file loaded into memory as buffer               | Baseline       |
-| **Opt-in**             | Wasmtime sidecar  | Out-of-process WASI with direct filesystem access      | Best for batch |
+| Environment              | Backend           | How it works                                           | Performance    |
+| ------------------------ | ----------------- | ------------------------------------------------------ | -------------- |
+| **Deno / Node.js / Bun** | WASI (auto)       | Seek-based filesystem I/O; reads only headers and tags | Fastest        |
+| **Browsers / Workers**   | Emscripten (auto) | Entire file loaded into memory as buffer               | Baseline       |
+| **Opt-in**               | Wasmtime sidecar  | Out-of-process WASI with direct filesystem access      | Best for batch |
 
-On Deno and Node.js you get WASI automatically — nothing to configure. For
+On Deno, Node.js, and Bun you get WASI automatically — nothing to configure. For
 heavy batch workloads, the optional Wasmtime sidecar provides direct filesystem
 access via a sandboxed subprocess:
 
@@ -490,14 +491,14 @@ npm test
 
 `taglib-wasm` works across all major JavaScript runtimes:
 
-| Runtime                | Status | Installation              | Notes                     |
-| ---------------------- | ------ | ------------------------- | ------------------------- |
-| **Deno**               | Full   | `npm:taglib-wasm`         | Native TypeScript         |
-| **Node.js**            | Full   | `npm install taglib-wasm` | TypeScript via tsx        |
-| **Bun**                | Full   | `bun add taglib-wasm`     | Native TypeScript         |
-| **Browser**            | Full   | Via bundler               | Full API support          |
-| **Cloudflare Workers** | Full   | `taglib-wasm/workers`     | Memory-optimized build    |
-| **Electron**           | Full   | `npm install taglib-wasm` | Main & renderer processes |
+| Runtime                | Status  | Installation              | Notes                                                                                                   |
+| ---------------------- | ------- | ------------------------- | ------------------------------------------------------------------------------------------------------- |
+| **Deno**               | Full    | `npm:taglib-wasm`         | Native TypeScript                                                                                       |
+| **Node.js**            | Full    | `npm install taglib-wasm` | TypeScript via tsx                                                                                      |
+| **Bun**                | Partial | `bun add taglib-wasm`     | Import + init verified; full test suite is Deno-only                                                    |
+| **Browser**            | Full    | Via bundler               | Full API support                                                                                        |
+| **Cloudflare Workers** | Partial | `taglib-wasm/workers`     | Basic tags only; see [Workers limitations](docs/advanced/cloudflare-workers.md#workers-api-limitations) |
+| **Electron**           | Node.js | `npm install taglib-wasm` | Main process; renderer via IPC                                                                          |
 
 ## Known Limitations
 
