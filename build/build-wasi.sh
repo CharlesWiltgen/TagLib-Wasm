@@ -368,3 +368,8 @@ echo "  📝 Meta: $DIST_DIR/taglib_wasi.json"
 echo ""
 echo "Target environments: Deno, Node.js (WASI), Cloudflare Workers"
 echo "Optimizations: Size-optimized (-Oz), stripped"
+
+# Copy WASI binary to build/ for JSR publishing
+cp "$DIST_DIR/taglib_wasi.wasm" "$PROJECT_ROOT/build/taglib_wasi.wasm"
+echo ""
+echo "Published copy: build/taglib_wasi.wasm"

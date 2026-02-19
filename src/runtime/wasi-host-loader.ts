@@ -43,7 +43,11 @@ async function resolveFs(
 export async function loadWasiHost(
   config: WasiHostLoaderConfig,
 ): Promise<WasiModule & Disposable> {
-  const wasmPath = config.wasmPath ?? "./dist/wasi/taglib_wasi.wasm";
+  const defaultPath = (() => {
+    const url = new URL("../../build/taglib_wasi.wasm", import.meta.url);
+    return url.protocol === "file:" ? url.pathname : url.href;
+  })();
+  const wasmPath = config.wasmPath ?? defaultPath;
   const preopens = config.preopens ?? {};
   const fs = await resolveFs(config.fs);
 

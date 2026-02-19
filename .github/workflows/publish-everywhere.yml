@@ -171,6 +171,27 @@ jobs:
             exit 1
           fi
 
+      - name: Verify WASM binaries are fresh
+        if: steps.check.outputs.should-publish == 'true'
+        run: |
+          # Emscripten: build/ copy must match what the build just produced
+          if ! git diff --quiet -- build/taglib-web.wasm; then
+            echo "::error::build/taglib-web.wasm is stale — the build produced a different binary than what's committed"
+            exit 1
+          fi
+
+          # WASI: must exist with reasonable size (not rebuilt in publish CI)
+          if [ ! -f build/taglib_wasi.wasm ]; then
+            echo "::error::build/taglib_wasi.wasm is missing from the repository"
+            exit 1
+          fi
+          WASI_SIZE=$(stat -c%s build/taglib_wasi.wasm 2>/dev/null || stat -f%z build/taglib_wasi.wasm)
+          if [ "$WASI_SIZE" -lt 100000 ]; then
+            echo "::error::build/taglib_wasi.wasm is suspiciously small ($WASI_SIZE bytes)"
+            exit 1
+          fi
+          echo "✅ WASM binaries verified (Emscripten: fresh, WASI: ${WASI_SIZE} bytes)"
+
       - name: Upload build artifacts
         if: steps.check.outputs.should-publish == 'true'
         uses: actions/upload-artifact@v4

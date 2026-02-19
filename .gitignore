@@ -12,6 +12,8 @@ KNOWN_ISSUES.md
 # Build artifacts
 build/*/
 build/*.wasm
+!build/taglib-web.wasm
+!build/taglib_wasi.wasm
 build/*.js
 build/wasi-env.sh
 dist/

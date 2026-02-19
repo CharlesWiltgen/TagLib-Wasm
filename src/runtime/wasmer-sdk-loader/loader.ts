@@ -16,7 +16,10 @@ export async function loadWasmerWasi(
   config: WasmerLoaderConfig = {},
 ): Promise<WasiModule> {
   const {
-    wasmPath = "./dist/taglib-wasi.wasm",
+    wasmPath = (() => {
+      const url = new URL("../../../build/taglib_wasi.wasm", import.meta.url);
+      return url.protocol === "file:" ? url.pathname : url.href;
+    })(),
     useInlineWasm = false,
     mounts = {},
     env = {},
