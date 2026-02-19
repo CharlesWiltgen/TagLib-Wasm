@@ -9,21 +9,8 @@
 
 import { TagLib } from "./taglib.ts";
 import { FileOperationError } from "./errors/classes.ts";
-
-/**
- * Detects if the code is running in a compiled Deno binary.
- *
- * @returns true if running in a Deno compiled binary, false otherwise
- */
-export function isDenoCompiled(): boolean {
-  // Check if Deno is available and if the main module indicates compilation
-  // @ts-ignore: Deno global is only available in Deno runtime
-  return typeof Deno !== "undefined" &&
-    // @ts-ignore: Deno global is only available in Deno runtime
-    typeof Deno.mainModule === "string" &&
-    // @ts-ignore: Deno global is only available in Deno runtime
-    Deno.mainModule.includes("deno-compile://");
-}
+import { isDenoCompiled } from "./runtime/deno-detect.ts";
+export { isDenoCompiled } from "./runtime/deno-detect.ts";
 
 /**
  * Initialize TagLib with automatic handling for Deno compiled binaries.
@@ -52,22 +39,26 @@ export async function initializeForDenoCompile(
 ): Promise<TagLib> {
   // Only attempt embedded loading in compiled binaries
   if (isDenoCompiled()) {
-    try {
-      // Try to load the embedded WASM file
-      const wasmUrl = new URL(embeddedWasmPath, import.meta.url);
-      // @ts-ignore: Deno global is only available in Deno runtime
-      const wasmBinary = await Deno.readFile(wasmUrl);
+    const strategies: Array<() => Promise<Uint8Array>> = [
+      // Relative to user's entry point (where --include embeds files)
+      () => Deno.readFile(new URL(embeddedWasmPath, Deno.mainModule)),
+      // Relative to this library module
+      () => Deno.readFile(new URL(embeddedWasmPath, import.meta.url)),
+      // CWD fallback (last resort — depends on where the binary is invoked)
+      () => Deno.readFile(embeddedWasmPath),
+    ];
 
-      // Initialize with the embedded binary (Deno compile uses Emscripten)
-      return await TagLib.initialize({ wasmBinary, forceBufferMode: true });
-    } catch (error) {
-      // Log warning but don't fail - fall back to network
-      console.warn(
-        `Could not load embedded WASM from ${embeddedWasmPath}:`,
-        error,
-      );
-      console.warn("Falling back to network fetch (requires --allow-net)");
+    for (const strategy of strategies) {
+      try {
+        const wasmBinary = await strategy();
+        return await TagLib.initialize({ wasmBinary, forceBufferMode: true });
+      } catch {
+        // Try next strategy
+      }
     }
+
+    console.warn(`Could not load embedded WASM from ${embeddedWasmPath}`);
+    console.warn("Falling back to network fetch (requires --allow-net)");
   }
 
   // Fall back to default network-based initialization (Emscripten for compile targets)
