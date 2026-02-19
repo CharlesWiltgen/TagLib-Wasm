@@ -8,12 +8,14 @@ export {
 
 export {
   applyTags,
+  applyTagsToBuffer,
   clearTags,
   isValidAudioFile,
   readFormat,
   readProperties,
   readTags,
   updateTags,
+  writeTagsToFile,
 } from "./tag-operations.ts";
 
 export {

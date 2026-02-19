@@ -2,6 +2,8 @@
  * @fileoverview WebAssembly module interface types for Emscripten
  */
 
+import type { Picture } from "./types/pictures.ts";
+
 // Basic Emscripten module interface
 export interface EmscriptenModule {
   // Memory
@@ -57,8 +59,8 @@ export interface FileHandle {
   isValid(): boolean;
   save(): boolean;
   getFormat(): string;
-  getProperties(): any;
-  setProperties(props: any): void;
+  getProperties(): Record<string, string[]>;
+  setProperties(props: Record<string, string[]>): void;
   getProperty(key: string): string;
   setProperty(key: string, value: string): void;
   isMP4(): boolean;
@@ -68,9 +70,9 @@ export interface FileHandle {
   getTag(): TagWrapper;
   getAudioProperties(): AudioPropertiesWrapper;
   getBuffer(): Uint8Array;
-  getPictures(): any[];
-  setPictures(pictures: any[]): void;
-  addPicture(picture: any): void;
+  getPictures(): Picture[];
+  setPictures(pictures: Picture[]): void;
+  addPicture(picture: Picture): void;
   removePictures(): void;
   getRatings(): { rating: number; email: string; counter: number }[];
   setRatings(
@@ -104,6 +106,7 @@ export interface AudioPropertiesWrapper {
   channels(): number;
   bitsPerSample(): number;
   codec(): string;
+  containerFormat(): string;
   isLossless(): boolean;
 }
 

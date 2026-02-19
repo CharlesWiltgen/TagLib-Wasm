@@ -3,6 +3,7 @@
  */
 
 import { DEFAULT_AUDIO_EXTENSIONS, type FolderScanOptions } from "./types.ts";
+import { EnvironmentError } from "../errors/classes.ts";
 
 function join(...paths: string[]): string {
   return paths.filter((p) => p).join("/").replace(/\/+/g, "/");
@@ -70,7 +71,11 @@ async function getDirectoryReader() {
     };
   }
 
-  throw new Error("Directory scanning not supported in this runtime");
+  throw new EnvironmentError(
+    "unknown",
+    "Directory scanning not supported",
+    "filesystem API",
+  );
 }
 
 export async function* walkDirectory(

@@ -1,10 +1,3 @@
-/**
- * @fileoverview WASI P1 syscall implementations backed by real filesystem
- *
- * Provides synchronous WASI imports for in-process Wasm execution.
- * Uses a FileSystemProvider for runtime-agnostic file operations.
- */
-
 import type { FileSystemProvider, WasiFileHandle } from "./wasi-fs-provider.ts";
 
 export interface WasiHostConfig {
@@ -19,6 +12,9 @@ const WASI_EBADF = 8;
 const WASI_EINVAL = 28;
 const WASI_ENOENT = 44;
 const WASI_ENOTCAPABLE = 76;
+const OFLAGS_CREAT = 1;
+const OFLAGS_TRUNC = 8;
+const RIGHTS_FD_WRITE = 1n << 6n;
 
 type FdEntry =
   | { type: "preopen"; realPath: string; virtualPath: string }
@@ -47,7 +43,6 @@ export function createWasiImports(
       dv: new DataView(memory.buffer),
     };
   }
-
   function resolvePath(
     dirFd: number,
     pathPtr: number,
@@ -60,26 +55,20 @@ export function createWasiImports(
     const relPath = new TextDecoder().decode(
       u8.slice(pathPtr, pathPtr + pathLen),
     );
-
     const normalized = relPath.replaceAll("\\", "/");
     const segments = normalized.split("/");
-    if (segments.includes("..") || normalized.startsWith("/")) {
-      return null;
-    }
+    if (segments.includes("..") || normalized.startsWith("/")) return null;
 
     return `${dir.realPath}/${normalized}`;
   }
-
   return {
     args_get: (_argv: number, _buf: number) => WASI_ESUCCESS,
-
     args_sizes_get: (argcPtr: number, bufSzPtr: number) => {
       const { dv } = getMemory();
       dv.setUint32(argcPtr, 0, true);
       dv.setUint32(bufSzPtr, 0, true);
       return WASI_ESUCCESS;
     },
-
     fd_close: (fd: number) => {
       const entry = fds.get(fd);
       if (!entry) return WASI_EBADF;
@@ -91,7 +80,6 @@ export function createWasiImports(
       fds.delete(fd);
       return WASI_ESUCCESS;
     },
-
     fd_fdstat_get: (fd: number, buf: number) => {
       const entry = fds.get(fd);
       if (!entry) return WASI_EBADF;
@@ -103,9 +91,7 @@ export function createWasiImports(
       dv.setBigUint64(buf + 16, 0xFFFFFFFFFFFFFFFFn, true);
       return WASI_ESUCCESS;
     },
-
     fd_fdstat_set_flags: (_fd: number, _flags: number) => WASI_ESUCCESS,
-
     fd_filestat_set_size: (fd: number, size: bigint) => {
       const entry = fds.get(fd);
       if (entry?.type !== "file") return WASI_EBADF;
@@ -116,7 +102,6 @@ export function createWasiImports(
         return WASI_EINVAL;
       }
     },
-
     fd_prestat_get: (fd: number, buf: number) => {
       const entry = fds.get(fd);
       if (entry?.type !== "preopen") return WASI_EBADF;
@@ -126,7 +111,6 @@ export function createWasiImports(
       dv.setUint32(buf + 4, pathBytes.length, true);
       return WASI_ESUCCESS;
     },
-
     fd_prestat_dir_name: (fd: number, pathPtr: number, pathLen: number) => {
       const entry = fds.get(fd);
       if (entry?.type !== "preopen") return WASI_EBADF;
@@ -135,7 +119,6 @@ export function createWasiImports(
       u8.set(pathBytes.subarray(0, pathLen), pathPtr);
       return WASI_ESUCCESS;
     },
-
     fd_read: (
       fd: number,
       iovsPtr: number,
@@ -158,7 +141,6 @@ export function createWasiImports(
       dv.setUint32(nreadPtr, totalRead, true);
       return WASI_ESUCCESS;
     },
-
     fd_seek: (
       fd: number,
       offset: bigint,
@@ -168,10 +150,7 @@ export function createWasiImports(
       const entry = fds.get(fd);
       if (entry?.type !== "file") return WASI_EBADF;
       try {
-        const newPos = entry.file.seekSync(
-          Number(offset),
-          whence as 0 | 1 | 2,
-        );
+        const newPos = entry.file.seekSync(Number(offset), whence as 0 | 1 | 2);
         const { dv } = getMemory();
         dv.setBigInt64(newoffsetPtr, BigInt(newPos), true);
         return WASI_ESUCCESS;
@@ -179,7 +158,6 @@ export function createWasiImports(
         return WASI_EINVAL;
       }
     },
-
     fd_write: (
       fd: number,
       iovsPtr: number,
@@ -188,12 +166,10 @@ export function createWasiImports(
     ) => {
       const { u8, dv } = getMemory();
       let totalWritten = 0;
-
       for (let i = 0; i < iovsLen; i++) {
         const bufPtr = dv.getUint32(iovsPtr + i * 8, true);
         const bufLen = dv.getUint32(iovsPtr + i * 8 + 4, true);
         const data = u8.subarray(bufPtr, bufPtr + bufLen);
-
         if (fd === 1) {
           config.stdout?.(data);
           totalWritten += bufLen;
@@ -206,11 +182,9 @@ export function createWasiImports(
           totalWritten += entry.file.writeSync(data);
         }
       }
-
       dv.setUint32(nwrittenPtr, totalWritten, true);
       return WASI_ESUCCESS;
     },
-
     path_open: ( // NOSONAR — WASI P1 spec mandates 9 parameters
       dirFd: number,
       _dirflags: number,
@@ -224,11 +198,6 @@ export function createWasiImports(
     ) => {
       const realPath = resolvePath(dirFd, pathPtr, pathLen);
       if (!realPath) return WASI_ENOTCAPABLE;
-
-      const OFLAGS_CREAT = 1;
-      const OFLAGS_TRUNC = 8;
-      const RIGHTS_FD_WRITE = 1n << 6n;
-
       try {
         const wantWrite = (_rightsBase & RIGHTS_FD_WRITE) !== 0n ||
           (oflags & (OFLAGS_CREAT | OFLAGS_TRUNC)) !== 0;
@@ -238,11 +207,9 @@ export function createWasiImports(
           create: (oflags & OFLAGS_CREAT) !== 0,
           truncate: (oflags & OFLAGS_TRUNC) !== 0,
         };
-
         const file = config.fs.openSync(realPath, options);
         const fd = nextFd++;
         fds.set(fd, { type: "file", file, path: realPath });
-
         const { dv } = getMemory();
         dv.setUint32(openedFdPtr, fd, true);
         return WASI_ESUCCESS;
@@ -253,7 +220,6 @@ export function createWasiImports(
     },
 
     environ_get: (_environ: number, _buf: number) => WASI_ESUCCESS,
-
     environ_sizes_get: (countPtr: number, bufSzPtr: number) => {
       const { dv } = getMemory();
       dv.setUint32(countPtr, 0, true);
@@ -266,11 +232,9 @@ export function createWasiImports(
       dv.setBigUint64(timePtr, BigInt(Date.now()) * 1_000_000n, true);
       return WASI_ESUCCESS;
     },
-
     proc_exit: (code: number) => {
       throw new Error(`WASI proc_exit called: code ${code}`);
     },
-
     [Symbol.dispose]: () => {
       for (const [fd, entry] of fds) {
         if (entry.type === "file") {

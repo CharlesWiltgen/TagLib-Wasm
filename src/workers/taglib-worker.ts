@@ -6,6 +6,7 @@ import {
   setBufferMode,
   updateTags,
 } from "../simple/index.ts";
+import { WorkerError } from "../errors/classes.ts";
 import { handleBatchOperations } from "./batch-handler.ts";
 
 type WorkerSelf = {
@@ -123,7 +124,7 @@ workerSelf.onmessage = async (event: MessageEvent) => {
       }
 
       default:
-        throw new Error(`Unknown operation: ${op}`);
+        throw new WorkerError(`Unknown operation: ${op}`);
     }
   } catch (error) {
     workerSelf.postMessage({

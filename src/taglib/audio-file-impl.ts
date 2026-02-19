@@ -1,7 +1,7 @@
-import type { TagLibModule } from "../wasm.ts";
+import type { FileHandle, TagLibModule } from "../wasm.ts";
 import type { AudioFileInput, OpenOptions, Picture } from "../types.ts";
 import type { Rating } from "../constants/complex-properties.ts";
-import { InvalidFormatError } from "../errors.ts";
+import { FileOperationError, InvalidFormatError } from "../errors.ts";
 import { readFileData } from "../utils/file.ts";
 import { writeFileData } from "../utils/write.ts";
 import type { AudioFile } from "./audio-file-interface.ts";
@@ -16,7 +16,7 @@ import { ExtendedAudioFileImpl } from "./audio-file-extended.ts";
 export class AudioFileImpl extends ExtendedAudioFileImpl implements AudioFile {
   constructor(
     module: TagLibModule,
-    fileHandle: any,
+    fileHandle: FileHandle,
     sourcePath?: string,
     originalSource?: AudioFileInput,
     isPartiallyLoaded: boolean = false,
@@ -34,25 +34,27 @@ export class AudioFileImpl extends ExtendedAudioFileImpl implements AudioFile {
 
   save(): boolean {
     if (this.isPartiallyLoaded && this.originalSource) {
-      throw new Error(
-        "Cannot save partially loaded file directly. Use saveToFile() instead, which will automatically load the full file.",
+      throw new FileOperationError(
+        "save",
+        "Cannot save partially loaded file directly. Use saveToFile() instead",
       );
     }
 
     this.cachedAudioProperties = null;
-    return this.fileHandle.save();
+    return this.handle.save();
   }
 
   getFileBuffer(): Uint8Array {
-    const buffer = this.fileHandle.getBuffer();
+    const buffer = this.handle.getBuffer();
     return buffer ?? new Uint8Array(0);
   }
 
   async saveToFile(path?: string): Promise<void> {
     const targetPath = path ?? this.sourcePath;
     if (!targetPath) {
-      throw new Error(
-        "No file path available. Either provide a path or open the file from a path.",
+      throw new FileOperationError(
+        "save",
+        "No file path available. Provide a path or open the file from a path",
       );
     }
 
@@ -68,7 +70,7 @@ export class AudioFileImpl extends ExtendedAudioFileImpl implements AudioFile {
           );
         }
 
-        const partialTag = this.fileHandle.getTag();
+        const partialTag = this.handle.getTag();
         const fullTag = fullFileHandle.getTag();
         if (partialTag && fullTag) {
           fullTag.setTitle(partialTag.title());
@@ -80,11 +82,14 @@ export class AudioFileImpl extends ExtendedAudioFileImpl implements AudioFile {
           fullTag.setTrack(partialTag.track());
         }
 
-        fullFileHandle.setProperties(this.fileHandle.getProperties());
-        fullFileHandle.setPictures(this.fileHandle.getPictures());
+        fullFileHandle.setProperties(this.handle.getProperties());
+        fullFileHandle.setPictures(this.handle.getPictures());
 
         if (!fullFileHandle.save()) {
-          throw new Error("Failed to save changes to full file");
+          throw new FileOperationError(
+            "save",
+            "Failed to save changes to full file",
+          );
         }
 
         const buffer = fullFileHandle.getBuffer();
@@ -97,14 +102,17 @@ export class AudioFileImpl extends ExtendedAudioFileImpl implements AudioFile {
       this.originalSource = undefined;
     } else {
       if (!this.save()) {
-        throw new Error("Failed to save changes to in-memory buffer");
+        throw new FileOperationError(
+          "save",
+          "Failed to save changes to in-memory buffer",
+        );
       }
       await writeFileData(targetPath, this.getFileBuffer());
     }
   }
 
   getPictures(): Picture[] {
-    const picturesArray = this.fileHandle.getPictures();
+    const picturesArray = this.handle.getPictures();
     const pictures: Picture[] = [];
     for (let i = 0; i < picturesArray.length; i++) {
       const pic = picturesArray[i];
@@ -119,7 +127,7 @@ export class AudioFileImpl extends ExtendedAudioFileImpl implements AudioFile {
   }
 
   setPictures(pictures: Picture[]): void {
-    this.fileHandle.setPictures(pictures.map((pic) => ({
+    this.handle.setPictures(pictures.map((pic) => ({
       mimeType: pic.mimeType,
       data: pic.data,
       type: pic.type,
@@ -128,7 +136,7 @@ export class AudioFileImpl extends ExtendedAudioFileImpl implements AudioFile {
   }
 
   addPicture(picture: Picture): void {
-    this.fileHandle.addPicture({
+    this.handle.addPicture({
       mimeType: picture.mimeType,
       data: picture.data,
       type: picture.type,
@@ -137,11 +145,11 @@ export class AudioFileImpl extends ExtendedAudioFileImpl implements AudioFile {
   }
 
   removePictures(): void {
-    this.fileHandle.removePictures();
+    this.handle.removePictures();
   }
 
   getRatings(): Rating[] {
-    return this.fileHandle.getRatings().map(
+    return this.handle.getRatings().map(
       (r: { rating: number; email: string; counter: number }) => ({
         rating: r.rating,
         email: r.email || undefined,
@@ -151,7 +159,7 @@ export class AudioFileImpl extends ExtendedAudioFileImpl implements AudioFile {
   }
 
   setRatings(ratings: Rating[]): void {
-    this.fileHandle.setRatings(ratings.map((r) => ({
+    this.handle.setRatings(ratings.map((r) => ({
       rating: r.rating,
       email: r.email ?? "",
       counter: r.counter ?? 0,

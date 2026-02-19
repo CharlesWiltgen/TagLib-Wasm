@@ -10,6 +10,7 @@ import type {
   WasiFileHandle,
   WasiOpenOptions,
 } from "./wasi-fs-provider.ts";
+import { FileOperationError } from "../errors/classes.ts";
 
 type NodeFs = typeof import("node:fs");
 
@@ -44,7 +45,12 @@ function createNodeFileHandle(fs: NodeFs, fd: number): WasiFileHandle {
         const stat = fs.fstatSync(fd);
         position = stat.size + offset;
       }
-      if (position < 0) throw new Error(`Invalid seek position: ${position}`);
+      if (position < 0) {
+        throw new FileOperationError(
+          "read",
+          `Invalid seek position: ${position}`,
+        );
+      }
       return position;
     },
     truncateSync(size: number): void {

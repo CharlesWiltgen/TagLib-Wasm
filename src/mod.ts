@@ -1,6 +1,5 @@
 /**
- * @fileoverview TagLib WebAssembly TypeScript bindings
- * Universal audio metadata handling for Deno, Node.js, and browsers
+ * @deprecated Use the root index.ts or src/taglib/index.ts instead.
  */
 
 // Export from taglib.ts

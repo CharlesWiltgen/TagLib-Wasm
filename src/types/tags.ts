@@ -95,6 +95,10 @@ export interface ExtendedTag extends Tag {
   // Apple Sound Check
   /** Apple Sound Check normalization data (iTunNORM) */
   appleSoundCheck?: string;
+  /** Embedded pictures/artwork */
+  pictures?: import("./pictures.ts").Picture[];
+  /** Popularity/rating data */
+  ratings?: Array<{ rating: number; email: string; counter: number }>;
 }
 
 /**

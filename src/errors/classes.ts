@@ -19,7 +19,7 @@ export class TagLibInitializationError extends TagLibError {
    * @param message - Description of the initialization failure
    * @param details - Additional context about the error
    */
-  constructor(message: string, details?: Record<string, any>) {
+  constructor(message: string, details?: Record<string, unknown>) {
     super(
       "INITIALIZATION",
       createErrorMessage("Failed to initialize TagLib Wasm module", message),
@@ -43,7 +43,7 @@ export class InvalidFormatError extends TagLibError {
   constructor(
     message: string,
     public readonly bufferSize?: number,
-    details?: Record<string, any>,
+    details?: Record<string, unknown>,
   ) {
     const errorDetails = [`Invalid audio file format: ${message}`];
 
@@ -79,7 +79,7 @@ export class UnsupportedFormatError extends TagLibError {
   constructor(
     public readonly format: string,
     public readonly supportedFormats: readonly string[] = SUPPORTED_FORMATS,
-    details?: Record<string, any>,
+    details?: Record<string, unknown>,
   ) {
     super(
       "UNSUPPORTED_FORMAT",
@@ -108,7 +108,7 @@ export class FileOperationError extends TagLibError {
     public readonly operation: "read" | "write" | "save" | "stat",
     message: string,
     public readonly path?: string,
-    details?: Record<string, any>,
+    details?: Record<string, unknown>,
   ) {
     const errorDetails = [`Failed to ${operation} file`];
     if (path) {
@@ -141,7 +141,7 @@ export class MetadataError extends TagLibError {
     public readonly operation: "read" | "write",
     message: string,
     public readonly field?: string,
-    details?: Record<string, any>,
+    details?: Record<string, unknown>,
   ) {
     const errorDetails = [`Failed to ${operation} metadata`];
     if (field) {
@@ -168,7 +168,7 @@ export class MemoryError extends TagLibError {
    * @param message - Description of the memory failure
    * @param details - Additional context about the error
    */
-  constructor(message: string, details?: Record<string, any>) {
+  constructor(message: string, details?: Record<string, unknown>) {
     super(
       "MEMORY",
       createErrorMessage("Memory allocation failed", message),
@@ -212,7 +212,7 @@ export class WorkerError extends TagLibError {
    * @param message - Description of the worker failure
    * @param details - Additional context about the error
    */
-  constructor(message: string, details?: Record<string, any>) {
+  constructor(message: string, details?: Record<string, unknown>) {
     super("WORKER", message, details);
     this.name = "WorkerError";
     Object.setPrototypeOf(this, WorkerError.prototype);
@@ -228,7 +228,7 @@ export class SidecarError extends TagLibError {
    * @param message - Description of the sidecar failure
    * @param details - Additional context about the error
    */
-  constructor(message: string, details?: Record<string, any>) {
+  constructor(message: string, details?: Record<string, unknown>) {
     super("SIDECAR", message, details);
     this.name = "SidecarError";
     Object.setPrototypeOf(this, SidecarError.prototype);

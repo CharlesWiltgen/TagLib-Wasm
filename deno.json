@@ -88,7 +88,7 @@
     "test:watch": "deno test --allow-read --allow-write --allow-env --watch tests/",
     "test:systematic": "deno test --allow-read tests/test-systematic.ts",
     "test:unified": "deno test --allow-read --allow-write tests/unified-*.test.ts tests/runtime-*.test.ts tests/msgpack.test.ts tests/wasi-*.test.ts",
-    "test:phase3": "deno test --allow-read --allow-write tests/unified-api.test.ts tests/unified-loader-components.test.ts tests/msgpack.test.ts tests/runtime-detector.test.ts tests/wasi-loader.test.ts",
+    "test:phase3": "deno test --allow-read --allow-write tests/unified-api.test.ts tests/unified-loader-components.test.ts tests/msgpack.test.ts tests/runtime-detector.test.ts",
     "dev": "deno run --watch --allow-read --allow-write examples/basic-usage.ts",
     "fmt": "deno fmt",
     "lint": "deno lint",

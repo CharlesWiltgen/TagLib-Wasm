@@ -1,3 +1,4 @@
+import { MetadataError } from "../errors/classes.ts";
 import type { Picture } from "../types.ts";
 import { PICTURE_TYPE_VALUES } from "../types.ts";
 import {
@@ -37,14 +38,17 @@ export async function copyCoverArt(
   if (options.copyAll) {
     const pictures = await readPictures(sourcePath);
     if (pictures.length === 0) {
-      throw new Error(`No pictures found in: ${sourcePath}`);
+      throw new MetadataError("read", `No pictures found. Path: ${sourcePath}`);
     }
     const modifiedBuffer = await applyPictures(targetPath, pictures);
     await writeFileData(targetPath, modifiedBuffer);
   } else {
     const coverData = await readCoverArt(sourcePath);
     if (!coverData) {
-      throw new Error(`No cover art found in: ${sourcePath}`);
+      throw new MetadataError(
+        "read",
+        `No cover art found. Path: ${sourcePath}`,
+      );
     }
 
     const pictures = await readPictures(sourcePath);

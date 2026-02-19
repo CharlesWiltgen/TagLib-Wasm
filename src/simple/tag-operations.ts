@@ -35,6 +35,7 @@ export async function readTags(
   }
 }
 
+/** @deprecated Use `applyTagsToBuffer` instead */
 export async function applyTags(
   file: string | Uint8Array | ArrayBuffer | File,
   tags: Partial<Tag>,
@@ -76,13 +77,17 @@ export async function applyTags(
   }
 }
 
+/** @deprecated Use `writeTagsToFile` instead */
 export async function updateTags(
   file: string,
   tags: Partial<Tag>,
   options?: number,
 ): Promise<void> {
   if (typeof file !== "string") {
-    throw new Error("updateTags requires a file path string to save changes");
+    throw new FileOperationError(
+      "save",
+      "updateTags requires a file path string to save changes",
+    );
   }
 
   const pool = getActiveWorkerPool();
@@ -187,3 +192,6 @@ export async function clearTags(
     track: 0,
   });
 }
+
+export const applyTagsToBuffer = applyTags;
+export const writeTagsToFile = updateTags;

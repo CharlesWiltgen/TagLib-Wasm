@@ -149,6 +149,7 @@ export class TagLibWorkerPool {
     return this.execute<AudioProperties | null>({ op: "readProperties", file });
   }
 
+  /** @deprecated Use `applyTagsToBuffer` instead */
   async applyTags(
     file: string | Uint8Array,
     tags: Partial<Tag>,
@@ -156,8 +157,20 @@ export class TagLibWorkerPool {
     return this.execute<Uint8Array>({ op: "applyTags", file, tags });
   }
 
+  async applyTagsToBuffer(
+    file: string | Uint8Array,
+    tags: Partial<Tag>,
+  ): Promise<Uint8Array> {
+    return this.applyTags(file, tags);
+  }
+
+  /** @deprecated Use `writeTagsToFile` instead */
   async updateTags(file: string, tags: Partial<Tag>): Promise<void> {
     return this.execute<void>({ op: "updateTags", file, tags });
+  }
+
+  async writeTagsToFile(file: string, tags: Partial<Tag>): Promise<void> {
+    return this.updateTags(file, tags);
   }
 
   async readPictures(file: string | Uint8Array): Promise<Picture[]> {

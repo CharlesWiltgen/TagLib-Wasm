@@ -1,4 +1,4 @@
-import type { TagLibModule } from "../wasm.ts";
+import type { FileHandle, TagLibModule } from "../wasm.ts";
 import type {
   AudioFileInput,
   AudioProperties,
@@ -16,7 +16,7 @@ import type { MutableTag } from "./mutable-tag.ts";
  * @internal Not exported from the public API.
  */
 export abstract class BaseAudioFileImpl {
-  protected fileHandle: any;
+  protected fileHandle: FileHandle | null;
   protected cachedAudioProperties: AudioProperties | null = null;
   protected readonly sourcePath?: string;
   protected originalSource?: AudioFileInput;
@@ -25,7 +25,7 @@ export abstract class BaseAudioFileImpl {
 
   constructor(
     protected readonly module: TagLibModule,
-    fileHandle: any,
+    fileHandle: FileHandle,
     sourcePath?: string,
     originalSource?: AudioFileInput,
     isPartiallyLoaded: boolean = false,
@@ -38,12 +38,19 @@ export abstract class BaseAudioFileImpl {
     this.partialLoadOptions = partialLoadOptions;
   }
 
+  protected get handle(): FileHandle {
+    if (!this.fileHandle) {
+      throw new MetadataError("read", "File handle has been disposed");
+    }
+    return this.fileHandle;
+  }
+
   getFormat(): FileType {
-    return this.fileHandle.getFormat() as FileType;
+    return this.handle.getFormat() as FileType;
   }
 
   tag(): MutableTag {
-    const tagWrapper = this.fileHandle.getTag();
+    const tagWrapper = this.handle.getTag();
     if (!tagWrapper) {
       throw new MetadataError(
         "read",
@@ -93,7 +100,7 @@ export abstract class BaseAudioFileImpl {
 
   audioProperties(): AudioProperties | null {
     if (!this.cachedAudioProperties) {
-      const propsWrapper = this.fileHandle.getAudioProperties();
+      const propsWrapper = this.handle.getAudioProperties();
       if (!propsWrapper) {
         return null;
       }
@@ -114,7 +121,7 @@ export abstract class BaseAudioFileImpl {
   }
 
   properties(): PropertyMap {
-    const jsObj = this.fileHandle.getProperties();
+    const jsObj = this.handle.getProperties();
     const result: PropertyMap = {};
     const keys = Object.keys(jsObj);
     for (const key of keys) {
@@ -124,27 +131,27 @@ export abstract class BaseAudioFileImpl {
   }
 
   setProperties(properties: PropertyMap): void {
-    this.fileHandle.setProperties(properties);
+    this.handle.setProperties(properties);
   }
 
   getProperty(key: string): string | undefined {
-    const value = this.fileHandle.getProperty(key);
+    const value = this.handle.getProperty(key);
     return value === "" ? undefined : value;
   }
 
   setProperty(key: string, value: string): void {
-    this.fileHandle.setProperty(key, value);
+    this.handle.setProperty(key, value);
   }
 
   isMP4(): boolean {
-    return this.fileHandle.isMP4();
+    return this.handle.isMP4();
   }
 
   getMP4Item(key: string): string | undefined {
     if (!this.isMP4()) {
       throw new UnsupportedFormatError(this.getFormat(), ["MP4", "M4A"]);
     }
-    const value = this.fileHandle.getMP4Item(key);
+    const value = this.handle.getMP4Item(key);
     return value === "" ? undefined : value;
   }
 
@@ -152,25 +159,23 @@ export abstract class BaseAudioFileImpl {
     if (!this.isMP4()) {
       throw new UnsupportedFormatError(this.getFormat(), ["MP4", "M4A"]);
     }
-    this.fileHandle.setMP4Item(key, value);
+    this.handle.setMP4Item(key, value);
   }
 
   removeMP4Item(key: string): void {
     if (!this.isMP4()) {
       throw new UnsupportedFormatError(this.getFormat(), ["MP4", "M4A"]);
     }
-    this.fileHandle.removeMP4Item(key);
+    this.handle.removeMP4Item(key);
   }
 
   isValid(): boolean {
-    return this.fileHandle.isValid();
+    return this.handle.isValid();
   }
 
   dispose(): void {
     if (this.fileHandle) {
-      if (typeof this.fileHandle.destroy === "function") {
-        this.fileHandle.destroy();
-      }
+      this.fileHandle.destroy();
       this.fileHandle = null;
       this.cachedAudioProperties = null;
     }
