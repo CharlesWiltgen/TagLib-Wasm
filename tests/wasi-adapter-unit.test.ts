@@ -332,7 +332,7 @@ describe("WasiFileHandle", () => {
     assertEquals(tag2.title(), "Test Title");
   });
 
-  it("should return audio properties with method accessors", () => {
+  it("should return null audio properties when absent from data", () => {
     const mock = createMockWasiModule();
     mock.tl_read_tags = stubTlReadTags(mock);
 
@@ -340,12 +340,8 @@ describe("WasiFileHandle", () => {
     const fh = adapter.createFileHandle();
     fh.loadFromBuffer(new Uint8Array([0xFF, 0xFB, 0, 0, 0, 0, 0, 0, 0, 0]));
 
-    const props = fh.getAudioProperties() as any;
-    assertExists(props);
-    assertEquals(props.lengthInSeconds(), 0);
-    assertEquals(props.bitrate(), 0);
-    assertEquals(props.sampleRate(), 0);
-    assertEquals(props.channels(), 0);
+    const props = fh.getAudioProperties();
+    assertEquals(props, null);
   });
 });
 

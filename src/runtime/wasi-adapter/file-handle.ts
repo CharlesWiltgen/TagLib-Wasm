@@ -115,15 +115,16 @@ export class WasiFileHandle implements FileHandle {
     };
   }
 
-  getAudioProperties(): AudioPropertiesWrapper {
+  getAudioProperties(): AudioPropertiesWrapper | null {
     this.checkNotDestroyed();
     const data = this.tagData as Record<string, unknown> | null;
+    if (!data || !("sampleRate" in data)) return null;
     return {
-      lengthInSeconds: () => (data?.length as number) ?? 0,
-      lengthInMilliseconds: () => (data?.lengthMs as number) ?? 0,
-      bitrate: () => (data?.bitrate as number) ?? 0,
-      sampleRate: () => (data?.sampleRate as number) ?? 0,
-      channels: () => (data?.channels as number) ?? 0,
+      lengthInSeconds: () => (data.length as number) ?? 0,
+      lengthInMilliseconds: () => (data.lengthMs as number) ?? 0,
+      bitrate: () => (data.bitrate as number) ?? 0,
+      sampleRate: () => (data.sampleRate as number) ?? 0,
+      channels: () => (data.channels as number) ?? 0,
       bitsPerSample: () => 0,
       codec: () => "",
       containerFormat: () => "",
