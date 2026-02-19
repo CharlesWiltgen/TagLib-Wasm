@@ -5,7 +5,7 @@
  * Handles .ts extensions in imports automatically
  */
 
-import { existsSync, mkdirSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, statSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { execSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
@@ -17,6 +17,22 @@ const distDir = join(rootDir, "dist");
 // Ensure dist directory exists
 if (!existsSync(distDir)) {
   mkdirSync(distDir, { recursive: true });
+}
+
+function findTsFiles(dir, rootDir) {
+  const files = [];
+  for (const entry of readdirSync(dir)) {
+    const full = join(dir, entry);
+    if (statSync(full).isDirectory()) {
+      files.push(...findTsFiles(full, rootDir));
+    } else if (
+      entry.endsWith(".ts") && !entry.endsWith(".d.ts") &&
+      !entry.endsWith(".test.ts")
+    ) {
+      files.push(full.slice(rootDir.length + 1));
+    }
+  }
+  return files;
 }
 
 console.log("📦 Building JavaScript files with esbuild...");
@@ -33,9 +49,14 @@ try {
   );
 
   // Build all src files (not bundled, just transpiled)
+  // Note: Shell glob src/**/*.ts doesn't recurse in bash without globstar.
+  // Find all .ts files explicitly to work on all platforms.
   console.log("  ⚡ Building src/**/*.js...");
+  const srcFiles = findTsFiles(join(rootDir, "src"), rootDir);
   execSync(
-    `npx esbuild src/*.ts src/**/*.ts --outdir=dist/src --format=esm --platform=node --target=es2020`,
+    `npx esbuild ${
+      srcFiles.join(" ")
+    } --outdir=dist/src --format=esm --platform=node --target=es2020`,
     {
       cwd: rootDir,
       stdio: "inherit",
