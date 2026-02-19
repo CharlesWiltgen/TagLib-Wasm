@@ -202,8 +202,8 @@ describe(
         resolve(TEST_FILES_DIR, FORMAT_FILES.FLAC.real),
       );
       const tags = readTagsViaBuffer(wasi, fileData);
-      // kiss-snippet files don't have albumArtist set — returns empty string
-      assertEquals(tags.albumArtist, "");
+      // kiss-snippet files don't have albumArtist set — absent from output
+      assertEquals(tags.albumArtist, undefined);
     });
 
     it("should decode composer from WASI buffer path", async () => {
@@ -216,7 +216,7 @@ describe(
         resolve(TEST_FILES_DIR, FORMAT_FILES.FLAC.real),
       );
       const tags = readTagsViaBuffer(wasi, fileData);
-      assertEquals(tags.composer, "");
+      assertEquals(tags.composer, undefined);
     });
 
     it("should decode disc number from WASI buffer path", async () => {
@@ -229,8 +229,8 @@ describe(
         resolve(TEST_FILES_DIR, FORMAT_FILES.FLAC.real),
       );
       const tags = readTagsViaBuffer(wasi, fileData);
-      // Wire key is "disc" (from TagData struct), not "discNumber"
-      assertEquals((tags as Record<string, unknown>).disc, 0);
+      // disc absent from kiss-snippet files
+      assertEquals((tags as Record<string, unknown>).disc, undefined);
     });
 
     it("should decode BPM from WASI buffer path", async () => {
@@ -243,7 +243,7 @@ describe(
         resolve(TEST_FILES_DIR, FORMAT_FILES.FLAC.real),
       );
       const tags = readTagsViaBuffer(wasi, fileData);
-      assertEquals(tags.bpm, 0);
+      assertEquals(tags.bpm, undefined);
     });
 
     it("should map UPPERCASE property keys to camelCase for WASI", async () => {
@@ -397,6 +397,94 @@ describe(
       assertEquals(handle2.getTag().title(), "Buffer Write Test");
 
       handle2.destroy();
+      handle.destroy();
+    });
+
+    it("should roundtrip albumArtist via buffer write", async () => {
+      using wasi = await loadWasiHost({
+        wasmPath: WASM_PATH,
+        preopens: { "/test": TEST_FILES_DIR },
+      });
+
+      const { WasiFileHandle } = await import(
+        "../src/runtime/wasi-adapter/file-handle.ts"
+      );
+      const handle = new WasiFileHandle(wasi);
+      const fileData = await Deno.readFile(
+        resolve(TEST_FILES_DIR, FORMAT_FILES.FLAC.real),
+      );
+      handle.loadFromBuffer(fileData);
+
+      handle.setProperty("ALBUMARTIST", "Test Album Artist");
+      const saved = handle.save();
+      assertEquals(saved, true, "save() should succeed");
+
+      const handle2 = new WasiFileHandle(wasi);
+      handle2.loadFromBuffer(handle.getBuffer());
+      assertEquals(handle2.getProperty("ALBUMARTIST"), "Test Album Artist");
+
+      handle2.destroy();
+      handle.destroy();
+    });
+
+    it("should roundtrip extended properties (ACOUSTID_FINGERPRINT) via buffer write", async () => {
+      using wasi = await loadWasiHost({
+        wasmPath: WASM_PATH,
+        preopens: { "/test": TEST_FILES_DIR },
+      });
+
+      const { WasiFileHandle } = await import(
+        "../src/runtime/wasi-adapter/file-handle.ts"
+      );
+      const handle = new WasiFileHandle(wasi);
+      const fileData = await Deno.readFile(
+        resolve(TEST_FILES_DIR, FORMAT_FILES.FLAC.real),
+      );
+      handle.loadFromBuffer(fileData);
+
+      handle.setProperty("ACOUSTID_FINGERPRINT", "AQADtNQYhYkYRcg");
+      const saved = handle.save();
+      assertEquals(saved, true, "save() should succeed");
+
+      const handle2 = new WasiFileHandle(wasi);
+      handle2.loadFromBuffer(handle.getBuffer());
+      assertEquals(
+        handle2.getProperty("ACOUSTID_FINGERPRINT"),
+        "AQADtNQYhYkYRcg",
+      );
+
+      handle2.destroy();
+      handle.destroy();
+    });
+
+    it("should produce different bytes after tag modification", async () => {
+      using wasi = await loadWasiHost({
+        wasmPath: WASM_PATH,
+        preopens: { "/test": TEST_FILES_DIR },
+      });
+
+      const { WasiFileHandle } = await import(
+        "../src/runtime/wasi-adapter/file-handle.ts"
+      );
+      const handle = new WasiFileHandle(wasi);
+      const fileData = await Deno.readFile(
+        resolve(TEST_FILES_DIR, FORMAT_FILES.FLAC.real),
+      );
+      handle.loadFromBuffer(fileData);
+
+      handle.getTag().setTitle("Completely New Title For Byte Diff");
+      const saved = handle.save();
+      assertEquals(saved, true, "save() should succeed");
+
+      const outputBuffer = handle.getBuffer();
+      const inputAndOutputDiffer = fileData.length !== outputBuffer.length ||
+        fileData.some((byte, i) => byte !== outputBuffer[i]);
+      assertEquals(
+        inputAndOutputDiffer,
+        true,
+        "Output buffer should differ from input after tag modification",
+      );
+
       handle.destroy();
     });
 
