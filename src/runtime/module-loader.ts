@@ -8,6 +8,7 @@
 import type { LoadTagLibOptions } from "./loader-types.ts";
 import type { TagLibModule } from "../wasm.ts";
 import { TagLibInitializationError } from "../errors/classes.ts";
+import { isDenoCompiled } from "./deno-detect.ts";
 
 /**
  * Load the TagLib Wasm module.
@@ -46,6 +47,24 @@ import { TagLibInitializationError } from "../errors/classes.ts";
 export async function loadTagLibModule(
   options?: LoadTagLibOptions,
 ): Promise<TagLibModule> {
+  if (
+    !options?.forceBufferMode && !options?.wasmBinary && !options?.wasmUrl &&
+    !options?.forceWasmType && isDenoCompiled()
+  ) {
+    const wasmBinary = await tryLoadEmbeddedWasm();
+    if (!wasmBinary) {
+      console.warn(
+        "[TagLib] Deno compile detected but embedded Wasm not found. " +
+          "Include taglib-web.wasm with: deno compile --include taglib-web.wasm",
+      );
+    }
+    return loadBufferModeTagLibModule({
+      ...options,
+      forceBufferMode: true,
+      ...(wasmBinary ? { wasmBinary } : {}),
+    });
+  }
+
   if (options?.forceBufferMode) {
     return loadBufferModeTagLibModule(options);
   }
@@ -112,4 +131,25 @@ async function loadBufferModeTagLibModule(
 
   const module = await createTagLibModule(moduleConfig);
   return module as TagLibModule;
+}
+
+/** @internal Try to load embedded Wasm from the default path. */
+async function tryLoadEmbeddedWasm(): Promise<Uint8Array | null> {
+  const strategies: Array<() => Promise<Uint8Array>> = [
+    // Relative to user's entry point (where --include embeds files)
+    () => Deno.readFile(new URL("./taglib-web.wasm", Deno.mainModule)),
+    // Relative to this library module
+    () => Deno.readFile(new URL("./taglib-web.wasm", import.meta.url)),
+    // CWD fallback (last resort — depends on where the binary is invoked)
+    () => Deno.readFile("taglib-web.wasm"),
+  ];
+
+  for (const strategy of strategies) {
+    try {
+      return await strategy();
+    } catch {
+      // Try next strategy
+    }
+  }
+  return null;
 }

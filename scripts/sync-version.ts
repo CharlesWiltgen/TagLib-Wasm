@@ -23,6 +23,7 @@ interface DenoJson {
 
 const PACKAGE_JSON_PATH = "./package.json";
 const DENO_JSON_PATH = "./deno.json";
+const SONAR_PROPERTIES_PATH = "./sonar-project.properties";
 
 /**
  * Read and parse JSON file
@@ -90,17 +91,49 @@ async function checkVersions(): Promise<boolean> {
   const packageJson = await readJsonFile<PackageJson>(PACKAGE_JSON_PATH);
   const denoJson = await readJsonFile<DenoJson>(DENO_JSON_PATH);
 
-  const match = packageJson.version === denoJson.version;
+  let sonarVersion: string | null = null;
+  try {
+    const content = await Deno.readTextFile(SONAR_PROPERTIES_PATH);
+    const match = content.match(/^sonar\.projectVersion=(.+)$/m);
+    if (match) sonarVersion = match[1];
+  } catch {
+    // sonar-project.properties not found
+  }
 
-  console.log(`package.json version: ${packageJson.version}`);
-  console.log(`deno.json version:    ${denoJson.version}`);
-  console.log(`Status: ${match ? "✅ Versions match" : "❌ Versions differ"}`);
+  const allMatch = packageJson.version === denoJson.version &&
+    (!sonarVersion || sonarVersion === packageJson.version);
 
-  return match;
+  console.log(`package.json version:           ${packageJson.version}`);
+  console.log(`deno.json version:              ${denoJson.version}`);
+  if (sonarVersion) {
+    console.log(`sonar-project.properties:       ${sonarVersion}`);
+  }
+  console.log(
+    `Status: ${allMatch ? "✅ Versions match" : "❌ Versions differ"}`,
+  );
+
+  return allMatch;
+}
+
+async function updateSonarProperties(newVersion: string): Promise<boolean> {
+  try {
+    const content = await Deno.readTextFile(SONAR_PROPERTIES_PATH);
+    const updated = content.replace(
+      /^sonar\.projectVersion=.+$/m,
+      `sonar.projectVersion=${newVersion}`,
+    );
+    if (updated !== content) {
+      await Deno.writeTextFile(SONAR_PROPERTIES_PATH, updated);
+      return true;
+    }
+    return false;
+  } catch {
+    return false;
+  }
 }
 
 /**
- * Update version in both files
+ * Update version in all files
  */
 async function updateVersion(newVersion: string): Promise<void> {
   // Validate version format
@@ -116,13 +149,17 @@ async function updateVersion(newVersion: string): Promise<void> {
   packageJson.version = newVersion;
   denoJson.version = newVersion;
 
-  // Write both files
+  // Write JSON files
   await writeJsonFile(PACKAGE_JSON_PATH, packageJson);
   await writeJsonFile(DENO_JSON_PATH, denoJson);
+
+  // Update sonar-project.properties
+  const updated = await updateSonarProperties(newVersion);
 
   console.log(`✅ Updated version: ${oldVersion} → ${newVersion}`);
   console.log(`   Updated: package.json`);
   console.log(`   Updated: deno.json`);
+  if (updated) console.log(`   Updated: sonar-project.properties`);
 }
 
 /**
