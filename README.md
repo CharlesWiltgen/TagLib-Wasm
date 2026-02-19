@@ -19,16 +19,6 @@ TagLib-Wasm is the **universal tagging library for TypeScript/JavaScript**
 (TS|JS) platforms: **Deno**, **Node.js**, **Bun**, **Cloudflare Workers**,
 **Electron** (via Node.js), and **browsers**.
 
-This project exists because the TS|JS ecosystem had no battle-tested audio
-tagging library that supports reading and writing music metadata to all popular
-audio formats. It aspires to be a universal solution for all TS|JS-capable
-platforms — Deno, Node.js, Bun, Electron (Node.js), Cloudflare Workers, and browsers.
-
-TagLib-Wasm stands on the shoulders of giants, including
-[TagLib](https://taglib.org/) itself, [Emscripten](https://emscripten.org/), and
-[Wasm](https://webassembly.org/) ([WebAssembly](https://webassembly.org/)).
-TagLib itself is legendary, and a core dependency of many music apps.
-
 ## Features
 
 - **Local filesystem support** – On Deno and Node.js, WASI enables seek-based
@@ -39,10 +29,10 @@ TagLib itself is legendary, and a core dependency of many music apps.
 - **TypeScript first** – Complete type definitions and modern API
 - **Wide TS/JS runtime support** – Deno, Node.js, Bun, Electron (Node.js),
   Cloudflare Workers, and browsers
-- **Format abstraction** – Handles container format details automagically when
+- **Format abstraction** – Handles container format details automatically when
   possible
 - **Zero dependencies** – Self-contained Wasm bundle
-- **Production ready** – Growing test suite helps ensure safety and reliability
+- **Tested** – 135+ tests across all formats
 - **Two API styles** – Use the "Simple" API (3 functions), or the full "Core"
   API for more advanced applications
 - **Batch folder operations** – Scan directories, process multiple files, find
@@ -131,7 +121,7 @@ const taglib = await TagLib.initialize({ wasmBinary });
 ```typescript
 import { applyTags, readTags, updateTags } from "taglib-wasm/simple";
 
-// Read tags - just one function call!
+// Read tags
 const tags = await readTags("song.mp3");
 console.log(tags.title, tags.artist, tags.album);
 
@@ -154,7 +144,7 @@ await updateTags("song.mp3", {
 ```typescript
 import { readMetadataBatch, readTagsBatch } from "taglib-wasm/simple";
 
-// Process multiple files in parallel - dramatically faster!
+// Process multiple files in parallel
 const files = ["track01.mp3", "track02.mp3", /* ... */ "track20.mp3"];
 
 // Read just tags (18x faster than sequential)
@@ -328,49 +318,21 @@ Supported formats:
 - **Additional formats** – Opus, APE, MPC, WavPack, TrueAudio, AIFF, WMA, and
   more
 
-## Key Features
-
-### Extended Metadata Support
-
-Beyond basic tags, taglib-wasm supports extended metadata:
-
-```typescript
-import { Tags } from "taglib-wasm";
-
-// AcoustID fingerprints
-file.setProperty(
-  Tags.AcoustidFingerprint,
-  "AQADtMmybfGO8NCNEESLnzHyXNOHeHnG...",
-);
-
-// MusicBrainz IDs
-file.setProperty(
-  Tags.MusicBrainzTrackId,
-  "f4d1b6b8-8c1e-4d9a-9f2a-1234567890ab",
-);
-
-// ReplayGain volume normalization
-file.setProperty(Tags.TrackGain, "-6.54 dB");
-file.setProperty(Tags.TrackPeak, "0.987654");
-```
-
-[View all supported tag constants →](https://charleswiltgen.github.io/taglib-wasm/api/tag-constants.html)
-
 ## Performance and Best Practices
 
 ### Batch Processing for Multiple Files
 
-When processing multiple audio files, use the optimized batch APIs for dramatic performance improvements:
+When processing multiple audio files, use the optimized batch APIs for better performance:
 
 ```typescript
 import { readMetadataBatch, readTagsBatch } from "taglib-wasm/simple";
 
-// ❌ SLOW: Processing files one by one (can take 90+ seconds for 19 files)
+// Processing files one by one (can take 90+ seconds for 19 files)
 for (const file of files) {
   const tags = await readTags(file); // Re-initializes for each file
 }
 
-// ✅ FAST: Batch processing (10-20x faster)
+// Batch processing (10-20x faster)
 const result = await readTagsBatch(files, {
   concurrency: 8, // Process 8 files in parallel
   onProgress: (processed, total) => {
@@ -378,7 +340,7 @@ const result = await readTagsBatch(files, {
   },
 });
 
-// ✅ FASTEST: Read complete metadata in one batch
+// Read complete metadata in one batch
 const metadata = await readMetadataBatch(files, { concurrency: 8 });
 ```
 
@@ -390,7 +352,7 @@ const metadata = await readMetadataBatch(files, { concurrency: 8 });
 
 ### Smart Partial Loading
 
-For large audio files (>50MB), enable partial loading to dramatically reduce memory usage:
+For large audio files (>50MB), enable partial loading to reduce memory usage:
 
 ```typescript
 // Enable partial loading for large files
@@ -448,44 +410,6 @@ const tags = await readTags("/music/song.mp3");
 See the
 [Runtime Compatibility Guide](https://charleswiltgen.github.io/taglib-wasm/concepts/runtime-compatibility.html)
 for full sidecar configuration options.
-
-### WebAssembly Streaming
-
-For web applications, use CDN URLs to enable WebAssembly streaming compilation:
-
-```typescript
-// ✅ FAST: Streaming compilation (200-400ms)
-const taglib = await TagLib.initialize({
-  wasmUrl: "https://cdn.jsdelivr.net/npm/taglib-wasm@latest/dist/taglib.wasm",
-});
-
-// ❌ SLOWER: ArrayBuffer loading (400-800ms)
-const wasmBinary = await fetch("taglib.wasm").then((r) => r.arrayBuffer());
-const taglib = await TagLib.initialize({ wasmBinary });
-```
-
-[View complete performance guide →](https://charleswiltgen.github.io/taglib-wasm/concepts/performance.html)
-
-## Development
-
-### Build from Source
-
-```bash
-# Prerequisites: Emscripten SDK
-# Install via: https://emscripten.org/docs/getting_started/downloads.html
-
-# Clone and build
-git clone https://github.com/CharlesWiltgen/taglib-wasm.git
-cd taglib-wasm
-
-# Build Wasm module
-npm run build:wasm
-
-# Run tests
-npm test
-```
-
-[View full development guide →](CONTRIBUTING.md)
 
 ## Runtime Compatibility
 
