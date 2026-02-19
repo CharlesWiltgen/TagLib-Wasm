@@ -100,10 +100,13 @@ int tl_write_tags(const char* path, const uint8_t* buf, size_t len,
     }
     
     // Call shim to write tags
-    tl_error_code status = taglib_write_shim(path, buf, len, decoded_tags);
-    
+    uint8_t* result_buf = NULL;
+    size_t result_size = 0;
+    tl_error_code status = taglib_write_shim(path, buf, len, decoded_tags,
+                                             &result_buf, &result_size);
+
     arena_destroy(arena);
-    
+
     if (status != TL_SUCCESS) {
         const char* error_msg = "Failed to write tags";
         switch (status) {
@@ -119,9 +122,6 @@ int tl_write_tags(const char* path, const uint8_t* buf, size_t len,
             case TL_ERROR_PARSE_FAILED:
                 error_msg = "Failed to access tags for writing";
                 break;
-            case TL_ERROR_NOT_IMPLEMENTED:
-                error_msg = "Buffer-to-buffer writing not supported";
-                break;
             case TL_ERROR_MEMORY_ALLOCATION:
                 error_msg = "Memory allocation failed during write";
                 break;
@@ -132,11 +132,10 @@ int tl_write_tags(const char* path, const uint8_t* buf, size_t len,
         tl_set_error(status, error_msg);
         return status;
     }
-    
-    // For file writes, no output buffer
-    if (out_buf) *out_buf = NULL;
-    if (out_size) *out_size = 0;
-    
+
+    if (out_buf) *out_buf = result_buf;
+    if (out_size) *out_size = result_size;
+
     return TL_SUCCESS;
 }
 
