@@ -7,38 +7,28 @@
  */
 
 import { readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
-import { extname, join } from "node:path";
+import { dirname, extname, join, relative } from "node:path";
 
 function fixImportsInFile(filePath) {
   let content = readFileSync(filePath, "utf8");
   let modified = false;
 
-  // Fix taglib-wrapper.js imports
-  // From dist/index.js: "./build/taglib-wrapper.js" -> "./taglib-wrapper.js"
-  if (filePath.endsWith("dist/index.js")) {
-    content = content.replace(
-      /from\s+["']\.\/build\/taglib-wrapper\.js["']/g,
-      'from "./taglib-wrapper.js"',
-    );
-    content = content.replace(
-      /import\(["']\.\/build\/taglib-wrapper\.js["']\)/g,
-      'import("./taglib-wrapper.js")',
-    );
-    modified = true;
-  }
+  // Fix taglib-wrapper.js imports for any file at any depth under dist/
+  const distRoot = "dist";
+  const relFromDist = relative(distRoot, dirname(filePath));
+  const depth = relFromDist === "" ? 0 : relFromDist.split("/").length;
+  const wrapperRelPath = (depth === 0 ? "./" : "../".repeat(depth)) +
+    "taglib-wrapper.js";
 
-  // From dist/src/wasm-workers.js: "../build/taglib-wrapper.js" -> "../taglib-wrapper.js"
-  if (filePath.endsWith("dist/src/wasm-workers.js")) {
-    content = content.replace(
-      /from\s+["']\.\.\/build\/taglib-wrapper\.js["']/g,
-      'from "../taglib-wrapper.js"',
-    );
-    content = content.replace(
-      /import\(["']\.\.\/build\/taglib-wrapper\.js["']\)/g,
-      'import("../taglib-wrapper.js")',
-    );
-    modified = true;
-  }
+  content = content.replace(
+    /from\s+["'][^"']*(?:build|dist)\/taglib-wrapper\.js["']/g,
+    `from "${wrapperRelPath}"`,
+  );
+  content = content.replace(
+    /import\(["'][^"']*(?:build|dist)\/taglib-wrapper\.js["']\)/g,
+    `import("${wrapperRelPath}")`,
+  );
+  modified = true;
 
   // Fix import statements
   content = content.replace(
