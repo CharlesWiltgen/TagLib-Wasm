@@ -23,39 +23,27 @@ export function readTagsFromWasm(
   const inputBuf = arena.allocBuffer(buffer);
   const outSizePtr = arena.allocUint32();
 
-  const sizeResult = wasi.tl_read_tags(
+  const resultPtr = wasi.tl_read_tags(
     0,
     inputBuf.ptr,
     inputBuf.size,
     outSizePtr.ptr,
   );
-  if (sizeResult !== 0) {
+
+  if (resultPtr === 0) {
     const errorCode = wasi.tl_get_last_error_code();
     throw new WasmMemoryError(
-      `error code ${errorCode}`,
-      "read tags size",
+      `error code ${errorCode}. Buffer size: ${buffer.length} bytes`,
+      "read tags",
       errorCode,
     );
   }
 
-  const outputSize = outSizePtr.readUint32();
-  const outputBuf = arena.alloc(outputSize);
-
-  const readResult = wasi.tl_read_tags(
-    0,
-    inputBuf.ptr,
-    inputBuf.size,
-    outputBuf.ptr,
-  );
-  if (readResult !== 0) {
-    throw new WasmMemoryError(
-      "failed to read data into buffer",
-      "read tags data",
-      readResult,
-    );
-  }
-
-  return new Uint8Array(outputBuf.read().slice());
+  const outSize = outSizePtr.readUint32();
+  const u8 = new Uint8Array(wasi.memory.buffer);
+  const result = new Uint8Array(u8.slice(resultPtr, resultPtr + outSize));
+  wasi.free(resultPtr);
+  return result;
 }
 
 export function writeTagsToWasm(
@@ -70,7 +58,7 @@ export function writeTagsToWasm(
   const tagBuf = arena.allocBuffer(tagBytes);
   const outSizePtr = arena.allocUint32();
 
-  const sizeResult = wasi.tl_write_tags(
+  const result = wasi.tl_write_tags(
     0,
     inputBuf.ptr,
     inputBuf.size,
@@ -80,26 +68,7 @@ export function writeTagsToWasm(
     outSizePtr.ptr,
   );
 
-  if (sizeResult !== 0) {
-    return null;
-  }
-
-  const outputSize = outSizePtr.readUint32();
-  const outputBuf = arena.alloc(outputSize);
-
-  const writeResult = wasi.tl_write_tags(
-    0,
-    inputBuf.ptr,
-    inputBuf.size,
-    tagBuf.ptr,
-    tagBuf.size,
-    outputBuf.ptr,
-    outSizePtr.ptr,
-  );
-
-  if (writeResult === 0) {
-    return new Uint8Array(outputBuf.read().slice());
-  }
-
+  // Buffer-to-buffer write is not supported by the C API (TL_ERROR_NOT_IMPLEMENTED).
+  // Path-based writes use writeTagsWasi() from wasi-test-helpers instead.
   return null;
 }

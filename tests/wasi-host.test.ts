@@ -24,6 +24,7 @@ import {
   readTagsViaBuffer,
   readTagsViaPath,
 } from "./wasi-test-helpers.ts";
+import { readTagsFromWasm } from "../src/runtime/wasi-adapter/wasm-io.ts";
 
 const PROJECT_ROOT = resolve(Deno.cwd());
 const TEST_FILES_DIR = resolve(PROJECT_ROOT, "tests/test-files");
@@ -201,5 +202,38 @@ describe(
         Error,
       );
     });
+
+    it("readTagsFromWasm should read tags via production code path", async () => {
+      using wasi = await loadWasiHost({
+        wasmPath: WASM_PATH,
+        preopens: { "/test": TEST_FILES_DIR },
+      });
+
+      const mp3Path = resolve(TEST_FILES_DIR, FORMAT_FILES.MP3.real);
+      const audioData = await Deno.readFile(mp3Path);
+      const msgpackData = readTagsFromWasm(wasi, audioData);
+      const tags = decodeTagData(msgpackData);
+
+      assertEquals(tags.title, "Kiss");
+      assertExists(tags.artist);
+    });
+
+    for (const [format, paths] of Object.entries(FORMAT_FILES)) {
+      it(`taglib.open() end-to-end via WASI (${format})`, async () => {
+        const { TagLib } = await import("../src/taglib/taglib-class.ts");
+        const taglib = await TagLib.initialize({ forceWasmType: "wasi" });
+        const filePath = resolve(TEST_FILES_DIR, paths.real);
+        const audioData = await Deno.readFile(filePath);
+
+        const audioFile = await taglib.open(audioData);
+        try {
+          assertEquals(audioFile.isValid(), true);
+          const tag = audioFile.tag();
+          assertEquals(tag.title, "Kiss");
+        } finally {
+          audioFile.dispose();
+        }
+      });
+    }
   },
 );

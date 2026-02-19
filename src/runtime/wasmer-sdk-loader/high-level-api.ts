@@ -13,50 +13,34 @@ import type { WasiModule } from "./types.ts";
  * High-level API for reading tags from audio files using WASI
  * Uses RAII pattern with automatic memory cleanup
  */
-export async function readTagsWithWasi(
+export function readTagsWithWasi(
   audioBuffer: Uint8Array,
   wasiModule: WasiModule,
-): Promise<Uint8Array> {
+): Uint8Array {
   using arena = new WasmArena(wasiModule as WasmExports);
 
-  // Allocate and copy input buffer
   const inputBuf = arena.allocBuffer(audioBuffer);
   const outSizePtr = arena.allocUint32();
 
-  // Call WASI function to get required size
-  const sizeResult = wasiModule.tl_read_tags(
+  const resultPtr = wasiModule.tl_read_tags(
     0,
     inputBuf.ptr,
     inputBuf.size,
     outSizePtr.ptr,
   );
-  if (sizeResult !== 0) {
+
+  if (resultPtr === 0) {
     const errorCode = wasiModule.tl_get_last_error_code();
     throw new WasmMemoryError(
-      `error code ${errorCode}`,
-      "read tags size",
+      `error code ${errorCode}. Buffer size: ${audioBuffer.length} bytes`,
+      "read tags",
       errorCode,
     );
   }
 
-  // Allocate output buffer and read data
-  const outputSize = outSizePtr.readUint32();
-  const outputBuf = arena.alloc(outputSize);
-
-  const readResult = wasiModule.tl_read_tags(
-    0,
-    inputBuf.ptr,
-    inputBuf.size,
-    outputBuf.ptr,
-  );
-  if (readResult !== 0) {
-    throw new WasmMemoryError(
-      "failed to read data into buffer",
-      "read tags data",
-      readResult,
-    );
-  }
-
-  // Return copy of data (arena will dispose automatically)
-  return new Uint8Array(outputBuf.read().slice());
+  const outSize = outSizePtr.readUint32();
+  const u8 = new Uint8Array(wasiModule.memory.buffer);
+  const result = new Uint8Array(u8.slice(resultPtr, resultPtr + outSize));
+  wasiModule.free(resultPtr);
+  return result;
 }
