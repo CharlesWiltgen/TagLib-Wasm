@@ -117,6 +117,46 @@ run_tests() {
     print_success "Build successful"
 }
 
+# Function to verify WASM binaries are fresh
+verify_wasm_freshness() {
+    print_step "Verifying WASM binaries are up to date..."
+
+    # After build, Emscripten wasm in build/ should match what's committed
+    if ! git diff --quiet -- build/taglib-web.wasm; then
+        print_error "build/taglib-web.wasm is stale!"
+        print_warning "The Emscripten build produced a different binary than what's committed."
+        print_warning "Stage the updated file and re-run the release:"
+        print_warning "  git add build/taglib-web.wasm && git commit --amend --no-edit"
+        exit 1
+    fi
+    print_success "build/taglib-web.wasm matches fresh build"
+
+    # Check WASI binary: compare against dist output if available
+    if [ -f dist/wasi/taglib_wasi.wasm ]; then
+        if ! cmp -s build/taglib_wasi.wasm dist/wasi/taglib_wasi.wasm; then
+            print_error "build/taglib_wasi.wasm doesn't match dist/wasi/taglib_wasi.wasm!"
+            print_warning "The WASI build output differs from the committed copy."
+            print_warning "  cp dist/wasi/taglib_wasi.wasm build/ && git add build/taglib_wasi.wasm"
+            exit 1
+        fi
+        print_success "build/taglib_wasi.wasm matches WASI build output"
+    else
+        # No dist to compare — verify the file exists with reasonable size
+        if [ ! -f build/taglib_wasi.wasm ]; then
+            print_error "build/taglib_wasi.wasm is missing!"
+            print_warning "Run: bash build/build-wasi.sh"
+            exit 1
+        fi
+        local size
+        size=$(stat -f%z build/taglib_wasi.wasm 2>/dev/null || stat -c%s build/taglib_wasi.wasm)
+        if [ "$size" -lt 100000 ]; then
+            print_error "build/taglib_wasi.wasm is suspiciously small (${size} bytes)"
+            exit 1
+        fi
+        print_warning "No dist/wasi/ to compare — build/taglib_wasi.wasm exists (${size} bytes)"
+    fi
+}
+
 # Function to run package publishing preflight checks
 run_preflight_checks() {
     print_step "Running package publishing preflight checks..."
@@ -336,8 +376,11 @@ main() {
         exit 0
     fi
 
-    # Run comprehensive tests
+    # Run comprehensive tests (includes build)
     run_tests
+
+    # Verify WASM binaries match what's committed
+    verify_wasm_freshness
 
     # Run preflight checks for package publishing
     run_preflight_checks

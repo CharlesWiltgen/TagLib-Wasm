@@ -1,6 +1,6 @@
 {
   "name": "@charlesw/taglib-wasm",
-  "version": "1.0.0-beta.6",
+  "version": "1.0.0-beta.7",
   "description": "TagLib-Wasm is the universal tagging library for TypeScript/JavaScript platforms: Browsers, Node.js, Deno, Bun, Cloudflare Workers, and Electron apps",
   "license": "MIT",
   "nodeModulesDir": "auto",
@@ -31,6 +31,8 @@
       "!build/taglib-wrapper.js",
       "!build/taglib-wrapper.d.ts",
       "!build/taglib-web.wasm",
+      "!build/taglib_wasi.wasm",
+      ".beads/",
       ".github/",
       ".vscode/",
       ".ai/",

@@ -3,6 +3,11 @@ import type { TagLibModule } from "../../wasm.ts";
 import type { LoadModuleResult, UnifiedLoaderOptions } from "./types.ts";
 import { ModuleLoadError } from "./types.ts";
 
+function resolveWasmPath(relativePath: string): string {
+  const url = new URL(relativePath, import.meta.url);
+  return url.protocol === "file:" ? url.pathname : url.href;
+}
+
 export async function loadModule(
   wasmType: "wasi" | "emscripten",
   _runtime: RuntimeDetectionResult,
@@ -21,11 +26,13 @@ export async function loadModule(
 async function loadWasiModuleWithFallback(
   options: UnifiedLoaderOptions,
 ): Promise<LoadModuleResult> {
+  const defaultWasmPath = resolveWasmPath("../../../build/taglib_wasi.wasm");
+
   // Strategy 1: In-process WASI host (Deno, Node, Bun — no external deps)
   try {
     const { loadWasiHost } = await import("../wasi-host-loader.ts");
     const wasiModule = await loadWasiHost({
-      wasmPath: options.wasmUrl || "./dist/wasi/taglib_wasi.wasm",
+      wasmPath: options.wasmUrl || defaultWasmPath,
     });
     return { module: wasiModule, actualWasmType: "wasi" };
   } catch (hostError) {
@@ -41,7 +48,7 @@ async function loadWasiModuleWithFallback(
     );
     await initializeWasmer(options.useInlineWasm);
     const wasiModule = await loadWasmerWasi({
-      wasmPath: options.wasmUrl || "./dist/taglib-wasi.wasm",
+      wasmPath: options.wasmUrl || defaultWasmPath,
       useInlineWasm: options.useInlineWasm,
       debug: options.debug,
     });
