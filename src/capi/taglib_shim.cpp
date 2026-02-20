@@ -11,6 +11,9 @@
  */
 
 #include "taglib_shim.h"
+#include "taglib_pictures.h"
+#include "taglib_ratings.h"
+#include "taglib_audio_props.h"
 #include "core/taglib_msgpack.h"
 #include "core/taglib_core.h"
 
@@ -78,6 +81,18 @@ static tl_error_code encode_file_to_msgpack(TagLib::File* file,
     }
     if (audio) count += 5;
 
+    uint32_t pic_count = count_pictures(file);
+    if (pic_count > 0) count++;  // "pictures" key + array
+
+    uint32_t rating_count = count_ratings(file);
+    if (rating_count > 0) count++;  // "ratings" key + array
+
+    ExtendedAudioInfo ext_info = {0, "", "", false};
+    if (audio) {
+        ext_info = get_extended_audio_info(file, audio);
+        count += count_extended_audio_fields(ext_info);
+    }
+
     mpack_writer_t writer;
     char* data = nullptr;
     size_t size = 0;
@@ -112,6 +127,16 @@ static tl_error_code encode_file_to_msgpack(TagLib::File* file,
         mpack_write_uint(&writer, audio->lengthInSeconds());
         mpack_write_cstr(&writer, "lengthMs");
         mpack_write_uint(&writer, audio->lengthInMilliseconds());
+
+        encode_extended_audio(&writer, ext_info);
+    }
+
+    if (pic_count > 0) {
+        encode_pictures(&writer, file);
+    }
+
+    if (rating_count > 0) {
+        encode_ratings(&writer, file);
     }
 
     mpack_finish_map(&writer);
@@ -156,7 +181,8 @@ static tl_error_code read_from_path(const char* path,
 }
 
 static const char* SKIP_KEYS[] = {
-    "bitrate", "channels", "length", "lengthMs", "sampleRate",
+    "bitsPerSample", "bitrate", "channels", "codec", "containerFormat",
+    "isLossless", "length", "lengthMs", "pictures", "ratings", "sampleRate",
 };
 
 static const size_t SKIP_KEYS_SIZE = sizeof(SKIP_KEYS) / sizeof(SKIP_KEYS[0]);
@@ -309,6 +335,8 @@ static tl_error_code write_to_path(const char* path,
         if (ref.isNull() || !ref.tag()) return TL_ERROR_IO_WRITE;
 
         apply_propmap(ref, propMap);
+        apply_pictures_from_msgpack(ref.file(), tags_msgpack, tags_msgpack_len);
+        apply_ratings_from_msgpack(ref.file(), tags_msgpack, tags_msgpack_len);
 
         if (!ref.save()) return TL_ERROR_IO_WRITE;
         return TL_SUCCESS;
@@ -332,6 +360,8 @@ static tl_error_code write_to_buffer(const uint8_t* buf, size_t len,
         if (ref.isNull() || !ref.tag()) return TL_ERROR_PARSE_FAILED;
 
         apply_propmap(ref, propMap);
+        apply_pictures_from_msgpack(ref.file(), tags_msgpack, tags_msgpack_len);
+        apply_ratings_from_msgpack(ref.file(), tags_msgpack, tags_msgpack_len);
 
         if (!ref.save()) return TL_ERROR_IO_WRITE;
 

@@ -139,6 +139,9 @@ echo "Linking C API with TagLib and MessagePack..."
 CAPI_SOURCES=(
     "$SRC_DIR/taglib_boundary.c"           # Pure C boundary (no exceptions) - WASI exports
     "$SRC_DIR/taglib_shim.cpp"            # Tiny C++ shim with Wasm EH - TagLib exception boundary
+    "$SRC_DIR/taglib_pictures.cpp"        # C++ picture encode/decode via complexProperties
+    "$SRC_DIR/taglib_ratings.cpp"         # C++ rating encode/decode via format-specific APIs
+    "$SRC_DIR/taglib_audio_props.cpp"     # C++ extended audio properties via dynamic_cast
     "$SRC_DIR/core/taglib_error.cpp"      # C++ with pure C internals - compiled with Wasm EH
     "$SRC_DIR/core/taglib_msgpack.c"      # Pure C (no exceptions) - MessagePack implementation
 )
@@ -156,18 +159,20 @@ for src in "${CAPI_SOURCES[@]}"; do
             --sysroot="$WASI_SDK_PATH/share/wasi-sysroot" \
             -I"$SRC_DIR" -I"$MPACK_DIR/src" \
             -O3 -fwasm-exceptions -c -o "$BUILD_DIR/$obj_name"
-    elif [[ "$(basename "$src")" == "taglib_shim.cpp" ]]; then
-        echo "Compiling C++ shim with Wasm EH: $src"
-        # C++ shim - needs Wasm EH to catch TagLib exceptions
+    elif [[ "$(basename "$src")" == "taglib_shim.cpp" ]] || \
+         [[ "$(basename "$src")" == "taglib_pictures.cpp" ]] || \
+         [[ "$(basename "$src")" == "taglib_ratings.cpp" ]] || \
+         [[ "$(basename "$src")" == "taglib_audio_props.cpp" ]]; then
+        echo "Compiling C++ with TagLib headers + Wasm EH: $src"
+        # Collect all TagLib subdirectories for include paths
+        TAGLIB_INCLUDES=(-I"$SRC_DIR" -I"$TAGLIB_DIR" -I"$TAGLIB_DIR/taglib" -I"$TAGLIB_DIR/taglib/toolkit" -I"$BUILD_DIR/taglib" -I"$MPACK_DIR/src")
+        while IFS= read -r d; do
+            TAGLIB_INCLUDES+=(-I"$d")
+        done < <(find "$TAGLIB_DIR/taglib" -type d)
         "$WASI_SDK_PATH/bin/clang++" "$src" \
             --target=wasm32-wasi \
             --sysroot="$WASI_SDK_PATH/share/wasi-sysroot" \
-            -I"$SRC_DIR" \
-            -I"$TAGLIB_DIR" \
-            -I"$TAGLIB_DIR/taglib" \
-            -I"$TAGLIB_DIR/taglib/toolkit" \
-            -I"$BUILD_DIR/taglib" \
-            -I"$MPACK_DIR/src" \
+            "${TAGLIB_INCLUDES[@]}" \
             -O3 -std=c++17 -fwasm-exceptions -mllvm -wasm-use-legacy-eh=false \
             -c -o "$BUILD_DIR/$obj_name"
     else
@@ -245,6 +250,9 @@ echo "Linking sidecar binary..."
     "$BUILD_DIR/taglib_sidecar.obj" \
     "$BUILD_DIR/taglib_boundary.obj" \
     "$BUILD_DIR/taglib_shim.obj" \
+    "$BUILD_DIR/taglib_pictures.obj" \
+    "$BUILD_DIR/taglib_ratings.obj" \
+    "$BUILD_DIR/taglib_audio_props.obj" \
     "$BUILD_DIR/taglib_error.obj" \
     "$BUILD_DIR/taglib_msgpack.obj" \
     "$BUILD_DIR/taglib/taglib/libtag.a" \

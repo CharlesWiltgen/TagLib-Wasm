@@ -244,6 +244,21 @@ describe("WasiFileHandle", () => {
     assertEquals(fh.getProperty("myKey"), "myValue");
   });
 
+  it("should convert numeric fields in setProperty()", () => {
+    const mock = createMockWasiModule();
+    mock.tl_read_tags = stubTlReadTags(mock);
+
+    const adapter = new WasiToTagLibAdapter(mock);
+    const fh = adapter.createFileHandle();
+    fh.loadFromBuffer(new Uint8Array([0xFF, 0xFB, 0, 0, 0, 0, 0, 0, 0, 0]));
+
+    fh.setProperty("DATE", "2024");
+    assertEquals(fh.getTag().year(), 2024);
+
+    fh.setProperty("TRACKNUMBER", "7");
+    assertEquals(fh.getTag().track(), 7);
+  });
+
   it("should manage MP4 items via property interface", () => {
     const mock = createMockWasiModule();
     mock.tl_read_tags = stubTlReadTags(mock);
@@ -289,10 +304,10 @@ describe("WasiFileHandle", () => {
     const fh = adapter.createFileHandle();
     fh.loadFromBuffer(new Uint8Array([0xFF, 0xFB, 0, 0, 0, 0, 0, 0, 0, 0]));
 
-    fh.setRatings([{ rating: 5, email: "test@test.com" }]);
+    fh.setRatings([{ rating: 0.8, email: "test@test.com" }]);
     const ratings = fh.getRatings();
     assertEquals(ratings.length, 1);
-    assertEquals(ratings[0].rating, 5);
+    assertEquals(ratings[0].rating, 0.8);
     assertEquals(ratings[0].email, "test@test.com");
     assertEquals(ratings[0].counter, 0);
   });
@@ -345,6 +360,259 @@ describe("WasiFileHandle", () => {
   });
 });
 
+describe("WasiFileHandle.getProperties()", () => {
+  it("should return UPPERCASE keys for tag fields", () => {
+    const mock = createMockWasiModule();
+    mock.tl_read_tags = stubTlReadTags(mock);
+
+    const adapter = new WasiToTagLibAdapter(mock);
+    const fh = adapter.createFileHandle();
+    fh.loadFromBuffer(new Uint8Array([0xFF, 0xFB, 0, 0, 0, 0, 0, 0, 0, 0]));
+
+    fh.getTag().setTitle("Test");
+    fh.getTag().setArtist("Artist");
+
+    const props = fh.getProperties();
+    assertExists(props["TITLE"]);
+    assertExists(props["ARTIST"]);
+    assertEquals("title" in props, false);
+    assertEquals("artist" in props, false);
+  });
+
+  it("should return string array values", () => {
+    const mock = createMockWasiModule();
+    mock.tl_read_tags = stubTlReadTags(mock);
+
+    const adapter = new WasiToTagLibAdapter(mock);
+    const fh = adapter.createFileHandle();
+    fh.loadFromBuffer(new Uint8Array([0xFF, 0xFB, 0, 0, 0, 0, 0, 0, 0, 0]));
+
+    fh.getTag().setTitle("Test");
+
+    const props = fh.getProperties();
+    assertEquals(props["TITLE"], ["Test"]);
+  });
+
+  it("should return UPPERCASE ALBUMARTIST key", () => {
+    const mock = createMockWasiModule();
+    mock.tl_read_tags = stubTlReadTags(mock);
+
+    const adapter = new WasiToTagLibAdapter(mock);
+    const fh = adapter.createFileHandle();
+    fh.loadFromBuffer(new Uint8Array([0xFF, 0xFB, 0, 0, 0, 0, 0, 0, 0, 0]));
+
+    fh.setProperty("ALBUMARTIST", "Various Artists");
+
+    const props = fh.getProperties();
+    assertEquals(props["ALBUMARTIST"], ["Various Artists"]);
+    assertEquals("albumArtist" in props, false);
+  });
+
+  it("should exclude audio property keys", () => {
+    const mock = createMockWasiModule();
+    mock.tl_read_tags = stubTlReadTagsWithAudio(mock);
+
+    const adapter = new WasiToTagLibAdapter(mock);
+    const fh = adapter.createFileHandle();
+    fh.loadFromBuffer(new Uint8Array([0xFF, 0xFB, 0, 0, 0, 0, 0, 0, 0, 0]));
+
+    const props = fh.getProperties();
+    assertEquals("bitrate" in props, false);
+    assertEquals("sampleRate" in props, false);
+    assertEquals("channels" in props, false);
+    assertEquals("length" in props, false);
+    assertEquals("lengthMs" in props, false);
+    // Tag data should still be present
+    assertExists(props["TITLE"]);
+  });
+
+  it("should pass through unknown UPPERCASE keys in getProperties()", () => {
+    const mock = createMockWasiModule();
+    mock.tl_read_tags = stubTlReadTags(mock);
+
+    const adapter = new WasiToTagLibAdapter(mock);
+    const fh = adapter.createFileHandle();
+    fh.loadFromBuffer(new Uint8Array([0xFF, 0xFB, 0, 0, 0, 0, 0, 0, 0, 0]));
+
+    fh.setProperty("ACOUSTID_FINGERPRINT", "abc123");
+
+    const props = fh.getProperties();
+    assertEquals(props["ACOUSTID_FINGERPRINT"], ["abc123"]);
+  });
+
+  it("should omit zero-value numeric fields", () => {
+    const mock = createMockWasiModule();
+    mock.tl_read_tags = stubTlReadTags(mock);
+
+    const adapter = new WasiToTagLibAdapter(mock);
+    const fh = adapter.createFileHandle();
+    fh.loadFromBuffer(new Uint8Array([0xFF, 0xFB, 0, 0, 0, 0, 0, 0, 0, 0]));
+
+    fh.getTag().setTitle("Test");
+    // year and track default to 0 — should be omitted
+
+    const props = fh.getProperties();
+    assertEquals("DATE" in props, false);
+    assertEquals("TRACKNUMBER" in props, false);
+    assertExists(props["TITLE"]);
+  });
+});
+
+describe("WasiFileHandle.setProperties()", () => {
+  it("should map UPPERCASE keys to camelCase in tagData", () => {
+    const mock = createMockWasiModule();
+    mock.tl_read_tags = stubTlReadTags(mock);
+
+    const adapter = new WasiToTagLibAdapter(mock);
+    const fh = adapter.createFileHandle();
+    fh.loadFromBuffer(new Uint8Array([0xFF, 0xFB, 0, 0, 0, 0, 0, 0, 0, 0]));
+
+    fh.setProperties({ TITLE: ["New Title"] });
+    assertEquals(fh.getTag().title(), "New Title");
+  });
+
+  it("should roundtrip through getProperties()", () => {
+    const mock = createMockWasiModule();
+    mock.tl_read_tags = stubTlReadTags(mock);
+
+    const adapter = new WasiToTagLibAdapter(mock);
+    const fh = adapter.createFileHandle();
+    fh.loadFromBuffer(new Uint8Array([0xFF, 0xFB, 0, 0, 0, 0, 0, 0, 0, 0]));
+
+    fh.setProperties({ TITLE: ["New Title"], ARTIST: ["New Artist"] });
+    const props = fh.getProperties();
+    assertEquals(props["TITLE"], ["New Title"]);
+    assertEquals(props["ARTIST"], ["New Artist"]);
+  });
+
+  it("should handle ALBUMARTIST mapping", () => {
+    const mock = createMockWasiModule();
+    mock.tl_read_tags = stubTlReadTags(mock);
+
+    const adapter = new WasiToTagLibAdapter(mock);
+    const fh = adapter.createFileHandle();
+    fh.loadFromBuffer(new Uint8Array([0xFF, 0xFB, 0, 0, 0, 0, 0, 0, 0, 0]));
+
+    fh.setProperties({ ALBUMARTIST: ["VA"] });
+    assertEquals(fh.getProperty("ALBUMARTIST"), "VA");
+    assertEquals(fh.getProperties()["ALBUMARTIST"], ["VA"]);
+  });
+
+  it("should pass through unknown UPPERCASE keys for C++ write path", () => {
+    const mock = createMockWasiModule();
+    mock.tl_read_tags = stubTlReadTags(mock);
+
+    const adapter = new WasiToTagLibAdapter(mock);
+    const fh = adapter.createFileHandle();
+    fh.loadFromBuffer(new Uint8Array([0xFF, 0xFB, 0, 0, 0, 0, 0, 0, 0, 0]));
+
+    fh.setProperties({ MYCUSTOMKEY: ["custom value"] });
+    assertEquals(fh.getProperty("MYCUSTOMKEY"), "custom value");
+  });
+
+  it("should handle numeric value conversion for DATE", () => {
+    const mock = createMockWasiModule();
+    mock.tl_read_tags = stubTlReadTags(mock);
+
+    const adapter = new WasiToTagLibAdapter(mock);
+    const fh = adapter.createFileHandle();
+    fh.loadFromBuffer(new Uint8Array([0xFF, 0xFB, 0, 0, 0, 0, 0, 0, 0, 0]));
+
+    fh.setProperties({ DATE: ["2024"] });
+    assertEquals(fh.getTag().year(), 2024);
+  });
+
+  it("should handle numeric value conversion for TRACKNUMBER", () => {
+    const mock = createMockWasiModule();
+    mock.tl_read_tags = stubTlReadTags(mock);
+
+    const adapter = new WasiToTagLibAdapter(mock);
+    const fh = adapter.createFileHandle();
+    fh.loadFromBuffer(new Uint8Array([0xFF, 0xFB, 0, 0, 0, 0, 0, 0, 0, 0]));
+
+    fh.setProperties({ TRACKNUMBER: ["5"] });
+    assertEquals(fh.getTag().track(), 5);
+  });
+});
+
+describe("WasiFileHandle.removeMP4Item()", () => {
+  it("should remove items using mapped key", () => {
+    const mock = createMockWasiModule();
+    mock.tl_read_tags = stubTlReadTags(mock);
+
+    const adapter = new WasiToTagLibAdapter(mock);
+    const fh = adapter.createFileHandle();
+    fh.loadFromBuffer(new Uint8Array([0xFF, 0xFB, 0, 0, 0, 0, 0, 0, 0, 0]));
+
+    fh.setMP4Item("TITLE", "test");
+    assertEquals(fh.getMP4Item("TITLE"), "test");
+
+    fh.removeMP4Item("TITLE");
+    assertEquals(fh.getMP4Item("TITLE"), "");
+  });
+
+  it("should still remove custom keys directly", () => {
+    const mock = createMockWasiModule();
+    mock.tl_read_tags = stubTlReadTags(mock);
+
+    const adapter = new WasiToTagLibAdapter(mock);
+    const fh = adapter.createFileHandle();
+    fh.loadFromBuffer(new Uint8Array([0xFF, 0xFB, 0, 0, 0, 0, 0, 0, 0, 0]));
+
+    fh.setMP4Item("----:com.apple.iTunes:custom", "val");
+    assertEquals(fh.getMP4Item("----:com.apple.iTunes:custom"), "val");
+
+    fh.removeMP4Item("----:com.apple.iTunes:custom");
+    assertEquals(fh.getMP4Item("----:com.apple.iTunes:custom"), "");
+  });
+});
+
+describe("WasiFileHandle.getFormat() extended", () => {
+  it("should detect WAV format from RIFF magic bytes", () => {
+    const mock = createMockWasiModule();
+    mock.tl_read_tags = stubTlReadTags(mock);
+
+    const adapter = new WasiToTagLibAdapter(mock);
+    const fh = adapter.createFileHandle();
+    // RIFF magic: 0x52 0x49 0x46 0x46
+    const wavData = new Uint8Array([0x52, 0x49, 0x46, 0x46, 0, 0, 0, 0, 0, 0]);
+    fh.loadFromBuffer(wavData);
+    assertEquals(fh.getFormat(), "WAV");
+  });
+
+  it("should detect M4A format from ftyp magic bytes", () => {
+    const mock = createMockWasiModule();
+    mock.tl_read_tags = stubTlReadTags(mock);
+
+    const adapter = new WasiToTagLibAdapter(mock);
+    const fh = adapter.createFileHandle();
+    // ftyp at offset 4: 0x66 0x74 0x79 0x70
+    const m4aData = new Uint8Array([
+      0,
+      0,
+      0,
+      0x20,
+      0x66,
+      0x74,
+      0x79,
+      0x70,
+      0,
+      0,
+    ]);
+    fh.loadFromBuffer(m4aData);
+    assertEquals(fh.getFormat(), "MP4");
+  });
+});
+
+describe("WasiFileHandle.save()", () => {
+  it("should return false before loadFromBuffer()", () => {
+    const mock = createMockWasiModule();
+    const adapter = new WasiToTagLibAdapter(mock);
+    const fh = adapter.createFileHandle();
+    assertEquals(fh.save(), false);
+  });
+});
+
 // --- Test helpers ---
 
 function createMockWasiModule(): any {
@@ -380,6 +648,55 @@ function stubTlReadTags(mock: any) {
     // Write size (1 byte) to the out_size pointer
     view.setUint32(outSizePtr, 1, true);
     // Return pointer to data (non-zero = success)
+    return DATA_PTR;
+  };
+}
+
+/**
+ * Stub that returns msgpack with both tag and audio property data.
+ * Map: { "title": "Test", "sampleRate": 44100 }
+ */
+function stubTlReadTagsWithAudio(mock: any) {
+  const DATA_PTR = 4096;
+  // Hand-encoded msgpack: fixmap(2), "title"->"Test", "sampleRate"->44100
+  const msgpack = new Uint8Array([
+    0x82, // fixmap with 2 entries
+    0xa5,
+    0x74,
+    0x69,
+    0x74,
+    0x6c,
+    0x65, // fixstr "title"
+    0xa4,
+    0x54,
+    0x65,
+    0x73,
+    0x74, // fixstr "Test"
+    0xaa,
+    0x73,
+    0x61,
+    0x6d,
+    0x70,
+    0x6c,
+    0x65,
+    0x52,
+    0x61,
+    0x74,
+    0x65, // fixstr "sampleRate"
+    0xcd,
+    0xac,
+    0x44, // uint16 44100
+  ]);
+  return (
+    _pathPtr: number,
+    _bufPtr: number,
+    _bufSize: number,
+    outSizePtr: number,
+  ) => {
+    const heap = new Uint8Array(mock.memory.buffer);
+    const view = new DataView(mock.memory.buffer);
+    heap.set(msgpack, DATA_PTR);
+    view.setUint32(outSizePtr, msgpack.length, true);
     return DATA_PTR;
   };
 }

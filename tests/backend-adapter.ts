@@ -27,6 +27,13 @@ export type BasicAudioProps = Pick<
   "length" | "bitrate" | "sampleRate" | "channels"
 >;
 
+export type ExtendedAudioProps = BasicAudioProps & {
+  bitsPerSample: number;
+  codec: string;
+  containerFormat: string;
+  isLossless: boolean;
+};
+
 export interface BackendAdapter {
   readonly kind: "wasi" | "emscripten";
   init(): Promise<void>;
@@ -36,6 +43,17 @@ export interface BackendAdapter {
     buffer: Uint8Array,
     ext: string,
   ): Promise<BasicAudioProps>;
+  readExtendedAudioProperties(
+    buffer: Uint8Array,
+    ext: string,
+  ): Promise<ExtendedAudioProps>;
+  readProperties(
+    buffer: Uint8Array,
+    ext: string,
+  ): Promise<Record<string, string[]>>;
+  readFormat(buffer: Uint8Array, ext: string): Promise<string>;
+  readPictureCount(buffer: Uint8Array, ext: string): Promise<number>;
+  readRatingCount(buffer: Uint8Array, ext: string): Promise<number>;
   writeTags(
     buffer: Uint8Array,
     tags: Partial<BasicTags>,
@@ -92,6 +110,83 @@ export class WasiBackendAdapter implements BackendAdapter {
     };
   }
 
+  async readExtendedAudioProperties(
+    buffer: Uint8Array,
+    _ext: string,
+  ): Promise<ExtendedAudioProps> {
+    const { WasiFileHandle } = await import(
+      "../src/runtime/wasi-adapter/file-handle.ts"
+    );
+    const handle = new WasiFileHandle(this.#wasi);
+    handle.loadFromBuffer(buffer);
+    const props = handle.getAudioProperties();
+    const result: ExtendedAudioProps = {
+      length: props?.lengthInSeconds() ?? 0,
+      bitrate: props?.bitrate() ?? 0,
+      sampleRate: props?.sampleRate() ?? 0,
+      channels: props?.channels() ?? 0,
+      bitsPerSample: props?.bitsPerSample() ?? 0,
+      codec: props?.codec() ?? "",
+      containerFormat: props?.containerFormat() ?? "",
+      isLossless: props?.isLossless() ?? false,
+    };
+    handle.destroy();
+    return result;
+  }
+
+  async readProperties(
+    buffer: Uint8Array,
+    _ext: string,
+  ): Promise<Record<string, string[]>> {
+    const { WasiFileHandle } = await import(
+      "../src/runtime/wasi-adapter/file-handle.ts"
+    );
+    const handle = new WasiFileHandle(this.#wasi);
+    handle.loadFromBuffer(buffer);
+    const props = handle.getProperties();
+    handle.destroy();
+    return props;
+  }
+
+  async readFormat(buffer: Uint8Array, _ext: string): Promise<string> {
+    const { WasiFileHandle } = await import(
+      "../src/runtime/wasi-adapter/file-handle.ts"
+    );
+    const handle = new WasiFileHandle(this.#wasi);
+    handle.loadFromBuffer(buffer);
+    const format = handle.getFormat();
+    handle.destroy();
+    return format;
+  }
+
+  async readPictureCount(
+    buffer: Uint8Array,
+    _ext: string,
+  ): Promise<number> {
+    const { WasiFileHandle } = await import(
+      "../src/runtime/wasi-adapter/file-handle.ts"
+    );
+    const handle = new WasiFileHandle(this.#wasi);
+    handle.loadFromBuffer(buffer);
+    const count = handle.getPictures().length;
+    handle.destroy();
+    return count;
+  }
+
+  async readRatingCount(
+    buffer: Uint8Array,
+    _ext: string,
+  ): Promise<number> {
+    const { WasiFileHandle } = await import(
+      "../src/runtime/wasi-adapter/file-handle.ts"
+    );
+    const handle = new WasiFileHandle(this.#wasi);
+    handle.loadFromBuffer(buffer);
+    const count = handle.getRatings().length;
+    handle.destroy();
+    return count;
+  }
+
   async writeTags(
     buffer: Uint8Array,
     tags: Partial<BasicTags>,
@@ -100,7 +195,7 @@ export class WasiBackendAdapter implements BackendAdapter {
     const { loadWasiHost } = await import(
       "../src/runtime/wasi-host-loader.ts"
     );
-    const { writeTagsWasi, readTagsViaPath } = await import(
+    const { writeTagsWasi } = await import(
       "./wasi-test-helpers.ts"
     );
 
@@ -128,6 +223,9 @@ export class WasiBackendAdapter implements BackendAdapter {
       "audio-properties",
       "write-tags",
       "format-detection",
+      "pictures",
+      "ratings",
+      "extended-audio",
     ]);
     return supported.has(feature);
   }
@@ -185,6 +283,75 @@ export class EmscriptenBackendAdapter implements BackendAdapter {
         sampleRate: props?.sampleRate ?? 0,
         channels: props?.channels ?? 0,
       };
+    } finally {
+      file.dispose();
+    }
+  }
+
+  async readExtendedAudioProperties(
+    buffer: Uint8Array,
+    _ext: string,
+  ): Promise<ExtendedAudioProps> {
+    const file = await this.#taglib.open(buffer.buffer);
+    try {
+      const props = file.audioProperties();
+      return {
+        length: props?.length ?? 0,
+        bitrate: props?.bitrate ?? 0,
+        sampleRate: props?.sampleRate ?? 0,
+        channels: props?.channels ?? 0,
+        bitsPerSample: props?.bitsPerSample ?? 0,
+        codec: props?.codec ?? "",
+        containerFormat: props?.containerFormat ?? "",
+        isLossless: props?.isLossless ?? false,
+      };
+    } finally {
+      file.dispose();
+    }
+  }
+
+  async readProperties(
+    buffer: Uint8Array,
+    _ext: string,
+  ): Promise<Record<string, string[]>> {
+    const file = await this.#taglib.open(buffer.buffer);
+    try {
+      return file.properties();
+    } finally {
+      file.dispose();
+    }
+  }
+
+  async readFormat(buffer: Uint8Array, _ext: string): Promise<string> {
+    const file = await this.#taglib.open(buffer.buffer);
+    try {
+      return file.getFormat();
+    } finally {
+      file.dispose();
+    }
+  }
+
+  async readPictureCount(
+    buffer: Uint8Array,
+    _ext: string,
+  ): Promise<number> {
+    const file = await this.#taglib.open(buffer.buffer);
+    try {
+      const pics = file.getPictures();
+      return pics?.length ?? 0;
+    } finally {
+      file.dispose();
+    }
+  }
+
+  async readRatingCount(
+    buffer: Uint8Array,
+    _ext: string,
+  ): Promise<number> {
+    const file = await this.#taglib.open(buffer.buffer);
+    try {
+      const ratings = file.getRatings();
+      return ratings?.length ?? 0;
     } finally {
       file.dispose();
     }
