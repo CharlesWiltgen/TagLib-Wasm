@@ -6,7 +6,7 @@
  * parity tests pass, users can trust that switching backends is safe.
  */
 
-import { assertEquals, type assertExists } from "@std/assert";
+import { assertEquals, assertExists } from "@std/assert";
 import { afterAll, beforeAll, describe, it } from "@std/testing/bdd";
 import {
   EmscriptenBackendAdapter,
@@ -69,6 +69,41 @@ describe({ name: "Cross-Backend Parity", ignore: SKIP }, () => {
       );
     });
 
+    it(`should produce matching properties for ${format}`, async () => {
+      const buffer = await readFixture(format);
+      const ext = extForFormat(format);
+
+      const wasiProps = await wasi.readProperties(buffer, ext);
+      const emProps = await emscripten.readProperties(buffer, ext);
+
+      assertExists(wasiProps["TITLE"], `${format}: WASI should have TITLE`);
+      assertExists(emProps["TITLE"], `${format}: Emscripten should have TITLE`);
+      assertEquals(
+        wasiProps["TITLE"],
+        emProps["TITLE"],
+        `${format}: TITLE mismatch`,
+      );
+      assertEquals(
+        wasiProps["ARTIST"],
+        emProps["ARTIST"],
+        `${format}: ARTIST mismatch`,
+      );
+    });
+
+    it(`should produce matching format for ${format}`, async () => {
+      const buffer = await readFixture(format);
+      const ext = extForFormat(format);
+
+      const wasiFormat = await wasi.readFormat(buffer, ext);
+      const emFormat = await emscripten.readFormat(buffer, ext);
+
+      assertEquals(
+        wasiFormat,
+        emFormat,
+        `${format}: format mismatch (wasi=${wasiFormat}, em=${emFormat})`,
+      );
+    });
+
     it(`should produce matching audio properties for ${format}`, async () => {
       const buffer = await readFixture(format);
       const ext = extForFormat(format);
@@ -97,6 +132,63 @@ describe({ name: "Cross-Backend Parity", ignore: SKIP }, () => {
         wasiProps.length,
         emProps.length,
         `${format}: length mismatch`,
+      );
+    });
+
+    it(`should produce matching extended audio properties for ${format}`, async () => {
+      const buffer = await readFixture(format);
+      const ext = extForFormat(format);
+
+      const wasiProps = await wasi.readExtendedAudioProperties(buffer, ext);
+      const emProps = await emscripten.readExtendedAudioProperties(buffer, ext);
+
+      assertEquals(
+        wasiProps.codec,
+        emProps.codec,
+        `${format}: codec mismatch`,
+      );
+      assertEquals(
+        wasiProps.containerFormat,
+        emProps.containerFormat,
+        `${format}: containerFormat mismatch`,
+      );
+      assertEquals(
+        wasiProps.isLossless,
+        emProps.isLossless,
+        `${format}: isLossless mismatch`,
+      );
+      assertEquals(
+        wasiProps.bitsPerSample,
+        emProps.bitsPerSample,
+        `${format}: bitsPerSample mismatch`,
+      );
+    });
+
+    it(`should produce matching picture count for ${format}`, async () => {
+      const buffer = await readFixture(format);
+      const ext = extForFormat(format);
+
+      const wasiCount = await wasi.readPictureCount(buffer, ext);
+      const emCount = await emscripten.readPictureCount(buffer, ext);
+
+      assertEquals(
+        wasiCount,
+        emCount,
+        `${format}: picture count mismatch (wasi=${wasiCount}, em=${emCount})`,
+      );
+    });
+
+    it(`should produce matching rating count for ${format}`, async () => {
+      const buffer = await readFixture(format);
+      const ext = extForFormat(format);
+
+      const wasiCount = await wasi.readRatingCount(buffer, ext);
+      const emCount = await emscripten.readRatingCount(buffer, ext);
+
+      assertEquals(
+        wasiCount,
+        emCount,
+        `${format}: rating count mismatch (wasi=${wasiCount}, em=${emCount})`,
       );
     });
   }

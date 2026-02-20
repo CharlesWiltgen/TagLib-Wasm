@@ -13,12 +13,37 @@ import { decodeTagData } from "../../msgpack/decoder.ts";
 import type { ExtendedTag, Picture } from "../../types.ts";
 import { readTagsFromWasm, writeTagsToWasm } from "./wasm-io.ts";
 
-const PROPERTY_KEY_MAP: Record<string, string> = {
+const PROP_TO_CAMEL: Record<string, string> = {
+  TITLE: "title",
+  ARTIST: "artist",
+  ALBUM: "album",
+  COMMENT: "comment",
+  GENRE: "genre",
+  DATE: "year",
+  TRACKNUMBER: "track",
   ALBUMARTIST: "albumArtist",
   COMPOSER: "composer",
   DISCNUMBER: "disc",
   BPM: "bpm",
 };
+
+const CAMEL_TO_PROP: Record<string, string> = Object.fromEntries(
+  Object.entries(PROP_TO_CAMEL).map(([k, v]) => [v, k]),
+);
+
+const AUDIO_KEYS = new Set([
+  "bitrate",
+  "bitsPerSample",
+  "channels",
+  "codec",
+  "containerFormat",
+  "isLossless",
+  "length",
+  "lengthMs",
+  "sampleRate",
+]);
+
+const INTERNAL_KEYS = new Set(["pictures", "ratings"]);
 
 export class WasiFileHandle implements FileHandle {
   private readonly wasi: WasiModule;
@@ -125,18 +150,21 @@ export class WasiFileHandle implements FileHandle {
       bitrate: () => (data.bitrate as number) ?? 0,
       sampleRate: () => (data.sampleRate as number) ?? 0,
       channels: () => (data.channels as number) ?? 0,
-      bitsPerSample: () => 0,
-      codec: () => "",
-      containerFormat: () => "",
-      isLossless: () => false,
+      bitsPerSample: () => (data.bitsPerSample as number) ?? 0,
+      codec: () => (data.codec as string) ?? "",
+      containerFormat: () => (data.containerFormat as string) ?? "",
+      isLossless: () => (data.isLossless as boolean) ?? false,
     };
   }
 
   getFormat(): string {
     this.checkNotDestroyed();
-    if (!this.fileData) return "Unknown";
+    if (!this.fileData || this.fileData.length < 8) return "Unknown";
     const magic = this.fileData.slice(0, 4);
     if (magic[0] === 0xFF && (magic[1] & 0xE0) === 0xE0) return "MP3";
+    if (magic[0] === 0x49 && magic[1] === 0x44 && magic[2] === 0x33) {
+      return "MP3";
+    }
     if (
       magic[0] === 0x66 && magic[1] === 0x4C && magic[2] === 0x61 &&
       magic[3] === 0x43
@@ -145,6 +173,15 @@ export class WasiFileHandle implements FileHandle {
       magic[0] === 0x4F && magic[1] === 0x67 && magic[2] === 0x67 &&
       magic[3] === 0x53
     ) return "OGG";
+    if (
+      magic[0] === 0x52 && magic[1] === 0x49 && magic[2] === 0x46 &&
+      magic[3] === 0x46
+    ) return "WAV";
+    const ftyp = this.fileData.slice(4, 8);
+    if (
+      ftyp[0] === 0x66 && ftyp[1] === 0x74 && ftyp[2] === 0x79 &&
+      ftyp[3] === 0x70
+    ) return "MP4";
     return "Unknown";
   }
 
@@ -155,25 +192,50 @@ export class WasiFileHandle implements FileHandle {
 
   getProperties(): Record<string, string[]> {
     this.checkNotDestroyed();
-    return (this.tagData ?? {}) as unknown as Record<string, string[]>;
+    const result: Record<string, string[]> = {};
+    const data = this.tagData as Record<string, unknown> ?? {};
+
+    for (const [key, value] of Object.entries(data)) {
+      if (AUDIO_KEYS.has(key) || INTERNAL_KEYS.has(key)) continue;
+      if (value === undefined || value === null) continue;
+      if (value === 0 || value === "") continue;
+
+      const propKey = CAMEL_TO_PROP[key] ?? key;
+      result[propKey] = [String(value)];
+    }
+
+    return result;
   }
 
   setProperties(props: Record<string, string[]>): void {
     this.checkNotDestroyed();
-    this.tagData = { ...this.tagData, ...props };
+    const mapped: Record<string, unknown> = {};
+    for (const [key, values] of Object.entries(props)) {
+      const camelKey = PROP_TO_CAMEL[key] ?? key;
+      const scalar = values[0] ?? "";
+      if (camelKey === "year" || camelKey === "track") {
+        mapped[camelKey] = parseInt(scalar, 10) || 0;
+      } else {
+        mapped[camelKey] = scalar;
+      }
+    }
+    this.tagData = { ...this.tagData, ...mapped } as ExtendedTag;
   }
 
   getProperty(key: string): string {
     this.checkNotDestroyed();
-    const mappedKey = PROPERTY_KEY_MAP[key] ?? key;
+    const mappedKey = PROP_TO_CAMEL[key] ?? key;
     const props = this.tagData as Record<string, unknown>;
     return props?.[mappedKey]?.toString() ?? "";
   }
 
   setProperty(key: string, value: string): void {
     this.checkNotDestroyed();
-    const mappedKey = PROPERTY_KEY_MAP[key] ?? key;
-    this.tagData = { ...this.tagData, [mappedKey]: value };
+    const mappedKey = PROP_TO_CAMEL[key] ?? key;
+    const coerced = (mappedKey === "year" || mappedKey === "track")
+      ? (parseInt(value, 10) || 0)
+      : value;
+    this.tagData = { ...this.tagData, [mappedKey]: coerced };
   }
 
   isMP4(): boolean {
@@ -202,7 +264,7 @@ export class WasiFileHandle implements FileHandle {
     this.checkNotDestroyed();
     if (this.tagData) {
       const props = this.tagData as Record<string, unknown>;
-      delete props[key];
+      delete props[PROP_TO_CAMEL[key] ?? key];
     }
   }
 
