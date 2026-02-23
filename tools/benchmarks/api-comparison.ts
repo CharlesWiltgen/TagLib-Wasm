@@ -11,7 +11,7 @@
  */
 
 import { TagLib } from "../index";
-import { applyTags, readProperties, readTags } from "../src/simple";
+import { applyTagsToBuffer, readProperties, readTags } from "../src/simple";
 
 const TEST_FILE = "./tests/test-files/mp3/kiss-snippet.mp3";
 const TEST_FILES = [
@@ -144,7 +144,7 @@ results.push(
     async () => {
       const tags = await readTags(fileData);
       const props = await readProperties(fileData);
-      await applyTags(fileData, {
+      await applyTagsToBuffer(fileData, {
         title: "Benchmark Title",
         artist: "Benchmark Artist",
       });

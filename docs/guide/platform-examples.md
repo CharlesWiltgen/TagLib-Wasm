@@ -22,7 +22,7 @@ Changes save to disk without extra steps:
 const tags = await readTags("song.mp3");
 
 // Write to disk (path in, void out)
-await updateTags("song.mp3", { title: "New Title" });
+await writeTagsToFile("song.mp3", { title: "New Title" });
 
 // edit() with a path saves to disk and returns void
 await taglib.edit("song.mp3", (file) => {
@@ -39,7 +39,7 @@ you handle yourself:
 const tags = await readTags(audioData);
 
 // Write returns a new buffer (buffer in, buffer out)
-const modified = await applyTags(audioData, { title: "New Title" });
+const modified = await applyTagsToBuffer(audioData, { title: "New Title" });
 
 // edit() with a buffer returns the modified Uint8Array
 const modified = await taglib.edit(audioData, (file) => {
@@ -55,19 +55,19 @@ in-memory data on Node.js/Deno/Bun without touching disk.
 ## Deno
 
 ```typescript
-import { readTags, updateTags } from "@charlesw/taglib-wasm/simple";
+import { readTags, writeTagsToFile } from "@charlesw/taglib-wasm/simple";
 
 // Read tags from file path
 const tags = await readTags("song.mp3");
 
 // Update tags on disk
-await updateTags("song.mp3", { title: "New Title", artist: "New Artist" });
+await writeTagsToFile("song.mp3", { title: "New Title", artist: "New Artist" });
 ```
 
 Run with: `deno run --allow-read --allow-write script.ts`
 
 Deno requires explicit permissions: `--allow-read` for reading files,
-`--allow-write` for `updateTags` or any operation that saves to disk.
+`--allow-write` for `writeTagsToFile` or any operation that saves to disk.
 
 ### Deno Compile
 
@@ -77,10 +77,10 @@ See [Deno Compile](./deno-compile.md) for details on embedding the Wasm binary.
 ## Node.js
 
 ```typescript
-import { readTags, updateTags } from "taglib-wasm/simple";
+import { readTags, writeTagsToFile } from "taglib-wasm/simple";
 
 const tags = await readTags("song.mp3");
-await updateTags("song.mp3", { title: "New Title", artist: "New Artist" });
+await writeTagsToFile("song.mp3", { title: "New Title", artist: "New Artist" });
 ```
 
 **Requirements:** Node.js v22.6.0 or higher.
@@ -94,10 +94,10 @@ await updateTags("song.mp3", { title: "New Title", artist: "New Artist" });
 ## Bun
 
 ```typescript
-import { readTags, updateTags } from "taglib-wasm/simple";
+import { readTags, writeTagsToFile } from "taglib-wasm/simple";
 
 const tags = await readTags("song.mp3");
-await updateTags("song.mp3", { title: "New Title", artist: "New Artist" });
+await writeTagsToFile("song.mp3", { title: "New Title", artist: "New Artist" });
 ```
 
 Run with: `bun run script.ts`
@@ -111,7 +111,7 @@ Browsers have no filesystem access. Audio data comes from the
 `fetch()`, or drag-and-drop — always as an `ArrayBuffer` or `Uint8Array`.
 
 ```typescript
-import { applyTags, readTags } from "taglib-wasm/simple";
+import { applyTagsToBuffer, readTags } from "taglib-wasm/simple";
 
 // Get audio data from a file input
 const input = document.querySelector('input[type="file"]');
@@ -121,10 +121,10 @@ const audioData = new Uint8Array(await input.files[0].arrayBuffer());
 const tags = await readTags(audioData);
 
 // Write — returns modified buffer (you decide what to do with it)
-const modified = await applyTags(audioData, { title: "New Title" });
+const modified = await applyTagsToBuffer(audioData, { title: "New Title" });
 ```
 
-Use `applyTags` (not `updateTags`) since there's no file path to write back to.
+Use `applyTagsToBuffer` (not `writeTagsToFile`) since there's no file path to write back to.
 To let the user save the result:
 
 ```typescript
@@ -213,7 +213,7 @@ ipcMain.handle("update-tags", async (_event, filePath: string, tags) => {
 
 ```typescript
 const metadata = await window.api.getMetadata("/path/to/song.mp3");
-await window.api.updateTags("/path/to/song.mp3", { title: "New Title" });
+await window.api.writeTagsToFile("/path/to/song.mp3", { title: "New Title" });
 ```
 
 Keep TagLib-Wasm in the main process and expose it through IPC handlers.

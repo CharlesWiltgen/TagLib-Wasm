@@ -182,7 +182,7 @@ Here's a production-ready implementation with error handling:
 #!/usr/bin/env -S deno run --allow-read --allow-net
 
 import { initializeForDenoCompile } from "@charlesw/taglib-wasm";
-import { readTags, updateTags } from "@charlesw/taglib-wasm/simple";
+import { readTags, writeTagsToFile } from "@charlesw/taglib-wasm/simple";
 
 async function processAudioFile(filePath: string) {
   try {
@@ -195,7 +195,7 @@ async function processAudioFile(filePath: string) {
 
     // Modify tags if needed
     if (!tags.comment?.includes("Processed")) {
-      await updateTags(filePath, {
+      await writeTagsToFile(filePath, {
         ...tags,
         comment: `${tags.comment || ""} - Processed by TagLib-Wasm`,
       });

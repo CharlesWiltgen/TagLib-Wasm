@@ -7,8 +7,8 @@ JavaScript/TypeScript.
 
 - [Simple API](#simple-api)
   - [readTags()](#readtags)
-  - [applyTags()](#applytags)
-  - [updateTags()](#updatetags)
+  - [applyTagsToBuffer()](#applytags)
+  - [writeTagsToFile()](#updatetags)
   - [readProperties()](#readproperties)
   - [Batch Processing](#batch-processing)
     - [readTagsBatch()](#readtagsbatch)
@@ -86,12 +86,12 @@ const file = document.getElementById("file-input").files[0];
 const tags = await readTags(file);
 ```
 
-### applyTags()
+### applyTagsToBuffer()
 
 Apply metadata tags to an audio file and return the modified buffer.
 
 ```typescript
-function applyTags(
+function applyTagsToBuffer(
   input: string | Uint8Array | ArrayBuffer | File,
   tags: Partial<Tags>,
   options?: number,
@@ -114,7 +114,7 @@ Promise resolving to the modified audio file as Uint8Array.
 
 ```typescript
 // Update specific tags from file path
-const modifiedBuffer = await applyTags("song.mp3", {
+const modifiedBuffer = await applyTagsToBuffer("song.mp3", {
   title: "New Title",
   artist: "New Artist",
   year: 2024,
@@ -125,18 +125,18 @@ await Deno.writeFile("song-updated.mp3", modifiedBuffer);
 
 // From File object (browsers)
 const file = document.getElementById("file-input").files[0];
-const modifiedBuffer = await applyTags(file, {
+const modifiedBuffer = await applyTagsToBuffer(file, {
   title: "New Title",
   artist: "New Artist",
 });
 ```
 
-### updateTags()
+### writeTagsToFile()
 
 Update metadata tags in an audio file and save changes to disk.
 
 ```typescript
-function updateTags(
+function writeTagsToFile(
   file: string,
   tags: Partial<Tags>,
   options?: number,
@@ -158,7 +158,7 @@ Promise that resolves when the file has been successfully updated on disk.
 
 ```typescript
 // Update tags in place
-await updateTags("song.mp3", {
+await writeTagsToFile("song.mp3", {
   title: "New Title",
   artist: "New Artist",
   year: 2024,
@@ -166,7 +166,7 @@ await updateTags("song.mp3", {
 // File on disk now has updated tags
 
 // Update only specific tags
-await updateTags("song.mp3", {
+await writeTagsToFile("song.mp3", {
   genre: "Electronic",
 });
 ```
@@ -1515,9 +1515,9 @@ async function processAudioFile(filePath: string) {
 await processAudioFile("song.mp3");
 
 // Alternative: Using the simple API
-import { updateTags } from "taglib-wasm";
+import { writeTagsToFile } from "taglib-wasm";
 
-await updateTags("song.mp3", {
+await writeTagsToFile("song.mp3", {
   title: "New Title",
   artist: "New Artist",
   album: "New Album",

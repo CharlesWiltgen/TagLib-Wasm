@@ -44,7 +44,7 @@ taglib-wasm provides three APIs for different use cases:
 
 - **Best for**: Quick reads, one-off operations, cover art handling, batch processing
 - **Memory**: Automatically managed
-- **Functions**: `readTags()`, `applyTags()`, `updateTags()`, `readProperties()`,
+- **Functions**: `readTags()`, `applyTagsToBuffer()`, `writeTagsToFile()`, `readProperties()`,
   `readCoverArt()`, `applyCoverArt()`
 - **Batch Functions**: `readTagsBatch()`, `readPropertiesBatch()`, `readMetadataBatch()`
   - 10-20x faster than sequential processing
@@ -98,7 +98,7 @@ const tags = await readTagsBatch(files, { concurrency: 8 });
 ## Which API Should I Use?
 
 - **Reading tags from one file?** → Simple API: `readTags()`
-- **Writing tags to one file?** → Simple API: `updateTags()` or `applyTags()`
+- **Writing tags to one file?** → Simple API: `writeTagsToFile()` or `applyTagsToBuffer()`
 - **Processing many files?** → **Simple API: `readTagsBatch()` (10-20x faster)** or Folder API: `scanFolder()`
 - **Need maximum performance?** → **Simple API batch functions with concurrency: 8**
 - **Processing album folder?** → **`readMetadataBatch()` with high concurrency**
@@ -119,10 +119,10 @@ const tags = await readTagsBatch(files, { concurrency: 8 });
 | Task                 | Simple API                                            | Full API                                      |
 | -------------------- | ----------------------------------------------------- | --------------------------------------------- |
 | Read tags            | `await readTags("file.mp3")`                          | `audioFile.tag().title`                       |
-| Write tags           | `await updateTags("file.mp3", tags)`                  | `tag.setTitle("New")`                         |
+| Write tags           | `await writeTagsToFile("file.mp3", tags)`             | `tag.setTitle("New")`                         |
 | Get duration         | `(await readProperties("file.mp3")).length`           | `audioFile.audioProperties().length`          |
 | Get codec/container  | `(await readProperties("file.mp3")).codec`            | `audioFile.audioProperties().codec`           |
-| Get modified buffer  | `await applyTags("file.mp3", tags)`                   | `audioFile.save(); audioFile.getFileBuffer()` |
+| Get modified buffer  | `await applyTagsToBuffer("file.mp3", tags)`           | `audioFile.save(); audioFile.getFileBuffer()` |
 | Get cover art        | `await readCoverArt("file.mp3")`                      | Use PropertyMap API                           |
 | Set cover art        | `await applyCoverArt("file.mp3", data, type)`         | Use PropertyMap API                           |
 | Get rating           | N/A (use Full API)                                    | `audioFile.getRating()`                       |
@@ -140,23 +140,23 @@ const tags = await readTagsBatch(files, { concurrency: 8 });
 import { TagLib } from "jsr:@charlesw/taglib-wasm";
 import {
   applyCoverArt,
-  applyTags,
+  applyTagsToBuffer,
   readCoverArt,
   readMetadataBatch,
   readPropertiesBatch,
   readTags,
   readTagsBatch,
-  updateTags,
+  writeTagsToFile,
 } from "jsr:@charlesw/taglib-wasm/simple";
 import { findDuplicates, scanFolder } from "jsr:@charlesw/taglib-wasm";
 
 // Deno (NPM - Alternative)
 import { TagLib } from "npm:taglib-wasm";
 import {
-  applyTags,
+  applyTagsToBuffer,
   readTags,
   readTagsBatch,
-  updateTags,
+  writeTagsToFile,
 } from "npm:taglib-wasm/simple";
 import { findDuplicates, scanFolder } from "npm:taglib-wasm";
 
@@ -164,13 +164,13 @@ import { findDuplicates, scanFolder } from "npm:taglib-wasm";
 import { TagLib } from "taglib-wasm";
 import {
   applyCoverArt,
-  applyTags,
+  applyTagsToBuffer,
   readCoverArt,
   readMetadataBatch,
   readPropertiesBatch,
   readTags,
   readTagsBatch,
-  updateTags,
+  writeTagsToFile,
 } from "taglib-wasm/simple";
 import { findDuplicates, scanFolder } from "taglib-wasm";
 
@@ -362,10 +362,10 @@ const success = audioFile.save(); // Returns boolean
 const buffer = audioFile.getFileBuffer(); // Get modified data
 
 // Pattern 2: Using Simple API (file path required)
-await updateTags("file.mp3", { title: "New" }); // Writes to disk
+await writeTagsToFile("file.mp3", { title: "New" }); // Writes to disk
 
 // Pattern 3: Using Simple API (get buffer)
-const buffer = await applyTags("file.mp3", { title: "New" }); // Returns buffer
+const buffer = await applyTagsToBuffer("file.mp3", { title: "New" }); // Returns buffer
 ```
 
 ### Initialization Options
@@ -565,28 +565,28 @@ For basic operations without manual memory management:
 // Deno (JSR)
 import {
   applyCoverArt,
-  applyTags,
+  applyTagsToBuffer,
   readCoverArt,
   readTags,
-  updateTags,
+  writeTagsToFile,
 } from "jsr:@charlesw/taglib-wasm/simple";
 
 // Deno (NPM)
 import {
   applyCoverArt,
-  applyTags,
+  applyTagsToBuffer,
   readCoverArt,
   readTags,
-  updateTags,
+  writeTagsToFile,
 } from "npm:taglib-wasm/simple";
 
 // Node.js/Bun
 import {
   applyCoverArt,
-  applyTags,
+  applyTagsToBuffer,
   readCoverArt,
   readTags,
-  updateTags,
+  writeTagsToFile,
 } from "taglib-wasm/simple";
 
 // Read tags - no need to manage AudioFile instances
@@ -594,13 +594,13 @@ const tags = await readTags("song.mp3");
 console.log(tags); // { title, artist, album, year, ... }
 
 // Apply tags to get modified buffer
-const modifiedBuffer = await applyTags("song.mp3", {
+const modifiedBuffer = await applyTagsToBuffer("song.mp3", {
   title: "New Title",
   artist: "New Artist",
 });
 
 // Update tags in-place (file path only)
-await updateTags("song.mp3", {
+await writeTagsToFile("song.mp3", {
   title: "New Title",
   artist: "New Artist",
 });
@@ -1063,16 +1063,16 @@ for (const file of result.files) {
 ### Recipe: Convert Tags Between Formats
 
 ```typescript
-import { readTags, updateTags } from "taglib-wasm/simple";
+import { readTags, writeTagsToFile } from "taglib-wasm/simple";
 
 // Read tags from MP3 (ID3v2)
 const mp3Tags = await readTags("song.mp3");
 
 // Apply same tags to FLAC (Vorbis Comments)
-await updateTags("song.flac", mp3Tags);
+await writeTagsToFile("song.flac", mp3Tags);
 
 // Apply to M4A (iTunes atoms)
-await updateTags("song.m4a", mp3Tags);
+await writeTagsToFile("song.m4a", mp3Tags);
 
 // Note: Format-specific fields are automatically mapped
 ```
@@ -1366,14 +1366,14 @@ for (const file of files.files) {
 - Full example:
 
 ```typescript
-import { applyTags, readTags } from "jsr:@charlesw/taglib-wasm/simple";
+import { applyTagsToBuffer, readTags } from "jsr:@charlesw/taglib-wasm/simple";
 
 // Read tags
 const tags = await readTags("song.mp3");
 console.log(tags.artist);
 
 // Modify tags (returns buffer)
-const modified = await applyTags("song.mp3", {
+const modified = await applyTagsToBuffer("song.mp3", {
   artist: "New Artist",
   album: "New Album",
 });
@@ -1999,7 +1999,7 @@ taglib-wasm excels at preserving metadata when converting between audio formats.
 ### Basic Format Conversion Pattern
 
 ```typescript
-import { applyTags, readTags } from "taglib-wasm/simple";
+import { applyTagsToBuffer, readTags } from "taglib-wasm/simple";
 import { TagLib } from "taglib-wasm";
 
 async function convertMetadata(sourcePath: string, targetPath: string) {
@@ -2016,7 +2016,7 @@ async function convertMetadata(sourcePath: string, targetPath: string) {
   }
 
   // Step 3: Apply to target file
-  const modifiedTarget = await applyTags(targetPath, sourceTags);
+  const modifiedTarget = await applyTagsToBuffer(targetPath, sourceTags);
 
   // Step 4: Apply advanced metadata
   using targetFile = await taglib.open(modifiedTarget);
@@ -2535,7 +2535,7 @@ async function processUpdateQueue(
 ) {
   await Promise.all(queue.map(async ({ path, updates }) => {
     try {
-      await updateTags(path, updates);
+      await writeTagsToFile(path, updates);
     } catch (error) {
       console.error(`Failed to update ${path}:`, error);
     }
@@ -2790,7 +2790,7 @@ import { readTags } from "taglib-wasm/simple";
 // Mock the module
 vi.mock("taglib-wasm/simple", () => ({
   readTags: vi.fn(),
-  updateTags: vi.fn(),
+  writeTagsToFile: vi.fn(),
 }));
 
 test("should process music file", async () => {
