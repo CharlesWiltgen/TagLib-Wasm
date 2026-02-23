@@ -6,8 +6,8 @@
 // Re-export all property definitions and types
 export * from "./properties.ts";
 
-// Re-export legacy tags for backward compatibility
-export * from "./legacy-tags.ts";
+// Re-export tag constants
+export * from "./tags.ts";
 
 // Re-export format mappings
 export * from "./format-mappings.ts";
