@@ -7,7 +7,7 @@
 
 import { assertEquals } from "https://deno.land/std@0.224.0/assert/mod.ts";
 
-console.log("🧪 Testing taglib-wasm Deno compatibility...\n");
+console.log("🧪 Testing TagLib-Wasm Deno compatibility...\n");
 
 // Test 1: Test local build
 console.log("Test 1: Testing local build from dist/");

@@ -19,7 +19,7 @@ import {
 } from "../../index.ts";
 
 async function demonstrateEnhancedProperties() {
-  console.log("🎵 taglib-wasm - Enhanced Property System Example");
+  console.log("🎵 TagLib-Wasm - Enhanced Property System Example");
   console.log("=".repeat(50));
 
   try {

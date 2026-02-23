@@ -1,5 +1,5 @@
 /**
- * File writing utilities for taglib-wasm
+ * File writing utilities for TagLib-Wasm
  * Provides cross-runtime support for writing files
  */
 

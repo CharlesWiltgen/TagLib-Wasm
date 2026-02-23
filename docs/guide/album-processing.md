@@ -1,6 +1,6 @@
 # Album Processing Guide
 
-This guide covers the fastest and most efficient methods for processing album folders with taglib-wasm.
+This guide covers the fastest and most efficient methods for processing album folders with TagLib-Wasm.
 
 ## 🚀 Quick Start: Process Album in 5 Seconds
 

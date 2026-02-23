@@ -2,7 +2,7 @@
 /// <reference lib="deno.ns" />
 
 /**
- * Example: Using taglib-wasm with Deno compile
+ * Example: Using TagLib-Wasm with Deno compile
  *
  * This example shows a production-ready approach that works in:
  * - Development (deno run)
@@ -21,7 +21,7 @@ const WASM_URL = Deno.env.get("WASM_URL") ||
  * Initialize TagLib with appropriate WASM loading strategy
  */
 async function initializeTagLib(): Promise<TagLib> {
-  console.log("🎵 Initializing taglib-wasm...");
+  console.log("🎵 Initializing TagLib-Wasm...");
 
   // Strategy 1: Check if running as compiled binary with included WASM
   const isCompiled = import.meta.url.startsWith("file:///") &&
@@ -156,7 +156,7 @@ function createTestWav(): Uint8Array {
  * Main application
  */
 async function main() {
-  console.log("TagLib-WASM Deno Compile Example\n");
+  console.log("TagLib-Wasm Deno Compile Example\n");
 
   try {
     // Initialize TagLib

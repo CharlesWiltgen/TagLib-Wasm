@@ -32,7 +32,7 @@ try {
 
   // Generate TypeScript module
   const content = `/**
- * @fileoverview Embedded WASM module for taglib-wasm
+ * @fileoverview Embedded WASM module for TagLib-Wasm
  * @generated ${new Date().toISOString()}
  * 
  * Usage:

@@ -1,10 +1,10 @@
 /**
- * @fileoverview Main module exports for taglib-wasm
+ * @fileoverview Main module exports for TagLib-Wasm
  *
  * TagLib v2.1 compiled to WebAssembly with TypeScript bindings
  * for universal audio metadata handling across all JavaScript runtimes.
  *
- * @module taglib-wasm
+ * @module TagLib-Wasm
  *
  * @example
  * ```typescript

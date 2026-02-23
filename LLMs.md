@@ -1,4 +1,4 @@
-# taglib-wasm Usage Guide for AI Assistants
+# TagLib-Wasm Usage Guide for AI Assistants
 
 This guide helps AI assistants understand how to use the taglib-wasm library
 effectively when writing code that consumes this package.

@@ -1,10 +1,10 @@
 # Implementation Guide
 
-Technical details about the taglib-wasm architecture.
+Technical details about the TagLib-Wasm architecture.
 
 ## Architecture Overview
 
-taglib-wasm has a dual-backend architecture:
+TagLib-Wasm has a dual-backend architecture:
 
 | Layer            | Emscripten (browser)                        | WASI (server)                                         |
 | ---------------- | ------------------------------------------- | ----------------------------------------------------- |

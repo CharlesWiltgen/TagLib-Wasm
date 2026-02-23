@@ -1,6 +1,6 @@
 # Working with Cover Art
 
-taglib-wasm provides comprehensive support for reading, writing, and managing
+TagLib-Wasm provides comprehensive support for reading, writing, and managing
 embedded pictures in audio files with both basic and advanced APIs.
 
 ## Quick Cover Art Operations
@@ -102,7 +102,7 @@ await applyPictures("deluxe-album.mp3", [
 
 ## Picture Types
 
-taglib-wasm supports all standard picture types defined by ID3v2 and other
+TagLib-Wasm supports all standard picture types defined by ID3v2 and other
 formats:
 
 - `PictureType.Other`

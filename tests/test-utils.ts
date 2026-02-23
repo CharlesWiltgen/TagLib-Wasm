@@ -1,5 +1,5 @@
 /**
- * @fileoverview Shared test utilities and constants for taglib-wasm tests
+ * @fileoverview Shared test utilities and constants for TagLib-Wasm tests
  */
 
 // Import PictureType from types

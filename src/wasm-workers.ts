@@ -27,7 +27,7 @@ export function emscriptenToWasmExports(module: TagLibModule): WasmExports {
 }
 
 /**
- * Default configuration for taglib-wasm module in Workers environment
+ * Default configuration for TagLib-Wasm module in Workers environment
  * Reduced memory limits to fit within Workers constraints
  */
 const DEFAULT_WORKERS_CONFIG: TagLibWorkersConfig = {
@@ -57,7 +57,7 @@ function createModuleConfig(
     printErr: mergedConfig.debug ? console.error : () => {},
     onRuntimeInitialized: () => {
       if (mergedConfig.debug) {
-        console.log("taglib-wasm module initialized in Workers");
+        console.log("TagLib-Wasm module initialized in Workers");
       }
     },
     // Workers-specific settings
@@ -113,7 +113,7 @@ export async function loadTagLibModuleForWorkers(
 
     if (typeof TagLibWasm !== "function") {
       throw new TagLibInitializationError(
-        "Failed to load taglib-wasm module for Workers. " +
+        "Failed to load TagLib-Wasm module for Workers. " +
           "The module may not be properly bundled for the Workers environment.",
       );
     }
@@ -127,7 +127,7 @@ export async function loadTagLibModuleForWorkers(
       throw error;
     }
     throw new TagLibInitializationError(
-      `Failed to load taglib-wasm for Workers: ${(error as Error).message}`,
+      `Failed to load TagLib-Wasm for Workers: ${(error as Error).message}`,
       { error: (error as Error).message },
     );
   }

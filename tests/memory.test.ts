@@ -1,5 +1,5 @@
 /**
- * @fileoverview Memory management tests for taglib-wasm
+ * @fileoverview Memory management tests for TagLib-Wasm
  */
 
 import { assertEquals } from "@std/assert";

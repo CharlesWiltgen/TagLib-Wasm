@@ -1,6 +1,6 @@
-# Contributing to taglib-wasm
+# Contributing to TagLib-Wasm
 
-Thank you for your interest in contributing to taglib-wasm! This document
+Thank you for your interest in contributing to TagLib-Wasm! This document
 provides guidelines and instructions for contributing.
 
 ## 🤝 Code of Conduct
@@ -21,7 +21,7 @@ software together.
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/CharlesWiltgen/taglib-wasm.git
+   git clone https://github.com/CharlesWiltgen/TagLib-Wasm.git
    cd taglib-wasm
    ```
 

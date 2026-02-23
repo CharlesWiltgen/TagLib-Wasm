@@ -12,7 +12,7 @@ import { TagLib } from "../../mod.ts";
 // import { TagLib } from "npm:taglib-wasm";
 
 async function main() {
-  console.log("🎵 taglib-wasm Deno Example");
+  console.log("🎵 TagLib-Wasm Deno Example");
 
   try {
     // Initialize TagLib

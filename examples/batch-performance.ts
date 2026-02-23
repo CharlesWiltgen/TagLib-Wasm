@@ -4,7 +4,7 @@
  * Performance-optimized batch processing example
  *
  * This example demonstrates how to efficiently process multiple audio files
- * using taglib-wasm's batch processing APIs for maximum performance.
+ * using TagLib-Wasm's batch processing APIs for maximum performance.
  */
 
 import {
@@ -31,7 +31,7 @@ async function main() {
   // Get folder path from command line or use default
   const folderPath = Deno.args[0] || "./tests/test-files";
 
-  console.log("🎵 TagLib-WASM Batch Processing Performance Demo\n");
+  console.log("🎵 TagLib-Wasm Batch Processing Performance Demo\n");
   console.log(`Scanning folder: ${folderPath}\n`);
 
   // First, find all audio files

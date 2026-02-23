@@ -5,7 +5,7 @@ import { InvalidFormatError } from "../errors/classes.ts";
 /**
  * Convert a Picture object to a data URL for display in web browsers
  *
- * @param picture - Picture object from taglib-wasm
+ * @param picture - Picture object from TagLib-Wasm
  * @returns Data URL string that can be used as src for <img> elements
  *
  * @example

@@ -1,7 +1,7 @@
 # Performance Guide
 
 This guide covers performance optimization techniques and best practices for
-taglib-wasm.
+TagLib-Wasm.
 
 ## 🚀 Quick Performance Wins
 

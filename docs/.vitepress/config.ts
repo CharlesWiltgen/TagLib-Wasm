@@ -6,7 +6,7 @@ export default defineConfig({
   description:
     "TagLib compiled to WebAssembly with TypeScript bindings for universal audio metadata handling",
 
-  base: "/taglib-wasm/",
+  base: "/TagLib-Wasm/",
 
   lastUpdated: true,
 
@@ -26,12 +26,12 @@ export default defineConfig({
 
     editLink: {
       pattern:
-        "https://github.com/CharlesWiltgen/taglib-wasm/edit/main/docs/:path",
+        "https://github.com/CharlesWiltgen/TagLib-Wasm/edit/main/docs/:path",
       text: "Edit this page on GitHub",
     },
 
     socialLinks: [
-      { icon: "github", link: "https://github.com/CharlesWiltgen/taglib-wasm" },
+      { icon: "github", link: "https://github.com/CharlesWiltgen/TagLib-Wasm" },
       { icon: "npm", link: "https://www.npmjs.com/package/taglib-wasm" },
     ],
 

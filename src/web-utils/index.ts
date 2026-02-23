@@ -1,7 +1,7 @@
 /**
- * @fileoverview Web browser utilities for working with cover art in taglib-wasm
+ * @fileoverview Web browser utilities for working with cover art in TagLib-Wasm
  *
- * This module provides browser-specific helpers for integrating taglib-wasm
+ * This module provides browser-specific helpers for integrating TagLib-Wasm
  * with web applications, including canvas integration and data URL support.
  *
  * @example

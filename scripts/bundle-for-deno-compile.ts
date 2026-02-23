@@ -1,7 +1,7 @@
 #!/usr/bin/env -S deno run --allow-read --allow-write
 
 /**
- * @fileoverview Bundle taglib-wasm for Deno compile
+ * @fileoverview Bundle TagLib-Wasm for Deno compile
  *
  * This script creates a single bundled module that includes all dependencies
  * statically, making it suitable for use with `deno compile`.
@@ -14,7 +14,7 @@ const OUTPUT_DIR = "./dist/deno-compile";
 const BUNDLE_FILE = "taglib-wasm-bundle.js";
 
 async function bundle() {
-  console.log("🎯 Bundling taglib-wasm for Deno compile...");
+  console.log("🎯 Bundling TagLib-Wasm for Deno compile...");
 
   // Ensure output directory exists
   await ensureDir(OUTPUT_DIR);
@@ -46,7 +46,7 @@ async function bundle() {
   const exampleContent = `#!/usr/bin/env -S deno run --allow-read
 
 /**
- * Example of using bundled taglib-wasm with Deno compile
+ * Example of using bundled TagLib-Wasm with Deno compile
  * 
  * Compile this example:
  * deno compile --allow-read --include ./taglib.wasm example-deno-compile.ts
@@ -96,11 +96,11 @@ if (Deno.args[0] === "simple") {
   // Create README
   const readmeContent = `# Deno Compile Bundle
 
-This directory contains a pre-bundled version of taglib-wasm suitable for use with \`deno compile\`.
+This directory contains a pre-bundled version of TagLib-Wasm suitable for use with \`deno compile\`.
 
 ## Files
 
-- \`taglib-wasm-bundle.js\` - The bundled module with all dependencies
+- \`taglib-wasm-bundle.js\` - The bundled TagLib-Wasm module with all dependencies
 - \`taglib.wasm\` - The WebAssembly binary
 - \`example-deno-compile.ts\` - Example usage
 

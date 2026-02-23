@@ -1,7 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 
-# Safe Release Script for taglib-wasm
+# Safe Release Script for TagLib-Wasm
 # This script ensures all tests pass and versions are synchronized before creating a release
 #
 # Usage:
@@ -286,7 +286,7 @@ create_release() {
     echo
     print_success "🎉 Release $tag_name has been created!"
     print_warning "The publish workflow will now run automatically."
-    print_warning "Monitor the workflow at: https://github.com/CharlesWiltgen/taglib-wasm/actions"
+    print_warning "Monitor the workflow at: https://github.com/CharlesWiltgen/TagLib-Wasm/actions"
     
     # Create GitHub release if gh is available
     if command -v gh &> /dev/null; then
@@ -297,7 +297,7 @@ create_release() {
         local changelog_link=""
         
         if [[ -n "$prev_tag" ]]; then
-            changelog_link="**Full Changelog**: https://github.com/CharlesWiltgen/taglib-wasm/compare/${prev_tag}...${tag_name}"
+            changelog_link="**Full Changelog**: https://github.com/CharlesWiltgen/TagLib-Wasm/compare/${prev_tag}...${tag_name}"
         fi
         
         # Mark pre-release versions appropriately
@@ -318,13 +318,13 @@ $changelog_link" \
         print_success "GitHub release created"
     else
         print_warning "GitHub CLI (gh) not found. Create release manually at:"
-        print_warning "https://github.com/CharlesWiltgen/taglib-wasm/releases/new?tag=$tag_name"
+        print_warning "https://github.com/CharlesWiltgen/TagLib-Wasm/releases/new?tag=$tag_name"
     fi
 }
 
 # Main script
 main() {
-    echo "🚀 TagLib-WASM Safe Release Script"
+    echo "🚀 TagLib-Wasm Safe Release Script"
     echo "=================================="
     echo
 

@@ -22,7 +22,7 @@ function ensureArrayBufferBacked(
 /**
  * Display a Picture in an HTML img element
  *
- * @param picture - Picture object from taglib-wasm
+ * @param picture - Picture object from TagLib-Wasm
  * @param imgElement - HTMLImageElement to display the picture in
  *
  * @example

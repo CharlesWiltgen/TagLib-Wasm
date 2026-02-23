@@ -1,5 +1,5 @@
 /**
- * @fileoverview Edge case tests for taglib-wasm
+ * @fileoverview Edge case tests for TagLib-Wasm
  * Tests input validation and illegal audio properties.
  * Unicode tests live in unicode-comprehensive.test.ts (forEachBackend).
  */

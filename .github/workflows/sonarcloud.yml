@@ -30,8 +30,8 @@ jobs:
       - name: Fix coverage paths for SonarCloud
         run: |
           # SonarCloud expects relative paths in lcov files
-          sed -i 's|SF:/Users/.*/taglib-wasm/|SF:|g' coverage.lcov || true
-          sed -i 's|SF:.*/taglib-wasm/|SF:|g' coverage.lcov || true
+          sed -i 's|SF:/Users/.*/TagLib-Wasm/|SF:|g' coverage.lcov || true
+          sed -i 's|SF:.*/TagLib-Wasm/|SF:|g' coverage.lcov || true
           # Move to expected location
           mkdir -p coverage
           mv coverage.lcov coverage/lcov.info

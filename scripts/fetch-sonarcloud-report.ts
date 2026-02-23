@@ -1,7 +1,7 @@
 #!/usr/bin/env -S deno run --allow-net --allow-write --allow-env
 
 /**
- * Fetch SonarCloud analysis report for taglib-wasm
+ * Fetch SonarCloud analysis report for TagLib-Wasm
  *
  * Usage:
  *   deno run --allow-net --allow-write scripts/fetch-sonarcloud-report.ts
@@ -112,7 +112,7 @@ async function fetchMetrics(): Promise<Record<string, string>> {
 }
 
 async function generateReport() {
-  console.log("Fetching SonarCloud report for taglib-wasm...\n");
+  console.log("Fetching SonarCloud report for TagLib-Wasm...\n");
 
   try {
     // Fetch metrics
@@ -144,7 +144,7 @@ async function generateReport() {
 
     // Generate markdown report
     let report = "# SonarCloud Analysis Report\n\n";
-    report += `**Project:** taglib-wasm\n`;
+    report += `**Project:** TagLib-Wasm\n`;
     report += `**Date:** ${new Date().toISOString()}\n\n`;
 
     report += "## Overview\n\n";

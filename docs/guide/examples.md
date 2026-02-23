@@ -1,6 +1,6 @@
 # Examples
 
-This guide provides an overview of all taglib-wasm examples and how to run them
+This guide provides an overview of all TagLib-Wasm examples and how to run them
 across different JavaScript runtimes.
 
 ## Example Categories
@@ -10,37 +10,37 @@ across different JavaScript runtimes.
 The `examples/common/` directory contains runtime-agnostic examples that
 demonstrate core functionality:
 
-- **[basic-usage.ts](https://github.com/CharlesWiltgen/taglib-wasm/blob/main/examples/common/basic-usage.ts)** -
+- **[basic-usage.ts](https://github.com/CharlesWiltgen/TagLib-Wasm/blob/main/examples/common/basic-usage.ts)** -
   Basic tag reading and writing operations
-- **[simple-api.ts](https://github.com/CharlesWiltgen/taglib-wasm/blob/main/examples/common/simple-api.ts)** -
+- **[simple-api.ts](https://github.com/CharlesWiltgen/TagLib-Wasm/blob/main/examples/common/simple-api.ts)** -
   Using the simplified high-level API
-- **[automatic-tag-mapping.ts](https://github.com/CharlesWiltgen/taglib-wasm/blob/main/examples/common/automatic-tag-mapping.ts)** -
+- **[automatic-tag-mapping.ts](https://github.com/CharlesWiltgen/TagLib-Wasm/blob/main/examples/common/automatic-tag-mapping.ts)** -
   Format-agnostic metadata handling
-- **[replaygain-soundcheck.ts](https://github.com/CharlesWiltgen/taglib-wasm/blob/main/examples/common/replaygain-soundcheck.ts)** -
+- **[replaygain-soundcheck.ts](https://github.com/CharlesWiltgen/TagLib-Wasm/blob/main/examples/common/replaygain-soundcheck.ts)** -
   Volume normalization metadata
-- **[tag-constants.ts](https://github.com/CharlesWiltgen/taglib-wasm/blob/main/examples/common/tag-constants.ts)** -
+- **[tag-constants.ts](https://github.com/CharlesWiltgen/TagLib-Wasm/blob/main/examples/common/tag-constants.ts)** -
   Using type-safe tag constants
-- **[embind-example.ts](https://github.com/CharlesWiltgen/taglib-wasm/blob/main/examples/common/embind-example.ts)** -
+- **[embind-example.ts](https://github.com/CharlesWiltgen/TagLib-Wasm/blob/main/examples/common/embind-example.ts)** -
   Direct usage of the Embind-based low-level API
 
 ### Runtime-Specific Examples
 
-- **[browser/](https://github.com/CharlesWiltgen/taglib-wasm/tree/main/examples/browser)** -
+- **[browser/](https://github.com/CharlesWiltgen/TagLib-Wasm/tree/main/examples/browser)** -
   Browser-specific implementations
-- **[node/](https://github.com/CharlesWiltgen/taglib-wasm/tree/main/examples/node)** -
+- **[node/](https://github.com/CharlesWiltgen/TagLib-Wasm/tree/main/examples/node)** -
   Node.js-specific patterns
-- **[bun/](https://github.com/CharlesWiltgen/taglib-wasm/tree/main/examples/bun)** -
+- **[bun/](https://github.com/CharlesWiltgen/TagLib-Wasm/tree/main/examples/bun)** -
   Bun runtime examples
-- **[deno/](https://github.com/CharlesWiltgen/taglib-wasm/tree/main/examples/deno)** -
+- **[deno/](https://github.com/CharlesWiltgen/TagLib-Wasm/tree/main/examples/deno)** -
   Deno runtime examples
-- **[workers/](https://github.com/CharlesWiltgen/taglib-wasm/tree/main/examples/workers)** -
+- **[workers/](https://github.com/CharlesWiltgen/TagLib-Wasm/tree/main/examples/workers)** -
   Cloudflare Workers serverless deployment
 
 ## Running Examples
 
 ### Prerequisites
 
-First, ensure you have taglib-wasm installed:
+First, ensure you have TagLib-Wasm installed:
 
 ```bash
 # NPM/Node.js/Bun
@@ -138,7 +138,7 @@ const modifiedBuffer = await applyTags(audioBuffer, {
 
 ### Format-Agnostic Metadata
 
-The `automatic-tag-mapping.ts` example shows how taglib-wasm handles metadata
+The `automatic-tag-mapping.ts` example shows how TagLib-Wasm handles metadata
 across different formats:
 
 ```typescript
@@ -155,7 +155,7 @@ const modifiedBuffer = await applyTags(audioBuffer, tags);
 
 ## Import Paths
 
-When using taglib-wasm in your own project, replace the example import paths:
+When using TagLib-Wasm in your own project, replace the example import paths:
 
 ```typescript
 // Examples use relative imports (for development)

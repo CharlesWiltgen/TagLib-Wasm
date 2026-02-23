@@ -3,7 +3,7 @@
 /**
  * Bun Basic Usage Example
  *
- * This example demonstrates using taglib-wasm in Bun runtime.
+ * This example demonstrates using TagLib-Wasm in Bun runtime.
  * Bun provides excellent WebAssembly support and can directly use
  * the same API as Node.js and browsers.
  *
@@ -16,12 +16,12 @@ import { TagLib } from "../../index.ts";
 import process from "node:process";
 
 async function demonstrateBunUsage() {
-  console.log("🎵 taglib-wasm - Bun Runtime Example");
+  console.log("🎵 TagLib-Wasm - Bun Runtime Example");
   console.log("=".repeat(40));
 
   try {
-    // Initialize taglib-wasm
-    console.log("🔧 Initializing taglib-wasm...");
+    // Initialize TagLib-Wasm
+    console.log("🔧 Initializing TagLib-Wasm...");
     const taglib = await TagLib.initialize();
     console.log("✅ TagLib initialized successfully");
 

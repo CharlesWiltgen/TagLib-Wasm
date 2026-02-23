@@ -1,6 +1,6 @@
-# Audio Container and Codec Detection in taglib-wasm
+# Audio Container and Codec Detection in TagLib-Wasm
 
-As of v0.3.20, taglib-wasm provides codec detection and lossless audio
+As of v0.3.20, TagLib-Wasm provides codec detection and lossless audio
 detection capabilities. As of v0.4.0, container format detection has been
 added to differentiate between container formats and compressed media formats.
 

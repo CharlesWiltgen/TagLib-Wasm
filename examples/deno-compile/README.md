@@ -1,6 +1,6 @@
 # Deno Compile Example
 
-This example shows how to use taglib-wasm with `deno compile`.
+This example shows how to use TagLib-Wasm with `deno compile`.
 
 ## Quick Start
 

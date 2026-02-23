@@ -1,6 +1,6 @@
 # Platform Guide
 
-taglib-wasm works across all major JavaScript runtimes. The API is the same
+TagLib-Wasm works across all major JavaScript runtimes. The API is the same
 everywhere — the only meaningful difference is how your platform accesses files.
 
 ## Filesystem vs. Buffer Platforms
@@ -71,7 +71,7 @@ Deno requires explicit permissions: `--allow-read` for reading files,
 
 ### Deno Compile
 
-taglib-wasm supports `deno compile` for building standalone executables.
+TagLib-Wasm supports `deno compile` for building standalone executables.
 See [Deno Compile](./deno-compile.md) for details on embedding the Wasm binary.
 
 ## Node.js
@@ -138,7 +138,7 @@ URL.revokeObjectURL(url);
 ```
 
 ::: tip Bundler required
-taglib-wasm uses ES modules. Use Vite, Webpack, Parcel, or another bundler
+TagLib-Wasm uses ES modules. Use Vite, Webpack, Parcel, or another bundler
 that can resolve `taglib-wasm` and serve the `.wasm` file.
 :::
 
@@ -180,9 +180,9 @@ configuration.
 
 ## Electron
 
-> **Note:** Electron's main process is Node.js. taglib-wasm works via the
+> **Note:** Electron's main process is Node.js. TagLib-Wasm works via the
 > Node.js WASI path — there is no Electron-specific runtime detection or
-> testing. Keep taglib-wasm in the main process and expose metadata through IPC.
+> testing. Keep TagLib-Wasm in the main process and expose metadata through IPC.
 
 Electron spans both categories. The **main process** has filesystem access; the
 **renderer process** does not (unless `nodeIntegration` is enabled, which is
@@ -220,7 +220,7 @@ const metadata = await window.api.getMetadata("/path/to/song.mp3");
 await window.api.updateTags("/path/to/song.mp3", { title: "New Title" });
 ```
 
-Keep taglib-wasm in the main process and expose it through IPC handlers.
+Keep TagLib-Wasm in the main process and expose it through IPC handlers.
 This avoids bundling Wasm into the renderer and keeps file access secure.
 
 ## Cross-Platform Code
