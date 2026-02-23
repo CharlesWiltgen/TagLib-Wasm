@@ -16,7 +16,7 @@ import { TagLib, Tags } from "../../index.ts";
 import { METADATA_MAPPINGS } from "../../src/types.ts";
 
 async function demonstrateAdvancedMetadata() {
-  console.log("🎵 taglib-wasm - Automatic Tag Mapping Example");
+  console.log("🎵 TagLib-Wasm - Automatic Tag Mapping Example");
   console.log("=".repeat(50));
 
   try {

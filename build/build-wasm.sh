@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-echo "🔧 Building taglib-wasm..."
+echo "🔧 Building TagLib-Wasm..."
 
 # Check if Emscripten is installed
 if ! command -v emcc &> /dev/null; then
@@ -87,7 +87,7 @@ mv "$OUTPUT_DIR/taglib-wrapper.wasm" "$OUTPUT_DIR/taglib-web.wasm"
 sed -i.bak 's/taglib-wrapper\.wasm/taglib-web.wasm/g' "$OUTPUT_DIR/taglib-wrapper.js"
 rm "$OUTPUT_DIR/taglib-wrapper.js.bak"
 
-echo "✅ taglib-wasm build complete!"
+echo "✅ TagLib-Wasm build complete!"
 echo "📁 Output files:"
 echo "   - $OUTPUT_DIR/taglib-wrapper.js"
 echo "   - $OUTPUT_DIR/taglib-web.wasm"

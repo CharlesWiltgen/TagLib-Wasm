@@ -22,7 +22,7 @@ feature set compared to the standard API:
 ## Overview
 
 Cloudflare Workers provide a serverless execution environment that runs on
-Cloudflare's global edge network. With taglib-wasm, you can process audio
+Cloudflare's global edge network. With TagLib-Wasm, you can process audio
 metadata without managing servers, scaling automatically to handle millions of
 requests.
 
@@ -684,7 +684,7 @@ ALLOWED_ORIGINS = "*"
 ## Examples
 
 Complete working examples are available in the
-[examples/workers](https://github.com/CharlesWiltgen/taglib-wasm/tree/main/examples/workers)
+[examples/workers](https://github.com/CharlesWiltgen/TagLib-Wasm/tree/main/examples/workers)
 directory:
 
 - `audio-processor.ts` - Full-featured metadata extraction service
@@ -701,7 +701,7 @@ directory:
 - **Response Size**: 100MB maximum
 - **Subrequests**: 50 per request
 
-### taglib-wasm Specific
+### TagLib-Wasm Specific
 
 - Files must be fully loaded into memory
 - No streaming support (Workers limitation)
@@ -744,4 +744,4 @@ const taglib = await TagLibWorkers.initialize(wasmBinary, {
 - [Cloudflare Workers Documentation](https://developers.cloudflare.com/workers/)
 - [Wrangler CLI Reference](https://developers.cloudflare.com/workers/cli-wrangler/)
 - [Workers Examples](https://github.com/cloudflare/workers-sdk/tree/main/templates)
-- [taglib-wasm Repository](https://github.com/CharlesWiltgen/taglib-wasm)
+- [TagLib-Wasm Repository](https://github.com/CharlesWiltgen/TagLib-Wasm)

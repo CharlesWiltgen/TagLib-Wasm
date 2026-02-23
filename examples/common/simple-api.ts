@@ -1,7 +1,7 @@
 #!/usr/bin/env -S deno run --allow-read --allow-write
 
 /**
- * Simple API Examples for taglib-wasm
+ * Simple API Examples for TagLib-Wasm
  *
  * This demonstrates the go-taglib inspired simple API that provides
  * a minimal, easy-to-use interface for common operations.
@@ -20,7 +20,7 @@ import {
 import * as taglib from "../../src/simple/index.ts";
 
 async function demonstrateSimpleAPI() {
-  console.log("🎵 taglib-wasm - Simple API Examples");
+  console.log("🎵 TagLib-Wasm - Simple API Examples");
   console.log("=".repeat(50));
 
   const testFile = "./tests/test-files/mp3/kiss-snippet.mp3";
@@ -67,7 +67,7 @@ async function demonstrateSimpleAPI() {
 
   const modifiedBuffer = await applyTags(testFile, {
     title: "Simple API Demo",
-    artist: "taglib-wasm",
+    artist: "TagLib-Wasm",
     album: "Examples Album",
     year: 2025,
     track: 1,

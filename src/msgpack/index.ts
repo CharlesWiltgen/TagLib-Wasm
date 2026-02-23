@@ -1,5 +1,5 @@
 /**
- * @fileoverview MessagePack integration for taglib-wasm
+ * @fileoverview MessagePack integration for TagLib-Wasm
  *
  * Provides high-performance binary serialization for audio metadata,
  * offering 10x faster processing and 50% smaller payloads compared to JSON.

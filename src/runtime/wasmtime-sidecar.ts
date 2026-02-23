@@ -5,9 +5,9 @@
  * Uses length-prefixed MessagePack protocol for communication.
  */
 
-import { encode } from "@msgpack/msgpack";
 import type { ExtendedTag } from "../types.ts";
 import { decodeTagData } from "../msgpack/decoder.ts";
+import { encodeTagData } from "../msgpack/encoder.ts";
 import { SidecarError } from "../errors.ts";
 import {
   createReadBuffer,
@@ -121,7 +121,7 @@ export class WasmtimeSidecar {
   async writeTags(path: string, tags: ExtendedTag): Promise<void> {
     this.#assertRunning();
 
-    const tagsEncoded = encode(tags);
+    const tagsEncoded = encodeTagData(tags);
     const request: SidecarRequest = {
       op: "write_tags",
       path,

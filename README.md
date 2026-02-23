@@ -1,9 +1,9 @@
 # TagLib-Wasm
 
-[![Tests](https://github.com/CharlesWiltgen/taglib-wasm/actions/workflows/test.yml/badge.svg)](https://github.com/CharlesWiltgen/taglib-wasm/actions/workflows/test.yml)
+[![Tests](https://github.com/CharlesWiltgen/TagLib-Wasm/actions/workflows/test.yml/badge.svg)](https://github.com/CharlesWiltgen/TagLib-Wasm/actions/workflows/test.yml)
 [![npm version](https://img.shields.io/npm/v/taglib-wasm.svg)](https://www.npmjs.com/package/taglib-wasm)
 [![npm downloads](https://img.shields.io/npm/dm/taglib-wasm.svg)](https://www.npmjs.com/package/taglib-wasm)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/CharlesWiltgen/taglib-wasm/blob/main/LICENSE)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/CharlesWiltgen/TagLib-Wasm/blob/main/LICENSE)
 <br>[![Built with](https://img.shields.io/badge/TypeScript-5-3178c6.svg?logo=typescript&logoColor=f5f5f5)](https://www.typescriptlang.org/)
 [![Built with Emscripten](https://img.shields.io/badge/Built%20with-Emscripten-4B9BFF.svg)](https://emscripten.org/)
 [![Built with WebAssembly](https://img.shields.io/badge/Built%20with-WebAssembly-654ff0.svg?logo=webassembly&logoColor=white)](https://webassembly.org/)
@@ -54,7 +54,7 @@ npm install taglib-wasm
 
 > **Note:** Requires Node.js v22.6.0 or higher. If you want to use the
 > TypeScript version with Node.js, see the
-> [installation guide](https://charleswiltgen.github.io/taglib-wasm/guide/installation.html).
+> [installation guide](https://charleswiltgen.github.io/TagLib-Wasm/guide/installation.html).
 
 ### Bun
 
@@ -98,7 +98,7 @@ const taglib = await initializeForDenoCompile();
 ```
 
 See the
-[complete Deno compile guide](https://charleswiltgen.github.io/taglib-wasm/guide/deno-compile.html)
+[complete Deno compile guide](https://charleswiltgen.github.io/TagLib-Wasm/guide/deno-compile.html)
 for more options including CDN loading.
 
 For manual control:
@@ -249,7 +249,7 @@ file.setRating(0.8);
 file.save();
 ```
 
-See the [Track Ratings Guide](https://charleswiltgen.github.io/taglib-wasm/guide/ratings.html)
+See the [Track Ratings Guide](https://charleswiltgen.github.io/TagLib-Wasm/guide/ratings.html)
 for RatingUtils API and cross-format conversion details.
 
 ### Container Format and Codec Detection
@@ -285,24 +285,24 @@ Supported formats:
 
 ## Documentation
 
-**[View Full Documentation](https://charleswiltgen.github.io/taglib-wasm/)**
+**[View Full Documentation](https://charleswiltgen.github.io/TagLib-Wasm/)**
 
 ### Getting Started
 
-- [Installation Guide](https://charleswiltgen.github.io/taglib-wasm/guide/installation.html)
-- [Quick Start Tutorial](https://charleswiltgen.github.io/taglib-wasm/guide/quick-start.html)
-- [All Examples](https://charleswiltgen.github.io/taglib-wasm/guide/examples.html)
+- [Installation Guide](https://charleswiltgen.github.io/TagLib-Wasm/guide/installation.html)
+- [Quick Start Tutorial](https://charleswiltgen.github.io/TagLib-Wasm/guide/quick-start.html)
+- [All Examples](https://charleswiltgen.github.io/TagLib-Wasm/guide/examples.html)
 
 ### Guides
 
-- [API Reference](https://charleswiltgen.github.io/taglib-wasm/api/)
-- [Performance Guide](https://charleswiltgen.github.io/taglib-wasm/concepts/performance.html)
-- [Album Processing Guide](https://charleswiltgen.github.io/taglib-wasm/guide/album-processing.html)
-- [Platform Examples](https://charleswiltgen.github.io/taglib-wasm/guide/platform-examples.html)
-- [Working with Cover Art](https://charleswiltgen.github.io/taglib-wasm/guide/cover-art.html)
-- [Track Ratings](https://charleswiltgen.github.io/taglib-wasm/guide/ratings.html)
-- [Cloudflare Workers Setup](https://charleswiltgen.github.io/taglib-wasm/guide/workers-setup.html)
-- [Error Handling](https://charleswiltgen.github.io/taglib-wasm/concepts/error-handling.html)
+- [API Reference](https://charleswiltgen.github.io/TagLib-Wasm/api/)
+- [Performance Guide](https://charleswiltgen.github.io/TagLib-Wasm/concepts/performance.html)
+- [Album Processing Guide](https://charleswiltgen.github.io/TagLib-Wasm/guide/album-processing.html)
+- [Platform Examples](https://charleswiltgen.github.io/TagLib-Wasm/guide/platform-examples.html)
+- [Working with Cover Art](https://charleswiltgen.github.io/TagLib-Wasm/guide/cover-art.html)
+- [Track Ratings](https://charleswiltgen.github.io/TagLib-Wasm/guide/ratings.html)
+- [Cloudflare Workers Setup](https://charleswiltgen.github.io/TagLib-Wasm/guide/workers-setup.html)
+- [Error Handling](https://charleswiltgen.github.io/TagLib-Wasm/concepts/error-handling.html)
 - [Contributing](CONTRIBUTING.md)
 
 ## Supported Formats
@@ -407,7 +407,7 @@ const tags = await readTags("/music/song.mp3");
 ```
 
 See the
-[Runtime Compatibility Guide](https://charleswiltgen.github.io/taglib-wasm/concepts/runtime-compatibility.html)
+[Runtime Compatibility Guide](https://charleswiltgen.github.io/TagLib-Wasm/concepts/runtime-compatibility.html)
 for full sidecar configuration options.
 
 ## Runtime Compatibility

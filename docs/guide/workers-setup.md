@@ -1,18 +1,18 @@
 # Cloudflare Workers Setup
 
-This guide explains how to deploy taglib-wasm on Cloudflare Workers for
+This guide explains how to deploy TagLib-Wasm on Cloudflare Workers for
 serverless audio metadata processing.
 
 ## Overview
 
 Cloudflare Workers provide a serverless execution environment that runs at the
-edge. With taglib-wasm, you can process audio metadata without managing servers,
+edge. With TagLib-Wasm, you can process audio metadata without managing servers,
 scaling automatically to handle any load.
 
 ## Example Worker
 
 A complete example is available in the
-[examples/workers](https://github.com/CharlesWiltgen/taglib-wasm/tree/main/examples/workers)
+[examples/workers](https://github.com/CharlesWiltgen/TagLib-Wasm/tree/main/examples/workers)
 directory.
 
 ### Features
@@ -323,7 +323,7 @@ Common errors:
 ## Next Steps
 
 - Explore the
-  [complete example](https://github.com/CharlesWiltgen/taglib-wasm/tree/main/examples/workers)
+  [complete example](https://github.com/CharlesWiltgen/TagLib-Wasm/tree/main/examples/workers)
 - Read about
   [Cloudflare Workers limits](https://developers.cloudflare.com/workers/platform/limits/)
 - Learn about

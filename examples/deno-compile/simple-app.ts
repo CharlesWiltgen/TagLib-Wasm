@@ -2,7 +2,7 @@
 /// <reference lib="deno.ns" />
 
 /**
- * Simple example of using taglib-wasm with Deno compile
+ * Simple example of using TagLib-Wasm with Deno compile
  *
  * This example uses CDN loading which works well with Deno compile
  * and doesn't require complex embedding strategies.
@@ -65,7 +65,7 @@ function createTestWav(): Uint8Array {
 }
 
 async function main() {
-  console.log("🎵 TagLib-WASM Deno Compile Example\n");
+  console.log("🎵 TagLib-Wasm Deno Compile Example\n");
 
   try {
     // Initialize TagLib with CDN URL

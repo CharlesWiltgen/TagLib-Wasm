@@ -1,5 +1,5 @@
 /**
- * @fileoverview High-level MessagePack utilities for common taglib-wasm operations
+ * @fileoverview High-level MessagePack utilities for common TagLib-Wasm operations
  */
 
 import { MetadataError } from "../errors/classes.ts";
@@ -16,7 +16,7 @@ import {
 import { compareEncodingEfficiency, encodeTagData } from "./encoder.ts";
 
 /**
- * High-level MessagePack utilities for common taglib-wasm operations
+ * High-level MessagePack utilities for common TagLib-Wasm operations
  */
 export class MessagePackUtils {
   /**

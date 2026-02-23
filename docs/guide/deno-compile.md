@@ -1,6 +1,6 @@
-# Using taglib-wasm with Deno Compile
+# Using TagLib-Wasm with Deno Compile
 
-This comprehensive guide explains how to use taglib-wasm in compiled Deno
+This comprehensive guide explains how to use TagLib-Wasm in compiled Deno
 binaries, with multiple approaches for different use cases.
 
 ## Overview
@@ -197,7 +197,7 @@ async function processAudioFile(filePath: string) {
     if (!tags.comment?.includes("Processed")) {
       await updateTags(filePath, {
         ...tags,
-        comment: `${tags.comment || ""} - Processed by taglib-wasm`,
+        comment: `${tags.comment || ""} - Processed by TagLib-Wasm`,
       });
       console.log("  ✅ Updated comment tag");
     }
@@ -214,7 +214,7 @@ async function main() {
   }
 
   console.log("🎵 Audio Metadata Processor");
-  console.log("Initializing taglib-wasm...");
+  console.log("Initializing TagLib-Wasm...");
 
   try {
     // Initialize with automatic offline support

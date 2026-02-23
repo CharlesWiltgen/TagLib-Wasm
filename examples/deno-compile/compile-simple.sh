@@ -1,6 +1,6 @@
 #!/bin/bash
 
-echo "🔨 Compiling simple taglib-wasm example..."
+echo "🔨 Compiling simple TagLib-Wasm example..."
 echo ""
 
 # Compile with CDN loading support

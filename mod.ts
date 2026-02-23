@@ -1,7 +1,7 @@
 /**
- * @module taglib-wasm
+ * @module TagLib-Wasm
  *
- * taglib-wasm - WebAssembly port of TagLib v2.1 with TypeScript bindings.
+ * TagLib-Wasm - WebAssembly port of TagLib v2.1 with TypeScript bindings.
  * Universal audio metadata reading and writing for the web and JavaScript runtimes.
  *
  * @example

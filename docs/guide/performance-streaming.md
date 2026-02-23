@@ -1,11 +1,11 @@
 # WebAssembly Streaming Compilation
 
-taglib-wasm automatically leverages WebAssembly streaming APIs for optimal
+TagLib-Wasm automatically leverages WebAssembly streaming APIs for optimal
 performance when loading from network sources.
 
 ## How It Works
 
-When you initialize taglib-wasm with a URL:
+When you initialize TagLib-Wasm with a URL:
 
 ```typescript
 const taglib = await TagLib.initialize({
@@ -34,7 +34,7 @@ Streaming compilation is supported in:
 
 ## Fallback Behavior
 
-If streaming is not available or fails, taglib-wasm automatically falls back to
+If streaming is not available or fails, TagLib-Wasm automatically falls back to
 standard ArrayBuffer instantiation:
 
 ```
@@ -107,7 +107,7 @@ _Times measured on modern hardware with fast internet connection_
 
 ## Technical Details
 
-The Emscripten-generated runtime in taglib-wasm includes this streaming logic:
+The Emscripten-generated runtime in TagLib-Wasm includes this streaming logic:
 
 ```javascript
 if (!binary && typeof WebAssembly.instantiateStreaming == "function") {

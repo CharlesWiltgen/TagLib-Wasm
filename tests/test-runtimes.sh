@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Test script for different runtimes
-echo "Testing taglib-wasm across different runtimes"
+echo "Testing TagLib-Wasm across different runtimes"
 echo "=============================================="
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"

@@ -13,7 +13,7 @@ FLAC, OGG, WAV, etc.).
 
 ### Enhanced PROPERTIES Constant (Recommended)
 
-taglib-wasm provides a comprehensive `PROPERTIES` constant with rich metadata for all standard properties:
+TagLib-Wasm provides a comprehensive `PROPERTIES` constant with rich metadata for all standard properties:
 
 ```typescript
 import { PROPERTIES, PropertyKey } from "taglib-wasm/constants";

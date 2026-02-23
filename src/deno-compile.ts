@@ -1,5 +1,5 @@
 /**
- * @fileoverview Helper utilities for using taglib-wasm in Deno compiled binaries
+ * @fileoverview Helper utilities for using TagLib-Wasm in Deno compiled binaries
  *
  * This module provides simplified initialization for offline usage in compiled
  * Deno binaries, with automatic detection and embedded WASM loading.

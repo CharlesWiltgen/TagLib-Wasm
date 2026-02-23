@@ -8,7 +8,7 @@
 import createTagLibModule from "../../build/taglib-wrapper.js";
 
 async function main() {
-  console.log("=== taglib-wasm Embind Example ===\n");
+  console.log("=== TagLib-Wasm Embind Example ===\n");
 
   // Load the WebAssembly module
   console.log("Loading TagLib module...");
@@ -59,7 +59,7 @@ async function main() {
     tag.setYear(2024);
     tag.setTrack(1);
     tag.setGenre("Electronic");
-    tag.setComment("Modified with taglib-wasm Embind API");
+    tag.setComment("Modified with TagLib-Wasm Embind API");
 
     console.log(`New Title: ${tag.title()}`);
     console.log(`New Artist: ${tag.artist()}\n`);
@@ -81,7 +81,7 @@ async function main() {
 
   // Set custom properties
   fileHandle.setProperty("CUSTOM_FIELD", "Custom Value");
-  fileHandle.setProperty("ENCODED_BY", "taglib-wasm");
+  fileHandle.setProperty("ENCODED_BY", "TagLib-Wasm");
 
   // Get specific property
   const customValue = fileHandle.getProperty("CUSTOM_FIELD");
@@ -95,7 +95,7 @@ async function main() {
   if (fileHandle.isMP4()) {
     console.log("\n=== MP4-Specific Features ===");
     fileHandle.setMP4Item("©day", "2024");
-    fileHandle.setMP4Item("©too", "taglib-wasm Embind");
+    fileHandle.setMP4Item("©too", "TagLib-Wasm Embind");
 
     const year = fileHandle.getMP4Item("©day");
     const tool = fileHandle.getMP4Item("©too");

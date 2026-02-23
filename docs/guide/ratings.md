@@ -1,6 +1,6 @@
 # Working with Track Ratings
 
-taglib-wasm provides a unified API for reading and writing track ratings that works consistently across all audio formats.
+TagLib-Wasm provides a unified API for reading and writing track ratings that works consistently across all audio formats.
 
 ## Quick Start
 
@@ -25,7 +25,7 @@ file.save();
 
 ### Normalized Scale (0.0-1.0)
 
-All ratings in taglib-wasm use a **normalized 0.0-1.0 scale**:
+All ratings in TagLib-Wasm use a **normalized 0.0-1.0 scale**:
 
 | Value | Meaning            |
 | ----- | ------------------ |
@@ -46,7 +46,7 @@ This normalized representation allows consistent handling across formats that us
 | FLAC/OGG (Vorbis) | RATING comment   | 0.0-1.0      |
 | MP4/M4A           | Custom atom      | Varies       |
 
-taglib-wasm automatically converts between these formats.
+TagLib-Wasm automatically converts between these formats.
 
 ## Rating Interface
 

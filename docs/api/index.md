@@ -1,6 +1,6 @@
-# taglib-wasm API Reference
+# TagLib-Wasm API Reference
 
-Complete API documentation for taglib-wasm, a WebAssembly port of TagLib for
+Complete API documentation for TagLib-Wasm, a WebAssembly port of TagLib for
 JavaScript/TypeScript.
 
 ## Table of Contents
@@ -1199,7 +1199,7 @@ The WebAssembly module automatically detects the Workers environment and optimiz
 
 ### Error Types
 
-taglib-wasm provides specific error types for better error handling:
+TagLib-Wasm provides specific error types for better error handling:
 
 #### TagLibInitializationError
 
@@ -1345,7 +1345,7 @@ try {
 
 ## Tag Constants
 
-taglib-wasm provides type-safe tag constants for better IDE support and code
+TagLib-Wasm provides type-safe tag constants for better IDE support and code
 readability:
 
 ### Using Tag Constants

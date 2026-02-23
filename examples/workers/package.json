@@ -1,7 +1,7 @@
 {
   "name": "taglib-workers-example",
   "version": "1.0.0",
-  "description": "Cloudflare Workers example for taglib-wasm audio metadata processing",
+  "description": "Cloudflare Workers example for TagLib-Wasm audio metadata processing",
   "main": "audio-processor.ts",
   "scripts": {
     "build": "echo 'Build step for bundling if needed'",

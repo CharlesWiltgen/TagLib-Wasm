@@ -22,7 +22,7 @@ import { TagLib } from "../../index.ts";
 import { METADATA_MAPPINGS } from "../../src/types.ts";
 
 async function demonstrateReplayGainAndSoundCheck() {
-  console.log("🔊 taglib-wasm - ReplayGain & Apple Sound Check Example");
+  console.log("🔊 TagLib-Wasm - ReplayGain & Apple Sound Check Example");
   console.log("=".repeat(60));
 
   try {

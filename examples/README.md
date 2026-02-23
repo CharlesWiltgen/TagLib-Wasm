@@ -1,9 +1,9 @@
-# taglib-wasm Examples
+# TagLib-Wasm Examples
 
-Examples demonstrating taglib-wasm usage across different JavaScript runtimes.
+Examples demonstrating TagLib-Wasm usage across different JavaScript runtimes.
 
 📚
-**[View the full Examples Guide](https://charleswiltgen.github.io/taglib-wasm/guide/examples.html)**
+**[View the full Examples Guide](https://charleswiltgen.github.io/TagLib-Wasm/guide/examples.html)**
 in our documentation for detailed instructions and code samples.
 
 ## Quick Start

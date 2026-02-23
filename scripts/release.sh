@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Release script for taglib-wasm
+# Release script for TagLib-Wasm
 # Usage: ./scripts/release.sh [version]
 # Example: ./scripts/release.sh 2.2.5
 
@@ -90,7 +90,7 @@ if command -v gh &> /dev/null; then
 
 - Version bump to $VERSION
 
-**Full Changelog**: https://github.com/CharlesWiltgen/taglib-wasm/compare/v$PREV_VERSION...$TAG" \
+**Full Changelog**: https://github.com/CharlesWiltgen/TagLib-Wasm/compare/v$PREV_VERSION...$TAG" \
     --latest
   
   echo "✅ Release $TAG created successfully!"
@@ -99,8 +99,8 @@ if command -v gh &> /dev/null; then
   echo "   - JSR (@charleswiltgen/taglib-wasm)"
   echo "   - GitHub Packages (@charleswiltgen/taglib-wasm)"
   echo ""
-  echo "📊 Monitor progress at: https://github.com/CharlesWiltgen/taglib-wasm/actions"
+  echo "📊 Monitor progress at: https://github.com/CharlesWiltgen/TagLib-Wasm/actions"
 else
   echo "⚠️  GitHub CLI (gh) not found. Please install it or create the release manually at:"
-  echo "   https://github.com/CharlesWiltgen/taglib-wasm/releases/new?tag=$TAG"
+  echo "   https://github.com/CharlesWiltgen/TagLib-Wasm/releases/new?tag=$TAG"
 fi

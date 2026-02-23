@@ -8,6 +8,9 @@ import type {
   Picture,
   PropertyMap,
 } from "../types.ts";
+import { CAMEL_TO_VORBIS } from "../types/metadata-mappings.ts";
+
+const PASSTHROUGH_KEYS = new Set(["pictures", "ratings"]);
 
 const MSGPACK_ENCODE_OPTIONS: EncoderOptions = {
   sortKeys: false,
@@ -20,7 +23,15 @@ const MSGPACK_ENCODE_OPTIONS: EncoderOptions = {
 
 export function encodeTagData(tagData: ExtendedTag): Uint8Array {
   try {
-    return encode(cleanObject(tagData), MSGPACK_ENCODE_OPTIONS);
+    const remapped: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(tagData)) {
+      if (PASSTHROUGH_KEYS.has(key)) {
+        remapped[key] = value;
+      } else {
+        remapped[CAMEL_TO_VORBIS[key] ?? key] = value;
+      }
+    }
+    return encode(cleanObject(remapped), MSGPACK_ENCODE_OPTIONS);
   } catch (error) {
     throw new MetadataError("write", `Failed to encode tag data: ${error}`);
   }

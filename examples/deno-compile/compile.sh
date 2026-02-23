@@ -1,8 +1,8 @@
 #!/bin/bash
 
-# Compile script for taglib-wasm Deno example
+# Compile script for TagLib-Wasm Deno example
 
-echo "🔨 Building taglib-wasm Deno executable..."
+echo "🔨 Building TagLib-Wasm Deno executable..."
 echo ""
 
 # Option 1: Compile with embedded WASM (offline support)
