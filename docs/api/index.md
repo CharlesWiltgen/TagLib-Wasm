@@ -500,10 +500,14 @@ Initialize the TagLib WebAssembly module.
 static async initialize(options?: {
   wasmBinary?: ArrayBuffer | Uint8Array;
   wasmUrl?: string;
-  useWorkerPool?: boolean;
-  workerPoolOptions?: {
-    size?: number;
-    debug?: boolean;
+  forceBufferMode?: boolean;
+  forceWasmType?: "wasi" | "emscripten";
+  disableOptimizations?: boolean;
+  useSidecar?: boolean;
+  sidecarConfig?: {
+    preopens: Record<string, string>;
+    wasmtimePath?: string;
+    wasmPath?: string;
   };
 }): Promise<TagLib>
 ```
@@ -513,15 +517,19 @@ static async initialize(options?: {
 - `options` (optional): Configuration for loading the WASM module
   - `wasmBinary`: Pre-loaded WASM binary (for offline usage)
   - `wasmUrl`: Custom WASM URL
-  - `useWorkerPool`: Enable worker pool for parallel processing
-  - `workerPoolOptions`: Worker pool configuration
-    - `size`: Number of workers (default: 4)
-    - `debug`: Enable debug output (default: false)
+  - `forceBufferMode`: Force Emscripten backend (disable WASI auto-detection)
+  - `forceWasmType`: Explicitly select `"wasi"` or `"emscripten"` backend
+  - `disableOptimizations`: Disable runtime optimizations
+  - `useSidecar`: Enable wasmtime sidecar for file-system operations
+  - `sidecarConfig`: Sidecar configuration (required when `useSidecar` is true)
+    - `preopens`: Directory mappings for WASI filesystem access
+    - `wasmtimePath`: Custom path to wasmtime binary
+    - `wasmPath`: Custom path to sidecar WASM binary
 
 ##### Example
 
 ```typescript
-// Default initialization
+// Default initialization (auto-detects best backend)
 const taglib = await TagLib.initialize();
 
 // With pre-loaded WASM binary (for offline usage)
@@ -531,8 +539,8 @@ const taglib = await TagLib.initialize({ wasmBinary });
 // With custom WASM URL
 const taglib = await TagLib.initialize({ wasmUrl: "/assets/taglib.wasm" });
 
-// With worker pool enabled
-const taglib = await TagLib.initialize({ useWorkerPool: true });
+// Force Emscripten backend
+const taglib = await TagLib.initialize({ forceBufferMode: true });
 ```
 
 #### taglib.open()
@@ -1432,15 +1440,6 @@ The WebAssembly module automatically configures memory based on your environment
 ```typescript
 // Default initialization (recommended)
 const taglib = await TagLib.initialize();
-
-// With worker pool for parallel processing
-const taglib = await TagLib.initialize({
-  useWorkerPool: true,
-  workerPoolOptions: {
-    size: 4, // Number of workers
-    debug: false,
-  },
-});
 
 // With custom WASM URL
 const taglib = await TagLib.initialize({
