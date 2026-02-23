@@ -191,5 +191,65 @@ describe({ name: "Cross-Backend Parity", ignore: SKIP }, () => {
         `${format}: rating count mismatch (wasi=${wasiCount}, em=${emCount})`,
       );
     });
+
+    it(`should read WASI-written tags with Emscripten (${format})`, async () => {
+      const buffer = await readFixture(format);
+      const ext = extForFormat(format);
+      const writtenTags = {
+        title: "WASI Wrote This",
+        artist: "Cross Backend",
+        album: "Interop Album",
+      };
+
+      const modified = await wasi.writeTags(buffer, writtenTags, ext);
+      assertExists(modified, `${format}: WASI writeTags returned null`);
+
+      const readBack = await emscripten.readTags(modified!, ext);
+      assertEquals(
+        readBack.title,
+        writtenTags.title,
+        `${format}: Emscripten failed to read WASI-written title`,
+      );
+      assertEquals(
+        readBack.artist,
+        writtenTags.artist,
+        `${format}: Emscripten failed to read WASI-written artist`,
+      );
+      assertEquals(
+        readBack.album,
+        writtenTags.album,
+        `${format}: Emscripten failed to read WASI-written album`,
+      );
+    });
+
+    it(`should read Emscripten-written tags with WASI (${format})`, async () => {
+      const buffer = await readFixture(format);
+      const ext = extForFormat(format);
+      const writtenTags = {
+        title: "Emscripten Wrote This",
+        artist: "Cross Backend",
+        album: "Interop Album",
+      };
+
+      const modified = await emscripten.writeTags(buffer, writtenTags, ext);
+      assertExists(modified, `${format}: Emscripten writeTags returned null`);
+
+      const readBack = await wasi.readTags(modified!, ext);
+      assertEquals(
+        readBack.title,
+        writtenTags.title,
+        `${format}: WASI failed to read Emscripten-written title`,
+      );
+      assertEquals(
+        readBack.artist,
+        writtenTags.artist,
+        `${format}: WASI failed to read Emscripten-written artist`,
+      );
+      assertEquals(
+        readBack.album,
+        writtenTags.album,
+        `${format}: WASI failed to read Emscripten-written album`,
+      );
+    });
   }
 });
