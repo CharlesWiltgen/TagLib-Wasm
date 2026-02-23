@@ -136,7 +136,7 @@ const modifiedBuffer = await applyTagsToBuffer("song.mp3", {
   album: "New Album",
 });
 
-// Or write tags to disk (requires file path)
+// Or update tags on disk (requires file path)
 await writeTagsToFile("song.mp3", {
   title: "New Title",
   artist: "New Artist",

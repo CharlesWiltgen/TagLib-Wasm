@@ -31,14 +31,14 @@ features:
 ## Quick Example
 
 ```typescript
-import { readTags, updateTags } from "taglib-wasm/simple";
+import { readTags, writeTagsToFile } from "taglib-wasm/simple";
 
 // Read tags - just one function call!
 const tags = await readTags("song.mp3");
 console.log(tags.title, tags.artist, tags.album);
 
 // Update tags in-place - even simpler!
-await updateTags("song.mp3", {
+await writeTagsToFile("song.mp3", {
   title: "New Title",
   artist: "New Artist",
   album: "New Album",

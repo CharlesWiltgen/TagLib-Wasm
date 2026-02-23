@@ -1,15 +1,12 @@
 export { getTagLib, setBufferMode, setSidecarConfig } from "./config.ts";
 
 export {
-  applyTags,
   applyTagsToBuffer,
   clearTags,
   isValidAudioFile,
   readFormat,
   readProperties,
   readTags,
-  resetDeprecationWarnings,
-  updateTags,
   writeTagsToFile,
 } from "./tag-operations.ts";
 

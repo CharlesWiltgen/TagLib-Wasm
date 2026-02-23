@@ -7,9 +7,6 @@ import {
 import { writeFileData } from "../utils/write.ts";
 import { getTagLib } from "./config.ts";
 
-let applyTagsWarned = false;
-let updateTagsWarned = false;
-
 export async function readTags(
   file: AudioFileInput,
 ): Promise<Tag> {
@@ -94,34 +91,6 @@ export async function writeTagsToFile(
   await writeFileData(file, modifiedBuffer);
 }
 
-/** @deprecated Use `applyTagsToBuffer` instead */
-export async function applyTags(
-  file: string | Uint8Array | ArrayBuffer | File,
-  tags: Partial<Tag>,
-  options?: number,
-): Promise<Uint8Array> {
-  if (!applyTagsWarned) {
-    console.warn("applyTags() is deprecated. Use applyTagsToBuffer() instead.");
-    applyTagsWarned = true;
-  }
-  return applyTagsToBuffer(file, tags, options);
-}
-
-/** @deprecated Use `writeTagsToFile` instead */
-export async function updateTags(
-  file: string,
-  tags: Partial<Tag>,
-  options?: number,
-): Promise<void> {
-  if (!updateTagsWarned) {
-    console.warn(
-      "updateTags() is deprecated. Use writeTagsToFile() instead.",
-    );
-    updateTagsWarned = true;
-  }
-  return writeTagsToFile(file, tags, options);
-}
-
 export async function readProperties(
   file: string | Uint8Array | ArrayBuffer | File,
 ): Promise<AudioProperties> {
@@ -192,9 +161,4 @@ export async function clearTags(
     year: 0,
     track: 0,
   });
-}
-
-export function resetDeprecationWarnings(): void {
-  applyTagsWarned = false;
-  updateTagsWarned = false;
 }

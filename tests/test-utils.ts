@@ -498,10 +498,10 @@ export async function createTestFileWithMetadata(
   tags: Record<string, any>,
 ): Promise<Uint8Array> {
   const { readFileData } = await import("../src/utils/file.ts");
-  const { applyTags } = await import("../src/simple/index.ts");
+  const { applyTagsToBuffer } = await import("../src/simple/index.ts");
 
   const buffer = await readFileData(TEST_FILES[format]);
-  return await applyTags(buffer, tags);
+  return await applyTagsToBuffer(buffer, tags);
 }
 
 // Helper to measure operation time

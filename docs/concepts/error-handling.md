@@ -84,7 +84,11 @@ The Simple API provides clear error messages for common scenarios.
 ### Basic Error Handling
 
 ```typescript
-import { applyTags, readProperties, readTags } from "taglib-wasm/simple";
+import {
+  applyTagsToBuffer,
+  readProperties,
+  readTags,
+} from "taglib-wasm/simple";
 
 // Reading tags
 try {
@@ -102,7 +106,7 @@ try {
 
 // Writing tags
 try {
-  const modified = await applyTags("song.mp3", {
+  const modified = await applyTagsToBuffer("song.mp3", {
     title: "New Title",
     artist: "New Artist",
   });

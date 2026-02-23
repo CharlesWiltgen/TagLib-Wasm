@@ -6,7 +6,7 @@ import { assertEquals, assertRejects, assertThrows } from "@std/assert";
 import { describe, it } from "@std/testing/bdd";
 import { TagLib } from "../src/taglib.ts";
 import {
-  type applyTags,
+  type applyTagsToBuffer,
   readProperties,
   readTags,
   setBufferMode,

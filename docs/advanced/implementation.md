@@ -80,7 +80,7 @@ Requires Wasmtime CLI installed. Configured via `setSidecarConfig()` or
 ## TypeScript API Layers
 
 1. **`src/taglib.ts`** — Core `TagLib` class and `AudioFile` interface
-2. **`src/simple.ts`** — Simple API (`readTags`, `applyTags`, `updateTags`)
+2. **`src/simple.ts`** — Simple API (`readTags`, `applyTagsToBuffer`, `writeTagsToFile`)
 3. **`src/folder-api.ts`** — Batch folder operations (`scanFolder`,
    `findDuplicates`)
 4. **`src/runtime/unified-loader.ts`** — Backend auto-selection and loading
