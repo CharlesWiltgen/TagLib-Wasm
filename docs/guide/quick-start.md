@@ -25,10 +25,10 @@ console.log(props);
 ### Writing Tags
 
 ```typescript
-import { applyTags, updateTags } from "taglib-wasm/simple";
+import { applyTagsToBuffer, writeTagsToFile } from "taglib-wasm/simple";
 
 // Apply tags and get modified buffer (in-memory)
-const modifiedBuffer = await applyTags("song.mp3", {
+const modifiedBuffer = await applyTagsToBuffer("song.mp3", {
   title: "New Title",
   artist: "New Artist",
   album: "New Album",
@@ -38,7 +38,7 @@ const modifiedBuffer = await applyTags("song.mp3", {
 // Save modifiedBuffer to file if needed
 
 // Or update tags directly on disk (requires file path)
-await updateTags("song.mp3", {
+await writeTagsToFile("song.mp3", {
   title: "New Title",
   artist: "New Artist",
 });
@@ -48,14 +48,14 @@ await updateTags("song.mp3", {
 
 ```typescript
 import { readFile, writeFile } from "fs/promises";
-import { applyTags, readTags } from "taglib-wasm/simple";
+import { applyTagsToBuffer, readTags } from "taglib-wasm/simple";
 
 // Read from buffer
 const buffer = await readFile("song.mp3");
 const tags = await readTags(buffer);
 
 // Apply tags to buffer
-const updatedBuffer = await applyTags(buffer, {
+const updatedBuffer = await applyTagsToBuffer(buffer, {
   title: "Updated Title",
 });
 await writeFile("song-updated.mp3", updatedBuffer);

@@ -120,14 +120,14 @@ const modifiedBuffer = audioFile.getFileBuffer();
 The `simple-api.ts` example demonstrates the high-level API:
 
 ```typescript
-import { applyTags, readTags } from "taglib-wasm/simple";
+import { applyTagsToBuffer, readTags } from "taglib-wasm/simple";
 
 // Read tags
 const metadata = await readTags(audioBuffer);
 console.log(metadata);
 
 // Write tags
-const modifiedBuffer = await applyTags(audioBuffer, {
+const modifiedBuffer = await applyTagsToBuffer(audioBuffer, {
   title: "New Title",
   artist: "New Artist",
   album: "New Album",
@@ -148,7 +148,7 @@ const tags = {
 };
 
 // TagLib automatically maps to the correct format-specific fields
-const modifiedBuffer = await applyTags(audioBuffer, tags);
+const modifiedBuffer = await applyTagsToBuffer(audioBuffer, tags);
 ```
 
 ## Import Paths

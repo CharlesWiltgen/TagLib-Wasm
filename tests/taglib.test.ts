@@ -18,7 +18,7 @@ import { describe, it } from "@std/testing/bdd";
 import { TagLib } from "../src/mod.ts";
 import type { AudioFile } from "../src/mod.ts";
 import {
-  applyTags,
+  applyTagsToBuffer,
   isValidAudioFile,
   readFormat,
   readProperties,
@@ -242,7 +242,7 @@ describe("Simple API", () => {
   });
 
   it("Tag Writing", async () => {
-    const modifiedBuffer = await applyTags(TEST_FILES.mp3, {
+    const modifiedBuffer = await applyTagsToBuffer(TEST_FILES.mp3, {
       title: "Simple API Test",
       artist: "Test Suite",
       album: "Test Album",
@@ -496,7 +496,7 @@ describe("Integration", () => {
       artist: "Test Suite",
       year: 2024,
     };
-    const modifiedBuffer = await applyTags(TEST_FILES.mp3, newTags);
+    const modifiedBuffer = await applyTagsToBuffer(TEST_FILES.mp3, newTags);
 
     assert(modifiedBuffer.length > 0, "Should return a buffer");
   });
@@ -513,7 +513,9 @@ describe("Integration", () => {
       assert(props.length > 0, `${format} should have duration`);
 
       try {
-        const modified = await applyTags(path, { title: `${format} Test` });
+        const modified = await applyTagsToBuffer(path, {
+          title: `${format} Test`,
+        });
         assert(modified.length > 0, `${format} should support writing`);
       } catch {
         console.log(`Note: ${format} might not support tag writing`);
@@ -522,7 +524,7 @@ describe("Integration", () => {
   });
 
   it("Music Library Processing", async () => {
-    const { applyTags, readTags, applyCoverArt } = await import(
+    const { applyTagsToBuffer, readTags, applyCoverArt } = await import(
       "../src/simple/index.ts"
     );
     const { RED_PNG, createTestFiles, measureTime } = await import(
@@ -545,7 +547,7 @@ describe("Integration", () => {
           track: index + 1,
         };
 
-        const tagged = await applyTags(buffer, trackTags);
+        const tagged = await applyTagsToBuffer(buffer, trackTags);
 
         if (index === 0) {
           return await applyCoverArt(tagged, RED_PNG, "image/png");
@@ -564,7 +566,9 @@ describe("Integration", () => {
   });
 
   it("Batch Tag Updates", async () => {
-    const { applyTags, readTags } = await import("../src/simple/index.ts");
+    const { applyTagsToBuffer, readTags } = await import(
+      "../src/simple/index.ts"
+    );
     const { createTestFiles } = await import("./test-utils.ts");
 
     const files = await createTestFiles(10, "flac");
@@ -576,7 +580,7 @@ describe("Integration", () => {
     };
 
     const updatedFiles = await Promise.all(
-      files.map((buffer) => applyTags(buffer, updates)),
+      files.map((buffer) => applyTagsToBuffer(buffer, updates)),
     );
 
     for (const buffer of updatedFiles) {
@@ -588,16 +592,21 @@ describe("Integration", () => {
   });
 
   it("Cross-Format Tag Transfer", async () => {
-    const { readTags, applyTags } = await import("../src/simple/index.ts");
+    const { readTags, applyTagsToBuffer } = await import(
+      "../src/simple/index.ts"
+    );
     const { readFileData } = await import("../src/utils/file.ts");
     const { TEST_TAGS } = await import("./test-utils.ts");
 
     const sourceBuffer = await readFileData(TEST_FILES.mp3);
-    const sourceWithTags = await applyTags(sourceBuffer, TEST_TAGS.basic);
+    const sourceWithTags = await applyTagsToBuffer(
+      sourceBuffer,
+      TEST_TAGS.basic,
+    );
     const sourceTags = await readTags(sourceWithTags);
 
     const targetBuffer = await readFileData(TEST_FILES.flac);
-    const targetWithTags = await applyTags(targetBuffer, sourceTags);
+    const targetWithTags = await applyTagsToBuffer(targetBuffer, sourceTags);
 
     const targetTags = await readTags(targetWithTags);
     assertEquals(targetTags.title, sourceTags.title);
@@ -687,7 +696,7 @@ describe("Integration", () => {
   });
 
   it("readMetadataBatch - processes files with dynamics metadata", async () => {
-    const { readMetadataBatch, updateTags } = await import(
+    const { readMetadataBatch } = await import(
       "../src/simple/index.ts"
     );
     const { TagLib } = await import("../src/taglib.ts");
