@@ -3,7 +3,7 @@
  */
 
 import type { Tag } from "../simple/index.ts";
-import { updateTags } from "../simple/index.ts";
+import { writeTagsToFile } from "../simple/index.ts";
 import { writeFileData } from "../utils/write.ts";
 import { processBatch } from "./file-processors.ts";
 import { scanFolder } from "./scan-operations.ts";
@@ -44,7 +44,7 @@ export async function updateFolderTags(
 
   const processor = async (update: { path: string; tags: Partial<Tag> }) => {
     try {
-      await updateTags(update.path, update.tags);
+      await writeTagsToFile(update.path, update.tags);
       successful++;
     } catch (error) {
       const err = error instanceof Error ? error : new Error(String(error));
