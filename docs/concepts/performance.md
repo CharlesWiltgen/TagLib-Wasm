@@ -80,16 +80,7 @@ async function processAlbum(albumFiles: string[]) {
 - **Cloud storage**: 6-10 concurrent operations
 - **Memory limited**: 2-4 concurrent operations
 
-### 3. Use Worker Pool for Complex Operations
-
-```typescript
-import { setWorkerPoolMode } from "taglib-wasm";
-
-// Enable worker pool globally (4x speedup for complex operations)
-setWorkerPoolMode(true);
-```
-
-### 4. Initialize Once, Reuse Many Times
+### 3. Initialize Once, Reuse Many Times
 
 ```typescript
 // ❌ BAD: Initializing for each operation

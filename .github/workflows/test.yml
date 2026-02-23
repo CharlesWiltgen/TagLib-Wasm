@@ -233,11 +233,9 @@ jobs:
           cat > test.ts << 'EOF'
           import { TagLib, readTags } from "taglib-wasm";
           import { readTags as simpleReadTags } from "taglib-wasm/simple";
-          import { TagLibWorkers } from "taglib-wasm/workers";
 
           console.log("✓ Main import works:", typeof TagLib);
           console.log("✓ Simple subpath works:", typeof simpleReadTags);
-          console.log("✓ Workers subpath works:", typeof TagLibWorkers);
 
           const taglib = await TagLib.initialize();
           console.log("✓ TagLib.initialize() works");

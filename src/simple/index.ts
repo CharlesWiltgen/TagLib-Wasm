@@ -1,10 +1,4 @@
-export {
-  getActiveWorkerPool,
-  getTagLib,
-  setBufferMode,
-  setSidecarConfig,
-  setWorkerPoolMode,
-} from "./config.ts";
+export { getTagLib, setBufferMode, setSidecarConfig } from "./config.ts";
 
 export {
   applyTags,

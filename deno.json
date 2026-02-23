@@ -7,7 +7,6 @@
   "exports": {
     ".": "./index.ts",
     "./simple": "./simple.ts",
-    "./workers": "./workers.ts",
     "./folder": "./src/folder-api/index.ts"
   },
   "compilerOptions": {

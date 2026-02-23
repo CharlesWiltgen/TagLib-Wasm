@@ -1,32 +1,12 @@
 import type { TagLib } from "../taglib.ts";
-import {
-  getGlobalWorkerPool,
-  type TagLibWorkerPool,
-} from "../worker-pool/index.ts";
 
 let cachedTagLib: TagLib | null = null;
-let useWorkerPool = false;
-let workerPoolInstance: TagLibWorkerPool | null = null;
 let bufferModeEnabled = false;
 let sidecarConfig: {
   preopens: Record<string, string>;
   wasmtimePath?: string;
   wasmPath?: string;
 } | null = null;
-
-export function setWorkerPoolMode(
-  enabled: boolean,
-  pool?: TagLibWorkerPool,
-): void {
-  useWorkerPool = enabled;
-  if (enabled && pool) {
-    workerPoolInstance = pool;
-  } else if (enabled && !workerPoolInstance) {
-    workerPoolInstance = getGlobalWorkerPool();
-  } else if (!enabled) {
-    workerPoolInstance = null;
-  }
-}
 
 export async function setSidecarConfig(
   config: {
@@ -65,8 +45,4 @@ export async function getTagLib(): Promise<TagLib> {
     cachedTagLib = await TagLib.initialize(initOptions);
   }
   return cachedTagLib;
-}
-
-export function getActiveWorkerPool(): TagLibWorkerPool | null {
-  return useWorkerPool ? workerPoolInstance : null;
 }

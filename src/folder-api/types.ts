@@ -4,7 +4,6 @@
 
 import type { Tag } from "../simple/index.ts";
 import type { AudioProperties } from "../types.ts";
-import type { TagLibWorkerPool } from "../worker-pool/index.ts";
 
 export type { AudioProperties, Tag };
 
@@ -87,10 +86,6 @@ export interface FolderScanOptions {
   includeProperties?: boolean;
   /** Whether to continue on errors (default: true) */
   continueOnError?: boolean;
-  /** Use worker pool for parallel processing (default: true if available) */
-  useWorkerPool?: boolean;
-  /** Worker pool instance to use (creates one if not provided) */
-  workerPool?: TagLibWorkerPool;
   /** Force buffer mode: Emscripten in-memory I/O (bypasses unified loader) */
   forceBufferMode?: boolean;
   /** Tag fields to compare when finding duplicates (default: ["artist", "title"]) */

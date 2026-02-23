@@ -3,16 +3,8 @@
  */
 
 import { TagLib } from "../taglib.ts";
-import {
-  getGlobalWorkerPool,
-  type TagLibWorkerPool,
-} from "../worker-pool/index.ts";
 import { walkDirectory } from "./directory-walker.ts";
-import {
-  processBatch,
-  processFileWithTagLib,
-  processFileWithWorker,
-} from "./file-processors.ts";
+import { processBatch, processFileWithTagLib } from "./file-processors.ts";
 import {
   type AudioFileMetadata,
   EMPTY_TAG,
@@ -21,54 +13,6 @@ import {
   type ScanProcessOptions,
   type ScanProcessResult,
 } from "./types.ts";
-
-async function scanWithWorkerPool(
-  pool: TagLibWorkerPool,
-  filePaths: string[],
-  opts: ScanProcessOptions,
-): Promise<ScanProcessResult> {
-  const { includeProperties, continueOnError, onProgress, totalFound } = opts;
-  const files: AudioFileMetadata[] = [];
-  const errors: Array<{ path: string; error: Error }> = [];
-  const progress = { count: 0 };
-  const batchSize = Math.min(50, filePaths.length);
-
-  for (let i = 0; i < filePaths.length; i += batchSize) {
-    const batch = filePaths.slice(
-      i,
-      Math.min(i + batchSize, filePaths.length),
-    );
-
-    const batchPromises = batch.map(async (filePath) => {
-      try {
-        return await processFileWithWorker(
-          filePath,
-          pool,
-          includeProperties,
-          onProgress,
-          progress,
-          totalFound,
-        );
-      } catch (error) {
-        const err = error instanceof Error ? error : new Error(String(error));
-
-        if (continueOnError) {
-          errors.push({ path: filePath, error: err });
-          const current = ++progress.count;
-          onProgress?.(current, totalFound, filePath);
-          return { path: filePath, tags: EMPTY_TAG, error: err };
-        } else {
-          throw err;
-        }
-      }
-    });
-
-    const batchResults = await Promise.all(batchPromises);
-    files.push(...batchResults.filter((r) => !r.error));
-  }
-
-  return { files, errors, processed: progress.count };
-}
 
 async function scanWithTagLib(
   taglib: TagLib,
@@ -146,8 +90,6 @@ export async function scanFolder(
     maxFiles = Infinity,
     includeProperties = true,
     continueOnError = true,
-    useWorkerPool = true,
-    workerPool,
     onProgress,
     forceBufferMode,
   } = options;
@@ -163,21 +105,11 @@ export async function scanFolder(
 
   const totalFound = filePaths.length;
 
-  const shouldUseWorkerPool = useWorkerPool &&
-    (workerPool ?? typeof Worker !== "undefined");
-  let pool: TagLibWorkerPool | null = null;
-
-  if (shouldUseWorkerPool) {
-    pool = workerPool ?? getGlobalWorkerPool();
-  }
-
   let initOptions;
   if (forceBufferMode) {
     initOptions = { forceBufferMode: true } as const;
   }
-  const taglib = shouldUseWorkerPool
-    ? null
-    : await TagLib.initialize(initOptions);
+  const taglib = await TagLib.initialize(initOptions);
 
   const processOpts: ScanProcessOptions = {
     includeProperties,
@@ -186,9 +118,7 @@ export async function scanFolder(
     totalFound,
   };
 
-  const result = pool
-    ? await scanWithWorkerPool(pool, filePaths, processOpts)
-    : await scanWithTagLib(taglib!, filePaths, processOpts);
+  const result = await scanWithTagLib(taglib, filePaths, processOpts);
 
   return {
     files: result.files,

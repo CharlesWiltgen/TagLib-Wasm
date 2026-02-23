@@ -70,12 +70,11 @@ taglib-wasm provides three APIs for different use cases:
 
 ### 🚀 Performance Comparison
 
-| Method                  | Files       | Time     | Speed           | Best For         |
-| ----------------------- | ----------- | -------- | --------------- | ---------------- |
-| Sequential `readTags()` | 19 files    | ~90s     | 1x baseline     | Single files     |
-| **`readTagsBatch()`**   | 19 files    | **~5s**  | **18x faster**  | File lists       |
-| **`scanFolder()`**      | 1000 files  | **2-4s** | **~10x faster** | Directories      |
-| Worker Pool             | Complex ops | ~22s     | 4x faster       | Heavy processing |
+| Method                  | Files      | Time     | Speed           | Best For     |
+| ----------------------- | ---------- | -------- | --------------- | ------------ |
+| Sequential `readTags()` | 19 files   | ~90s     | 1x baseline     | Single files |
+| **`readTagsBatch()`**   | 19 files   | **~5s**  | **18x faster**  | File lists   |
+| **`scanFolder()`**      | 1000 files | **2-4s** | **~10x faster** | Directories  |
 
 ### 🎯 Fastest Approach for Common Tasks
 
@@ -1357,7 +1356,6 @@ for (const file of files.files) {
 - Use `fetch()` or FileReader API to load files
 - No filesystem access; work with buffers in memory
 - Folder API not available (no filesystem)
-- Consider using Workers API for better performance
 
 ### Deno
 
@@ -1447,41 +1445,31 @@ deno compile --allow-read --allow-net music-tagger.ts
 
 ### Cloudflare Workers
 
-Use the Workers API for edge compatibility:
+Cloudflare Workers use the same unified API as every other platform:
 
 ```typescript
-import { TagLibWorkers } from "taglib-wasm/workers";
-import wasmBinary from "../build/taglib.wasm";
+import { TagLib } from "taglib-wasm";
+
+let taglib: Awaited<ReturnType<typeof TagLib.initialize>> | null = null;
 
 export default {
   async fetch(request: Request): Promise<Response> {
-    const taglib = await TagLibWorkers.initialize(wasmBinary);
+    if (!taglib) {
+      taglib = await TagLib.initialize();
+    }
 
-    // Fetch audio from R2 or external URL
-    const audioBuffer = new Uint8Array(
-      await fetch(audioUrl).then((r) => r.arrayBuffer()),
-    );
+    const audioData = new Uint8Array(await request.arrayBuffer());
+    using file = await taglib.open(audioData);
+    const tag = file.tag();
 
-    using audioFile = taglib.open(audioBuffer);
-    const tag = audioFile.tag();
-
-    const metadata = {
+    return Response.json({
       title: tag.title,
       artist: tag.artist,
       album: tag.album,
-    };
-
-    return Response.json(metadata);
+    });
   },
 };
 ```
-
-**Workers API limitations:** The `taglib-wasm/workers` path uses C-style
-Emscripten bindings with a reduced feature set. Extended tags (albumArtist,
-MusicBrainz IDs, ReplayGain), cover art, ratings, PropertyMap access, and
-`getFileBuffer()` are not available. Audio properties `codec`, `bitsPerSample`,
-and `containerFormat` return stub values. Use the standard API for full
-functionality.
 
 ## Performance Tips
 
@@ -1531,20 +1519,7 @@ functionality.
    - Initialize once and reuse the instance
    - Larger memory allocation for batch operations
 
-7. **Worker Pool** (4x speedup for complex operations)
-
-   ```typescript
-   // Enable globally
-   import { setWorkerPoolMode } from "taglib-wasm";
-   setWorkerPoolMode(true);
-
-   // Or create custom pool (recommended)
-   import { createWorkerPool, setWorkerPoolMode } from "taglib-wasm";
-   const pool = await createWorkerPool({ size: 8 });
-   setWorkerPoolMode(true, pool);
-   ```
-
-8. **Wasmtime Sidecar** (direct filesystem access for batch operations)
+7. **Wasmtime Sidecar** (direct filesystem access for batch operations)
 
    For server-side batch operations, enable the Wasmtime sidecar for direct
    filesystem access (bypasses buffer copying):
@@ -1609,7 +1584,6 @@ functionality.
 | Process files sequentially       | Use Folder API for batch operations                                        |
 | Import from `taglib-wasm/folder` | Import from main module                                                    |
 | Mix JSR and NPM in Deno          | Use only JSR package for Deno apps                                         |
-| `getGlobalWorkerPool()`          | Use `await createWorkerPool()` instead                                     |
 
 ### Critical Memory Management
 
@@ -1935,7 +1909,6 @@ function detectRuntime(): string {
     return "node";
   }
   if (typeof window !== "undefined") return "browser";
-  if (typeof self !== "undefined") return "worker";
   return "unknown";
 }
 
@@ -1951,9 +1924,6 @@ switch (runtime) {
     break;
   case "browser":
     // Use CDN or bundled
-    break;
-  case "worker":
-    // Use Workers API
     break;
 }
 ```
@@ -2720,7 +2690,6 @@ Real-world performance measurements:
 - **Single file read**: 2-5ms (tags only)
 - **Single file full metadata**: 5-10ms (tags + properties + cover art check)
 - **Batch overhead**: ~100ms startup + concurrent processing
-- **Worker pool init**: ~500ms (one-time cost)
 
 ### 💾 Memory Usage
 

@@ -9,7 +9,6 @@ export {
   SidecarError,
   TagLibInitializationError,
   UnsupportedFormatError,
-  WorkerError,
 } from "./classes.ts";
 export {
   isEnvironmentError,
@@ -20,5 +19,4 @@ export {
   isSidecarError,
   isTagLibError,
   isUnsupportedFormatError,
-  isWorkerError,
 } from "./guards.ts";
