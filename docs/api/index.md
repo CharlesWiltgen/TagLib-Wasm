@@ -21,6 +21,8 @@ JavaScript/TypeScript.
   - [exportFolderMetadata()](#exportfoldermetadata)
 - [Full API](#full-api)
   - [TagLib Class](#taglib-class)
+    - [taglib.edit()](#taglib-edit)
+    - [taglib.copyWithTags()](#taglib-copywithtags)
   - [AudioFile Class](#audiofile-class)
   - [Types and Interfaces](#types-and-interfaces)
 - [Workers API](#workers-api)
@@ -616,26 +618,99 @@ await taglib.updateFile("song.mp3", {
 });
 ```
 
-#### taglib.copyWithTags()
+#### taglib.edit()
 
-Create a copy of a file with updated tags.
+Open, modify, and save an audio file in a single operation. The callback
+receives an `AudioFile` for full access to tags, properties, and cover art.
+
+Has two overloads depending on the input type:
+
+**File path overload** -- edits the file in place on disk:
 
 ```typescript
-copyWithTags(inputPath: string, outputPath: string, tags: Partial<Tags>): Promise<void>
+edit(path: string, fn: (file: AudioFile) => void | Promise<void>): Promise<void>
+```
+
+**Buffer overload** -- returns the modified audio data:
+
+```typescript
+edit(
+  input: Uint8Array | ArrayBuffer | File,
+  fn: (file: AudioFile) => void | Promise<void>,
+): Promise<Uint8Array>
 ```
 
 ##### Parameters
 
-- `inputPath`: Path to the source audio file
-- `outputPath`: Path where the copy will be saved
-- `tags`: Tags to set on the copy
+- `input`: File path (string) for in-place editing, or audio data
+  (Uint8Array/ArrayBuffer/File) for buffer-based editing
+- `fn`: Callback that receives an `AudioFile` instance. Make your modifications
+  inside this callback. The file is automatically saved and disposed after the
+  callback returns.
+
+##### Returns
+
+- **File path input**: `Promise<void>` -- changes are saved to disk
+- **Buffer input**: `Promise<Uint8Array>` -- returns the modified audio data
 
 ##### Example
 
 ```typescript
+// Edit a file on disk (in place)
+await taglib.edit("song.mp3", (file) => {
+  const tag = file.tag();
+  tag.setTitle("New Title");
+  tag.setArtist("New Artist");
+  tag.setYear(2025);
+});
+
+// Edit a buffer and get modified data back
+const audioData = await fetch("song.mp3").then((r) => r.arrayBuffer());
+const modified = await taglib.edit(new Uint8Array(audioData), (file) => {
+  file.tag().setTitle("Updated Title");
+  file.setProperties({ ALBUMARTIST: "Various Artists" });
+});
+await Deno.writeFile("song-modified.mp3", modified);
+
+// Async callbacks are supported
+await taglib.edit("song.flac", async (file) => {
+  const coverArt = await fetch("cover.jpg").then((r) => r.arrayBuffer());
+  file.addPicture({
+    mimeType: "image/jpeg",
+    data: new Uint8Array(coverArt),
+    type: "Cover (front)",
+  });
+});
+```
+
+#### taglib.copyWithTags()
+
+Create a copy of a file with updated tags. Reads the source file, applies the
+specified tags, and saves to a new destination path.
+
+```typescript
+copyWithTags(sourcePath: string, destPath: string, tags: Partial<Tag>): Promise<void>
+```
+
+##### Parameters
+
+- `sourcePath`: Path to the source audio file
+- `destPath`: Path where the copy will be saved
+- `tags`: Tags to set on the copy (type `Partial<Tag>`)
+
+##### Example
+
+```typescript
+// Create a tagged copy
 await taglib.copyWithTags("original.mp3", "copy.mp3", {
   title: "Copy of Original",
+  artist: "Same Artist",
   comment: "This is a copy",
+});
+
+// Transcode workflow: copy tags to a re-encoded file
+await taglib.copyWithTags("master.flac", "output.mp3", {
+  comment: "Converted from FLAC",
 });
 ```
 
