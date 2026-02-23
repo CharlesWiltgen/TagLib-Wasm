@@ -37,6 +37,3 @@ import "./folder-api.test.ts";
 describe("taglib-wasm", () => {
   // Empty — tests registered by imported modules
 });
-
-// Note: Workers tests (test-workers.ts) are manual utilities
-// Run manually with: deno run --allow-read tools/test-workers.ts

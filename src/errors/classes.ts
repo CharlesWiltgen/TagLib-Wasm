@@ -204,22 +204,6 @@ export class EnvironmentError extends TagLibError {
 }
 
 /**
- * Error thrown when worker pool operations fail
- */
-export class WorkerError extends TagLibError {
-  /**
-   * Creates a new WorkerError
-   * @param message - Description of the worker failure
-   * @param details - Additional context about the error
-   */
-  constructor(message: string, details?: Record<string, unknown>) {
-    super("WORKER", message, details);
-    this.name = "WorkerError";
-    Object.setPrototypeOf(this, WorkerError.prototype);
-  }
-}
-
-/**
  * Error thrown when sidecar process operations fail
  */
 export class SidecarError extends TagLibError {

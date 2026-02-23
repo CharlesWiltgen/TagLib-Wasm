@@ -33,8 +33,6 @@ demonstrate core functionality:
   Bun runtime examples
 - **[deno/](https://github.com/CharlesWiltgen/TagLib-Wasm/tree/main/examples/deno)** -
   Deno runtime examples
-- **[workers/](https://github.com/CharlesWiltgen/TagLib-Wasm/tree/main/examples/workers)** -
-  Cloudflare Workers serverless deployment
 
 ## Running Examples
 
@@ -170,7 +168,5 @@ import { TagLib } from "npm:taglib-wasm"; // Deno
 
 - Check out the [Platform Examples](./platform-examples.md) for runtime-specific
   patterns
-- See the [Cloudflare Workers Setup](./workers-setup.md) for serverless
-  deployment
 - Read the [API Reference](/api/) for detailed documentation
 - Explore [Cover Art handling](./cover-art.md) for working with embedded images

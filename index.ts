@@ -50,7 +50,6 @@ export {
   isSidecarError,
   isTagLibError,
   isUnsupportedFormatError,
-  isWorkerError,
   MemoryError,
   MetadataError,
   SidecarError,
@@ -58,7 +57,6 @@ export {
   TagLibError,
   TagLibInitializationError,
   UnsupportedFormatError,
-  WorkerError,
 } from "./src/errors.ts";
 export type { TagLibErrorCode } from "./src/errors.ts";
 
@@ -94,7 +92,6 @@ export {
   replacePictureByType,
   setBufferMode,
   setSidecarConfig,
-  setWorkerPoolMode,
   updateTags,
   writeTagsToFile,
 } from "./src/simple/index.ts";
@@ -204,19 +201,6 @@ export {
   toPopm,
   toStars,
 } from "./src/utils/rating.ts";
-
-// Worker pool
-export {
-  createWorkerPool,
-  getGlobalWorkerPool,
-  TagLibWorkerPool,
-  terminateGlobalWorkerPool,
-} from "./src/worker-pool/index.ts";
-export type {
-  BatchOperation,
-  WorkerPoolOptions,
-  WorkerTask,
-} from "./src/worker-pool/index.ts";
 
 // Wasm module types and loader
 export type { TagLibModule, WasmModule } from "./src/wasm.ts";

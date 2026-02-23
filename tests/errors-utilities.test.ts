@@ -16,14 +16,12 @@ import {
   isSidecarError,
   isTagLibError,
   isUnsupportedFormatError,
-  isWorkerError,
   MemoryError,
   MetadataError,
   SidecarError,
   TagLibError,
   TagLibInitializationError,
   UnsupportedFormatError,
-  WorkerError,
 } from "../src/errors.ts";
 
 describe("Error Classes", () => {
@@ -209,20 +207,6 @@ describe("Error Classes", () => {
     assertInstanceOf(error1, EnvironmentError);
   });
 
-  it("WorkerError - worker pool errors", () => {
-    const error = new WorkerError("Worker initialization timed out", {
-      workerId: 123,
-    });
-
-    assertEquals(error.name, "WorkerError");
-    assertEquals(error.code, "WORKER");
-    assertEquals(error.message, "Worker initialization timed out");
-    assertEquals(error.details, { workerId: 123 });
-
-    assertInstanceOf(error, TagLibError);
-    assertInstanceOf(error, WorkerError);
-  });
-
   it("SidecarError - sidecar process errors", () => {
     const error = new SidecarError("Sidecar not running: Call start() first.", {
       pid: 456,
@@ -257,8 +241,6 @@ describe("Type Guards", () => {
       isTagLibError(new EnvironmentError("test", "failed")),
       true,
     );
-    assertEquals(isTagLibError(new WorkerError("timeout")), true);
-
     assertEquals(isTagLibError(new Error("regular error")), false);
     assertEquals(isTagLibError("not an error"), false);
     assertEquals(isTagLibError(null), false);
@@ -372,18 +354,7 @@ describe("Type Guards", () => {
       isEnvironmentError(new TagLibError("MEMORY", "msg")),
       false,
     );
-    assertEquals(isEnvironmentError(new WorkerError("failed")), false);
     assertEquals(isEnvironmentError(123), false);
-  });
-
-  it("isWorkerError - type guard", () => {
-    assertEquals(isWorkerError(new WorkerError("timeout")), true);
-    assertEquals(isWorkerError(new WorkerError("failed", { id: 1 })), true);
-
-    assertEquals(isWorkerError(new TagLibError("MEMORY", "msg")), false);
-    assertEquals(isWorkerError(new SidecarError("failed")), false);
-    assertEquals(isWorkerError(new Error("regular")), false);
-    assertEquals(isWorkerError(null), false);
   });
 
   it("isSidecarError - type guard", () => {
@@ -394,7 +365,6 @@ describe("Type Guards", () => {
     );
 
     assertEquals(isSidecarError(new TagLibError("MEMORY", "msg")), false);
-    assertEquals(isSidecarError(new WorkerError("failed")), false);
     assertEquals(isSidecarError(new Error("regular")), false);
     assertEquals(isSidecarError(undefined), false);
   });
@@ -436,7 +406,6 @@ describe("Utilities", () => {
       new MetadataError("read", "test"),
       new MemoryError("test"),
       new EnvironmentError("test", "reason"),
-      new WorkerError("test"),
     ];
 
     for (const error of errors) {

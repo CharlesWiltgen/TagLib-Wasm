@@ -21,7 +21,6 @@ export type TagLibErrorCode =
   | "METADATA"
   | "MEMORY"
   | "ENVIRONMENT"
-  | "WORKER"
   | "SIDECAR";
 
 /**

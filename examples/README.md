@@ -26,4 +26,3 @@ bun examples/common/basic-usage.ts
 - `node/` - Node.js examples
 - `bun/` - Bun examples
 - `deno/` - Deno examples
-- `workers/` - Cloudflare Workers examples

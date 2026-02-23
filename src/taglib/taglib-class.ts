@@ -1,16 +1,7 @@
 import type { TagLibModule, WasmModule } from "../wasm.ts";
 import type { OpenOptions, Tag as BasicTag } from "../types.ts";
 import type { WasmtimeSidecar } from "../runtime/wasmtime-sidecar.ts";
-import {
-  InvalidFormatError,
-  TagLibInitializationError,
-  WorkerError,
-} from "../errors.ts";
-import {
-  type BatchOperation,
-  getGlobalWorkerPool,
-  type TagLibWorkerPool,
-} from "../worker-pool/index.ts";
+import { InvalidFormatError, TagLibInitializationError } from "../errors.ts";
 import type { AudioFile } from "./audio-file-interface.ts";
 import { AudioFileImpl } from "./audio-file-impl.ts";
 import { loadAudioData } from "./load-audio-data.ts";
@@ -20,7 +11,6 @@ import { loadAudioData } from "./load-audio-data.ts";
  */
 export class TagLib {
   private readonly module: TagLibModule;
-  private workerPool?: TagLibWorkerPool;
   private _sidecar?: WasmtimeSidecar;
 
   constructor(module: WasmModule) {
@@ -34,8 +24,6 @@ export class TagLib {
   static async initialize(options?: {
     wasmBinary?: ArrayBuffer | Uint8Array;
     wasmUrl?: string;
-    useWorkerPool?: boolean;
-    workerPoolOptions?: { size?: number; debug?: boolean };
     forceBufferMode?: boolean;
     forceWasmType?: "wasi" | "emscripten";
     disableOptimizations?: boolean;
@@ -49,10 +37,6 @@ export class TagLib {
     const { loadTagLibModule } = await import("../../index.ts");
     const module = await loadTagLibModule(options);
     const taglib = new TagLib(module);
-
-    if (options?.useWorkerPool) {
-      taglib.workerPool = getGlobalWorkerPool(options.workerPoolOptions);
-    }
 
     if (options?.useSidecar && options.sidecarConfig) {
       const { WasmtimeSidecar } = await import(
@@ -70,14 +54,6 @@ export class TagLib {
     }
 
     return taglib;
-  }
-
-  setWorkerPool(pool: TagLibWorkerPool | null): void {
-    this.workerPool = pool ?? undefined;
-  }
-
-  getWorkerPool(): TagLibWorkerPool | undefined {
-    return this.workerPool;
   }
 
   async open(
@@ -183,38 +159,6 @@ export class TagLib {
     } finally {
       file.dispose();
     }
-  }
-
-  async batchOperations(
-    file: string | Uint8Array,
-    operations: BatchOperation[],
-  ): Promise<any> {
-    if (!this.workerPool) {
-      throw new WorkerError(
-        "Worker pool not initialized. Enable it with TagLib.initialize({ useWorkerPool: true })",
-      );
-    }
-    return this.workerPool.batchOperations(file, operations);
-  }
-
-  async processFiles<T>(
-    files: string[],
-    operation: "readTags" | "readProperties",
-  ): Promise<T[]> {
-    if (!this.workerPool) {
-      throw new WorkerError(
-        "Worker pool not initialized. Enable it with TagLib.initialize({ useWorkerPool: true })",
-      );
-    }
-    return Promise.all(
-      files.map((file) => {
-        if (operation === "readTags") {
-          return this.workerPool!.readTags(file) as Promise<T>;
-        } else {
-          return this.workerPool!.readProperties(file) as Promise<T>;
-        }
-      }),
-    );
   }
 
   version(): string {

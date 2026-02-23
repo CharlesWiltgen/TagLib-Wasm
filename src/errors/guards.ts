@@ -7,7 +7,6 @@ import {
   MetadataError,
   SidecarError,
   UnsupportedFormatError,
-  WorkerError,
 } from "./classes.ts";
 
 export function isTagLibError(error: unknown): error is TagLibError {
@@ -46,8 +45,4 @@ export function isEnvironmentError(error: unknown): error is EnvironmentError {
 
 export function isSidecarError(error: unknown): error is SidecarError {
   return error instanceof SidecarError;
-}
-
-export function isWorkerError(error: unknown): error is WorkerError {
-  return error instanceof WorkerError;
 }

@@ -52,9 +52,6 @@ export {
   isUnsupportedFormatError,
 } from "./src/errors.ts";
 
-// Export Workers API for Cloudflare Workers
-export { AudioFileWorkers, TagLibWorkers } from "./src/workers/index.ts";
-
 // Export additional types
 export type { PictureType } from "./src/types.ts";
 export type { ExtendedTag, Picture, PropertyMap } from "./src/types.ts";

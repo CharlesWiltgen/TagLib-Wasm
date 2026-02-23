@@ -214,8 +214,6 @@ const requiredFiles = [
   "dist/index.d.ts",
   "dist/src/simple.js",
   "dist/src/simple.d.ts",
-  "dist/src/workers.js",
-  "dist/src/workers.d.ts",
   "dist/taglib-web.wasm",
   "dist/taglib-wrapper.js",
 ];

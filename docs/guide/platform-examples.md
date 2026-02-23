@@ -144,17 +144,15 @@ that can resolve `taglib-wasm` and serve the `.wasm` file.
 
 ## Cloudflare Workers
 
-Workers are buffer-only with constrained memory. Use the `/workers` import path
-for the optimized build, and configure initial memory:
+Workers are buffer-only with constrained memory. Use the same unified API import
+as every other platform:
 
 ```typescript
-import { TagLib } from "taglib-wasm/workers";
+import { TagLib } from "taglib-wasm";
 
 export default {
   async fetch(request: Request): Promise<Response> {
-    const taglib = await TagLib.initialize({
-      memory: { initial: 8 * 1024 * 1024 }, // 8MB (Workers have 128MB limit)
-    });
+    const taglib = await TagLib.initialize();
 
     const audioData = new Uint8Array(await request.arrayBuffer());
     using file = await taglib.open(audioData);
@@ -162,7 +160,7 @@ export default {
     return Response.json({
       title: file.tag().title,
       artist: file.tag().artist,
-      duration: file.audioProperties().length,
+      duration: file.audioProperties()?.length,
     });
   },
 };
@@ -170,9 +168,7 @@ export default {
 
 Key differences from other platforms:
 
-- **Import path**: `taglib-wasm/workers` (not `taglib-wasm`)
-- **Memory limit**: 128MB per request — set `memory.initial` to avoid
-  growing from the default 16MB
+- **Memory limit**: 128MB per request
 - **No filesystem**: Buffer-only
 
 See [Cloudflare Workers Guide](../advanced/cloudflare-workers.md) for detailed

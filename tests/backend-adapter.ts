@@ -390,7 +390,6 @@ export class EmscriptenBackendAdapter implements BackendAdapter {
       "extended-metadata",
       "codec-detection",
       "partial-loading",
-      "worker-pool",
     ]);
     return supported.has(feature);
   }

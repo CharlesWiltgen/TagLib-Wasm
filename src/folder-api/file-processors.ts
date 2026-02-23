@@ -3,7 +3,6 @@
  */
 
 import type { TagLib } from "../taglib.ts";
-import type { TagLibWorkerPool } from "../worker-pool/index.ts";
 import type {
   AudioDynamics,
   AudioFileMetadata,
@@ -26,59 +25,6 @@ export async function processBatch(
   }
 
   return results;
-}
-
-function extractDynamicsData(tags: any): AudioDynamics | undefined {
-  const dynamics: AudioDynamics = {};
-
-  if (tags.REPLAYGAIN_TRACK_GAIN) {
-    dynamics.replayGainTrackGain = tags.REPLAYGAIN_TRACK_GAIN;
-  }
-  if (tags.REPLAYGAIN_TRACK_PEAK) {
-    dynamics.replayGainTrackPeak = tags.REPLAYGAIN_TRACK_PEAK;
-  }
-  if (tags.REPLAYGAIN_ALBUM_GAIN) {
-    dynamics.replayGainAlbumGain = tags.REPLAYGAIN_ALBUM_GAIN;
-  }
-  if (tags.REPLAYGAIN_ALBUM_PEAK) {
-    dynamics.replayGainAlbumPeak = tags.REPLAYGAIN_ALBUM_PEAK;
-  }
-  if (tags.ITUNNORM) {
-    dynamics.appleSoundCheck = tags.ITUNNORM;
-  }
-
-  return Object.keys(dynamics).length > 0 ? dynamics : undefined;
-}
-
-export async function processFileWithWorker(
-  filePath: string,
-  pool: TagLibWorkerPool,
-  includeProperties: boolean,
-  onProgress?: (processed: number, total: number, currentFile: string) => void,
-  processed?: { count: number },
-  totalFound?: number,
-): Promise<AudioFileMetadata> {
-  const [tags, properties, pictures] = await Promise.all([
-    pool.readTags(filePath),
-    includeProperties ? pool.readProperties(filePath) : Promise.resolve(null),
-    pool.readPictures(filePath),
-  ]);
-
-  const hasCoverArt = pictures.length > 0;
-  const dynamics = extractDynamicsData(tags);
-
-  if (processed !== undefined && totalFound !== undefined) {
-    const current = ++processed.count;
-    onProgress?.(current, totalFound, filePath);
-  }
-
-  return {
-    path: filePath,
-    tags,
-    properties: properties ?? undefined,
-    hasCoverArt,
-    dynamics,
-  };
 }
 
 export async function processFileWithTagLib(

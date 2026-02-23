@@ -8,7 +8,6 @@ import {
   savePictureToFile,
 } from "../src/file-utils/index.ts";
 import { applyPictures, setBufferMode } from "../src/simple/index.ts";
-import { terminateGlobalWorkerPool } from "../src/worker-pool/index.ts";
 import { PICTURE_TYPE_VALUES } from "../src/types.ts";
 import { FIXTURE_PATH } from "./shared-fixtures.ts";
 
@@ -16,7 +15,6 @@ setBufferMode(true);
 const TEMP_DIR = await Deno.makeTempDir();
 
 afterAll(async () => {
-  terminateGlobalWorkerPool();
   await Deno.remove(TEMP_DIR, { recursive: true });
 });
 
