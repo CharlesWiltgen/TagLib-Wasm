@@ -13,10 +13,6 @@
     "./simple": {
       "types": "./dist/src/simple/index.d.ts",
       "default": "./dist/src/simple/index.js"
-    },
-    "./folder": {
-      "types": "./dist/src/folder-api/index.d.ts",
-      "default": "./dist/src/folder-api/index.js"
     }
   },
   "files": [

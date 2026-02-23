@@ -6,8 +6,7 @@
   "nodeModulesDir": "auto",
   "exports": {
     ".": "./index.ts",
-    "./simple": "./simple.ts",
-    "./folder": "./src/folder-api/index.ts"
+    "./simple": "./simple.ts"
   },
   "compilerOptions": {
     "lib": [
