@@ -8,6 +8,7 @@ export {
   readFormat,
   readProperties,
   readTags,
+  resetDeprecationWarnings,
   updateTags,
   writeTagsToFile,
 } from "./tag-operations.ts";
