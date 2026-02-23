@@ -1,33 +1,4 @@
 /**
- * Configuration options for TagLib Workers initialization.
- * Allows customization of memory limits and debug settings.
- *
- * @example
- * ```typescript
- * const config: TagLibWorkersConfig = {
- *   memory: {
- *     initial: 16 * 1024 * 1024,  // 16MB
- *     maximum: 64 * 1024 * 1024   // 64MB
- *   },
- *   debug: true
- * };
- *
- * const taglib = await TagLibWorkers.initialize(wasmBinary, config);
- * ```
- */
-export interface TagLibWorkersConfig {
-  /** Memory allocation settings */
-  memory?: {
-    /** Initial memory size in bytes */
-    initial?: number;
-    /** Maximum memory size in bytes */
-    maximum?: number;
-  };
-  /** Enable debug output */
-  debug?: boolean;
-}
-
-/**
  * Options for opening audio files with partial loading support.
  *
  * @example

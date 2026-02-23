@@ -219,14 +219,12 @@ document.getElementById("artist").textContent = file.tag().artist;
 ### Cloudflare Workers
 
 ```typescript
-import { TagLib } from "taglib-wasm/workers";
+import { TagLib } from "taglib-wasm";
 
 export default {
   async fetch(request: Request): Promise<Response> {
     if (request.method === "POST") {
-      const taglib = await TagLib.initialize({
-        memory: { initial: 8 * 1024 * 1024 },
-      });
+      const taglib = await TagLib.initialize();
 
       const audioData = new Uint8Array(await request.arrayBuffer());
       using file = await taglib.open(audioData);

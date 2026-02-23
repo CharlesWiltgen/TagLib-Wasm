@@ -5,16 +5,11 @@ import {
   MetadataError,
 } from "../errors.ts";
 import { writeFileData } from "../utils/write.ts";
-import { getActiveWorkerPool, getTagLib } from "./config.ts";
+import { getTagLib } from "./config.ts";
 
 export async function readTags(
   file: AudioFileInput,
 ): Promise<Tag> {
-  const pool = getActiveWorkerPool();
-  if (pool && (typeof file === "string" || file instanceof Uint8Array)) {
-    return pool.readTags(file);
-  }
-
   const taglib = await getTagLib();
 
   if (typeof file === "string" && taglib.sidecar?.isRunning()) {
@@ -41,11 +36,6 @@ export async function applyTags(
   tags: Partial<Tag>,
   _options?: number,
 ): Promise<Uint8Array> {
-  const pool = getActiveWorkerPool();
-  if (pool && (typeof file === "string" || file instanceof Uint8Array)) {
-    return pool.applyTags(file, tags);
-  }
-
   const taglib = await getTagLib();
   const audioFile = await taglib.open(file);
   try {
@@ -90,11 +80,6 @@ export async function updateTags(
     );
   }
 
-  const pool = getActiveWorkerPool();
-  if (pool) {
-    return pool.updateTags(file, tags);
-  }
-
   const taglib = await getTagLib();
 
   if (taglib.sidecar?.isRunning()) {
@@ -111,19 +96,6 @@ export async function updateTags(
 export async function readProperties(
   file: string | Uint8Array | ArrayBuffer | File,
 ): Promise<AudioProperties> {
-  const pool = getActiveWorkerPool();
-  if (pool && (typeof file === "string" || file instanceof Uint8Array)) {
-    const props = await pool.readProperties(file);
-    if (!props) {
-      throw new MetadataError(
-        "read",
-        "File may not contain valid audio data",
-        "audioProperties",
-      );
-    }
-    return props;
-  }
-
   const taglib = await getTagLib();
   const audioFile = await taglib.open(file);
   try {

@@ -10,10 +10,6 @@
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     },
-    "./workers": {
-      "types": "./dist/src/workers/index.d.ts",
-      "default": "./dist/src/workers/index.js"
-    },
     "./simple": {
       "types": "./dist/src/simple/index.d.ts",
       "default": "./dist/src/simple/index.js"

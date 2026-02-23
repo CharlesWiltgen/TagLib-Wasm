@@ -1,16 +1,11 @@
 import type { Picture, PictureType } from "../types.ts";
 import { PICTURE_TYPE_VALUES } from "../types.ts";
 import { FileOperationError, InvalidFormatError } from "../errors.ts";
-import { getActiveWorkerPool, getTagLib } from "./config.ts";
+import { getTagLib } from "./config.ts";
 
 export async function readPictures(
   file: string | Uint8Array | ArrayBuffer | File,
 ): Promise<Picture[]> {
-  const pool = getActiveWorkerPool();
-  if (pool && (typeof file === "string" || file instanceof Uint8Array)) {
-    return pool.readPictures(file);
-  }
-
   const taglib = await getTagLib();
   const audioFile = await taglib.open(file);
   try {
@@ -111,11 +106,6 @@ export async function applyCoverArt(
   imageData: Uint8Array,
   mimeType: string,
 ): Promise<Uint8Array> {
-  const pool = getActiveWorkerPool();
-  if (pool && (typeof file === "string" || file instanceof Uint8Array)) {
-    return pool.setCoverArt(file, imageData, mimeType);
-  }
-
   const picture: Picture = {
     mimeType,
     data: imageData,

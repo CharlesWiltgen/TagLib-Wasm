@@ -1,5 +1,5 @@
 import { assertEquals, assertExists } from "@std/assert";
-import { afterAll, describe, it } from "@std/testing/bdd";
+import { describe, it } from "@std/testing/bdd";
 import {
   clearPictures,
   clearTags,
@@ -13,19 +13,13 @@ import {
   readTags,
   readTagsBatch,
   setBufferMode,
-  setWorkerPoolMode,
 } from "../src/simple/index.ts";
-import { terminateGlobalWorkerPool } from "../src/worker-pool/index.ts";
 import type { Picture } from "../src/types.ts";
 import { PICTURE_TYPE_VALUES } from "../src/types.ts";
 import { FIXTURE_PATH } from "./shared-fixtures.ts";
 
 // Force Emscripten backend
 setBufferMode(true);
-
-afterAll(() => {
-  terminateGlobalWorkerPool();
-});
 
 describe("isValidAudioFile", () => {
   it("should return true for valid audio files", async () => {
@@ -242,13 +236,6 @@ describe("readMetadataBatch", () => {
     const files = ["/nonexistent/file.mp3"];
     const result = await readMetadataBatch(files, { continueOnError: true });
     assertEquals(result.errors.length, 1);
-  });
-});
-
-describe("setWorkerPoolMode", () => {
-  it("should enable and disable without errors", () => {
-    setWorkerPoolMode(true);
-    setWorkerPoolMode(false);
   });
 });
 

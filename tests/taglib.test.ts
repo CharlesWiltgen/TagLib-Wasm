@@ -25,8 +25,6 @@ import {
   readTags,
   setBufferMode,
 } from "../src/simple/index.ts";
-import { processAudioMetadata, TagLibWorkers } from "../src/workers/index.ts";
-import { isCloudflareWorkers } from "../src/wasm-workers.ts";
 import { EXPECTED_FORMATS, TEST_FILES } from "./test-utils.ts";
 
 // Force Emscripten backend for Simple API calls
@@ -330,27 +328,6 @@ describe("Error Handling", () => {
         "Error should indicate load failure",
       );
     }
-  });
-});
-
-describe("Workers API", () => {
-  it("Environment Detection", () => {
-    const isWorkers = isCloudflareWorkers();
-    assertEquals(typeof isWorkers, "boolean", "Should return boolean");
-    assertEquals(isWorkers, false, "Should detect non-Workers environment");
-  });
-
-  it("Module Structure", async () => {
-    assertExists(TagLibWorkers, "TagLibWorkers class should exist");
-    assertExists(
-      processAudioMetadata,
-      "processAudioMetadata function should exist",
-    );
-    assertEquals(
-      typeof TagLibWorkers.initialize,
-      "function",
-      "Should have initialize method",
-    );
   });
 });
 

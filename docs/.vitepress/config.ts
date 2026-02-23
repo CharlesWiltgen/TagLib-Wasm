@@ -62,7 +62,6 @@ export default defineConfig({
             { text: "Track Ratings", link: "/guide/ratings" },
             { text: "Folder Operations", link: "/guide/folder-operations" },
             { text: "Examples", link: "/guide/examples" },
-            { text: "Workers Setup", link: "/guide/workers-setup" },
             { text: "Codec Detection", link: "/guide/codec-detection" },
             { text: "Album Processing", link: "/guide/album-processing" },
           ],

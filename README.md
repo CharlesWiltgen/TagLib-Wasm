@@ -301,7 +301,7 @@ Supported formats:
 - [Platform Examples](https://charleswiltgen.github.io/TagLib-Wasm/guide/platform-examples.html)
 - [Working with Cover Art](https://charleswiltgen.github.io/TagLib-Wasm/guide/cover-art.html)
 - [Track Ratings](https://charleswiltgen.github.io/TagLib-Wasm/guide/ratings.html)
-- [Cloudflare Workers Setup](https://charleswiltgen.github.io/TagLib-Wasm/guide/workers-setup.html)
+- [Cloudflare Workers](https://charleswiltgen.github.io/TagLib-Wasm/advanced/cloudflare-workers.html)
 - [Error Handling](https://charleswiltgen.github.io/TagLib-Wasm/concepts/error-handling.html)
 - [Contributing](CONTRIBUTING.md)
 
@@ -414,14 +414,14 @@ for full sidecar configuration options.
 
 `taglib-wasm` works across all major JavaScript runtimes:
 
-| Runtime                | Status  | Installation              | Notes                                                                                                   |
-| ---------------------- | ------- | ------------------------- | ------------------------------------------------------------------------------------------------------- |
-| **Deno**               | Full    | `npm:taglib-wasm`         | Native TypeScript                                                                                       |
-| **Node.js**            | Full    | `npm install taglib-wasm` | TypeScript via tsx                                                                                      |
-| **Bun**                | Partial | `bun add taglib-wasm`     | Import + init verified; full test suite is Deno-only                                                    |
-| **Browser**            | Full    | Via bundler               | Full API support                                                                                        |
-| **Cloudflare Workers** | Partial | `taglib-wasm/workers`     | Basic tags only; see [Workers limitations](docs/advanced/cloudflare-workers.md#workers-api-limitations) |
-| **Electron**           | Node.js | `npm install taglib-wasm` | Main process; renderer via IPC                                                                          |
+| Runtime                | Status  | Installation              | Notes                                                                      |
+| ---------------------- | ------- | ------------------------- | -------------------------------------------------------------------------- |
+| **Deno**               | Full    | `npm:taglib-wasm`         | Native TypeScript                                                          |
+| **Node.js**            | Full    | `npm install taglib-wasm` | TypeScript via tsx                                                         |
+| **Bun**                | Partial | `bun add taglib-wasm`     | Import + init verified; full test suite is Deno-only                       |
+| **Browser**            | Full    | Via bundler               | Full API support                                                           |
+| **Cloudflare Workers** | Full    | `npm install taglib-wasm` | Same unified API; see [Workers guide](docs/advanced/cloudflare-workers.md) |
+| **Electron**           | Node.js | `npm install taglib-wasm` | Main process; renderer via IPC                                             |
 
 ## Known Limitations
 
@@ -429,8 +429,6 @@ for full sidecar configuration options.
   into memory. On Deno/Node.js, WASI reads only headers and tags from disk.
 - **Concurrent Access** – Not thread-safe (JavaScript single-threaded nature
   mitigates this)
-- **Cloudflare Workers** – Limited to 128MB memory per request; files larger
-  than ~100MB may fail
 
 ## Contributing
 

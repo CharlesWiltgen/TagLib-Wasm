@@ -8,7 +8,6 @@ import {
   updateFolderTags,
 } from "../src/folder-api/index.ts";
 import { readTags, setBufferMode } from "../src/simple/index.ts";
-import { terminateGlobalWorkerPool } from "../src/worker-pool/index.ts";
 
 // Force Emscripten backend for Simple API calls
 setBufferMode(true);
@@ -19,7 +18,7 @@ describe("folder-api", () => {
   it("scanFolder - reads all audio files with metadata", async () => {
     const result = await scanFolder(TEST_FILES_DIR, {
       recursive: true,
-      useWorkerPool: false, // Disable worker pool for test stability
+
       forceBufferMode: true,
       onProgress: (processed, total) => {
         console.log(`Progress: ${processed}/${total}`);
@@ -64,7 +63,7 @@ describe("folder-api", () => {
     const result = await scanFolder(TEST_FILES_DIR, {
       extensions: [".mp3"],
       recursive: true,
-      useWorkerPool: false,
+
       forceBufferMode: true,
     });
 
@@ -78,7 +77,7 @@ describe("folder-api", () => {
     const result = await scanFolder(TEST_FILES_DIR, {
       maxFiles: 2,
       recursive: true,
-      useWorkerPool: false,
+
       forceBufferMode: true,
     });
 
@@ -95,7 +94,7 @@ describe("folder-api", () => {
     try {
       const result = await scanFolder(tempDir, {
         continueOnError: true,
-        useWorkerPool: false, // Disable worker pool to avoid timer leaks in tests
+
         forceBufferMode: true,
       });
 
@@ -186,7 +185,6 @@ describe("folder-api", () => {
 
     try {
       const duplicates = await findDuplicates(tempDir, {
-        useWorkerPool: false,
         forceBufferMode: true,
       });
 
@@ -212,7 +210,7 @@ describe("folder-api", () => {
     try {
       await exportFolderMetadata(TEST_FILES_DIR, tempFile, {
         recursive: true,
-        useWorkerPool: false,
+
         forceBufferMode: true,
       });
 
@@ -242,55 +240,20 @@ describe("folder-api", () => {
     }
   });
 
-  it({
-    name: "scanFolder - parallel processing",
-    sanitizeOps: false,
-    sanitizeResources: false,
-    fn: async () => {
-      const startTime = Date.now();
+  it("scanFolder - processes all files", async () => {
+    const result = await scanFolder(TEST_FILES_DIR, {
+      recursive: true,
+      forceBufferMode: true,
+    });
 
-      // Test with different concurrency levels
-      const result1 = await scanFolder(TEST_FILES_DIR, {
-        recursive: true,
-        useWorkerPool: false, // Sequential processing
-        forceBufferMode: true,
-      });
-
-      const duration1 = Date.now() - startTime;
-
-      const startTime2 = Date.now();
-      const result2 = await scanFolder(TEST_FILES_DIR, {
-        recursive: true,
-        useWorkerPool: true, // Parallel processing with worker pool
-        forceBufferMode: true,
-      });
-
-      const duration2 = Date.now() - startTime2;
-
-      // Both should find the same files
-      console.log(
-        `Result1: found=${result1.totalFound}, processed=${result1.totalProcessed}`,
-      );
-      console.log(
-        `Result2: found=${result2.totalFound}, processed=${result2.totalProcessed}`,
-      );
-      assertEquals(result1.totalFound, result2.totalFound);
-      // Processing might vary slightly due to timing, but both should process at least some files
-      assertEquals(result1.totalProcessed > 0, true);
-      assertEquals(result2.totalProcessed > 0, true);
-
-      console.log(`Sequential duration: ${duration1}ms`);
-      console.log(`Parallel duration: ${duration2}ms`);
-
-      // Clean up worker pool if one was created
-      terminateGlobalWorkerPool();
-    },
+    assertEquals(result.totalFound > 0, true);
+    assertEquals(result.totalProcessed > 0, true);
   });
 
   it("scanFolder - detects cover art presence", async () => {
     const result = await scanFolder(TEST_FILES_DIR, {
       recursive: true,
-      useWorkerPool: false,
+
       forceBufferMode: true,
     });
 
@@ -318,7 +281,7 @@ describe("folder-api", () => {
   it("scanFolder - extracts audio dynamics data", async () => {
     const result = await scanFolder(TEST_FILES_DIR, {
       recursive: true,
-      useWorkerPool: false,
+
       forceBufferMode: true,
     });
 

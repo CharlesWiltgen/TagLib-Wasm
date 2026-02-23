@@ -54,7 +54,7 @@ file.save();
 | Node.js            | ✅ Full   | `npm install taglib-wasm` |
 | Bun                | ✅ Native | `bun add taglib-wasm`     |
 | Browsers           | ✅ Full   | CDN or bundler            |
-| Cloudflare Workers | ✅ Full   | `taglib-wasm/workers`     |
+| Cloudflare Workers | ✅ Full   | `npm install taglib-wasm` |
 
 ## When to Use TagLib-Wasm
 
