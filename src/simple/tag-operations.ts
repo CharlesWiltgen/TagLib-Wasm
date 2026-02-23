@@ -7,6 +7,9 @@ import {
 import { writeFileData } from "../utils/write.ts";
 import { getTagLib } from "./config.ts";
 
+let applyTagsWarned = false;
+let updateTagsWarned = false;
+
 export async function readTags(
   file: AudioFileInput,
 ): Promise<Tag> {
@@ -30,8 +33,7 @@ export async function readTags(
   }
 }
 
-/** @deprecated Use `applyTagsToBuffer` instead */
-export async function applyTags(
+export async function applyTagsToBuffer(
   file: string | Uint8Array | ArrayBuffer | File,
   tags: Partial<Tag>,
   _options?: number,
@@ -67,8 +69,7 @@ export async function applyTags(
   }
 }
 
-/** @deprecated Use `writeTagsToFile` instead */
-export async function updateTags(
+export async function writeTagsToFile(
   file: string,
   tags: Partial<Tag>,
   options?: number,
@@ -76,7 +77,7 @@ export async function updateTags(
   if (typeof file !== "string") {
     throw new FileOperationError(
       "save",
-      "updateTags requires a file path string to save changes",
+      "writeTagsToFile requires a file path string to save changes",
     );
   }
 
@@ -89,8 +90,36 @@ export async function updateTags(
     return;
   }
 
-  const modifiedBuffer = await applyTags(file, tags, options);
+  const modifiedBuffer = await applyTagsToBuffer(file, tags, options);
   await writeFileData(file, modifiedBuffer);
+}
+
+/** @deprecated Use `applyTagsToBuffer` instead */
+export async function applyTags(
+  file: string | Uint8Array | ArrayBuffer | File,
+  tags: Partial<Tag>,
+  options?: number,
+): Promise<Uint8Array> {
+  if (!applyTagsWarned) {
+    console.warn("applyTags() is deprecated. Use applyTagsToBuffer() instead.");
+    applyTagsWarned = true;
+  }
+  return applyTagsToBuffer(file, tags, options);
+}
+
+/** @deprecated Use `writeTagsToFile` instead */
+export async function updateTags(
+  file: string,
+  tags: Partial<Tag>,
+  options?: number,
+): Promise<void> {
+  if (!updateTagsWarned) {
+    console.warn(
+      "updateTags() is deprecated. Use writeTagsToFile() instead.",
+    );
+    updateTagsWarned = true;
+  }
+  return writeTagsToFile(file, tags, options);
 }
 
 export async function readProperties(
@@ -154,7 +183,7 @@ export async function readFormat(
 export async function clearTags(
   file: string | Uint8Array | ArrayBuffer | File,
 ): Promise<Uint8Array> {
-  return applyTags(file, {
+  return applyTagsToBuffer(file, {
     title: "",
     artist: "",
     album: "",
@@ -165,5 +194,7 @@ export async function clearTags(
   });
 }
 
-export const applyTagsToBuffer = applyTags;
-export const writeTagsToFile = updateTags;
+export function resetDeprecationWarnings(): void {
+  applyTagsWarned = false;
+  updateTagsWarned = false;
+}

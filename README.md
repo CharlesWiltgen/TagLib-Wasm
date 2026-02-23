@@ -119,21 +119,25 @@ const taglib = await TagLib.initialize({ wasmBinary });
 ### Simple API
 
 ```typescript
-import { applyTags, readTags, updateTags } from "taglib-wasm/simple";
+import {
+  applyTagsToBuffer,
+  readTags,
+  writeTagsToFile,
+} from "taglib-wasm/simple";
 
 // Read tags
 const tags = await readTags("song.mp3");
 console.log(tags.title, tags.artist, tags.album);
 
 // Apply tags and get modified buffer (in-memory)
-const modifiedBuffer = await applyTags("song.mp3", {
+const modifiedBuffer = await applyTagsToBuffer("song.mp3", {
   title: "New Title",
   artist: "New Artist",
   album: "New Album",
 });
 
-// Or update tags on disk (requires file path)
-await updateTags("song.mp3", {
+// Or write tags to disk (requires file path)
+await writeTagsToFile("song.mp3", {
   title: "New Title",
   artist: "New Artist",
 });
