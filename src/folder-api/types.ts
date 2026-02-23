@@ -2,18 +2,18 @@
  * Type definitions for folder scanning operations
  */
 
-import type { Tag } from "../simple/index.ts";
+import type { Tag, TagInput } from "../simple/index.ts";
 import type { AudioProperties } from "../types.ts";
 
-export type { AudioProperties, Tag };
+export type { AudioProperties, Tag, TagInput };
 
 export const EMPTY_TAG = Object.freeze(
   {
-    title: "",
-    artist: "",
-    album: "",
-    comment: "",
-    genre: "",
+    title: [],
+    artist: [],
+    album: [],
+    comment: [],
+    genre: [],
     year: 0,
     track: 0,
   } satisfies Required<Tag>,

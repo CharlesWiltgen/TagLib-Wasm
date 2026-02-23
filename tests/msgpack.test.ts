@@ -24,8 +24,8 @@ import {
 } from "../src/msgpack/index.ts";
 import type { AudioProperties, ExtendedTag, Picture } from "../src/types.ts";
 
-// Test data
-const sampleTagData: ExtendedTag = {
+// Test data — raw msgpack codec layer uses single strings (not arrays)
+const sampleTagData = {
   title: "Test Song",
   artist: "Test Artist",
   album: "Test Album",
@@ -34,7 +34,7 @@ const sampleTagData: ExtendedTag = {
   genre: "Rock",
   albumArtist: "Various Artists",
   composer: "Test Composer",
-};
+} as unknown as ExtendedTag;
 
 const sampleAudioProperties: AudioProperties = {
   length: 180.5,
@@ -287,17 +287,17 @@ describe("MessagePack", () => {
   });
 
   it("handles special values", () => {
-    const specialData: Partial<ExtendedTag> = {
+    const specialData = {
       title: "Test",
       year: 0, // Zero value
       track: undefined, // Undefined (should be omitted)
       comment: "", // Empty string (should be omitted)
       genre: null as any, // Null value
       albumArtist: "Valid Artist",
-    };
+    } as unknown as ExtendedTag;
 
-    const encoded = encodeTagData(specialData as ExtendedTag);
-    const decoded = decodeTagData(encoded);
+    const encoded = encodeTagData(specialData);
+    const decoded = decodeTagData(encoded) as Record<string, unknown>;
 
     assertEquals(decoded.title, "Test");
     assertEquals(decoded.year, 0); // Zero should be preserved

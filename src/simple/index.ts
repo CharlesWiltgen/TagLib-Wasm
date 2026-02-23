@@ -42,5 +42,11 @@ export {
   Year,
 } from "./field-constants.ts";
 
-export type { AudioProperties, Picture, PictureType, Tag } from "../types.ts";
+export type {
+  AudioProperties,
+  Picture,
+  PictureType,
+  Tag,
+  TagInput,
+} from "../types.ts";
 export { PICTURE_TYPE_NAMES, PICTURE_TYPE_VALUES } from "../types.ts";

@@ -8,6 +8,7 @@ import type {
   AudioFileMetadata,
   AudioProperties,
 } from "./types.ts";
+import { mapPropertiesToTag } from "../utils/tag-mapping.ts";
 
 export async function processBatch(
   files: string[],
@@ -37,7 +38,7 @@ export async function processFileWithTagLib(
 ): Promise<AudioFileMetadata> {
   const audioFile = await taglib.open(filePath);
   try {
-    const tags = audioFile.tag();
+    const tags = mapPropertiesToTag(audioFile.properties());
     let properties: AudioProperties | undefined;
 
     if (includeProperties) {

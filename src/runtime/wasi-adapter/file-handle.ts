@@ -10,7 +10,7 @@ import type {
 import type { WasiModule } from "../wasmer-sdk-loader/index.ts";
 import { WasmerExecutionError } from "../wasmer-sdk-loader/index.ts";
 import { decodeTagData } from "../../msgpack/decoder.ts";
-import type { ExtendedTag, Picture } from "../../types.ts";
+import type { Picture } from "../../types.ts";
 import {
   CAMEL_TO_VORBIS,
   VORBIS_TO_CAMEL,
@@ -34,7 +34,7 @@ const INTERNAL_KEYS = new Set(["pictures", "ratings"]);
 export class WasiFileHandle implements FileHandle {
   private readonly wasi: WasiModule;
   private fileData: Uint8Array | null = null;
-  private tagData: ExtendedTag | null = null;
+  private tagData: Record<string, unknown> | null = null;
   private destroyed = false;
 
   constructor(wasiModule: WasiModule) {
@@ -53,7 +53,10 @@ export class WasiFileHandle implements FileHandle {
     this.checkNotDestroyed();
     this.fileData = buffer;
     const msgpackData = readTagsFromWasm(this.wasi, buffer);
-    this.tagData = decodeTagData(msgpackData);
+    this.tagData = decodeTagData(msgpackData) as unknown as Record<
+      string,
+      unknown
+    >;
     return true;
   }
 
@@ -92,15 +95,15 @@ export class WasiFileHandle implements FileHandle {
     return this.createTagWrapper(this.tagData);
   }
 
-  private createTagWrapper(data: Partial<ExtendedTag>): TagWrapper {
+  private createTagWrapper(data: Record<string, unknown>): TagWrapper {
     return {
-      title: () => data.title || "",
-      artist: () => data.artist || "",
-      album: () => data.album || "",
-      comment: () => data.comment || "",
-      genre: () => data.genre || "",
-      year: () => data.year || 0,
-      track: () => data.track || 0,
+      title: () => (data.title as string) || "",
+      artist: () => (data.artist as string) || "",
+      album: () => (data.album as string) || "",
+      comment: () => (data.comment as string) || "",
+      genre: () => (data.genre as string) || "",
+      year: () => (data.year as number) || 0,
+      track: () => (data.track as number) || 0,
 
       setTitle: (value: string) => {
         this.tagData = { ...this.tagData, title: value };
@@ -128,8 +131,8 @@ export class WasiFileHandle implements FileHandle {
 
   getAudioProperties(): AudioPropertiesWrapper | null {
     this.checkNotDestroyed();
-    const data = this.tagData as Record<string, unknown> | null;
-    if (!data || !("sampleRate" in data)) return null;
+    if (!this.tagData || !("sampleRate" in this.tagData)) return null;
+    const data = this.tagData;
     return {
       lengthInSeconds: () => (data.length as number) ?? 0,
       lengthInMilliseconds: () => (data.lengthMs as number) ?? 0,
@@ -179,7 +182,7 @@ export class WasiFileHandle implements FileHandle {
   getProperties(): Record<string, string[]> {
     this.checkNotDestroyed();
     const result: Record<string, string[]> = {};
-    const data = this.tagData as Record<string, unknown> ?? {};
+    const data = this.tagData ?? {};
 
     for (const [key, value] of Object.entries(data)) {
       if (AUDIO_KEYS.has(key) || INTERNAL_KEYS.has(key)) continue;
@@ -205,14 +208,13 @@ export class WasiFileHandle implements FileHandle {
         mapped[camelKey] = scalar;
       }
     }
-    this.tagData = { ...this.tagData, ...mapped } as ExtendedTag;
+    this.tagData = { ...this.tagData, ...mapped } as Record<string, unknown>;
   }
 
   getProperty(key: string): string {
     this.checkNotDestroyed();
     const mappedKey = VORBIS_TO_CAMEL[key] ?? key;
-    const props = this.tagData as Record<string, unknown>;
-    return props?.[mappedKey]?.toString() ?? "";
+    return this.tagData?.[mappedKey]?.toString() ?? "";
   }
 
   setProperty(key: string, value: string): void {
@@ -249,19 +251,18 @@ export class WasiFileHandle implements FileHandle {
   removeMP4Item(key: string): void {
     this.checkNotDestroyed();
     if (this.tagData) {
-      const props = this.tagData as Record<string, unknown>;
-      delete props[VORBIS_TO_CAMEL[key] ?? key];
+      delete this.tagData[VORBIS_TO_CAMEL[key] ?? key];
     }
   }
 
   getPictures(): Picture[] {
     this.checkNotDestroyed();
-    return this.tagData?.pictures ?? [];
+    return (this.tagData?.pictures as Picture[] | undefined) ?? [];
   }
 
   setPictures(pictures: Picture[]): void {
     this.checkNotDestroyed();
-    this.tagData = { ...this.tagData, pictures } as ExtendedTag;
+    this.tagData = { ...this.tagData, pictures } as Record<string, unknown>;
   }
 
   addPicture(picture: Picture): void {
@@ -273,12 +274,14 @@ export class WasiFileHandle implements FileHandle {
 
   removePictures(): void {
     this.checkNotDestroyed();
-    this.tagData = { ...this.tagData, pictures: [] } as ExtendedTag;
+    this.tagData = { ...this.tagData, pictures: [] } as Record<string, unknown>;
   }
 
   getRatings(): { rating: number; email: string; counter: number }[] {
     this.checkNotDestroyed();
-    return this.tagData?.ratings ?? [];
+    return (this.tagData?.ratings as
+      | { rating: number; email: string; counter: number }[]
+      | undefined) ?? [];
   }
 
   setRatings(
@@ -293,7 +296,7 @@ export class WasiFileHandle implements FileHandle {
     this.tagData = {
       ...this.tagData,
       ratings: normalizedRatings,
-    } as ExtendedTag;
+    } as Record<string, unknown>;
   }
 
   destroy(): void {
