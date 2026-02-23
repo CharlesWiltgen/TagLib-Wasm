@@ -1,6 +1,6 @@
-# Deno Application Setup Guide for taglib-wasm
+# Deno Application Setup Guide for TagLib-Wasm
 
-This guide shows the recommended way to set up a Deno application that uses taglib-wasm with both Folder API and compiled binary support.
+This guide shows the recommended way to set up a Deno application that uses TagLib-Wasm with both Folder API and compiled binary support.
 
 ## ✅ Use Only JSR Package
 

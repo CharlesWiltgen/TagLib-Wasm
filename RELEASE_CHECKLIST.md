@@ -1,4 +1,4 @@
-# Release Checklist for taglib-wasm
+# Release Checklist for TagLib-Wasm
 
 This checklist ensures a smooth and safe release process.
 
@@ -92,7 +92,7 @@ If you must release manually:
 
 ### 1. Verify GitHub Actions
 
-- [ ] Check the [Actions page](https://github.com/CharlesWiltgen/taglib-wasm/actions)
+- [ ] Check the [Actions page](https://github.com/CharlesWiltgen/TagLib-Wasm/actions)
 - [ ] Ensure "Publish to JSR/NPM/GitHub" workflow triggered
 - [ ] Verify all publish jobs succeeded
 
@@ -116,7 +116,7 @@ deno add @charlesw/taglib-wasm
 
 If not done automatically:
 
-1. Go to [Releases](https://github.com/CharlesWiltgen/taglib-wasm/releases)
+1. Go to [Releases](https://github.com/CharlesWiltgen/TagLib-Wasm/releases)
 2. Click "Draft a new release"
 3. Select the tag you created
 4. Add release notes

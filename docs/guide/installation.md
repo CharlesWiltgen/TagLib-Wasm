@@ -33,7 +33,7 @@ bun add taglib-wasm
 
 **Requirements:** Node.js v22.6.0 or higher
 
-Node.js requires the `--experimental-wasm-exnref` flag for taglib-wasm's Wasm
+Node.js requires the `--experimental-wasm-exnref` flag for TagLib-Wasm's Wasm
 exception handling. Deno and Bun work without any flags.
 
 #### TypeScript Usage

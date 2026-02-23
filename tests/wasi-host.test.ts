@@ -23,6 +23,7 @@ import {
   FORMAT_FILES,
   readTagsViaBuffer,
   readTagsViaPath,
+  writeTagsWasi,
 } from "./wasi-test-helpers.ts";
 import { readTagsFromWasm } from "../src/runtime/wasi-adapter/wasm-io.ts";
 
@@ -187,6 +188,57 @@ describe(
           );
           assertEquals(readTags.title, "New Title");
         }
+      } finally {
+        await Deno.remove(tempDir, { recursive: true });
+      }
+    });
+
+    it("should roundtrip extended fields via Simple API", async () => {
+      const tempDir = await Deno.makeTempDir();
+      const srcPath = resolve(TEST_FILES_DIR, "flac/kiss-snippet.flac");
+      const destPath = resolve(tempDir, "extended-roundtrip.flac");
+      await Deno.copyFile(srcPath, destPath);
+
+      try {
+        using wasi = await loadWasiHost({
+          wasmPath: WASM_PATH,
+          preopens: { "/tmp": tempDir },
+        });
+
+        const extendedTags: ExtendedTag = {
+          title: "Roundtrip Test",
+          albumArtist: "Various Artists",
+          composer: "Test Composer",
+          discNumber: 2,
+          bpm: 128,
+          acoustidFingerprint: "AQADtNQYhYkYRcg",
+          musicbrainzTrackId: "abc-123-def",
+          replayGainTrackGain: "-6.54 dB",
+          titleSort: "Roundtrip Test, The",
+          artistSort: "Artist, The",
+        };
+
+        writeTagsWasi(wasi, "/tmp/extended-roundtrip.flac", extendedTags);
+
+        using wasi2 = await loadWasiHost({
+          wasmPath: WASM_PATH,
+          preopens: { "/tmp": tempDir },
+        });
+
+        const readBack = readTagsViaPath(
+          wasi2,
+          "/tmp/extended-roundtrip.flac",
+        );
+        assertEquals(readBack.title, "Roundtrip Test");
+        assertEquals(readBack.albumArtist, "Various Artists");
+        assertEquals(readBack.composer, "Test Composer");
+        assertEquals(readBack.discNumber, 2);
+        assertEquals(readBack.bpm, 128);
+        assertEquals(readBack.acoustidFingerprint, "AQADtNQYhYkYRcg");
+        assertEquals(readBack.musicbrainzTrackId, "abc-123-def");
+        assertEquals(readBack.replayGainTrackGain, "-6.54 dB");
+        assertEquals(readBack.titleSort, "Roundtrip Test, The");
+        assertEquals(readBack.artistSort, "Artist, The");
       } finally {
         await Deno.remove(tempDir, { recursive: true });
       }

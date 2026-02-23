@@ -1,5 +1,5 @@
 /**
- * Batch folder operations for taglib-wasm
+ * Batch folder operations for TagLib-Wasm
  * Provides APIs for scanning directories and processing multiple audio files
  */
 

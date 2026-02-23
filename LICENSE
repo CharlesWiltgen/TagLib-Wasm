@@ -44,4 +44,4 @@ To rebuild the WebAssembly binary with a modified TagLib:
 3. The new binary will be in build/taglib.wasm
 
 For more information about LGPL compliance and dual licensing, see:
-https://github.com/CharlesWiltgen/taglib-wasm#licensing
+https://github.com/CharlesWiltgen/TagLib-Wasm#licensing

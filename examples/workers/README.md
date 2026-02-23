@@ -1,10 +1,10 @@
 # Cloudflare Workers Example
 
-Example deployment of taglib-wasm on Cloudflare Workers for serverless audio
+Example deployment of TagLib-Wasm on Cloudflare Workers for serverless audio
 metadata processing.
 
 📚
-**[View the full Workers Setup Guide](https://charleswiltgen.github.io/taglib-wasm/guide/workers-setup.html)**
+**[View the full Workers Setup Guide](https://charleswiltgen.github.io/TagLib-Wasm/guide/workers-setup.html)**
 in our documentation for detailed deployment instructions.
 
 ## Quick Start

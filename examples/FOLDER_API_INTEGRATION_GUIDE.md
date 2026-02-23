@@ -1,6 +1,6 @@
 # Folder API Integration Guide for Deno Compile Apps
 
-This guide explains how to properly integrate the taglib-wasm Folder API into your Deno compile applications.
+This guide explains how to properly integrate the TagLib-Wasm Folder API into your Deno compile applications.
 
 ## Common Integration Issues and Fixes
 
@@ -27,7 +27,7 @@ The Folder API is exported from the main module, not a separate submodule.
 
 ### 2. Missing Helper Functions
 
-The following functions don't exist in taglib-wasm and need to be implemented:
+The following functions don't exist in TagLib-Wasm and need to be implemented:
 
 - `scanMusicDirectory` → Use `scanFolder` instead
 - `formatMetadataForDisplay` → Implement as a helper
@@ -129,7 +129,7 @@ try {
 
 ### 5. Type Definitions
 
-The correct types from taglib-wasm:
+The correct types from TagLib-Wasm:
 
 ```typescript
 interface AudioFileMetadata {
@@ -231,7 +231,7 @@ const result = await scanFolder(directory, {
 
 See `fixed_show_tags_folder.ts` for a complete working implementation that:
 
-- Properly imports from taglib-wasm
+- Properly imports from TagLib-Wasm
 - Implements all helper functions
 - Handles extended metadata correctly
 - Manages resources properly

@@ -119,7 +119,7 @@ export default {
 
 ## 🔄 WebAssembly Runtime Selection
 
-taglib-wasm includes two WebAssembly implementations and automatically selects
+TagLib-Wasm includes two WebAssembly implementations and automatically selects
 the optimal one for your environment:
 
 | Environment            | Implementation | Reason                                                    |
@@ -344,7 +344,7 @@ npm test
 
 ## 🎯 Deno Compiled Binaries
 
-taglib-wasm includes special support for creating offline-capable Deno compiled
+TagLib-Wasm includes special support for creating offline-capable Deno compiled
 binaries:
 
 ### Automatic Offline Support
@@ -388,7 +388,7 @@ const taglib = await initializeForDenoCompile();
 ### Example
 
 See the complete example in
-[`examples/deno/offline-compile.ts`](https://github.com/CharlesWiltgen/taglib-wasm/blob/main/examples/deno/offline-compile.ts).
+[`examples/deno/offline-compile.ts`](https://github.com/CharlesWiltgen/TagLib-Wasm/blob/main/examples/deno/offline-compile.ts).
 
 ## 💡 Best Practices
 

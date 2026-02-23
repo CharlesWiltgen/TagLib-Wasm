@@ -190,7 +190,7 @@ mkdir -p "$DENO_DIR"
 # Since we can't use npm: with a local file, we'll test the import resolution
 cd "$DENO_DIR"
 
-# Create Deno test that would work with npm:taglib-wasm
+# Create Deno test that would work with npm:taglib-wasm (package name)
 cat > "$DENO_DIR/test.ts" << 'EOF'
 // This test validates the package structure for Deno npm: imports
 // In production, this would be: import { readTags } from "npm:taglib-wasm/simple";

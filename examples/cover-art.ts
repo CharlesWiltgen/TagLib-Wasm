@@ -2,7 +2,7 @@
  * @fileoverview Example: Working with cover art and pictures
  *
  * This example demonstrates how to read, add, modify, and remove
- * cover art/pictures from audio files using taglib-wasm.
+ * cover art/pictures from audio files using TagLib-Wasm.
  *
  * Includes real-world scenarios like:
  * - Extracting and saving cover art

@@ -10,7 +10,7 @@ import { parse } from "https://deno.land/std@0.224.0/flags/mod.ts";
 const args = parse(Deno.args, {
   default: {
     days: 1,
-    repo: "CharlesWiltgen/taglib-wasm",
+    repo: "CharlesWiltgen/TagLib-Wasm",
     yes: false,
   },
   alias: {

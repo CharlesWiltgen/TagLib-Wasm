@@ -1,5 +1,5 @@
 /**
- * Input types accepted by taglib-wasm for audio files
+ * Input types accepted by TagLib-Wasm for audio files
  */
 export type AudioFileInput = string | Uint8Array | ArrayBuffer | File;
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env -S deno run --allow-read --allow-write
 
 /**
- * Example: Using taglib-wasm in Deno compiled binaries with offline support
+ * Example: Using TagLib-Wasm in Deno compiled binaries with offline support
  *
  * This example shows how to embed the WASM file for offline usage in compiled binaries.
  *

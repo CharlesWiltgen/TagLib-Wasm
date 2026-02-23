@@ -1,7 +1,7 @@
 /// <reference lib="deno.ns" />
 
 /**
- * @fileoverview Consolidated test suite for taglib-wasm
+ * @fileoverview Consolidated test suite for TagLib-Wasm
  * Combines format testing, API testing, and edge cases with proper Deno test assertions
  *
  * Run with: deno test --allow-read tests/taglib.test.ts

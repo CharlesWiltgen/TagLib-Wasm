@@ -203,3 +203,22 @@ export const METADATA_MAPPINGS: Record<
     mp4: "----:com.apple.iTunes:iTunNORM",
   },
 };
+
+/** UPPERCASE PropertyMap key → camelCase ExtendedTag key */
+export const VORBIS_TO_CAMEL: Record<string, string> = {};
+/** camelCase ExtendedTag key → UPPERCASE PropertyMap key */
+export const CAMEL_TO_VORBIS: Record<string, string> = {};
+for (
+  const [camel, mapping] of Object.entries(METADATA_MAPPINGS) as [
+    string,
+    { vorbis?: string },
+  ][]
+) {
+  if (mapping.vorbis) {
+    VORBIS_TO_CAMEL[mapping.vorbis] = camel;
+    CAMEL_TO_VORBIS[camel] = mapping.vorbis;
+  }
+}
+// C++ FIELD_MAP sends DISCNUMBER as "disc"; normalize to ExtendedTag's "discNumber".
+// Reverse not needed: encoder always receives "discNumber" from ExtendedTag.
+VORBIS_TO_CAMEL["disc"] = "discNumber";

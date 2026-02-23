@@ -1,7 +1,7 @@
 # Error Handling Guide
 
 This guide covers error handling best practices and common error scenarios in
-taglib-wasm.
+TagLib-Wasm.
 
 ## Table of Contents
 
@@ -710,7 +710,7 @@ import {
 
 ### Using Type Guards
 
-The `isTagLibError` type guard helps identify any taglib-wasm error:
+The `isTagLibError` type guard helps identify any TagLib-Wasm error:
 
 ```typescript
 try {

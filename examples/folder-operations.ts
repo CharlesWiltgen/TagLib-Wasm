@@ -1,7 +1,7 @@
 #!/usr/bin/env -S deno run --allow-read --allow-write
 
 /**
- * Example: Batch folder operations with taglib-wasm
+ * Example: Batch folder operations with TagLib-Wasm
  *
  * This example demonstrates how to scan folders for audio files,
  * read metadata from multiple files efficiently, and perform
@@ -177,7 +177,7 @@ async function performanceComparison() {
 
 // Main function to run examples
 async function main() {
-  console.log("🎵 taglib-wasm Folder Operations Examples");
+  console.log("🎵 TagLib-Wasm Folder Operations Examples");
   console.log("=========================================");
 
   // Check if sample music directory exists

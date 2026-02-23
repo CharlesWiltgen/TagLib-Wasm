@@ -1,6 +1,6 @@
 # Memory Management
 
-This guide explains how taglib-wasm manages memory and best practices for
+This guide explains how TagLib-Wasm manages memory and best practices for
 optimal performance.
 
 ## Memory Usage Patterns
@@ -22,7 +22,7 @@ optimal performance.
 
 ## Explicit Memory Management
 
-taglib-wasm provides explicit memory management through the `using` keyword
+TagLib-Wasm provides explicit memory management through the `using` keyword
 (via `Symbol.dispose`):
 
 ```typescript

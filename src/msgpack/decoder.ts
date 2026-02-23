@@ -9,6 +9,7 @@ import type {
   PropertyMap,
 } from "../types.ts";
 import type { MessagePackDataType } from "./types.ts";
+import { VORBIS_TO_CAMEL } from "../types/metadata-mappings.ts";
 
 const MSGPACK_DECODE_OPTIONS: DecoderOptions = {
   useBigInt64: false,
@@ -22,7 +23,11 @@ const MSGPACK_DECODE_OPTIONS: DecoderOptions = {
 
 export function decodeTagData(msgpackBuffer: Uint8Array): ExtendedTag {
   try {
-    return decode(msgpackBuffer, MSGPACK_DECODE_OPTIONS) as ExtendedTag;
+    const raw = decode(msgpackBuffer, MSGPACK_DECODE_OPTIONS) as Record<
+      string,
+      unknown
+    >;
+    return normalizeTagKeys(raw) as unknown as ExtendedTag;
   } catch (error) {
     throw new MetadataError("read", `Failed to decode tag data: ${error}`);
   }
@@ -98,11 +103,23 @@ function coercePictureData(obj: Record<string, unknown>): void {
 }
 
 function isTagLike(obj: Record<string, unknown>): boolean {
-  return "title" in obj || "artist" in obj || "album" in obj;
+  return "title" in obj || "artist" in obj || "album" in obj ||
+    "TITLE" in obj || "ARTIST" in obj || "ALBUM" in obj;
+}
+
+function normalizeTagKeys(
+  obj: Record<string, unknown>,
+): Record<string, unknown> {
+  const normalized: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(obj)) {
+    normalized[VORBIS_TO_CAMEL[key] ?? key] = value;
+  }
+  return normalized;
 }
 
 function isPropertyMap(obj: Record<string, unknown>): boolean {
-  return Object.values(obj).every((value) => Array.isArray(value));
+  const values = Object.values(obj);
+  return values.length > 0 && values.every((value) => Array.isArray(value));
 }
 
 export function decodeMessagePackAuto(
@@ -117,8 +134,12 @@ export function decodeMessagePackAuto(
         coercePictureData(obj);
         return obj as unknown as Picture;
       }
-      if (isTagLike(obj)) return obj as unknown as ExtendedTag;
+      // PropertyMap before TagLike: UPPERCASE-keyed PropertyMaps (e.g. {TITLE: ["Song"]})
+      // would match isTagLike's UPPERCASE check and get incorrectly normalized.
       if (isPropertyMap(obj)) return obj as unknown as PropertyMap;
+      if (isTagLike(obj)) {
+        return normalizeTagKeys(obj) as unknown as ExtendedTag;
+      }
     }
     return decoded;
   } catch (error) {

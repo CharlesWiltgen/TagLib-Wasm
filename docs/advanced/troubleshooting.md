@@ -1,6 +1,6 @@
 # Troubleshooting Guide
 
-This guide helps resolve common issues when using taglib-wasm.
+This guide helps resolve common issues when using TagLib-Wasm.
 
 ## Table of Contents
 
@@ -17,7 +17,7 @@ This guide helps resolve common issues when using taglib-wasm.
 
 ### "Module not found" Error
 
-**Problem**: Cannot import taglib-wasm module.
+**Problem**: Cannot import TagLib-Wasm module.
 
 **Solutions**:
 
@@ -528,7 +528,7 @@ if (readPerm.state !== "granted") {
 
 **Problem**: `require('taglib-wasm')` fails with ERR_REQUIRE_ESM.
 
-taglib-wasm is an ESM-only package (`"type": "module"`). CommonJS files must use dynamic import:
+TagLib-Wasm is an ESM-only package (`"type": "module"`). CommonJS files must use dynamic import:
 
 ```javascript
 // ❌ This will NOT work in CommonJS
@@ -743,13 +743,13 @@ now, the universal build ensures maximum compatibility.
 
 ### Q: Why doesn't save() write to disk?
 
-**A**: taglib-wasm operates entirely in memory for security and compatibility.
+**A**: TagLib-Wasm operates entirely in memory for security and compatibility.
 Use `file.toBuffer()` and write the result to disk using your platform's file
 API.
 
 ### Q: How do I handle non-ASCII characters?
 
-**A**: taglib-wasm uses UTF-8 throughout. Ensure your strings are properly
+**A**: TagLib-Wasm uses UTF-8 throughout. Ensure your strings are properly
 encoded:
 
 ```typescript
@@ -761,7 +761,7 @@ file.setAlbum("Álbum en Español"); // Spanish
 
 ### Q: Can I process files larger than available memory?
 
-**A**: No, taglib-wasm requires the entire file in memory. For very large files,
+**A**: No, TagLib-Wasm requires the entire file in memory. For very large files,
 consider:
 
 - Increasing memory limits
@@ -776,9 +776,9 @@ consider:
 - Windows Media Player: Prefers ID3v2.3
 - VLC: Supports everything
 
-taglib-wasm writes standard-compliant tags that should work everywhere.
+TagLib-Wasm writes standard-compliant tags that should work everywhere.
 
-### Q: Is taglib-wasm thread-safe?
+### Q: Is TagLib-Wasm thread-safe?
 
 **A**: JavaScript is single-threaded, so thread safety isn't a concern. However,
 avoid concurrent operations on the same file instance.
@@ -787,7 +787,7 @@ avoid concurrent operations on the same file instance.
 
 **A**: Please include:
 
-1. taglib-wasm version
+1. TagLib-Wasm version
 2. Runtime (Deno/Node/Browser/Workers)
 3. File format and size
 4. Minimal reproduction code

@@ -1,5 +1,5 @@
 /**
- * List of audio formats supported by taglib-wasm
+ * List of audio formats supported by TagLib-Wasm
  */
 export const SUPPORTED_FORMATS = [
   "MP3",
@@ -25,7 +25,7 @@ export type TagLibErrorCode =
   | "SIDECAR";
 
 /**
- * Base error class for all taglib-wasm errors
+ * Base error class for all TagLib-Wasm errors
  */
 export class TagLibError extends Error {
   /**

@@ -91,15 +91,15 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/CharlesWiltgen/taglib-wasm.git"
+    "url": "git+https://github.com/CharlesWiltgen/TagLib-Wasm.git"
   },
   "publishConfig": {
     "registry": "https://registry.npmjs.org/"
   },
   "bugs": {
-    "url": "https://github.com/CharlesWiltgen/taglib-wasm/issues"
+    "url": "https://github.com/CharlesWiltgen/TagLib-Wasm/issues"
   },
-  "homepage": "https://github.com/CharlesWiltgen/taglib-wasm#readme",
+  "homepage": "https://github.com/CharlesWiltgen/TagLib-Wasm#readme",
   "dependencies": {
     "@msgpack/msgpack": "^3.1.3"
   },

@@ -11,25 +11,11 @@ import type { WasiModule } from "../wasmer-sdk-loader/index.ts";
 import { WasmerExecutionError } from "../wasmer-sdk-loader/index.ts";
 import { decodeTagData } from "../../msgpack/decoder.ts";
 import type { ExtendedTag, Picture } from "../../types.ts";
+import {
+  CAMEL_TO_VORBIS,
+  VORBIS_TO_CAMEL,
+} from "../../types/metadata-mappings.ts";
 import { readTagsFromWasm, writeTagsToWasm } from "./wasm-io.ts";
-
-const PROP_TO_CAMEL: Record<string, string> = {
-  TITLE: "title",
-  ARTIST: "artist",
-  ALBUM: "album",
-  COMMENT: "comment",
-  GENRE: "genre",
-  DATE: "year",
-  TRACKNUMBER: "track",
-  ALBUMARTIST: "albumArtist",
-  COMPOSER: "composer",
-  DISCNUMBER: "disc",
-  BPM: "bpm",
-};
-
-const CAMEL_TO_PROP: Record<string, string> = Object.fromEntries(
-  Object.entries(PROP_TO_CAMEL).map(([k, v]) => [v, k]),
-);
 
 const AUDIO_KEYS = new Set([
   "bitrate",
@@ -200,7 +186,7 @@ export class WasiFileHandle implements FileHandle {
       if (value === undefined || value === null) continue;
       if (value === 0 || value === "") continue;
 
-      const propKey = CAMEL_TO_PROP[key] ?? key;
+      const propKey = CAMEL_TO_VORBIS[key] ?? key;
       result[propKey] = [String(value)];
     }
 
@@ -211,7 +197,7 @@ export class WasiFileHandle implements FileHandle {
     this.checkNotDestroyed();
     const mapped: Record<string, unknown> = {};
     for (const [key, values] of Object.entries(props)) {
-      const camelKey = PROP_TO_CAMEL[key] ?? key;
+      const camelKey = VORBIS_TO_CAMEL[key] ?? key;
       const scalar = values[0] ?? "";
       if (camelKey === "year" || camelKey === "track") {
         mapped[camelKey] = parseInt(scalar, 10) || 0;
@@ -224,14 +210,14 @@ export class WasiFileHandle implements FileHandle {
 
   getProperty(key: string): string {
     this.checkNotDestroyed();
-    const mappedKey = PROP_TO_CAMEL[key] ?? key;
+    const mappedKey = VORBIS_TO_CAMEL[key] ?? key;
     const props = this.tagData as Record<string, unknown>;
     return props?.[mappedKey]?.toString() ?? "";
   }
 
   setProperty(key: string, value: string): void {
     this.checkNotDestroyed();
-    const mappedKey = PROP_TO_CAMEL[key] ?? key;
+    const mappedKey = VORBIS_TO_CAMEL[key] ?? key;
     const coerced = (mappedKey === "year" || mappedKey === "track")
       ? (parseInt(value, 10) || 0)
       : value;
@@ -264,7 +250,7 @@ export class WasiFileHandle implements FileHandle {
     this.checkNotDestroyed();
     if (this.tagData) {
       const props = this.tagData as Record<string, unknown>;
-      delete props[PROP_TO_CAMEL[key] ?? key];
+      delete props[VORBIS_TO_CAMEL[key] ?? key];
     }
   }
 
