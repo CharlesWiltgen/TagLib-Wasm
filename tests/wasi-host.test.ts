@@ -18,6 +18,8 @@ import { WasmArena, type WasmExports } from "../src/runtime/wasi-memory.ts";
 import { decodeTagData } from "../src/msgpack/decoder.ts";
 import { encodeTagData } from "../src/msgpack/encoder.ts";
 import type { ExtendedTag } from "../src/types.ts";
+
+type RawTag = Record<string, unknown>;
 import {
   fileExists,
   FORMAT_FILES,
@@ -54,7 +56,7 @@ describe(
           preopens: { "/test": TEST_FILES_DIR },
         });
 
-        const tags = readTagsViaPath(wasi, paths.virtual);
+        const tags = readTagsViaPath(wasi, paths.virtual) as unknown as RawTag;
         assertExists(tags.title, `${format}: title should exist`);
         assertEquals(tags.title, "Kiss");
       });
@@ -68,7 +70,7 @@ describe(
         const fileData = await Deno.readFile(
           resolve(TEST_FILES_DIR, paths.real),
         );
-        const tags = readTagsViaBuffer(wasi, fileData);
+        const tags = readTagsViaBuffer(wasi, fileData) as unknown as RawTag;
         assertEquals(tags.title, "Kiss");
       });
 
@@ -144,7 +146,7 @@ describe(
         {
           using arena = new WasmArena(wasi as WasmExports);
           const pathAlloc = arena.allocString("/tmp/test-write.flac");
-          const tags: ExtendedTag = { title: "New Title" };
+          const tags = { title: "New Title" } as unknown as ExtendedTag;
           const tagBytes = encodeTagData(tags);
           const tagBuf = arena.allocBuffer(tagBytes);
           const outSizePtr = arena.allocUint32();
@@ -185,7 +187,7 @@ describe(
           const u8 = new Uint8Array(wasi2.memory.buffer);
           const readTags = decodeTagData(
             new Uint8Array(u8.slice(resultPtr, resultPtr + outSize)),
-          );
+          ) as unknown as RawTag;
           assertEquals(readTags.title, "New Title");
         }
       } finally {
@@ -205,7 +207,7 @@ describe(
           preopens: { "/tmp": tempDir },
         });
 
-        const extendedTags: ExtendedTag = {
+        const extendedTags = {
           title: "Roundtrip Test",
           albumArtist: "Various Artists",
           composer: "Test Composer",
@@ -216,7 +218,7 @@ describe(
           replayGainTrackGain: "-6.54 dB",
           titleSort: "Roundtrip Test, The",
           artistSort: "Artist, The",
-        };
+        } as unknown as ExtendedTag;
 
         writeTagsWasi(wasi, "/tmp/extended-roundtrip.flac", extendedTags);
 
@@ -228,7 +230,7 @@ describe(
         const readBack = readTagsViaPath(
           wasi2,
           "/tmp/extended-roundtrip.flac",
-        );
+        ) as unknown as RawTag;
         assertEquals(readBack.title, "Roundtrip Test");
         assertEquals(readBack.albumArtist, "Various Artists");
         assertEquals(readBack.composer, "Test Composer");
@@ -339,7 +341,7 @@ describe(
       const mp3Path = resolve(TEST_FILES_DIR, FORMAT_FILES.MP3.real);
       const audioData = await Deno.readFile(mp3Path);
       const msgpackData = readTagsFromWasm(wasi, audioData);
-      const tags = decodeTagData(msgpackData);
+      const tags = decodeTagData(msgpackData) as unknown as RawTag;
 
       assertEquals(tags.title, "Kiss");
       assertExists(tags.artist);

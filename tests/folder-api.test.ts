@@ -140,16 +140,14 @@ describe("folder-api", () => {
 
       // Verify updates - note that tags preserve existing metadata
       const tags1 = await readTags(testFile1);
-      assertEquals(tags1.artist, "Updated Artist 1");
-      assertEquals(tags1.album, "Batch Album");
-      // Original tags should still be present
-      assertEquals(tags1.title, "Kiss");
+      assertEquals(tags1.artist, ["Updated Artist 1"]);
+      assertEquals(tags1.album, ["Batch Album"]);
+      assertEquals(tags1.title, ["Kiss"]);
 
       const tags2 = await readTags(testFile2);
-      assertEquals(tags2.artist, "Updated Artist 2");
-      assertEquals(tags2.album, "Batch Album");
-      // Original tags should still be present
-      assertEquals(tags2.title, "Kiss");
+      assertEquals(tags2.artist, ["Updated Artist 2"]);
+      assertEquals(tags2.album, ["Batch Album"]);
+      assertEquals(tags2.title, ["Kiss"]);
     } finally {
       await Deno.remove(tempDir, { recursive: true });
     }

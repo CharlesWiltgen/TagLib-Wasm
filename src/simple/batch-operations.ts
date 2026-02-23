@@ -1,6 +1,7 @@
 import type { AudioFile } from "../taglib.ts";
 import type { AudioProperties, Tag } from "../types.ts";
 import { InvalidFormatError } from "../errors.ts";
+import { mapPropertiesToTag } from "../utils/tag-mapping.ts";
 import { getTagLib } from "./config.ts";
 
 export interface BatchOptions {
@@ -63,7 +64,11 @@ export async function readTagsBatch(
   files: FileInput[],
   options: BatchOptions = {},
 ): Promise<BatchResult<Tag>> {
-  return executeBatch(files, options, (audioFile) => audioFile.tag());
+  return executeBatch(
+    files,
+    options,
+    (audioFile) => mapPropertiesToTag(audioFile.properties()),
+  );
 }
 
 export async function readPropertiesBatch(
@@ -119,7 +124,7 @@ export async function readMetadataBatch(
   options: BatchOptions = {},
 ): Promise<BatchResult<FileMetadata>> {
   return executeBatch(files, options, (audioFile) => ({
-    tags: audioFile.tag(),
+    tags: mapPropertiesToTag(audioFile.properties()),
     properties: audioFile.audioProperties(),
     hasCoverArt: audioFile.getPictures().length > 0,
     dynamics: extractDynamics(audioFile),

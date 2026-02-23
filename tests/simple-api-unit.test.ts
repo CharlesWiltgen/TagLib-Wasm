@@ -47,7 +47,11 @@ describe("clearTags", () => {
 
     // Read back and verify tags are empty
     const tags = await readTags(cleared);
-    assertEquals(tags.title === "" || tags.title === undefined, true);
+    assertEquals(
+      tags.title === undefined || tags.title.length === 0 ||
+        tags.title.every((s) => s === ""),
+      true,
+    );
   });
 });
 

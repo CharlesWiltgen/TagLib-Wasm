@@ -16,6 +16,9 @@ import {
   writeTagsWasi,
 } from "./wasi-test-helpers.ts";
 import { type FORMATS, TEST_FILES_DIR_PATH } from "./shared-fixtures.ts";
+import type { ExtendedTag } from "../src/types.ts";
+
+type RawTag = Record<string, unknown>;
 
 const WASM_PATH = resolve(Deno.cwd(), "dist/wasi/taglib_wasi.wasm");
 const HAS_WASM = fileExists(WASM_PATH);
@@ -42,14 +45,17 @@ describe(
             title: `Written ${format}`,
             artist: "Roundtrip Artist",
             album: "Roundtrip Album",
-          });
+          } as unknown as ExtendedTag);
 
           using wasi2 = await loadWasiHost({
             wasmPath: WASM_PATH,
             preopens: { "/tmp": tempDir },
           });
 
-          const tags = readTagsViaPath(wasi2, `/tmp/${destFile}`);
+          const tags = readTagsViaPath(
+            wasi2,
+            `/tmp/${destFile}`,
+          ) as unknown as RawTag;
           assertEquals(tags.title, `Written ${format}`);
           assertEquals(tags.artist, "Roundtrip Artist");
           assertEquals(tags.album, "Roundtrip Album");
@@ -76,7 +82,7 @@ describe(
 
           writeTagsWasi(wasi, `/tmp/${destFile}`, {
             title: "Size Check",
-          });
+          } as unknown as ExtendedTag);
 
           const sizeAfter = (await Deno.stat(destPath)).size;
           assertGreater(
@@ -114,14 +120,17 @@ describe(
           artist: "Артист",
           album: "专辑",
           comment: "🎵🎸",
-        });
+        } as unknown as ExtendedTag);
 
         using wasi2 = await loadWasiHost({
           wasmPath: WASM_PATH,
           preopens: { "/tmp": tempDir },
         });
 
-        const tags = readTagsViaPath(wasi2, "/tmp/unicode.flac");
+        const tags = readTagsViaPath(
+          wasi2,
+          "/tmp/unicode.flac",
+        ) as unknown as RawTag;
         assertEquals(tags.title, "日本語タイトル");
         assertEquals(tags.artist, "Артист");
         assertEquals(tags.album, "专辑");
@@ -145,7 +154,7 @@ describe(
         });
         writeTagsWasi(wasi1, "/tmp/overwrite.mp3", {
           title: "First Write",
-        });
+        } as unknown as ExtendedTag);
 
         // Second write
         using wasi2 = await loadWasiHost({
@@ -154,14 +163,17 @@ describe(
         });
         writeTagsWasi(wasi2, "/tmp/overwrite.mp3", {
           title: "Second Write",
-        });
+        } as unknown as ExtendedTag);
 
         // Verify
         using wasi3 = await loadWasiHost({
           wasmPath: WASM_PATH,
           preopens: { "/tmp": tempDir },
         });
-        const tags = readTagsViaPath(wasi3, "/tmp/overwrite.mp3");
+        const tags = readTagsViaPath(
+          wasi3,
+          "/tmp/overwrite.mp3",
+        ) as unknown as RawTag;
         assertEquals(tags.title, "Second Write");
       } finally {
         await Deno.remove(tempDir, { recursive: true }).catch(() => {});

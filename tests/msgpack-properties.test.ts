@@ -45,16 +45,16 @@ describe("MessagePack", () => {
           composer: fc.option(fc.string(), { nil: undefined }),
         }),
         (tagData) => {
-          const encoded = encodeTagData(tagData as ExtendedTag);
-          const decoded = decodeTagData(encoded);
+          const encoded = encodeTagData(tagData as unknown as ExtendedTag);
+          const decoded = decodeTagData(encoded) as Record<string, unknown>;
 
           // Check each field preserves its value
           for (const [key, value] of Object.entries(tagData)) {
             if (value === undefined || value === null || value === "") {
               // Undefined/null/empty values should be omitted
-              assert(!(key in decoded) || (decoded as any)[key] === undefined);
+              assert(!(key in decoded) || decoded[key] === undefined);
             } else {
-              assertEquals((decoded as any)[key], value);
+              assertEquals(decoded[key], value);
             }
           }
 
@@ -74,7 +74,7 @@ describe("MessagePack", () => {
           year: fc.integer({ min: 0, max: 9999 }),
         }),
         (tagData) => {
-          const encoded = encodeTagData(tagData as ExtendedTag);
+          const encoded = encodeTagData(tagData as unknown as ExtendedTag);
 
           // Must produce non-empty Uint8Array
           assert(encoded instanceof Uint8Array);
@@ -99,8 +99,8 @@ describe("MessagePack", () => {
           year: fc.integer(),
         }),
         (tagData) => {
-          const encoded1 = encodeTagData(tagData as ExtendedTag);
-          const encoded2 = encodeTagData(tagData as ExtendedTag);
+          const encoded1 = encodeTagData(tagData as unknown as ExtendedTag);
+          const encoded2 = encodeTagData(tagData as unknown as ExtendedTag);
 
           // Same input should produce identical output
           assertEquals(encoded1.length, encoded2.length);
@@ -229,7 +229,8 @@ describe("MessagePack", () => {
           comment: fc.string({ minLength: 20, maxLength: 200 }),
         }),
         (tagData) => {
-          const msgpackSize = encodeTagData(tagData as ExtendedTag).length;
+          const msgpackSize =
+            encodeTagData(tagData as unknown as ExtendedTag).length;
           const jsonSize =
             new TextEncoder().encode(JSON.stringify(tagData)).length;
 
@@ -254,7 +255,7 @@ describe("MessagePack", () => {
         }),
         (tagData) => {
           const encoded = encodeTagData(tagData as any);
-          const decoded = decodeTagData(encoded);
+          const decoded = decodeTagData(encoded) as Record<string, unknown>;
 
           // Empty strings and undefined should be omitted
           // Null values are preserved
@@ -291,8 +292,8 @@ describe("MessagePack", () => {
           comment: fc.string({ minLength: 1 }),
         }),
         (tagData) => {
-          const encoded = encodeTagData(tagData as ExtendedTag);
-          const decoded = decodeTagData(encoded);
+          const encoded = encodeTagData(tagData as unknown as ExtendedTag);
+          const decoded = decodeTagData(encoded) as Record<string, unknown>;
 
           // Unicode should be preserved exactly (non-empty strings)
           assertEquals(decoded.title, tagData.title);
@@ -318,13 +319,22 @@ describe("MessagePack", () => {
           const [title, artist, year] = inputs;
 
           // Create same data with different field order
-          const data1 = { title, artist, year } as ExtendedTag;
-          const data2 = { year, title, artist } as ExtendedTag;
-          const data3 = { artist, year, title } as ExtendedTag;
+          const data1 = { title, artist, year } as unknown as ExtendedTag;
+          const data2 = { year, title, artist } as unknown as ExtendedTag;
+          const data3 = { artist, year, title } as unknown as ExtendedTag;
 
-          const decoded1 = decodeTagData(encodeTagData(data1));
-          const decoded2 = decodeTagData(encodeTagData(data2));
-          const decoded3 = decodeTagData(encodeTagData(data3));
+          const decoded1 = decodeTagData(encodeTagData(data1)) as Record<
+            string,
+            unknown
+          >;
+          const decoded2 = decodeTagData(encodeTagData(data2)) as Record<
+            string,
+            unknown
+          >;
+          const decoded3 = decodeTagData(encodeTagData(data3)) as Record<
+            string,
+            unknown
+          >;
 
           // All should produce equivalent results
           assertEquals(decoded1.title, decoded2.title);

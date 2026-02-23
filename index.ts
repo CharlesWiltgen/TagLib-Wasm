@@ -160,6 +160,7 @@ export type {
   PictureType,
   PropertyMap,
   Tag,
+  TagInput,
   TagName,
 } from "./src/types.ts";
 export {

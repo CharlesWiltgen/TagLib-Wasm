@@ -32,20 +32,24 @@ import type { AudioProperties, ExtendedTag, Picture } from "../src/types.ts";
 
 describe("encodeTagData", () => {
   it("should encode basic tag fields to msgpack", () => {
-    const tag: ExtendedTag = { title: "Test", artist: "Artist", year: 2025 };
+    const tag = {
+      title: "Test",
+      artist: "Artist",
+      year: 2025,
+    } as unknown as ExtendedTag;
     const result = encodeTagData(tag);
     assertEquals(result instanceof Uint8Array, true);
     assertEquals(result.length > 0, true);
   });
 
   it("should strip undefined and empty string fields", () => {
-    const tag: ExtendedTag = {
+    const tag = {
       title: "Title",
       artist: "",
       album: undefined,
-    };
+    } as unknown as ExtendedTag;
     const encoded = encodeTagData(tag);
-    const decoded = decodeTagData(encoded);
+    const decoded = decodeTagData(encoded) as Record<string, unknown>;
     assertEquals(decoded.title, "Title");
     assertEquals(decoded.artist, undefined);
     assertEquals(decoded.album, undefined);
@@ -54,16 +58,20 @@ describe("encodeTagData", () => {
   it("should preserve null values", () => {
     const tag = { title: "T", comment: null } as unknown as ExtendedTag;
     const encoded = encodeTagData(tag);
-    const decoded = decodeTagData(encoded);
+    const decoded = decodeTagData(encoded) as Record<string, unknown>;
     assertEquals(decoded.comment, null);
   });
 });
 
 describe("decodeTagData", () => {
   it("should decode msgpack to tag data", () => {
-    const tag: ExtendedTag = { title: "Song", artist: "Band", track: 3 };
+    const tag = {
+      title: "Song",
+      artist: "Band",
+      track: 3,
+    } as unknown as ExtendedTag;
     const encoded = encodeTagData(tag);
-    const decoded = decodeTagData(encoded);
+    const decoded = decodeTagData(encoded) as Record<string, unknown>;
     assertEquals(decoded.title, "Song");
     assertEquals(decoded.artist, "Band");
     assertEquals(decoded.track, 3);
@@ -219,10 +227,10 @@ describe("encodeMessagePackCompact", () => {
 
 describe("encodeBatchTagData", () => {
   it("should encode array of tags", () => {
-    const tags: ExtendedTag[] = [
+    const tags = [
       { title: "Song 1", artist: "A" },
       { title: "Song 2", artist: "B" },
-    ];
+    ] as unknown as ExtendedTag[];
     const encoded = encodeBatchTagData(tags);
     assertEquals(encoded instanceof Uint8Array, true);
     assertEquals(encoded.length > 0, true);
@@ -263,9 +271,18 @@ describe("estimateMessagePackSize", () => {
 
 describe("encodeFastTagData / decodeFastTagData", () => {
   it("should roundtrip essential tag fields", () => {
-    const tag = { title: "T", artist: "A", album: "Al", year: 2025, track: 1 };
+    const tag = {
+      title: "T",
+      artist: "A",
+      album: "Al",
+      year: 2025,
+      track: 1,
+    } as unknown as Pick<
+      ExtendedTag,
+      "title" | "artist" | "album" | "year" | "track"
+    >;
     const encoded = encodeFastTagData(tag);
-    const decoded = decodeFastTagData(encoded);
+    const decoded = decodeFastTagData(encoded) as Record<string, unknown>;
     assertEquals(decoded.title, "T");
     assertEquals(decoded.artist, "A");
     assertEquals(decoded.album, "Al");
@@ -342,7 +359,7 @@ describe("decodeMessagePackAuto", () => {
     const tag = { title: "Test", artist: "Band" };
     const encoded = encode(tag);
     const decoded = decodeMessagePackAuto(encoded);
-    assertEquals((decoded as ExtendedTag).title, "Test");
+    assertEquals((decoded as Record<string, unknown>).title, "Test");
   });
 
   it("should detect property map", () => {

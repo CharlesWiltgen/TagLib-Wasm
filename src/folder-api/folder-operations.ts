@@ -2,7 +2,7 @@
  * Folder-level operations: batch updates, duplicates, metadata export
  */
 
-import type { Tag } from "../simple/index.ts";
+import type { TagInput } from "../simple/index.ts";
 import { writeTagsToFile } from "../simple/index.ts";
 import { writeFileData } from "../utils/write.ts";
 import { processBatch } from "./file-processors.ts";
@@ -29,7 +29,7 @@ import { EMPTY_TAG } from "./types.ts";
  * ```
  */
 export async function updateFolderTags(
-  updates: Array<{ path: string; tags: Partial<Tag> }>,
+  updates: Array<{ path: string; tags: Partial<TagInput> }>,
   options: { continueOnError?: boolean; concurrency?: number } = {},
 ): Promise<{
   successful: number;
@@ -42,7 +42,9 @@ export async function updateFolderTags(
   let successful = 0;
   const failed: Array<{ path: string; error: Error }> = [];
 
-  const processor = async (update: { path: string; tags: Partial<Tag> }) => {
+  const processor = async (
+    update: { path: string; tags: Partial<TagInput> },
+  ) => {
     try {
       await writeTagsToFile(update.path, update.tags);
       successful++;
@@ -95,7 +97,11 @@ export async function findDuplicates(
 
   for (const file of result.files) {
     const key = criteria
-      .map((field) => file.tags[field] ?? "")
+      .map((field) => {
+        const val = file.tags[field];
+        if (Array.isArray(val)) return val.join(", ");
+        return val ?? "";
+      })
       .filter((v) => v !== "")
       .join("|");
 

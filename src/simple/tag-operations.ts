@@ -1,11 +1,51 @@
-import type { AudioFileInput, AudioProperties, Tag } from "../types.ts";
+import type {
+  AudioFileInput,
+  AudioProperties,
+  Tag,
+  TagInput,
+} from "../types.ts";
 import {
   FileOperationError,
   InvalidFormatError,
   MetadataError,
 } from "../errors.ts";
 import { writeFileData } from "../utils/write.ts";
+import { mapPropertiesToTag, normalizeTagInput } from "../utils/tag-mapping.ts";
 import { getTagLib } from "./config.ts";
+
+function wrapSidecarResult(raw: Record<string, unknown>): Tag {
+  const tag: Record<string, unknown> = {};
+  for (const field of ["title", "artist", "album", "comment", "genre"]) {
+    const val = raw[field];
+    if (val === undefined || val === "") continue;
+    tag[field] = Array.isArray(val) ? val : [val];
+  }
+  if (raw.year !== undefined) tag.year = raw.year;
+  if (raw.track !== undefined) tag.track = raw.track;
+  return tag as Tag;
+}
+
+function normalizeSidecarInput(
+  tags: Partial<TagInput>,
+): Record<string, unknown> {
+  const result: Record<string, unknown> = {};
+  for (
+    const field of [
+      "title",
+      "artist",
+      "album",
+      "comment",
+      "genre",
+    ] as const
+  ) {
+    const val = tags[field];
+    if (val === undefined) continue;
+    result[field] = Array.isArray(val) ? val[0] ?? "" : val;
+  }
+  if (tags.year !== undefined) result.year = tags.year;
+  if (tags.track !== undefined) result.track = tags.track;
+  return result;
+}
 
 export async function readTags(
   file: AudioFileInput,
@@ -13,7 +53,8 @@ export async function readTags(
   const taglib = await getTagLib();
 
   if (typeof file === "string" && taglib.sidecar?.isRunning()) {
-    return taglib.sidecar.readTags(file);
+    const raw = await taglib.sidecar.readTags(file);
+    return wrapSidecarResult(raw as unknown as Record<string, unknown>);
   }
 
   const audioFile = await taglib.open(file);
@@ -24,7 +65,8 @@ export async function readTags(
       );
     }
 
-    return audioFile.tag();
+    const props = audioFile.properties();
+    return mapPropertiesToTag(props);
   } finally {
     audioFile.dispose();
   }
@@ -32,7 +74,7 @@ export async function readTags(
 
 export async function applyTagsToBuffer(
   file: string | Uint8Array | ArrayBuffer | File,
-  tags: Partial<Tag>,
+  tags: Partial<TagInput>,
   _options?: number,
 ): Promise<Uint8Array> {
   const taglib = await getTagLib();
@@ -44,14 +86,10 @@ export async function applyTagsToBuffer(
       );
     }
 
-    const tag = audioFile.tag();
-    if (tags.title !== undefined) tag.setTitle(tags.title);
-    if (tags.artist !== undefined) tag.setArtist(tags.artist);
-    if (tags.album !== undefined) tag.setAlbum(tags.album);
-    if (tags.comment !== undefined) tag.setComment(tags.comment);
-    if (tags.genre !== undefined) tag.setGenre(tags.genre);
-    if (tags.year !== undefined) tag.setYear(tags.year);
-    if (tags.track !== undefined) tag.setTrack(tags.track);
+    const currentProps = audioFile.properties();
+    const newProps = normalizeTagInput(tags);
+    const merged = { ...currentProps, ...newProps };
+    audioFile.setProperties(merged);
 
     if (!audioFile.save()) {
       throw new FileOperationError(
@@ -68,7 +106,7 @@ export async function applyTagsToBuffer(
 
 export async function writeTagsToFile(
   file: string,
-  tags: Partial<Tag>,
+  tags: Partial<TagInput>,
   options?: number,
 ): Promise<void> {
   if (typeof file !== "string") {
@@ -82,8 +120,12 @@ export async function writeTagsToFile(
 
   if (taglib.sidecar?.isRunning()) {
     const existing = await taglib.sidecar.readTags(file);
-    const merged = { ...existing, ...tags };
-    await taglib.sidecar.writeTags(file, merged);
+    const normalized = normalizeSidecarInput(tags);
+    const merged = { ...existing, ...normalized };
+    await taglib.sidecar.writeTags(
+      file,
+      merged as unknown as import("../types.ts").ExtendedTag,
+    );
     return;
   }
 
