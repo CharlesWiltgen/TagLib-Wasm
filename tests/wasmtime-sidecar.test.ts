@@ -106,8 +106,9 @@ describe("WasmtimeSidecar", () => {
     const tags = await sidecar.readTags("/test/mp3/kiss-snippet.mp3");
 
     assertExists(tags);
-    assertEquals(typeof tags.title, "string");
-    assertEquals(tags.title, "Kiss");
+    const raw = tags as unknown as Record<string, unknown>;
+    assertEquals(typeof raw.title, "string");
+    assertEquals(raw.title, "Kiss");
   });
 
   it("should handle non-existent files", async () => {

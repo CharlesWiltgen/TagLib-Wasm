@@ -1,5 +1,5 @@
 import type { TagLibModule, WasmModule } from "../wasm.ts";
-import type { OpenOptions, Tag as BasicTag } from "../types.ts";
+import type { OpenOptions, TagInput } from "../types.ts";
 import type { WasmtimeSidecar } from "../runtime/wasmtime-sidecar.ts";
 import { InvalidFormatError, TagLibInitializationError } from "../errors.ts";
 import type { AudioFile } from "./audio-file-interface.ts";
@@ -137,7 +137,7 @@ export class TagLib {
     }
   }
 
-  async updateFile(path: string, tags: Partial<BasicTag>): Promise<void> {
+  async updateFile(path: string, tags: Partial<TagInput>): Promise<void> {
     const file = await this.open(path);
     try {
       applyTagUpdates(file, tags);
@@ -150,7 +150,7 @@ export class TagLib {
   async copyWithTags(
     sourcePath: string,
     destPath: string,
-    tags: Partial<BasicTag>,
+    tags: Partial<TagInput>,
   ): Promise<void> {
     const file = await this.open(sourcePath);
     try {
@@ -166,15 +166,19 @@ export class TagLib {
   }
 }
 
-function applyTagUpdates(file: AudioFile, tags: Partial<BasicTag>): void {
+function firstString(val: string | string[]): string {
+  return Array.isArray(val) ? val[0] ?? "" : val;
+}
+
+function applyTagUpdates(file: AudioFile, tags: Partial<TagInput>): void {
   const tag = file.tag();
-  if (tags.title !== undefined) tag.setTitle(tags.title);
-  if (tags.artist !== undefined) tag.setArtist(tags.artist);
-  if (tags.album !== undefined) tag.setAlbum(tags.album);
+  if (tags.title !== undefined) tag.setTitle(firstString(tags.title));
+  if (tags.artist !== undefined) tag.setArtist(firstString(tags.artist));
+  if (tags.album !== undefined) tag.setAlbum(firstString(tags.album));
   if (tags.year !== undefined) tag.setYear(tags.year);
   if (tags.track !== undefined) tag.setTrack(tags.track);
-  if (tags.genre !== undefined) tag.setGenre(tags.genre);
-  if (tags.comment !== undefined) tag.setComment(tags.comment);
+  if (tags.genre !== undefined) tag.setGenre(firstString(tags.genre));
+  if (tags.comment !== undefined) tag.setComment(firstString(tags.comment));
 }
 
 /**

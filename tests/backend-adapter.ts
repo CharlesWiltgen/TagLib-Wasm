@@ -7,7 +7,7 @@
 
 import { describe, type it } from "@std/testing/bdd";
 import { resolve } from "@std/path";
-import type { AudioProperties, Tag } from "../src/types.ts";
+import type { AudioProperties } from "../src/types.ts";
 import type { Format } from "./shared-fixtures.ts";
 import {
   fileExists,
@@ -15,12 +15,15 @@ import {
   TEST_FILES_DIR_PATH,
 } from "./shared-fixtures.ts";
 
-export type BasicTags = Required<
-  Pick<
-    Tag,
-    "title" | "artist" | "album" | "genre" | "comment" | "year" | "track"
-  >
->;
+export type BasicTags = {
+  title: string;
+  artist: string;
+  album: string;
+  genre: string;
+  comment: string;
+  year: number;
+  track: number;
+};
 
 export type BasicAudioProps = Pick<
   AudioProperties,
@@ -209,7 +212,11 @@ export class WasiBackendAdapter implements BackendAdapter {
         wasmPath: WASM_PATH,
         preopens: { "/tmp": tempDir },
       });
-      writeTagsWasi(wasi, `/tmp/${filename}`, tags);
+      writeTagsWasi(
+        wasi,
+        `/tmp/${filename}`,
+        tags as unknown as import("../src/types.ts").ExtendedTag,
+      );
 
       return await Deno.readFile(destPath);
     } finally {

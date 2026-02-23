@@ -44,7 +44,10 @@ forEachBackend("Tag Roundtrip Properties", (adapter: BackendAdapter) => {
         const modified = await adapter.writeTags(flacBuffer, tags, "flac");
         if (!modified) return true; // skip if write not supported
 
-        const readBack = await adapter.readTags(modified, "flac");
+        const readBack = await adapter.readTags(modified, "flac") as Record<
+          string,
+          unknown
+        >;
         return (
           readBack.title === tags.title &&
           readBack.artist === tags.artist &&
@@ -64,8 +67,14 @@ forEachBackend("Tag Roundtrip Properties", (adapter: BackendAdapter) => {
         const second = await adapter.writeTags(first, tags, "flac");
         if (!second) return true;
 
-        const firstTags = await adapter.readTags(first, "flac");
-        const secondTags = await adapter.readTags(second, "flac");
+        const firstTags = await adapter.readTags(first, "flac") as Record<
+          string,
+          unknown
+        >;
+        const secondTags = await adapter.readTags(second, "flac") as Record<
+          string,
+          unknown
+        >;
 
         return (
           firstTags.title === secondTags.title &&
@@ -90,7 +99,10 @@ forEachBackend("Tag Roundtrip Properties", (adapter: BackendAdapter) => {
         const modified = await adapter.writeTags(flacBuffer, tags, "flac");
         if (!modified) return true;
 
-        const readBack = await adapter.readTags(modified, "flac");
+        const readBack = await adapter.readTags(modified, "flac") as Record<
+          string,
+          unknown
+        >;
         return (
           readBack.title === tags.title &&
           readBack.year === tags.year &&

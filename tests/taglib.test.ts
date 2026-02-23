@@ -232,13 +232,16 @@ describe("Simple API", () => {
   it("Tag Reading", async () => {
     const tags = await readTags(TEST_FILES.mp3);
     assertExists(tags, "Should return tags object");
-    assertEquals(typeof tags.title, "string", "Title should be string");
-    assertEquals(typeof tags.artist, "string", "Artist should be string");
-    assertEquals(typeof tags.album, "string", "Album should be string");
+    assert(Array.isArray(tags.title), "Title should be string[]");
+    assert(Array.isArray(tags.artist), "Artist should be string[]");
+    assert(Array.isArray(tags.album), "Album should be string[]");
     assertEquals(typeof tags.year, "number", "Year should be number");
     assertEquals(typeof tags.track, "number", "Track should be number");
-    assertEquals(typeof tags.genre, "string", "Genre should be string");
-    assertEquals(typeof tags.comment, "string", "Comment should be string");
+    assert(Array.isArray(tags.genre), "Genre should be string[]");
+    assert(
+      tags.comment === undefined || Array.isArray(tags.comment),
+      "Comment should be string[] or undefined",
+    );
   });
 
   it("Tag Writing", async () => {
@@ -559,8 +562,8 @@ describe("Integration", () => {
 
     for (let i = 0; i < processedFiles.length; i++) {
       const tags = await readTags(processedFiles[i]);
-      assertEquals(tags.album, albumMetadata.album);
-      assertEquals(tags.artist, albumMetadata.artist);
+      assertEquals(tags.album, [albumMetadata.album]);
+      assertEquals(tags.artist, [albumMetadata.artist]);
       assertEquals(tags.track, i + 1);
     }
   });
@@ -585,9 +588,9 @@ describe("Integration", () => {
 
     for (const buffer of updatedFiles) {
       const tags = await readTags(buffer);
-      assertEquals(tags.genre, updates.genre);
+      assertEquals(tags.genre, [updates.genre]);
       assertEquals(tags.year, updates.year);
-      assertEquals(tags.comment, updates.comment);
+      assertEquals(tags.comment, [updates.comment]);
     }
   });
 

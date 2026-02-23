@@ -1,8 +1,7 @@
-import type { Tag as BasicTag } from "../types.ts";
-
 /**
- * Extended Tag interface with read/write capabilities for audio metadata.
- * Extends the basic Tag interface with setter methods for modifying metadata.
+ * Mutable tag interface for the Full API's direct C++ binding.
+ * Returns single strings from TagLib's Tag accessors.
+ * The Simple API wraps these into multi-value Tag arrays.
  *
  * @example
  * ```typescript
@@ -18,7 +17,21 @@ import type { Tag as BasicTag } from "../types.ts";
  * file.save();
  * ```
  */
-export interface MutableTag extends BasicTag {
+export interface MutableTag {
+  /** Track title */
+  readonly title?: string;
+  /** Artist name */
+  readonly artist?: string;
+  /** Album name */
+  readonly album?: string;
+  /** Comment */
+  readonly comment?: string;
+  /** Genre */
+  readonly genre?: string;
+  /** Year */
+  readonly year?: number;
+  /** Track number */
+  readonly track?: number;
   /** Set the track title */
   setTitle(value: string): MutableTag;
   /** Set the artist name */

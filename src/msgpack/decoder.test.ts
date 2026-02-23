@@ -6,7 +6,10 @@ import { decodeTagData } from "./decoder.ts";
 describe("decodeTagData key normalization", () => {
   it("should decode ACOUSTID_FINGERPRINT to acoustidFingerprint", () => {
     const msgpack = encode({ ACOUSTID_FINGERPRINT: "AQADtNQYhYkYRcg" });
-    const decoded = decodeTagData(new Uint8Array(msgpack));
+    const decoded = decodeTagData(new Uint8Array(msgpack)) as Record<
+      string,
+      unknown
+    >;
     assertEquals(decoded.acoustidFingerprint, "AQADtNQYhYkYRcg");
     assertEquals(
       "ACOUSTID_FINGERPRINT" in decoded,
@@ -16,14 +19,20 @@ describe("decodeTagData key normalization", () => {
 
   it("should decode disc to discNumber", () => {
     const msgpack = encode({ disc: 2 });
-    const decoded = decodeTagData(new Uint8Array(msgpack));
+    const decoded = decodeTagData(new Uint8Array(msgpack)) as Record<
+      string,
+      unknown
+    >;
     assertEquals(decoded.discNumber, 2);
     assertEquals("disc" in decoded, false);
   });
 
   it("should decode DISCNUMBER to discNumber", () => {
     const msgpack = encode({ DISCNUMBER: 3 });
-    const decoded = decodeTagData(new Uint8Array(msgpack));
+    const decoded = decodeTagData(new Uint8Array(msgpack)) as Record<
+      string,
+      unknown
+    >;
     assertEquals(decoded.discNumber, 3);
   });
 
@@ -35,7 +44,10 @@ describe("decodeTagData key normalization", () => {
       DATE: 2025,
       TRACKNUMBER: 3,
     });
-    const decoded = decodeTagData(new Uint8Array(msgpack));
+    const decoded = decodeTagData(new Uint8Array(msgpack)) as Record<
+      string,
+      unknown
+    >;
     assertEquals(decoded.title, "Test");
     assertEquals(decoded.artist, "Artist");
     assertEquals(decoded.album, "Album");
@@ -48,7 +60,10 @@ describe("decodeTagData key normalization", () => {
       MUSICBRAINZ_TRACKID: "abc-123",
       MUSICBRAINZ_ALBUMID: "def-456",
     });
-    const decoded = decodeTagData(new Uint8Array(msgpack));
+    const decoded = decodeTagData(new Uint8Array(msgpack)) as Record<
+      string,
+      unknown
+    >;
     assertEquals(decoded.musicbrainzTrackId, "abc-123");
     assertEquals(decoded.musicbrainzReleaseId, "def-456");
   });
@@ -58,7 +73,10 @@ describe("decodeTagData key normalization", () => {
       REPLAYGAIN_TRACK_GAIN: "-6.54 dB",
       REPLAYGAIN_TRACK_PEAK: "0.98765",
     });
-    const decoded = decodeTagData(new Uint8Array(msgpack));
+    const decoded = decodeTagData(new Uint8Array(msgpack)) as Record<
+      string,
+      unknown
+    >;
     assertEquals(decoded.replayGainTrackGain, "-6.54 dB");
     assertEquals(decoded.replayGainTrackPeak, "0.98765");
   });
@@ -69,7 +87,10 @@ describe("decodeTagData key normalization", () => {
       artist: "Artist",
       albumArtist: "VA",
     });
-    const decoded = decodeTagData(new Uint8Array(msgpack));
+    const decoded = decodeTagData(new Uint8Array(msgpack)) as Record<
+      string,
+      unknown
+    >;
     assertEquals(decoded.title, "Test");
     assertEquals(decoded.artist, "Artist");
     assertEquals(decoded.albumArtist, "VA");
@@ -77,10 +98,10 @@ describe("decodeTagData key normalization", () => {
 
   it("should pass through unknown keys as-is", () => {
     const msgpack = encode({ CUSTOM_UNKNOWN: "value" });
-    const decoded = decodeTagData(new Uint8Array(msgpack));
-    assertEquals(
-      (decoded as Record<string, unknown>)["CUSTOM_UNKNOWN"],
-      "value",
-    );
+    const decoded = decodeTagData(new Uint8Array(msgpack)) as Record<
+      string,
+      unknown
+    >;
+    assertEquals(decoded["CUSTOM_UNKNOWN"], "value");
   });
 });
