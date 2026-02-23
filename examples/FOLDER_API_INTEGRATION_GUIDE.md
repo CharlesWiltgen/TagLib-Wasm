@@ -9,7 +9,7 @@ This guide explains how to properly integrate the TagLib-Wasm Folder API into yo
 **❌ Wrong:**
 
 ```typescript
-import type { AudioFileMetadata } from "taglib-wasm/folder";
+import type { AudioFileMetadata } from "taglib-wasm";
 ```
 
 **✅ Correct:**
