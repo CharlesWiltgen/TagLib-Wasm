@@ -1,6 +1,5 @@
 /**
- * Legacy Tags constant for simplified access to common property names.
- * For enhanced functionality with metadata and type safety, consider using PROPERTIES.
+ * Convenience constants for common property names.
  */
 export const Tags = {
   // Basic Properties
@@ -82,22 +81,19 @@ export const Tags = {
 } as const;
 
 /**
- * Type representing all valid tag property names (legacy)
- * For enhanced type safety, consider using PropertyKey.
+ * Type representing all valid tag property names.
  */
 export type TagName = typeof Tags[keyof typeof Tags];
 
 /**
- * Type guard to check if a string is a valid tag name (legacy)
- * For enhanced functionality, consider using isValidProperty.
+ * Type guard to check if a string is a valid tag name.
  */
 export function isValidTagName(name: string): name is TagName {
   return Object.values(Tags).includes(name as TagName);
 }
 
 /**
- * Get all available tag names as an array (legacy)
- * For enhanced functionality, consider using getAllPropertyKeys.
+ * Get all available tag names as an array.
  */
 export function getAllTagNames(): readonly TagName[] {
   return Object.values(Tags);
