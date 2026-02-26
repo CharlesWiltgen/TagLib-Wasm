@@ -47,12 +47,10 @@ export {
   isInvalidFormatError,
   isMemoryError,
   isMetadataError,
-  isSidecarError,
   isTagLibError,
   isUnsupportedFormatError,
   MemoryError,
   MetadataError,
-  SidecarError,
   SUPPORTED_FORMATS,
   TagLibError,
   TagLibInitializationError,
@@ -90,7 +88,6 @@ export {
   readTagsBatch,
   replacePictureByType,
   setBufferMode,
-  setSidecarConfig,
   writeTagsToFile,
 } from "./src/simple/index.ts";
 

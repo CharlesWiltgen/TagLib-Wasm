@@ -1,6 +1,5 @@
 import type { TagLibModule, WasmModule } from "../wasm.ts";
 import type { OpenOptions, TagInput } from "../types.ts";
-import type { WasmtimeSidecar } from "../runtime/wasmtime-sidecar.ts";
 import { InvalidFormatError, TagLibInitializationError } from "../errors.ts";
 import type { AudioFile } from "./audio-file-interface.ts";
 import { AudioFileImpl } from "./audio-file-impl.ts";
@@ -11,14 +10,9 @@ import { loadAudioData } from "./load-audio-data.ts";
  */
 export class TagLib {
   private readonly module: TagLibModule;
-  private _sidecar?: WasmtimeSidecar;
 
   constructor(module: WasmModule) {
     this.module = module as TagLibModule;
-  }
-
-  get sidecar(): WasmtimeSidecar | undefined {
-    return this._sidecar;
   }
 
   static async initialize(options?: {
@@ -27,33 +21,10 @@ export class TagLib {
     forceBufferMode?: boolean;
     forceWasmType?: "wasi" | "emscripten";
     disableOptimizations?: boolean;
-    useSidecar?: boolean;
-    sidecarConfig?: {
-      preopens: Record<string, string>;
-      wasmtimePath?: string;
-      wasmPath?: string;
-    };
   }): Promise<TagLib> {
     const { loadTagLibModule } = await import("../../index.ts");
     const module = await loadTagLibModule(options);
-    const taglib = new TagLib(module);
-
-    if (options?.useSidecar && options.sidecarConfig) {
-      const { WasmtimeSidecar } = await import(
-        "../runtime/wasmtime-sidecar.ts"
-      );
-      const sidecarWasmPath = options.sidecarConfig.wasmPath ??
-        new URL("../../dist/wasi/taglib-sidecar.wasm", import.meta.url)
-          .pathname;
-      taglib._sidecar = new WasmtimeSidecar({
-        wasmPath: sidecarWasmPath,
-        preopens: options.sidecarConfig.preopens,
-        wasmtimePath: options.sidecarConfig.wasmtimePath,
-      });
-      await taglib._sidecar.start();
-    }
-
-    return taglib;
+    return new TagLib(module);
   }
 
   async open(

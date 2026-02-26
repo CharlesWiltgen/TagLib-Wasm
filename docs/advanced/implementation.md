@@ -65,18 +65,6 @@ The `-mexec-model=reactor` flag is critical — it exports `_initialize`
 instead of `_start`, enabling the host to call it for static constructor
 initialization.
 
-## Optional: Wasmtime Sidecar
-
-For batch workloads, an optional sidecar spawns a Wasmtime process with
-direct filesystem access:
-
-```
-File path (JS) → Wasmtime subprocess → WASI filesystem → TagLib → result
-```
-
-Requires Wasmtime CLI installed. Configured via `setSidecarConfig()` or
-`useSidecar: true` in `TagLib.initialize()`.
-
 ## TypeScript API Layers
 
 1. **`src/taglib.ts`** — Core `TagLib` class and `AudioFile` interface

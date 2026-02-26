@@ -202,19 +202,3 @@ export class EnvironmentError extends TagLibError {
     Object.setPrototypeOf(this, EnvironmentError.prototype);
   }
 }
-
-/**
- * Error thrown when sidecar process operations fail
- */
-export class SidecarError extends TagLibError {
-  /**
-   * Creates a new SidecarError
-   * @param message - Description of the sidecar failure
-   * @param details - Additional context about the error
-   */
-  constructor(message: string, details?: Record<string, unknown>) {
-    super("SIDECAR", message, details);
-    this.name = "SidecarError";
-    Object.setPrototypeOf(this, SidecarError.prototype);
-  }
-}
