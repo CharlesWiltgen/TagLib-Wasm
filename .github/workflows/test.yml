@@ -41,7 +41,7 @@ jobs:
       - name: Install Emscripten
         uses: mymindstorm/setup-emsdk@v14
         with:
-          version: latest
+          version: 5.0.2
 
       - name: Build WebAssembly
         run: npm run build:wasm
