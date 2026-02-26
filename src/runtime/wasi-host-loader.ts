@@ -2,8 +2,7 @@
  * @fileoverview WASI host loader for in-process filesystem access
  *
  * Loads the taglib_wasi.wasm binary with real WASI filesystem
- * implementations, enabling efficient seek-based file I/O without
- * the Wasmtime sidecar subprocess.
+ * implementations, enabling efficient seek-based file I/O.
  */
 
 import {

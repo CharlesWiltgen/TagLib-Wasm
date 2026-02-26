@@ -503,12 +503,6 @@ static async initialize(options?: {
   forceBufferMode?: boolean;
   forceWasmType?: "wasi" | "emscripten";
   disableOptimizations?: boolean;
-  useSidecar?: boolean;
-  sidecarConfig?: {
-    preopens: Record<string, string>;
-    wasmtimePath?: string;
-    wasmPath?: string;
-  };
 }): Promise<TagLib>
 ```
 
@@ -520,11 +514,6 @@ static async initialize(options?: {
   - `forceBufferMode`: Force Emscripten backend (disable WASI auto-detection)
   - `forceWasmType`: Explicitly select `"wasi"` or `"emscripten"` backend
   - `disableOptimizations`: Disable runtime optimizations
-  - `useSidecar`: Enable wasmtime sidecar for file-system operations
-  - `sidecarConfig`: Sidecar configuration (required when `useSidecar` is true)
-    - `preopens`: Directory mappings for WASI filesystem access
-    - `wasmtimePath`: Custom path to wasmtime binary
-    - `wasmPath`: Custom path to sidecar WASM binary
 
 ##### Example
 

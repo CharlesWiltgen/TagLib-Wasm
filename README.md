@@ -383,36 +383,12 @@ await file.saveToFile(); // Full file loaded only here
 
 taglib-wasm auto-selects the fastest available backend — no configuration needed:
 
-| Environment              | Backend           | How it works                                           | Performance    |
-| ------------------------ | ----------------- | ------------------------------------------------------ | -------------- |
-| **Deno / Node.js / Bun** | WASI (auto)       | Seek-based filesystem I/O; reads only headers and tags | Fastest        |
-| **Browsers / Workers**   | Emscripten (auto) | Entire file loaded into memory as buffer               | Baseline       |
-| **Opt-in**               | Wasmtime sidecar  | Out-of-process WASI with direct filesystem access      | Best for batch |
+| Environment              | Backend           | How it works                                           | Performance |
+| ------------------------ | ----------------- | ------------------------------------------------------ | ----------- |
+| **Deno / Node.js / Bun** | WASI (auto)       | Seek-based filesystem I/O; reads only headers and tags | Fastest     |
+| **Browsers / Workers**   | Emscripten (auto) | Entire file loaded into memory as buffer               | Baseline    |
 
-On Deno, Node.js, and Bun you get WASI automatically — nothing to configure. For
-heavy batch workloads, the optional Wasmtime sidecar provides direct filesystem
-access via a sandboxed subprocess:
-
-```bash
-# Optional: Install Wasmtime for sidecar mode
-curl https://wasmtime.dev/install.sh -sSf | bash
-```
-
-```typescript
-import { readTags, setSidecarConfig } from "taglib-wasm/simple";
-
-// Enable sidecar mode (requires Wasmtime)
-await setSidecarConfig({
-  preopens: { "/music": "/home/user/Music" },
-});
-
-// Now path-based calls use direct WASI filesystem access
-const tags = await readTags("/music/song.mp3");
-```
-
-See the
-[Runtime Compatibility Guide](https://charleswiltgen.github.io/TagLib-Wasm/concepts/runtime-compatibility.html)
-for full sidecar configuration options.
+On Deno, Node.js, and Bun you get WASI automatically — nothing to configure.
 
 ## Runtime Compatibility
 

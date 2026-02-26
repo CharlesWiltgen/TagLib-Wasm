@@ -6,7 +6,6 @@ export {
   InvalidFormatError,
   MemoryError,
   MetadataError,
-  SidecarError,
   TagLibInitializationError,
   UnsupportedFormatError,
 } from "./classes.ts";
@@ -16,7 +15,6 @@ export {
   isInvalidFormatError,
   isMemoryError,
   isMetadataError,
-  isSidecarError,
   isTagLibError,
   isUnsupportedFormatError,
 } from "./guards.ts";

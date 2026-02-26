@@ -1,4 +1,4 @@
-export { getTagLib, setBufferMode, setSidecarConfig } from "./config.ts";
+export { getTagLib, setBufferMode } from "./config.ts";
 
 export {
   applyTagsToBuffer,

@@ -20,8 +20,7 @@ export type TagLibErrorCode =
   | "FILE_OPERATION"
   | "METADATA"
   | "MEMORY"
-  | "ENVIRONMENT"
-  | "SIDECAR";
+  | "ENVIRONMENT";
 
 /**
  * Base error class for all TagLib-Wasm errors
