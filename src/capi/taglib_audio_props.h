@@ -15,6 +15,12 @@ struct ExtendedAudioInfo {
     const char* codec;
     const char* container;
     bool isLossless;
+    // Format-specific extended fields (0/"" = not set)
+    int mpegVersion;     // MPEG::Properties: 1 or 2
+    int mpegLayer;       // MPEG::Properties: 1, 2, or 3
+    int mp4Codec;        // MP4::Properties::Codec enum value
+    bool isEncrypted;    // MP4, ASF
+    int version;         // APE, WavPack, MPC, TTA, Shorten version
 };
 
 ExtendedAudioInfo get_extended_audio_info(TagLib::File* file,

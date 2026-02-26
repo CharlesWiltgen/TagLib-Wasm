@@ -13,6 +13,8 @@
 #include "taglib_shim.h"
 #include "taglib_pictures.h"
 #include "taglib_ratings.h"
+#include "taglib_lyrics.h"
+#include "taglib_chapters.h"
 #include "taglib_audio_props.h"
 #include "core/taglib_msgpack.h"
 #include "core/taglib_core.h"
@@ -38,17 +40,38 @@ struct FieldMapping {
 };
 
 static const FieldMapping FIELD_MAP[] = {
-    {"ALBUM",        "album",       false},
-    {"ALBUMARTIST",  "albumArtist", false},
-    {"ARTIST",       "artist",      false},
-    {"BPM",          "bpm",         true},
-    {"COMMENT",      "comment",     false},
-    {"COMPOSER",     "composer",    false},
-    {"DATE",         "year",        true},
-    {"DISCNUMBER",   "disc",        true},
-    {"GENRE",        "genre",       false},
-    {"TITLE",        "title",       false},
-    {"TRACKNUMBER",  "track",       true},
+    {"ACOUSTID_FINGERPRINT", "acoustidFingerprint", false},
+    {"ACOUSTID_ID",          "acoustidId",          false},
+    {"ALBUM",                "album",               false},
+    {"ALBUMARTIST",          "albumArtist",          false},
+    {"ALBUMSORT",            "albumSort",            false},
+    {"ARTIST",               "artist",              false},
+    {"ARTISTSORT",           "artistSort",           false},
+    {"BPM",                  "bpm",                 true},
+    {"COMMENT",              "comment",             false},
+    {"COMPILATION",          "compilation",          false},
+    {"COMPOSER",             "composer",            false},
+    {"CONDUCTOR",            "conductor",           false},
+    {"COPYRIGHT",            "copyright",           false},
+    {"DATE",                 "year",                true},
+    {"DISCNUMBER",           "discNumber",          true},
+    {"DISCTOTAL",            "totalDiscs",          true},
+    {"ENCODEDBY",            "encodedBy",           false},
+    {"GENRE",                "genre",               false},
+    {"ISRC",                 "isrc",                false},
+    {"LYRICIST",             "lyricist",            false},
+    {"MUSICBRAINZ_ALBUMID",  "musicbrainzReleaseId",     false},
+    {"MUSICBRAINZ_ARTISTID", "musicbrainzArtistId",      false},
+    {"MUSICBRAINZ_RELEASEGROUPID", "musicbrainzReleaseGroupId", false},
+    {"MUSICBRAINZ_TRACKID",  "musicbrainzTrackId",       false},
+    {"REPLAYGAIN_ALBUM_GAIN", "replayGainAlbumGain",     false},
+    {"REPLAYGAIN_ALBUM_PEAK", "replayGainAlbumPeak",     false},
+    {"REPLAYGAIN_TRACK_GAIN", "replayGainTrackGain",     false},
+    {"REPLAYGAIN_TRACK_PEAK", "replayGainTrackPeak",     false},
+    {"TITLE",                "title",               false},
+    {"TITLESORT",            "titleSort",            false},
+    {"TRACKNUMBER",          "track",               true},
+    {"TRACKTOTAL",           "totalTracks",         true},
 };
 
 static const size_t FIELD_MAP_SIZE = sizeof(FIELD_MAP) / sizeof(FIELD_MAP[0]);
@@ -87,7 +110,13 @@ static tl_error_code encode_file_to_msgpack(TagLib::File* file,
     uint32_t rating_count = count_ratings(file);
     if (rating_count > 0) count++;  // "ratings" key + array
 
-    ExtendedAudioInfo ext_info = {0, "", "", false};
+    uint32_t lyrics_count = count_lyrics(file);
+    if (lyrics_count > 0) count++;  // "lyrics" key + array
+
+    uint32_t chapter_count = count_chapters(file);
+    if (chapter_count > 0) count++;  // "chapters" key + array
+
+    ExtendedAudioInfo ext_info = {0, "", "", false, 0, 0, 0, false, 0};
     if (audio) {
         ext_info = get_extended_audio_info(file, audio);
         count += count_extended_audio_fields(ext_info);
@@ -139,6 +168,14 @@ static tl_error_code encode_file_to_msgpack(TagLib::File* file,
         encode_ratings(&writer, file);
     }
 
+    if (lyrics_count > 0) {
+        encode_lyrics(&writer, file);
+    }
+
+    if (chapter_count > 0) {
+        encode_chapters(&writer, file);
+    }
+
     mpack_finish_map(&writer);
 
     if (mpack_writer_error(&writer) != mpack_ok) {
@@ -181,8 +218,10 @@ static tl_error_code read_from_path(const char* path,
 }
 
 static const char* SKIP_KEYS[] = {
-    "bitsPerSample", "bitrate", "channels", "codec", "containerFormat",
-    "isLossless", "length", "lengthMs", "pictures", "ratings", "sampleRate",
+    "bitsPerSample", "bitrate", "channels", "chapters", "codec",
+    "containerFormat", "formatVersion", "isEncrypted", "isLossless",
+    "length", "lengthMs", "lyrics", "mpegLayer", "mpegVersion",
+    "pictures", "ratings", "sampleRate",
 };
 
 static const size_t SKIP_KEYS_SIZE = sizeof(SKIP_KEYS) / sizeof(SKIP_KEYS[0]);
@@ -337,6 +376,8 @@ static tl_error_code write_to_path(const char* path,
         apply_propmap(ref, propMap);
         apply_pictures_from_msgpack(ref.file(), tags_msgpack, tags_msgpack_len);
         apply_ratings_from_msgpack(ref.file(), tags_msgpack, tags_msgpack_len);
+        apply_lyrics_from_msgpack(ref.file(), tags_msgpack, tags_msgpack_len);
+        apply_chapters_from_msgpack(ref.file(), tags_msgpack, tags_msgpack_len);
 
         if (!ref.save()) return TL_ERROR_IO_WRITE;
         return TL_SUCCESS;
@@ -362,6 +403,8 @@ static tl_error_code write_to_buffer(const uint8_t* buf, size_t len,
         apply_propmap(ref, propMap);
         apply_pictures_from_msgpack(ref.file(), tags_msgpack, tags_msgpack_len);
         apply_ratings_from_msgpack(ref.file(), tags_msgpack, tags_msgpack_len);
+        apply_lyrics_from_msgpack(ref.file(), tags_msgpack, tags_msgpack_len);
+        apply_chapters_from_msgpack(ref.file(), tags_msgpack, tags_msgpack_len);
 
         if (!ref.save()) return TL_ERROR_IO_WRITE;
 

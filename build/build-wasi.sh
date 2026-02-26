@@ -39,6 +39,42 @@ echo "Found WASI SDK: $WASI_SDK_PATH"
 mkdir -p "$BUILD_DIR/taglib"
 mkdir -p "$DIST_DIR"
 
+# Step 0.5: Build zlib for WASI (needed for compressed ID3v2 frames)
+echo ""
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "📦 Step 0.5: Building zlib for WASI"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+ZLIB_VERSION="1.3.1"
+ZLIB_BUILD_DIR="$BUILD_DIR/zlib"
+
+if [ ! -f "$ZLIB_BUILD_DIR/libz.a" ]; then
+    ZLIB_SRC_DIR="$BUILD_DIR/zlib-src"
+    if [ ! -d "$ZLIB_SRC_DIR" ]; then
+        echo "Downloading zlib $ZLIB_VERSION..."
+        mkdir -p "$ZLIB_SRC_DIR"
+        curl -sL "https://zlib.net/zlib-${ZLIB_VERSION}.tar.gz" | tar xz -C "$BUILD_DIR"
+        mv "$BUILD_DIR/zlib-${ZLIB_VERSION}" "$ZLIB_SRC_DIR"
+    fi
+
+    echo "Building zlib for wasm32-wasi..."
+    mkdir -p "$ZLIB_BUILD_DIR"
+    cd "$ZLIB_BUILD_DIR"
+
+    CC="$WASI_SDK_PATH/bin/clang" \
+    AR="$WASI_SDK_PATH/bin/llvm-ar" \
+    RANLIB="$WASI_SDK_PATH/bin/llvm-ranlib" \
+    CFLAGS="--target=wasm32-wasi --sysroot=$WASI_SDK_PATH/share/wasi-sysroot -O3 -fwasm-exceptions" \
+    "$ZLIB_SRC_DIR/configure" --static --prefix="$ZLIB_BUILD_DIR"
+
+    make -j$(nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 4) libz.a
+
+    echo -e "${GREEN}✅ zlib built successfully${NC}"
+    ls -lh "$ZLIB_BUILD_DIR/libz.a"
+else
+    echo -e "${GREEN}✅ zlib already present${NC}"
+fi
+
 # Step 1: Build TagLib with WASI SDK
 echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
@@ -73,6 +109,9 @@ cmake "$TAGLIB_DIR" \
     -DBUILD_EXAMPLES=OFF \
     -DBUILD_TESTS=OFF \
     -DBUILD_BINDINGS=OFF \
+    -DWITH_ZLIB=ON \
+    -DZLIB_LIBRARY="$BUILD_DIR/zlib/libz.a" \
+    -DZLIB_INCLUDE_DIR="$BUILD_DIR/zlib" \
     -DCMAKE_CXX_FLAGS="-O3 -fwasm-exceptions -mllvm -wasm-use-legacy-eh=false" \
     -DCMAKE_C_FLAGS="-O3"
 
@@ -141,6 +180,8 @@ CAPI_SOURCES=(
     "$SRC_DIR/taglib_shim.cpp"            # Tiny C++ shim with Wasm EH - TagLib exception boundary
     "$SRC_DIR/taglib_pictures.cpp"        # C++ picture encode/decode via complexProperties
     "$SRC_DIR/taglib_ratings.cpp"         # C++ rating encode/decode via format-specific APIs
+    "$SRC_DIR/taglib_lyrics.cpp"          # C++ lyrics encode/decode via complexProperties
+    "$SRC_DIR/taglib_chapters.cpp"        # C++ chapter encode/decode via ID3v2 CHAP frames
     "$SRC_DIR/taglib_audio_props.cpp"     # C++ extended audio properties via dynamic_cast
     "$SRC_DIR/core/taglib_error.cpp"      # C++ with pure C internals - compiled with Wasm EH
     "$SRC_DIR/core/taglib_msgpack.c"      # Pure C (no exceptions) - MessagePack implementation
@@ -162,6 +203,8 @@ for src in "${CAPI_SOURCES[@]}"; do
     elif [[ "$(basename "$src")" == "taglib_shim.cpp" ]] || \
          [[ "$(basename "$src")" == "taglib_pictures.cpp" ]] || \
          [[ "$(basename "$src")" == "taglib_ratings.cpp" ]] || \
+         [[ "$(basename "$src")" == "taglib_lyrics.cpp" ]] || \
+         [[ "$(basename "$src")" == "taglib_chapters.cpp" ]] || \
          [[ "$(basename "$src")" == "taglib_audio_props.cpp" ]]; then
         echo "Compiling C++ with TagLib headers + Wasm EH: $src"
         # Collect all TagLib subdirectories for include paths
@@ -193,6 +236,7 @@ done
 "$WASI_SDK_PATH/bin/clang++" "${CAPI_OBJECTS[@]}" \
     "$BUILD_DIR/taglib/taglib/libtag.a" \
     "$MPACK_BUILD_DIR/libmpack.a" \
+    "$ZLIB_BUILD_DIR/libz.a" \
     --target=wasm32-wasi \
     --sysroot="$WASI_SDK_PATH/share/wasi-sysroot" \
     -mexec-model=reactor \
@@ -252,11 +296,14 @@ echo "Linking sidecar binary..."
     "$BUILD_DIR/taglib_shim.obj" \
     "$BUILD_DIR/taglib_pictures.obj" \
     "$BUILD_DIR/taglib_ratings.obj" \
+    "$BUILD_DIR/taglib_lyrics.obj" \
+    "$BUILD_DIR/taglib_chapters.obj" \
     "$BUILD_DIR/taglib_audio_props.obj" \
     "$BUILD_DIR/taglib_error.obj" \
     "$BUILD_DIR/taglib_msgpack.obj" \
     "$BUILD_DIR/taglib/taglib/libtag.a" \
     "$MPACK_BUILD_DIR/libmpack.a" \
+    "$ZLIB_BUILD_DIR/libz.a" \
     --target=wasm32-wasi \
     --sysroot="$WASI_SDK_PATH/share/wasi-sysroot" \
     -o "$DIST_DIR/taglib-sidecar.wasm" \
