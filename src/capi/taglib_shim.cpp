@@ -116,7 +116,7 @@ static tl_error_code encode_file_to_msgpack(TagLib::File* file,
     uint32_t chapter_count = count_chapters(file);
     if (chapter_count > 0) count++;  // "chapters" key + array
 
-    ExtendedAudioInfo ext_info = {0, "", "", false, 0, 0, 0, false, 0};
+    ExtendedAudioInfo ext_info = {0, "", "", false, 0, 0, false, 0};
     if (audio) {
         ext_info = get_extended_audio_info(file, audio);
         count += count_extended_audio_fields(ext_info);
@@ -218,7 +218,7 @@ static tl_error_code read_from_path(const char* path,
 }
 
 static const char* SKIP_KEYS[] = {
-    "bitsPerSample", "bitrate", "channels", "chapters", "codec",
+    "bitrate", "bitsPerSample", "channels", "chapters", "codec",
     "containerFormat", "formatVersion", "isEncrypted", "isLossless",
     "length", "lengthMs", "lyrics", "mpegLayer", "mpegVersion",
     "pictures", "ratings", "sampleRate",

@@ -222,8 +222,8 @@ tl_format tl_detect_format(const uint8_t* buf, size_t len) {
         return TL_FORMAT_XM;
     }
 
-    // S3M (Scream Tracker): 0x1C at offset 44
-    if (len >= 48 && buf[44] == 0x1C && buf[45] == 0x10) {
+    // S3M (Scream Tracker): "SCRM" signature at offset 44
+    if (len >= 48 && memcmp(buf + 44, "SCRM", 4) == 0) {
         return TL_FORMAT_S3M;
     }
 
