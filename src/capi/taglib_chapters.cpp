@@ -154,30 +154,32 @@ tl_error_code apply_chapters_from_msgpack(
 
                     if (strcmp(fkey, "id") == 0) {
                         uint32_t vlen = mpack_expect_str(&reader);
-                        char vbuf[256];
-                        if (vlen < sizeof(vbuf)) {
-                            mpack_read_bytes(&reader, vbuf, vlen);
-                            vbuf[vlen] = '\0';
-                            elementId = TagLib::ByteVector(vbuf, vlen);
-                        } else {
-                            mpack_skip_bytes(&reader, vlen);
+                        char* vbuf = static_cast<char*>(malloc(vlen + 1));
+                        if (!vbuf) {
+                            mpack_reader_destroy(&reader);
+                            return TL_ERROR_MEMORY_ALLOCATION;
                         }
+                        mpack_read_bytes(&reader, vbuf, vlen);
                         mpack_done_str(&reader);
+                        vbuf[vlen] = '\0';
+                        elementId = TagLib::ByteVector(vbuf, vlen);
+                        free(vbuf);
                     } else if (strcmp(fkey, "startTimeMs") == 0) {
                         startTime = static_cast<unsigned int>(mpack_expect_u64(&reader));
                     } else if (strcmp(fkey, "endTimeMs") == 0) {
                         endTime = static_cast<unsigned int>(mpack_expect_u64(&reader));
                     } else if (strcmp(fkey, "title") == 0) {
                         uint32_t vlen = mpack_expect_str(&reader);
-                        char vbuf[1024];
-                        if (vlen < sizeof(vbuf)) {
-                            mpack_read_bytes(&reader, vbuf, vlen);
-                            vbuf[vlen] = '\0';
-                            title = TagLib::String(vbuf, TagLib::String::UTF8);
-                        } else {
-                            mpack_skip_bytes(&reader, vlen);
+                        char* vbuf = static_cast<char*>(malloc(vlen + 1));
+                        if (!vbuf) {
+                            mpack_reader_destroy(&reader);
+                            return TL_ERROR_MEMORY_ALLOCATION;
                         }
+                        mpack_read_bytes(&reader, vbuf, vlen);
                         mpack_done_str(&reader);
+                        vbuf[vlen] = '\0';
+                        title = TagLib::String(vbuf, TagLib::String::UTF8);
+                        free(vbuf);
                     } else {
                         mpack_discard(&reader);
                     }

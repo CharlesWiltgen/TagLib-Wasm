@@ -33,45 +33,51 @@
 #include <cstring>
 #include <cstdlib>
 
+enum FieldType : uint8_t {
+    FIELD_STRING  = 0,
+    FIELD_NUMERIC = 1,
+    FIELD_BOOLEAN = 2,
+};
+
 struct FieldMapping {
     const char* prop;   // UPPERCASE TagLib property key (sorted for binary search)
     const char* camel;  // camelCase JS key
-    bool numeric;       // encode as uint instead of string
+    FieldType type;     // how to encode/decode the value
 };
 
 static const FieldMapping FIELD_MAP[] = {
-    {"ACOUSTID_FINGERPRINT", "acoustidFingerprint", false},
-    {"ACOUSTID_ID",          "acoustidId",          false},
-    {"ALBUM",                "album",               false},
-    {"ALBUMARTIST",          "albumArtist",          false},
-    {"ALBUMSORT",            "albumSort",            false},
-    {"ARTIST",               "artist",              false},
-    {"ARTISTSORT",           "artistSort",           false},
-    {"BPM",                  "bpm",                 true},
-    {"COMMENT",              "comment",             false},
-    {"COMPILATION",          "compilation",          false},
-    {"COMPOSER",             "composer",            false},
-    {"CONDUCTOR",            "conductor",           false},
-    {"COPYRIGHT",            "copyright",           false},
-    {"DATE",                 "year",                true},
-    {"DISCNUMBER",           "discNumber",          true},
-    {"DISCTOTAL",            "totalDiscs",          true},
-    {"ENCODEDBY",            "encodedBy",           false},
-    {"GENRE",                "genre",               false},
-    {"ISRC",                 "isrc",                false},
-    {"LYRICIST",             "lyricist",            false},
-    {"MUSICBRAINZ_ALBUMID",  "musicbrainzReleaseId",     false},
-    {"MUSICBRAINZ_ARTISTID", "musicbrainzArtistId",      false},
-    {"MUSICBRAINZ_RELEASEGROUPID", "musicbrainzReleaseGroupId", false},
-    {"MUSICBRAINZ_TRACKID",  "musicbrainzTrackId",       false},
-    {"REPLAYGAIN_ALBUM_GAIN", "replayGainAlbumGain",     false},
-    {"REPLAYGAIN_ALBUM_PEAK", "replayGainAlbumPeak",     false},
-    {"REPLAYGAIN_TRACK_GAIN", "replayGainTrackGain",     false},
-    {"REPLAYGAIN_TRACK_PEAK", "replayGainTrackPeak",     false},
-    {"TITLE",                "title",               false},
-    {"TITLESORT",            "titleSort",            false},
-    {"TRACKNUMBER",          "track",               true},
-    {"TRACKTOTAL",           "totalTracks",         true},
+    {"ACOUSTID_FINGERPRINT", "acoustidFingerprint", FIELD_STRING},
+    {"ACOUSTID_ID",          "acoustidId",          FIELD_STRING},
+    {"ALBUM",                "album",               FIELD_STRING},
+    {"ALBUMARTIST",          "albumArtist",          FIELD_STRING},
+    {"ALBUMSORT",            "albumSort",            FIELD_STRING},
+    {"ARTIST",               "artist",              FIELD_STRING},
+    {"ARTISTSORT",           "artistSort",           FIELD_STRING},
+    {"BPM",                  "bpm",                 FIELD_NUMERIC},
+    {"COMMENT",              "comment",             FIELD_STRING},
+    {"COMPILATION",          "compilation",          FIELD_BOOLEAN},
+    {"COMPOSER",             "composer",            FIELD_STRING},
+    {"CONDUCTOR",            "conductor",           FIELD_STRING},
+    {"COPYRIGHT",            "copyright",           FIELD_STRING},
+    {"DATE",                 "year",                FIELD_NUMERIC},
+    {"DISCNUMBER",           "discNumber",          FIELD_NUMERIC},
+    {"DISCTOTAL",            "totalDiscs",          FIELD_NUMERIC},
+    {"ENCODEDBY",            "encodedBy",           FIELD_STRING},
+    {"GENRE",                "genre",               FIELD_STRING},
+    {"ISRC",                 "isrc",                FIELD_STRING},
+    {"LYRICIST",             "lyricist",            FIELD_STRING},
+    {"MUSICBRAINZ_ALBUMID",  "musicbrainzReleaseId",     FIELD_STRING},
+    {"MUSICBRAINZ_ARTISTID", "musicbrainzArtistId",      FIELD_STRING},
+    {"MUSICBRAINZ_RELEASEGROUPID", "musicbrainzReleaseGroupId", FIELD_STRING},
+    {"MUSICBRAINZ_TRACKID",  "musicbrainzTrackId",       FIELD_STRING},
+    {"REPLAYGAIN_ALBUM_GAIN", "replayGainAlbumGain",     FIELD_STRING},
+    {"REPLAYGAIN_ALBUM_PEAK", "replayGainAlbumPeak",     FIELD_STRING},
+    {"REPLAYGAIN_TRACK_GAIN", "replayGainTrackGain",     FIELD_STRING},
+    {"REPLAYGAIN_TRACK_PEAK", "replayGainTrackPeak",     FIELD_STRING},
+    {"TITLE",                "title",               FIELD_STRING},
+    {"TITLESORT",            "titleSort",            FIELD_STRING},
+    {"TRACKNUMBER",          "track",               FIELD_NUMERIC},
+    {"TRACKTOTAL",           "totalTracks",         FIELD_NUMERIC},
 };
 
 static const size_t FIELD_MAP_SIZE = sizeof(FIELD_MAP) / sizeof(FIELD_MAP[0]);
@@ -137,9 +143,12 @@ static tl_error_code encode_file_to_msgpack(TagLib::File* file,
 
         mpack_write_cstr(&writer, outKey);
 
-        if (mapping && mapping->numeric) {
+        if (mapping && mapping->type == FIELD_NUMERIC) {
             int val = it->second.front().toInt();
             mpack_write_uint(&writer, static_cast<uint32_t>(val));
+        } else if (mapping && mapping->type == FIELD_BOOLEAN) {
+            TagLib::String raw = it->second.front();
+            mpack_write_bool(&writer, raw == "1" || raw == "true");
         } else {
             write_mpack_string(&writer, it->second.front());
         }
@@ -314,6 +323,10 @@ static tl_error_code decode_msgpack_to_propmap(
                 value = TagLib::String::number(static_cast<int>(num));
                 has_value = true;
             }
+        } else if (tag.type == mpack_type_bool) {
+            bool bval = mpack_expect_bool(&reader);
+            value = TagLib::String(bval ? "1" : "0");
+            has_value = true;
         } else {
             mpack_discard(&reader);
             continue;
