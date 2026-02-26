@@ -44,7 +44,20 @@ typedef enum {
     TL_FORMAT_WAV,
     TL_FORMAT_APE,
     TL_FORMAT_WV,
-    TL_FORMAT_OPUS
+    TL_FORMAT_OPUS,
+    TL_FORMAT_AIFF,
+    TL_FORMAT_ASF,
+    TL_FORMAT_DSF,
+    TL_FORMAT_DSDIFF,
+    TL_FORMAT_MPC,
+    TL_FORMAT_TTA,
+    TL_FORMAT_SHN,
+    TL_FORMAT_MOD,
+    TL_FORMAT_S3M,
+    TL_FORMAT_IT,
+    TL_FORMAT_XM,
+    TL_FORMAT_OGG_FLAC,
+    TL_FORMAT_SPEEX
 } tl_format;
 
 // Core memory management functions

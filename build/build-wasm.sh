@@ -33,7 +33,7 @@ emcmake cmake "$TAGLIB_DIR" \
   -DBUILD_EXAMPLES=OFF \
   -DWITH_ASF=ON \
   -DWITH_MP4=ON \
-  -DWITH_ZLIB=OFF \
+  -DWITH_ZLIB=ON \
   -DCMAKE_INSTALL_PREFIX="$CMAKE_BUILD_DIR/install"
 
 echo "🏗️  Building TagLib..."

@@ -99,6 +99,19 @@ bool tl_has_capability(const char* capability) {
     if (strcmp(capability, "format-ape") == 0) return true;
     if (strcmp(capability, "format-wavpack") == 0) return true;
     if (strcmp(capability, "format-opus") == 0) return true;
+    if (strcmp(capability, "format-aiff") == 0) return true;
+    if (strcmp(capability, "format-asf") == 0) return true;
+    if (strcmp(capability, "format-dsf") == 0) return true;
+    if (strcmp(capability, "format-dsdiff") == 0) return true;
+    if (strcmp(capability, "format-mpc") == 0) return true;
+    if (strcmp(capability, "format-tta") == 0) return true;
+    if (strcmp(capability, "format-shorten") == 0) return true;
+    if (strcmp(capability, "format-mod") == 0) return true;
+    if (strcmp(capability, "format-s3m") == 0) return true;
+    if (strcmp(capability, "format-it") == 0) return true;
+    if (strcmp(capability, "format-xm") == 0) return true;
+    if (strcmp(capability, "format-speex") == 0) return true;
+    if (strcmp(capability, "format-ogg-flac") == 0) return true;
     if (strcmp(capability, "wasi") == 0) {
         #ifdef __wasi__
         return true;
