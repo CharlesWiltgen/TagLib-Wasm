@@ -45,29 +45,38 @@ echo "━━━━━━━━━━━━━━━━━━━━━━━━�
 echo "📦 Step 0.5: Building zlib for WASI"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
-ZLIB_VERSION="1.3.1"
+ZLIB_VERSION="1.3.2"
 ZLIB_BUILD_DIR="$BUILD_DIR/zlib"
 
 if [ ! -f "$ZLIB_BUILD_DIR/libz.a" ]; then
     ZLIB_SRC_DIR="$BUILD_DIR/zlib-src"
-    if [ ! -d "$ZLIB_SRC_DIR" ]; then
+    if [ ! -f "$ZLIB_SRC_DIR/CMakeLists.txt" ]; then
+        rm -rf "$ZLIB_SRC_DIR"
         echo "Downloading zlib $ZLIB_VERSION..."
-        mkdir -p "$ZLIB_SRC_DIR"
-        curl -sL "https://zlib.net/zlib-${ZLIB_VERSION}.tar.gz" | tar xz -C "$BUILD_DIR"
+        curl -sfL "https://zlib.net/zlib-${ZLIB_VERSION}.tar.gz" -o "$BUILD_DIR/zlib.tar.gz" \
+            || curl -sfL "https://github.com/madler/zlib/releases/download/v${ZLIB_VERSION}/zlib-${ZLIB_VERSION}.tar.gz" -o "$BUILD_DIR/zlib.tar.gz"
+        tar xzf "$BUILD_DIR/zlib.tar.gz" -C "$BUILD_DIR"
         mv "$BUILD_DIR/zlib-${ZLIB_VERSION}" "$ZLIB_SRC_DIR"
+        rm -f "$BUILD_DIR/zlib.tar.gz"
     fi
 
     echo "Building zlib for wasm32-wasi..."
     mkdir -p "$ZLIB_BUILD_DIR"
-    cd "$ZLIB_BUILD_DIR"
 
-    CC="$WASI_SDK_PATH/bin/clang" \
-    AR="$WASI_SDK_PATH/bin/llvm-ar" \
-    RANLIB="$WASI_SDK_PATH/bin/llvm-ranlib" \
-    CFLAGS="--target=wasm32-wasi --sysroot=$WASI_SDK_PATH/share/wasi-sysroot -O3 -fwasm-exceptions" \
-    "$ZLIB_SRC_DIR/configure" --static --prefix="$ZLIB_BUILD_DIR"
-
-    make -j$(nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 4) libz.a
+    # Compile core zlib sources directly (no configure/cmake needed).
+    # gz* files excluded — they use lseek which WASI doesn't provide.
+    # TagLib only needs inflate/deflate for compressed ID3v2 frames.
+    ZLIB_SRCS="adler32 compress crc32 deflate infback inffast inflate inftrees trees uncompr zutil"
+    for src in $ZLIB_SRCS; do
+        "$WASI_SDK_PATH/bin/clang" \
+            --target=wasm32-wasi \
+            --sysroot="$WASI_SDK_PATH/share/wasi-sysroot" \
+            -O3 -fwasm-exceptions \
+            -I"$ZLIB_SRC_DIR" \
+            -c -o "$ZLIB_BUILD_DIR/$src.o" "$ZLIB_SRC_DIR/$src.c"
+    done
+    "$WASI_SDK_PATH/bin/llvm-ar" rcs "$ZLIB_BUILD_DIR/libz.a" "$ZLIB_BUILD_DIR"/*.o
+    cp "$ZLIB_SRC_DIR/zlib.h" "$ZLIB_SRC_DIR/zconf.h" "$ZLIB_BUILD_DIR/"
 
     echo -e "${GREEN}✅ zlib built successfully${NC}"
     ls -lh "$ZLIB_BUILD_DIR/libz.a"
