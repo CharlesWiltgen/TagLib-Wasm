@@ -293,15 +293,8 @@ describe(
         "test.flac",
         { totalTracks: 12, totalDiscs: 2 },
       );
-      // After Wasm rebuild, these return as numbers; current binary returns strings
-      const totalTracks = typeof result.totalTracks === "string"
-        ? parseInt(result.totalTracks as string)
-        : result.totalTracks;
-      const totalDiscs = typeof result.totalDiscs === "string"
-        ? parseInt(result.totalDiscs as string)
-        : result.totalDiscs;
-      assertEquals(totalTracks, 12);
-      assertEquals(totalDiscs, 2);
+      assertEquals(result.totalTracks, 12);
+      assertEquals(result.totalDiscs, 2);
     });
 
     it("should roundtrip all metadata fields together", async () => {
@@ -344,16 +337,9 @@ describe(
       assertEquals(result.conductor, tags.conductor);
       assertEquals(result.copyright, tags.copyright);
       assertEquals(result.discNumber, tags.discNumber);
-      // After Wasm rebuild, totals return as numbers; current binary returns strings
-      const totalDiscs = typeof result.totalDiscs === "string"
-        ? parseInt(result.totalDiscs as string)
-        : result.totalDiscs;
-      assertEquals(totalDiscs, tags.totalDiscs);
+      assertEquals(result.totalDiscs, tags.totalDiscs);
       assertEquals(result.track, tags.track);
-      const totalTracks = typeof result.totalTracks === "string"
-        ? parseInt(result.totalTracks as string)
-        : result.totalTracks;
-      assertEquals(totalTracks, tags.totalTracks);
+      assertEquals(result.totalTracks, tags.totalTracks);
       assertEquals(result.bpm, tags.bpm);
       assertEquals(result.isrc, tags.isrc);
       assertEquals(result.titleSort, tags.titleSort);
