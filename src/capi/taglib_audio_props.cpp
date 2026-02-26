@@ -42,7 +42,7 @@
 ExtendedAudioInfo get_extended_audio_info(
     TagLib::File* file, TagLib::AudioProperties* /* audio */)
 {
-    ExtendedAudioInfo info = {0, "", "", false, 0, 0, 0, false, 0};
+    ExtendedAudioInfo info = {0, "", "", false, 0, 0, false, 0};
 
     if (auto* f = dynamic_cast<TagLib::MPEG::File*>(file)) {
         auto* props = f->audioProperties();
@@ -69,7 +69,6 @@ ExtendedAudioInfo get_extended_audio_info(
         if (props) {
             info.bitsPerSample = props->bitsPerSample();
             info.isEncrypted = props->isEncrypted();
-            info.mp4Codec = static_cast<int>(props->codec());
             if (props->codec() == TagLib::MP4::Properties::ALAC) {
                 info.codec = "ALAC";
                 info.isLossless = true;
