@@ -26,7 +26,8 @@ echo "📦 Configuring TagLib with Emscripten..."
 # Configure TagLib with CMake for Emscripten
 emcmake cmake "$TAGLIB_DIR" \
   -DCMAKE_WARN_DEPRECATED=OFF \
-  -DCMAKE_CXX_FLAGS="-Wno-character-conversion -frtti" \
+  -DCMAKE_CXX_FLAGS="-Wno-character-conversion -frtti -sUSE_ZLIB=1" \
+  -DCMAKE_C_FLAGS="-sUSE_ZLIB=1" \
   -DCMAKE_BUILD_TYPE=Release \
   -DBUILD_SHARED_LIBS=OFF \
   -DBUILD_TESTING=OFF \
@@ -72,6 +73,7 @@ emcc "$BUILD_DIR/taglib_wasm.cpp" \
   -fexceptions \
   -frtti \
   -lembind \
+  -sUSE_ZLIB=1 \
   --no-entry \
   -O3
 

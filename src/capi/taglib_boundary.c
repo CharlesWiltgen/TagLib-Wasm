@@ -149,7 +149,7 @@ tl_format tl_detect_format(const uint8_t* buf, size_t len) {
             if (memcmp(buf + i, "OpusHead", 8) == 0) {
                 return TL_FORMAT_OPUS;
             }
-            if (i + 9 < len && memcmp(buf + i, "\x7fFLAC", 5) == 0) {
+            if (i + 9 < len && memcmp(buf + i, "\x7f" "FLAC", 5) == 0) {
                 return TL_FORMAT_OGG_FLAC;
             }
             if (i + 8 < len && memcmp(buf + i, "Speex   ", 8) == 0) {
