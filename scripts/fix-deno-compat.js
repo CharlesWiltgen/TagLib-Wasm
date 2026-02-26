@@ -33,7 +33,7 @@ if (nodeDetectionPattern.test(content)) {
 // Fix 2: Fix the Node.js module loading block
 // Find the if(ENVIRONMENT_IS_NODE) block that loads modules - support both patched and unpatched versions
 const nodeModulePattern =
-  /if\(ENVIRONMENT_IS_NODE(?:&&!ENVIRONMENT_IS_DENO)?\)\{const\{createRequire\}=await import\("module"\);var require=createRequire\(import\.meta\.url\)\}/;
+  /if\(ENVIRONMENT_IS_NODE(?:&&!ENVIRONMENT_IS_DENO)?\)\{const\{createRequire\}=await import\("(?:node:)?module"\);var require=createRequire\(import\.meta\.url\)\}/;
 const newNodeModule =
   `if(ENVIRONMENT_IS_NODE){const{createRequire}=await import("module");var require=createRequire(import.meta.url)}`;
 
