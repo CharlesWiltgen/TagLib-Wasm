@@ -5,7 +5,6 @@ import {
   InvalidFormatError,
   MemoryError,
   MetadataError,
-  SidecarError,
   UnsupportedFormatError,
 } from "./classes.ts";
 
@@ -41,8 +40,4 @@ export function isMemoryError(error: unknown): error is MemoryError {
 
 export function isEnvironmentError(error: unknown): error is EnvironmentError {
   return error instanceof EnvironmentError;
-}
-
-export function isSidecarError(error: unknown): error is SidecarError {
-  return error instanceof SidecarError;
 }

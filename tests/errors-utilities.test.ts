@@ -13,12 +13,10 @@ import {
   isInvalidFormatError,
   isMemoryError,
   isMetadataError,
-  isSidecarError,
   isTagLibError,
   isUnsupportedFormatError,
   MemoryError,
   MetadataError,
-  SidecarError,
   TagLibError,
   TagLibInitializationError,
   UnsupportedFormatError,
@@ -206,20 +204,6 @@ describe("Error Classes", () => {
     assertInstanceOf(error1, TagLibError);
     assertInstanceOf(error1, EnvironmentError);
   });
-
-  it("SidecarError - sidecar process errors", () => {
-    const error = new SidecarError("Sidecar not running: Call start() first.", {
-      pid: 456,
-    });
-
-    assertEquals(error.name, "SidecarError");
-    assertEquals(error.code, "SIDECAR");
-    assertEquals(error.message, "Sidecar not running: Call start() first.");
-    assertEquals(error.details, { pid: 456 });
-
-    assertInstanceOf(error, TagLibError);
-    assertInstanceOf(error, SidecarError);
-  });
 });
 
 describe("Type Guards", () => {
@@ -355,18 +339,6 @@ describe("Type Guards", () => {
       false,
     );
     assertEquals(isEnvironmentError(123), false);
-  });
-
-  it("isSidecarError - type guard", () => {
-    assertEquals(isSidecarError(new SidecarError("not running")), true);
-    assertEquals(
-      isSidecarError(new SidecarError("crashed", { pid: 1 })),
-      true,
-    );
-
-    assertEquals(isSidecarError(new TagLibError("MEMORY", "msg")), false);
-    assertEquals(isSidecarError(new Error("regular")), false);
-    assertEquals(isSidecarError(undefined), false);
   });
 });
 

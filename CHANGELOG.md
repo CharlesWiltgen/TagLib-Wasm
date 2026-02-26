@@ -15,7 +15,6 @@
 - **Runtime-agnostic WASI host** supporting Deno, Node.js, and Bun via `FileSystemProvider` DI
 - **Realigned API naming**: `readTags`, `readProperties`, `readFormat`, `readCoverArt`, `applyCoverArt`, `readPictureMetadata`
 - **Batch metadata API**: `readMetadataBatch` for efficient multi-file processing with cover art and dynamics data
-- **Wasmtime sidecar** for native filesystem access on server runtimes
 - **Folder scanning API** for recursive directory metadata extraction
 
 ### Bug Fixes

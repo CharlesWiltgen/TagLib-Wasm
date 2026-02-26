@@ -282,56 +282,6 @@ if [ ! -f "$DIST_DIR/taglib_wasi.wasm" ]; then
     exit 1
 fi
 
-# Step 2.5: Build sidecar binary (stdin/stdout protocol)
-echo ""
-echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo "🚀 Step 2.5: Building sidecar binary"
-echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-
-echo "Compiling sidecar main loop..."
-
-# Compile sidecar source (pure C, with EH flag for feature consistency)
-"$WASI_SDK_PATH/bin/clang" "$SRC_DIR/taglib_sidecar.c" \
-    --target=wasm32-wasi \
-    --sysroot="$WASI_SDK_PATH/share/wasi-sysroot" \
-    -I"$SRC_DIR" -I"$MPACK_DIR/src" \
-    -O3 -fwasm-exceptions -c -o "$BUILD_DIR/taglib_sidecar.obj"
-
-# Link sidecar with all dependencies
-echo "Linking sidecar binary..."
-"$WASI_SDK_PATH/bin/clang++" \
-    "$BUILD_DIR/taglib_sidecar.obj" \
-    "$BUILD_DIR/taglib_boundary.obj" \
-    "$BUILD_DIR/taglib_shim.obj" \
-    "$BUILD_DIR/taglib_pictures.obj" \
-    "$BUILD_DIR/taglib_ratings.obj" \
-    "$BUILD_DIR/taglib_lyrics.obj" \
-    "$BUILD_DIR/taglib_chapters.obj" \
-    "$BUILD_DIR/taglib_audio_props.obj" \
-    "$BUILD_DIR/taglib_error.obj" \
-    "$BUILD_DIR/taglib_msgpack.obj" \
-    "$BUILD_DIR/taglib/taglib/libtag.a" \
-    "$MPACK_BUILD_DIR/libmpack.a" \
-    "$ZLIB_BUILD_DIR/libz.a" \
-    --target=wasm32-wasi \
-    --sysroot="$WASI_SDK_PATH/share/wasi-sysroot" \
-    -o "$DIST_DIR/taglib-sidecar.wasm" \
-    -Wl,--initial-memory=16777216 \
-    -Wl,--max-memory=2147483648 \
-    -O3 \
-    -std=c++17 \
-    -fwasm-exceptions \
-    -mllvm -wasm-use-legacy-eh=false \
-    -lunwind
-
-if [ ! -f "$DIST_DIR/taglib-sidecar.wasm" ]; then
-    echo -e "${RED}❌ Sidecar build failed${NC}"
-    exit 1
-fi
-
-echo -e "${GREEN}✅ Sidecar binary built successfully${NC}"
-ls -lh "$DIST_DIR/taglib-sidecar.wasm"
-
 # Step 3: Optimize with wasm-opt
 echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
@@ -345,11 +295,6 @@ if command -v wasm-opt &> /dev/null; then
         --enable-exception-handling \
         "$DIST_DIR/taglib_wasi.wasm" \
         -o "$DIST_DIR/taglib_wasi.wasm"
-    wasm-opt -Oz \
-        --enable-bulk-memory \
-        --enable-exception-handling \
-        "$DIST_DIR/taglib-sidecar.wasm" \
-        -o "$DIST_DIR/taglib-sidecar.wasm"
     echo -e "${GREEN}✅ Optimization complete${NC}"
 else
     echo -e "${YELLOW}⚠️  wasm-opt not found, skipping optimization${NC}"
@@ -365,7 +310,6 @@ echo "━━━━━━━━━━━━━━━━━━━━━━━━�
 if command -v wasm-strip &> /dev/null; then
     echo "Stripping debug info..."
     wasm-strip "$DIST_DIR/taglib_wasi.wasm"
-    wasm-strip "$DIST_DIR/taglib-sidecar.wasm"
     echo -e "${GREEN}✅ Debug info stripped${NC}"
 else
     echo -e "${YELLOW}⚠️  wasm-strip not found, skipping${NC}"
@@ -421,13 +365,11 @@ echo "✅ Build Summary"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
 WASM_SIZE=$(ls -lh "$DIST_DIR/taglib_wasi.wasm" | awk '{print $5}')
-SIDECAR_SIZE=$(ls -lh "$DIST_DIR/taglib-sidecar.wasm" | awk '{print $5}')
 
 echo -e "${GREEN}✅ WASI SDK build successful${NC}"
 echo ""
 echo "Output files:"
 echo "  📦 WASM: $DIST_DIR/taglib_wasi.wasm ($WASM_SIZE)"
-echo "  🚀 Sidecar: $DIST_DIR/taglib-sidecar.wasm ($SIDECAR_SIZE)"
 echo "  📝 Meta: $DIST_DIR/taglib_wasi.json"
 echo ""
 echo "Target environments: Deno, Node.js (WASI), Cloudflare Workers"
