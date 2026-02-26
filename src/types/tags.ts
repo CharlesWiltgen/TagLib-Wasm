@@ -110,6 +110,16 @@ export interface ExtendedTag extends Tag {
   readonly artistSort?: string[];
   /** Sort album for alphabetization */
   readonly albumSort?: string[];
+  /** Conductor */
+  readonly conductor?: string[];
+  /** Copyright */
+  readonly copyright?: string[];
+  /** Encoded by */
+  readonly encodedBy?: string[];
+  /** ISRC (International Standard Recording Code) */
+  readonly isrc?: string[];
+  /** Lyricist */
+  readonly lyricist?: string[];
 
   // ReplayGain fields
   /** ReplayGain track gain in dB (e.g., "-6.54 dB") */
@@ -128,6 +138,19 @@ export interface ExtendedTag extends Tag {
   readonly pictures?: import("./pictures.ts").Picture[];
   /** Popularity/rating data */
   readonly ratings?: Array<{ rating: number; email: string; counter: number }>;
+  /** Unsynchronized lyrics */
+  readonly lyrics?: Array<{
+    text: string;
+    description: string;
+    language: string;
+  }>;
+  /** Chapter markers (ID3v2 CHAP frames, MP3 only) */
+  readonly chapters?: Array<{
+    id: string;
+    startTimeMs: number;
+    endTimeMs: number;
+    title?: string;
+  }>;
 }
 
 /**

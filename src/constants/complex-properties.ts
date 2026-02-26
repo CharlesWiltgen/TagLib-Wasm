@@ -77,6 +77,21 @@ export type VariantMap = Record<string, unknown>;
  * }
  * ```
  */
+/**
+ * Chapter marker metadata (ID3v2 CHAP frames).
+ * Describes a time range within an audio file.
+ */
+export interface Chapter {
+  /** Unique element ID for the chapter */
+  id: string;
+  /** Start time in milliseconds */
+  startTimeMs: number;
+  /** End time in milliseconds */
+  endTimeMs: number;
+  /** Optional chapter title */
+  title?: string;
+}
+
 export interface ComplexPropertyValueMap {
   /** Cover art and embedded images */
   PICTURE: Picture;
@@ -84,6 +99,8 @@ export interface ComplexPropertyValueMap {
   RATING: Rating;
   /** Unsynchronized lyrics text */
   LYRICS: UnsyncedLyrics;
+  /** Chapter markers (ID3v2 CHAP frames) */
+  CHAPTER: Chapter;
 }
 
 /**
@@ -146,6 +163,15 @@ export const COMPLEX_PROPERTIES = {
       mp4: "©lyr",
     },
   },
+  CHAPTER: {
+    key: "CHAPTER",
+    description: "Chapter markers with time ranges",
+    type: "object" as const,
+    supportedFormats: ["ID3v2"] as const,
+    mappings: {
+      id3v2: { frame: "CHAP" },
+    },
+  },
 } as const;
 
 /**
@@ -169,4 +195,5 @@ export const COMPLEX_PROPERTY_KEY: ComplexPropertyKeyMap = {
   PICTURE: "PICTURE",
   RATING: "RATING",
   LYRICS: "LYRICS",
+  CHAPTER: "CHAPTER",
 } as const;

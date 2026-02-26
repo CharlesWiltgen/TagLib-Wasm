@@ -24,6 +24,20 @@ export type FileType =
   | "OPUS"
   | "WAV"
   | "AIFF"
+  | "ASF"
+  | "APE"
+  | "DSF"
+  | "DSDIFF"
+  | "WV"
+  | "MPC"
+  | "TTA"
+  | "SHN"
+  | "MOD"
+  | "S3M"
+  | "IT"
+  | "XM"
+  | "OGG_FLAC"
+  | "SPEEX"
   | "UNKNOWN";
 
 /**
@@ -45,6 +59,18 @@ export type ContainerFormat =
   | "OGG" // Ogg container (can contain Vorbis, Opus, FLAC, Speex)
   | "WAV" // RIFF WAVE format
   | "AIFF" // Audio Interchange File Format
+  | "ASF" // Advanced Systems Format (WMA/WMV)
+  | "APE" // Monkey's Audio container
+  | "DSF" // DSD Stream File
+  | "DSDIFF" // DSD Interchange File Format
+  | "WavPack" // WavPack container
+  | "MPC" // Musepack container
+  | "TTA" // TrueAudio container
+  | "Shorten" // Shorten container
+  | "MOD" // ProTracker Module
+  | "S3M" // Scream Tracker 3 Module
+  | "IT" // Impulse Tracker Module
+  | "XM" // Extended Module
   | "UNKNOWN";
 
 /**
@@ -70,9 +96,22 @@ export type AudioCodec =
   | "FLAC" // Free Lossless Audio Codec
   | "Vorbis" // Ogg Vorbis (lossy)
   | "Opus" // Opus (lossy)
+  | "Speex" // Speex (lossy, speech)
   | "PCM" // Pulse Code Modulation (uncompressed)
   | "IEEE Float" // IEEE floating-point PCM
   | "WAV" // Generic WAV codec (when specific codec unknown)
+  | "WMA" // Windows Media Audio (lossy)
+  | "WMA Lossless" // Windows Media Audio Lossless
+  | "APE" // Monkey's Audio (lossless)
+  | "DSD" // Direct Stream Digital
+  | "WavPack" // WavPack (lossless or hybrid)
+  | "MPC" // Musepack (lossy)
+  | "TTA" // TrueAudio (lossless)
+  | "Shorten" // Shorten (lossless)
+  | "MOD" // ProTracker Module
+  | "S3M" // Scream Tracker 3 Module
+  | "IT" // Impulse Tracker Module
+  | "XM" // Extended Module
   | "Unknown";
 
 /**
@@ -97,7 +136,12 @@ export type AudioFormat =
   | "MOD"
   | "IT"
   | "S3M"
-  | "XM";
+  | "XM"
+  | "DSF"
+  | "DSDIFF"
+  | "SHN"
+  | "OGG_FLAC"
+  | "SPEEX";
 
 /**
  * Audio properties containing technical information about the file.
@@ -131,4 +175,12 @@ export interface AudioProperties {
   readonly containerFormat: string;
   /** Whether the audio is lossless (uncompressed or losslessly compressed) */
   readonly isLossless: boolean;
+  /** MPEG version (1 or 2, MP3 only) */
+  readonly mpegVersion?: number;
+  /** MPEG layer (1, 2, or 3, MP3 only) */
+  readonly mpegLayer?: number;
+  /** Whether the audio is DRM-encrypted (MP4, ASF) */
+  readonly isEncrypted?: boolean;
+  /** Format-specific version number (APE, WavPack, TTA, etc.) */
+  readonly formatVersion?: number;
 }

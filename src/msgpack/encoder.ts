@@ -10,7 +10,7 @@ import type {
 } from "../types.ts";
 import { CAMEL_TO_VORBIS } from "../types/metadata-mappings.ts";
 
-const PASSTHROUGH_KEYS = new Set(["pictures", "ratings"]);
+const PASSTHROUGH_KEYS = new Set(["pictures", "ratings", "lyrics", "chapters"]);
 
 const MSGPACK_ENCODE_OPTIONS: EncoderOptions = {
   sortKeys: false,

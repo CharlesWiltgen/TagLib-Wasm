@@ -45,7 +45,7 @@ export interface FieldMapping {
  * ```
  */
 export const METADATA_MAPPINGS: Record<
-  Exclude<keyof ExtendedTag, "pictures" | "ratings">,
+  Exclude<keyof ExtendedTag, "pictures" | "ratings" | "lyrics" | "chapters">,
   FieldMapping
 > = {
   // Basic fields (already handled by TagLib's standard API)
@@ -173,6 +173,31 @@ export const METADATA_MAPPINGS: Record<
     vorbis: "ALBUMSORT",
     mp4: "soal",
   },
+  conductor: {
+    id3v2: { frame: "TPE3" },
+    vorbis: "CONDUCTOR",
+    mp4: "----:com.apple.iTunes:CONDUCTOR",
+  },
+  copyright: {
+    id3v2: { frame: "TCOP" },
+    vorbis: "COPYRIGHT",
+    mp4: "cprt",
+  },
+  encodedBy: {
+    id3v2: { frame: "TENC" },
+    vorbis: "ENCODEDBY",
+    mp4: "©too",
+  },
+  isrc: {
+    id3v2: { frame: "TSRC" },
+    vorbis: "ISRC",
+    mp4: "----:com.apple.iTunes:ISRC",
+  },
+  lyricist: {
+    id3v2: { frame: "TEXT" },
+    vorbis: "LYRICIST",
+    mp4: "----:com.apple.iTunes:LYRICIST",
+  },
 
   // ReplayGain mappings
   replayGainTrackGain: {
@@ -219,6 +244,6 @@ for (
     CAMEL_TO_VORBIS[camel] = mapping.vorbis;
   }
 }
-// C++ FIELD_MAP sends DISCNUMBER as "disc"; normalize to ExtendedTag's "discNumber".
-// Reverse not needed: encoder always receives "discNumber" from ExtendedTag.
+// C++ FIELD_MAP now sends DISCNUMBER as "discNumber" directly.
+// Keep legacy "disc" → "discNumber" mapping for backwards compatibility with older binaries.
 VORBIS_TO_CAMEL["disc"] = "discNumber";
