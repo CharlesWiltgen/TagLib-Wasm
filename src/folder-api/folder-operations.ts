@@ -75,13 +75,6 @@ export async function updateFolderTags(
   return { items, duration: Date.now() - startTime };
 }
 
-/**
- * Find duplicate audio files based on metadata
- *
- * @param folderPath - Path to scan for duplicates
- * @param options - Scan options (includes `criteria` for which fields to compare)
- * @returns Groups of potential duplicate files
- */
 function buildCriteriaKey(
   tags: Tag,
   criteria: Array<keyof Tag>,
@@ -97,6 +90,13 @@ function buildCriteriaKey(
   return { record, key };
 }
 
+/**
+ * Find duplicate audio files based on metadata
+ *
+ * @param folderPath - Path to scan for duplicates
+ * @param options - Scan options (includes `criteria` for which fields to compare)
+ * @returns Groups of potential duplicate files
+ */
 export async function findDuplicates(
   folderPath: string,
   options?: FolderScanOptions,

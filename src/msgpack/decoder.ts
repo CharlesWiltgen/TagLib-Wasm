@@ -156,7 +156,10 @@ export function decodeMessagePackAuto(
         return normalizeTagKeys(obj) as unknown as ExtendedTag;
       }
     }
-    return decoded as ExtendedTag;
+    throw new MetadataError(
+      "read",
+      `Unexpected non-object MessagePack data: ${typeof decoded}`,
+    );
   } catch (error) {
     throw new MetadataError(
       "read",
