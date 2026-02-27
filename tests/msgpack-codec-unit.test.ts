@@ -1,4 +1,9 @@
-import { assertEquals, assertStringIncludes, assertThrows } from "@std/assert";
+import {
+  assertEquals,
+  assertExists,
+  assertStringIncludes,
+  assertThrows,
+} from "@std/assert";
 import { describe, it } from "@std/testing/bdd";
 import { encode } from "@msgpack/msgpack";
 import {
@@ -28,7 +33,14 @@ import {
   getMessagePackInfo,
   isValidMessagePack,
 } from "../src/msgpack/decoder.ts";
+import {
+  createMessagePackProcessor,
+  debugMessagePackProcessor,
+  defaultMessagePackProcessor,
+  performanceMessagePackProcessor,
+} from "../src/msgpack/processor.ts";
 import { MessagePackUtils } from "../src/msgpack/utils.ts";
+import { InvalidFormatError, MemoryError } from "../src/errors/classes.ts";
 import type {
   AudioProperties,
   ExtendedTag,
@@ -652,5 +664,97 @@ describe("MessagePackUtils.isTagLibCompatible", () => {
 
   it("should return false for unrecognized objects", () => {
     assertEquals(MessagePackUtils.isTagLibCompatible({ foo: "bar" }), false);
+  });
+});
+
+describe("createMessagePackProcessor", () => {
+  it("should decode valid MessagePack data", () => {
+    const processor = createMessagePackProcessor();
+    const tag = { title: "Song", artist: "Band" } as unknown as ExtendedTag;
+    const encoded = encodeTagData(tag);
+    const decoded = processor.decode(encoded) as Record<string, unknown>;
+    assertExists(decoded);
+    assertEquals(decoded.title, "Song");
+  });
+
+  it("should throw MemoryError when decode buffer exceeds maxBufferSize", () => {
+    const processor = createMessagePackProcessor({ maxBufferSize: 10 });
+    const largeBuffer = new Uint8Array(20);
+    assertThrows(
+      () => processor.decode(largeBuffer),
+      MemoryError,
+      "Buffer exceeds maximum size",
+    );
+  });
+
+  it("should throw InvalidFormatError for invalid MessagePack on decode", () => {
+    const processor = createMessagePackProcessor({ validateInput: true });
+    assertThrows(
+      () => processor.decode(new Uint8Array([0xFF, 0xFF])),
+      InvalidFormatError,
+      "Invalid MessagePack data",
+    );
+  });
+
+  it("should encode tag data successfully", () => {
+    const processor = createMessagePackProcessor();
+    const result = processor.encode(
+      { title: "Test" } as unknown as ExtendedTag,
+    );
+    assertEquals(result instanceof Uint8Array, true);
+    assertEquals(result.length > 0, true);
+  });
+
+  it("should throw MemoryError when encode result exceeds maxBufferSize", () => {
+    const processor = createMessagePackProcessor({ maxBufferSize: 1 });
+    assertThrows(
+      () =>
+        processor.encode(
+          { title: "This is long enough" } as unknown as ExtendedTag,
+        ),
+      MemoryError,
+      "Buffer exceeds maximum size",
+    );
+  });
+
+  it("should skip validation when validateInput is false", () => {
+    const processor = createMessagePackProcessor({ validateInput: false });
+    const tag = { title: "Test" } as unknown as ExtendedTag;
+    const encoded = encodeTagData(tag);
+    const decoded = processor.decode(encoded) as Record<string, unknown>;
+    assertEquals(decoded.title, "Test");
+  });
+});
+
+describe("defaultMessagePackProcessor", () => {
+  it("should decode and encode data", () => {
+    const tag = { title: "Default" } as unknown as ExtendedTag;
+    const encoded = defaultMessagePackProcessor.encode(tag);
+    const decoded = defaultMessagePackProcessor.decode(
+      encoded,
+    ) as Record<string, unknown>;
+    assertEquals(decoded.title, "Default");
+  });
+});
+
+describe("performanceMessagePackProcessor", () => {
+  it("should encode and decode without validation", () => {
+    const tag = { title: "Fast" } as unknown as ExtendedTag;
+    const encoded = performanceMessagePackProcessor.encode(tag);
+    const decoded = performanceMessagePackProcessor.decode(
+      encoded,
+    ) as Record<string, unknown>;
+    assertEquals(decoded.title, "Fast");
+  });
+});
+
+describe("debugMessagePackProcessor", () => {
+  it("should encode and decode with metrics enabled", () => {
+    const tag = { title: "Debug" } as unknown as ExtendedTag;
+    const encoded = debugMessagePackProcessor.encode(tag);
+    const decoded = debugMessagePackProcessor.decode(
+      encoded,
+    ) as Record<string, unknown>;
+    assertEquals(decoded.title, "Debug");
   });
 });
