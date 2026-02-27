@@ -88,6 +88,7 @@ export async function findDuplicates(
 ): Promise<DuplicateGroup[]> {
   const { criteria = ["artist", "title"], ...scanOptions } = options ?? {};
   const result = await scanFolder(folderPath, scanOptions);
+  scanOptions.signal?.throwIfAborted();
   const groupMap = new Map<
     string,
     { criteria: Record<string, string>; files: AudioFileMetadata[] }

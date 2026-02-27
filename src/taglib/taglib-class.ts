@@ -110,7 +110,7 @@ export class TagLib {
     fn: (file: AudioFile) => void | Promise<void>,
   ): Promise<Uint8Array>;
   async edit(
-    input: string | Uint8Array | ArrayBuffer | File,
+    input: AudioFileInput,
     fn: (file: AudioFile) => void | Promise<void>,
   ): Promise<void | Uint8Array> {
     const file = await this.open(input);
