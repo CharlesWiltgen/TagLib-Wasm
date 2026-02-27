@@ -157,9 +157,9 @@ const results = await processBatch([
 // Check results
 results.forEach((result) => {
   if (result.success) {
-    console.log(`✓ ${result.file}: ${result.tags.title}`);
+    console.log(`✓ ${result.path}: ${result.tags.title}`);
   } else {
-    console.log(`✗ ${result.file}: ${result.error}`);
+    console.log(`✗ ${result.path}: ${result.error}`);
   }
 });
 ```

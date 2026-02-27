@@ -26,11 +26,7 @@ const modifiedBuffer = await applyCoverArt("song.mp3", imageData, "image/jpeg");
 Convenient utilities for common cover art operations:
 
 ```typescript
-import {
-  copyCoverArt,
-  exportCoverArt,
-  importCoverArt,
-} from "taglib-wasm/file-utils";
+import { copyCoverArt, exportCoverArt, importCoverArt } from "taglib-wasm";
 
 // Export cover art to file (one-liner!)
 await exportCoverArt("song.mp3", "cover.jpg");
@@ -47,7 +43,7 @@ await copyCoverArt("source.mp3", "target.mp3");
 Special utilities for web applications:
 
 ```typescript
-import { pictureToDataURL, setCoverArtFromCanvas } from "taglib-wasm/web-utils";
+import { pictureToDataURL, setCoverArtFromCanvas } from "taglib-wasm/web";
 
 // Display cover art in browser
 const pictures = await readPictures("song.mp3");
@@ -67,7 +63,6 @@ const modifiedBuffer = await setCoverArtFromCanvas("song.mp3", canvas, {
 Advanced features for managing multiple artwork types:
 
 ```typescript
-import { PictureType } from "taglib-wasm";
 import {
   applyPictures,
   readPictures,
@@ -77,7 +72,7 @@ import {
 // Read all pictures with metadata
 const pictures = await readPictures("song.mp3");
 for (const pic of pictures) {
-  console.log(`Type: ${PictureType[pic.type]}`);
+  console.log(`Type: ${pic.type}`);
   console.log(`MIME: ${pic.mimeType}`);
   console.log(`Size: ${pic.data.length} bytes`);
   console.log(`Description: ${pic.description || "none"}`);
@@ -87,16 +82,16 @@ for (const pic of pictures) {
 await replacePictureByType("song.mp3", {
   mimeType: "image/png",
   data: backCoverData,
-  type: PictureType.BackCover,
+  type: "BackCover",
   description: "Album back cover",
 });
 
 // Manage multiple artwork types
 await applyPictures("deluxe-album.mp3", [
-  { type: PictureType.FrontCover, mimeType: "image/jpeg", data: frontData },
-  { type: PictureType.BackCover, mimeType: "image/jpeg", data: backData },
-  { type: PictureType.Media, mimeType: "image/jpeg", data: cdData },
-  { type: PictureType.BandLogo, mimeType: "image/png", data: logoData },
+  { type: "FrontCover", mimeType: "image/jpeg", data: frontData },
+  { type: "BackCover", mimeType: "image/jpeg", data: backData },
+  { type: "Media", mimeType: "image/jpeg", data: cdData },
+  { type: "BandLogo", mimeType: "image/png", data: logoData },
 ]);
 ```
 
@@ -105,27 +100,27 @@ await applyPictures("deluxe-album.mp3", [
 TagLib-Wasm supports all standard picture types defined by ID3v2 and other
 formats:
 
-- `PictureType.Other`
-- `PictureType.FileIcon`
-- `PictureType.OtherFileIcon`
-- `PictureType.FrontCover` (most common)
-- `PictureType.BackCover`
-- `PictureType.LeafletPage`
-- `PictureType.Media`
-- `PictureType.LeadArtist`
-- `PictureType.Artist`
-- `PictureType.Conductor`
-- `PictureType.Band`
-- `PictureType.Composer`
-- `PictureType.Lyricist`
-- `PictureType.RecordingLocation`
-- `PictureType.DuringRecording`
-- `PictureType.DuringPerformance`
-- `PictureType.VideoScreenCapture`
-- `PictureType.ColouredFish`
-- `PictureType.Illustration`
-- `PictureType.BandLogo`
-- `PictureType.PublisherLogo`
+- `"Other"`
+- `"FileIcon"`
+- `"OtherFileIcon"`
+- `"FrontCover"` (most common)
+- `"BackCover"`
+- `"LeafletPage"`
+- `"Media"`
+- `"LeadArtist"`
+- `"Artist"`
+- `"Conductor"`
+- `"Band"`
+- `"Composer"`
+- `"Lyricist"`
+- `"RecordingLocation"`
+- `"DuringRecording"`
+- `"DuringPerformance"`
+- `"VideoScreenCapture"`
+- `"ColouredFish"`
+- `"Illustration"`
+- `"BandLogo"`
+- `"PublisherLogo"`
 
 ## Best Practices
 
@@ -152,7 +147,7 @@ Different audio formats have varying levels of picture support:
 Here's a complete example of managing album artwork:
 
 ```typescript
-import { applyCoverArt, PictureType, readPictures } from "taglib-wasm/simple";
+import { applyCoverArt, readPictures } from "taglib-wasm/simple";
 import { readFile, writeFile } from "fs/promises";
 
 async function updateAlbumArt(audioFile: string, artworkFile: string) {
@@ -161,9 +156,7 @@ async function updateAlbumArt(audioFile: string, artworkFile: string) {
 
   // Check existing pictures
   const existingPictures = await readPictures(audioFile);
-  const hasCover = existingPictures.some((p) =>
-    p.type === PictureType.FrontCover
-  );
+  const hasCover = existingPictures.some((p) => p.type === "FrontCover");
 
   if (hasCover) {
     console.log("Replacing existing cover art...");

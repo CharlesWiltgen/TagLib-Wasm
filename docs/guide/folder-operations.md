@@ -48,7 +48,7 @@ console.log(`Errors: ${result.errors.length}`);
 console.log(`Time taken: ${result.duration}ms`);
 
 // Process each file
-for (const file of result.files) {
+for (const file of result.items) {
   console.log(`Path: ${file.path}`);
   console.log(`Title: ${file.tags.title}`);
   console.log(`Artist: ${file.tags.artist}`);
@@ -246,7 +246,7 @@ const result = await scanFolder("/music", {
 // Organize music by artist/album structure
 const result = await scanFolder("/unsorted-music");
 
-for (const file of result.files) {
+for (const file of result.items) {
   const artist = file.tags.artist || "Unknown Artist";
   const album = file.tags.album || "Unknown Album";
   const title = file.tags.title || path.basename(file.path);
@@ -263,7 +263,7 @@ for (const file of result.files) {
 // Find and fix missing metadata
 const result = await scanFolder("/music");
 
-const needsFixing = result.files.filter((file) =>
+const needsFixing = result.items.filter((file) =>
   !file.tags.artist ||
   !file.tags.title ||
   !file.tags.album

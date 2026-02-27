@@ -13,6 +13,18 @@
     "./simple": {
       "types": "./dist/src/simple/index.d.ts",
       "default": "./dist/src/simple/index.js"
+    },
+    "./folder": {
+      "types": "./dist/folder.d.ts",
+      "default": "./dist/folder.js"
+    },
+    "./web": {
+      "types": "./dist/web.d.ts",
+      "default": "./dist/web.js"
+    },
+    "./rating": {
+      "types": "./dist/rating.d.ts",
+      "default": "./dist/rating.js"
     }
   },
   "files": [

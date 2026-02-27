@@ -6,9 +6,12 @@
 export type {
   AudioDynamics,
   AudioFileMetadata,
+  DuplicateGroup,
   FolderScanItem,
   FolderScanOptions,
   FolderScanResult,
+  FolderUpdateItem,
+  FolderUpdateResult,
 } from "./types.ts";
 
 export { scanFolder } from "./scan-operations.ts";

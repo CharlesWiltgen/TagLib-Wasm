@@ -84,7 +84,10 @@ export interface FolderScanOptions {
   includeProperties?: boolean;
   /** Whether to continue on errors (default: true) */
   continueOnError?: boolean;
-  /** Force buffer mode: Emscripten in-memory I/O (bypasses unified loader) */
+  /**
+   * Force buffer mode: Emscripten in-memory I/O (bypasses unified loader).
+   * @deprecated Use `setBufferMode(true)` before calling scanFolder instead.
+   */
   forceBufferMode?: boolean;
   /** Tag fields to compare when finding duplicates (default: ["artist", "title"]) */
   criteria?: Array<keyof Tag>;
@@ -107,6 +110,20 @@ export interface FolderScanResult {
   items: FolderScanItem[];
   /** Time taken in milliseconds */
   duration: number;
+}
+
+export type FolderUpdateItem =
+  | { status: "ok"; path: string }
+  | { status: "error"; path: string; error: Error };
+
+export interface FolderUpdateResult {
+  items: FolderUpdateItem[];
+  duration: number;
+}
+
+export interface DuplicateGroup {
+  criteria: Record<string, string>;
+  files: AudioFileMetadata[];
 }
 
 export interface ScanProcessOptions {

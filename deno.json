@@ -6,7 +6,10 @@
   "nodeModulesDir": "auto",
   "exports": {
     ".": "./index.ts",
-    "./simple": "./simple.ts"
+    "./simple": "./simple.ts",
+    "./folder": "./folder.ts",
+    "./web": "./web.ts",
+    "./rating": "./rating.ts"
   },
   "compilerOptions": {
     "lib": [

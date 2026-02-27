@@ -121,7 +121,7 @@ async function analyzeAlbum(albumPath: string): Promise<AlbumAnalysis> {
 
     // Accumulate statistics
     if (data.properties) {
-      albumData.totalDuration += data.properties.length || 0;
+      albumData.totalDuration += data.properties.duration || 0;
       totalBitrate += data.properties.bitrate || 0;
       formats.add(data.properties.codec || "Unknown");
     }

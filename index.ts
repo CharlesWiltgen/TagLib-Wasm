@@ -81,6 +81,7 @@ export {
   isValidAudioFile,
   readCoverArt,
   readFormat,
+  readMetadata,
   readMetadataBatch,
   readPictureMetadata,
   readPictures,
@@ -125,11 +126,14 @@ export {
 export {
   type AudioDynamics,
   type AudioFileMetadata,
+  type DuplicateGroup,
   exportFolderMetadata,
   findDuplicates,
   type FolderScanItem,
   type FolderScanOptions,
   type FolderScanResult,
+  type FolderUpdateItem,
+  type FolderUpdateResult,
   scanFolder,
   updateFolderTags,
 } from "./src/folder-api/index.ts";
@@ -188,20 +192,8 @@ export type {
   VariantMap,
 } from "./src/constants/complex-properties.ts";
 
-// Rating conversion utilities
-export {
-  clamp as clampRating,
-  fromNormalized,
-  fromPercent,
-  fromPopm,
-  fromStars,
-  isValid as isValidRating,
-  RatingUtils,
-  toNormalized,
-  toPercent,
-  toPopm,
-  toStars,
-} from "./src/utils/rating.ts";
+// Rating conversion utilities (individual functions available via taglib-wasm/rating)
+export { RatingUtils } from "./src/utils/rating.ts";
 
 // Wasm module types and loader
 export type { TagLibModule, WasmModule } from "./src/wasm.ts";

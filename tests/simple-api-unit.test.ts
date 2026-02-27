@@ -5,6 +5,7 @@ import {
   clearTags,
   findPictureByType,
   isValidAudioFile,
+  readMetadata,
   readMetadataBatch,
   readPictureMetadata,
   readPictures,
@@ -260,6 +261,42 @@ describe("readMetadataBatch", () => {
     const result = await readMetadataBatch(files, { continueOnError: true });
     assertEquals(result.items.length, 1);
     assertEquals(result.items[0].status, "error");
+  });
+});
+
+describe("readMetadata", () => {
+  it("should return tags, properties, and hasCoverArt for a single file", async () => {
+    const metadata = await readMetadata(FIXTURE_PATH.mp3);
+
+    assertExists(metadata.tags);
+    assertExists(metadata.properties);
+    assertEquals(typeof metadata.hasCoverArt, "boolean");
+    assertEquals(typeof metadata.properties!.duration, "number");
+    assertEquals(typeof metadata.properties!.bitrate, "number");
+  });
+
+  it("should return same shape as readMetadataBatch for single file", async () => {
+    const single = await readMetadata(FIXTURE_PATH.flac);
+    const batch = await readMetadataBatch([FIXTURE_PATH.flac]);
+
+    assertEquals(batch.items.length, 1);
+    assertEquals(batch.items[0].status, "ok");
+    if (batch.items[0].status === "ok") {
+      assertEquals(single.tags, batch.items[0].data.tags);
+      assertEquals(single.properties, batch.items[0].data.properties);
+      assertEquals(single.hasCoverArt, batch.items[0].data.hasCoverArt);
+    }
+  });
+
+  it("should throw InvalidFormatError for invalid data", async () => {
+    let threw = false;
+    try {
+      await readMetadata(new Uint8Array([0, 0, 0, 0]));
+    } catch (error) {
+      threw = true;
+      assertEquals(error instanceof Error, true);
+    }
+    assertEquals(threw, true);
   });
 });
 
