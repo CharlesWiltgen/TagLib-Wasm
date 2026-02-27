@@ -1,13 +1,18 @@
-import { assertEquals, assertRejects } from "@std/assert";
+import { assertEquals, assertExists, assertRejects } from "@std/assert";
 import { afterAll, describe, it } from "@std/testing/bdd";
 import {
   copyCoverArt,
   exportCoverArt,
   findCoverArtFiles,
+  importPictureWithType,
   loadPictureFromFile,
   savePictureToFile,
 } from "../src/file-utils/index.ts";
-import { applyPictures, setBufferMode } from "../src/simple/index.ts";
+import {
+  applyPictures,
+  readPictures,
+  setBufferMode,
+} from "../src/simple/index.ts";
 import type { PictureType } from "../src/types.ts";
 import { FIXTURE_PATH } from "./shared-fixtures.ts";
 
@@ -190,5 +195,27 @@ describe("copyCoverArt", () => {
       Error,
       "No pictures found",
     );
+  });
+});
+
+describe("importPictureWithType", () => {
+  it("should import a picture with specific type into an audio file", async () => {
+    const tempAudio = `${TEMP_DIR}/import-test.mp3`;
+    const tempImage = `${TEMP_DIR}/test-import.jpg`;
+
+    await Deno.copyFile(FIXTURE_PATH.mp3, tempAudio);
+    await Deno.writeFile(
+      tempImage,
+      new Uint8Array([0xFF, 0xD8, 0xFF, 0xE0, 0x00, 0x10]),
+    );
+
+    await importPictureWithType(tempAudio, tempImage, "BackCover", {
+      description: "Test back cover",
+    });
+
+    const pictures = await readPictures(tempAudio);
+    const backCovers = pictures.filter((p) => p.type === "BackCover");
+    assertExists(backCovers[0]);
+    assertEquals(backCovers[0].mimeType, "image/jpeg");
   });
 });
