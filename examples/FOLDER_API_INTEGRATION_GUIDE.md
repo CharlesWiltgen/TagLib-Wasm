@@ -91,7 +91,7 @@ async function scanSpecificFiles(
     });
 
     // Filter to only include files we want
-    const relevantFiles = result.files.filter((f) => fileSet.has(f.path));
+    const relevantFiles = result.items.filter((f) => fileSet.has(f.path));
     allFiles.push(...relevantFiles);
   }
 

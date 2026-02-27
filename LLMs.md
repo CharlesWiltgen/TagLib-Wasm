@@ -747,7 +747,7 @@ console.log(`Found ${result.totalFound} audio files`);
 console.log(`Successfully processed ${result.totalProcessed}`);
 
 // Access metadata for each file
-for (const file of result.files) {
+for (const file of result.items) {
   console.log(`${file.path}: ${file.tags.artist} - ${file.tags.title}`);
   console.log(`Duration: ${file.properties?.length}s`);
 
@@ -1000,7 +1000,7 @@ async function processAlbum(albumPath: string) {
   // Process results
   for (const { file, data } of result.results) {
     if (data.properties) {
-      albumData.totalDuration += data.properties.length || 0;
+      albumData.totalDuration += data.properties.duration || 0;
       albumData.averageBitrate += data.properties.bitrate || 0;
     }
 
@@ -1042,7 +1042,7 @@ import { rename } from "fs/promises"; // Node.js
 
 const result = await scanFolder("/music");
 
-for (const file of result.files) {
+for (const file of result.items) {
   const { artist, album, track, title } = file.tags;
 
   // Create new filename: "Artist - Album - 01 - Title.mp3"
@@ -1123,7 +1123,7 @@ const result = await scanFolder("/music", {
 });
 
 // Find files missing cover art
-const filesNeedingArt = result.files.filter((f) => !f.hasCoverArt);
+const filesNeedingArt = result.items.filter((f) => !f.hasCoverArt);
 console.log(`Files missing cover art: ${filesNeedingArt.length}`);
 
 for (const file of filesNeedingArt) {
@@ -1131,7 +1131,7 @@ for (const file of filesNeedingArt) {
 }
 
 // Find files without volume normalization
-const filesNeedingNormalization = result.files.filter((f) =>
+const filesNeedingNormalization = result.items.filter((f) =>
   !f.dynamics?.replayGainTrackGain && !f.dynamics?.appleSoundCheck
 );
 console.log(
@@ -1139,10 +1139,10 @@ console.log(
 );
 
 // Analyze existing normalization
-const replayGainFiles = result.files.filter((f) =>
+const replayGainFiles = result.items.filter((f) =>
   f.dynamics?.replayGainTrackGain
 );
-const soundCheckFiles = result.files.filter((f) => f.dynamics?.appleSoundCheck);
+const soundCheckFiles = result.items.filter((f) => f.dynamics?.appleSoundCheck);
 
 console.log(`\nNormalization stats:`);
 console.log(`- ReplayGain: ${replayGainFiles.length} files`);
@@ -1229,7 +1229,7 @@ import { scanFolder, TagLib } from "taglib-wasm";
 const result = await scanFolder("/album");
 const taglib = await TagLib.initialize();
 
-for (const file of result.files) {
+for (const file of result.items) {
   using audioFile = await taglib.open(file.path);
 
   audioFile.setReplayGainAlbumGain("-4.19 dB");
@@ -1246,7 +1246,7 @@ import { scanFolder, updateFolderTags } from "taglib-wasm";
 
 const result = await scanFolder("/messy-music");
 
-const updates = result.files.map((file) => {
+const updates = result.items.map((file) => {
   const cleaned = {
     // Capitalize properly
     artist: file.tags.artist?.split(" ")
@@ -1715,11 +1715,11 @@ async function analyzeMusicLibrary(directory: string) {
   console.log(`- Time: ${result.duration}ms`);
 
   // Analyze cover art and dynamics
-  const filesWithCoverArt = result.files.filter((f) => f.hasCoverArt).length;
+  const filesWithCoverArt = result.items.filter((f) => f.hasCoverArt).length;
   const filesWithReplayGain =
-    result.files.filter((f) => f.dynamics?.replayGainTrackGain).length;
+    result.items.filter((f) => f.dynamics?.replayGainTrackGain).length;
   const filesWithSoundCheck =
-    result.files.filter((f) => f.dynamics?.appleSoundCheck).length;
+    result.items.filter((f) => f.dynamics?.appleSoundCheck).length;
 
   console.log(`\nAnalysis:`);
   console.log(
@@ -1740,12 +1740,12 @@ async function analyzeMusicLibrary(directory: string) {
 
   // Return organized data
   return {
-    library: result.files,
+    library: result.items,
     duplicates: Array.from(duplicates.entries()),
     errors: result.errors,
     stats: {
       totalTracks: result.totalProcessed,
-      totalDuration: result.files.reduce(
+      totalDuration: result.items.reduce(
         (sum, f) => sum + (f.properties?.length || 0),
         0,
       ),
@@ -1753,7 +1753,7 @@ async function analyzeMusicLibrary(directory: string) {
       filesNeedingCoverArt: result.totalProcessed - filesWithCoverArt,
       filesWithReplayGain,
       filesWithSoundCheck,
-      totalSize: result.files.reduce(
+      totalSize: result.items.reduce(
         (sum, f) =>
           sum +
           ((f.properties?.length || 0) * (f.properties?.bitrate || 0) * 125),
@@ -2021,7 +2021,7 @@ async function batchConvertMetadata(
 
   const conversionMap = new Map<string, string>();
 
-  for (const file of result.files) {
+  for (const file of result.items) {
     // Calculate target path
     const relativePath = file.path.substring(sourceDir.length);
     const targetPath = targetDir + relativePath.replace(sourceExt, targetExt);
@@ -2250,7 +2250,7 @@ async function* processAudioStream(
     },
   });
 
-  for (const file of result.files) {
+  for (const file of result.items) {
     batch.push(file);
 
     if (batch.length >= batchSize) {
