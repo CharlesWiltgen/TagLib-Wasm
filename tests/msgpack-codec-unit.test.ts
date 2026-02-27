@@ -1,4 +1,4 @@
-import { assertEquals, assertThrows } from "@std/assert";
+import { assertEquals, assertStringIncludes, assertThrows } from "@std/assert";
 import { describe, it } from "@std/testing/bdd";
 import { encode } from "@msgpack/msgpack";
 import {
@@ -28,6 +28,7 @@ import {
   getMessagePackInfo,
   isValidMessagePack,
 } from "../src/msgpack/decoder.ts";
+import { MessagePackUtils } from "../src/msgpack/utils.ts";
 import type {
   AudioProperties,
   ExtendedTag,
@@ -470,5 +471,186 @@ describe("getMessagePackInfo", () => {
   it("should return invalid for bad data", () => {
     const info = getMessagePackInfo(new Uint8Array([0xFF, 0xFF]));
     assertEquals(info.isValid, false);
+  });
+});
+
+describe("MessagePackUtils.safeDecodeAudioProperties", () => {
+  it("should decode valid audio properties", () => {
+    const props: AudioProperties = {
+      duration: 180,
+      bitrate: 320,
+      sampleRate: 44100,
+      channels: 2,
+      bitsPerSample: 16,
+      codec: "MP3",
+      containerFormat: "MP3",
+      isLossless: false,
+    };
+    const encoded = encodeAudioProperties(props);
+    const result = MessagePackUtils.safeDecodeAudioProperties(encoded);
+    assertEquals(result?.duration, 180);
+    assertEquals(result?.bitrate, 320);
+    assertEquals(result?.sampleRate, 44100);
+  });
+
+  it("should return null for invalid msgpack", () => {
+    assertEquals(
+      MessagePackUtils.safeDecodeAudioProperties(new Uint8Array([0xFF, 0xFF])),
+      null,
+    );
+  });
+
+  it("should return null for empty buffer", () => {
+    assertEquals(
+      MessagePackUtils.safeDecodeAudioProperties(new Uint8Array(0)),
+      null,
+    );
+  });
+});
+
+describe("MessagePackUtils.safeDecodePicture", () => {
+  it("should decode valid picture data", () => {
+    const pic: Picture = {
+      mimeType: "image/jpeg",
+      data: new Uint8Array([0xFF, 0xD8, 0xFF, 0xE0]),
+      type: "FrontCover" as PictureType,
+      description: "Cover",
+    };
+    const encoded = encodePicture(pic);
+    const result = MessagePackUtils.safeDecodePicture(encoded);
+    assertEquals(result?.mimeType, "image/jpeg");
+    assertEquals(result?.type, "FrontCover");
+  });
+
+  it("should return null for invalid msgpack", () => {
+    assertEquals(
+      MessagePackUtils.safeDecodePicture(new Uint8Array([0xFF, 0xFF])),
+      null,
+    );
+  });
+
+  it("should return null for empty buffer", () => {
+    assertEquals(
+      MessagePackUtils.safeDecodePicture(new Uint8Array(0)),
+      null,
+    );
+  });
+});
+
+describe("MessagePackUtils.getPerformanceComparison", () => {
+  it("should return comparison metrics", () => {
+    const tag = { title: "Song", artist: "Band" } as unknown as ExtendedTag;
+    const result = MessagePackUtils.getPerformanceComparison(tag);
+    assertEquals(typeof result.messagePackSize, "number");
+    assertEquals(typeof result.jsonSize, "number");
+    assertEquals(typeof result.sizeReduction, "number");
+    assertEquals(typeof result.estimatedSpeedImprovement, "number");
+    assertEquals(result.messagePackSize > 0, true);
+    assertEquals(result.jsonSize > 0, true);
+  });
+});
+
+describe("MessagePackUtils.toJson", () => {
+  it("should convert valid msgpack to JSON string", () => {
+    const tag = { title: "Test" } as unknown as ExtendedTag;
+    const encoded = encodeTagData(tag);
+    const json = MessagePackUtils.toJson(encoded);
+    const parsed = JSON.parse(json);
+    assertEquals(parsed.title, "Test");
+  });
+
+  it("should throw MetadataError for invalid msgpack", () => {
+    const err = assertThrows(
+      () => MessagePackUtils.toJson(new Uint8Array([0xFF, 0xFF])),
+      Error,
+    );
+    assertStringIncludes(err.message, "Failed to convert to JSON");
+  });
+});
+
+describe("MessagePackUtils.fromJson", () => {
+  it("should convert JSON string to msgpack", () => {
+    const json = JSON.stringify({ title: "Hello" });
+    const result = MessagePackUtils.fromJson(json);
+    assertEquals(result instanceof Uint8Array, true);
+    const decoded = decodeTagData(result) as Record<string, unknown>;
+    assertEquals(decoded.title, "Hello");
+  });
+
+  it("should throw MetadataError for invalid JSON", () => {
+    const err = assertThrows(
+      () => MessagePackUtils.fromJson("{bad json!!!"),
+      Error,
+    );
+    assertStringIncludes(err.message, "Failed to convert from JSON");
+  });
+});
+
+describe("MessagePackUtils.batchDecode", () => {
+  it("should decode multiple valid buffers", () => {
+    const tag1 = encodeTagData(
+      { title: "A" } as unknown as ExtendedTag,
+    );
+    const tag2 = encodeTagData(
+      { title: "B" } as unknown as ExtendedTag,
+    );
+    const results = MessagePackUtils.batchDecode([tag1, tag2]);
+    assertEquals(results.length, 2);
+    assertEquals(results[0].success, true);
+    assertEquals(results[1].success, true);
+    assertEquals(
+      (results[0].data as Record<string, unknown>).title,
+      "A",
+    );
+  });
+
+  it("should capture errors for invalid buffers", () => {
+    const valid = encodeTagData(
+      { title: "OK" } as unknown as ExtendedTag,
+    );
+    const invalid = new Uint8Array([0xFF, 0xFF]);
+    const results = MessagePackUtils.batchDecode([valid, invalid]);
+    assertEquals(results[0].success, true);
+    assertEquals(results[1].success, false);
+    assertEquals(typeof results[1].error, "string");
+  });
+
+  it("should return empty array for empty input", () => {
+    assertEquals(MessagePackUtils.batchDecode([]).length, 0);
+  });
+});
+
+describe("MessagePackUtils.isTagLibCompatible", () => {
+  it("should return true for tag-like objects", () => {
+    assertEquals(MessagePackUtils.isTagLibCompatible({ title: "X" }), true);
+    assertEquals(MessagePackUtils.isTagLibCompatible({ artist: "Y" }), true);
+    assertEquals(MessagePackUtils.isTagLibCompatible({ album: "Z" }), true);
+  });
+
+  it("should return true for audio property objects", () => {
+    assertEquals(
+      MessagePackUtils.isTagLibCompatible({ bitrate: 320, sampleRate: 44100 }),
+      true,
+    );
+  });
+
+  it("should return true for picture objects", () => {
+    assertEquals(
+      MessagePackUtils.isTagLibCompatible({
+        mimeType: "image/jpeg",
+        data: new Uint8Array(0),
+      }),
+      true,
+    );
+  });
+
+  it("should return false for non-objects", () => {
+    assertEquals(MessagePackUtils.isTagLibCompatible(null), false);
+    assertEquals(MessagePackUtils.isTagLibCompatible(42), false);
+    assertEquals(MessagePackUtils.isTagLibCompatible("string"), false);
+  });
+
+  it("should return false for unrecognized objects", () => {
+    assertEquals(MessagePackUtils.isTagLibCompatible({ foo: "bar" }), false);
   });
 });

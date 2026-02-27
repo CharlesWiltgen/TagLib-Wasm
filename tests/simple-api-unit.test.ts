@@ -5,6 +5,7 @@ import {
   clearTags,
   findPictureByType,
   isValidAudioFile,
+  readFormat,
   readMetadata,
   readMetadataBatch,
   readPictureMetadata,
@@ -292,6 +293,56 @@ describe("readMetadata", () => {
     let threw = false;
     try {
       await readMetadata(new Uint8Array([0, 0, 0, 0]));
+    } catch (error) {
+      threw = true;
+      assertEquals(error instanceof Error, true);
+    }
+    assertEquals(threw, true);
+  });
+});
+
+describe("readFormat", () => {
+  it("should detect MP3 format", async () => {
+    const format = await readFormat(FIXTURE_PATH.mp3);
+    assertEquals(format, "MP3");
+  });
+
+  it("should detect FLAC format", async () => {
+    const format = await readFormat(FIXTURE_PATH.flac);
+    assertEquals(format, "FLAC");
+  });
+
+  it("should detect OGG format", async () => {
+    const format = await readFormat(FIXTURE_PATH.ogg);
+    assertEquals(format, "OGG");
+  });
+
+  it("should detect M4A format", async () => {
+    const format = await readFormat(FIXTURE_PATH.m4a);
+    assertEquals(format, "MP4");
+  });
+
+  it("should detect WAV format", async () => {
+    const format = await readFormat(FIXTURE_PATH.wav);
+    assertEquals(format, "WAV");
+  });
+
+  it("should throw for invalid data", async () => {
+    let threw = false;
+    try {
+      await readFormat(new Uint8Array([0, 0, 0, 0]));
+    } catch {
+      threw = true;
+    }
+    assertEquals(threw, true);
+  });
+});
+
+describe("readProperties error handling", () => {
+  it("should throw for invalid audio data", async () => {
+    let threw = false;
+    try {
+      await readProperties(new Uint8Array([0, 0, 0, 0]));
     } catch (error) {
       threw = true;
       assertEquals(error instanceof Error, true);
