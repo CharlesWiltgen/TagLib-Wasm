@@ -33,6 +33,9 @@ cov_profile/
 # Development tools
 # ===================
 
+# Worktrees
+.worktrees/
+
 # IDE
 .vscode/*
 !.vscode/settings.json
