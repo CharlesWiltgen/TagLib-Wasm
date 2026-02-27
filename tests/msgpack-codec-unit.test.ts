@@ -382,10 +382,13 @@ describe("decodeMessagePackAuto", () => {
     assertEquals((decoded as Record<string, string[]>).TITLE, ["Test"]);
   });
 
-  it("should return raw decoded for non-object", () => {
+  it("should throw on non-object decoded data", () => {
     const encoded = encode(42);
-    const decoded = decodeMessagePackAuto(encoded);
-    assertEquals(decoded as unknown, 42);
+    assertThrows(
+      () => decodeMessagePackAuto(encoded),
+      Error,
+      "Unexpected non-object",
+    );
   });
 
   it("should throw on invalid data", () => {
