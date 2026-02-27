@@ -30,7 +30,7 @@ function hasWASISupport(): boolean {
 }
 
 function isBrowser(): boolean {
-  return globalThis.window !== undefined &&
+  return typeof window !== "undefined" &&
     typeof document !== "undefined";
 }
 
