@@ -6,7 +6,7 @@ import { DEFAULT_AUDIO_EXTENSIONS, type FolderScanOptions } from "./types.ts";
 import { EnvironmentError } from "../errors/classes.ts";
 
 function join(...paths: string[]): string {
-  return paths.filter((p) => p).join("/").replace(/\/+/g, "/");
+  return paths.filter(Boolean).join("/").replaceAll(/\/+/g, "/");
 }
 
 function extname(path: string): string {
@@ -50,13 +50,13 @@ async function getDirectoryReader() {
     };
   }
 
-  const isNode = typeof (globalThis as any).process !== "undefined" &&
+  const isNode = (globalThis as any).process !== undefined &&
     (globalThis as any).process.versions?.node;
-  const isBun = typeof (globalThis as any).process !== "undefined" &&
+  const isBun = (globalThis as any).process !== undefined &&
     (globalThis as any).process.versions?.bun;
 
   if (isNode || isBun) {
-    const fs = await import("fs/promises");
+    const fs = await import("node:fs/promises");
     return {
       readDir: async function* (path: string) {
         const entries = await fs.readdir(path, { withFileTypes: true });

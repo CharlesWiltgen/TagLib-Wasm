@@ -156,11 +156,14 @@ export async function readMetadata(
   const audioFile = await taglib.open(file);
   try {
     if (!audioFile.isValid()) {
-      const name = typeof file === "string"
-        ? file
-        : file instanceof File
-        ? file.name
-        : `buffer (${file.byteLength} bytes)`;
+      let name: string;
+      if (typeof file === "string") {
+        name = file;
+      } else if (file instanceof File) {
+        name = file.name;
+      } else {
+        name = `buffer (${file.byteLength} bytes)`;
+      }
       throw new InvalidFormatError(
         `File may be corrupted or in an unsupported format. File: ${name}`,
       );

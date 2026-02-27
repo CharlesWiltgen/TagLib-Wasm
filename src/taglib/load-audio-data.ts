@@ -1,4 +1,3 @@
-import type { OpenOptions } from "../types.ts";
 import {
   getFileSize,
   readFileData,

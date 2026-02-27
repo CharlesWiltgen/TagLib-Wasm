@@ -102,7 +102,7 @@ export function fromPopm(popm: number): number {
   if (popm <= 64) return 0.4;
   if (popm <= 128) return 0.6;
   if (popm <= 196) return 0.8;
-  return 1.0;
+  return 1;
 }
 
 /**
@@ -142,7 +142,7 @@ export function clamp(rating: number): number {
  * @returns True if rating is valid
  */
 export function isValid(rating: number): boolean {
-  return typeof rating === "number" && !isNaN(rating) && rating >= 0 &&
+  return typeof rating === "number" && !Number.isNaN(rating) && rating >= 0 &&
     rating <= 1;
 }
 

@@ -133,7 +133,7 @@ function isPropertyMap(obj: Record<string, unknown>): boolean {
 
 export function decodeMessagePackAuto(
   msgpackBuffer: Uint8Array,
-): ExtendedTag | AudioProperties | Picture | PropertyMap | unknown {
+): ExtendedTag | AudioProperties | Picture | PropertyMap {
   try {
     const decoded = decode(msgpackBuffer, MSGPACK_DECODE_OPTIONS);
     if (decoded && typeof decoded === "object") {
@@ -156,7 +156,7 @@ export function decodeMessagePackAuto(
         return normalizeTagKeys(obj) as unknown as ExtendedTag;
       }
     }
-    return decoded;
+    return decoded as ExtendedTag;
   } catch (error) {
     throw new MetadataError(
       "read",

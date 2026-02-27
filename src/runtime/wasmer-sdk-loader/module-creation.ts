@@ -89,7 +89,7 @@ function createWasiInterface(
         bufPtr,
         len,
         outSizePtr,
-      ) as number,
+      ),
 
     tl_write_tags: (
       pathPtr,
@@ -116,7 +116,7 @@ function createWasiInterface(
         tagsSize,
         outBufPtr,
         outSizePtr,
-      ) as number,
+      ),
 
     // Error handling
     tl_get_last_error: () => (exports.tl_get_last_error as () => number)(),

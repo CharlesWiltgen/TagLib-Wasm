@@ -20,23 +20,23 @@ export async function writeFileData(
 ): Promise<void> {
   try {
     // Deno
-    if (typeof (globalThis as any).Deno !== "undefined") {
+    if ((globalThis as any).Deno !== undefined) {
       await (globalThis as any).Deno.writeFile(path, data);
       return;
     }
 
     // Node.js
     if (
-      typeof (globalThis as any).process !== "undefined" &&
+      (globalThis as any).process !== undefined &&
       (globalThis as any).process.versions?.node
     ) {
-      const { writeFile } = await import("fs/promises");
+      const { writeFile } = await import("node:fs/promises");
       await writeFile(path, data);
       return;
     }
 
     // Bun
-    if (typeof (globalThis as any).Bun !== "undefined") {
+    if ((globalThis as any).Bun !== undefined) {
       await (globalThis as any).Bun.write(path, data);
       return;
     }
@@ -50,11 +50,11 @@ export async function writeFileData(
   }
 
   let env: string;
-  if (typeof (globalThis as any).Deno !== "undefined") {
+  if ((globalThis as any).Deno !== undefined) {
     env = "Deno";
-  } else if (typeof (globalThis as any).process !== "undefined") {
+  } else if ((globalThis as any).process !== undefined) {
     env = "Node.js";
-  } else if (typeof (globalThis as any).Bun !== "undefined") {
+  } else if ((globalThis as any).Bun !== undefined) {
     env = "Bun";
   } else {
     env = "Browser";

@@ -107,7 +107,7 @@ async function loadEmscriptenModule(
     }
 
     const module = await createModule(moduleConfig);
-    return module as TagLibModule;
+    return module;
   } catch (error) {
     throw new ModuleLoadError(
       `Failed to load Emscripten module: ${error}`,
