@@ -20,7 +20,15 @@
     "removeComments": false,
     "preserveConstEnums": true
   },
-  "include": ["index.ts", "src/**/*", "src/global.d.ts"],
+  "include": [
+    "index.ts",
+    "simple.ts",
+    "folder.ts",
+    "web.ts",
+    "rating.ts",
+    "src/**/*",
+    "src/global.d.ts"
+  ],
   "exclude": [
     "node_modules",
     "dist",
