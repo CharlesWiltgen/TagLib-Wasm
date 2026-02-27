@@ -54,10 +54,10 @@ export async function writeFileData(
     env = "Deno";
   } else if ((globalThis as any).process !== undefined) {
     env = "Node.js";
-  } else if ((globalThis as any).Bun !== undefined) {
-    env = "Bun";
-  } else {
+  } else if ((globalThis as any).Bun === undefined) {
     env = "Browser";
+  } else {
+    env = "Bun";
   }
   throw new EnvironmentError(
     env,
