@@ -8,7 +8,7 @@ import {
   savePictureToFile,
 } from "../src/file-utils/index.ts";
 import { applyPictures, setBufferMode } from "../src/simple/index.ts";
-import { PICTURE_TYPE_VALUES } from "../src/types.ts";
+import type { PictureType } from "../src/types.ts";
 import { FIXTURE_PATH } from "./shared-fixtures.ts";
 
 setBufferMode(true);
@@ -28,7 +28,7 @@ describe("loadPictureFromFile", () => {
     const pic = await loadPictureFromFile(imagePath);
     assertEquals(pic.mimeType, "image/jpeg");
     assertEquals(pic.data, fakeImageData);
-    assertEquals(pic.type, PICTURE_TYPE_VALUES.FrontCover);
+    assertEquals(pic.type, "FrontCover");
     assertEquals(pic.description, "test-cover.jpg");
   });
 
@@ -55,16 +55,16 @@ describe("loadPictureFromFile", () => {
     const pic = await loadPictureFromFile(imagePath, "BackCover", {
       description: "Back Cover Art",
     });
-    assertEquals(pic.type, PICTURE_TYPE_VALUES.BackCover);
+    assertEquals(pic.type, "BackCover");
     assertEquals(pic.description, "Back Cover Art");
   });
 
-  it("should accept numeric type", async () => {
+  it("should accept Lyricist type", async () => {
     const imagePath = `${TEMP_DIR}/test-numeric.jpg`;
     await Deno.writeFile(imagePath, new Uint8Array([1, 2, 3]));
 
-    const pic = await loadPictureFromFile(imagePath, 5);
-    assertEquals(pic.type, 5);
+    const pic = await loadPictureFromFile(imagePath, "Lyricist");
+    assertEquals(pic.type, "Lyricist");
   });
 
   it("should accept custom MIME type override", async () => {
@@ -92,7 +92,11 @@ describe("savePictureToFile", () => {
     const pictureData = new Uint8Array([0xFF, 0xD8, 0xFF, 0xE0, 10, 20, 30]);
 
     await savePictureToFile(
-      { mimeType: "image/jpeg", data: pictureData, type: 3 },
+      {
+        mimeType: "image/jpeg",
+        data: pictureData,
+        type: "FrontCover" as PictureType,
+      },
       imagePath,
     );
 

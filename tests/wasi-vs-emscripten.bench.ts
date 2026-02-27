@@ -170,7 +170,7 @@ Deno.bench({
     const dest = resolve(writeTempDir!, "bench-write.flac");
     await Deno.copyFile(WRITE_FLAC_SRC, dest);
     writeTagsWasi(writeWasi!, "/tmp/bench-write.flac", {
-      title: "Bench Title",
+      title: ["Bench Title"],
     });
     readTagsViaPath(writeWasi!, "/tmp/bench-write.flac");
   },

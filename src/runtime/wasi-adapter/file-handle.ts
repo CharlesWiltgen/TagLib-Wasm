@@ -5,12 +5,12 @@
 import type {
   AudioPropertiesWrapper,
   FileHandle,
+  RawPicture,
   TagWrapper,
 } from "../../wasm.ts";
 import type { WasiModule } from "../wasmer-sdk-loader/index.ts";
 import { WasmerExecutionError } from "../wasmer-sdk-loader/index.ts";
 import { decodeTagData } from "../../msgpack/decoder.ts";
-import type { Picture } from "../../types.ts";
 import {
   CAMEL_TO_VORBIS,
   VORBIS_TO_CAMEL,
@@ -24,6 +24,7 @@ const AUDIO_KEYS = new Set([
   "codec",
   "containerFormat",
   "isLossless",
+  "duration",
   "length",
   "lengthMs",
   "sampleRate",
@@ -255,17 +256,17 @@ export class WasiFileHandle implements FileHandle {
     }
   }
 
-  getPictures(): Picture[] {
+  getPictures(): RawPicture[] {
     this.checkNotDestroyed();
-    return (this.tagData?.pictures as Picture[] | undefined) ?? [];
+    return (this.tagData?.pictures as RawPicture[] | undefined) ?? [];
   }
 
-  setPictures(pictures: Picture[]): void {
+  setPictures(pictures: RawPicture[]): void {
     this.checkNotDestroyed();
     this.tagData = { ...this.tagData, pictures } as Record<string, unknown>;
   }
 
-  addPicture(picture: Picture): void {
+  addPicture(picture: RawPicture): void {
     this.checkNotDestroyed();
     const pictures = this.getPictures();
     pictures.push(picture);

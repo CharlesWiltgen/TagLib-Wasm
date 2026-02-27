@@ -40,7 +40,9 @@ async function main() {
     continueOnError: true,
   });
 
-  const audioFiles = scanResult.files.map((f) => f.path);
+  const audioFiles = scanResult.items
+    .filter((f) => f.status === "ok")
+    .map((f) => f.path);
   const fileCount = audioFiles.length;
 
   if (fileCount === 0) {
@@ -166,21 +168,24 @@ async function main() {
   console.log("5. Consider partial loading for very large files (>50MB)");
 
   // Sample output showing metadata
-  if (metadataResult.results.length > 0) {
+  if (metadataResult.items.length > 0) {
     console.log("\n" + "=".repeat(60));
     console.log("\n🎵 Sample Metadata (first 3 files):\n");
 
-    metadataResult.results.slice(0, 3).forEach(({ file, data }) => {
-      console.log(`File: ${file}`);
-      console.log(`  Artist: ${data.tags.artist || "Unknown"}`);
-      console.log(`  Title: ${data.tags.title || "Unknown"}`);
-      console.log(`  Album: ${data.tags.album || "Unknown"}`);
-      if (data.properties) {
-        console.log(`  Duration: ${data.properties.length}s`);
-        console.log(`  Bitrate: ${data.properties.bitrate}kbps`);
-      }
-      console.log();
-    });
+    metadataResult.items.filter((i) => i.status === "ok").slice(0, 3).forEach(
+      (item) => {
+        if (item.status !== "ok") return;
+        console.log(`File: ${item.path}`);
+        console.log(`  Artist: ${item.data.tags.artist || "Unknown"}`);
+        console.log(`  Title: ${item.data.tags.title || "Unknown"}`);
+        console.log(`  Album: ${item.data.tags.album || "Unknown"}`);
+        if (item.data.properties) {
+          console.log(`  Duration: ${item.data.properties.duration}s`);
+          console.log(`  Bitrate: ${item.data.properties.bitrate}kbps`);
+        }
+        console.log();
+      },
+    );
   }
 }
 

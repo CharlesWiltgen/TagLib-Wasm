@@ -1,6 +1,7 @@
 import type {
   AudioFileInput,
   AudioProperties,
+  FileType,
   Tag,
   TagInput,
 } from "../types.ts";
@@ -33,9 +34,8 @@ export async function readTags(
 }
 
 export async function applyTagsToBuffer(
-  file: string | Uint8Array | ArrayBuffer | File,
+  file: AudioFileInput,
   tags: Partial<TagInput>,
-  _options?: number,
 ): Promise<Uint8Array> {
   const taglib = await getTagLib();
   const audioFile = await taglib.open(file);
@@ -67,7 +67,6 @@ export async function applyTagsToBuffer(
 export async function writeTagsToFile(
   file: string,
   tags: Partial<TagInput>,
-  options?: number,
 ): Promise<void> {
   if (typeof file !== "string") {
     throw new FileOperationError(
@@ -76,12 +75,12 @@ export async function writeTagsToFile(
     );
   }
 
-  const modifiedBuffer = await applyTagsToBuffer(file, tags, options);
+  const modifiedBuffer = await applyTagsToBuffer(file, tags);
   await writeFileData(file, modifiedBuffer);
 }
 
 export async function readProperties(
-  file: string | Uint8Array | ArrayBuffer | File,
+  file: AudioFileInput,
 ): Promise<AudioProperties> {
   const taglib = await getTagLib();
   const audioFile = await taglib.open(file);
@@ -107,7 +106,7 @@ export async function readProperties(
 }
 
 export async function isValidAudioFile(
-  file: string | Uint8Array | ArrayBuffer | File,
+  file: AudioFileInput,
 ): Promise<boolean> {
   try {
     const taglib = await getTagLib();
@@ -123,8 +122,8 @@ export async function isValidAudioFile(
 }
 
 export async function readFormat(
-  file: string | Uint8Array | ArrayBuffer | File,
-): Promise<string | undefined> {
+  file: AudioFileInput,
+): Promise<FileType | undefined> {
   const taglib = await getTagLib();
   const audioFile = await taglib.open(file);
   try {
@@ -139,7 +138,7 @@ export async function readFormat(
 }
 
 export async function clearTags(
-  file: string | Uint8Array | ArrayBuffer | File,
+  file: AudioFileInput,
 ): Promise<Uint8Array> {
   return applyTagsToBuffer(file, {
     title: "",

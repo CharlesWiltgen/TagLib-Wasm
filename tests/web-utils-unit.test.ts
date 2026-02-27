@@ -2,7 +2,6 @@ import { assertEquals, assertThrows } from "@std/assert";
 import { describe, it } from "@std/testing/bdd";
 import { dataURLToPicture, pictureToDataURL } from "../src/web-utils/index.ts";
 import type { Picture } from "../src/types.ts";
-import { PICTURE_TYPE_VALUES } from "../src/types.ts";
 
 function makePicture(
   overrides: Partial<Picture> & { data: Uint8Array } = {
@@ -11,7 +10,7 @@ function makePicture(
 ): Picture {
   return {
     mimeType: "image/jpeg",
-    type: PICTURE_TYPE_VALUES.FrontCover,
+    type: "FrontCover",
     ...overrides,
   };
 }
@@ -74,7 +73,7 @@ describe("dataURLToPicture", () => {
 
     assertEquals(result.mimeType, "image/jpeg");
     assertEquals(result.data, new Uint8Array([72, 101, 108, 108, 111]));
-    assertEquals(result.type, PICTURE_TYPE_VALUES.FrontCover);
+    assertEquals(result.type, "FrontCover");
     assertEquals(result.description, undefined);
   });
 
@@ -90,21 +89,21 @@ describe("dataURLToPicture", () => {
     const dataURL = "data:image/jpeg;base64,AA==";
     const result = dataURLToPicture(dataURL);
 
-    assertEquals(result.type, PICTURE_TYPE_VALUES.FrontCover);
+    assertEquals(result.type, "FrontCover");
   });
 
   it("should accept a string PictureType", () => {
     const dataURL = "data:image/jpeg;base64,AA==";
     const result = dataURLToPicture(dataURL, "BackCover");
 
-    assertEquals(result.type, PICTURE_TYPE_VALUES.BackCover);
+    assertEquals(result.type, "BackCover");
   });
 
-  it("should accept a numeric type", () => {
+  it("should accept a PictureType string", () => {
     const dataURL = "data:image/jpeg;base64,AA==";
-    const result = dataURLToPicture(dataURL, 7);
+    const result = dataURLToPicture(dataURL, "LeadArtist");
 
-    assertEquals(result.type, 7);
+    assertEquals(result.type, "LeadArtist");
   });
 
   it("should include description when provided", () => {

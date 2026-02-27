@@ -37,7 +37,6 @@ import {
   TEST_PICTURES,
 } from "./test-utils.ts";
 import type { PictureType } from "../src/types.ts";
-import { PICTURE_TYPE_VALUES } from "../src/types.ts";
 
 // Force Emscripten backend for Simple API calls
 setBufferMode(true);
@@ -88,7 +87,7 @@ describe("Core Picture API", () => {
       const pictures = file.getPictures();
       assertEquals(pictures.length, 1, "Should have 1 picture after adding");
       assertEquals(pictures[0].mimeType, "image/png");
-      assertEquals(pictures[0].type, PICTURE_TYPE_VALUES.FrontCover);
+      assertEquals(pictures[0].type, "FrontCover");
       assertEquals(pictures[0].description, "Front cover");
       assertEquals(pictures[0].data.length, RED_PNG.length);
 
@@ -107,8 +106,8 @@ describe("Core Picture API", () => {
 
       const retrievedPics = file.getPictures();
       assertEquals(retrievedPics.length, 2, "Should have 2 pictures");
-      assertEquals(retrievedPics[0].type, PICTURE_TYPE_VALUES.FrontCover);
-      assertEquals(retrievedPics[1].type, PICTURE_TYPE_VALUES.BackCover);
+      assertEquals(retrievedPics[0].type, "FrontCover");
+      assertEquals(retrievedPics[1].type, "BackCover");
 
       file.dispose();
     }
@@ -158,11 +157,11 @@ describe("Core Picture API", () => {
     const file = await taglib.open(buffer);
 
     const pictureTypes = [
-      { type: PICTURE_TYPE_VALUES.FrontCover, desc: "Front" },
-      { type: PICTURE_TYPE_VALUES.BackCover, desc: "Back" },
-      { type: PICTURE_TYPE_VALUES.LeafletPage, desc: "Leaflet" },
-      { type: PICTURE_TYPE_VALUES.Artist, desc: "Artist photo" },
-      { type: PICTURE_TYPE_VALUES.BandLogo, desc: "Logo" },
+      { type: "FrontCover" as const, desc: "Front" },
+      { type: "BackCover" as const, desc: "Back" },
+      { type: "LeafletPage" as const, desc: "Leaflet" },
+      { type: "Artist" as const, desc: "Artist photo" },
+      { type: "BandLogo" as const, desc: "Logo" },
     ];
 
     const pictures = pictureTypes.map((pt) => ({
@@ -253,7 +252,7 @@ describe("Simple API Cover Art", () => {
       {
         mimeType: "image/png",
         data: RED_PNG,
-        type: PICTURE_TYPE_VALUES.Artist,
+        type: "Artist" as PictureType,
         description: "Artist",
       },
     ];
@@ -283,7 +282,7 @@ describe("Simple API Cover Art", () => {
     const newFrontCover = {
       mimeType: "image/jpeg",
       data: BLUE_JPEG,
-      type: PICTURE_TYPE_VALUES.FrontCover,
+      type: "FrontCover" as PictureType,
       description: "New front",
     };
 
@@ -317,7 +316,7 @@ describe("Simple API Cover Art", () => {
       {
         mimeType: "image/jpeg",
         data: BLUE_JPEG,
-        type: PICTURE_TYPE_VALUES.Artist,
+        type: "Artist" as PictureType,
         description: "Band photo",
       },
     ];
@@ -327,12 +326,12 @@ describe("Simple API Cover Art", () => {
     const metadata = await readPictureMetadata(bufferWithPics);
     assertEquals(metadata.length, 2);
 
-    assertEquals(metadata[0].type, PICTURE_TYPE_VALUES.FrontCover);
+    assertEquals(metadata[0].type, "FrontCover");
     assertEquals(metadata[0].mimeType, "image/png");
     assertEquals(metadata[0].description, "Front cover");
     assertEquals(metadata[0].size, RED_PNG.length);
 
-    assertEquals(metadata[1].type, PICTURE_TYPE_VALUES.Artist);
+    assertEquals(metadata[1].type, "Artist");
     assertEquals(metadata[1].mimeType, "image/jpeg");
     assertEquals(metadata[1].description, "Band photo");
     assertEquals(metadata[1].size, BLUE_JPEG.length);
@@ -435,7 +434,7 @@ describe("File Utils", () => {
       });
 
       assertEquals(picture.mimeType, "image/png");
-      assertEquals(picture.type, PICTURE_TYPE_VALUES.FrontCover);
+      assertEquals(picture.type, "FrontCover");
       assertEquals(picture.description, "Test cover");
       assertEquals(picture.data, RED_PNG);
 
@@ -463,7 +462,7 @@ describe("Web Utils", () => {
       "Converted",
     );
     assertEquals(converted.mimeType, "image/png");
-    assertEquals(converted.type, PICTURE_TYPE_VALUES.BackCover);
+    assertEquals(converted.type, "BackCover");
     assertEquals(converted.description, "Converted");
     assertEquals(converted.data.length, RED_PNG.length);
 

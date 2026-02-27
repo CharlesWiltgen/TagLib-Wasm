@@ -188,8 +188,8 @@ describe("EdgeCases", () => {
 
       // Verify properties are valid numbers
       assert(props !== null, "Properties should not be null");
-      assert(Number.isFinite(props.length), "Duration should be finite");
-      assert(props.length >= 0, "Duration should not be negative");
+      assert(Number.isFinite(props.duration), "Duration should be finite");
+      assert(props.duration >= 0, "Duration should not be negative");
 
       assert(Number.isFinite(props.bitrate), "Bitrate should be finite");
       assert(props.bitrate > 0, "Bitrate should be positive");
@@ -221,7 +221,7 @@ describe("EdgeCases", () => {
 
       // Common validations
       assert(
-        props.length > 0 && props.length < 3600,
+        props.duration > 0 && props.duration < 3600,
         `${format}: Duration should be reasonable (0-3600s)`,
       );
 
@@ -292,9 +292,9 @@ describe("EdgeCases", () => {
 
       // If we get here, properties should at least be safe values
       assert(props !== null, "Properties should not be null");
-      assert(Number.isFinite(props.length), "Should not return NaN duration");
+      assert(Number.isFinite(props.duration), "Should not return NaN duration");
       assert(Number.isFinite(props.bitrate), "Should not return NaN bitrate");
-      assert(props.length >= 0, "Duration should not be negative");
+      assert(props.duration >= 0, "Duration should not be negative");
       assert(props.bitrate >= 0, "Bitrate should not be negative");
 
       file.dispose();

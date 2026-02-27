@@ -1,5 +1,6 @@
 import type { AudioFile } from "../taglib.ts";
-import type { AudioProperties, Tag } from "../types.ts";
+import type { AudioDynamics } from "../folder-api/types.ts";
+import type { AudioFileInput, AudioProperties, Tag } from "../types.ts";
 import { InvalidFormatError } from "../errors.ts";
 import { mapPropertiesToTag } from "../utils/tag-mapping.ts";
 import { getTagLib } from "./config.ts";
@@ -10,23 +11,24 @@ export interface BatchOptions {
   onProgress?: (processed: number, total: number, currentFile: string) => void;
 }
 
+export type BatchItem<T> =
+  | { status: "ok"; path: string; data: T }
+  | { status: "error"; path: string; error: Error };
+
 export interface BatchResult<T> {
-  results: Array<{ file: string; data: T }>;
-  errors: Array<{ file: string; error: Error }>;
+  items: BatchItem<T>[];
   duration: number;
 }
 
-type FileInput = string | Uint8Array | ArrayBuffer | File;
-
 async function executeBatch<T>(
-  files: FileInput[],
+  files: AudioFileInput[],
   options: BatchOptions,
   processor: (audioFile: AudioFile) => T,
 ): Promise<BatchResult<T>> {
+  if (files.length === 0) return { items: [], duration: 0 };
   const startTime = Date.now();
   const { concurrency = 4, continueOnError = true, onProgress } = options;
-  const results: Array<{ file: string; data: T }> = [];
-  const errors: Array<{ file: string; error: Error }> = [];
+  const items: BatchItem<T>[] = new Array(files.length);
   const taglib = await getTagLib();
   let processed = 0;
   const total = files.length;
@@ -34,7 +36,8 @@ async function executeBatch<T>(
   for (let i = 0; i < files.length; i += concurrency) {
     const chunk = files.slice(i, i + concurrency);
     const chunkPromises = chunk.map(async (file, idx) => {
-      const fileName = typeof file === "string" ? file : `file-${i + idx}`;
+      const index = i + idx;
+      const fileName = typeof file === "string" ? file : `file-${index}`;
       try {
         const audioFile = await taglib.open(file);
         try {
@@ -43,13 +46,17 @@ async function executeBatch<T>(
               "File may be corrupted or in an unsupported format",
             );
           }
-          results.push({ file: fileName, data: processor(audioFile) });
+          items[index] = {
+            status: "ok",
+            path: fileName,
+            data: processor(audioFile),
+          };
         } finally {
           audioFile.dispose();
         }
       } catch (error) {
         const err = error instanceof Error ? error : new Error(String(error));
-        errors.push({ file: fileName, error: err });
+        items[index] = { status: "error", path: fileName, error: err };
         if (!continueOnError) throw err;
       }
       processed++;
@@ -57,11 +64,11 @@ async function executeBatch<T>(
     });
     await Promise.all(chunkPromises);
   }
-  return { results, errors, duration: Date.now() - startTime };
+  return { items, duration: Date.now() - startTime };
 }
 
 export async function readTagsBatch(
-  files: FileInput[],
+  files: AudioFileInput[],
   options: BatchOptions = {},
 ): Promise<BatchResult<Tag>> {
   return executeBatch(
@@ -72,7 +79,7 @@ export async function readTagsBatch(
 }
 
 export async function readPropertiesBatch(
-  files: FileInput[],
+  files: AudioFileInput[],
   options: BatchOptions = {},
 ): Promise<BatchResult<AudioProperties | null>> {
   return executeBatch(
@@ -82,22 +89,14 @@ export async function readPropertiesBatch(
   );
 }
 
-interface MetadataDynamics {
-  replayGainTrackGain?: string;
-  replayGainTrackPeak?: string;
-  replayGainAlbumGain?: string;
-  replayGainAlbumPeak?: string;
-  appleSoundCheck?: string;
-}
-
-interface FileMetadata {
+export interface FileMetadata {
   tags: Tag;
   properties: AudioProperties | null;
   hasCoverArt: boolean;
-  dynamics?: MetadataDynamics;
+  dynamics?: AudioDynamics;
 }
 
-function extractDynamics(audioFile: AudioFile): MetadataDynamics | undefined {
+function extractDynamics(audioFile: AudioFile): AudioDynamics | undefined {
   const dynamics: Record<string, string> = {};
   const props: Array<[string, string]> = [
     ["REPLAYGAIN_TRACK_GAIN", "replayGainTrackGain"],
@@ -115,12 +114,12 @@ function extractDynamics(audioFile: AudioFile): MetadataDynamics | undefined {
   }
   if (appleSoundCheck) dynamics.appleSoundCheck = appleSoundCheck;
   return Object.keys(dynamics).length > 0
-    ? dynamics as MetadataDynamics
+    ? dynamics as AudioDynamics
     : undefined;
 }
 
 export async function readMetadataBatch(
-  files: FileInput[],
+  files: AudioFileInput[],
   options: BatchOptions = {},
 ): Promise<BatchResult<FileMetadata>> {
   return executeBatch(files, options, (audioFile) => ({

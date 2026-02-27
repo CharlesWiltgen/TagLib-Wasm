@@ -18,7 +18,7 @@ export interface Picture {
   /** Image data */
   data: Uint8Array;
   /** Picture type (front cover, back cover, etc.) */
-  type: number;
+  type: PictureType;
   /** Description */
   description?: string;
 }

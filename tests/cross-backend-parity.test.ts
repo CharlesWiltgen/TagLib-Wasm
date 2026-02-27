@@ -129,9 +129,9 @@ describe({ name: "Cross-Backend Parity", ignore: SKIP }, () => {
         `${format}: bitrate difference ${bitrateDiff} > 10 (wasi=${wasiProps.bitrate}, em=${emProps.bitrate})`,
       );
       assertEquals(
-        wasiProps.length,
-        emProps.length,
-        `${format}: length mismatch`,
+        wasiProps.duration,
+        emProps.duration,
+        `${format}: duration mismatch`,
       );
     });
 

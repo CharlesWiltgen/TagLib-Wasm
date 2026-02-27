@@ -10,6 +10,7 @@ import { TagLib } from "../src/mod.ts";
 import { TEST_FILES, withTempFile } from "./test-utils.ts";
 import { readFileData } from "../src/utils/file.ts";
 import { setBufferMode } from "../src/simple/index.ts";
+import type { PictureType } from "../src/types.ts";
 
 // Force Emscripten backend for Simple API calls
 setBufferMode(true);
@@ -63,7 +64,12 @@ describe("API Realignment", () => {
 
       const buffer = await readFileData(TEST_FILES.mp3);
       const withPic = await applyPictures(buffer, [
-        { mimeType: "image/png", data: RED_PNG, type: 3, description: "Cover" },
+        {
+          mimeType: "image/png",
+          data: RED_PNG,
+          type: "FrontCover" as PictureType,
+          description: "Cover",
+        },
       ]);
 
       const metadata = await readPictureMetadata(withPic);

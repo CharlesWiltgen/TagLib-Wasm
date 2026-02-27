@@ -26,37 +26,38 @@ describe("folder-api", () => {
     });
 
     // Should find at least 5 test files
-    assertEquals(result.totalFound >= 5, true);
-    assertEquals(result.totalProcessed, result.totalFound);
-    assertEquals(result.errors.length, 0);
+    assertEquals(result.items.length >= 5, true);
+    assertEquals(result.items.every((item) => item.status === "ok"), true);
 
     // Check that we got metadata for each file
-    for (const file of result.files) {
-      assertExists(file.path);
-      assertExists(file.tags);
-      assertExists(file.properties);
-      assertEquals(file.error, undefined);
-      assertEquals(typeof file.hasCoverArt, "boolean");
+    for (const item of result.items) {
+      if (item.status !== "ok") continue;
+      assertExists(item.path);
+      assertExists(item.tags);
+      assertExists(item.properties);
+      assertEquals(typeof item.hasCoverArt, "boolean");
 
       // Verify properties
-      if (file.properties) {
-        assertEquals(typeof file.properties.length, "number");
-        assertEquals(typeof file.properties.bitrate, "number");
-        assertEquals(typeof file.properties.sampleRate, "number");
-        assertEquals(typeof file.properties.channels, "number");
+      if (item.properties) {
+        assertEquals(typeof item.properties.duration, "number");
+        assertEquals(typeof item.properties.bitrate, "number");
+        assertEquals(typeof item.properties.sampleRate, "number");
+        assertEquals(typeof item.properties.channels, "number");
       }
     }
 
     // Check specific known files
-    const flacFile = result.files.find((f) => f.path.endsWith(".flac"));
-    assertExists(flacFile);
-    // Check that we got some metadata
-    assertExists(flacFile.tags);
+    const flacItem = result.items.find((i) =>
+      i.status === "ok" && i.path.endsWith(".flac")
+    );
+    assertExists(flacItem);
+    if (flacItem!.status === "ok") assertExists(flacItem!.tags);
 
-    const mp3File = result.files.find((f) => f.path.endsWith(".mp3"));
-    assertExists(mp3File);
-    // Check that we got some metadata
-    assertExists(mp3File.tags);
+    const mp3Item = result.items.find((i) =>
+      i.status === "ok" && i.path.endsWith(".mp3")
+    );
+    assertExists(mp3Item);
+    if (mp3Item!.status === "ok") assertExists(mp3Item!.tags);
   });
 
   it("scanFolder - respects file extension filter", async () => {
@@ -68,8 +69,8 @@ describe("folder-api", () => {
     });
 
     // Should only find MP3 files
-    for (const file of result.files) {
-      assertEquals(file.path.endsWith(".mp3"), true);
+    for (const item of result.items) {
+      assertEquals(item.path.endsWith(".mp3"), true);
     }
   });
 
@@ -81,8 +82,8 @@ describe("folder-api", () => {
       forceBufferMode: true,
     });
 
-    assertEquals(result.files.length, 2);
-    assertEquals(result.totalProcessed, 2);
+    assertEquals(result.items.length, 2);
+    assertEquals(result.items.every((i) => i.status === "ok"), true);
   });
 
   it("scanFolder - handles errors gracefully", async () => {
@@ -98,11 +99,12 @@ describe("folder-api", () => {
         forceBufferMode: true,
       });
 
-      assertEquals(result.totalFound, 1);
-      assertEquals(result.files.length, 0);
-      assertEquals(result.errors.length, 1);
-      assertEquals(result.errors[0].path, invalidFile);
-      assertExists(result.errors[0].error);
+      assertEquals(result.items.length, 1);
+      assertEquals(result.items[0].status, "error");
+      assertEquals(result.items[0].path, invalidFile);
+      if (result.items[0].status === "error") {
+        assertExists(result.items[0].error);
+      }
     } finally {
       await Deno.remove(tempDir, { recursive: true });
     }
@@ -244,8 +246,9 @@ describe("folder-api", () => {
       forceBufferMode: true,
     });
 
-    assertEquals(result.totalFound > 0, true);
-    assertEquals(result.totalProcessed > 0, true);
+    assertEquals(result.items.length > 0, true);
+    const okCount = result.items.filter((i) => i.status === "ok").length;
+    assertEquals(okCount > 0, true);
   });
 
   it("scanFolder - detects cover art presence", async () => {
@@ -255,13 +258,14 @@ describe("folder-api", () => {
       forceBufferMode: true,
     });
 
-    // Check that hasCoverArt is populated for all files
+    // Check that hasCoverArt is populated for all ok files
     let filesWithCoverArt = 0;
     let filesWithoutCoverArt = 0;
 
-    for (const file of result.files) {
-      assertEquals(typeof file.hasCoverArt, "boolean");
-      if (file.hasCoverArt) {
+    for (const item of result.items) {
+      if (item.status !== "ok") continue;
+      assertEquals(typeof item.hasCoverArt, "boolean");
+      if (item.hasCoverArt) {
         filesWithCoverArt++;
       } else {
         filesWithoutCoverArt++;
@@ -273,7 +277,7 @@ describe("folder-api", () => {
     console.log(`Files without cover art: ${filesWithoutCoverArt}`);
 
     // At least some files should exist in each category
-    assertEquals(result.files.length > 0, true);
+    assertEquals(result.items.length > 0, true);
   });
 
   it("scanFolder - extracts audio dynamics data", async () => {
@@ -288,39 +292,39 @@ describe("folder-api", () => {
     let filesWithReplayGain = 0;
     let filesWithSoundCheck = 0;
 
-    for (const file of result.files) {
-      if (file.dynamics) {
+    for (const item of result.items) {
+      if (item.status !== "ok") continue;
+      if (item.dynamics) {
         filesWithDynamics++;
 
         // Check ReplayGain fields
         if (
-          file.dynamics.replayGainTrackGain ||
-          file.dynamics.replayGainTrackPeak ||
-          file.dynamics.replayGainAlbumGain ||
-          file.dynamics.replayGainAlbumPeak
+          item.dynamics.replayGainTrackGain ||
+          item.dynamics.replayGainTrackPeak ||
+          item.dynamics.replayGainAlbumGain ||
+          item.dynamics.replayGainAlbumPeak
         ) {
           filesWithReplayGain++;
         }
 
         // Check Sound Check
-        if (file.dynamics.appleSoundCheck) {
+        if (item.dynamics.appleSoundCheck) {
           filesWithSoundCheck++;
         }
 
         // Validate field formats if present
-        if (file.dynamics.replayGainTrackGain) {
-          assertEquals(typeof file.dynamics.replayGainTrackGain, "string");
-          // ReplayGain values typically include "dB"
-          console.log(`Track gain: ${file.dynamics.replayGainTrackGain}`);
+        if (item.dynamics.replayGainTrackGain) {
+          assertEquals(typeof item.dynamics.replayGainTrackGain, "string");
+          console.log(`Track gain: ${item.dynamics.replayGainTrackGain}`);
         }
 
-        if (file.dynamics.replayGainTrackPeak) {
-          assertEquals(typeof file.dynamics.replayGainTrackPeak, "string");
+        if (item.dynamics.replayGainTrackPeak) {
+          assertEquals(typeof item.dynamics.replayGainTrackPeak, "string");
         }
 
-        if (file.dynamics.appleSoundCheck) {
-          assertEquals(typeof file.dynamics.appleSoundCheck, "string");
-          console.log(`Sound Check: ${file.dynamics.appleSoundCheck}`);
+        if (item.dynamics.appleSoundCheck) {
+          assertEquals(typeof item.dynamics.appleSoundCheck, "string");
+          console.log(`Sound Check: ${item.dynamics.appleSoundCheck}`);
         }
       }
     }
@@ -330,6 +334,6 @@ describe("folder-api", () => {
     console.log(`Files with Sound Check: ${filesWithSoundCheck}`);
 
     // All files should be processed
-    assertEquals(result.files.length > 0, true);
+    assertEquals(result.items.length > 0, true);
   });
 });

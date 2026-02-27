@@ -6,6 +6,7 @@
 export type {
   AudioDynamics,
   AudioFileMetadata,
+  FolderScanItem,
   FolderScanOptions,
   FolderScanResult,
 } from "./types.ts";

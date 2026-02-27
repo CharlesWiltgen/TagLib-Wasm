@@ -2,7 +2,13 @@
  * @fileoverview WebAssembly module interface types for Emscripten
  */
 
-import type { Picture } from "./types/pictures.ts";
+/** Raw picture with numeric type as received from/sent to C++ boundary */
+export interface RawPicture {
+  mimeType: string;
+  data: Uint8Array;
+  type: number;
+  description?: string;
+}
 
 // Basic Emscripten module interface
 export interface EmscriptenModule {
@@ -70,9 +76,9 @@ export interface FileHandle {
   getTag(): TagWrapper;
   getAudioProperties(): AudioPropertiesWrapper | null;
   getBuffer(): Uint8Array;
-  getPictures(): Picture[];
-  setPictures(pictures: Picture[]): void;
-  addPicture(picture: Picture): void;
+  getPictures(): RawPicture[];
+  setPictures(pictures: RawPicture[]): void;
+  addPicture(picture: RawPicture): void;
   removePictures(): void;
   getRatings(): { rating: number; email: string; counter: number }[];
   setRatings(

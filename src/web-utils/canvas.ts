@@ -1,5 +1,4 @@
 import type { Picture, PictureType } from "../types.ts";
-import { PICTURE_TYPE_VALUES } from "../types.ts";
 import { applyPictures } from "../simple/index.ts";
 import { dataURLToPicture } from "./data-url.ts";
 
@@ -92,7 +91,7 @@ export async function canvasToPicture(
         resolve({
           mimeType: format,
           data,
-          type: typeof type === "string" ? PICTURE_TYPE_VALUES[type] : type,
+          type,
           description,
         });
       },
@@ -123,7 +122,7 @@ export async function canvasToPicture(
  */
 export async function imageFileToPicture(
   file: File,
-  type: PictureType | number = "FrontCover",
+  type: PictureType = "FrontCover",
   description?: string,
 ): Promise<Picture> {
   const arrayBuffer = await file.arrayBuffer();
@@ -132,7 +131,7 @@ export async function imageFileToPicture(
   return {
     mimeType: file.type,
     data,
-    type: typeof type === "string" ? PICTURE_TYPE_VALUES[type] : type,
+    type,
     description: description ?? file.name,
   };
 }
