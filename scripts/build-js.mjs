@@ -37,16 +37,28 @@ function findTsFiles(dir, rootDir) {
 
 console.log("📦 Building JavaScript files with esbuild...");
 
+// Root entry files that need individual bundled builds
+const rootEntryFiles = [
+  "index.ts",
+  "simple.ts",
+  "folder.ts",
+  "web.ts",
+  "rating.ts",
+];
+
 try {
-  // Build index.ts
-  console.log("  ⚡ Building index.js...");
-  execSync(
-    `npx esbuild index.ts --bundle --outfile=dist/index.js --format=esm --platform=node --target=es2020 --external:./build/* --external:./src/*`,
-    {
-      cwd: rootDir,
-      stdio: "inherit",
-    },
-  );
+  // Build root entry files
+  for (const entry of rootEntryFiles) {
+    const outName = entry.replace(".ts", ".js");
+    console.log(`  ⚡ Building ${outName}...`);
+    execSync(
+      `npx esbuild ${entry} --bundle --outfile=dist/${outName} --format=esm --platform=node --target=es2020 --external:./build/* --external:./src/*`,
+      {
+        cwd: rootDir,
+        stdio: "inherit",
+      },
+    );
+  }
 
   // Build all src files (not bundled, just transpiled)
   // Note: Shell glob src/**/*.ts doesn't recurse in bash without globstar.
