@@ -17,52 +17,47 @@ export interface RuntimeDetectionResult {
   performanceTier: 1 | 2 | 3;
 }
 
+const g = globalThis as Record<string, unknown>;
+
 function hasWASISupport(): boolean {
-  if (typeof Deno !== "undefined") return true;
-  const globalAny = globalThis as any;
-  if (
-    typeof globalAny.process !== "undefined" && globalAny.process.versions?.node
-  ) {
-    const [major] = globalAny.process.versions.node.split(".").map(Number);
+  if (g.Deno !== undefined) return true;
+  if (g.process !== undefined && (g.process as any).versions?.node) {
+    const [major] = (g.process as any).versions.node.split(".").map(Number);
     return major >= 16;
   }
   return false;
 }
 
 function isBrowser(): boolean {
-  return typeof window !== "undefined" &&
-    typeof document !== "undefined";
+  return g.window !== undefined && g.document !== undefined;
 }
 
 function isWebWorker(): boolean {
-  const globalAny = globalThis as any;
-  return typeof globalAny.WorkerGlobalScope !== "undefined" &&
-    typeof globalAny.self !== "undefined" &&
-    globalAny.self instanceof globalAny.WorkerGlobalScope;
+  return g.WorkerGlobalScope !== undefined &&
+    g.self !== undefined &&
+    g.self instanceof (g.WorkerGlobalScope as any);
 }
 
 function isCloudflareWorker(): boolean {
-  const globalAny = globalThis as any;
-  return typeof caches !== "undefined" &&
-    typeof Request !== "undefined" &&
-    typeof addEventListener === "function" &&
-    typeof Deno === "undefined" &&
-    typeof globalAny.process === "undefined";
+  return g.caches !== undefined &&
+    g.Request !== undefined &&
+    typeof g.addEventListener === "function" &&
+    g.Deno === undefined &&
+    g.process === undefined;
 }
 
 // Must check before Node — Bun sets process.versions.node
 function isBun(): boolean {
-  return typeof (globalThis as Record<string, unknown>).Bun !== "undefined";
+  return g.Bun !== undefined;
 }
 
 function isNode(): boolean {
-  const globalAny = globalThis as any;
-  return typeof globalAny.process !== "undefined" &&
-    globalAny.process.versions?.node !== undefined;
+  return g.process !== undefined &&
+    (g.process as any).versions?.node !== undefined;
 }
 
 function isDeno(): boolean {
-  return typeof Deno !== "undefined";
+  return g.Deno !== undefined;
 }
 
 export function detectRuntime(): RuntimeDetectionResult {
