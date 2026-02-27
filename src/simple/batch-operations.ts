@@ -118,6 +118,33 @@ function extractDynamics(audioFile: AudioFile): AudioDynamics | undefined {
     : undefined;
 }
 
+export async function readMetadata(
+  file: AudioFileInput,
+): Promise<FileMetadata> {
+  const taglib = await getTagLib();
+  const audioFile = await taglib.open(file);
+  try {
+    if (!audioFile.isValid()) {
+      const name = typeof file === "string"
+        ? file
+        : file instanceof File
+        ? file.name
+        : `buffer (${file.byteLength} bytes)`;
+      throw new InvalidFormatError(
+        `File may be corrupted or in an unsupported format. File: ${name}`,
+      );
+    }
+    return {
+      tags: mapPropertiesToTag(audioFile.properties()),
+      properties: audioFile.audioProperties(),
+      hasCoverArt: audioFile.getPictures().length > 0,
+      dynamics: extractDynamics(audioFile),
+    };
+  } finally {
+    audioFile.dispose();
+  }
+}
+
 export async function readMetadataBatch(
   files: AudioFileInput[],
   options: BatchOptions = {},

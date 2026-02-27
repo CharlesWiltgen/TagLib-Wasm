@@ -48,7 +48,7 @@ const result = await scanFolder("/music", {
 });
 
 // Check for files with dynamics data
-for (const file of result.files) {
+for (const file of result.items) {
   if (file.hasCoverArt) {
     console.log(`${file.path} has cover art`);
   }

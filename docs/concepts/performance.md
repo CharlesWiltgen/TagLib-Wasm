@@ -594,7 +594,7 @@ async function processAlbum(albumPath: string) {
 
   for (const { file, data } of result.results) {
     if (data.properties) {
-      albumData.totalDuration += data.properties.length || 0;
+      albumData.totalDuration += data.properties.duration || 0;
       albumData.averageBitrate += data.properties.bitrate || 0;
     }
 

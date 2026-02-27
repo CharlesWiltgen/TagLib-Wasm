@@ -3,6 +3,7 @@
  */
 
 import { TagLib } from "../taglib.ts";
+import { getTagLib } from "../simple/config.ts";
 import { walkDirectory } from "./directory-walker.ts";
 import { processBatch, processFileWithTagLib } from "./file-processors.ts";
 import type {
@@ -102,11 +103,9 @@ export async function scanFolder(
 
   const totalFound = filePaths.length;
 
-  let initOptions;
-  if (forceBufferMode) {
-    initOptions = { forceBufferMode: true } as const;
-  }
-  const taglib = await TagLib.initialize(initOptions);
+  const taglib = forceBufferMode
+    ? await TagLib.initialize({ forceBufferMode: true })
+    : await getTagLib();
 
   const processOpts: ScanProcessOptions = {
     includeProperties,

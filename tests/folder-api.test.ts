@@ -137,8 +137,8 @@ describe("folder-api", () => {
       ];
 
       const result = await updateFolderTags(updates);
-      assertEquals(result.successful, 2);
-      assertEquals(result.failed.length, 0);
+      assertEquals(result.items.length, 2);
+      assertEquals(result.items.every((i) => i.status === "ok"), true);
 
       // Verify updates - note that tags preserve existing metadata
       const tags1 = await readTags(testFile1);
@@ -189,13 +189,16 @@ describe("folder-api", () => {
       });
 
       // Should find one group of duplicates
-      assertEquals(duplicates.size, 1);
+      assertEquals(duplicates.length, 1);
 
-      const dupGroup = Array.from(duplicates.values())[0];
-      assertEquals(dupGroup.length, 2);
+      const dupGroup = duplicates[0];
+      assertExists(dupGroup.criteria);
+      assertEquals(typeof dupGroup.criteria.artist, "string");
+      assertEquals(typeof dupGroup.criteria.title, "string");
+      assertEquals(dupGroup.files.length, 2);
 
       // Check that both duplicate files are found
-      const paths = dupGroup.map((f) => f.path);
+      const paths = dupGroup.files.map((f) => f.path);
       assertEquals(paths.includes(file1), true);
       assertEquals(paths.includes(file2), true);
       assertEquals(paths.includes(file3), false);

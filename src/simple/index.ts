@@ -23,6 +23,7 @@ export {
 } from "./picture-operations.ts";
 
 export {
+  readMetadata,
   readMetadataBatch,
   readPropertiesBatch,
   readTagsBatch,

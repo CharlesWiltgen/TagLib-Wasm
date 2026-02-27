@@ -205,7 +205,7 @@ console.log(`Found ${result.totalFound} audio files`);
 console.log(`Successfully processed ${result.totalProcessed} files`);
 
 // Process results
-for (const file of result.files) {
+for (const file of result.items) {
   console.log(`${file.path}: ${file.tags.artist} - ${file.tags.title}`);
   console.log(`Duration: ${file.properties?.duration}s`);
 }

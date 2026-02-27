@@ -7,7 +7,13 @@ import { writeTagsToFile } from "../simple/index.ts";
 import { writeFileData } from "../utils/write.ts";
 import { processBatch } from "./file-processors.ts";
 import { scanFolder } from "./scan-operations.ts";
-import type { AudioFileMetadata, FolderScanOptions } from "./types.ts";
+import type {
+  AudioFileMetadata,
+  DuplicateGroup,
+  FolderScanOptions,
+  FolderUpdateItem,
+  FolderUpdateResult,
+} from "./types.ts";
 import { EMPTY_TAG } from "./types.ts";
 
 /**
@@ -31,53 +37,37 @@ import { EMPTY_TAG } from "./types.ts";
 export async function updateFolderTags(
   updates: Array<{ path: string; tags: Partial<TagInput> }>,
   options: { continueOnError?: boolean; concurrency?: number } = {},
-): Promise<{
-  successful: number;
-  failed: Array<{ path: string; error: Error }>;
-  duration: number;
-}> {
+): Promise<FolderUpdateResult> {
   const startTime = Date.now();
   const { continueOnError = true, concurrency = 4 } = options;
-
-  let successful = 0;
-  const failed: Array<{ path: string; error: Error }> = [];
-
-  const processor = async (
-    update: { path: string; tags: Partial<TagInput> },
-  ) => {
-    try {
-      await writeTagsToFile(update.path, update.tags);
-      successful++;
-    } catch (error) {
-      const err = error instanceof Error ? error : new Error(String(error));
-
-      if (continueOnError) {
-        failed.push({ path: update.path, error: err });
-      } else {
-        throw err;
-      }
-    }
-  };
+  const items: FolderUpdateItem[] = [];
 
   const batchSize = concurrency * 10;
   for (let i = 0; i < updates.length; i += batchSize) {
     const batch = updates.slice(i, Math.min(i + batchSize, updates.length));
+    const updateMap = new Map(batch.map((u) => [u.path, u]));
     await processBatch(
       batch.map((u) => u.path),
       async (path) => {
-        const update = batch.find((u) => u.path === path)!;
-        await processor(update);
+        const update = updateMap.get(path)!;
+        try {
+          await writeTagsToFile(update.path, update.tags);
+          items.push({ status: "ok", path: update.path });
+        } catch (error) {
+          const err = error instanceof Error ? error : new Error(String(error));
+          if (continueOnError) {
+            items.push({ status: "error", path: update.path, error: err });
+          } else {
+            throw err;
+          }
+        }
         return { path, tags: EMPTY_TAG };
       },
       concurrency,
     );
   }
 
-  return {
-    successful,
-    failed,
-    duration: Date.now() - startTime,
-  };
+  return { items, duration: Date.now() - startTime };
 }
 
 /**
@@ -90,36 +80,35 @@ export async function updateFolderTags(
 export async function findDuplicates(
   folderPath: string,
   options?: FolderScanOptions,
-): Promise<Map<string, AudioFileMetadata[]>> {
+): Promise<DuplicateGroup[]> {
   const { criteria = ["artist", "title"], ...scanOptions } = options ?? {};
   const result = await scanFolder(folderPath, scanOptions);
-  const duplicates = new Map<string, AudioFileMetadata[]>();
+  const groupMap = new Map<
+    string,
+    { criteria: Record<string, string>; files: AudioFileMetadata[] }
+  >();
 
   for (const item of result.items) {
     if (item.status !== "ok") continue;
-    const key = criteria
-      .map((field) => {
-        const val = item.tags[field];
-        if (Array.isArray(val)) return val.join(", ");
-        return val ?? "";
-      })
-      .filter((v) => v !== "")
-      .join("|");
+    const criteriaRecord: Record<string, string> = {};
+    for (const field of criteria) {
+      const val = item.tags[field];
+      const strVal = Array.isArray(val) ? val.join(", ") : String(val ?? "");
+      if (strVal) criteriaRecord[field] = strVal;
+    }
+    const key = criteria.map((f) => criteriaRecord[f] ?? "").join("\0");
 
-    if (key) {
-      const group = duplicates.get(key) ?? [];
-      group.push(item);
-      duplicates.set(key, group);
+    if (Object.keys(criteriaRecord).length > 0) {
+      const existing = groupMap.get(key);
+      if (existing) {
+        existing.files.push(item);
+      } else {
+        groupMap.set(key, { criteria: criteriaRecord, files: [item] });
+      }
     }
   }
 
-  for (const [key, files] of duplicates.entries()) {
-    if (files.length < 2) {
-      duplicates.delete(key);
-    }
-  }
-
-  return duplicates;
+  return Array.from(groupMap.values()).filter((g) => g.files.length >= 2);
 }
 
 /**

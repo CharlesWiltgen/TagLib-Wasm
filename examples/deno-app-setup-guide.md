@@ -113,7 +113,7 @@ async function scanFolderExample() {
   console.log(`  Time taken: ${result.duration}ms`);
 
   // Group by album
-  const albums = groupByAlbum(result.files);
+  const albums = groupByAlbum(result.items);
   console.log(`  Albums found: ${albums.size}\n`);
 }
 
@@ -134,7 +134,7 @@ async function processSpecificFiles(files: string[]) {
     });
 
     // Filter to only our files
-    const ourFiles = result.files.filter((f) => dirFiles.includes(f.path));
+    const ourFiles = result.items.filter((f) => dirFiles.includes(f.path));
 
     for (const file of ourFiles) {
       console.log(`📄 ${file.path}`);
@@ -142,7 +142,7 @@ async function processSpecificFiles(files: string[]) {
       console.log(`   Artist: ${file.tags.artist || "(none)"}`);
       console.log(`   Album: ${file.tags.album || "(none)"}`);
       if (file.properties) {
-        console.log(`   Duration: ${formatDuration(file.properties.length)}`);
+        console.log(`   Duration: ${formatDuration(file.properties.duration)}`);
         console.log(`   Bitrate: ${file.properties.bitrate} kbps`);
       }
       console.log();
