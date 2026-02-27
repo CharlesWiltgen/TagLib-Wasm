@@ -5,10 +5,10 @@ function detectRuntime(): {
   hasNode: boolean;
   hasBun: boolean;
 } {
-  const hasDeno = typeof (globalThis as any).Deno !== "undefined";
-  const hasNode = typeof (globalThis as any).process !== "undefined" &&
+  const hasDeno = (globalThis as any).Deno !== undefined;
+  const hasNode = (globalThis as any).process !== undefined &&
     (globalThis as any).process.versions?.node;
-  const hasBun = typeof (globalThis as any).Bun !== "undefined";
+  const hasBun = (globalThis as any).Bun !== undefined;
   return { hasDeno, hasNode, hasBun };
 }
 
@@ -34,7 +34,7 @@ async function readFileFromPath(path: string): Promise<Uint8Array> {
   try {
     if (hasDeno) return await (globalThis as any).Deno.readFile(path);
     if (hasNode) {
-      const { readFile } = await import("fs/promises");
+      const { readFile } = await import("node:fs/promises");
       return new Uint8Array(await readFile(path));
     }
     if (hasBun) {
@@ -84,7 +84,7 @@ export async function getFileSize(path: string): Promise<number> {
       return stat.size;
     }
     if (hasNode) {
-      const { stat } = await import("fs/promises");
+      const { stat } = await import("node:fs/promises");
       const stats = await stat(path);
       return stats.size;
     }
@@ -147,7 +147,7 @@ export async function readPartialFileData(
     }
 
     if (hasNode) {
-      const { open } = await import("fs/promises");
+      const { open } = await import("node:fs/promises");
       const file = await open(path, "r");
       try {
         const stats = await file.stat();

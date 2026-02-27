@@ -30,7 +30,8 @@ function hasWASISupport(): boolean {
 }
 
 function isBrowser(): boolean {
-  return typeof window !== "undefined" && typeof document !== "undefined";
+  return globalThis.window !== undefined &&
+    typeof document !== "undefined";
 }
 
 function isWebWorker(): boolean {

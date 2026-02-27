@@ -385,7 +385,7 @@ describe("decodeMessagePackAuto", () => {
   it("should return raw decoded for non-object", () => {
     const encoded = encode(42);
     const decoded = decodeMessagePackAuto(encoded);
-    assertEquals(decoded, 42);
+    assertEquals(decoded as unknown, 42);
   });
 
   it("should throw on invalid data", () => {

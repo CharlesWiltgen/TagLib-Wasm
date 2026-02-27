@@ -227,7 +227,7 @@ export class WasmMemoryError extends TagLibError {
     super(
       "WASM_MEMORY",
       `${operation}: ${message}${
-        errorCode !== undefined ? ` (code ${errorCode})` : ""
+        errorCode === undefined ? "" : ` (code ${errorCode})`
       }`,
     );
     this.name = "WasmMemoryError";

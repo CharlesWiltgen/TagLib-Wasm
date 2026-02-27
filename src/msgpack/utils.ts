@@ -3,7 +3,12 @@
  */
 
 import { MetadataError } from "../errors/classes.ts";
-import type { AudioProperties, ExtendedTag, Picture } from "../types.ts";
+import type {
+  AudioProperties,
+  ExtendedTag,
+  Picture,
+  PropertyMap,
+} from "../types.ts";
 
 import {
   decodeAudioProperties,
@@ -24,7 +29,7 @@ export class MessagePackUtils {
    */
   static decode(
     buffer: Uint8Array,
-  ): ExtendedTag | AudioProperties | Picture | unknown {
+  ): ExtendedTag | AudioProperties | Picture | PropertyMap {
     return decodeMessagePackAuto(buffer);
   }
 
@@ -117,7 +122,7 @@ export class MessagePackUtils {
    */
   static batchDecode(buffers: Uint8Array[]): Array<{
     success: boolean;
-    data?: ExtendedTag | AudioProperties | Picture | unknown;
+    data?: ExtendedTag | AudioProperties | Picture | PropertyMap;
     error?: string;
   }> {
     return buffers.map((buffer) => {
