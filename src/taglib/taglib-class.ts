@@ -1,5 +1,6 @@
 import type { TagLibModule, WasmModule } from "../wasm.ts";
-import type { OpenOptions, TagInput } from "../types.ts";
+import type { AudioFileInput, OpenOptions, TagInput } from "../types.ts";
+import type { LoadTagLibOptions } from "../runtime/loader-types.ts";
 import { InvalidFormatError, TagLibInitializationError } from "../errors.ts";
 import type { AudioFile } from "./audio-file-interface.ts";
 import { AudioFileImpl } from "./audio-file-impl.ts";
@@ -15,20 +16,28 @@ export class TagLib {
     this.module = module as TagLibModule;
   }
 
-  static async initialize(options?: {
-    wasmBinary?: ArrayBuffer | Uint8Array;
-    wasmUrl?: string;
-    forceBufferMode?: boolean;
-    forceWasmType?: "wasi" | "emscripten";
-    disableOptimizations?: boolean;
-  }): Promise<TagLib> {
+  /**
+   * Initialize the TagLib Wasm module and return a ready-to-use instance.
+   * @param options - Wasm loading configuration (binary, URL, backend selection).
+   * @returns A configured TagLib instance.
+   * @throws {TagLibInitializationError} If the Wasm module fails to load.
+   */
+  static async initialize(options?: LoadTagLibOptions): Promise<TagLib> {
     const { loadTagLibModule } = await import("../../index.ts");
     const module = await loadTagLibModule(options);
     return new TagLib(module);
   }
 
+  /**
+   * Open an audio file for reading and writing metadata.
+   * @param input - File path, Uint8Array, ArrayBuffer, or File object.
+   * @param options - Partial-loading options for large files.
+   * @returns An AudioFile instance (use `using` for automatic cleanup).
+   * @throws {TagLibInitializationError} If the module is not properly initialized.
+   * @throws {InvalidFormatError} If the file is corrupted or unsupported.
+   */
   async open(
-    input: string | ArrayBuffer | Uint8Array | File,
+    input: AudioFileInput,
     options?: OpenOptions,
   ): Promise<AudioFile> {
     if (!this.module.createFileHandle) {
@@ -82,6 +91,16 @@ export class TagLib {
     }
   }
 
+  /**
+   * Open, modify, and save an audio file in one operation.
+   *
+   * With a file path, edits in place on disk. With a buffer/File, returns the modified data.
+   * @param input - File path for in-place editing, or buffer/File for buffer-based editing.
+   * @param fn - Callback receiving the AudioFile. Changes are auto-saved after it returns.
+   * @returns Nothing for file paths; modified Uint8Array for buffers.
+   * @throws {InvalidFormatError} If the file is corrupted or unsupported.
+   * @throws {FileOperationError} If saving to disk fails.
+   */
   async edit(
     input: string,
     fn: (file: AudioFile) => void | Promise<void>,
@@ -108,6 +127,13 @@ export class TagLib {
     }
   }
 
+  /**
+   * Update tags in a file and save to disk in one operation.
+   * @param path - Path to the audio file.
+   * @param tags - Tag fields to update (partial update supported).
+   * @throws {InvalidFormatError} If the file is corrupted or unsupported.
+   * @throws {FileOperationError} If saving to disk fails.
+   */
   async updateFile(path: string, tags: Partial<TagInput>): Promise<void> {
     const file = await this.open(path);
     try {
@@ -118,6 +144,14 @@ export class TagLib {
     }
   }
 
+  /**
+   * Copy an audio file to a new path with updated tags.
+   * @param sourcePath - Path to the source audio file.
+   * @param destPath - Destination path for the tagged copy.
+   * @param tags - Tag fields to set on the copy.
+   * @throws {InvalidFormatError} If the source file is corrupted or unsupported.
+   * @throws {FileOperationError} If reading or writing fails.
+   */
   async copyWithTags(
     sourcePath: string,
     destPath: string,
@@ -132,6 +166,7 @@ export class TagLib {
     }
   }
 
+  /** Returns the TagLib C++ library version string. */
   version(): string {
     return "2.1.0";
   }

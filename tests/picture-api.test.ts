@@ -191,7 +191,11 @@ describe("Simple API Cover Art", () => {
     const testFile = TEST_FILES.mp3;
 
     const noCover = await readCoverArt(testFile);
-    assertEquals(noCover, null, "Should return null when no cover art");
+    assertEquals(
+      noCover,
+      undefined,
+      "Should return undefined when no cover art",
+    );
 
     const modifiedBuffer = await applyCoverArt(testFile, RED_PNG, "image/png");
     assertExists(modifiedBuffer, "Should return modified buffer");
@@ -266,7 +270,11 @@ describe("Simple API Cover Art", () => {
     assertEquals(backCover.description, "Back cover");
 
     const notFound = findPictureByType(pictures, "BandLogo");
-    assertEquals(notFound, null, "Should return null when type not found");
+    assertEquals(
+      notFound,
+      undefined,
+      "Should return undefined when type not found",
+    );
   });
 
   it("replacePictureByType", async () => {

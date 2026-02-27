@@ -120,7 +120,7 @@ const tags = await readTagsBatch(files, { concurrency: 8 });
 | -------------------- | ----------------------------------------------------- | --------------------------------------------- |
 | Read tags            | `await readTags("file.mp3")`                          | `audioFile.tag().title`                       |
 | Write tags           | `await writeTagsToFile("file.mp3", tags)`             | `tag.setTitle("New")`                         |
-| Get duration         | `(await readProperties("file.mp3")).length`           | `audioFile.audioProperties().length`          |
+| Get duration         | `(await readProperties("file.mp3")).duration`         | `audioFile.audioProperties().duration`        |
 | Get codec/container  | `(await readProperties("file.mp3")).codec`            | `audioFile.audioProperties().codec`           |
 | Get modified buffer  | `await applyTagsToBuffer("file.mp3", tags)`           | `audioFile.save(); audioFile.getFileBuffer()` |
 | Get cover art        | `await readCoverArt("file.mp3")`                      | Use PropertyMap API                           |
@@ -453,9 +453,9 @@ const tag = audioFile.tag();
 
 // Tags are accessed as properties, not methods
 const metadata = {
-  title: tag.title, // string
-  artist: tag.artist, // string
-  album: tag.album, // string
+  title: tag.title, // string (MutableTag — Full API)
+  artist: tag.artist, // string (MutableTag — Full API)
+  album: tag.album, // string (MutableTag — Full API)
   year: tag.year, // number
   track: tag.track, // number
   genre: tag.genre, // string
@@ -498,7 +498,7 @@ const props = audioFile.audioProperties();
 
 // Properties are accessed directly, not via methods
 const audioInfo = {
-  duration: props.length, // Duration in seconds
+  duration: props.duration, // Duration in seconds
   bitrate: props.bitrate, // Bitrate in kb/s
   sampleRate: props.sampleRate, // Sample rate in Hz
   channels: props.channels, // Number of channels
@@ -639,30 +639,31 @@ const tagsResult = await readTagsBatch(files, {
 });
 
 // Handle results
-for (const { file, data } of tagsResult.results) {
-  console.log(`${file}: ${data.artist} - ${data.title}`);
-}
-
-// Check for errors
-if (tagsResult.errors.length > 0) {
-  console.error(`Failed to process ${tagsResult.errors.length} files`);
+for (const item of tagsResult.items) {
+  if (item.status === "ok") {
+    console.log(`${item.path}: ${item.data.artist} - ${item.data.title}`);
+  } else {
+    console.error(`Failed to process ${item.path}: ${item.error.message}`);
+  }
 }
 
 // Read complete metadata (tags + properties + cover art + dynamics) in one batch
 const metadata = await readMetadataBatch(files, { concurrency: 8 });
 
-for (const { file, data } of metadata.results) {
-  console.log(`${file}:`);
-  console.log(`  Title: ${data.tags.title}`);
-  console.log(`  Duration: ${data.properties?.length}s`);
-  console.log(`  Bitrate: ${data.properties?.bitrate}kbps`);
-  console.log(`  Has cover art: ${data.hasCoverArt}`);
+for (const item of metadata.items) {
+  if (item.status === "ok") {
+    console.log(`${item.path}:`);
+    console.log(`  Title: ${item.data.tags.title}`);
+    console.log(`  Duration: ${item.data.properties?.duration}s`);
+    console.log(`  Bitrate: ${item.data.properties?.bitrate}kbps`);
+    console.log(`  Has cover art: ${item.data.hasCoverArt}`);
 
-  if (data.dynamics?.replayGainTrackGain) {
-    console.log(`  ReplayGain: ${data.dynamics.replayGainTrackGain}`);
-  }
-  if (data.dynamics?.appleSoundCheck) {
-    console.log(`  Apple Sound Check: detected`);
+    if (item.data.dynamics?.replayGainTrackGain) {
+      console.log(`  ReplayGain: ${item.data.dynamics.replayGainTrackGain}`);
+    }
+    if (item.data.dynamics?.appleSoundCheck) {
+      console.log(`  Apple Sound Check: detected`);
+    }
   }
 }
 
@@ -699,7 +700,7 @@ const lowMemResult = await readTagsBatch(files, {
 let concurrency = 16;
 while (concurrency > 2) {
   const result = await readTagsBatch(files, { concurrency });
-  if (result.errors.length === 0) break;
+  if (result.items.every((i) => i.status === "ok")) break;
   concurrency = Math.floor(concurrency / 2);
 }
 ```
@@ -743,24 +744,29 @@ const result = await scanFolder("/path/to/music", {
   },
 });
 
-console.log(`Found ${result.totalFound} audio files`);
-console.log(`Successfully processed ${result.totalProcessed}`);
+console.log(`Found ${result.items.length} audio files`);
+console.log(
+  `Successfully processed ${
+    result.items.filter((i) => i.status === "ok").length
+  }`,
+);
 
 // Access metadata for each file
-for (const file of result.items) {
-  console.log(`${file.path}: ${file.tags.artist} - ${file.tags.title}`);
-  console.log(`Duration: ${file.properties?.length}s`);
+for (const item of result.items) {
+  if (item.status !== "ok") continue;
+  console.log(`${item.path}: ${item.tags.artist} - ${item.tags.title}`);
+  console.log(`Duration: ${item.properties?.duration}s`);
 
   // Check for cover art
-  if (file.hasCoverArt) {
+  if (item.hasCoverArt) {
     console.log(`  Has cover art`);
   }
 
   // Check for volume normalization data
-  if (file.dynamics?.replayGainTrackGain) {
-    console.log(`  ReplayGain: ${file.dynamics.replayGainTrackGain}`);
+  if (item.dynamics?.replayGainTrackGain) {
+    console.log(`  ReplayGain: ${item.dynamics.replayGainTrackGain}`);
   }
-  if (file.dynamics?.appleSoundCheck) {
+  if (item.dynamics?.appleSoundCheck) {
     console.log(`  Has Apple Sound Check data`);
   }
 }
@@ -989,7 +995,7 @@ async function processAlbum(albumPath: string) {
   // Extract album metadata
   const albumData = {
     path: albumPath,
-    trackCount: result.results.length,
+    trackCount: result.items.filter((i) => i.status === "ok").length,
     totalDuration: 0,
     averageBitrate: 0,
     hasCompleteCoverArt: true,
@@ -998,7 +1004,9 @@ async function processAlbum(albumPath: string) {
   };
 
   // Process results
-  for (const { file, data } of result.results) {
+  for (const item of result.items) {
+    if (item.status !== "ok") continue;
+    const { data } = item;
     if (data.properties) {
       albumData.totalDuration += data.properties.duration || 0;
       albumData.averageBitrate += data.properties.bitrate || 0;
@@ -1010,16 +1018,16 @@ async function processAlbum(albumPath: string) {
     }
 
     albumData.tracks.push({
-      file: path.basename(file),
+      file: path.basename(item.path),
       ...data.tags,
-      duration: data.properties?.length,
+      duration: data.properties?.duration,
       bitrate: data.properties?.bitrate,
       hasCoverArt: data.hasCoverArt,
     });
   }
 
   albumData.averageBitrate = Math.round(
-    albumData.averageBitrate / result.results.length,
+    albumData.averageBitrate / albumData.trackCount,
   );
 
   return albumData;
@@ -1167,22 +1175,21 @@ const result = await readMetadataBatch(files, {
 });
 
 // Analyze cover art
-const withCoverArt = result.results.filter((r) => r.data.hasCoverArt);
-const withoutCoverArt = result.results.filter((r) => !r.data.hasCoverArt);
+const okItems = result.items.filter((i) => i.status === "ok");
+const withCoverArt = okItems.filter((i) => i.data.hasCoverArt);
+const withoutCoverArt = okItems.filter((i) => !i.data.hasCoverArt);
 
 console.log(`Cover art analysis:`);
 console.log(`- With cover art: ${withCoverArt.length} files`);
 console.log(`- Without cover art: ${withoutCoverArt.length} files`);
 
 // Analyze volume normalization
-const withReplayGain = result.results.filter((r) =>
-  r.data.dynamics?.replayGainTrackGain
+const withReplayGain = okItems.filter((i) =>
+  i.data.dynamics?.replayGainTrackGain
 );
-const withSoundCheck = result.results.filter((r) =>
-  r.data.dynamics?.appleSoundCheck
-);
-const withoutNormalization = result.results.filter((r) =>
-  !r.data.dynamics?.replayGainTrackGain && !r.data.dynamics?.appleSoundCheck
+const withSoundCheck = okItems.filter((i) => i.data.dynamics?.appleSoundCheck);
+const withoutNormalization = okItems.filter((i) =>
+  !i.data.dynamics?.replayGainTrackGain && !i.data.dynamics?.appleSoundCheck
 );
 
 console.log(`\nNormalization analysis:`);
@@ -1193,8 +1200,8 @@ console.log(`- No normalization: ${withoutNormalization.length} files`);
 // List files needing attention
 if (withoutCoverArt.length > 0) {
   console.log(`\nFiles needing cover art:`);
-  for (const { file } of withoutCoverArt) {
-    console.log(`- ${file}`);
+  for (const item of withoutCoverArt) {
+    console.log(`- ${item.path}`);
   }
 }
 ```
@@ -1594,41 +1601,56 @@ if (success) {
 Key interfaces to reference:
 
 ```typescript
-interface Tag {
+// Full API: MutableTag wraps TagLib's C++ single-value Tag interface
+interface MutableTag {
   // Properties (read)
-  title: string;
-  artist: string;
-  album: string;
-  year: number;
-  track: number;
-  genre: string;
-  comment: string;
+  title?: string;
+  artist?: string;
+  album?: string;
+  year?: number;
+  track?: number;
+  genre?: string;
+  comment?: string;
 
-  // Methods (write)
-  setTitle(value: string): void;
-  setArtist(value: string): void;
-  setAlbum(value: string): void;
-  setYear(value: number): void;
-  setTrack(value: number): void;
-  setGenre(value: string): void;
-  setComment(value: string): void;
+  // Methods (write) — chainable
+  setTitle(value: string): MutableTag;
+  setArtist(value: string): MutableTag;
+  setAlbum(value: string): MutableTag;
+  setYear(value: number): MutableTag;
+  setTrack(value: number): MutableTag;
+  setGenre(value: string): MutableTag;
+  setComment(value: string): MutableTag;
+}
+
+// Simple API: Tag uses string arrays for multi-value support
+interface Tag {
+  title?: string[];
+  artist?: string[];
+  album?: string[];
+  year?: number[];
+  track?: number[];
+  genre?: string[];
+  comment?: string[];
+  albumArtist?: string[];
+  composer?: string[];
+  discNumber?: number[];
+  totalTracks?: number[];
+  totalDiscs?: number[];
 }
 
 interface AudioProperties {
-  length: number; // Duration in seconds
-  bitrate: number; // Bitrate in kb/s
+  duration: number; // Duration in seconds
+  bitrate: number; // Bitrate in kbps
   sampleRate: number; // Sample rate in Hz
   channels: number; // Number of channels
+  bitsPerSample?: number; // Bits per sample (0 if N/A)
+  codec?: string; // Audio codec (e.g., "AAC", "ALAC", "MP3")
+  containerFormat?: string; // Container format (e.g., "MP4", "OGG")
+  isLossless?: boolean; // true for lossless formats
 }
 
 interface PropertyMap {
-  properties(): Record<string, string[]>;
-  set(key: string, value: string[]): boolean;
-  get(key: string): string[] | undefined;
-  contains(key: string): boolean;
-  isEmpty(): boolean;
-  propertyCount(): number;
-  removeAll(): void;
+  [key: string]: string[];
 }
 
 // Folder API Types
@@ -1642,11 +1664,12 @@ interface FolderScanOptions {
   concurrency?: number; // Parallel processing limit (default: 4)
 }
 
+type FolderScanItem =
+  | ({ status: "ok" } & AudioFileMetadata)
+  | { status: "error"; path: string; error: Error };
+
 interface FolderScanResult {
-  files: AudioFileMetadata[]; // Successfully processed files
-  errors: Array<{ path: string; error: Error }>; // Failed files
-  totalFound: number; // Total audio files found
-  totalProcessed: number; // Successfully processed count
+  items: FolderScanItem[]; // All results (check status to discriminate)
   duration: number; // Time taken in milliseconds
 }
 
@@ -1708,22 +1731,25 @@ async function analyzeMusicLibrary(directory: string) {
     },
   });
 
+  const errorCount = result.items.filter((i) => i.status === "error").length;
+  const okItems = result.items.filter((i) => i.status === "ok");
+
   console.log(`\nScan complete:`);
-  console.log(`- Total files: ${result.totalFound}`);
-  console.log(`- Processed: ${result.totalProcessed}`);
-  console.log(`- Errors: ${result.errors.length}`);
+  console.log(`- Total files: ${result.items.length}`);
+  console.log(`- Processed: ${okItems.length}`);
+  console.log(`- Errors: ${errorCount}`);
   console.log(`- Time: ${result.duration}ms`);
 
   // Analyze cover art and dynamics
-  const filesWithCoverArt = result.items.filter((f) => f.hasCoverArt).length;
+  const filesWithCoverArt = okItems.filter((f) => f.hasCoverArt).length;
   const filesWithReplayGain =
-    result.items.filter((f) => f.dynamics?.replayGainTrackGain).length;
+    okItems.filter((f) => f.dynamics?.replayGainTrackGain).length;
   const filesWithSoundCheck =
-    result.items.filter((f) => f.dynamics?.appleSoundCheck).length;
+    okItems.filter((f) => f.dynamics?.appleSoundCheck).length;
 
   console.log(`\nAnalysis:`);
   console.log(
-    `- Files with cover art: ${filesWithCoverArt}/${result.totalProcessed}`,
+    `- Files with cover art: ${filesWithCoverArt}/${okItems.length}`,
   );
   console.log(`- Files with ReplayGain: ${filesWithReplayGain}`);
   console.log(`- Files with Sound Check: ${filesWithSoundCheck}`);
@@ -1742,21 +1768,21 @@ async function analyzeMusicLibrary(directory: string) {
   return {
     library: result.items,
     duplicates: Array.from(duplicates.entries()),
-    errors: result.errors,
+    errors: result.items.filter((i) => i.status === "error"),
     stats: {
-      totalTracks: result.totalProcessed,
-      totalDuration: result.items.reduce(
-        (sum, f) => sum + (f.properties?.length || 0),
+      totalTracks: okItems.length,
+      totalDuration: okItems.reduce(
+        (sum, f) => sum + (f.properties?.duration || 0),
         0,
       ),
       filesWithCoverArt,
-      filesNeedingCoverArt: result.totalProcessed - filesWithCoverArt,
+      filesNeedingCoverArt: okItems.length - filesWithCoverArt,
       filesWithReplayGain,
       filesWithSoundCheck,
-      totalSize: result.items.reduce(
+      totalSize: okItems.reduce(
         (sum, f) =>
           sum +
-          ((f.properties?.length || 0) * (f.properties?.bitrate || 0) * 125),
+          ((f.properties?.duration || 0) * (f.properties?.bitrate || 0) * 125),
         0,
       ),
     },
@@ -1799,7 +1825,7 @@ async function scanMusicLibraryManual(directory: string) {
         title: tag.title,
         artist: tag.artist,
         album: tag.album,
-        duration: props.length,
+        duration: props.duration,
         bitrate: props.bitrate,
       });
     } catch (error) {

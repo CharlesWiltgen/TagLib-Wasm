@@ -91,6 +91,8 @@ export interface FolderScanOptions {
   forceBufferMode?: boolean;
   /** Tag fields to compare when finding duplicates (default: ["artist", "title"]) */
   criteria?: Array<keyof Tag>;
+  /** AbortSignal to cancel the operation between processing chunks. */
+  signal?: AbortSignal;
 }
 
 /**
@@ -131,4 +133,5 @@ export interface ScanProcessOptions {
   continueOnError: boolean;
   onProgress?: (processed: number, total: number, currentFile: string) => void;
   totalFound: number;
+  signal?: AbortSignal;
 }

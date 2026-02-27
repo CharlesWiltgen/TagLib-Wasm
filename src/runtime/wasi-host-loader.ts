@@ -12,6 +12,7 @@ import {
 } from "./wasi-host.ts";
 import type { FileSystemProvider } from "./wasi-fs-provider.ts";
 import type { WasiModule } from "./wasmer-sdk-loader/index.ts";
+import { TagLibError } from "../errors/base.ts";
 
 export interface WasiHostLoaderConfig {
   wasmPath?: string;
@@ -19,11 +20,12 @@ export interface WasiHostLoaderConfig {
   fs?: FileSystemProvider;
 }
 
-export class WasiHostLoadError extends Error {
-  readonly code = "WASI_HOST_LOAD_ERROR" as const;
+export class WasiHostLoadError extends TagLibError {
   constructor(message: string, cause?: unknown) {
-    super(message, { cause });
+    super("WASI_HOST", message, cause ? { cause } : undefined);
     this.name = "WasiHostLoadError";
+    if (cause) this.cause = cause;
+    Object.setPrototypeOf(this, WasiHostLoadError.prototype);
   }
 }
 

@@ -6,6 +6,7 @@
  */
 
 import { MemoryError } from "../errors/classes.ts";
+import { TagLibError } from "../errors/base.ts";
 
 /**
  * Minimal memory interface: only `.buffer` is used (never `.grow()`).
@@ -217,18 +218,20 @@ export class WasmArena {
 /**
  * Helper for common memory operations with proper error context
  */
-export class WasmMemoryError extends Error {
+export class WasmMemoryError extends TagLibError {
   constructor(
     message: string,
     public readonly operation: string,
     public readonly errorCode?: number,
   ) {
     super(
+      "WASM_MEMORY",
       `${operation}: ${message}${
         errorCode !== undefined ? ` (code ${errorCode})` : ""
       }`,
     );
     this.name = "WasmMemoryError";
+    Object.setPrototypeOf(this, WasmMemoryError.prototype);
   }
 }
 

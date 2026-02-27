@@ -152,11 +152,11 @@ describe("findPictureByType", () => {
       },
     ];
 
-    assertEquals(findPictureByType(pictures, "BackCover"), null);
+    assertEquals(findPictureByType(pictures, "BackCover"), undefined);
   });
 
-  it("should return null for empty array", () => {
-    assertEquals(findPictureByType([], "FrontCover"), null);
+  it("should return undefined for empty array", () => {
+    assertEquals(findPictureByType([], "FrontCover"), undefined);
   });
 });
 

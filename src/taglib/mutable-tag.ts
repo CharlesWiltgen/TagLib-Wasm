@@ -1,19 +1,23 @@
 /**
  * Mutable tag interface for the Full API's direct C++ binding.
- * Returns single strings from TagLib's Tag accessors.
- * The Simple API wraps these into multi-value Tag arrays.
+ *
+ * Returns single strings from TagLib's C++ Tag accessors. This is the interface
+ * returned by `AudioFile.tag()` in the Full API. Setters are chainable.
+ *
+ * The Simple API's `Tag` type is different: it wraps values in `string[]` arrays
+ * for multi-value support (e.g. multiple artists). Use `readTags()` from
+ * `taglib-wasm/simple` for the array-based interface.
  *
  * @example
  * ```typescript
  * const file = await taglib.open("song.mp3");
  * const tag = file.tag();
  *
- * // Read metadata
- * console.log(tag.title);
+ * // Read metadata (single strings)
+ * console.log(tag.title); // "My Song"
  *
- * // Write metadata
- * tag.setTitle("New Title");
- * tag.setArtist("New Artist");
+ * // Write metadata (chainable)
+ * tag.setTitle("New Title").setArtist("New Artist");
  * file.save();
  * ```
  */

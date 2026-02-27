@@ -32,4 +32,11 @@ export interface LoadTagLibOptions {
    * Passed through to the unified loader's `selectWasmType()`.
    */
   forceWasmType?: "wasi" | "emscripten";
+
+  /**
+   * Disable runtime optimizations (e.g., wasm-opt).
+   * Useful for debugging or testing.
+   * @default false
+   */
+  disableOptimizations?: boolean;
 }
