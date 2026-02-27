@@ -821,3 +821,14 @@ describe("debugMessagePackProcessor", () => {
     assertEquals(decoded.title, "Debug");
   });
 });
+
+describe("estimateMessagePackSize fallback", () => {
+  it("should fall back to JSON estimation when msgpack encode fails", () => {
+    // Symbol values cause msgpack encode to fail but JSON.stringify skips them
+    const data = { val: Symbol("test") };
+    const size = estimateMessagePackSize(data);
+    // JSON.stringify({ val: Symbol("test") }) => "{}" (2 chars)
+    // Math.floor(2 * 0.75) = 1
+    assertEquals(size, 1);
+  });
+});

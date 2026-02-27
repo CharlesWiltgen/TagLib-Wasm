@@ -1,4 +1,4 @@
-import { assertEquals, assertExists } from "@std/assert";
+import { assertEquals, assertExists, assertRejects } from "@std/assert";
 import { describe, it } from "@std/testing/bdd";
 import {
   addPicture,
@@ -24,6 +24,7 @@ import {
   setBufferMode,
   writeTagsToFile,
 } from "../src/simple/index.ts";
+import { FileOperationError } from "../src/errors.ts";
 import type { Picture, PictureType } from "../src/types.ts";
 import { readFileData } from "../src/utils/file.ts";
 import { FIXTURE_PATH } from "./shared-fixtures.ts";
@@ -641,6 +642,64 @@ describe("readPropertiesBatch error handling", () => {
     assertEquals(result.items.length, 2);
     assertEquals(result.items[0].status, "ok");
     assertEquals(result.items[1].status, "error");
+  });
+});
+
+describe("writeTagsToFile error handling", () => {
+  it("should throw FileOperationError for non-string input", async () => {
+    await assertRejects(
+      () =>
+        writeTagsToFile(new Uint8Array([1]) as unknown as string, {
+          title: "test",
+        }),
+      FileOperationError,
+      "writeTagsToFile requires a file path string",
+    );
+  });
+});
+
+describe("readTagsBatch with buffer input", () => {
+  it("should handle buffer inputs in batch", async () => {
+    const mp3 = await Deno.readFile(FIXTURE_PATH.mp3);
+    const result = await readTagsBatch([new Uint8Array(mp3)]);
+    assertEquals(result.items.length, 1);
+    assertEquals(result.items[0].status, "ok");
+    // Buffer input should use generated file name
+    assertEquals(result.items[0].path, "file-0");
+  });
+});
+
+describe("readTagsBatch without continueOnError", () => {
+  it("should throw on error when continueOnError is false", async () => {
+    await assertRejects(
+      () =>
+        readTagsBatch(["/nonexistent/file.mp3"], {
+          continueOnError: false,
+        }),
+      Error,
+    );
+  });
+});
+
+describe("readMetadata with Sound Check", () => {
+  it("should extract Apple Sound Check dynamics when ITUNNORM is set", async () => {
+    const taglib = await getTagLib();
+    const mp3 = await Deno.readFile(FIXTURE_PATH.mp3);
+    const audioFile = await taglib.open(new Uint8Array(mp3));
+    try {
+      audioFile.setProperty(
+        "ITUNNORM",
+        " 00001234 00001234 00002345 00002345 00000000 00000000 00001234 00001234 00000000 00000000",
+      );
+      audioFile.save();
+      const buffer = audioFile.getFileBuffer();
+
+      const metadata = await readMetadata(buffer);
+      assertExists(metadata.dynamics);
+      assertExists(metadata.dynamics!.appleSoundCheck);
+    } finally {
+      audioFile.dispose();
+    }
   });
 });
 
