@@ -421,6 +421,25 @@ describe("readCoverArt", () => {
     const coverArt = await readCoverArt(cleared);
     assertEquals(coverArt, undefined);
   });
+
+  it("should fall back to first picture when no FrontCover exists", async () => {
+    const mp3 = await Deno.readFile(FIXTURE_PATH.mp3);
+    // Set only a BackCover (no FrontCover)
+    const backCoverOnly: Picture[] = [
+      {
+        mimeType: "image/png",
+        data: new Uint8Array([0x89, 0x50, 0x4E, 0x47]),
+        type: "BackCover" as PictureType,
+      },
+    ];
+    const withBackCover = await applyPictures(
+      new Uint8Array(mp3),
+      backCoverOnly,
+    );
+    const coverArt = await readCoverArt(withBackCover);
+    assertExists(coverArt);
+    assertEquals(coverArt!.length, 4);
+  });
 });
 
 describe("applyCoverArt", () => {
