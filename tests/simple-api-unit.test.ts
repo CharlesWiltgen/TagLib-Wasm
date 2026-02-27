@@ -270,10 +270,51 @@ describe("readMetadataBatch", () => {
     assertEquals(result.items.length, 1);
     assertEquals(result.items[0].status, "error");
   });
+
+  it("should call onProgress callback", async () => {
+    const files = [FIXTURE_PATH.mp3, FIXTURE_PATH.flac];
+    const progressCalls: Array<{
+      processed: number;
+      total: number;
+      file: string;
+    }> = [];
+
+    await readMetadataBatch(files, {
+      onProgress: (processed, total, currentFile) => {
+        progressCalls.push({ processed, total, file: currentFile });
+      },
+    });
+
+    assertEquals(progressCalls.length, 2);
+    assertEquals(progressCalls[0].total, 2);
+    assertEquals(progressCalls[1].total, 2);
+  });
+
+  it("should return empty result for empty input", async () => {
+    const result = await readMetadataBatch([]);
+    assertEquals(result.items.length, 0);
+    assertEquals(result.duration, 0);
+  });
+});
+
+describe("readTagsBatch AbortSignal", () => {
+  it("should abort when signal is already aborted", async () => {
+    const controller = new AbortController();
+    controller.abort();
+
+    let threw = false;
+    try {
+      await readTagsBatch([FIXTURE_PATH.mp3], { signal: controller.signal });
+    } catch (error) {
+      threw = true;
+      assertEquals(error instanceof DOMException, true);
+    }
+    assertEquals(threw, true);
+  });
 });
 
 describe("readMetadata", () => {
-  it("should return tags, properties, and hasCoverArt for a single file", async () => {
+  it("should return tags, properties, hasCoverArt, and dynamics for a single file", async () => {
     const metadata = await readMetadata(FIXTURE_PATH.mp3);
 
     assertExists(metadata.tags);
@@ -281,6 +322,11 @@ describe("readMetadata", () => {
     assertEquals(typeof metadata.hasCoverArt, "boolean");
     assertEquals(typeof metadata.properties!.duration, "number");
     assertEquals(typeof metadata.properties!.bitrate, "number");
+    // dynamics may be undefined if no ReplayGain/Sound Check tags exist
+    assertEquals(
+      metadata.dynamics === undefined || typeof metadata.dynamics === "object",
+      true,
+    );
   });
 
   it("should return same shape as readMetadataBatch for single file", async () => {
