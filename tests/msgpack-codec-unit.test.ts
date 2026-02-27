@@ -151,6 +151,18 @@ describe("decodeAudioProperties length migration", () => {
       undefined,
     );
   });
+
+  it("should keep duration when both length and duration exist", () => {
+    const bothPresent = encode({
+      length: 100,
+      duration: 200,
+      bitrate: 320,
+      sampleRate: 44100,
+      channels: 2,
+    });
+    const decoded = decodeAudioProperties(bothPresent);
+    assertEquals(decoded.duration, 200);
+  });
 });
 
 describe("decodeAudioProperties", () => {
