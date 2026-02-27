@@ -8,6 +8,7 @@ import {
   clearPictures,
   clearTags,
   findPictureByType,
+  getTagLib,
   isValidAudioFile,
   readCoverArt,
   readFormat,
@@ -24,6 +25,7 @@ import {
   writeTagsToFile,
 } from "../src/simple/index.ts";
 import type { Picture, PictureType } from "../src/types.ts";
+import { readFileData } from "../src/utils/file.ts";
 import { FIXTURE_PATH } from "./shared-fixtures.ts";
 
 // Force Emscripten backend
@@ -546,6 +548,99 @@ describe("writeTagsToFile", () => {
     } finally {
       await Deno.remove(tempFile);
     }
+  });
+});
+
+describe("readMetadata with dynamics", () => {
+  it("should extract ReplayGain dynamics when present", async () => {
+    // Write ReplayGain properties to a temp file, then read them back
+    const taglib = await getTagLib();
+    const mp3 = await Deno.readFile(FIXTURE_PATH.mp3);
+    const audioFile = await taglib.open(new Uint8Array(mp3));
+    try {
+      audioFile.setProperty("REPLAYGAIN_TRACK_GAIN", "-6.5 dB");
+      audioFile.setProperty("REPLAYGAIN_TRACK_PEAK", "0.98765");
+      audioFile.save();
+      const buffer = audioFile.getFileBuffer();
+
+      const metadata = await readMetadata(buffer);
+      assertExists(metadata.dynamics);
+      assertEquals(
+        metadata.dynamics!.replayGainTrackGain,
+        "-6.5 dB",
+      );
+      assertEquals(
+        metadata.dynamics!.replayGainTrackPeak,
+        "0.98765",
+      );
+    } finally {
+      audioFile.dispose();
+    }
+  });
+
+  it("should extract all ReplayGain fields", async () => {
+    const taglib = await getTagLib();
+    const flac = await Deno.readFile(FIXTURE_PATH.flac);
+    const audioFile = await taglib.open(new Uint8Array(flac));
+    try {
+      audioFile.setProperty("REPLAYGAIN_TRACK_GAIN", "-3.2 dB");
+      audioFile.setProperty("REPLAYGAIN_TRACK_PEAK", "0.95");
+      audioFile.setProperty("REPLAYGAIN_ALBUM_GAIN", "-2.1 dB");
+      audioFile.setProperty("REPLAYGAIN_ALBUM_PEAK", "0.99");
+      audioFile.save();
+      const buffer = audioFile.getFileBuffer();
+
+      const metadata = await readMetadata(buffer);
+      assertExists(metadata.dynamics);
+      assertEquals(
+        metadata.dynamics!.replayGainAlbumGain,
+        "-2.1 dB",
+      );
+      assertEquals(
+        metadata.dynamics!.replayGainAlbumPeak,
+        "0.99",
+      );
+    } finally {
+      audioFile.dispose();
+    }
+  });
+});
+
+describe("readFileData", () => {
+  it("should handle ArrayBuffer input", async () => {
+    const mp3 = await Deno.readFile(FIXTURE_PATH.mp3);
+    const arrayBuffer = mp3.buffer.slice(
+      mp3.byteOffset,
+      mp3.byteOffset + mp3.byteLength,
+    );
+    const result = await readFileData(arrayBuffer);
+    assertEquals(result instanceof Uint8Array, true);
+    assertEquals(result.length, mp3.length);
+  });
+
+  it("should handle Uint8Array input directly", async () => {
+    const data = new Uint8Array([1, 2, 3]);
+    const result = await readFileData(data);
+    assertEquals(result, data);
+  });
+
+  it("should handle string path input", async () => {
+    const result = await readFileData(FIXTURE_PATH.mp3);
+    assertEquals(result instanceof Uint8Array, true);
+    assertEquals(result.length > 0, true);
+  });
+});
+
+describe("readPropertiesBatch error handling", () => {
+  it("should report errors for invalid files", async () => {
+    const files = [
+      FIXTURE_PATH.mp3,
+      "/nonexistent/file.mp3",
+    ];
+    const result = await readPropertiesBatch(files, { continueOnError: true });
+    assertEquals(result.items.length, 2);
+    assertEquals(result.items[0].status, "ok");
+    assertEquals(result.items[1].status, "error");
   });
 });
 
