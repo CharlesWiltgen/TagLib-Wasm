@@ -1,10 +1,15 @@
 import { assertEquals, assertExists } from "@std/assert";
 import { describe, it } from "@std/testing/bdd";
 import {
+  addPicture,
+  applyCoverArt,
+  applyPictures,
+  applyTagsToBuffer,
   clearPictures,
   clearTags,
   findPictureByType,
   isValidAudioFile,
+  readCoverArt,
   readFormat,
   readMetadata,
   readMetadataBatch,
@@ -14,7 +19,9 @@ import {
   readPropertiesBatch,
   readTags,
   readTagsBatch,
+  replacePictureByType,
   setBufferMode,
+  writeTagsToFile,
 } from "../src/simple/index.ts";
 import type { Picture, PictureType } from "../src/types.ts";
 import { FIXTURE_PATH } from "./shared-fixtures.ts";
@@ -348,6 +355,132 @@ describe("readProperties error handling", () => {
       assertEquals(error instanceof Error, true);
     }
     assertEquals(threw, true);
+  });
+});
+
+describe("readCoverArt", () => {
+  it("should return cover art data from file with pictures", async () => {
+    const mp3 = await Deno.readFile(FIXTURE_PATH.mp3);
+    const coverArt = await readCoverArt(new Uint8Array(mp3));
+    // May or may not have pictures, but should not throw
+    if (coverArt) {
+      assertEquals(coverArt instanceof Uint8Array, true);
+      assertEquals(coverArt.length > 0, true);
+    }
+  });
+
+  it("should return undefined for file with no pictures", async () => {
+    const mp3 = await Deno.readFile(FIXTURE_PATH.mp3);
+    const cleared = await clearPictures(new Uint8Array(mp3));
+    const coverArt = await readCoverArt(cleared);
+    assertEquals(coverArt, undefined);
+  });
+});
+
+describe("applyCoverArt", () => {
+  it("should embed a front cover image and return modified buffer", async () => {
+    const mp3 = await Deno.readFile(FIXTURE_PATH.mp3);
+    const fakeImage = new Uint8Array([0xFF, 0xD8, 0xFF, 0xE0]);
+    const result = await applyCoverArt(
+      new Uint8Array(mp3),
+      fakeImage,
+      "image/jpeg",
+    );
+    assertEquals(result instanceof Uint8Array, true);
+    assertEquals(result.length > 0, true);
+
+    const pictures = await readPictures(result);
+    assertEquals(pictures.length, 1);
+    assertEquals(pictures[0].type, "FrontCover");
+  });
+});
+
+describe("applyPictures", () => {
+  it("should replace all pictures with provided set", async () => {
+    const mp3 = await Deno.readFile(FIXTURE_PATH.mp3);
+    const newPictures: Picture[] = [
+      {
+        mimeType: "image/png",
+        data: new Uint8Array([0x89, 0x50, 0x4E, 0x47]),
+        type: "BackCover" as PictureType,
+      },
+    ];
+    const result = await applyPictures(new Uint8Array(mp3), newPictures);
+    const pictures = await readPictures(result);
+    assertEquals(pictures.length, 1);
+    assertEquals(pictures[0].type, "BackCover");
+  });
+});
+
+describe("addPicture", () => {
+  it("should append a picture to existing pictures", async () => {
+    const mp3 = await Deno.readFile(FIXTURE_PATH.mp3);
+    const cleared = await clearPictures(new Uint8Array(mp3));
+    const picture: Picture = {
+      mimeType: "image/jpeg",
+      data: new Uint8Array([0xFF, 0xD8]),
+      type: "FrontCover" as PictureType,
+    };
+    const result = await addPicture(cleared, picture);
+    const pictures = await readPictures(result);
+    assertEquals(pictures.length >= 1, true);
+  });
+});
+
+describe("replacePictureByType", () => {
+  it("should replace picture of matching type", async () => {
+    const mp3 = await Deno.readFile(FIXTURE_PATH.mp3);
+    // First add a front cover
+    const withCover = await applyCoverArt(
+      new Uint8Array(mp3),
+      new Uint8Array([0xFF, 0xD8]),
+      "image/jpeg",
+    );
+    // Replace the front cover
+    const newPicture: Picture = {
+      mimeType: "image/png",
+      data: new Uint8Array([0x89, 0x50]),
+      type: "FrontCover" as PictureType,
+    };
+    const result = await replacePictureByType(withCover, newPicture);
+    const pictures = await readPictures(result);
+    const frontCovers = pictures.filter((p) => p.type === "FrontCover");
+    assertEquals(frontCovers.length, 1);
+    assertEquals(frontCovers[0].mimeType, "image/png");
+  });
+});
+
+describe("applyTagsToBuffer", () => {
+  it("should apply tag changes and return modified buffer", async () => {
+    const mp3 = await Deno.readFile(FIXTURE_PATH.mp3);
+    const result = await applyTagsToBuffer(new Uint8Array(mp3), {
+      title: "New Title",
+      artist: "New Artist",
+    });
+    assertEquals(result instanceof Uint8Array, true);
+
+    const tags = await readTags(result);
+    assertEquals(tags.title?.[0], "New Title");
+    assertEquals(tags.artist?.[0], "New Artist");
+  });
+});
+
+describe("writeTagsToFile", () => {
+  it("should write tags to a file on disk", async () => {
+    const tempFile = await Deno.makeTempFile({ suffix: ".mp3" });
+    try {
+      await Deno.copyFile(FIXTURE_PATH.mp3, tempFile);
+      await writeTagsToFile(tempFile, {
+        title: "Written Title",
+        artist: "Written Artist",
+      });
+
+      const tags = await readTags(tempFile);
+      assertEquals(tags.title?.[0], "Written Title");
+      assertEquals(tags.artist?.[0], "Written Artist");
+    } finally {
+      await Deno.remove(tempFile);
+    }
   });
 });
 
