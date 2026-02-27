@@ -26,7 +26,7 @@ export function mapPropertiesToTag(props: PropertyMap): Tag {
     const values = props[propKey];
     if (!values || values.length === 0) continue;
     if (tagField === "year" || tagField === "track") {
-      tag[tagField] = parseInt(values[0], 10) || 0;
+      tag[tagField] = Number.parseInt(values[0], 10) || 0;
     } else {
       tag[tagField] = values;
     }

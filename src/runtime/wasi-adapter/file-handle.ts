@@ -204,7 +204,7 @@ export class WasiFileHandle implements FileHandle {
       const camelKey = VORBIS_TO_CAMEL[key] ?? key;
       const scalar = values[0] ?? "";
       if (camelKey === "year" || camelKey === "track") {
-        mapped[camelKey] = parseInt(scalar, 10) || 0;
+        mapped[camelKey] = Number.parseInt(scalar, 10) || 0;
       } else {
         mapped[camelKey] = scalar;
       }
@@ -222,7 +222,7 @@ export class WasiFileHandle implements FileHandle {
     this.checkNotDestroyed();
     const mappedKey = VORBIS_TO_CAMEL[key] ?? key;
     const coerced = (mappedKey === "year" || mappedKey === "track")
-      ? (parseInt(value, 10) || 0)
+      ? (Number.parseInt(value, 10) || 0)
       : value;
     this.tagData = { ...this.tagData, [mappedKey]: coerced };
   }

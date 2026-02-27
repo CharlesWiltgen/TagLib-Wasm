@@ -116,7 +116,7 @@ export function encodeMessagePackCompact<T>(data: T): Uint8Array {
 function cleanObject(obj: unknown): unknown {
   if (obj === null || obj === undefined) return null;
   if (typeof obj !== "object") return obj;
-  if (obj instanceof Uint8Array || obj instanceof Array) return obj;
+  if (obj instanceof Uint8Array || Array.isArray(obj)) return obj;
   if (obj instanceof Date) return obj;
 
   const cleaned: Record<string, unknown> = {};

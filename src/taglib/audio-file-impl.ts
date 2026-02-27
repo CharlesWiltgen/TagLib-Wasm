@@ -1,4 +1,4 @@
-import type { FileHandle, RawPicture, TagLibModule } from "../wasm.ts";
+import type { FileHandle, TagLibModule } from "../wasm.ts";
 import type { AudioFileInput, OpenOptions, Picture } from "../types.ts";
 import { PICTURE_TYPE_NAMES, PICTURE_TYPE_VALUES } from "../types.ts";
 import type { Rating } from "../constants/complex-properties.ts";
@@ -114,17 +114,12 @@ export class AudioFileImpl extends ExtendedAudioFileImpl implements AudioFile {
 
   getPictures(): Picture[] {
     const picturesArray = this.handle.getPictures();
-    const pictures: Picture[] = [];
-    for (let i = 0; i < picturesArray.length; i++) {
-      const pic = picturesArray[i];
-      pictures.push({
-        mimeType: pic.mimeType,
-        data: pic.data,
-        type: PICTURE_TYPE_NAMES[pic.type] ?? "Other",
-        description: pic.description,
-      });
-    }
-    return pictures;
+    return picturesArray.map((pic) => ({
+      mimeType: pic.mimeType,
+      data: pic.data,
+      type: PICTURE_TYPE_NAMES[pic.type] ?? "Other",
+      description: pic.description,
+    }));
   }
 
   setPictures(pictures: Picture[]): void {

@@ -15,7 +15,11 @@ import { InvalidFormatError } from "../errors/classes.ts";
  * ```
  */
 export function pictureToDataURL(picture: Picture): string {
-  const base64 = btoa(String.fromCharCode(...Array.from(picture.data)));
+  let binary = "";
+  for (const byte of picture.data) {
+    binary += String.fromCodePoint(byte);
+  }
+  const base64 = btoa(binary);
   return `data:${picture.mimeType};base64,${base64}`;
 }
 
@@ -50,7 +54,7 @@ export function dataURLToPicture(
   const binaryString = atob(base64);
   const data = new Uint8Array(binaryString.length);
   for (let i = 0; i < binaryString.length; i++) {
-    data[i] = binaryString.charCodeAt(i);
+    data[i] = binaryString.codePointAt(i)!;
   }
 
   return {

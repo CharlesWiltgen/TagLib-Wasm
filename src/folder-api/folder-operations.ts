@@ -2,7 +2,7 @@
  * Folder-level operations: batch updates, duplicates, metadata export
  */
 
-import type { TagInput } from "../simple/index.ts";
+import type { Tag, TagInput } from "../simple/index.ts";
 import { writeTagsToFile } from "../simple/index.ts";
 import { writeFileData } from "../utils/write.ts";
 import { processBatch } from "./file-processors.ts";
@@ -82,6 +82,21 @@ export async function updateFolderTags(
  * @param options - Scan options (includes `criteria` for which fields to compare)
  * @returns Groups of potential duplicate files
  */
+function buildCriteriaKey(
+  tags: Tag,
+  criteria: Array<keyof Tag>,
+): { record: Record<string, string>; key: string } | null {
+  const record: Record<string, string> = {};
+  for (const field of criteria) {
+    const val = tags[field];
+    const strVal = Array.isArray(val) ? val.join(", ") : String(val ?? "");
+    if (strVal) record[field] = strVal;
+  }
+  if (Object.keys(record).length === 0) return null;
+  const key = criteria.map((f) => record[f] ?? "").join("\0");
+  return { record, key };
+}
+
 export async function findDuplicates(
   folderPath: string,
   options?: FolderScanOptions,
@@ -96,21 +111,14 @@ export async function findDuplicates(
 
   for (const item of result.items) {
     if (item.status !== "ok") continue;
-    const criteriaRecord: Record<string, string> = {};
-    for (const field of criteria) {
-      const val = item.tags[field];
-      const strVal = Array.isArray(val) ? val.join(", ") : String(val ?? "");
-      if (strVal) criteriaRecord[field] = strVal;
-    }
-    const key = criteria.map((f) => criteriaRecord[f] ?? "").join("\0");
+    const entry = buildCriteriaKey(item.tags, criteria);
+    if (!entry) continue;
 
-    if (Object.keys(criteriaRecord).length > 0) {
-      const existing = groupMap.get(key);
-      if (existing) {
-        existing.files.push(item);
-      } else {
-        groupMap.set(key, { criteria: criteriaRecord, files: [item] });
-      }
+    const existing = groupMap.get(entry.key);
+    if (existing) {
+      existing.files.push(item);
+    } else {
+      groupMap.set(entry.key, { criteria: entry.record, files: [item] });
     }
   }
 
