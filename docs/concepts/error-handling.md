@@ -118,7 +118,7 @@ try {
 // Reading properties
 try {
   const props = await readProperties("song.mp3");
-  console.log(`Duration: ${props.length}s`);
+  console.log(`Duration: ${props.duration}s`);
 } catch (error) {
   console.error("Failed to read properties:", error.message);
 }
@@ -512,7 +512,7 @@ async function safeReadMetadata(buffer: Uint8Array): Promise<SafeMetadata> {
       artist: tags.artist || defaults.artist,
       album: tags.album || defaults.album,
       year: tags.year || undefined,
-      duration: props.length,
+      duration: props.duration,
       format: file.getFormat(),
     };
   } catch (error) {

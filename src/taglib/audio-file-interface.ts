@@ -20,7 +20,7 @@ export interface AudioFile {
   tag(): MutableTag;
 
   /** Get audio properties (duration, bitrate, sample rate, etc.). */
-  audioProperties(): AudioProperties | null;
+  audioProperties(): AudioProperties | undefined;
 
   /** Get all metadata properties as a key-value map. */
   properties(): PropertyMap;

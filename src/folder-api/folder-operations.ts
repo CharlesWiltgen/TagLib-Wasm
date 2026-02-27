@@ -36,14 +36,19 @@ import { EMPTY_TAG } from "./types.ts";
  */
 export async function updateFolderTags(
   updates: Array<{ path: string; tags: Partial<TagInput> }>,
-  options: { continueOnError?: boolean; concurrency?: number } = {},
+  options: {
+    continueOnError?: boolean;
+    concurrency?: number;
+    signal?: AbortSignal;
+  } = {},
 ): Promise<FolderUpdateResult> {
   const startTime = Date.now();
-  const { continueOnError = true, concurrency = 4 } = options;
+  const { continueOnError = true, concurrency = 4, signal } = options;
   const items: FolderUpdateItem[] = [];
 
   const batchSize = concurrency * 10;
   for (let i = 0; i < updates.length; i += batchSize) {
+    signal?.throwIfAborted();
     const batch = updates.slice(i, Math.min(i + batchSize, updates.length));
     const updateMap = new Map(batch.map((u) => [u.path, u]));
     await processBatch(

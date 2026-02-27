@@ -34,7 +34,8 @@
  */
 
 // Full API
-export { AudioFileImpl as AudioFile, TagLib } from "./src/taglib.ts";
+export type { AudioFile } from "./src/taglib/audio-file-interface.ts";
+export { AudioFileImpl, createTagLib, TagLib } from "./src/taglib.ts";
 export type { MutableTag } from "./src/taglib.ts";
 
 // Error types
@@ -154,7 +155,6 @@ export {
 export type {
   AudioCodec,
   AudioFileInput,
-  AudioFormat,
   AudioProperties,
   BitrateControlMode,
   ContainerFormat,

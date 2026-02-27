@@ -5,16 +5,21 @@ import { InvalidFormatError } from "../errors.ts";
 import { mapPropertiesToTag } from "../utils/tag-mapping.ts";
 import { getTagLib } from "./config.ts";
 
+/** Configuration for batch processing operations. */
 export interface BatchOptions {
   concurrency?: number;
   continueOnError?: boolean;
   onProgress?: (processed: number, total: number, currentFile: string) => void;
+  /** AbortSignal to cancel the batch operation between chunks. */
+  signal?: AbortSignal;
 }
 
+/** Discriminated union result for a single file in a batch operation. */
 export type BatchItem<T> =
   | { status: "ok"; path: string; data: T }
   | { status: "error"; path: string; error: Error };
 
+/** Result of a batch operation containing all items and timing. */
 export interface BatchResult<T> {
   items: BatchItem<T>[];
   duration: number;
@@ -27,13 +32,15 @@ async function executeBatch<T>(
 ): Promise<BatchResult<T>> {
   if (files.length === 0) return { items: [], duration: 0 };
   const startTime = Date.now();
-  const { concurrency = 4, continueOnError = true, onProgress } = options;
+  const { concurrency = 4, continueOnError = true, onProgress, signal } =
+    options;
   const items: BatchItem<T>[] = new Array(files.length);
   const taglib = await getTagLib();
   let processed = 0;
   const total = files.length;
 
   for (let i = 0; i < files.length; i += concurrency) {
+    signal?.throwIfAborted();
     const chunk = files.slice(i, i + concurrency);
     const chunkPromises = chunk.map(async (file, idx) => {
       const index = i + idx;
@@ -67,6 +74,14 @@ async function executeBatch<T>(
   return { items, duration: Date.now() - startTime };
 }
 
+/**
+ * Read tags from multiple files with configurable concurrency.
+ *
+ * @param files - Array of file paths, Uint8Arrays, ArrayBuffers, or File objects.
+ * @param options - Batch processing options (concurrency, error handling, progress).
+ * @returns Batch result containing a `BatchItem` per file and total duration in ms.
+ * @throws If `continueOnError` is `false` and any file fails to process.
+ */
 export async function readTagsBatch(
   files: AudioFileInput[],
   options: BatchOptions = {},
@@ -78,10 +93,18 @@ export async function readTagsBatch(
   );
 }
 
+/**
+ * Read audio properties from multiple files with configurable concurrency.
+ *
+ * @param files - Array of file paths, Uint8Arrays, ArrayBuffers, or File objects.
+ * @param options - Batch processing options (concurrency, error handling, progress).
+ * @returns Batch result containing a `BatchItem` per file and total duration in ms.
+ * @throws If `continueOnError` is `false` and any file fails to process.
+ */
 export async function readPropertiesBatch(
   files: AudioFileInput[],
   options: BatchOptions = {},
-): Promise<BatchResult<AudioProperties | null>> {
+): Promise<BatchResult<AudioProperties | undefined>> {
   return executeBatch(
     files,
     options,
@@ -89,9 +112,10 @@ export async function readPropertiesBatch(
   );
 }
 
+/** Complete metadata for a single audio file including tags, properties, cover art presence, and audio dynamics. */
 export interface FileMetadata {
   tags: Tag;
-  properties: AudioProperties | null;
+  properties: AudioProperties | undefined;
   hasCoverArt: boolean;
   dynamics?: AudioDynamics;
 }
@@ -118,6 +142,13 @@ function extractDynamics(audioFile: AudioFile): AudioDynamics | undefined {
     : undefined;
 }
 
+/**
+ * Read complete metadata (tags, properties, cover art, dynamics) from a single file.
+ *
+ * @param file - A file path, Uint8Array, ArrayBuffer, or File object.
+ * @returns The file's complete metadata.
+ * @throws `InvalidFormatError` if the file is corrupted or in an unsupported format.
+ */
 export async function readMetadata(
   file: AudioFileInput,
 ): Promise<FileMetadata> {
@@ -145,6 +176,14 @@ export async function readMetadata(
   }
 }
 
+/**
+ * Read complete metadata from multiple files with configurable concurrency.
+ *
+ * @param files - Array of file paths, Uint8Arrays, ArrayBuffers, or File objects.
+ * @param options - Batch processing options (concurrency, error handling, progress).
+ * @returns Batch result containing a `BatchItem` per file and total duration in ms.
+ * @throws If `continueOnError` is `false` and any file fails to process.
+ */
 export async function readMetadataBatch(
   files: AudioFileInput[],
   options: BatchOptions = {},

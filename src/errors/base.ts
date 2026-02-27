@@ -20,7 +20,10 @@ export type TagLibErrorCode =
   | "FILE_OPERATION"
   | "METADATA"
   | "MEMORY"
-  | "ENVIRONMENT";
+  | "ENVIRONMENT"
+  | "WASM_MEMORY"
+  | "MODULE_LOAD"
+  | "WASI_HOST";
 
 /**
  * Base error class for all TagLib-Wasm errors

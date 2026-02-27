@@ -115,35 +115,6 @@ export type AudioCodec =
   | "Unknown";
 
 /**
- * Audio format types supported by TagLib.
- * More comprehensive than FileType, includes additional formats
- * that TagLib can read but may have limited support.
- */
-export type AudioFormat =
-  | "MP3"
-  | "MP4"
-  | "M4A"
-  | "FLAC"
-  | "OGG"
-  | "OPUS"
-  | "WAV"
-  | "AIFF"
-  | "WMA"
-  | "APE"
-  | "MPC"
-  | "TTA"
-  | "WV"
-  | "MOD"
-  | "IT"
-  | "S3M"
-  | "XM"
-  | "DSF"
-  | "DSDIFF"
-  | "SHN"
-  | "OGG_FLAC"
-  | "SPEEX";
-
-/**
  * Audio properties containing technical information about the file.
  * All properties are read-only and represent the actual audio stream data.
  *

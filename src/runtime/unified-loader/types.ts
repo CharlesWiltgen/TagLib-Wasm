@@ -1,26 +1,27 @@
 import type { RuntimeDetectionResult } from "../detector.ts";
 import type { WasiModule } from "../wasmer-sdk-loader/index.ts";
 import type { TagLibModule } from "../../wasm.ts";
+import { TagLibError } from "../../errors/base.ts";
 
-export class UnifiedLoaderError extends Error {
-  readonly code = "UNIFIED_LOADER_ERROR" as const;
+export class UnifiedLoaderError extends TagLibError {
   constructor(message: string, cause?: unknown) {
-    super(message);
+    super("MODULE_LOAD", message, cause ? { cause } : undefined);
     this.name = "UnifiedLoaderError";
-    this.cause = cause;
+    if (cause) this.cause = cause;
+    Object.setPrototypeOf(this, UnifiedLoaderError.prototype);
   }
 }
 
-export class ModuleLoadError extends Error {
-  readonly code = "MODULE_LOAD_ERROR" as const;
+export class ModuleLoadError extends TagLibError {
   constructor(
     message: string,
     public readonly wasmType: "wasi" | "emscripten",
     cause?: unknown,
   ) {
-    super(message);
+    super("MODULE_LOAD", message, cause ? { cause, wasmType } : { wasmType });
     this.name = "ModuleLoadError";
-    this.cause = cause;
+    if (cause) this.cause = cause;
+    Object.setPrototypeOf(this, ModuleLoadError.prototype);
   }
 }
 

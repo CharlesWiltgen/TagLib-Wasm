@@ -187,7 +187,7 @@ describe("EdgeCases", () => {
       const props = file.audioProperties();
 
       // Verify properties are valid numbers
-      assert(props !== null, "Properties should not be null");
+      assert(props !== undefined, "Properties should not be undefined");
       assert(Number.isFinite(props.duration), "Duration should be finite");
       assert(props.duration >= 0, "Duration should not be negative");
 
@@ -291,7 +291,7 @@ describe("EdgeCases", () => {
       const props = file.audioProperties();
 
       // If we get here, properties should at least be safe values
-      assert(props !== null, "Properties should not be null");
+      assert(props !== undefined, "Properties should not be undefined");
       assert(Number.isFinite(props.duration), "Should not return NaN duration");
       assert(Number.isFinite(props.bitrate), "Should not return NaN bitrate");
       assert(props.duration >= 0, "Duration should not be negative");

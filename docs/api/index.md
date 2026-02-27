@@ -192,14 +192,14 @@ Promise resolving to an `AudioProperties` object:
 
 ```typescript
 interface AudioProperties {
-  length: number; // Duration in seconds
+  duration: number; // Duration in seconds
   bitrate: number; // Bitrate in kbps
   sampleRate: number; // Sample rate in Hz
   channels: number; // Number of channels (1=mono, 2=stereo)
+  bitsPerSample?: number; // Bit depth (e.g., 16, 24)
   codec?: string; // Audio codec (e.g., "AAC", "ALAC", "MP3", "FLAC", "PCM", "Vorbis")
   containerFormat?: string; // Container format (e.g., "MP4", "OGG", "MP3", "FLAC")
   isLossless?: boolean; // True for lossless/uncompressed formats
-  bitsPerSample?: number; // Bit depth (e.g., 16, 24)
 }
 ```
 
@@ -207,7 +207,7 @@ interface AudioProperties {
 
 ```typescript
 const props = await readProperties("song.mp3");
-console.log(`Duration: ${props.length}s`);
+console.log(`Duration: ${props.duration}s`);
 console.log(`Bitrate: ${props.bitrate} kbps`);
 console.log(`Sample rate: ${props.sampleRate} Hz`);
 console.log(`Channels: ${props.channels}`);
@@ -249,11 +249,13 @@ interface BatchOptions {
 Result structure for batch operations:
 
 ```typescript
+type BatchItem<T> =
+  | { status: "ok"; path: string; data: T }
+  | { status: "error"; path: string; error: Error };
+
 interface BatchResult<T> {
-  /** Successful results */
-  results: Array<{ file: string; data: T }>;
-  /** Errors encountered */
-  errors: Array<{ file: string; error: Error }>;
+  /** Results for each file (check status to discriminate) */
+  items: BatchItem<T>[];
   /** Total processing time in milliseconds */
   duration: number;
 }
@@ -282,13 +284,12 @@ const result = await readTagsBatch(files, {
 });
 
 // Process results
-for (const { file, data } of result.results) {
-  console.log(`${file}: ${data.artist} - ${data.title}`);
-}
-
-// Handle errors
-for (const { file, error } of result.errors) {
-  console.error(`Failed to process ${file}: ${error.message}`);
+for (const item of result.items) {
+  if (item.status === "ok") {
+    console.log(`${item.path}: ${item.data.artist} - ${item.data.title}`);
+  } else {
+    console.error(`Failed to process ${item.path}: ${item.error.message}`);
+  }
 }
 
 console.log(`Completed in ${result.duration}ms`);
@@ -310,9 +311,11 @@ function readPropertiesBatch(
 ```typescript
 const result = await readPropertiesBatch(files, { concurrency: 4 });
 
-for (const { file, data } of result.results) {
-  if (data) {
-    console.log(`${file}: ${data.length}s, ${data.bitrate}kbps`);
+for (const item of result.items) {
+  if (item.status === "ok" && item.data) {
+    console.log(
+      `${item.path}: ${item.data.duration}s, ${item.data.bitrate}kbps`,
+    );
   }
 }
 ```
@@ -351,19 +354,21 @@ const result = await readMetadataBatch(files, {
   },
 });
 
-for (const { file, data } of result.results) {
-  console.log(`${file}:`);
-  console.log(`  Artist: ${data.tags.artist}`);
-  console.log(`  Title: ${data.tags.title}`);
-  console.log(`  Duration: ${data.properties?.length}s`);
-  console.log(`  Bitrate: ${data.properties?.bitrate}kbps`);
-  console.log(`  Has cover art: ${data.hasCoverArt}`);
+for (const item of result.items) {
+  if (item.status === "ok") {
+    console.log(`${item.path}:`);
+    console.log(`  Artist: ${item.data.tags.artist}`);
+    console.log(`  Title: ${item.data.tags.title}`);
+    console.log(`  Duration: ${item.data.properties?.duration}s`);
+    console.log(`  Bitrate: ${item.data.properties?.bitrate}kbps`);
+    console.log(`  Has cover art: ${item.data.hasCoverArt}`);
 
-  if (data.dynamics?.replayGainTrackGain) {
-    console.log(`  ReplayGain: ${data.dynamics.replayGainTrackGain}`);
-  }
-  if (data.dynamics?.appleSoundCheck) {
-    console.log(`  Sound Check: detected`);
+    if (item.data.dynamics?.replayGainTrackGain) {
+      console.log(`  ReplayGain: ${item.data.dynamics.replayGainTrackGain}`);
+    }
+    if (item.data.dynamics?.appleSoundCheck) {
+      console.log(`  Sound Check: detected`);
+    }
   }
 }
 ```
@@ -778,7 +783,7 @@ Returns `AudioProperties` object or `null` if unavailable:
 
 ```typescript
 interface AudioProperties {
-  length: number; // Duration in seconds
+  duration: number; // Duration in seconds
   bitrate: number; // Bitrate in kbps
   sampleRate: number; // Sample rate in Hz
   channels: number; // Number of channels
@@ -844,7 +849,7 @@ Returns:
 
 ```typescript
 interface PropertyMap {
-  [key: string]: string;
+  [key: string]: string[];
 }
 ```
 

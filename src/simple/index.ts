@@ -35,19 +35,6 @@ export type {
   FileMetadata,
 } from "./batch-operations.ts";
 
-export {
-  Album,
-  AlbumArtist,
-  Artist,
-  Comment,
-  Composer,
-  DiscNumber,
-  Genre,
-  Title,
-  Track,
-  Year,
-} from "./field-constants.ts";
-
 export type {
   AudioProperties,
   Picture,
