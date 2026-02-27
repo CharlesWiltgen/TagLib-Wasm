@@ -71,10 +71,12 @@ export {
   applyCoverArt,
   applyPictures,
   applyTagsToBuffer,
+  type BatchItem,
   type BatchOptions,
   type BatchResult,
   clearPictures,
   clearTags,
+  type FileMetadata,
   findPictureByType,
   isValidAudioFile,
   readCoverArt,
@@ -125,6 +127,7 @@ export {
   type AudioFileMetadata,
   exportFolderMetadata,
   findDuplicates,
+  type FolderScanItem,
   type FolderScanOptions,
   type FolderScanResult,
   scanFolder,
@@ -145,10 +148,12 @@ export {
 
 // Core types
 export type {
+  AudioCodec,
   AudioFileInput,
   AudioFormat,
   AudioProperties,
   BitrateControlMode,
+  ContainerFormat,
   ExtendedTag,
   FieldMapping,
   FileType,

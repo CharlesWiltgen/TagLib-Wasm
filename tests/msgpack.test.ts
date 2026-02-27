@@ -22,7 +22,12 @@ import {
   isValidMessagePack,
   MessagePackUtils,
 } from "../src/msgpack/index.ts";
-import type { AudioProperties, ExtendedTag, Picture } from "../src/types.ts";
+import type {
+  AudioProperties,
+  ExtendedTag,
+  Picture,
+  PictureType,
+} from "../src/types.ts";
 
 // Test data — raw msgpack codec layer uses single strings (not arrays)
 const sampleTagData = {
@@ -37,7 +42,7 @@ const sampleTagData = {
 } as unknown as ExtendedTag;
 
 const sampleAudioProperties: AudioProperties = {
-  length: 180.5,
+  duration: 180.5,
   bitrate: 320,
   sampleRate: 44100,
   channels: 2,
@@ -50,7 +55,7 @@ const sampleAudioProperties: AudioProperties = {
 const samplePicture: Picture = {
   mimeType: "image/jpeg",
   data: new Uint8Array([0xFF, 0xD8, 0xFF, 0xE0, 0x00, 0x10, 0x4A, 0x46]),
-  type: 3, // Front cover
+  type: "FrontCover" as PictureType, // Front cover
   description: "Album cover",
 };
 
@@ -86,7 +91,7 @@ describe("MessagePack", () => {
     const encoded = encodeAudioProperties(sampleAudioProperties);
     const decoded = decodeAudioProperties(encoded);
 
-    assertEquals(decoded.length, sampleAudioProperties.length);
+    assertEquals(decoded.duration, sampleAudioProperties.duration);
     assertEquals(decoded.bitrate, sampleAudioProperties.bitrate);
     assertEquals(decoded.sampleRate, sampleAudioProperties.sampleRate);
     assertEquals(decoded.channels, sampleAudioProperties.channels);

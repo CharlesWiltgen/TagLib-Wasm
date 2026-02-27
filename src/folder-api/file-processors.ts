@@ -10,12 +10,12 @@ import type {
 } from "./types.ts";
 import { mapPropertiesToTag } from "../utils/tag-mapping.ts";
 
-export async function processBatch(
+export async function processBatch<T>(
   files: string[],
-  processor: (path: string) => Promise<AudioFileMetadata>,
+  processor: (path: string) => Promise<T>,
   concurrency: number,
-): Promise<AudioFileMetadata[]> {
-  const results: AudioFileMetadata[] = [];
+): Promise<T[]> {
+  const results: T[] = [];
 
   for (let i = 0; i < files.length; i += concurrency) {
     const chunk = files.slice(i, i + concurrency);

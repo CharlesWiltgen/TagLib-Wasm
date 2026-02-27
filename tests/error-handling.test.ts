@@ -198,7 +198,7 @@ describe("Error Handling", () => {
     ]);
 
     const props = await readProperties(wavHeader);
-    assertEquals(typeof props.length, "number", "Should have duration");
+    assertEquals(typeof props.duration, "number", "Should have duration");
     assertEquals(typeof props.bitrate, "number", "Should have bitrate");
   });
 

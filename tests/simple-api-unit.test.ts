@@ -14,8 +14,7 @@ import {
   readTagsBatch,
   setBufferMode,
 } from "../src/simple/index.ts";
-import type { Picture } from "../src/types.ts";
-import { PICTURE_TYPE_VALUES } from "../src/types.ts";
+import type { Picture, PictureType } from "../src/types.ts";
 import { FIXTURE_PATH } from "./shared-fixtures.ts";
 
 // Force Emscripten backend
@@ -62,7 +61,7 @@ describe("readProperties", () => {
     for (const file of paths) {
       const props = await readProperties(file);
       assertExists(props);
-      assertEquals(typeof props.length, "number");
+      assertEquals(typeof props.duration, "number");
       assertEquals(typeof props.bitrate, "number");
       assertEquals(typeof props.sampleRate, "number");
       assertEquals(typeof props.channels, "number");
@@ -97,7 +96,7 @@ describe("readPictureMetadata", () => {
     assertEquals(Array.isArray(metadata), true);
 
     for (const m of metadata) {
-      assertEquals(typeof m.type, "number");
+      assertEquals(typeof m.type, "string");
       assertEquals(typeof m.mimeType, "string");
       assertEquals(typeof m.size, "number");
     }
@@ -110,34 +109,46 @@ describe("findPictureByType", () => {
       {
         mimeType: "image/jpeg",
         data: new Uint8Array([1]),
-        type: PICTURE_TYPE_VALUES.FrontCover,
+        type: "FrontCover" as PictureType,
       },
       {
         mimeType: "image/png",
         data: new Uint8Array([2]),
-        type: PICTURE_TYPE_VALUES.BackCover,
+        type: "BackCover" as PictureType,
       },
     ];
 
     const front = findPictureByType(pictures, "FrontCover");
     assertExists(front);
-    assertEquals(front!.type, PICTURE_TYPE_VALUES.FrontCover);
+    assertEquals(front!.type, "FrontCover");
   });
 
-  it("should find picture by numeric type", () => {
+  it("should find picture by PictureType value", () => {
     const pictures: Picture[] = [
-      { mimeType: "image/jpeg", data: new Uint8Array([1]), type: 3 },
-      { mimeType: "image/png", data: new Uint8Array([2]), type: 4 },
+      {
+        mimeType: "image/jpeg",
+        data: new Uint8Array([1]),
+        type: "FrontCover" as PictureType,
+      },
+      {
+        mimeType: "image/png",
+        data: new Uint8Array([2]),
+        type: "BackCover" as PictureType,
+      },
     ];
 
-    const back = findPictureByType(pictures, 4);
+    const back = findPictureByType(pictures, "BackCover");
     assertExists(back);
-    assertEquals(back!.type, 4);
+    assertEquals(back!.type, "BackCover");
   });
 
   it("should return null when type not found", () => {
     const pictures: Picture[] = [
-      { mimeType: "image/jpeg", data: new Uint8Array([1]), type: 3 },
+      {
+        mimeType: "image/jpeg",
+        data: new Uint8Array([1]),
+        type: "FrontCover" as PictureType,
+      },
     ];
 
     assertEquals(findPictureByType(pictures, "BackCover"), null);
@@ -157,8 +168,8 @@ describe("readTagsBatch", () => {
     ];
 
     const result = await readTagsBatch(files);
-    assertEquals(result.results.length, 3);
-    assertEquals(result.errors.length, 0);
+    assertEquals(result.items.length, 3);
+    assertEquals(result.items.every((item) => item.status === "ok"), true);
     assertEquals(typeof result.duration, "number");
   });
 
@@ -169,8 +180,11 @@ describe("readTagsBatch", () => {
     ];
 
     const result = await readTagsBatch(files, { continueOnError: true });
-    assertEquals(result.results.length, 1);
-    assertEquals(result.errors.length, 1);
+    assertEquals(result.items.length, 2);
+    assertEquals(result.items[0].status, "ok");
+    assertEquals(result.items[0].path, FIXTURE_PATH.mp3);
+    assertEquals(result.items[1].status, "error");
+    assertEquals(result.items[1].path, "/nonexistent/file.mp3");
   });
 
   it("should call onProgress callback", async () => {
@@ -196,8 +210,8 @@ describe("readTagsBatch", () => {
     ];
 
     const result = await readTagsBatch(files, { concurrency: 2 });
-    assertEquals(result.results.length, 4);
-    assertEquals(result.errors.length, 0);
+    assertEquals(result.items.length, 4);
+    assertEquals(result.items.every((item) => item.status === "ok"), true);
   });
 });
 
@@ -209,12 +223,14 @@ describe("readPropertiesBatch", () => {
     ];
 
     const result = await readPropertiesBatch(files);
-    assertEquals(result.results.length, 2);
-    assertEquals(result.errors.length, 0);
+    assertEquals(result.items.length, 2);
+    assertEquals(result.items.every((item) => item.status === "ok"), true);
 
-    for (const { data } of result.results) {
-      assertExists(data);
-      assertEquals(typeof data!.length, "number");
+    for (const item of result.items) {
+      if (item.status === "ok") {
+        assertExists(item.data);
+        assertEquals(typeof item.data!.duration, "number");
+      }
     }
   });
 });
@@ -227,19 +243,23 @@ describe("readMetadataBatch", () => {
     ];
 
     const result = await readMetadataBatch(files);
-    assertEquals(result.results.length, 2);
+    assertEquals(result.items.length, 2);
 
-    for (const { data } of result.results) {
-      assertExists(data.tags);
-      assertExists(data.properties);
-      assertEquals(typeof data.hasCoverArt, "boolean");
+    for (const item of result.items) {
+      assertEquals(item.status, "ok");
+      if (item.status === "ok") {
+        assertExists(item.data.tags);
+        assertExists(item.data.properties);
+        assertEquals(typeof item.data.hasCoverArt, "boolean");
+      }
     }
   });
 
   it("should handle errors gracefully", async () => {
     const files = ["/nonexistent/file.mp3"];
     const result = await readMetadataBatch(files, { continueOnError: true });
-    assertEquals(result.errors.length, 1);
+    assertEquals(result.items.length, 1);
+    assertEquals(result.items[0].status, "error");
   });
 });
 

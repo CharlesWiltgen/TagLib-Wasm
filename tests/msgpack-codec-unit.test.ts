@@ -28,7 +28,12 @@ import {
   getMessagePackInfo,
   isValidMessagePack,
 } from "../src/msgpack/decoder.ts";
-import type { AudioProperties, ExtendedTag, Picture } from "../src/types.ts";
+import type {
+  AudioProperties,
+  ExtendedTag,
+  Picture,
+  PictureType,
+} from "../src/types.ts";
 
 describe("encodeTagData", () => {
   it("should encode basic tag fields to msgpack", () => {
@@ -89,18 +94,18 @@ describe("decodeTagData", () => {
 describe("encodeAudioProperties", () => {
   it("should encode audio properties", () => {
     const props: AudioProperties = {
-      length: 180,
+      duration: 180,
       bitrate: 320,
       sampleRate: 44100,
       channels: 2,
       bitsPerSample: 16,
       codec: "MP3",
-      containerFormat: "MPEG",
+      containerFormat: "MP3",
       isLossless: false,
     };
     const encoded = encodeAudioProperties(props);
     const decoded = decodeAudioProperties(encoded);
-    assertEquals(decoded.length, 180);
+    assertEquals(decoded.duration, 180);
     assertEquals(decoded.bitrate, 320);
     assertEquals(decoded.sampleRate, 44100);
     assertEquals(decoded.channels, 2);
@@ -146,13 +151,13 @@ describe("encodePicture / decodePicture", () => {
     const pic: Picture = {
       mimeType: "image/jpeg",
       data: new Uint8Array([0xFF, 0xD8, 0xFF, 0xE0]),
-      type: 3,
+      type: "FrontCover" as PictureType,
       description: "Front Cover",
     };
     const encoded = encodePicture(pic);
     const decoded = decodePicture(encoded);
     assertEquals(decoded.mimeType, "image/jpeg");
-    assertEquals(decoded.type, 3);
+    assertEquals(decoded.type, "FrontCover");
     assertEquals(decoded.description, "Front Cover");
     assertEquals(new Uint8Array(decoded.data), pic.data);
   });
@@ -169,8 +174,16 @@ describe("encodePicture / decodePicture", () => {
 describe("encodePictureArray / decodePictureArray", () => {
   it("should roundtrip picture array", () => {
     const pics: Picture[] = [
-      { mimeType: "image/jpeg", data: new Uint8Array([1, 2]), type: 3 },
-      { mimeType: "image/png", data: new Uint8Array([3, 4]), type: 4 },
+      {
+        mimeType: "image/jpeg",
+        data: new Uint8Array([1, 2]),
+        type: "FrontCover" as PictureType,
+      },
+      {
+        mimeType: "image/png",
+        data: new Uint8Array([3, 4]),
+        type: "BackCover" as PictureType,
+      },
     ];
     const encoded = encodePictureArray(pics);
     const decoded = decodePictureArray(encoded);
@@ -330,13 +343,13 @@ describe("compareEncodingEfficiency", () => {
 describe("decodeMessagePackAuto", () => {
   it("should detect audio properties", () => {
     const props: AudioProperties = {
-      length: 120,
+      duration: 120,
       bitrate: 256,
       sampleRate: 48000,
       channels: 2,
       bitsPerSample: 16,
       codec: "MP3",
-      containerFormat: "MPEG",
+      containerFormat: "MP3",
       isLossless: false,
     };
     const encoded = encode(props);
@@ -348,7 +361,7 @@ describe("decodeMessagePackAuto", () => {
     const pic = {
       mimeType: "image/jpeg",
       data: new Uint8Array([1, 2]),
-      type: 3,
+      type: "FrontCover" as PictureType,
     };
     const encoded = encode(pic);
     const decoded = decodeMessagePackAuto(encoded);

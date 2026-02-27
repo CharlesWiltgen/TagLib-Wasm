@@ -66,8 +66,6 @@ export interface AudioFileMetadata {
   hasCoverArt?: boolean;
   /** Audio dynamics data (ReplayGain and Sound Check) */
   dynamics?: AudioDynamics;
-  /** Any errors encountered while reading this file */
-  error?: Error;
 }
 
 /**
@@ -93,17 +91,20 @@ export interface FolderScanOptions {
 }
 
 /**
- * Result of a folder scan operation
+ * Discriminated union for a single folder scan result.
+ * items[i] corresponds to the i-th file discovered during scanning.
+ */
+export type FolderScanItem =
+  | ({ status: "ok" } & AudioFileMetadata)
+  | { status: "error"; path: string; error: Error };
+
+/**
+ * Result of a folder scan operation.
+ * items[i] preserves discovery order; use status to discriminate ok/error.
  */
 export interface FolderScanResult {
-  /** Successfully processed files with metadata */
-  files: AudioFileMetadata[];
-  /** Files that failed to process */
-  errors: Array<{ path: string; error: Error }>;
-  /** Total number of audio files found */
-  totalFound: number;
-  /** Total number of files successfully processed */
-  totalProcessed: number;
+  /** Ordered results — one entry per discovered file */
+  items: FolderScanItem[];
   /** Time taken in milliseconds */
   duration: number;
 }
@@ -113,10 +114,4 @@ export interface ScanProcessOptions {
   continueOnError: boolean;
   onProgress?: (processed: number, total: number, currentFile: string) => void;
   totalFound: number;
-}
-
-export interface ScanProcessResult {
-  files: AudioFileMetadata[];
-  errors: Array<{ path: string; error: Error }>;
-  processed: number;
 }

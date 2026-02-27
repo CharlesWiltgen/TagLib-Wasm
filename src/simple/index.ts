@@ -27,7 +27,12 @@ export {
   readPropertiesBatch,
   readTagsBatch,
 } from "./batch-operations.ts";
-export type { BatchOptions, BatchResult } from "./batch-operations.ts";
+export type {
+  BatchItem,
+  BatchOptions,
+  BatchResult,
+  FileMetadata,
+} from "./batch-operations.ts";
 
 export {
   Album,

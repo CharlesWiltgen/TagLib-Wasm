@@ -1,10 +1,9 @@
-import type { Picture, PictureType } from "../types.ts";
-import { PICTURE_TYPE_VALUES } from "../types.ts";
+import type { AudioFileInput, Picture, PictureType } from "../types.ts";
 import { FileOperationError, InvalidFormatError } from "../errors.ts";
 import { getTagLib } from "./config.ts";
 
 export async function readPictures(
-  file: string | Uint8Array | ArrayBuffer | File,
+  file: AudioFileInput,
 ): Promise<Picture[]> {
   const taglib = await getTagLib();
   const audioFile = await taglib.open(file);
@@ -22,7 +21,7 @@ export async function readPictures(
 }
 
 export async function applyPictures(
-  file: string | Uint8Array | ArrayBuffer | File,
+  file: AudioFileInput,
   pictures: Picture[],
 ): Promise<Uint8Array> {
   const taglib = await getTagLib();
@@ -50,7 +49,7 @@ export async function applyPictures(
 }
 
 export async function addPicture(
-  file: string | Uint8Array | ArrayBuffer | File,
+  file: AudioFileInput,
   picture: Picture,
 ): Promise<Uint8Array> {
   const taglib = await getTagLib();
@@ -78,22 +77,20 @@ export async function addPicture(
 }
 
 export async function clearPictures(
-  file: string | Uint8Array | ArrayBuffer | File,
+  file: AudioFileInput,
 ): Promise<Uint8Array> {
   return applyPictures(file, []);
 }
 
 export async function readCoverArt(
-  file: string | Uint8Array | ArrayBuffer | File,
+  file: AudioFileInput,
 ): Promise<Uint8Array | null> {
   const pictures = await readPictures(file);
   if (pictures.length === 0) {
     return null;
   }
 
-  const frontCover = pictures.find((pic) =>
-    pic.type === PICTURE_TYPE_VALUES.FrontCover
-  );
+  const frontCover = pictures.find((pic) => pic.type === "FrontCover");
   if (frontCover) {
     return frontCover.data;
   }
@@ -102,14 +99,14 @@ export async function readCoverArt(
 }
 
 export async function applyCoverArt(
-  file: string | Uint8Array | ArrayBuffer | File,
+  file: AudioFileInput,
   imageData: Uint8Array,
   mimeType: string,
 ): Promise<Uint8Array> {
   const picture: Picture = {
     mimeType,
     data: imageData,
-    type: PICTURE_TYPE_VALUES.FrontCover,
+    type: "FrontCover",
     description: "Front Cover",
   };
   return applyPictures(file, [picture]);
@@ -117,14 +114,13 @@ export async function applyCoverArt(
 
 export function findPictureByType(
   pictures: Picture[],
-  type: PictureType | number,
+  type: PictureType,
 ): Picture | null {
-  const typeValue = typeof type === "string" ? PICTURE_TYPE_VALUES[type] : type;
-  return pictures.find((pic) => pic.type === typeValue) || null;
+  return pictures.find((pic) => pic.type === type) || null;
 }
 
 export async function replacePictureByType(
-  file: string | Uint8Array | ArrayBuffer | File,
+  file: AudioFileInput,
   newPicture: Picture,
 ): Promise<Uint8Array> {
   const pictures = await readPictures(file);
@@ -139,10 +135,10 @@ export async function replacePictureByType(
 }
 
 export async function readPictureMetadata(
-  file: string | Uint8Array | ArrayBuffer | File,
+  file: AudioFileInput,
 ): Promise<
   Array<{
-    type: number;
+    type: PictureType;
     mimeType: string;
     description?: string;
     size: number;

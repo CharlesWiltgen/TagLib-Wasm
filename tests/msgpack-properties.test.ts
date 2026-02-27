@@ -23,7 +23,12 @@ import {
   encodeTagData,
   isValidMessagePack,
 } from "../src/msgpack/index.ts";
-import type { AudioProperties, ExtendedTag, Picture } from "../src/types.ts";
+import type {
+  AudioProperties,
+  ExtendedTag,
+  Picture,
+  PictureType,
+} from "../src/types.ts";
 
 describe("MessagePack", () => {
   it("tag data round-trip property", () => {
@@ -119,7 +124,7 @@ describe("MessagePack", () => {
     fc.assert(
       fc.property(
         fc.record({
-          length: fc.float({ min: 0, max: 10000, noNaN: true }),
+          duration: fc.float({ min: 0, max: 10000, noNaN: true }),
           bitrate: fc.integer({ min: 0, max: 320000 }),
           sampleRate: fc.integer({ min: 8000, max: 192000 }),
           channels: fc.integer({ min: 1, max: 8 }),
@@ -135,8 +140,8 @@ describe("MessagePack", () => {
           const decoded = decodeAudioProperties(encoded);
 
           // Numeric properties should be preserved exactly or very close
-          if (props.length !== undefined) {
-            assert(Math.abs(decoded.length - props.length) < 0.001);
+          if (props.duration !== undefined) {
+            assert(Math.abs(decoded.duration - props.duration) < 0.001);
           }
           assertEquals(decoded.bitrate, props.bitrate);
           assertEquals(decoded.sampleRate, props.sampleRate);
@@ -156,7 +161,14 @@ describe("MessagePack", () => {
         fc.record({
           mimeType: fc.constantFrom("image/jpeg", "image/png", "image/gif"),
           data: fc.uint8Array({ minLength: 1, maxLength: 1024 }),
-          type: fc.integer({ min: 0, max: 20 }),
+          type: fc.constantFrom(
+            "FrontCover",
+            "BackCover",
+            "LeafletPage",
+            "Artist",
+            "BandLogo",
+            "Other",
+          ),
           description: fc.option(fc.string(), { nil: undefined }),
         }),
         (picture) => {
@@ -192,7 +204,7 @@ describe("MessagePack", () => {
           const picture: Picture = {
             mimeType: "image/jpeg",
             data: input.data,
-            type: 3,
+            type: "FrontCover" as PictureType,
             description: input.title,
           };
 

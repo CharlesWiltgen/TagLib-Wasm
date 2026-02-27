@@ -5,30 +5,27 @@
 import { TagLib } from "../taglib.ts";
 import { walkDirectory } from "./directory-walker.ts";
 import { processBatch, processFileWithTagLib } from "./file-processors.ts";
-import {
-  type AudioFileMetadata,
-  EMPTY_TAG,
-  type FolderScanOptions,
-  type FolderScanResult,
-  type ScanProcessOptions,
-  type ScanProcessResult,
+import type {
+  FolderScanItem,
+  FolderScanOptions,
+  FolderScanResult,
+  ScanProcessOptions,
 } from "./types.ts";
 
 async function scanWithTagLib(
   taglib: TagLib,
   filePaths: string[],
   opts: ScanProcessOptions,
-): Promise<ScanProcessResult> {
+): Promise<FolderScanItem[]> {
   const { includeProperties, continueOnError, onProgress, totalFound } = opts;
-  const files: AudioFileMetadata[] = [];
-  const errors: Array<{ path: string; error: Error }> = [];
+  const items: FolderScanItem[] = [];
   const progress = { count: 0 };
 
   const processor = async (
     filePath: string,
-  ): Promise<AudioFileMetadata> => {
+  ): Promise<FolderScanItem> => {
     try {
-      return await processFileWithTagLib(
+      const metadata = await processFileWithTagLib(
         filePath,
         taglib,
         includeProperties,
@@ -36,14 +33,14 @@ async function scanWithTagLib(
         progress,
         totalFound,
       );
+      return { status: "ok", ...metadata };
     } catch (error) {
       const err = error instanceof Error ? error : new Error(String(error));
 
       if (continueOnError) {
-        errors.push({ path: filePath, error: err });
         const current = ++progress.count;
         onProgress?.(current, totalFound, filePath);
-        return { path: filePath, tags: EMPTY_TAG, error: err };
+        return { status: "error", path: filePath, error: err };
       } else {
         throw err;
       }
@@ -58,10 +55,10 @@ async function scanWithTagLib(
       Math.min(i + batchSize, filePaths.length),
     );
     const batchResults = await processBatch(batch, processor, concurrency);
-    files.push(...batchResults.filter((r) => !r.error));
+    items.push(...batchResults);
   }
 
-  return { files, errors, processed: progress.count };
+  return items;
 }
 
 /**
@@ -74,10 +71,10 @@ async function scanWithTagLib(
  * @example
  * ```typescript
  * const result = await scanFolder("/path/to/music");
- * console.log(`Found ${result.totalFound} audio files`);
- *
- * for (const file of result.files) {
- *   console.log(`${file.path}: ${file.tags.artist} - ${file.tags.title}`);
+ * for (const item of result.items) {
+ *   if (item.status === "ok") {
+ *     console.log(`${item.path}: ${item.tags.artist} - ${item.tags.title}`);
+ *   }
  * }
  * ```
  */
@@ -118,13 +115,10 @@ export async function scanFolder(
     totalFound,
   };
 
-  const result = await scanWithTagLib(taglib, filePaths, processOpts);
+  const items = await scanWithTagLib(taglib, filePaths, processOpts);
 
   return {
-    files: result.files,
-    errors: result.errors,
-    totalFound,
-    totalProcessed: result.processed,
+    items,
     duration: Date.now() - startTime,
   };
 }
