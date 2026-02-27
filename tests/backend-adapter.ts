@@ -27,7 +27,7 @@ export type BasicTags = {
 
 export type BasicAudioProps = Pick<
   AudioProperties,
-  "length" | "bitrate" | "sampleRate" | "channels"
+  "duration" | "bitrate" | "sampleRate" | "channels"
 >;
 
 export type ExtendedAudioProps = BasicAudioProps & {
@@ -106,7 +106,7 @@ export class WasiBackendAdapter implements BackendAdapter {
     const { readTagsViaBuffer } = await import("./wasi-test-helpers.ts");
     const raw: any = readTagsViaBuffer(this.#wasi, buffer);
     return {
-      length: raw.length ?? 0,
+      duration: raw.length ?? 0,
       bitrate: raw.bitrate ?? 0,
       sampleRate: raw.sampleRate ?? 0,
       channels: raw.channels ?? 0,
@@ -124,7 +124,7 @@ export class WasiBackendAdapter implements BackendAdapter {
     handle.loadFromBuffer(buffer);
     const props = handle.getAudioProperties();
     const result: ExtendedAudioProps = {
-      length: props?.lengthInSeconds() ?? 0,
+      duration: props?.lengthInSeconds() ?? 0,
       bitrate: props?.bitrate() ?? 0,
       sampleRate: props?.sampleRate() ?? 0,
       channels: props?.channels() ?? 0,
@@ -285,7 +285,7 @@ export class EmscriptenBackendAdapter implements BackendAdapter {
     try {
       const props = file.audioProperties();
       return {
-        length: props?.length ?? 0,
+        duration: props?.duration ?? 0,
         bitrate: props?.bitrate ?? 0,
         sampleRate: props?.sampleRate ?? 0,
         channels: props?.channels ?? 0,
@@ -303,7 +303,7 @@ export class EmscriptenBackendAdapter implements BackendAdapter {
     try {
       const props = file.audioProperties();
       return {
-        length: props?.length ?? 0,
+        duration: props?.duration ?? 0,
         bitrate: props?.bitrate ?? 0,
         sampleRate: props?.sampleRate ?? 0,
         channels: props?.channels ?? 0,

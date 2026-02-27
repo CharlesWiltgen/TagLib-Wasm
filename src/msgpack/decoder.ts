@@ -37,7 +37,15 @@ export function decodeAudioProperties(
   msgpackBuffer: Uint8Array,
 ): AudioProperties {
   try {
-    return decode(msgpackBuffer, MSGPACK_DECODE_OPTIONS) as AudioProperties;
+    const raw = decode(msgpackBuffer, MSGPACK_DECODE_OPTIONS) as Record<
+      string,
+      unknown
+    >;
+    if ("length" in raw && !("duration" in raw)) {
+      raw.duration = raw.length;
+      delete raw.length;
+    }
+    return raw as unknown as AudioProperties;
   } catch (error) {
     throw new MetadataError(
       "read",
@@ -89,7 +97,8 @@ export function decodeMessagePack<T = unknown>(
 }
 
 function isAudioProperties(obj: Record<string, unknown>): boolean {
-  return "bitrate" in obj && "sampleRate" in obj && "length" in obj;
+  return "bitrate" in obj && "sampleRate" in obj &&
+    ("length" in obj || "duration" in obj);
 }
 
 function isPicture(obj: Record<string, unknown>): boolean {
@@ -129,7 +138,13 @@ export function decodeMessagePackAuto(
     const decoded = decode(msgpackBuffer, MSGPACK_DECODE_OPTIONS);
     if (decoded && typeof decoded === "object") {
       const obj = decoded as Record<string, unknown>;
-      if (isAudioProperties(obj)) return obj as unknown as AudioProperties;
+      if (isAudioProperties(obj)) {
+        if ("length" in obj && !("duration" in obj)) {
+          obj.duration = obj.length;
+          delete obj.length;
+        }
+        return obj as unknown as AudioProperties;
+      }
       if (isPicture(obj)) {
         coercePictureData(obj);
         return obj as unknown as Picture;

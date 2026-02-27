@@ -150,7 +150,7 @@ export type AudioFormat =
  * @example
  * ```typescript
  * const props = file.audioProperties();
- * console.log(`Duration: ${props.length} seconds`);
+ * console.log(`Duration: ${props.duration} seconds`);
  * console.log(`Bitrate: ${props.bitrate} kbps`);
  * console.log(`Sample rate: ${props.sampleRate} Hz`);
  * console.log(`Container: ${props.containerFormat}`);
@@ -159,8 +159,8 @@ export type AudioFormat =
  * ```
  */
 export interface AudioProperties {
-  /** Length of the audio in seconds */
-  readonly length: number;
+  /** Duration of the audio in seconds */
+  readonly duration: number;
   /** Bitrate in kb/s */
   readonly bitrate: number;
   /** Sample rate in Hz */
@@ -170,9 +170,9 @@ export interface AudioProperties {
   /** Bits per sample (0 if not applicable or unknown) */
   readonly bitsPerSample: number;
   /** Audio codec (e.g., "AAC", "ALAC", "MP3", "FLAC", "PCM") */
-  readonly codec: string;
+  readonly codec: AudioCodec;
   /** Container format (e.g., "MP4", "OGG", "MP3", "FLAC") */
-  readonly containerFormat: string;
+  readonly containerFormat: ContainerFormat;
   /** Whether the audio is lossless (uncompressed or losslessly compressed) */
   readonly isLossless: boolean;
   /** MPEG version (1 or 2, MP3 only) */

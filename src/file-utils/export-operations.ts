@@ -1,6 +1,5 @@
 import { MetadataError } from "../errors/classes.ts";
 import type { Picture, PictureType } from "../types.ts";
-import { PICTURE_TYPE_VALUES } from "../types.ts";
 import { readCoverArt, readPictures } from "../simple/index.ts";
 import { writeFileData } from "../utils/write.ts";
 import { generatePictureFilename } from "./mime-detection.ts";
@@ -56,11 +55,10 @@ export async function exportCoverArt(
 export async function exportPictureByType(
   audioPath: string,
   imagePath: string,
-  type: PictureType | number,
+  type: PictureType,
 ): Promise<void> {
   const pictures = await readPictures(audioPath);
-  const typeValue = typeof type === "string" ? PICTURE_TYPE_VALUES[type] : type;
-  const picture = pictures.find((pic: Picture) => pic.type === typeValue);
+  const picture = pictures.find((pic: Picture) => pic.type === type);
 
   if (!picture) {
     throw new MetadataError(

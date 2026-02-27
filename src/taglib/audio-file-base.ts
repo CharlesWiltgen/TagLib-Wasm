@@ -1,7 +1,9 @@
 import type { FileHandle, TagLibModule } from "../wasm.ts";
 import type {
+  AudioCodec,
   AudioFileInput,
   AudioProperties,
+  ContainerFormat,
   FileType,
   OpenOptions,
   PropertyMap,
@@ -59,13 +61,27 @@ export abstract class BaseAudioFileImpl {
     }
 
     const tag: MutableTag = {
-      title: tagWrapper.title(),
-      artist: tagWrapper.artist(),
-      album: tagWrapper.album(),
-      comment: tagWrapper.comment(),
-      genre: tagWrapper.genre(),
-      year: tagWrapper.year(),
-      track: tagWrapper.track(),
+      get title() {
+        return tagWrapper.title();
+      },
+      get artist() {
+        return tagWrapper.artist();
+      },
+      get album() {
+        return tagWrapper.album();
+      },
+      get comment() {
+        return tagWrapper.comment();
+      },
+      get genre() {
+        return tagWrapper.genre();
+      },
+      get year() {
+        return tagWrapper.year();
+      },
+      get track() {
+        return tagWrapper.track();
+      },
       setTitle: (value: string) => {
         tagWrapper.setTitle(value);
         return tag;
@@ -106,13 +122,14 @@ export abstract class BaseAudioFileImpl {
       }
 
       this.cachedAudioProperties = {
-        length: propsWrapper.lengthInSeconds(),
+        duration: propsWrapper.lengthInSeconds(),
         bitrate: propsWrapper.bitrate(),
         sampleRate: propsWrapper.sampleRate(),
         channels: propsWrapper.channels(),
         bitsPerSample: propsWrapper.bitsPerSample(),
-        codec: propsWrapper.codec(),
-        containerFormat: propsWrapper.containerFormat(),
+        codec: (propsWrapper.codec() || "Unknown") as AudioCodec,
+        containerFormat:
+          (propsWrapper.containerFormat() || "UNKNOWN") as ContainerFormat,
         isLossless: propsWrapper.isLossless(),
       };
     }

@@ -75,6 +75,7 @@ export {
 } from "./src/folder-api/index.ts";
 export type {
   AudioFileMetadata,
+  FolderScanItem,
   FolderScanOptions,
   FolderScanResult,
 } from "./src/folder-api/index.ts";

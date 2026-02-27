@@ -1,6 +1,5 @@
 import { MetadataError } from "../errors/classes.ts";
 import type { Picture } from "../types.ts";
-import { PICTURE_TYPE_VALUES } from "../types.ts";
 import {
   applyCoverArt,
   applyPictures,
@@ -53,7 +52,7 @@ export async function copyCoverArt(
 
     const pictures = await readPictures(sourcePath);
     const coverPicture = pictures.find((p: Picture) =>
-      p.type === PICTURE_TYPE_VALUES.FrontCover
+      p.type === "FrontCover"
     ) ?? pictures[0];
 
     const modifiedBuffer = await applyCoverArt(

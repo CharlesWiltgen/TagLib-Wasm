@@ -1,5 +1,4 @@
 import type { Picture, PictureType } from "../types.ts";
-import { PICTURE_TYPE_VALUES } from "../types.ts";
 import { applyCoverArt, replacePictureByType } from "../simple/index.ts";
 import { readFileData } from "../utils/file.ts";
 import { writeFileData } from "../utils/write.ts";
@@ -63,7 +62,7 @@ export async function importCoverArt(
 export async function importPictureWithType(
   audioPath: string,
   imagePath: string,
-  type: PictureType | number,
+  type: PictureType,
   options: {
     mimeType?: string;
     description?: string;
@@ -75,7 +74,7 @@ export async function importPictureWithType(
   const picture: Picture = {
     mimeType,
     data: imageData,
-    type: typeof type === "string" ? PICTURE_TYPE_VALUES[type] : type,
+    type,
     description: options.description,
   };
 
@@ -101,7 +100,7 @@ export async function importPictureWithType(
  */
 export async function loadPictureFromFile(
   imagePath: string,
-  type: PictureType | number = "FrontCover",
+  type: PictureType = "FrontCover",
   options: {
     mimeType?: string;
     description?: string;
@@ -113,7 +112,7 @@ export async function loadPictureFromFile(
   return {
     mimeType,
     data,
-    type: typeof type === "string" ? PICTURE_TYPE_VALUES[type] : type,
+    type,
     description: options.description ?? imagePath.split("/").pop(),
   };
 }

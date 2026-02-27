@@ -95,10 +95,11 @@ export async function findDuplicates(
   const result = await scanFolder(folderPath, scanOptions);
   const duplicates = new Map<string, AudioFileMetadata[]>();
 
-  for (const file of result.files) {
+  for (const item of result.items) {
+    if (item.status !== "ok") continue;
     const key = criteria
       .map((field) => {
-        const val = file.tags[field];
+        const val = item.tags[field];
         if (Array.isArray(val)) return val.join(", ");
         return val ?? "";
       })
@@ -107,7 +108,7 @@ export async function findDuplicates(
 
     if (key) {
       const group = duplicates.get(key) ?? [];
-      group.push(file);
+      group.push(item);
       duplicates.set(key, group);
     }
   }
@@ -135,17 +136,19 @@ export async function exportFolderMetadata(
 ): Promise<void> {
   const result = await scanFolder(folderPath, options);
 
+  const okItems = result.items.filter((item) => item.status === "ok");
+  const errorItems = result.items.filter((item) => item.status === "error");
   const data = {
     folder: folderPath,
     scanDate: new Date().toISOString(),
     summary: {
-      totalFiles: result.totalFound,
-      processedFiles: result.totalProcessed,
-      errors: result.errors.length,
+      totalFiles: result.items.length,
+      processedFiles: okItems.length,
+      errors: errorItems.length,
       duration: result.duration,
     },
-    files: result.files,
-    errors: result.errors,
+    files: okItems,
+    errors: errorItems,
   };
 
   const jsonBytes = new TextEncoder().encode(JSON.stringify(data, null, 2));

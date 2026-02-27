@@ -1,5 +1,4 @@
 import type { Picture, PictureType } from "../types.ts";
-import { PICTURE_TYPE_VALUES } from "../types.ts";
 import { InvalidFormatError } from "../errors/classes.ts";
 
 /**
@@ -37,7 +36,7 @@ export function pictureToDataURL(picture: Picture): string {
  */
 export function dataURLToPicture(
   dataURL: string,
-  type: PictureType | number = "FrontCover",
+  type: PictureType = "FrontCover",
   description?: string,
 ): Picture {
   const regex = /^data:([^;]+);base64,(.+)$/;
@@ -57,7 +56,7 @@ export function dataURLToPicture(
   return {
     mimeType,
     data,
-    type: typeof type === "string" ? PICTURE_TYPE_VALUES[type] : type,
+    type,
     description,
   };
 }

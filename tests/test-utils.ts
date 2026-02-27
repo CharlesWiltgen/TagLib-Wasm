@@ -466,13 +466,13 @@ export const TEST_PICTURES = {
   frontCover: {
     mimeType: "image/png",
     data: RED_PNG,
-    type: 3, // FrontCover
+    type: "FrontCover" as PictureType,
     description: "Front cover",
   },
   backCover: {
     mimeType: "image/jpeg",
     data: BLUE_JPEG,
-    type: 4, // BackCover
+    type: "BackCover" as PictureType,
     description: "Back cover",
   },
 } as const;

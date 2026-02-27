@@ -71,7 +71,7 @@ describe("Full API", () => {
 
     const props = file.audioProperties();
     assertExists(props, "Should have audio properties");
-    assert(props.length > 0, "Duration should be positive");
+    assert(props.duration > 0, "Duration should be positive");
     assert(props.bitrate > 0, "Bitrate should be positive");
     assert(props.sampleRate > 0, "Sample rate should be positive");
     assert(props.channels > 0, "Channels should be positive");
@@ -262,7 +262,7 @@ describe("Simple API", () => {
   it("Audio Properties", async () => {
     const props = await readProperties(TEST_FILES.mp3);
     assertExists(props, "Should return properties");
-    assert(props.length > 0, "Duration should be positive");
+    assert(props.duration > 0, "Duration should be positive");
     assert(props.bitrate > 0, "Bitrate should be positive");
     assert(props.sampleRate > 0, "Sample rate should be positive");
     assert(props.channels > 0, "Channels should be positive");
@@ -441,7 +441,7 @@ describe("Format Tests", () => {
 
           console.log(`📄 Format: ${detectedFormat}`);
           console.log(
-            `🎧 Properties: ${props?.length ?? 0}s, ${
+            `🎧 Properties: ${props?.duration ?? 0}s, ${
               props?.bitrate ?? 0
             }kbps, ${props?.sampleRate ?? 0}Hz`,
           );
@@ -513,7 +513,7 @@ describe("Integration", () => {
       assertExists(tags, `${format} should have tags`);
 
       const props = await readProperties(path);
-      assert(props.length > 0, `${format} should have duration`);
+      assert(props.duration > 0, `${format} should have duration`);
 
       try {
         const modified = await applyTagsToBuffer(path, {
@@ -659,7 +659,6 @@ describe("Integration", () => {
 
   it("readMetadataBatch - includes cover art and dynamics data", async () => {
     const { readMetadataBatch } = await import("../src/simple/index.ts");
-    const { readFileData } = await import("../src/utils/file.ts");
 
     const testFiles = [
       "./tests/test-files/mp3/kiss-snippet.mp3",
@@ -671,28 +670,29 @@ describe("Integration", () => {
       concurrency: 3,
     });
 
-    assertEquals(result.results.length, testFiles.length);
-    assertEquals(result.errors.length, 0);
+    assertEquals(result.items.length, testFiles.length);
+    assertEquals(result.items.every((item) => item.status === "ok"), true);
 
-    for (const { file, data } of result.results) {
-      assertExists(data.tags);
-      assertExists(data.properties);
-      assertEquals(typeof data.hasCoverArt, "boolean");
+    for (const item of result.items) {
+      if (item.status !== "ok") continue;
+      assertExists(item.data.tags);
+      assertExists(item.data.properties);
+      assertEquals(typeof item.data.hasCoverArt, "boolean");
 
-      if (data.dynamics) {
-        assertEquals(typeof data.dynamics, "object");
+      if (item.data.dynamics) {
+        assertEquals(typeof item.data.dynamics, "object");
 
-        if (data.dynamics.replayGainTrackGain) {
-          assertEquals(typeof data.dynamics.replayGainTrackGain, "string");
+        if (item.data.dynamics.replayGainTrackGain) {
+          assertEquals(typeof item.data.dynamics.replayGainTrackGain, "string");
         }
-        if (data.dynamics.appleSoundCheck) {
-          assertEquals(typeof data.dynamics.appleSoundCheck, "string");
+        if (item.data.dynamics.appleSoundCheck) {
+          assertEquals(typeof item.data.dynamics.appleSoundCheck, "string");
         }
       }
 
       console.log(
-        `${file}: hasCoverArt=${data.hasCoverArt}, dynamics=${
-          data.dynamics ? "yes" : "no"
+        `${item.path}: hasCoverArt=${item.data.hasCoverArt}, dynamics=${
+          item.data.dynamics ? "yes" : "no"
         }`,
       );
     }
@@ -721,12 +721,15 @@ describe("Integration", () => {
 
       const result = await readMetadataBatch([tempFile]);
 
-      assertEquals(result.results.length, 1);
-      const data = result.results[0].data;
+      assertEquals(result.items.length, 1);
+      assertEquals(result.items[0].status, "ok");
+      if (result.items[0].status === "ok") {
+        const data = result.items[0].data;
 
-      assertExists(data.dynamics);
-      assertEquals(data.dynamics.replayGainTrackGain, "-6.5 dB");
-      assertEquals(data.dynamics.replayGainTrackPeak, "0.95");
+        assertExists(data.dynamics);
+        assertEquals(data.dynamics.replayGainTrackGain, "-6.5 dB");
+        assertEquals(data.dynamics.replayGainTrackPeak, "0.95");
+      }
     } finally {
       await Deno.remove(tempFile);
     }

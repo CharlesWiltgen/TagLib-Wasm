@@ -49,9 +49,9 @@ forEachBackend("Audio Properties", (adapter: BackendAdapter) => {
         `${format}: bitrate ${props.bitrate} out of range [${expected.bitrateMin}, ${expected.bitrateMax}]`,
       );
       assert(
-        props.length >= expected.lengthMin &&
-          props.length <= expected.lengthMax,
-        `${format}: length ${props.length} out of range [${expected.lengthMin}, ${expected.lengthMax}]`,
+        props.duration >= expected.lengthMin &&
+          props.duration <= expected.lengthMax,
+        `${format}: duration ${props.duration} out of range [${expected.lengthMin}, ${expected.lengthMax}]`,
       );
     });
   }
@@ -60,7 +60,7 @@ forEachBackend("Audio Properties", (adapter: BackendAdapter) => {
     const buffer = await readFixture("mp3");
     const props = await adapter.readAudioProperties(buffer, "mp3");
 
-    assert(props.length > 0, "length should be positive");
+    assert(props.duration > 0, "duration should be positive");
     assert(props.bitrate > 0, "bitrate should be positive");
     assert(props.sampleRate > 0, "sampleRate should be positive");
     assert(props.channels > 0, "channels should be positive");
