@@ -1,6 +1,12 @@
 import { assertEquals, assertExists, assertThrows } from "@std/assert";
 import { describe, it } from "@std/testing/bdd";
 import { WasiToTagLibAdapter } from "../src/runtime/wasi-adapter/index.ts";
+import {
+  readTagsFromWasm,
+  writeTagsToWasm,
+} from "../src/runtime/wasi-adapter/wasm-io.ts";
+import { WasmMemoryError } from "../src/runtime/wasi-memory.ts";
+import type { ExtendedTag } from "../src/types.ts";
 
 describe("WasiToTagLibAdapter", () => {
   it("should create adapter from mock WASI module", () => {
@@ -610,6 +616,95 @@ describe("WasiFileHandle.save()", () => {
     const adapter = new WasiToTagLibAdapter(mock);
     const fh = adapter.createFileHandle();
     assertEquals(fh.save(), false);
+  });
+});
+
+describe("readTagsFromWasm", () => {
+  it("should return msgpack data on success", () => {
+    const mock = createMockWasiModule();
+    mock.tl_read_tags = stubTlReadTags(mock);
+
+    const buffer = new Uint8Array([0xFF, 0xFB, 0, 0, 0, 0, 0, 0, 0, 0]);
+    const result = readTagsFromWasm(mock, buffer);
+    assertEquals(result instanceof Uint8Array, true);
+    assertEquals(result.length, 1);
+    assertEquals(result[0], 0x80); // empty msgpack map
+  });
+
+  it("should throw WasmMemoryError when tl_read_tags returns 0", () => {
+    const mock = createMockWasiModule();
+    mock.tl_read_tags = () => 0;
+    mock.tl_get_last_error_code = () => 42;
+
+    const buffer = new Uint8Array([0xFF, 0xFB, 0, 0]);
+    assertThrows(
+      () => readTagsFromWasm(mock, buffer),
+      WasmMemoryError,
+      "error code 42",
+    );
+  });
+});
+
+describe("writeTagsToWasm", () => {
+  it("should return modified buffer on success", () => {
+    const mock = createMockWasiModule();
+    const OUTPUT_PTR = 8192;
+    const outputData = new Uint8Array([0xFF, 0xFB, 0x90, 0x00, 0xAA]);
+
+    mock.tl_write_tags = (
+      _fd: number,
+      _inputPtr: number,
+      _inputSize: number,
+      _tagPtr: number,
+      _tagSize: number,
+      outBufPtr: number,
+      outSizePtr: number,
+    ) => {
+      const view = new DataView(mock.memory.buffer);
+      const heap = new Uint8Array(mock.memory.buffer);
+      heap.set(outputData, OUTPUT_PTR);
+      view.setUint32(outBufPtr, OUTPUT_PTR, true);
+      view.setUint32(outSizePtr, outputData.length, true);
+      return 0; // success
+    };
+
+    const fileData = new Uint8Array([0xFF, 0xFB, 0, 0, 0, 0, 0, 0]);
+    const tagData = { title: "Test" } as unknown as ExtendedTag;
+    const result = writeTagsToWasm(mock, fileData, tagData);
+    assertExists(result);
+    assertEquals(result!.length, outputData.length);
+  });
+
+  it("should return null when tl_write_tags returns non-zero", () => {
+    const mock = createMockWasiModule();
+    mock.tl_write_tags = () => 1; // failure
+
+    const fileData = new Uint8Array([0xFF, 0xFB, 0, 0, 0, 0, 0, 0]);
+    const tagData = { title: "Test" } as unknown as ExtendedTag;
+    const result = writeTagsToWasm(mock, fileData, tagData);
+    assertEquals(result, null);
+  });
+
+  it("should return null when output buffer pointer is 0", () => {
+    const mock = createMockWasiModule();
+    mock.tl_write_tags = (
+      _fd: number,
+      _inputPtr: number,
+      _inputSize: number,
+      _tagPtr: number,
+      _tagSize: number,
+      outBufPtr: number,
+      outSizePtr: number,
+    ) => {
+      const view = new DataView(mock.memory.buffer);
+      view.setUint32(outBufPtr, 0, true); // null pointer
+      view.setUint32(outSizePtr, 0, true);
+      return 0;
+    };
+
+    const fileData = new Uint8Array([0xFF, 0xFB, 0, 0, 0, 0, 0, 0]);
+    const tagData = { title: "Test" } as unknown as ExtendedTag;
+    assertEquals(writeTagsToWasm(mock, fileData, tagData), null);
   });
 });
 
