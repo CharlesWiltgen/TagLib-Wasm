@@ -153,7 +153,7 @@ export async function readPartialFileData(
         const stats = await file.stat();
         const fileSize = stats.size;
         const actualHeaderSize = Math.min(headerSize, fileSize);
-        const { Buffer } = await import("buffer");
+        const { Buffer } = await import("node:buffer");
         const header = Buffer.alloc(actualHeaderSize);
         await file.read(header, 0, actualHeaderSize, 0);
 
