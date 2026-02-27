@@ -79,6 +79,17 @@ describe("encodeTagData", () => {
     const decoded = decodeTagData(encoded) as Record<string, unknown>;
     assertEquals(decoded.comment, null);
   });
+
+  it("should pass through pictures key without remapping", () => {
+    const tag = {
+      title: "T",
+      pictures: [{ mimeType: "image/jpeg", data: new Uint8Array([1]) }],
+    } as unknown as ExtendedTag;
+    const encoded = encodeTagData(tag);
+    const decoded = decodeTagData(encoded) as Record<string, unknown>;
+    assertEquals(decoded.title, "T");
+    assertEquals(Array.isArray(decoded.pictures), true);
+  });
 });
 
 describe("decodeTagData", () => {
@@ -122,6 +133,23 @@ describe("encodeAudioProperties", () => {
     assertEquals(decoded.bitrate, 320);
     assertEquals(decoded.sampleRate, 44100);
     assertEquals(decoded.channels, 2);
+  });
+});
+
+describe("decodeAudioProperties length migration", () => {
+  it("should migrate length to duration when duration is absent", () => {
+    const oldFormat = encode({
+      length: 240,
+      bitrate: 320,
+      sampleRate: 44100,
+      channels: 2,
+    });
+    const decoded = decodeAudioProperties(oldFormat);
+    assertEquals(decoded.duration, 240);
+    assertEquals(
+      (decoded as unknown as Record<string, unknown>).length,
+      undefined,
+    );
   });
 });
 
@@ -228,6 +256,14 @@ describe("encodeMessagePack / decodeMessagePack", () => {
     const encoded = encodeMessagePack(data, { sortKeys: true });
     const decoded = decodeMessagePack<typeof data>(encoded, {});
     assertEquals(decoded.x, 42);
+  });
+
+  it("should preserve Date objects through cleanObject", () => {
+    const now = new Date();
+    const data = { timestamp: now, value: 42 };
+    const encoded = encodeMessagePack(data);
+    assertEquals(encoded instanceof Uint8Array, true);
+    assertEquals(encoded.length > 0, true);
   });
 
   it("should throw on invalid decode", () => {
@@ -368,6 +404,21 @@ describe("decodeMessagePackAuto", () => {
     const encoded = encode(props);
     const decoded = decodeMessagePackAuto(encoded);
     assertEquals((decoded as AudioProperties).bitrate, 256);
+  });
+
+  it("should migrate length to duration in audio properties", () => {
+    const oldProps = encode({
+      length: 180,
+      bitrate: 128,
+      sampleRate: 44100,
+      channels: 2,
+    });
+    const decoded = decodeMessagePackAuto(oldProps) as AudioProperties;
+    assertEquals(decoded.duration, 180);
+    assertEquals(
+      (decoded as unknown as Record<string, unknown>).length,
+      undefined,
+    );
   });
 
   it("should detect picture data", () => {
