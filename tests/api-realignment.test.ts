@@ -34,7 +34,7 @@ describe("API Realignment", () => {
       const buffer = await readFileData(TEST_FILES.mp3);
 
       const noCover = await readCoverArt(buffer);
-      assertEquals(noCover, null);
+      assertEquals(noCover, undefined);
 
       const withArt = await applyCoverArt(buffer, RED_PNG, "image/png");
       const cover = await readCoverArt(withArt);

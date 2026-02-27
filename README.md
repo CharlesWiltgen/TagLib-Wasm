@@ -270,7 +270,7 @@ console.log(props.isLossless); // false for AAC, true for ALAC
 console.log(props.bitsPerSample); // 16 for most formats
 console.log(props.bitrate); // 256 (kbps)
 console.log(props.sampleRate); // 44100 (Hz)
-console.log(props.length); // 180 (duration in seconds)
+console.log(props.duration); // 180 (duration in seconds)
 ```
 
 Container format vs Codec:

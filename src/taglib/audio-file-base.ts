@@ -114,11 +114,11 @@ export abstract class BaseAudioFileImpl {
     return tag;
   }
 
-  audioProperties(): AudioProperties | null {
+  audioProperties(): AudioProperties | undefined {
     if (!this.cachedAudioProperties) {
       const propsWrapper = this.handle.getAudioProperties();
       if (!propsWrapper) {
-        return null;
+        return undefined;
       }
 
       this.cachedAudioProperties = {

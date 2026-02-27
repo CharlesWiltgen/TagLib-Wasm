@@ -2,28 +2,32 @@
  * @fileoverview Error types and interfaces for Wasmer SDK loader
  */
 
-// Branded error types for proper error handling
-export class WasmerInitError extends Error {
-  readonly code = "WASMER_INIT_ERROR" as const;
+import { TagLibError } from "../../errors/base.ts";
+
+export class WasmerInitError extends TagLibError {
   constructor(message: string, cause?: unknown) {
-    super(message, { cause });
+    super("MODULE_LOAD", message, cause ? { cause } : undefined);
     this.name = "WasmerInitError";
+    if (cause) this.cause = cause;
+    Object.setPrototypeOf(this, WasmerInitError.prototype);
   }
 }
 
-export class WasmerLoadError extends Error {
-  readonly code = "WASMER_LOAD_ERROR" as const;
+export class WasmerLoadError extends TagLibError {
   constructor(message: string, cause?: unknown) {
-    super(message, { cause });
+    super("MODULE_LOAD", message, cause ? { cause } : undefined);
     this.name = "WasmerLoadError";
+    if (cause) this.cause = cause;
+    Object.setPrototypeOf(this, WasmerLoadError.prototype);
   }
 }
 
-export class WasmerExecutionError extends Error {
-  readonly code = "WASMER_EXECUTION_ERROR" as const;
+export class WasmerExecutionError extends TagLibError {
   constructor(message: string, cause?: unknown) {
-    super(message, { cause });
+    super("WASM_MEMORY", message, cause ? { cause } : undefined);
     this.name = "WasmerExecutionError";
+    if (cause) this.cause = cause;
+    Object.setPrototypeOf(this, WasmerExecutionError.prototype);
   }
 }
 

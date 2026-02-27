@@ -19,7 +19,7 @@ console.log(tags);
 // Read audio properties
 const props = await readProperties("song.mp3");
 console.log(props);
-// Output: { length: 180, bitrate: 320, sampleRate: 44100, channels: 2, codec: "MP3", isLossless: false, bitsPerSample: 16 }
+// Output: { duration: 180, bitrate: 320, sampleRate: 44100, channels: 2, codec: "MP3", isLossless: false, bitsPerSample: 16 }
 ```
 
 ### Writing Tags
@@ -92,7 +92,7 @@ console.log(`Album: ${tags.album}`);
 
 // Read audio properties
 const props = file.audioProperties();
-console.log(`Duration: ${props.length} seconds`);
+console.log(`Duration: ${props.duration} seconds`);
 console.log(`Bitrate: ${props.bitrate} kbps`);
 console.log(`Codec: ${props.codec}`);
 console.log(`Lossless: ${props.isLossless}`);
@@ -232,7 +232,7 @@ export default {
       const metadata = {
         title: file.tag().title,
         artist: file.tag().artist,
-        duration: file.audioProperties().length,
+        duration: file.audioProperties().duration,
       };
 
       return Response.json({ success: true, metadata });

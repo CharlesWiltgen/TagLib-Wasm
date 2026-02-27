@@ -18,7 +18,8 @@ async function scanWithTagLib(
   filePaths: string[],
   opts: ScanProcessOptions,
 ): Promise<FolderScanItem[]> {
-  const { includeProperties, continueOnError, onProgress, totalFound } = opts;
+  const { includeProperties, continueOnError, onProgress, totalFound, signal } =
+    opts;
   const items: FolderScanItem[] = [];
   const progress = { count: 0 };
 
@@ -51,6 +52,7 @@ async function scanWithTagLib(
   const concurrency = 4;
   const batchSize = concurrency * 10;
   for (let i = 0; i < filePaths.length; i += batchSize) {
+    signal?.throwIfAborted();
     const batch = filePaths.slice(
       i,
       Math.min(i + batchSize, filePaths.length),
@@ -90,12 +92,14 @@ export async function scanFolder(
     continueOnError = true,
     onProgress,
     forceBufferMode,
+    signal,
   } = options;
 
   const filePaths: string[] = [];
 
   let fileCount = 0;
   for await (const filePath of walkDirectory(folderPath, options)) {
+    signal?.throwIfAborted();
     filePaths.push(filePath);
     fileCount++;
     if (fileCount >= maxFiles) break;
@@ -112,6 +116,7 @@ export async function scanFolder(
     continueOnError,
     onProgress,
     totalFound,
+    signal,
   };
 
   const items = await scanWithTagLib(taglib, filePaths, processOpts);
