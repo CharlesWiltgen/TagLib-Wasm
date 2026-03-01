@@ -484,6 +484,7 @@ export const TEST_EXTENDED_METADATA = {
   musicbrainzTrackId: "123e4567-e89b-12d3-a456-426614174000",
   musicbrainzReleaseId: "550e8400-e29b-41d4-a716-446655440000",
   musicbrainzArtistId: "b10bbbfc-cf9e-42e0-be17-e2c3e1d2600d",
+  musicbrainzReleaseGroupId: "e8f9a1b2-c3d4-5678-9abc-def012345678",
   replayGainTrackGain: "-6.54 dB",
   replayGainTrackPeak: "0.988769",
   replayGainAlbumGain: "-7.89 dB",

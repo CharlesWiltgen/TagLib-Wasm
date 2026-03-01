@@ -156,6 +156,24 @@ export interface AudioFile {
   /** Set ReplayGain album peak. */
   setReplayGainAlbumPeak(peak: string): void;
 
+  /** Get MusicBrainz Release Group ID. */
+  getMusicBrainzReleaseGroupId(): string | undefined;
+
+  /** Set MusicBrainz Release Group ID. */
+  setMusicBrainzReleaseGroupId(id: string): void;
+
+  /** Get total number of tracks. */
+  getTotalTracks(): number | undefined;
+
+  /** Set total number of tracks. */
+  setTotalTracks(total: number): void;
+
+  /** Get total number of discs. */
+  getTotalDiscs(): number | undefined;
+
+  /** Set total number of discs. */
+  setTotalDiscs(total: number): void;
+
   /** Get Apple Sound Check normalization data (iTunNORM). */
   getAppleSoundCheck(): string | undefined;
 
