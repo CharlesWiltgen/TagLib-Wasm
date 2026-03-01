@@ -58,6 +58,37 @@ export interface TagInput {
   readonly year?: number;
   /** Track number */
   readonly track?: number;
+
+  // Extended string fields
+  readonly albumArtist?: string | string[];
+  readonly composer?: string | string[];
+  readonly conductor?: string | string[];
+  readonly copyright?: string | string[];
+  readonly encodedBy?: string | string[];
+  readonly isrc?: string | string[];
+  readonly lyricist?: string | string[];
+  readonly titleSort?: string | string[];
+  readonly artistSort?: string | string[];
+  readonly albumSort?: string | string[];
+  readonly acoustidFingerprint?: string | string[];
+  readonly acoustidId?: string | string[];
+  readonly musicbrainzTrackId?: string | string[];
+  readonly musicbrainzReleaseId?: string | string[];
+  readonly musicbrainzArtistId?: string | string[];
+  readonly musicbrainzReleaseGroupId?: string | string[];
+  readonly replayGainTrackGain?: string | string[];
+  readonly replayGainTrackPeak?: string | string[];
+  readonly replayGainAlbumGain?: string | string[];
+  readonly replayGainAlbumPeak?: string | string[];
+
+  // Extended numeric fields
+  readonly discNumber?: number;
+  readonly totalTracks?: number;
+  readonly totalDiscs?: number;
+  readonly bpm?: number;
+
+  // Extended boolean fields
+  readonly compilation?: boolean;
 }
 
 /**

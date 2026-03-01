@@ -9,6 +9,7 @@ import { describe, it } from "@std/testing/bdd";
 import {
   applyTagsToBuffer,
   clearTags,
+  getTagLib,
   readTags,
   setBufferMode,
 } from "../src/simple/index.ts";
@@ -144,5 +145,97 @@ describe("clearTags", () => {
     assertEquals(isEmpty(tags.title), true);
     assertEquals(isEmpty(tags.artist), true);
     assertEquals(isEmpty(tags.album), true);
+  });
+});
+
+describe("applyTagsToBuffer with extended fields", () => {
+  it("should roundtrip extended string fields via simple API", async () => {
+    const original = await Deno.readFile(FIXTURE_PATH.flac);
+    const modified = await applyTagsToBuffer(new Uint8Array(original), {
+      albumArtist: "Various Artists",
+      composer: ["Bach", "Handel"],
+      conductor: "Karajan",
+    });
+
+    const taglib = await getTagLib();
+    const audioFile = await taglib.open(modified);
+    try {
+      const props = audioFile.properties();
+      assertEquals(props.ALBUMARTIST, ["Various Artists"]);
+      assertEquals(props.COMPOSER, ["Bach", "Handel"]);
+      assertEquals(props.CONDUCTOR, ["Karajan"]);
+    } finally {
+      audioFile.dispose();
+    }
+  });
+
+  it("should roundtrip extended numeric and boolean fields via simple API", async () => {
+    const original = await Deno.readFile(FIXTURE_PATH.flac);
+    const modified = await applyTagsToBuffer(new Uint8Array(original), {
+      bpm: 128,
+      discNumber: 2,
+      totalTracks: 12,
+      totalDiscs: 3,
+      compilation: true,
+    });
+
+    const taglib = await getTagLib();
+    const audioFile = await taglib.open(modified);
+    try {
+      const props = audioFile.properties();
+      assertEquals(props.BPM, ["128"]);
+      assertEquals(props.DISCNUMBER, ["2"]);
+      assertEquals(props.TRACKTOTAL, ["12"]);
+      assertEquals(props.DISCTOTAL, ["3"]);
+      assertEquals(props.COMPILATION, ["1"]);
+    } finally {
+      audioFile.dispose();
+    }
+  });
+
+  it("should roundtrip MusicBrainz and ReplayGain fields via simple API", async () => {
+    const original = await Deno.readFile(FIXTURE_PATH.flac);
+    const modified = await applyTagsToBuffer(new Uint8Array(original), {
+      musicbrainzTrackId: "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
+      replayGainTrackGain: "-6.54 dB",
+    });
+
+    const taglib = await getTagLib();
+    const audioFile = await taglib.open(modified);
+    try {
+      const props = audioFile.properties();
+      assertEquals(props.MUSICBRAINZ_TRACKID, [
+        "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
+      ]);
+      assertEquals(props.REPLAYGAIN_TRACK_GAIN, ["-6.54 dB"]);
+    } finally {
+      audioFile.dispose();
+    }
+  });
+
+  it("should not drop extended fields when mixed with basic fields", async () => {
+    const original = await Deno.readFile(FIXTURE_PATH.flac);
+    const modified = await applyTagsToBuffer(new Uint8Array(original), {
+      title: "Test Title",
+      artist: "Test Artist",
+      albumArtist: "Album Artist",
+      bpm: 140,
+      year: 2025,
+    });
+
+    const tags = await readTags(modified);
+    assertEquals(tags.title, ["Test Title"]);
+    assertEquals(tags.artist, ["Test Artist"]);
+    assertEquals(tags.year, 2025);
+
+    const taglib = await getTagLib();
+    const audioFile = await taglib.open(modified);
+    try {
+      const props = audioFile.properties();
+      assertEquals(props.ALBUMARTIST, ["Album Artist"]);
+      assertEquals(props.BPM, ["140"]);
+    } finally {
+      audioFile.dispose();
+    }
   });
 });
