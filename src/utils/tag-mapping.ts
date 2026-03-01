@@ -1,4 +1,5 @@
 import type { PropertyMap, Tag, TagInput } from "../types.ts";
+import { CAMEL_TO_VORBIS } from "../types/metadata-mappings.ts";
 
 const TAG_PROPERTY_KEYS: Record<string, keyof Tag> = {
   TITLE: "title",
@@ -58,5 +59,39 @@ export function normalizeTagInput(
   if (input.track !== undefined) {
     props.TRACKNUMBER = [String(input.track)];
   }
+
+  const BASIC_FIELDS = new Set([
+    "title",
+    "artist",
+    "album",
+    "comment",
+    "genre",
+    "year",
+    "track",
+  ]);
+
+  const NUMERIC_FIELDS = new Set([
+    "discNumber",
+    "totalTracks",
+    "totalDiscs",
+    "bpm",
+  ]);
+
+  for (const [field, val] of Object.entries(input)) {
+    if (BASIC_FIELDS.has(field) || val === undefined) continue;
+    const propKey = CAMEL_TO_VORBIS[field];
+    if (!propKey) continue;
+
+    if (field === "compilation") {
+      props[propKey] = [val ? "1" : "0"];
+    } else if (NUMERIC_FIELDS.has(field)) {
+      props[propKey] = [String(val)];
+    } else if (typeof val === "string") {
+      props[propKey] = [val];
+    } else if (Array.isArray(val)) {
+      props[propKey] = val;
+    }
+  }
+
   return props;
 }
