@@ -21,12 +21,12 @@
  * @example
  * ```typescript
  * // Using the Simple API
- * import { readTags, applyTagsToBuffer } from "taglib-wasm/simple";
+ * import { readTags, applyTags } from "taglib-wasm/simple";
  *
  * const tags = await readTags("song.mp3");
  * console.log(tags.artist);
  *
- * const modified = await applyTagsToBuffer("song.mp3", {
+ * const modified = await applyTags("song.mp3", {
  *   artist: "New Artist",
  *   album: "New Album"
  * });
