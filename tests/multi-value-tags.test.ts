@@ -158,15 +158,11 @@ describe("applyTagsToBuffer with extended fields", () => {
     });
 
     const taglib = await getTagLib();
-    const audioFile = await taglib.open(modified);
-    try {
-      const props = audioFile.properties();
-      assertEquals(props.ALBUMARTIST, ["Various Artists"]);
-      assertEquals(props.COMPOSER, ["Bach", "Handel"]);
-      assertEquals(props.CONDUCTOR, ["Karajan"]);
-    } finally {
-      audioFile.dispose();
-    }
+    using audioFile = await taglib.open(modified);
+    const props = audioFile.properties();
+    assertEquals(props.ALBUMARTIST, ["Various Artists"]);
+    assertEquals(props.COMPOSER, ["Bach", "Handel"]);
+    assertEquals(props.CONDUCTOR, ["Karajan"]);
   });
 
   it("should roundtrip extended numeric and boolean fields via simple API", async () => {
@@ -180,17 +176,25 @@ describe("applyTagsToBuffer with extended fields", () => {
     });
 
     const taglib = await getTagLib();
-    const audioFile = await taglib.open(modified);
-    try {
-      const props = audioFile.properties();
-      assertEquals(props.BPM, ["128"]);
-      assertEquals(props.DISCNUMBER, ["2"]);
-      assertEquals(props.TRACKTOTAL, ["12"]);
-      assertEquals(props.DISCTOTAL, ["3"]);
-      assertEquals(props.COMPILATION, ["1"]);
-    } finally {
-      audioFile.dispose();
-    }
+    using audioFile = await taglib.open(modified);
+    const props = audioFile.properties();
+    assertEquals(props.BPM, ["128"]);
+    assertEquals(props.DISCNUMBER, ["2"]);
+    assertEquals(props.TRACKTOTAL, ["12"]);
+    assertEquals(props.DISCTOTAL, ["3"]);
+    assertEquals(props.COMPILATION, ["1"]);
+  });
+
+  it("should roundtrip compilation false via simple API", async () => {
+    const original = await Deno.readFile(FIXTURE_PATH.flac);
+    const modified = await applyTagsToBuffer(new Uint8Array(original), {
+      compilation: false,
+    });
+
+    const taglib = await getTagLib();
+    using audioFile = await taglib.open(modified);
+    const props = audioFile.properties();
+    assertEquals(props.COMPILATION, ["0"]);
   });
 
   it("should roundtrip MusicBrainz and ReplayGain fields via simple API", async () => {
@@ -201,16 +205,12 @@ describe("applyTagsToBuffer with extended fields", () => {
     });
 
     const taglib = await getTagLib();
-    const audioFile = await taglib.open(modified);
-    try {
-      const props = audioFile.properties();
-      assertEquals(props.MUSICBRAINZ_TRACKID, [
-        "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
-      ]);
-      assertEquals(props.REPLAYGAIN_TRACK_GAIN, ["-6.54 dB"]);
-    } finally {
-      audioFile.dispose();
-    }
+    using audioFile = await taglib.open(modified);
+    const props = audioFile.properties();
+    assertEquals(props.MUSICBRAINZ_TRACKID, [
+      "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
+    ]);
+    assertEquals(props.REPLAYGAIN_TRACK_GAIN, ["-6.54 dB"]);
   });
 
   it("should not drop extended fields when mixed with basic fields", async () => {
@@ -229,13 +229,9 @@ describe("applyTagsToBuffer with extended fields", () => {
     assertEquals(tags.year, 2025);
 
     const taglib = await getTagLib();
-    const audioFile = await taglib.open(modified);
-    try {
-      const props = audioFile.properties();
-      assertEquals(props.ALBUMARTIST, ["Album Artist"]);
-      assertEquals(props.BPM, ["140"]);
-    } finally {
-      audioFile.dispose();
-    }
+    using audioFile = await taglib.open(modified);
+    const props = audioFile.properties();
+    assertEquals(props.ALBUMARTIST, ["Album Artist"]);
+    assertEquals(props.BPM, ["140"]);
   });
 });

@@ -21,6 +21,23 @@ const TAG_FIELD_TO_PROPERTY: Record<string, string> = {
   track: "TRACKNUMBER",
 };
 
+const BASIC_FIELDS = new Set([
+  "title",
+  "artist",
+  "album",
+  "comment",
+  "genre",
+  "year",
+  "track",
+]);
+
+const NUMERIC_FIELDS = new Set([
+  "discNumber",
+  "totalTracks",
+  "totalDiscs",
+  "bpm",
+]);
+
 export function mapPropertiesToTag(props: PropertyMap): Tag {
   const tag: Record<string, unknown> = {};
   for (const [propKey, tagField] of Object.entries(TAG_PROPERTY_KEYS)) {
@@ -59,23 +76,6 @@ export function normalizeTagInput(
   if (input.track !== undefined) {
     props.TRACKNUMBER = [String(input.track)];
   }
-
-  const BASIC_FIELDS = new Set([
-    "title",
-    "artist",
-    "album",
-    "comment",
-    "genre",
-    "year",
-    "track",
-  ]);
-
-  const NUMERIC_FIELDS = new Set([
-    "discNumber",
-    "totalTracks",
-    "totalDiscs",
-    "bpm",
-  ]);
 
   for (const [field, val] of Object.entries(input)) {
     if (BASIC_FIELDS.has(field) || val === undefined) continue;
