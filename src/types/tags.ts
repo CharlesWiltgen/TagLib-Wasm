@@ -60,6 +60,7 @@ export interface TagInput {
   readonly track?: number;
 
   // Extended string fields
+  readonly appleSoundCheck?: string | string[];
   readonly albumArtist?: string | string[];
   readonly composer?: string | string[];
   readonly conductor?: string | string[];
