@@ -5,7 +5,7 @@ import { InvalidFormatError, TagLibInitializationError } from "../errors.ts";
 import type { AudioFile } from "./audio-file-interface.ts";
 import { AudioFileImpl } from "./audio-file-impl.ts";
 import { loadAudioData } from "./load-audio-data.ts";
-import { normalizeTagInput } from "../utils/tag-mapping.ts";
+import { mergeTagUpdates } from "../utils/tag-mapping.ts";
 
 /**
  * Main TagLib interface for audio metadata operations.
@@ -138,7 +138,7 @@ export class TagLib {
   async updateFile(path: string, tags: Partial<TagInput>): Promise<void> {
     const file = await this.open(path);
     try {
-      applyTagUpdates(file, tags);
+      mergeTagUpdates(file, tags);
       await file.saveToFile();
     } finally {
       file.dispose();
@@ -160,7 +160,7 @@ export class TagLib {
   ): Promise<void> {
     const file = await this.open(sourcePath);
     try {
-      applyTagUpdates(file, tags);
+      mergeTagUpdates(file, tags);
       await file.saveToFile(destPath);
     } finally {
       file.dispose();
@@ -171,12 +171,6 @@ export class TagLib {
   version(): string {
     return "2.1.0";
   }
-}
-
-function applyTagUpdates(file: AudioFile, tags: Partial<TagInput>): void {
-  const currentProps = file.properties();
-  const newProps = normalizeTagInput(tags);
-  file.setProperties({ ...currentProps, ...newProps });
 }
 
 /**

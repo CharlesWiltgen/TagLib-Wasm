@@ -1,10 +1,11 @@
-import type { ExtendedTag, PropertyMap, Tag, TagInput } from "../types.ts";
+import type { AudioFile } from "../taglib/audio-file-interface.ts";
+import type { ExtendedTag, PropertyMap, TagInput } from "../types.ts";
 import {
   CAMEL_TO_VORBIS,
   VORBIS_TO_CAMEL,
 } from "../types/metadata-mappings.ts";
 
-const TAG_PROPERTY_KEYS: Record<string, keyof Tag> = {
+const BASIC_PROPERTY_KEYS: Record<string, string> = {
   TITLE: "title",
   ARTIST: "artist",
   ALBUM: "album",
@@ -35,49 +36,41 @@ const BASIC_FIELDS = new Set([
 ]);
 
 const NUMERIC_FIELDS = new Set([
+  "year",
+  "track",
   "discNumber",
   "totalTracks",
   "totalDiscs",
   "bpm",
 ]);
 
-export function mapPropertiesToTag(props: PropertyMap): Tag {
-  const tag: Record<string, unknown> = {};
-  for (const [propKey, tagField] of Object.entries(TAG_PROPERTY_KEYS)) {
-    const values = props[propKey];
-    if (!values || values.length === 0) continue;
-    if (tagField === "year" || tagField === "track") {
-      tag[tagField] = Number.parseInt(values[0], 10) || 0;
-    } else {
-      tag[tagField] = values;
-    }
-  }
-  return tag as Tag;
+function parseNumeric(value: string): number | undefined {
+  const parsed = Number.parseInt(value, 10);
+  return Number.isNaN(parsed) ? undefined : parsed;
 }
 
 export function mapPropertiesToExtendedTag(props: PropertyMap): ExtendedTag {
   const tag: Record<string, unknown> = {};
 
-  // Basic fields (same logic as mapPropertiesToTag)
-  for (const [propKey, tagField] of Object.entries(TAG_PROPERTY_KEYS)) {
+  for (const [propKey, tagField] of Object.entries(BASIC_PROPERTY_KEYS)) {
     const values = props[propKey];
     if (!values || values.length === 0) continue;
     if (tagField === "year" || tagField === "track") {
-      tag[tagField] = Number.parseInt(values[0], 10) || 0;
+      const num = parseNumeric(values[0]);
+      if (num !== undefined) tag[tagField] = num;
     } else {
       tag[tagField] = values;
     }
   }
 
-  // Extended fields via VORBIS_TO_CAMEL mapping
   for (const [vorbisKey, values] of Object.entries(props)) {
-    if (TAG_PROPERTY_KEYS[vorbisKey]) continue; // Already handled above
+    if (BASIC_PROPERTY_KEYS[vorbisKey]) continue;
     const camelKey = VORBIS_TO_CAMEL[vorbisKey];
-    if (!camelKey) continue;
+    if (!camelKey || values.length === 0) continue;
 
     if (NUMERIC_FIELDS.has(camelKey)) {
-      const parsed = Number.parseInt(values[0], 10);
-      if (!Number.isNaN(parsed)) tag[camelKey] = parsed;
+      const num = parseNumeric(values[0]);
+      if (num !== undefined) tag[camelKey] = num;
     } else if (camelKey === "compilation") {
       tag[camelKey] = values[0] === "1";
     } else {
@@ -86,6 +79,15 @@ export function mapPropertiesToExtendedTag(props: PropertyMap): ExtendedTag {
   }
 
   return tag as ExtendedTag;
+}
+
+export function mergeTagUpdates(
+  file: AudioFile,
+  tags: Partial<TagInput>,
+): void {
+  const currentProps = file.properties();
+  const newProps = normalizeTagInput(tags);
+  file.setProperties({ ...currentProps, ...newProps });
 }
 
 export function normalizeTagInput(
