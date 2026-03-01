@@ -49,6 +49,60 @@ describe("Extended Metadata", () => {
     mp3File.dispose();
   });
 
+  it("MusicBrainz Release Group ID", async () => {
+    const taglib = await TagLib.initialize({ forceBufferMode: true });
+    const mp3Buffer = await readFileData(TEST_FILES.mp3);
+    const file = await taglib.open(mp3Buffer);
+
+    assertEquals(file.getMusicBrainzReleaseGroupId(), undefined);
+
+    file.setMusicBrainzReleaseGroupId(
+      TEST_EXTENDED_METADATA.musicbrainzReleaseGroupId,
+    );
+    file.save();
+
+    assertEquals(
+      file.getMusicBrainzReleaseGroupId(),
+      TEST_EXTENDED_METADATA.musicbrainzReleaseGroupId,
+    );
+
+    // Roundtrip: save to buffer, reopen, verify
+    const savedBuffer = file.getFileBuffer();
+    file.dispose();
+
+    const file2 = await taglib.open(savedBuffer);
+    assertEquals(
+      file2.getMusicBrainzReleaseGroupId(),
+      TEST_EXTENDED_METADATA.musicbrainzReleaseGroupId,
+    );
+    file2.dispose();
+  });
+
+  it("Total tracks and discs", async () => {
+    const taglib = await TagLib.initialize({ forceBufferMode: true });
+    const flacBuffer = await readFileData(TEST_FILES.flac);
+    const file = await taglib.open(flacBuffer);
+
+    assertEquals(file.getTotalTracks(), undefined);
+    assertEquals(file.getTotalDiscs(), undefined);
+
+    file.setTotalTracks(12);
+    file.setTotalDiscs(2);
+    file.save();
+
+    assertEquals(file.getTotalTracks(), 12);
+    assertEquals(file.getTotalDiscs(), 2);
+
+    // Roundtrip: save to buffer, reopen, verify
+    const savedBuffer = file.getFileBuffer();
+    file.dispose();
+
+    const file2 = await taglib.open(savedBuffer);
+    assertEquals(file2.getTotalTracks(), 12);
+    assertEquals(file2.getTotalDiscs(), 2);
+    file2.dispose();
+  });
+
   it("ReplayGain values", async () => {
     const taglib = await TagLib.initialize({ forceBufferMode: true });
 

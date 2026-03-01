@@ -77,6 +77,32 @@ export abstract class ExtendedAudioFileImpl extends BaseAudioFileImpl {
     this.setProperty("REPLAYGAIN_ALBUM_PEAK", peak);
   }
 
+  getMusicBrainzReleaseGroupId(): string | undefined {
+    return this.getProperty("MUSICBRAINZ_RELEASEGROUPID") ?? undefined;
+  }
+
+  setMusicBrainzReleaseGroupId(id: string): void {
+    this.setProperty("MUSICBRAINZ_RELEASEGROUPID", id);
+  }
+
+  getTotalTracks(): number | undefined {
+    const value = this.getProperty("TRACKTOTAL");
+    return value != null ? parseInt(value, 10) : undefined;
+  }
+
+  setTotalTracks(total: number): void {
+    this.setProperty("TRACKTOTAL", String(total));
+  }
+
+  getTotalDiscs(): number | undefined {
+    const value = this.getProperty("DISCTOTAL");
+    return value != null ? parseInt(value, 10) : undefined;
+  }
+
+  setTotalDiscs(total: number): void {
+    this.setProperty("DISCTOTAL", String(total));
+  }
+
   getAppleSoundCheck(): string | undefined {
     if (this.isMP4()) {
       return this.getMP4Item("iTunNORM");
