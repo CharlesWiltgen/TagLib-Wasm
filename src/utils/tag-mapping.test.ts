@@ -79,6 +79,14 @@ describe(mapPropertiesToExtendedTag.name, () => {
     });
     assertEquals(result, {});
   });
+
+  it("should return undefined for non-numeric year and track", () => {
+    const result = mapPropertiesToExtendedTag({
+      DATE: ["not-a-number"],
+      TRACKNUMBER: ["abc"],
+    });
+    assertEquals(result, {});
+  });
 });
 
 describe(normalizeTagInput.name, () => {

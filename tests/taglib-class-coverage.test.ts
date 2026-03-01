@@ -59,7 +59,7 @@ describe("TagLib.edit() with buffer input", () => {
   });
 });
 
-describe("applyTagUpdates with partial tags", () => {
+describe("TagLib.edit() with partial tag updates", () => {
   it("should preserve untouched fields when updating one field", async () => {
     const original = await Deno.readFile(FIXTURE_PATH.mp3);
 
