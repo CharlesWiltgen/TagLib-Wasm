@@ -244,3 +244,4 @@
 {"actor":"Charles Wiltgen","comment":null,"created_at":"2026-02-27T11:23:52Z","event_type":"created","id":244,"issue_id":"taglib-wasm-5lx","new_value":"","old_value":""}
 {"actor":"Charles Wiltgen","comment":null,"created_at":"2026-02-27T11:23:54Z","event_type":"created","id":245,"issue_id":"taglib-wasm-02t","new_value":"","old_value":""}
 {"actor":"Charles Wiltgen","comment":null,"created_at":"2026-02-27T11:58:57Z","event_type":"closed","id":246,"issue_id":"taglib-wasm-02t","new_value":"Converted all typeof checks to globalThis pattern","old_value":""}
+{"actor":"Charles Wiltgen","comment":null,"created_at":"2026-03-01T09:34:26Z","event_type":"closed","id":247,"issue_id":"taglib-wasm-a9z","new_value":"Positional correlation is sufficient — results array already matches input order","old_value":""}
