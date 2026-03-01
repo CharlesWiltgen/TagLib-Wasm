@@ -1,6 +1,75 @@
 import { assertEquals } from "@std/assert";
 import { describe, it } from "@std/testing/bdd";
-import { normalizeTagInput } from "./tag-mapping.ts";
+import {
+  mapPropertiesToExtendedTag,
+  normalizeTagInput,
+} from "./tag-mapping.ts";
+
+describe(mapPropertiesToExtendedTag.name, () => {
+  it("should map basic fields", () => {
+    const result = mapPropertiesToExtendedTag({
+      TITLE: ["Hello"],
+      ARTIST: ["Artist"],
+      DATE: ["2025"],
+      TRACKNUMBER: ["3"],
+    });
+    assertEquals(result, {
+      title: ["Hello"],
+      artist: ["Artist"],
+      year: 2025,
+      track: 3,
+    });
+  });
+
+  it("should map extended string fields", () => {
+    const result = mapPropertiesToExtendedTag({
+      ALBUMARTIST: ["Various Artists"],
+      COMPOSER: ["Bach", "Handel"],
+      MUSICBRAINZ_TRACKID: ["abc-123"],
+      REPLAYGAIN_TRACK_GAIN: ["-6.54 dB"],
+    });
+    assertEquals(result, {
+      albumArtist: ["Various Artists"],
+      composer: ["Bach", "Handel"],
+      musicbrainzTrackId: ["abc-123"],
+      replayGainTrackGain: ["-6.54 dB"],
+    });
+  });
+
+  it("should map numeric extended fields", () => {
+    const result = mapPropertiesToExtendedTag({
+      DISCNUMBER: ["2"],
+      TRACKTOTAL: ["12"],
+      DISCTOTAL: ["3"],
+      BPM: ["128"],
+    });
+    assertEquals(result, {
+      discNumber: 2,
+      totalTracks: 12,
+      totalDiscs: 3,
+      bpm: 128,
+    });
+  });
+
+  it("should map compilation to boolean", () => {
+    assertEquals(
+      mapPropertiesToExtendedTag({ COMPILATION: ["1"] }).compilation,
+      true,
+    );
+    assertEquals(
+      mapPropertiesToExtendedTag({ COMPILATION: ["0"] }).compilation,
+      false,
+    );
+  });
+
+  it("should skip unmapped property keys", () => {
+    const result = mapPropertiesToExtendedTag({
+      TITLE: ["X"],
+      SOME_UNKNOWN_KEY: ["ignored"],
+    });
+    assertEquals(result, { title: ["X"] });
+  });
+});
 
 describe(normalizeTagInput.name, () => {
   it("should map basic string fields to UPPERCASE PropertyMap keys", () => {
