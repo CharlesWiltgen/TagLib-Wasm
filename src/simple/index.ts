@@ -1,6 +1,7 @@
 export { getTagLib, setBufferMode } from "./config.ts";
 
 export {
+  applyTags,
   applyTagsToBuffer,
   clearTags,
   isValidAudioFile,
@@ -37,6 +38,7 @@ export type {
 
 export type {
   AudioProperties,
+  ExtendedTag,
   Picture,
   PictureType,
   Tag,

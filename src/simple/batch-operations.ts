@@ -1,8 +1,8 @@
 import type { AudioFile } from "../taglib.ts";
 import type { AudioDynamics } from "../folder-api/types.ts";
-import type { AudioFileInput, AudioProperties, Tag } from "../types.ts";
+import type { AudioFileInput, AudioProperties, ExtendedTag } from "../types.ts";
 import { InvalidFormatError } from "../errors.ts";
-import { mapPropertiesToTag } from "../utils/tag-mapping.ts";
+import { mapPropertiesToExtendedTag } from "../utils/tag-mapping.ts";
 import { getTagLib } from "./config.ts";
 
 /** Configuration for batch processing operations. */
@@ -85,11 +85,11 @@ async function executeBatch<T>(
 export async function readTagsBatch(
   files: AudioFileInput[],
   options: BatchOptions = {},
-): Promise<BatchResult<Tag>> {
+): Promise<BatchResult<ExtendedTag>> {
   return executeBatch(
     files,
     options,
-    (audioFile) => mapPropertiesToTag(audioFile.properties()),
+    (audioFile) => mapPropertiesToExtendedTag(audioFile.properties()),
   );
 }
 
@@ -114,7 +114,7 @@ export async function readPropertiesBatch(
 
 /** Complete metadata for a single audio file including tags, properties, cover art presence, and audio dynamics. */
 export interface FileMetadata {
-  tags: Tag;
+  tags: ExtendedTag;
   properties: AudioProperties | undefined;
   hasCoverArt: boolean;
   dynamics?: AudioDynamics;
@@ -169,7 +169,7 @@ export async function readMetadata(
       );
     }
     return {
-      tags: mapPropertiesToTag(audioFile.properties()),
+      tags: mapPropertiesToExtendedTag(audioFile.properties()),
       properties: audioFile.audioProperties(),
       hasCoverArt: audioFile.getPictures().length > 0,
       dynamics: extractDynamics(audioFile),
@@ -192,7 +192,7 @@ export async function readMetadataBatch(
   options: BatchOptions = {},
 ): Promise<BatchResult<FileMetadata>> {
   return executeBatch(files, options, (audioFile) => ({
-    tags: mapPropertiesToTag(audioFile.properties()),
+    tags: mapPropertiesToExtendedTag(audioFile.properties()),
     properties: audioFile.audioProperties(),
     hasCoverArt: audioFile.getPictures().length > 0,
     dynamics: extractDynamics(audioFile),

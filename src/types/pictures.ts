@@ -14,13 +14,13 @@
  */
 export interface Picture {
   /** MIME type of the image */
-  mimeType: string;
+  readonly mimeType: string;
   /** Image data */
-  data: Uint8Array;
+  readonly data: Uint8Array;
   /** Picture type (front cover, back cover, etc.) */
-  type: PictureType;
+  readonly type: PictureType;
   /** Description */
-  description?: string;
+  readonly description?: string;
 }
 
 /**

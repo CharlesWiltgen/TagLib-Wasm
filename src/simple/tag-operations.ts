@@ -1,8 +1,8 @@
 import type {
   AudioFileInput,
   AudioProperties,
+  ExtendedTag,
   FileType,
-  Tag,
   TagInput,
 } from "../types.ts";
 import {
@@ -11,20 +11,23 @@ import {
   MetadataError,
 } from "../errors.ts";
 import { writeFileData } from "../utils/write.ts";
-import { mapPropertiesToTag, normalizeTagInput } from "../utils/tag-mapping.ts";
+import {
+  mapPropertiesToExtendedTag,
+  normalizeTagInput,
+} from "../utils/tag-mapping.ts";
 import { getTagLib } from "./config.ts";
 
 /**
  * Reads all metadata tags from an audio file.
  *
  * @param file - File path, Uint8Array, ArrayBuffer, or File object
- * @returns Parsed tag fields from the audio file
+ * @returns Parsed tag fields including extended metadata from the audio file
  * @throws {TagLibInitializationError} If the Wasm module fails to initialize
  * @throws {InvalidFormatError} If the file is corrupted or in an unsupported format
  */
 export async function readTags(
   file: AudioFileInput,
-): Promise<Tag> {
+): Promise<ExtendedTag> {
   const taglib = await getTagLib();
   const audioFile = await taglib.open(file);
   try {
@@ -35,7 +38,7 @@ export async function readTags(
     }
 
     const props = audioFile.properties();
-    return mapPropertiesToTag(props);
+    return mapPropertiesToExtendedTag(props);
   } finally {
     audioFile.dispose();
   }
@@ -51,7 +54,7 @@ export async function readTags(
  * @throws {InvalidFormatError} If the file is corrupted or in an unsupported format
  * @throws {FileOperationError} If saving the modified metadata fails
  */
-export async function applyTagsToBuffer(
+export async function applyTags(
   file: AudioFileInput,
   tags: Partial<TagInput>,
 ): Promise<Uint8Array> {
@@ -104,7 +107,7 @@ export async function writeTagsToFile(
     );
   }
 
-  const modifiedBuffer = await applyTagsToBuffer(file, tags);
+  const modifiedBuffer = await applyTags(file, tags);
   await writeFileData(file, modifiedBuffer);
 }
 
@@ -189,10 +192,10 @@ export async function readFormat(
 }
 
 /**
- * Removes all standard metadata tags from an audio file and returns the stripped content as a buffer.
+ * Removes all metadata tags and pictures from an audio file and returns the stripped content.
  *
  * @param file - File path, Uint8Array, ArrayBuffer, or File object
- * @returns Modified audio file contents with all standard tags cleared
+ * @returns Modified audio file contents with all tags and pictures cleared
  * @throws {TagLibInitializationError} If the Wasm module fails to initialize
  * @throws {InvalidFormatError} If the file is corrupted or in an unsupported format
  * @throws {FileOperationError} If saving the modified metadata fails
@@ -200,13 +203,30 @@ export async function readFormat(
 export async function clearTags(
   file: AudioFileInput,
 ): Promise<Uint8Array> {
-  return applyTagsToBuffer(file, {
-    title: "",
-    artist: "",
-    album: "",
-    comment: "",
-    genre: "",
-    year: 0,
-    track: 0,
-  });
+  const taglib = await getTagLib();
+  const audioFile = await taglib.open(file);
+  try {
+    if (!audioFile.isValid()) {
+      throw new InvalidFormatError(
+        "File may be corrupted or in an unsupported format",
+      );
+    }
+
+    audioFile.setProperties({});
+    audioFile.removePictures();
+
+    if (!audioFile.save()) {
+      throw new FileOperationError(
+        "save",
+        "Failed to save metadata changes. The file may be read-only or corrupted.",
+      );
+    }
+
+    return audioFile.getFileBuffer();
+  } finally {
+    audioFile.dispose();
+  }
 }
+
+/** @deprecated Use `applyTags` instead. */
+export const applyTagsToBuffer = applyTags;

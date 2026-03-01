@@ -2,10 +2,10 @@
  * Type definitions for folder scanning operations
  */
 
-import type { Tag, TagInput } from "../simple/index.ts";
+import type { ExtendedTag, Tag, TagInput } from "../simple/index.ts";
 import type { AudioProperties } from "../types.ts";
 
-export type { AudioProperties, Tag, TagInput };
+export type { AudioProperties, ExtendedTag, Tag, TagInput };
 
 export const EMPTY_TAG = Object.freeze(
   {
@@ -58,8 +58,8 @@ export interface AudioDynamics {
 export interface AudioFileMetadata {
   /** Absolute or relative path to the audio file */
   path: string;
-  /** Basic tag information (title, artist, album, etc.) */
-  tags: Tag;
+  /** Tag information including extended fields (albumArtist, composer, etc.) */
+  tags: ExtendedTag;
   /** Audio properties (duration, bitrate, sample rate, etc.) */
   properties?: AudioProperties;
   /** Whether the file contains embedded cover art */
