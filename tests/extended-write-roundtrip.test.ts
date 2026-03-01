@@ -297,6 +297,62 @@ describe(
       assertEquals(result.totalDiscs, 2);
     });
 
+    it("should roundtrip multi-value albumArtist", async () => {
+      const result = await roundtrip(
+        "flac/kiss-snippet.flac",
+        "test.flac",
+        { albumArtist: ["Artist A", "Artist B"] },
+      );
+      assertEquals(result.albumArtist, ["Artist A", "Artist B"]);
+    });
+
+    it("should roundtrip multi-value composer", async () => {
+      const result = await roundtrip(
+        "flac/kiss-snippet.flac",
+        "test.flac",
+        { composer: ["Bach", "Handel"] },
+      );
+      assertEquals(result.composer, ["Bach", "Handel"]);
+    });
+
+    it("should roundtrip multi-value conductor", async () => {
+      const result = await roundtrip(
+        "flac/kiss-snippet.flac",
+        "test.flac",
+        { conductor: ["Karajan", "Bernstein"] },
+      );
+      assertEquals(result.conductor, ["Karajan", "Bernstein"]);
+    });
+
+    it("should roundtrip multi-value lyricist", async () => {
+      const result = await roundtrip(
+        "flac/kiss-snippet.flac",
+        "test.flac",
+        { lyricist: ["Lyricist A", "Lyricist B"] },
+      );
+      assertEquals(result.lyricist, ["Lyricist A", "Lyricist B"]);
+    });
+
+    it("should roundtrip multi-value extended fields together", async () => {
+      const tags = {
+        albumArtist: ["Artist A", "Artist B"],
+        composer: ["Bach", "Handel"],
+        conductor: ["Karajan", "Bernstein"],
+        lyricist: ["Lyricist A", "Lyricist B"],
+      };
+
+      const result = await roundtrip(
+        "flac/kiss-snippet.flac",
+        "test.flac",
+        tags,
+      );
+
+      assertEquals(result.albumArtist, tags.albumArtist);
+      assertEquals(result.composer, tags.composer);
+      assertEquals(result.conductor, tags.conductor);
+      assertEquals(result.lyricist, tags.lyricist);
+    });
+
     it("should roundtrip all metadata fields together", async () => {
       const tags = {
         title: "Comprehensive Test",
