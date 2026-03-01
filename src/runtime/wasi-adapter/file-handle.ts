@@ -195,9 +195,13 @@ export class WasiFileHandle implements FileHandle {
       if (value === 0 || value === "") continue;
 
       const propKey = CAMEL_TO_VORBIS[key] ?? key;
-      result[propKey] = Array.isArray(value)
-        ? value.map(String)
-        : [String(value)];
+      if (Array.isArray(value)) {
+        result[propKey] = value.map(String);
+      } else if (typeof value === "object") {
+        continue;
+      } else {
+        result[propKey] = [String(value as string | number | boolean)];
+      }
     }
 
     return result;
@@ -209,7 +213,8 @@ export class WasiFileHandle implements FileHandle {
     for (const [key, values] of Object.entries(props)) {
       const camelKey = VORBIS_TO_CAMEL[key] ?? key;
       if (camelKey === "year" || camelKey === "track") {
-        mapped[camelKey] = Number.parseInt(values[0] ?? "", 10) || 0;
+        const parsed = Number.parseInt(values[0] ?? "", 10);
+        if (!Number.isNaN(parsed)) mapped[camelKey] = parsed;
       } else {
         mapped[camelKey] = values;
       }
@@ -226,10 +231,14 @@ export class WasiFileHandle implements FileHandle {
   setProperty(key: string, value: string): void {
     this.checkNotDestroyed();
     const mappedKey = VORBIS_TO_CAMEL[key] ?? key;
-    const coerced = (mappedKey === "year" || mappedKey === "track")
-      ? (Number.parseInt(value, 10) || 0)
-      : value;
-    this.tagData = { ...this.tagData, [mappedKey]: coerced };
+    if (mappedKey === "year" || mappedKey === "track") {
+      const parsed = Number.parseInt(value, 10);
+      if (!Number.isNaN(parsed)) {
+        this.tagData = { ...this.tagData, [mappedKey]: parsed };
+      }
+    } else {
+      this.tagData = { ...this.tagData, [mappedKey]: value };
+    }
   }
 
   isMP4(): boolean {
