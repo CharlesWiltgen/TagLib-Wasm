@@ -81,52 +81,53 @@ describe("writeTagsToFile error paths", () => {
 });
 
 describe("clearTags", () => {
-  it("should clear extended fields and pictures, not just basic 7", async () => {
-    const original = await Deno.readFile(FIXTURE_PATH.flac);
+  for (const format of ["flac", "mp3", "ogg"] as const) {
+    it(`should clear extended fields and pictures for ${format.toUpperCase()}`, async () => {
+      const original = await Deno.readFile(FIXTURE_PATH[format]);
 
-    // First, write extended fields
-    const withExtended = await applyTagsToBuffer(new Uint8Array(original), {
-      title: "Test Title",
-      artist: "Test Artist",
-      albumArtist: "Various Artists",
-      composer: "Test Composer",
-      musicbrainzTrackId: "abc-123",
-      replayGainTrackGain: "-6.54 dB",
-    });
-
-    // Add a picture
-    const taglib = await TagLib.initialize({ forceBufferMode: true });
-    const withPicture = await taglib.edit(withExtended, (file) => {
-      file.addPicture({
-        mimeType: "image/png",
-        data: new Uint8Array([0x89, 0x50, 0x4E, 0x47]),
-        type: "FrontCover",
+      const withExtended = await applyTags(new Uint8Array(original), {
+        title: "Test Title",
+        artist: "Test Artist",
+        albumArtist: "Various Artists",
+        composer: "Test Composer",
+        musicbrainzTrackId: "abc-123",
+        replayGainTrackGain: "-6.54 dB",
       });
+
+      const taglib = await TagLib.initialize({ forceBufferMode: true });
+      const withPicture = await taglib.edit(withExtended, (file) => {
+        file.addPicture({
+          mimeType: "image/png",
+          data: new Uint8Array([0x89, 0x50, 0x4E, 0x47]),
+          type: "FrontCover",
+        });
+      });
+
+      const cleared = await clearTags(withPicture);
+
+      const verifyFile = await taglib.open(cleared);
+      try {
+        assertEquals(verifyFile.tag().title, "");
+        assertEquals(verifyFile.tag().artist, "");
+        assertEquals(verifyFile.getProperty("ALBUMARTIST"), undefined);
+        assertEquals(verifyFile.getProperty("COMPOSER"), undefined);
+        assertEquals(verifyFile.getProperty("MUSICBRAINZ_TRACKID"), undefined);
+        assertEquals(
+          verifyFile.getProperty("REPLAYGAIN_TRACK_GAIN"),
+          undefined,
+        );
+        assertEquals(verifyFile.getPictures().length, 0);
+      } finally {
+        verifyFile.dispose();
+      }
     });
-
-    // Now clear tags
-    const cleared = await clearTags(withPicture);
-
-    // Verify ALL tags are cleared
-    const verifyFile = await taglib.open(cleared);
-    try {
-      assertEquals(verifyFile.tag().title, "");
-      assertEquals(verifyFile.tag().artist, "");
-      assertEquals(verifyFile.getProperty("ALBUMARTIST"), undefined);
-      assertEquals(verifyFile.getProperty("COMPOSER"), undefined);
-      assertEquals(verifyFile.getProperty("MUSICBRAINZ_TRACKID"), undefined);
-      assertEquals(verifyFile.getProperty("REPLAYGAIN_TRACK_GAIN"), undefined);
-      assertEquals(verifyFile.getPictures().length, 0);
-    } finally {
-      verifyFile.dispose();
-    }
-  });
+  }
 });
 
 describe("readTags extended fields", () => {
   it("should return extended fields from readTags", async () => {
     const original = await Deno.readFile(FIXTURE_PATH.flac);
-    const withExtended = await applyTagsToBuffer(new Uint8Array(original), {
+    const withExtended = await applyTags(new Uint8Array(original), {
       title: "Test Title",
       albumArtist: "Various Artists",
       composer: "Test Composer",
@@ -140,21 +141,14 @@ describe("readTags extended fields", () => {
 
     const tags = await readTags(withExtended);
     assertEquals(tags.title, ["Test Title"]);
-    // Extended fields should now be present
-    assertEquals((tags as Record<string, unknown>).albumArtist, [
-      "Various Artists",
-    ]);
-    assertEquals((tags as Record<string, unknown>).composer, ["Test Composer"]);
-    assertEquals((tags as Record<string, unknown>).discNumber, 2);
-    assertEquals((tags as Record<string, unknown>).totalTracks, 12);
-    assertEquals((tags as Record<string, unknown>).bpm, 128);
-    assertEquals((tags as Record<string, unknown>).compilation, true);
-    assertEquals((tags as Record<string, unknown>).musicbrainzTrackId, [
-      "abc-123",
-    ]);
-    assertEquals((tags as Record<string, unknown>).replayGainTrackGain, [
-      "-6.54 dB",
-    ]);
+    assertEquals(tags.albumArtist, ["Various Artists"]);
+    assertEquals(tags.composer, ["Test Composer"]);
+    assertEquals(tags.discNumber, 2);
+    assertEquals(tags.totalTracks, 12);
+    assertEquals(tags.bpm, 128);
+    assertEquals(tags.compilation, true);
+    assertEquals(tags.musicbrainzTrackId, ["abc-123"]);
+    assertEquals(tags.replayGainTrackGain, ["-6.54 dB"]);
   });
 });
 

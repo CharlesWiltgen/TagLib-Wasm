@@ -13,7 +13,7 @@ import {
 import { writeFileData } from "../utils/write.ts";
 import {
   mapPropertiesToExtendedTag,
-  normalizeTagInput,
+  mergeTagUpdates,
 } from "../utils/tag-mapping.ts";
 import { getTagLib } from "./config.ts";
 
@@ -67,10 +67,7 @@ export async function applyTags(
       );
     }
 
-    const currentProps = audioFile.properties();
-    const newProps = normalizeTagInput(tags);
-    const merged = { ...currentProps, ...newProps };
-    audioFile.setProperties(merged);
+    mergeTagUpdates(audioFile, tags);
 
     if (!audioFile.save()) {
       throw new FileOperationError(

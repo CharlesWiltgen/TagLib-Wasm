@@ -69,6 +69,16 @@ describe(mapPropertiesToExtendedTag.name, () => {
     });
     assertEquals(result, { title: ["X"] });
   });
+
+  it("should skip fields with empty values arrays", () => {
+    const result = mapPropertiesToExtendedTag({
+      TITLE: [],
+      ALBUMARTIST: [],
+      DISCNUMBER: [],
+      COMPILATION: [],
+    });
+    assertEquals(result, {});
+  });
 });
 
 describe(normalizeTagInput.name, () => {
