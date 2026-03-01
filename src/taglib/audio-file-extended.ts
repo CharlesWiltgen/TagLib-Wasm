@@ -87,7 +87,9 @@ export abstract class ExtendedAudioFileImpl extends BaseAudioFileImpl {
 
   getTotalTracks(): number | undefined {
     const value = this.getProperty("TRACKTOTAL");
-    return value != null ? parseInt(value, 10) : undefined;
+    if (value == null) return undefined;
+    const parsed = Number.parseInt(value, 10);
+    return Number.isNaN(parsed) ? undefined : parsed;
   }
 
   setTotalTracks(total: number): void {
@@ -96,7 +98,9 @@ export abstract class ExtendedAudioFileImpl extends BaseAudioFileImpl {
 
   getTotalDiscs(): number | undefined {
     const value = this.getProperty("DISCTOTAL");
-    return value != null ? parseInt(value, 10) : undefined;
+    if (value == null) return undefined;
+    const parsed = Number.parseInt(value, 10);
+    return Number.isNaN(parsed) ? undefined : parsed;
   }
 
   setTotalDiscs(total: number): void {
