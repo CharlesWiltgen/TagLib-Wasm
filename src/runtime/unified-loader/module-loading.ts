@@ -104,6 +104,13 @@ async function loadEmscriptenModule(
       moduleConfig.locateFile = (path: string) => {
         return path.endsWith(".wasm") ? options.wasmUrl! : path;
       };
+    } else if (!options.wasmBinary) {
+      const wasmUrl = new URL(
+        "../../../build/taglib-web.wasm",
+        import.meta.url,
+      );
+      moduleConfig.locateFile = (path: string) =>
+        path.endsWith(".wasm") ? wasmUrl.href : path;
     }
 
     const module = await createModule(moduleConfig);
