@@ -89,8 +89,29 @@ describe("applyTagsToBuffer with TagInput", () => {
     assertExists(modified);
 
     const tags = await readTags(modified);
-    assertExists(tags.artist);
-    assertEquals(tags.artist!.length >= 1, true);
+    assertEquals(tags.artist, ["Artist One", "Artist Two"]);
+  });
+
+  it("should clear field when writing empty array", async () => {
+    const original = await Deno.readFile(FIXTURE_PATH.flac);
+    const modified = await applyTagsToBuffer(new Uint8Array(original), {
+      artist: [],
+    });
+    const tags = await readTags(modified);
+
+    const isEmpty = (val: string[] | undefined) =>
+      val === undefined || val.length === 0 || val.every((s) => s === "");
+    assertEquals(isEmpty(tags.artist), true);
+  });
+
+  it("should roundtrip many values in a single field", async () => {
+    const original = await Deno.readFile(FIXTURE_PATH.flac);
+    const artists = Array.from({ length: 20 }, (_, i) => `Artist ${i + 1}`);
+    const modified = await applyTagsToBuffer(new Uint8Array(original), {
+      artist: artists,
+    });
+    const tags = await readTags(modified);
+    assertEquals(tags.artist, artists);
   });
 
   it("should handle mixed string and array fields", async () => {
@@ -105,6 +126,7 @@ describe("applyTagsToBuffer with TagInput", () => {
     const tags = await readTags(modified);
 
     assertEquals(tags.title, ["Single Title"]);
+    assertEquals(tags.genre, ["Rock", "Pop"]);
     assertEquals(tags.year, 2025);
   });
 });

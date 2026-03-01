@@ -1100,6 +1100,44 @@ describe(
       handle.destroy();
     });
 
+    for (const [format, paths] of Object.entries(FORMAT_FILES)) {
+      const ext = paths.real.split(".").pop()!;
+      it(`should roundtrip multi-value artist via WASI path write (${format})`, async () => {
+        const tempDir = await Deno.makeTempDir();
+        const srcPath = resolve(TEST_FILES_DIR, paths.real);
+        const destPath = resolve(tempDir, `multi-value.${ext}`);
+        await Deno.copyFile(srcPath, destPath);
+
+        try {
+          using wasi = await loadWasiHost({
+            wasmPath: WASM_PATH,
+            preopens: { "/tmp": tempDir },
+          });
+
+          const multiValueTags = {
+            artist: ["Artist One", "Artist Two"],
+            title: "Multi-Value Test",
+          } as unknown as ExtendedTag;
+
+          writeTagsWasi(wasi, `/tmp/multi-value.${ext}`, multiValueTags);
+
+          using wasi2 = await loadWasiHost({
+            wasmPath: WASM_PATH,
+            preopens: { "/tmp": tempDir },
+          });
+
+          const readBack = readTagsViaPath(
+            wasi2,
+            `/tmp/multi-value.${ext}`,
+          ) as unknown as RawTag;
+          assertEquals(readBack.title, "Multi-Value Test");
+          assertEquals(readBack.artist, ["Artist One", "Artist Two"]);
+        } finally {
+          await Deno.remove(tempDir, { recursive: true });
+        }
+      });
+    }
+
     it("should saveToFile() via WASI buffer write path", async () => {
       const { TagLib } = await import("../src/taglib/taglib-class.ts");
       const taglib = await TagLib.initialize({ forceWasmType: "wasi" });

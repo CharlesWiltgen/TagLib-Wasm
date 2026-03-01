@@ -150,7 +150,16 @@ static tl_error_code encode_file_to_msgpack(TagLib::File* file,
             TagLib::String raw = it->second.front();
             mpack_write_bool(&writer, raw == "1" || raw == "true");
         } else {
-            write_mpack_string(&writer, it->second.front());
+            const TagLib::StringList& values = it->second;
+            if (values.size() == 1) {
+                write_mpack_string(&writer, values.front());
+            } else {
+                mpack_start_array(&writer, static_cast<uint32_t>(values.size()));
+                for (const auto& s : values) {
+                    write_mpack_string(&writer, s);
+                }
+                mpack_finish_array(&writer);
+            }
         }
     }
 
@@ -236,8 +245,13 @@ static const char* SKIP_KEYS[] = {
 static const size_t SKIP_KEYS_SIZE = sizeof(SKIP_KEYS) / sizeof(SKIP_KEYS[0]);
 
 static bool should_skip(const char* key) {
-    for (size_t i = 0; i < SKIP_KEYS_SIZE; i++) {
-        if (strcmp(key, SKIP_KEYS[i]) == 0) return true;
+    int left = 0, right = static_cast<int>(SKIP_KEYS_SIZE) - 1;
+    while (left <= right) {
+        int mid = left + (right - left) / 2;
+        int cmp = strcmp(key, SKIP_KEYS[mid]);
+        if (cmp == 0) return true;
+        if (cmp < 0) right = mid - 1;
+        else left = mid + 1;
     }
     return false;
 }
@@ -255,6 +269,8 @@ static bool is_uppercase_key(const char* key) {
     }
     return true;
 }
+
+static const uint32_t MAX_STRING_VALUE_LEN = 1024 * 1024;  // 1 MB
 
 static tl_error_code decode_msgpack_to_propmap(
     const uint8_t* data, size_t len, TagLib::PropertyMap& propMap)
@@ -286,6 +302,45 @@ static tl_error_code decode_msgpack_to_propmap(
         mpack_tag_t tag = mpack_peek_tag(&reader);
         if (mpack_reader_error(&reader) != mpack_ok) break;
 
+        if (tag.type == mpack_type_array) {
+            uint32_t arr_count = mpack_expect_array(&reader);
+            if (mpack_reader_error(&reader) != mpack_ok) break;
+            TagLib::StringList list;
+            for (uint32_t j = 0; j < arr_count; j++) {
+                uint32_t slen = mpack_expect_str(&reader);
+                if (mpack_reader_error(&reader) != mpack_ok) break;
+                char sbuf[4096];
+                if (slen < sizeof(sbuf)) {
+                    mpack_read_bytes(&reader, sbuf, slen);
+                    mpack_done_str(&reader);
+                    sbuf[slen] = '\0';
+                    list.append(TagLib::String(sbuf, TagLib::String::UTF8));
+                } else if (slen <= MAX_STRING_VALUE_LEN) {
+                    char* heap = static_cast<char*>(malloc(slen + 1));
+                    if (!heap) { mpack_reader_destroy(&reader); return TL_ERROR_MEMORY_ALLOCATION; }
+                    mpack_read_bytes(&reader, heap, slen);
+                    mpack_done_str(&reader);
+                    heap[slen] = '\0';
+                    list.append(TagLib::String(heap, TagLib::String::UTF8));
+                    free(heap);
+                } else {
+                    mpack_reader_destroy(&reader);
+                    return TL_ERROR_PARSE_FAILED;
+                }
+            }
+            mpack_done_array(&reader);
+            if (mpack_reader_error(&reader) != mpack_ok) break;
+            if (!list.isEmpty()) {
+                const char* mapped = map_camel_to_prop(key);
+                if (mapped) {
+                    propMap[mapped] = list;
+                } else if (is_uppercase_key(key)) {
+                    propMap[key] = list;
+                }
+            }
+            continue;
+        }
+
         TagLib::String value;
         bool has_value = false;
 
@@ -301,7 +356,7 @@ static tl_error_code decode_msgpack_to_propmap(
                     value = TagLib::String(vbuf, TagLib::String::UTF8);
                     has_value = true;
                 }
-            } else {
+            } else if (vlen <= MAX_STRING_VALUE_LEN) {
                 char* heap = static_cast<char*>(malloc(vlen + 1));
                 if (!heap) { mpack_reader_destroy(&reader); return TL_ERROR_MEMORY_ALLOCATION; }
                 mpack_read_bytes(&reader, heap, vlen);
@@ -310,6 +365,9 @@ static tl_error_code decode_msgpack_to_propmap(
                 value = TagLib::String(heap, TagLib::String::UTF8);
                 has_value = true;
                 free(heap);
+            } else {
+                mpack_reader_destroy(&reader);
+                return TL_ERROR_PARSE_FAILED;
             }
         } else if (tag.type == mpack_type_uint) {
             uint64_t num = mpack_expect_u64(&reader);
@@ -354,19 +412,19 @@ static void apply_propmap(TagLib::FileRef& ref, const TagLib::PropertyMap& propM
     TagLib::Tag* tag = ref.tag();
     if (!tag) return;
     auto it = propMap.find("TITLE");
-    if (it != propMap.end() && !it->second.isEmpty())
+    if (it != propMap.end() && it->second.size() == 1)
         tag->setTitle(it->second.front());
     it = propMap.find("ARTIST");
-    if (it != propMap.end() && !it->second.isEmpty())
+    if (it != propMap.end() && it->second.size() == 1)
         tag->setArtist(it->second.front());
     it = propMap.find("ALBUM");
-    if (it != propMap.end() && !it->second.isEmpty())
+    if (it != propMap.end() && it->second.size() == 1)
         tag->setAlbum(it->second.front());
     it = propMap.find("COMMENT");
-    if (it != propMap.end() && !it->second.isEmpty())
+    if (it != propMap.end() && it->second.size() == 1)
         tag->setComment(it->second.front());
     it = propMap.find("GENRE");
-    if (it != propMap.end() && !it->second.isEmpty())
+    if (it != propMap.end() && it->second.size() == 1)
         tag->setGenre(it->second.front());
     it = propMap.find("DATE");
     if (it != propMap.end() && !it->second.isEmpty())

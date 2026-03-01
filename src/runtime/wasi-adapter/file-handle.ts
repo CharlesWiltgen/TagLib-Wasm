@@ -97,12 +97,16 @@ export class WasiFileHandle implements FileHandle {
   }
 
   private createTagWrapper(data: Record<string, unknown>): TagWrapper {
+    const firstString = (v: unknown): string => {
+      if (Array.isArray(v)) return (v[0] as string) ?? "";
+      return (v as string) || "";
+    };
     return {
-      title: () => (data.title as string) || "",
-      artist: () => (data.artist as string) || "",
-      album: () => (data.album as string) || "",
-      comment: () => (data.comment as string) || "",
-      genre: () => (data.genre as string) || "",
+      title: () => firstString(data.title),
+      artist: () => firstString(data.artist),
+      album: () => firstString(data.album),
+      comment: () => firstString(data.comment),
+      genre: () => firstString(data.genre),
       year: () => (data.year as number) || 0,
       track: () => (data.track as number) || 0,
 
@@ -191,7 +195,9 @@ export class WasiFileHandle implements FileHandle {
       if (value === 0 || value === "") continue;
 
       const propKey = CAMEL_TO_VORBIS[key] ?? key;
-      result[propKey] = [String(value)];
+      result[propKey] = Array.isArray(value)
+        ? value.map(String)
+        : [String(value)];
     }
 
     return result;
@@ -202,11 +208,10 @@ export class WasiFileHandle implements FileHandle {
     const mapped: Record<string, unknown> = {};
     for (const [key, values] of Object.entries(props)) {
       const camelKey = VORBIS_TO_CAMEL[key] ?? key;
-      const scalar = values[0] ?? "";
       if (camelKey === "year" || camelKey === "track") {
-        mapped[camelKey] = Number.parseInt(scalar, 10) || 0;
+        mapped[camelKey] = Number.parseInt(values[0] ?? "", 10) || 0;
       } else {
-        mapped[camelKey] = scalar;
+        mapped[camelKey] = values;
       }
     }
     this.tagData = { ...this.tagData, ...mapped } as Record<string, unknown>;
