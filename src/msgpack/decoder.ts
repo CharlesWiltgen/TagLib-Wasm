@@ -9,7 +9,7 @@ import type {
   PropertyMap,
 } from "../types.ts";
 import type { MessagePackDataType } from "./types.ts";
-import { VORBIS_TO_CAMEL } from "../types/metadata-mappings.ts";
+import { fromTagLibKey } from "../constants/properties.ts";
 
 const MSGPACK_DECODE_OPTIONS: DecoderOptions = {
   useBigInt64: false,
@@ -121,7 +121,7 @@ function normalizeTagKeys(
 ): Record<string, unknown> {
   const normalized: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(obj)) {
-    normalized[VORBIS_TO_CAMEL[key] ?? key] = value;
+    normalized[fromTagLibKey(key)] = value;
   }
   return normalized;
 }
