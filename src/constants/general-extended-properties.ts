@@ -65,6 +65,39 @@ export const GENERAL_EXTENDED_PROPERTIES = {
       mp4: "tmpo",
     },
   },
+  totalTracks: {
+    key: "TRACKTOTAL",
+    description: "Total number of tracks on the album",
+    type: "string" as const,
+    supportedFormats: ["ID3v2", "MP4", "Vorbis"] as const,
+    mappings: {
+      id3v2: { frame: "TRCK" },
+      vorbis: "TRACKTOTAL",
+      mp4: "trkn",
+    },
+  },
+  totalDiscs: {
+    key: "DISCTOTAL",
+    description: "Total number of discs in the set",
+    type: "string" as const,
+    supportedFormats: ["ID3v2", "MP4", "Vorbis"] as const,
+    mappings: {
+      id3v2: { frame: "TPOS" },
+      vorbis: "DISCTOTAL",
+      mp4: "disk",
+    },
+  },
+  compilation: {
+    key: "COMPILATION",
+    description: "Whether the album is a compilation (various artists)",
+    type: "boolean" as const,
+    supportedFormats: ["ID3v2", "MP4", "Vorbis"] as const,
+    mappings: {
+      id3v2: { frame: "TCMP" },
+      vorbis: "COMPILATION",
+      mp4: "cpil",
+    },
+  },
 
   // Sorting Properties
   titleSort: {

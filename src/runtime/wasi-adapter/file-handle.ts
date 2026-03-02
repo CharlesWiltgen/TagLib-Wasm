@@ -11,10 +11,7 @@ import type {
 import type { WasiModule } from "../wasmer-sdk-loader/index.ts";
 import { WasmerExecutionError } from "../wasmer-sdk-loader/index.ts";
 import { decodeTagData } from "../../msgpack/decoder.ts";
-import {
-  CAMEL_TO_VORBIS,
-  VORBIS_TO_CAMEL,
-} from "../../types/metadata-mappings.ts";
+import { fromTagLibKey, toTagLibKey } from "../../constants/properties.ts";
 import { readTagsFromWasm, writeTagsToWasm } from "./wasm-io.ts";
 
 const AUDIO_KEYS = new Set([
@@ -31,6 +28,11 @@ const AUDIO_KEYS = new Set([
 ]);
 
 const INTERNAL_KEYS = new Set(["pictures", "ratings"]);
+
+const NUMERIC_FIELD_ALIASES: Record<string, string> = {
+  date: "year",
+  trackNumber: "track",
+};
 
 export class WasiFileHandle implements FileHandle {
   private readonly wasi: WasiModule;
@@ -194,7 +196,7 @@ export class WasiFileHandle implements FileHandle {
       if (value === undefined || value === null) continue;
       if (value === 0 || value === "") continue;
 
-      const propKey = CAMEL_TO_VORBIS[key] ?? key;
+      const propKey = toTagLibKey(key);
       if (Array.isArray(value)) {
         result[propKey] = value.map(String);
       } else if (typeof value === "object") {
@@ -211,10 +213,11 @@ export class WasiFileHandle implements FileHandle {
     this.checkNotDestroyed();
     const mapped: Record<string, unknown> = {};
     for (const [key, values] of Object.entries(props)) {
-      const camelKey = VORBIS_TO_CAMEL[key] ?? key;
-      if (camelKey === "year" || camelKey === "track") {
+      const camelKey = fromTagLibKey(key);
+      const storeKey = NUMERIC_FIELD_ALIASES[camelKey] ?? camelKey;
+      if (storeKey === "year" || storeKey === "track") {
         const parsed = Number.parseInt(values[0] ?? "", 10);
-        if (!Number.isNaN(parsed)) mapped[camelKey] = parsed;
+        if (!Number.isNaN(parsed)) mapped[storeKey] = parsed;
       } else {
         mapped[camelKey] = values;
       }
@@ -224,17 +227,19 @@ export class WasiFileHandle implements FileHandle {
 
   getProperty(key: string): string {
     this.checkNotDestroyed();
-    const mappedKey = VORBIS_TO_CAMEL[key] ?? key;
-    return this.tagData?.[mappedKey]?.toString() ?? "";
+    const mappedKey = fromTagLibKey(key);
+    const storeKey = NUMERIC_FIELD_ALIASES[mappedKey] ?? mappedKey;
+    return this.tagData?.[storeKey]?.toString() ?? "";
   }
 
   setProperty(key: string, value: string): void {
     this.checkNotDestroyed();
-    const mappedKey = VORBIS_TO_CAMEL[key] ?? key;
-    if (mappedKey === "year" || mappedKey === "track") {
+    const mappedKey = fromTagLibKey(key);
+    const storeKey = NUMERIC_FIELD_ALIASES[mappedKey] ?? mappedKey;
+    if (storeKey === "year" || storeKey === "track") {
       const parsed = Number.parseInt(value, 10);
       if (!Number.isNaN(parsed)) {
-        this.tagData = { ...this.tagData, [mappedKey]: parsed };
+        this.tagData = { ...this.tagData, [storeKey]: parsed };
       }
     } else {
       this.tagData = { ...this.tagData, [mappedKey]: value };
@@ -266,7 +271,9 @@ export class WasiFileHandle implements FileHandle {
   removeMP4Item(key: string): void {
     this.checkNotDestroyed();
     if (this.tagData) {
-      delete this.tagData[VORBIS_TO_CAMEL[key] ?? key];
+      const mappedKey = fromTagLibKey(key);
+      const storeKey = NUMERIC_FIELD_ALIASES[mappedKey] ?? mappedKey;
+      delete this.tagData[storeKey];
     }
   }
 
