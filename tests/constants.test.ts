@@ -205,6 +205,12 @@ describe("constants", () => {
     assertEquals(Tags.AlbumSort, "albumSort");
   });
 
+  it("should include totalTracks, totalDiscs, and compilation", () => {
+    assertEquals(PROPERTIES.totalTracks.key, "TRACKTOTAL");
+    assertEquals(PROPERTIES.totalDiscs.key, "DISCTOTAL");
+    assertEquals(PROPERTIES.compilation.key, "COMPILATION");
+  });
+
   it("PROPERTIES constant structure - validates all properties have required fields", () => {
     const propertyEntries = Object.entries(PROPERTIES) as [
       PropertyKey,
@@ -358,12 +364,40 @@ describe("Property key translation", () => {
     assertEquals(toTagLibKey("musicbrainzReleaseId"), "MUSICBRAINZ_ALBUMID");
   });
 
+  it("should translate totalTracks, totalDiscs, compilation via toTagLibKey", () => {
+    assertEquals(toTagLibKey("totalTracks"), "TRACKTOTAL");
+    assertEquals(toTagLibKey("totalDiscs"), "DISCTOTAL");
+    assertEquals(toTagLibKey("compilation"), "COMPILATION");
+  });
+
   it("fromTagLibKey translates ALL_CAPS to camelCase", () => {
     assertEquals(fromTagLibKey("TITLE"), "title");
     assertEquals(fromTagLibKey("MUSICBRAINZ_TRACKID"), "musicbrainzTrackId");
     assertEquals(fromTagLibKey("REPLAYGAIN_TRACK_GAIN"), "replayGainTrackGain");
     assertEquals(fromTagLibKey("ITUNNORM"), "appleSoundCheck");
     assertEquals(fromTagLibKey("MUSICBRAINZ_ALBUMID"), "musicbrainzReleaseId");
+  });
+
+  it("should reverse-translate TRACKTOTAL, DISCTOTAL, COMPILATION via fromTagLibKey", () => {
+    assertEquals(fromTagLibKey("TRACKTOTAL"), "totalTracks");
+    assertEquals(fromTagLibKey("DISCTOTAL"), "totalDiscs");
+    assertEquals(fromTagLibKey("COMPILATION"), "compilation");
+  });
+
+  it("should translate year to DATE via toTagLibKey (forward alias)", () => {
+    assertEquals(toTagLibKey("year"), "DATE");
+  });
+
+  it("should translate track to TRACKNUMBER via toTagLibKey (forward alias)", () => {
+    assertEquals(toTagLibKey("track"), "TRACKNUMBER");
+  });
+
+  it("should still translate date to DATE via toTagLibKey (canonical)", () => {
+    assertEquals(toTagLibKey("date"), "DATE");
+  });
+
+  it("should still reverse DATE to date via fromTagLibKey (canonical stays)", () => {
+    assertEquals(fromTagLibKey("DATE"), "date");
   });
 
   it("unknown keys pass through untranslated", () => {
