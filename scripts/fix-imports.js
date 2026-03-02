@@ -1,9 +1,10 @@
 #!/usr/bin/env node
 
 /**
- * Fix import/export statements in compiled JavaScript files
- * Adds .js extension to relative imports for Deno compatibility
- * Also fixes taglib-wrapper.js import paths
+ * Fix import/export statements in compiled JavaScript and declaration files.
+ * Replaces .ts extensions with .js in import specifiers for compatibility
+ * with all moduleResolution modes and Deno.
+ * Also fixes taglib-wrapper.js import paths.
  */
 
 import { readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
@@ -105,7 +106,7 @@ function processDirectory(dir) {
 
     if (stat.isDirectory()) {
       processDirectory(fullPath);
-    } else if (extname(entry) === ".js") {
+    } else if (extname(entry) === ".js" || entry.endsWith(".d.ts")) {
       fixImportsInFile(fullPath);
     }
   }

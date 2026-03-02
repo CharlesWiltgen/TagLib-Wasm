@@ -7,7 +7,7 @@
 
 import type { LoadTagLibOptions } from "./loader-types.ts";
 import type { TagLibModule } from "../wasm.ts";
-import { TagLibInitializationError } from "../errors/classes.ts";
+import { errorMessage, TagLibInitializationError } from "../errors/classes.ts";
 import { isDenoCompiled } from "./deno-detect.ts";
 
 /**
@@ -82,7 +82,9 @@ export async function loadTagLibModule(
     });
   } catch (error) {
     console.warn(
-      `[TagLib] Unified loader failed, falling back to buffer mode: ${error}`,
+      `[TagLib] Unified loader failed, falling back to buffer mode: ${
+        errorMessage(error)
+      }`,
     );
     return loadBufferModeTagLibModule(options || {});
   }
@@ -99,12 +101,10 @@ async function loadBufferModeTagLibModule(
 ): Promise<TagLibModule> {
   let createTagLibModule;
   try {
-    // @ts-ignore: Dynamic import handled at runtime
     const module = await import("../../build/taglib-wrapper.js");
     createTagLibModule = module.default;
   } catch {
     try {
-      // @ts-ignore: Dynamic import handled at runtime
       const module = await import("../../dist/taglib-wrapper.js");
       createTagLibModule = module.default;
     } catch {

@@ -6,6 +6,7 @@ import { Directory } from "@wasmer/sdk";
 import type { WasiModule, WasmerLoaderConfig } from "./types.ts";
 import { WasmerLoadError } from "./types.ts";
 import { initializeWasmer, loadWasmBinary } from "./initialization.ts";
+import { errorMessage } from "../../errors/classes.ts";
 import { instantiateWasi } from "./wasi-stubs.ts";
 import { createWasiModule } from "./module-creation.ts";
 
@@ -58,7 +59,7 @@ export async function loadWasmerWasi(
     return createWasiModule(instance, debug);
   } catch (error) {
     throw new WasmerLoadError(
-      `Failed to load WASI module from ${wasmPath}: ${error}`,
+      `Failed to load WASI module from ${wasmPath}: ${errorMessage(error)}`,
       error,
     );
   }
