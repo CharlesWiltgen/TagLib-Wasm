@@ -20,37 +20,55 @@
  * ```
  */
 
+type Brand<T, K extends string> = T & { readonly __brand: K };
+
+/** Normalized rating value (0.0-1.0 scale). */
+export type NormalizedRating = Brand<number, "NormalizedRating">;
+
+/** POPM rating value (0-255 scale, as used in ID3v2 Popularimeter frames). */
+export type PopmRating = Brand<number, "PopmRating">;
+
+/** Create a NormalizedRating from a plain number. */
+export function normalized(value: number): NormalizedRating {
+  return value as NormalizedRating;
+}
+
+/** Create a PopmRating from a plain number. */
+export function popm(value: number): PopmRating {
+  return value as PopmRating;
+}
+
 /**
  * Convert POPM value (0-255) to normalized (0.0-1.0).
  * Precision-preserving linear conversion.
  *
- * @param popm - POPM rating value (0-255)
+ * @param value - POPM rating value (0-255)
  * @returns Normalized rating (0.0-1.0)
  */
-export function toNormalized(popm: number): number {
-  return popm / 255;
+export function toNormalized(value: PopmRating): NormalizedRating {
+  return value / 255 as NormalizedRating;
 }
 
 /**
  * Convert normalized (0.0-1.0) to POPM value (0-255).
  * Precision-preserving linear conversion.
  *
- * @param normalized - Normalized rating (0.0-1.0)
+ * @param value - Normalized rating (0.0-1.0)
  * @returns POPM rating value (0-255)
  */
-export function fromNormalized(normalized: number): number {
-  return Math.round(normalized * 255);
+export function fromNormalized(value: NormalizedRating): PopmRating {
+  return Math.round(value * 255) as PopmRating;
 }
 
 /**
  * Convert normalized rating to star value.
  *
- * @param normalized - Normalized rating (0.0-1.0)
+ * @param value - Normalized rating (0.0-1.0)
  * @param maxStars - Maximum star count (default: 5)
  * @returns Star rating (0 to maxStars)
  */
-export function toStars(normalized: number, maxStars = 5): number {
-  return Math.round(normalized * maxStars);
+export function toStars(value: NormalizedRating, maxStars = 5): number {
+  return Math.round(value * maxStars);
 }
 
 /**
@@ -60,8 +78,8 @@ export function toStars(normalized: number, maxStars = 5): number {
  * @param maxStars - Maximum star count (default: 5)
  * @returns Normalized rating (0.0-1.0)
  */
-export function fromStars(stars: number, maxStars = 5): number {
-  return stars / maxStars;
+export function fromStars(stars: number, maxStars = 5): NormalizedRating {
+  return stars / maxStars as NormalizedRating;
 }
 
 /**
@@ -81,38 +99,38 @@ const POPM_STAR_VALUES = [0, 1, 64, 128, 196, 255] as const;
  * Convert normalized rating to standard POPM value.
  * Uses the widely-adopted 5-star to POPM mapping.
  *
- * @param normalized - Normalized rating (0.0-1.0)
+ * @param value - Normalized rating (0.0-1.0)
  * @returns POPM value (0, 1, 64, 128, 196, or 255)
  */
-export function toPopm(normalized: number): number {
-  const stars = Math.round(normalized * 5);
-  return POPM_STAR_VALUES[stars] ?? 0;
+export function toPopm(value: NormalizedRating): PopmRating {
+  const stars = Math.round(value * 5);
+  return (POPM_STAR_VALUES[stars] ?? 0) as PopmRating;
 }
 
 /**
  * Convert POPM value to normalized rating using standard mapping.
  * Handles the full 0-255 range by mapping to nearest star level.
  *
- * @param popm - POPM rating value (0-255)
+ * @param value - POPM rating value (0-255)
  * @returns Normalized rating (0.0, 0.2, 0.4, 0.6, 0.8, or 1.0)
  */
-export function fromPopm(popm: number): number {
-  if (popm === 0) return 0;
-  if (popm <= 1) return 0.2;
-  if (popm <= 64) return 0.4;
-  if (popm <= 128) return 0.6;
-  if (popm <= 196) return 0.8;
-  return 1;
+export function fromPopm(value: PopmRating): NormalizedRating {
+  if (value === 0) return 0 as NormalizedRating;
+  if (value <= 1) return 0.2 as NormalizedRating;
+  if (value <= 64) return 0.4 as NormalizedRating;
+  if (value <= 128) return 0.6 as NormalizedRating;
+  if (value <= 196) return 0.8 as NormalizedRating;
+  return 1 as NormalizedRating;
 }
 
 /**
  * Convert normalized rating to percentage.
  *
- * @param normalized - Normalized rating (0.0-1.0)
+ * @param value - Normalized rating (0.0-1.0)
  * @returns Percentage (0-100)
  */
-export function toPercent(normalized: number): number {
-  return normalized * 100;
+export function toPercent(value: NormalizedRating): number {
+  return value * 100;
 }
 
 /**
@@ -121,8 +139,8 @@ export function toPercent(normalized: number): number {
  * @param percent - Percentage (0-100)
  * @returns Normalized rating (0.0-1.0)
  */
-export function fromPercent(percent: number): number {
-  return percent / 100;
+export function fromPercent(percent: number): NormalizedRating {
+  return percent / 100 as NormalizedRating;
 }
 
 /**
@@ -131,8 +149,8 @@ export function fromPercent(percent: number): number {
  * @param rating - Rating value to clamp
  * @returns Rating clamped to 0.0-1.0
  */
-export function clamp(rating: number): number {
-  return Math.max(0, Math.min(1, rating));
+export function clamp(rating: number): NormalizedRating {
+  return Math.max(0, Math.min(1, rating)) as NormalizedRating;
 }
 
 /**
@@ -141,7 +159,7 @@ export function clamp(rating: number): number {
  * @param rating - Rating value to check
  * @returns True if rating is valid
  */
-export function isValid(rating: number): boolean {
+export function isValid(rating: number): rating is NormalizedRating {
   return typeof rating === "number" && !Number.isNaN(rating) && rating >= 0 &&
     rating <= 1;
 }
@@ -150,6 +168,8 @@ export function isValid(rating: number): boolean {
  * Namespace export for convenient grouped access.
  */
 export const RatingUtils = {
+  normalized,
+  popm,
   toNormalized,
   fromNormalized,
   toStars,
