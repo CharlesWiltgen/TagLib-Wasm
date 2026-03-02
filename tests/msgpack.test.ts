@@ -70,17 +70,14 @@ describe("MessagePack", () => {
 
   it("decodeTagData - decodes MessagePack tag data", () => {
     const encoded = encodeTagData(sampleTagData);
-    const decoded = decodeTagData(encoded);
+    const decoded = decodeTagData(encoded) as Record<string, unknown>;
+    const expected = sampleTagData as unknown as Record<string, unknown>;
 
-    const sample = sampleTagData as unknown as Record<string, unknown>;
-    assertEquals(decoded.title, sample.title);
-    assertEquals(decoded.artist, sample.artist);
-    assertEquals(decoded.album, sample.album);
-    assertEquals((decoded as Record<string, unknown>).date, sample.date);
-    assertEquals(
-      (decoded as Record<string, unknown>).trackNumber,
-      sample.trackNumber,
-    );
+    assertEquals(decoded.title, expected.title);
+    assertEquals(decoded.artist, expected.artist);
+    assertEquals(decoded.album, expected.album);
+    assertEquals(decoded.date, expected.date);
+    assertEquals(decoded.trackNumber, expected.trackNumber);
   });
 
   it("encodeAudioProperties - encodes audio properties to MessagePack", () => {

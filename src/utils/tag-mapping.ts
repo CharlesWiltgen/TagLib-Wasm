@@ -65,7 +65,6 @@ export function mapPropertiesToExtendedTag(props: PropertyMap): ExtendedTag {
     if (values.length === 0) continue;
     // camelCase PropertyKeys pass through; ALL_CAPS pass-through keys get mapped
     const camelKey = fromTagLibKey(key);
-    if (!camelKey) continue;
 
     if (NUMERIC_FIELDS.has(camelKey)) {
       const num = parseNumeric(values[0]);
