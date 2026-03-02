@@ -202,6 +202,7 @@ export type {
 
 // Rating conversion utilities (individual functions available via taglib-wasm/rating)
 export { RatingUtils } from "./src/utils/rating.ts";
+export type { NormalizedRating, PopmRating } from "./src/utils/rating.ts";
 
 // Wasm module types and loader
 export type { TagLibModule, WasmModule } from "./src/wasm.ts";
