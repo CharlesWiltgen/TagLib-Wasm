@@ -76,17 +76,17 @@ describe({ name: "Cross-Backend Parity", ignore: SKIP }, () => {
       const wasiProps = await wasi.readProperties(buffer, ext);
       const emProps = await emscripten.readProperties(buffer, ext);
 
-      assertExists(wasiProps["TITLE"], `${format}: WASI should have TITLE`);
-      assertExists(emProps["TITLE"], `${format}: Emscripten should have TITLE`);
+      assertExists(wasiProps["title"], `${format}: WASI should have title`);
+      assertExists(emProps["title"], `${format}: Emscripten should have title`);
       assertEquals(
-        wasiProps["TITLE"],
-        emProps["TITLE"],
-        `${format}: TITLE mismatch`,
+        wasiProps["title"],
+        emProps["title"],
+        `${format}: title mismatch`,
       );
       assertEquals(
-        wasiProps["ARTIST"],
-        emProps["ARTIST"],
-        `${format}: ARTIST mismatch`,
+        wasiProps["artist"],
+        emProps["artist"],
+        `${format}: artist mismatch`,
       );
     });
 

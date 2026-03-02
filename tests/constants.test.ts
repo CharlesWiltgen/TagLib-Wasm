@@ -155,31 +155,32 @@ describe("constants", () => {
     assertEquals(wavProps.includes("musicbrainzTrackId"), false);
   });
 
-  it("isValidTagName - validates legacy tag names", () => {
-    // Valid tag names
-    assertEquals(isValidTagName("TITLE"), true);
-    assertEquals(isValidTagName("ARTIST"), true);
-    assertEquals(isValidTagName("MUSICBRAINZ_TRACKID"), true);
-    assertEquals(isValidTagName("REPLAYGAIN_TRACK_GAIN"), true);
+  it("isValidTagName - validates tag names", () => {
+    // Valid tag names (camelCase PropertyKeys from Tags values)
+    assertEquals(isValidTagName("title"), true);
+    assertEquals(isValidTagName("artist"), true);
+    assertEquals(isValidTagName("musicbrainzTrackId"), true);
+    assertEquals(isValidTagName("replayGainTrackGain"), true);
 
-    // Invalid tag names (uses values, not keys)
+    // Invalid tag names
+    assertEquals(isValidTagName("TITLE"), false);
     assertEquals(isValidTagName("Title"), false);
     assertEquals(isValidTagName("Artist"), false);
     assertEquals(isValidTagName("INVALID"), false);
     assertEquals(isValidTagName(""), false);
   });
 
-  it("getAllTagNames - returns all legacy tag values", () => {
+  it("getAllTagNames - returns all tag values", () => {
     const tagNames = getAllTagNames();
 
     // Check structure
     assertEquals(Array.isArray(tagNames), true);
     assertEquals(tagNames.length > 30, true);
 
-    // Check expected values exist
-    assertEquals(tagNames.includes("TITLE"), true);
-    assertEquals(tagNames.includes("ARTIST"), true);
-    assertEquals(tagNames.includes("MUSICBRAINZ_TRACKID"), true);
+    // Check expected values exist (now camelCase PropertyKeys)
+    assertEquals(tagNames.includes("title"), true);
+    assertEquals(tagNames.includes("artist"), true);
+    assertEquals(tagNames.includes("musicbrainzTrackId"), true);
 
     // Verify all are valid
     for (const name of tagNames) {
@@ -189,19 +190,19 @@ describe("constants", () => {
 
   it("Tags constant - provides correct mappings", () => {
     // Test basic mappings
-    assertEquals(Tags.Title, "TITLE");
-    assertEquals(Tags.Artist, "ARTIST");
-    assertEquals(Tags.Album, "ALBUM");
+    assertEquals(Tags.Title, "title");
+    assertEquals(Tags.Artist, "artist");
+    assertEquals(Tags.Album, "album");
 
     // Test extended mappings
-    assertEquals(Tags.MusicBrainzTrackId, "MUSICBRAINZ_TRACKID");
-    assertEquals(Tags.AlbumGain, "REPLAYGAIN_ALBUM_GAIN");
-    assertEquals(Tags.TrackGain, "REPLAYGAIN_TRACK_GAIN");
+    assertEquals(Tags.MusicBrainzTrackId, "musicbrainzTrackId");
+    assertEquals(Tags.AlbumGain, "replayGainAlbumGain");
+    assertEquals(Tags.TrackGain, "replayGainTrackGain");
 
     // Test sorting properties
-    assertEquals(Tags.TitleSort, "TITLESORT");
-    assertEquals(Tags.ArtistSort, "ARTISTSORT");
-    assertEquals(Tags.AlbumSort, "ALBUMSORT");
+    assertEquals(Tags.TitleSort, "titleSort");
+    assertEquals(Tags.ArtistSort, "artistSort");
+    assertEquals(Tags.AlbumSort, "albumSort");
   });
 
   it("PROPERTIES constant structure - validates all properties have required fields", () => {

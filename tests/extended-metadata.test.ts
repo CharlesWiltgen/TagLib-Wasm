@@ -24,25 +24,32 @@ describe("Extended Metadata", () => {
     const mp3File = await taglib.open(mp3Buffer);
 
     // Set MusicBrainz IDs
-    mp3File.setMusicBrainzTrackId(TEST_EXTENDED_METADATA.musicbrainzTrackId);
-    mp3File.setMusicBrainzReleaseId(
+    mp3File.setProperty(
+      "musicbrainzTrackId",
+      TEST_EXTENDED_METADATA.musicbrainzTrackId,
+    );
+    mp3File.setProperty(
+      "musicbrainzReleaseId",
       TEST_EXTENDED_METADATA.musicbrainzReleaseId,
     );
-    mp3File.setMusicBrainzArtistId(TEST_EXTENDED_METADATA.musicbrainzArtistId);
+    mp3File.setProperty(
+      "musicbrainzArtistId",
+      TEST_EXTENDED_METADATA.musicbrainzArtistId,
+    );
 
     mp3File.save();
 
     // Verify the values were saved
     assertEquals(
-      mp3File.getMusicBrainzTrackId(),
+      mp3File.getProperty("musicbrainzTrackId"),
       TEST_EXTENDED_METADATA.musicbrainzTrackId,
     );
     assertEquals(
-      mp3File.getMusicBrainzReleaseId(),
+      mp3File.getProperty("musicbrainzReleaseId"),
       TEST_EXTENDED_METADATA.musicbrainzReleaseId,
     );
     assertEquals(
-      mp3File.getMusicBrainzArtistId(),
+      mp3File.getProperty("musicbrainzArtistId"),
       TEST_EXTENDED_METADATA.musicbrainzArtistId,
     );
 
@@ -54,15 +61,16 @@ describe("Extended Metadata", () => {
     const mp3Buffer = await readFileData(TEST_FILES.mp3);
     const file = await taglib.open(mp3Buffer);
 
-    assertEquals(file.getMusicBrainzReleaseGroupId(), undefined);
+    assertEquals(file.getProperty("musicbrainzReleaseGroupId"), undefined);
 
-    file.setMusicBrainzReleaseGroupId(
+    file.setProperty(
+      "musicbrainzReleaseGroupId",
       TEST_EXTENDED_METADATA.musicbrainzReleaseGroupId,
     );
     file.save();
 
     assertEquals(
-      file.getMusicBrainzReleaseGroupId(),
+      file.getProperty("musicbrainzReleaseGroupId"),
       TEST_EXTENDED_METADATA.musicbrainzReleaseGroupId,
     );
 
@@ -72,7 +80,7 @@ describe("Extended Metadata", () => {
 
     const file2 = await taglib.open(savedBuffer);
     assertEquals(
-      file2.getMusicBrainzReleaseGroupId(),
+      file2.getProperty("musicbrainzReleaseGroupId"),
       TEST_EXTENDED_METADATA.musicbrainzReleaseGroupId,
     );
     file2.dispose();
@@ -83,23 +91,23 @@ describe("Extended Metadata", () => {
     const flacBuffer = await readFileData(TEST_FILES.flac);
     const file = await taglib.open(flacBuffer);
 
-    assertEquals(file.getTotalTracks(), undefined);
-    assertEquals(file.getTotalDiscs(), undefined);
+    assertEquals(file.getProperty("TRACKTOTAL"), undefined);
+    assertEquals(file.getProperty("DISCTOTAL"), undefined);
 
-    file.setTotalTracks(12);
-    file.setTotalDiscs(2);
+    file.setProperty("TRACKTOTAL", "12");
+    file.setProperty("DISCTOTAL", "2");
     file.save();
 
-    assertEquals(file.getTotalTracks(), 12);
-    assertEquals(file.getTotalDiscs(), 2);
+    assertEquals(file.getProperty("TRACKTOTAL"), "12");
+    assertEquals(file.getProperty("DISCTOTAL"), "2");
 
     // Roundtrip: save to buffer, reopen, verify
     const savedBuffer = file.getFileBuffer();
     file.dispose();
 
     const file2 = await taglib.open(savedBuffer);
-    assertEquals(file2.getTotalTracks(), 12);
-    assertEquals(file2.getTotalDiscs(), 2);
+    assertEquals(file2.getProperty("TRACKTOTAL"), "12");
+    assertEquals(file2.getProperty("DISCTOTAL"), "2");
     file2.dispose();
   });
 
@@ -111,28 +119,40 @@ describe("Extended Metadata", () => {
     const flacFile = await taglib.open(flacBuffer);
 
     // Set ReplayGain values
-    flacFile.setReplayGainTrackGain(TEST_EXTENDED_METADATA.replayGainTrackGain);
-    flacFile.setReplayGainTrackPeak(TEST_EXTENDED_METADATA.replayGainTrackPeak);
-    flacFile.setReplayGainAlbumGain(TEST_EXTENDED_METADATA.replayGainAlbumGain);
-    flacFile.setReplayGainAlbumPeak(TEST_EXTENDED_METADATA.replayGainAlbumPeak);
+    flacFile.setProperty(
+      "replayGainTrackGain",
+      TEST_EXTENDED_METADATA.replayGainTrackGain,
+    );
+    flacFile.setProperty(
+      "replayGainTrackPeak",
+      TEST_EXTENDED_METADATA.replayGainTrackPeak,
+    );
+    flacFile.setProperty(
+      "replayGainAlbumGain",
+      TEST_EXTENDED_METADATA.replayGainAlbumGain,
+    );
+    flacFile.setProperty(
+      "replayGainAlbumPeak",
+      TEST_EXTENDED_METADATA.replayGainAlbumPeak,
+    );
 
     flacFile.save();
 
     // Verify the values
     assertEquals(
-      flacFile.getReplayGainTrackGain(),
+      flacFile.getProperty("replayGainTrackGain"),
       TEST_EXTENDED_METADATA.replayGainTrackGain,
     );
     assertEquals(
-      flacFile.getReplayGainTrackPeak(),
+      flacFile.getProperty("replayGainTrackPeak"),
       TEST_EXTENDED_METADATA.replayGainTrackPeak,
     );
     assertEquals(
-      flacFile.getReplayGainAlbumGain(),
+      flacFile.getProperty("replayGainAlbumGain"),
       TEST_EXTENDED_METADATA.replayGainAlbumGain,
     );
     assertEquals(
-      flacFile.getReplayGainAlbumPeak(),
+      flacFile.getProperty("replayGainAlbumPeak"),
       TEST_EXTENDED_METADATA.replayGainAlbumPeak,
     );
 
@@ -148,17 +168,23 @@ describe("Extended Metadata", () => {
       const file = await taglib.open(buffer);
 
       // Set AcoustID data
-      file.setAcoustIdFingerprint(TEST_EXTENDED_METADATA.acoustidFingerprint);
-      file.setAcoustIdId(TEST_EXTENDED_METADATA.acoustidId);
+      file.setProperty(
+        "acoustidFingerprint",
+        TEST_EXTENDED_METADATA.acoustidFingerprint,
+      );
+      file.setProperty("acoustidId", TEST_EXTENDED_METADATA.acoustidId);
 
       file.save();
 
       // Verify
       assertEquals(
-        file.getAcoustIdFingerprint(),
+        file.getProperty("acoustidFingerprint"),
         TEST_EXTENDED_METADATA.acoustidFingerprint,
       );
-      assertEquals(file.getAcoustIdId(), TEST_EXTENDED_METADATA.acoustidId);
+      assertEquals(
+        file.getProperty("acoustidId"),
+        TEST_EXTENDED_METADATA.acoustidId,
+      );
 
       file.dispose();
     }
@@ -172,13 +198,16 @@ describe("Extended Metadata", () => {
     const m4aFile = await taglib.open(m4aBuffer);
 
     // Set Apple Sound Check data
-    m4aFile.setAppleSoundCheck(TEST_EXTENDED_METADATA.appleSoundCheck);
+    m4aFile.setProperty(
+      "appleSoundCheck",
+      TEST_EXTENDED_METADATA.appleSoundCheck,
+    );
 
     m4aFile.save();
 
     // Verify
     assertEquals(
-      m4aFile.getAppleSoundCheck(),
+      m4aFile.getProperty("appleSoundCheck"),
       TEST_EXTENDED_METADATA.appleSoundCheck,
     );
 
@@ -193,9 +222,18 @@ describe("Extended Metadata", () => {
       const file = await taglib.open(buffer);
 
       // Set multiple extended fields
-      file.setMusicBrainzTrackId(TEST_EXTENDED_METADATA.musicbrainzTrackId);
-      file.setReplayGainTrackGain(TEST_EXTENDED_METADATA.replayGainTrackGain);
-      file.setAcoustIdFingerprint(TEST_EXTENDED_METADATA.acoustidFingerprint);
+      file.setProperty(
+        "musicbrainzTrackId",
+        TEST_EXTENDED_METADATA.musicbrainzTrackId,
+      );
+      file.setProperty(
+        "replayGainTrackGain",
+        TEST_EXTENDED_METADATA.replayGainTrackGain,
+      );
+      file.setProperty(
+        "acoustidFingerprint",
+        TEST_EXTENDED_METADATA.acoustidFingerprint,
+      );
 
       file.save();
       file.dispose();
@@ -217,19 +255,25 @@ describe("Extended Metadata", () => {
       const file = await taglib.open(buffer);
 
       // Set various extended metadata
-      file.setMusicBrainzTrackId(TEST_EXTENDED_METADATA.musicbrainzTrackId);
-      file.setReplayGainTrackGain(TEST_EXTENDED_METADATA.replayGainTrackGain);
+      file.setProperty(
+        "musicbrainzTrackId",
+        TEST_EXTENDED_METADATA.musicbrainzTrackId,
+      );
+      file.setProperty(
+        "replayGainTrackGain",
+        TEST_EXTENDED_METADATA.replayGainTrackGain,
+      );
 
       file.save();
 
       // Verify it was saved
       assertEquals(
-        file.getMusicBrainzTrackId(),
+        file.getProperty("musicbrainzTrackId"),
         TEST_EXTENDED_METADATA.musicbrainzTrackId,
         `MusicBrainz ID should work in ${format}`,
       );
       assertEquals(
-        file.getReplayGainTrackGain(),
+        file.getProperty("replayGainTrackGain"),
         TEST_EXTENDED_METADATA.replayGainTrackGain,
         `ReplayGain should work in ${format}`,
       );
@@ -246,13 +290,31 @@ describe("Extended Metadata", () => {
     const file = await taglib.open(originalBuffer);
 
     // Set all extended metadata fields
-    file.setMusicBrainzTrackId(TEST_EXTENDED_METADATA.musicbrainzTrackId);
-    file.setMusicBrainzReleaseId(TEST_EXTENDED_METADATA.musicbrainzReleaseId);
-    file.setMusicBrainzArtistId(TEST_EXTENDED_METADATA.musicbrainzArtistId);
-    file.setReplayGainTrackGain(TEST_EXTENDED_METADATA.replayGainTrackGain);
-    file.setReplayGainTrackPeak(TEST_EXTENDED_METADATA.replayGainTrackPeak);
-    file.setAcoustIdFingerprint(TEST_EXTENDED_METADATA.acoustidFingerprint);
-    file.setAcoustIdId(TEST_EXTENDED_METADATA.acoustidId);
+    file.setProperty(
+      "musicbrainzTrackId",
+      TEST_EXTENDED_METADATA.musicbrainzTrackId,
+    );
+    file.setProperty(
+      "musicbrainzReleaseId",
+      TEST_EXTENDED_METADATA.musicbrainzReleaseId,
+    );
+    file.setProperty(
+      "musicbrainzArtistId",
+      TEST_EXTENDED_METADATA.musicbrainzArtistId,
+    );
+    file.setProperty(
+      "replayGainTrackGain",
+      TEST_EXTENDED_METADATA.replayGainTrackGain,
+    );
+    file.setProperty(
+      "replayGainTrackPeak",
+      TEST_EXTENDED_METADATA.replayGainTrackPeak,
+    );
+    file.setProperty(
+      "acoustidFingerprint",
+      TEST_EXTENDED_METADATA.acoustidFingerprint,
+    );
+    file.setProperty("acoustidId", TEST_EXTENDED_METADATA.acoustidId);
 
     file.save();
     const savedBuffer = file.getFileBuffer();
@@ -262,30 +324,33 @@ describe("Extended Metadata", () => {
     const file2 = await taglib.open(savedBuffer);
 
     assertEquals(
-      file2.getMusicBrainzTrackId(),
+      file2.getProperty("musicbrainzTrackId"),
       TEST_EXTENDED_METADATA.musicbrainzTrackId,
     );
     assertEquals(
-      file2.getMusicBrainzReleaseId(),
+      file2.getProperty("musicbrainzReleaseId"),
       TEST_EXTENDED_METADATA.musicbrainzReleaseId,
     );
     assertEquals(
-      file2.getMusicBrainzArtistId(),
+      file2.getProperty("musicbrainzArtistId"),
       TEST_EXTENDED_METADATA.musicbrainzArtistId,
     );
     assertEquals(
-      file2.getReplayGainTrackGain(),
+      file2.getProperty("replayGainTrackGain"),
       TEST_EXTENDED_METADATA.replayGainTrackGain,
     );
     assertEquals(
-      file2.getReplayGainTrackPeak(),
+      file2.getProperty("replayGainTrackPeak"),
       TEST_EXTENDED_METADATA.replayGainTrackPeak,
     );
     assertEquals(
-      file2.getAcoustIdFingerprint(),
+      file2.getProperty("acoustidFingerprint"),
       TEST_EXTENDED_METADATA.acoustidFingerprint,
     );
-    assertEquals(file2.getAcoustIdId(), TEST_EXTENDED_METADATA.acoustidId);
+    assertEquals(
+      file2.getProperty("acoustidId"),
+      TEST_EXTENDED_METADATA.acoustidId,
+    );
 
     file2.dispose();
   });
@@ -296,22 +361,25 @@ describe("Extended Metadata", () => {
     const file = await taglib.open(buffer);
 
     // Verify unset values return undefined
-    assertEquals(file.getMusicBrainzTrackId(), undefined);
-    assertEquals(file.getReplayGainTrackGain(), undefined);
-    assertEquals(file.getAcoustIdFingerprint(), undefined);
+    assertEquals(file.getProperty("musicbrainzTrackId"), undefined);
+    assertEquals(file.getProperty("replayGainTrackGain"), undefined);
+    assertEquals(file.getProperty("acoustidFingerprint"), undefined);
 
     // Set and then clear values
-    file.setMusicBrainzTrackId(TEST_EXTENDED_METADATA.musicbrainzTrackId);
+    file.setProperty(
+      "musicbrainzTrackId",
+      TEST_EXTENDED_METADATA.musicbrainzTrackId,
+    );
     file.save();
     assertEquals(
-      file.getMusicBrainzTrackId(),
+      file.getProperty("musicbrainzTrackId"),
       TEST_EXTENDED_METADATA.musicbrainzTrackId,
     );
 
     // Clear by setting empty string
-    file.setMusicBrainzTrackId("");
+    file.setProperty("musicbrainzTrackId", "");
     file.save();
-    assertEquals(file.getMusicBrainzTrackId(), undefined);
+    assertEquals(file.getProperty("musicbrainzTrackId"), undefined);
 
     file.dispose();
   });
@@ -321,33 +389,42 @@ describe("Extended Metadata", () => {
     const buffer = await readFileData(TEST_FILES.flac);
     const file = await taglib.open(buffer);
 
-    // Set extended metadata via convenience methods
-    file.setMusicBrainzTrackId(TEST_EXTENDED_METADATA.musicbrainzTrackId);
-    file.setReplayGainTrackGain(TEST_EXTENDED_METADATA.replayGainTrackGain);
-    file.setAcoustIdFingerprint(TEST_EXTENDED_METADATA.acoustidFingerprint);
+    // Set extended metadata via setProperty
+    file.setProperty(
+      "musicbrainzTrackId",
+      TEST_EXTENDED_METADATA.musicbrainzTrackId,
+    );
+    file.setProperty(
+      "replayGainTrackGain",
+      TEST_EXTENDED_METADATA.replayGainTrackGain,
+    );
+    file.setProperty(
+      "acoustidFingerprint",
+      TEST_EXTENDED_METADATA.acoustidFingerprint,
+    );
 
     // Verify they appear in the property map
     const properties = file.properties();
-    assertEquals(properties["MUSICBRAINZ_TRACKID"], [
+    assertEquals(properties["musicbrainzTrackId"], [
       TEST_EXTENDED_METADATA.musicbrainzTrackId,
     ]);
-    assertEquals(properties["REPLAYGAIN_TRACK_GAIN"], [
+    assertEquals(properties["replayGainTrackGain"], [
       TEST_EXTENDED_METADATA.replayGainTrackGain,
     ]);
-    assertEquals(properties["ACOUSTID_FINGERPRINT"], [
+    assertEquals(properties["acoustidFingerprint"], [
       TEST_EXTENDED_METADATA.acoustidFingerprint,
     ]);
 
     // Set via property map
     file.setProperty(
-      "MUSICBRAINZ_ALBUMID",
+      "musicbrainzReleaseId",
       TEST_EXTENDED_METADATA.musicbrainzReleaseId,
     );
     file.save();
 
-    // Verify via convenience method
+    // Verify via getProperty
     assertEquals(
-      file.getMusicBrainzReleaseId(),
+      file.getProperty("musicbrainzReleaseId"),
       TEST_EXTENDED_METADATA.musicbrainzReleaseId,
     );
 
@@ -420,16 +497,15 @@ describe("Extended Metadata", () => {
     const m4aBuffer = await readFileData(TEST_FILES.m4a);
     const m4aFile = await taglib.open(m4aBuffer);
 
-    m4aFile.setAppleSoundCheck(TEST_EXTENDED_METADATA.appleSoundCheck);
-    m4aFile.save();
-
-    // Verify it's stored as MP4 item
-    assertEquals(
-      m4aFile.getMP4Item("iTunNORM"),
+    m4aFile.setProperty(
+      "appleSoundCheck",
       TEST_EXTENDED_METADATA.appleSoundCheck,
     );
+    m4aFile.save();
+
+    // Verify it's accessible via getProperty
     assertEquals(
-      m4aFile.getAppleSoundCheck(),
+      m4aFile.getProperty("appleSoundCheck"),
       TEST_EXTENDED_METADATA.appleSoundCheck,
     );
 
@@ -439,16 +515,19 @@ describe("Extended Metadata", () => {
     const mp3Buffer = await readFileData(TEST_FILES.mp3);
     const mp3File = await taglib.open(mp3Buffer);
 
-    mp3File.setAppleSoundCheck(TEST_EXTENDED_METADATA.appleSoundCheck);
+    mp3File.setProperty(
+      "appleSoundCheck",
+      TEST_EXTENDED_METADATA.appleSoundCheck,
+    );
     mp3File.save();
 
     // Verify it's stored in properties
     const properties = mp3File.properties();
-    assertEquals(properties["ITUNESOUNDCHECK"], [
+    assertEquals(properties["appleSoundCheck"], [
       TEST_EXTENDED_METADATA.appleSoundCheck,
     ]);
     assertEquals(
-      mp3File.getAppleSoundCheck(),
+      mp3File.getProperty("appleSoundCheck"),
       TEST_EXTENDED_METADATA.appleSoundCheck,
     );
 
