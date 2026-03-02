@@ -354,6 +354,65 @@ describe("Extended Metadata", () => {
     file.dispose();
   });
 
+  it("getProperty/setProperty accept camelCase keys", async () => {
+    const taglib = await TagLib.initialize({ forceBufferMode: true });
+    const buffer = await readFileData(TEST_FILES.mp3);
+    const file = await taglib.open(buffer);
+
+    file.setProperty(
+      "musicbrainzTrackId",
+      TEST_EXTENDED_METADATA.musicbrainzTrackId,
+    );
+    file.save();
+
+    assertEquals(
+      file.getProperty("musicbrainzTrackId"),
+      TEST_EXTENDED_METADATA.musicbrainzTrackId,
+    );
+
+    file.dispose();
+  });
+
+  it("properties() returns camelCase keys", async () => {
+    const taglib = await TagLib.initialize({ forceBufferMode: true });
+    const buffer = await readFileData(TEST_FILES.flac);
+    const file = await taglib.open(buffer);
+
+    file.setProperty(
+      "musicbrainzTrackId",
+      TEST_EXTENDED_METADATA.musicbrainzTrackId,
+    );
+    file.save();
+
+    const props = file.properties();
+    assertEquals(props["musicbrainzTrackId"], [
+      TEST_EXTENDED_METADATA.musicbrainzTrackId,
+    ]);
+    assertEquals(props["MUSICBRAINZ_TRACKID"], undefined);
+
+    file.dispose();
+  });
+
+  it("setProperties() accepts camelCase keys", async () => {
+    const taglib = await TagLib.initialize({ forceBufferMode: true });
+    const buffer = await readFileData(TEST_FILES.flac);
+    const file = await taglib.open(buffer);
+
+    file.setProperties({
+      title: ["Test Title"],
+      musicbrainzTrackId: [TEST_EXTENDED_METADATA.musicbrainzTrackId],
+    });
+    file.save();
+
+    assertEquals(file.getProperty("title"), "Test Title");
+    assertEquals(
+      file.getProperty("musicbrainzTrackId"),
+      TEST_EXTENDED_METADATA.musicbrainzTrackId,
+    );
+
+    file.dispose();
+  });
+
   it("Complex Apple Sound Check scenarios", async () => {
     const taglib = await TagLib.initialize({ forceBufferMode: true });
 
