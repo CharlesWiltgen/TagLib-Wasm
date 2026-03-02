@@ -240,3 +240,32 @@ describe("Rating Interface", () => {
     assertEquals(fullRating.counter, 42);
   });
 });
+
+describe("Branded Type Safety", () => {
+  it("prevents passing PopmRating where NormalizedRating expected", () => {
+    const p = popm(196);
+    // @ts-expect-error PopmRating not assignable to NormalizedRating
+    fromNormalized(p);
+  });
+
+  it("prevents passing NormalizedRating where PopmRating expected", () => {
+    const n = normalized(0.8);
+    // @ts-expect-error NormalizedRating not assignable to PopmRating
+    toNormalized(n);
+  });
+
+  it("prevents passing plain number where branded type expected", () => {
+    const plain = 0.8;
+    // @ts-expect-error number not assignable to NormalizedRating
+    fromNormalized(plain);
+    // @ts-expect-error number not assignable to PopmRating
+    toNormalized(plain);
+  });
+
+  it("allows branded values to be used as numbers", () => {
+    const n = normalized(0.8);
+    const p = popm(196);
+    assertEquals(n + 0.1 > 0, true);
+    assertEquals(p - 1 >= 0, true);
+  });
+});
