@@ -144,11 +144,18 @@ export class WasiBackendAdapter implements BackendAdapter {
     const { WasiFileHandle } = await import(
       "../src/runtime/wasi-adapter/file-handle.ts"
     );
+    const { fromTagLibKey } = await import(
+      "../src/constants/properties.ts"
+    );
     const handle = new WasiFileHandle(this.#wasi);
     handle.loadFromBuffer(buffer);
-    const props = handle.getProperties();
+    const raw = handle.getProperties();
     handle.destroy();
-    return props;
+    const result: Record<string, string[]> = {};
+    for (const [key, values] of Object.entries(raw)) {
+      result[fromTagLibKey(key)] = values;
+    }
+    return result;
   }
 
   async readFormat(buffer: Uint8Array, _ext: string): Promise<string> {
