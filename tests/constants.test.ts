@@ -5,6 +5,7 @@
 import { assertEquals, assertExists } from "@std/assert";
 import { describe, it } from "@std/testing/bdd";
 import {
+  fromTagLibKey,
   getAllProperties,
   getAllPropertyKeys,
   getAllTagNames,
@@ -15,27 +16,28 @@ import {
   PROPERTIES,
   type PropertyKey,
   Tags,
+  toTagLibKey,
 } from "../src/constants.ts";
 
 describe("constants", () => {
   it("isValidProperty - validates property keys correctly", () => {
-    // Valid properties
-    assertEquals(isValidProperty("TITLE"), true);
-    assertEquals(isValidProperty("ARTIST"), true);
-    assertEquals(isValidProperty("ALBUM"), true);
-    assertEquals(isValidProperty("MUSICBRAINZ_TRACKID"), true);
-    assertEquals(isValidProperty("REPLAYGAIN_TRACK_GAIN"), true);
+    // Valid properties (camelCase)
+    assertEquals(isValidProperty("title"), true);
+    assertEquals(isValidProperty("artist"), true);
+    assertEquals(isValidProperty("album"), true);
+    assertEquals(isValidProperty("musicbrainzTrackId"), true);
+    assertEquals(isValidProperty("replayGainTrackGain"), true);
 
     // Invalid properties
     assertEquals(isValidProperty("INVALID_PROPERTY"), false);
-    assertEquals(isValidProperty("title"), false); // Case sensitive
+    assertEquals(isValidProperty("TITLE"), false); // ALL_CAPS no longer valid
     assertEquals(isValidProperty(""), false);
     assertEquals(isValidProperty("123"), false);
   });
 
   it("getPropertyMetadata - returns correct metadata for properties", () => {
     // Test basic property
-    const titleMeta = getPropertyMetadata("TITLE");
+    const titleMeta = getPropertyMetadata("title");
     if (titleMeta) {
       assertEquals(titleMeta.key, "TITLE");
       assertEquals(titleMeta.description, "The title of the track");
@@ -55,7 +57,7 @@ describe("constants", () => {
     }
 
     // Test extended property
-    const mbTrackId = getPropertyMetadata("MUSICBRAINZ_TRACKID");
+    const mbTrackId = getPropertyMetadata("musicbrainzTrackId");
     if (mbTrackId) {
       assertEquals(mbTrackId.key, "MUSICBRAINZ_TRACKID");
       assertEquals(mbTrackId.description, "MusicBrainz Recording ID (UUID)");
@@ -67,7 +69,7 @@ describe("constants", () => {
     }
 
     // Test ReplayGain property
-    const rgTrackGain = getPropertyMetadata("REPLAYGAIN_TRACK_GAIN");
+    const rgTrackGain = getPropertyMetadata("replayGainTrackGain");
     if (rgTrackGain) {
       assertEquals(
         rgTrackGain.description,
@@ -88,12 +90,12 @@ describe("constants", () => {
     assertEquals(Array.isArray(keys), true);
     assertEquals(keys.length > 35, true); // Should have many properties
 
-    // Check some expected keys exist
-    assertEquals(keys.includes("TITLE"), true);
-    assertEquals(keys.includes("ARTIST"), true);
-    assertEquals(keys.includes("MUSICBRAINZ_TRACKID"), true);
-    assertEquals(keys.includes("REPLAYGAIN_TRACK_GAIN"), true);
-    assertEquals(keys.includes("ACOUSTID_FINGERPRINT"), true);
+    // Check some expected keys exist (camelCase)
+    assertEquals(keys.includes("title"), true);
+    assertEquals(keys.includes("artist"), true);
+    assertEquals(keys.includes("musicbrainzTrackId"), true);
+    assertEquals(keys.includes("replayGainTrackGain"), true);
+    assertEquals(keys.includes("acoustidFingerprint"), true);
 
     // Verify all keys are valid
     for (const key of keys) {
@@ -116,7 +118,8 @@ describe("constants", () => {
       assertExists(metadata.description);
       assertExists(metadata.type);
       assertExists(metadata.supportedFormats);
-      assertEquals(metadata.key, key); // Key should match
+      // key field is the TagLib ALL_CAPS wire name, not the camelCase object key
+      assertEquals(metadata.key, toTagLibKey(key));
     }
   });
 
@@ -124,9 +127,9 @@ describe("constants", () => {
     // Test ID3v2 format
     const id3v2Props = getPropertiesByFormat("ID3v2");
     assertEquals(Array.isArray(id3v2Props), true);
-    assertEquals(id3v2Props.includes("TITLE"), true);
-    assertEquals(id3v2Props.includes("ARTIST"), true);
-    assertEquals(id3v2Props.includes("MUSICBRAINZ_TRACKID"), true);
+    assertEquals(id3v2Props.includes("title"), true);
+    assertEquals(id3v2Props.includes("artist"), true);
+    assertEquals(id3v2Props.includes("musicbrainzTrackId"), true);
 
     // Verify all returned properties support ID3v2
     for (const prop of id3v2Props) {
@@ -138,45 +141,46 @@ describe("constants", () => {
 
     // Test Vorbis format
     const vorbisProps = getPropertiesByFormat("Vorbis");
-    assertEquals(vorbisProps.includes("COPYRIGHT"), true);
-    assertEquals(vorbisProps.includes("LYRICIST"), true);
-    assertEquals(vorbisProps.includes("CONDUCTOR"), true);
+    assertEquals(vorbisProps.includes("copyright"), true);
+    assertEquals(vorbisProps.includes("lyricist"), true);
+    assertEquals(vorbisProps.includes("conductor"), true);
 
     // Test WAV format (should have fewer properties)
     const wavProps = getPropertiesByFormat("WAV");
     assertEquals(wavProps.length < id3v2Props.length, true);
-    assertEquals(wavProps.includes("TITLE"), true);
-    assertEquals(wavProps.includes("ARTIST"), true);
+    assertEquals(wavProps.includes("title"), true);
+    assertEquals(wavProps.includes("artist"), true);
 
     // WAV shouldn't include MusicBrainz properties
-    assertEquals(wavProps.includes("MUSICBRAINZ_TRACKID"), false);
+    assertEquals(wavProps.includes("musicbrainzTrackId"), false);
   });
 
-  it("isValidTagName - validates legacy tag names", () => {
-    // Valid tag names
-    assertEquals(isValidTagName("TITLE"), true);
-    assertEquals(isValidTagName("ARTIST"), true);
-    assertEquals(isValidTagName("MUSICBRAINZ_TRACKID"), true);
-    assertEquals(isValidTagName("REPLAYGAIN_TRACK_GAIN"), true);
+  it("isValidTagName - validates tag names", () => {
+    // Valid tag names (camelCase PropertyKeys from Tags values)
+    assertEquals(isValidTagName("title"), true);
+    assertEquals(isValidTagName("artist"), true);
+    assertEquals(isValidTagName("musicbrainzTrackId"), true);
+    assertEquals(isValidTagName("replayGainTrackGain"), true);
 
-    // Invalid tag names (uses values, not keys)
+    // Invalid tag names
+    assertEquals(isValidTagName("TITLE"), false);
     assertEquals(isValidTagName("Title"), false);
     assertEquals(isValidTagName("Artist"), false);
     assertEquals(isValidTagName("INVALID"), false);
     assertEquals(isValidTagName(""), false);
   });
 
-  it("getAllTagNames - returns all legacy tag values", () => {
+  it("getAllTagNames - returns all tag values", () => {
     const tagNames = getAllTagNames();
 
     // Check structure
     assertEquals(Array.isArray(tagNames), true);
     assertEquals(tagNames.length > 30, true);
 
-    // Check expected values exist
-    assertEquals(tagNames.includes("TITLE"), true);
-    assertEquals(tagNames.includes("ARTIST"), true);
-    assertEquals(tagNames.includes("MUSICBRAINZ_TRACKID"), true);
+    // Check expected values exist (now camelCase PropertyKeys)
+    assertEquals(tagNames.includes("title"), true);
+    assertEquals(tagNames.includes("artist"), true);
+    assertEquals(tagNames.includes("musicbrainzTrackId"), true);
 
     // Verify all are valid
     for (const name of tagNames) {
@@ -186,19 +190,19 @@ describe("constants", () => {
 
   it("Tags constant - provides correct mappings", () => {
     // Test basic mappings
-    assertEquals(Tags.Title, "TITLE");
-    assertEquals(Tags.Artist, "ARTIST");
-    assertEquals(Tags.Album, "ALBUM");
+    assertEquals(Tags.Title, "title");
+    assertEquals(Tags.Artist, "artist");
+    assertEquals(Tags.Album, "album");
 
     // Test extended mappings
-    assertEquals(Tags.MusicBrainzTrackId, "MUSICBRAINZ_TRACKID");
-    assertEquals(Tags.AlbumGain, "REPLAYGAIN_ALBUM_GAIN");
-    assertEquals(Tags.TrackGain, "REPLAYGAIN_TRACK_GAIN");
+    assertEquals(Tags.MusicBrainzTrackId, "musicbrainzTrackId");
+    assertEquals(Tags.AlbumGain, "replayGainAlbumGain");
+    assertEquals(Tags.TrackGain, "replayGainTrackGain");
 
     // Test sorting properties
-    assertEquals(Tags.TitleSort, "TITLESORT");
-    assertEquals(Tags.ArtistSort, "ARTISTSORT");
-    assertEquals(Tags.AlbumSort, "ALBUMSORT");
+    assertEquals(Tags.TitleSort, "titleSort");
+    assertEquals(Tags.ArtistSort, "artistSort");
+    assertEquals(Tags.AlbumSort, "albumSort");
   });
 
   it("PROPERTIES constant structure - validates all properties have required fields", () => {
@@ -208,8 +212,8 @@ describe("constants", () => {
     ][];
 
     for (const [key, prop] of propertyEntries) {
-      // Key should match the property's key field
-      assertEquals(prop.key, key);
+      // key field is the TagLib ALL_CAPS wire name
+      assertEquals(prop.key, toTagLibKey(key));
 
       // All required fields should exist
       assertExists(prop.description, `${key} should have description`);
@@ -303,9 +307,9 @@ describe("constants", () => {
   it("Special property formats - validates complex mappings", () => {
     // Test TXXX frame properties (ID3v2 user-defined text)
     const txxx_props = [
-      "MUSICBRAINZ_ARTISTID",
-      "REPLAYGAIN_TRACK_GAIN",
-      "ACOUSTID_FINGERPRINT",
+      "musicbrainzArtistId",
+      "replayGainTrackGain",
+      "acoustidFingerprint",
     ];
 
     for (const propKey of txxx_props) {
@@ -326,9 +330,9 @@ describe("constants", () => {
 
     // Test iTunes-specific MP4 atoms
     const itunesProps = [
-      "MUSICBRAINZ_ARTISTID",
-      "REPLAYGAIN_TRACK_GAIN",
-      "ACOUSTID_ID",
+      "musicbrainzArtistId",
+      "replayGainTrackGain",
+      "acoustidId",
     ];
 
     for (const propKey of itunesProps) {
@@ -341,6 +345,58 @@ describe("constants", () => {
           `${propKey} MP4 mapping should be iTunes atom`,
         );
       }
+    }
+  });
+});
+
+describe("Property key translation", () => {
+  it("toTagLibKey translates known camelCase keys to ALL_CAPS", () => {
+    assertEquals(toTagLibKey("title"), "TITLE");
+    assertEquals(toTagLibKey("musicbrainzTrackId"), "MUSICBRAINZ_TRACKID");
+    assertEquals(toTagLibKey("replayGainTrackGain"), "REPLAYGAIN_TRACK_GAIN");
+    assertEquals(toTagLibKey("appleSoundCheck"), "ITUNNORM");
+    assertEquals(toTagLibKey("musicbrainzReleaseId"), "MUSICBRAINZ_ALBUMID");
+  });
+
+  it("fromTagLibKey translates ALL_CAPS to camelCase", () => {
+    assertEquals(fromTagLibKey("TITLE"), "title");
+    assertEquals(fromTagLibKey("MUSICBRAINZ_TRACKID"), "musicbrainzTrackId");
+    assertEquals(fromTagLibKey("REPLAYGAIN_TRACK_GAIN"), "replayGainTrackGain");
+    assertEquals(fromTagLibKey("ITUNNORM"), "appleSoundCheck");
+    assertEquals(fromTagLibKey("MUSICBRAINZ_ALBUMID"), "musicbrainzReleaseId");
+  });
+
+  it("unknown keys pass through untranslated", () => {
+    assertEquals(toTagLibKey("MY_CUSTOM_TAG"), "MY_CUSTOM_TAG");
+    assertEquals(fromTagLibKey("MY_CUSTOM_TAG"), "MY_CUSTOM_TAG");
+  });
+
+  it("PROPERTIES keys are camelCase", () => {
+    for (const key of Object.keys(PROPERTIES)) {
+      assertEquals(
+        key[0],
+        key[0].toLowerCase(),
+        `Key "${key}" should start lowercase`,
+      );
+      assertEquals(
+        key.includes("_"),
+        false,
+        `Key "${key}" should not contain underscores`,
+      );
+    }
+  });
+
+  it("every PROPERTIES entry has a key field with ALL_CAPS TagLib wire name", () => {
+    for (const [camelKey, meta] of Object.entries(PROPERTIES)) {
+      assertExists(
+        (meta as { key: string }).key,
+        `${camelKey} missing key field`,
+      );
+      assertEquals(
+        (meta as { key: string }).key,
+        (meta as { key: string }).key.toUpperCase(),
+        `${camelKey}.key should be ALL_CAPS`,
+      );
     }
   });
 });

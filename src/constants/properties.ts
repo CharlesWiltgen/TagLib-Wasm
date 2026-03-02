@@ -3,20 +3,10 @@
  * This is the single source of truth for all property information including descriptions,
  * types, format support, and format-specific mappings.
  *
- * @example
- * ```typescript
- * import { PROPERTIES, PropertyKey } from 'taglib-wasm/constants';
+ * Keys are camelCase (e.g. "title", "musicbrainzTrackId"). Each entry's `.key` field
+ * contains the TagLib ALL_CAPS wire name (e.g. "TITLE", "MUSICBRAINZ_TRACKID").
  *
- * // Type-safe property access with rich metadata
- * const titleProp = PROPERTIES.TITLE;
- * console.log(titleProp.description); // "The title of the track"
- * console.log(titleProp.type);        // "string"
- * console.log(titleProp.supportedFormats); // ["ID3v2", "MP4", "Vorbis", "WAV"]
- *
- * // Use with typed methods
- * const title = file.getProperty('TITLE'); // TypeScript knows this returns string | undefined
- * file.setProperty('TRACK_NUMBER', 5);     // TypeScript knows this expects number
- * ```
+ * Use `toTagLibKey()` / `fromTagLibKey()` to translate between the two vocabularies.
  */
 
 import { BASIC_PROPERTIES } from "./basic-properties.ts";
@@ -45,6 +35,25 @@ export type PropertyValue<K extends PropertyKey> =
     : typeof PROPERTIES[K]["type"] extends "number" ? number
     : typeof PROPERTIES[K]["type"] extends "boolean" ? boolean
     : string;
+
+// Build bidirectional lookup maps from PROPERTIES
+const _toTagLib: Record<string, string> = {};
+const _fromTagLib: Record<string, string> = {};
+for (const [camelKey, meta] of Object.entries(PROPERTIES)) {
+  const wireKey = (meta as { key: string }).key;
+  _toTagLib[camelKey] = wireKey;
+  _fromTagLib[wireKey] = camelKey;
+}
+
+/** Translate a camelCase property key to TagLib's ALL_CAPS wire key. Unknown keys pass through. */
+export function toTagLibKey(key: string): string {
+  return _toTagLib[key] ?? key;
+}
+
+/** Translate a TagLib ALL_CAPS wire key to a camelCase property key. Unknown keys pass through. */
+export function fromTagLibKey(key: string): string {
+  return _fromTagLib[key] ?? key;
+}
 
 // Re-export property types
 export type { PropertyMetadata } from "./property-types.ts";

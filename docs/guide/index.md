@@ -22,8 +22,8 @@ Write once, work with any format:
 
 ```typescript
 // Same API works for MP3, FLAC, MP4, OGG, WAV...
-file.setTitle("My Song");
-file.setAcoustidId("12345678-90ab-cdef");
+file.setProperty("title", "My Song");
+file.setProperty("acoustidId", "12345678-90ab-cdef");
 ```
 
 ### 🚀 Two API Styles

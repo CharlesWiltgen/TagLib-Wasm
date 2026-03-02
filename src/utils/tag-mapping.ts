@@ -6,23 +6,23 @@ import {
 } from "../types/metadata-mappings.ts";
 
 const BASIC_PROPERTY_KEYS: Record<string, string> = {
-  TITLE: "title",
-  ARTIST: "artist",
-  ALBUM: "album",
-  COMMENT: "comment",
-  GENRE: "genre",
-  DATE: "year",
-  TRACKNUMBER: "track",
+  title: "title",
+  artist: "artist",
+  album: "album",
+  comment: "comment",
+  genre: "genre",
+  date: "year",
+  trackNumber: "track",
 };
 
 const TAG_FIELD_TO_PROPERTY: Record<string, string> = {
-  title: "TITLE",
-  artist: "ARTIST",
-  album: "ALBUM",
-  comment: "COMMENT",
-  genre: "GENRE",
-  year: "DATE",
-  track: "TRACKNUMBER",
+  title: "title",
+  artist: "artist",
+  album: "album",
+  comment: "comment",
+  genre: "genre",
+  year: "date",
+  track: "trackNumber",
 };
 
 const BASIC_FIELDS = new Set([
@@ -63,10 +63,12 @@ export function mapPropertiesToExtendedTag(props: PropertyMap): ExtendedTag {
     }
   }
 
-  for (const [vorbisKey, values] of Object.entries(props)) {
-    if (BASIC_PROPERTY_KEYS[vorbisKey]) continue;
-    const camelKey = VORBIS_TO_CAMEL[vorbisKey];
-    if (!camelKey || values.length === 0) continue;
+  for (const [key, values] of Object.entries(props)) {
+    if (BASIC_PROPERTY_KEYS[key]) continue;
+    if (values.length === 0) continue;
+    // camelCase PropertyKeys pass through; ALL_CAPS pass-through keys get mapped
+    const camelKey = VORBIS_TO_CAMEL[key] ?? key;
+    if (!camelKey) continue;
 
     if (NUMERIC_FIELDS.has(camelKey)) {
       const num = parseNumeric(values[0]);
@@ -109,10 +111,10 @@ export function normalizeTagInput(
     props[propKey] = Array.isArray(val) ? val : [val];
   }
   if (input.year !== undefined) {
-    props.DATE = [String(input.year)];
+    props.date = [String(input.year)];
   }
   if (input.track !== undefined) {
-    props.TRACKNUMBER = [String(input.track)];
+    props.trackNumber = [String(input.track)];
   }
 
   for (const [field, val] of Object.entries(input)) {

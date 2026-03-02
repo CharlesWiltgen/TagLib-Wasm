@@ -713,8 +713,8 @@ describe("Integration", () => {
     try {
       const taglib = await TagLib.initialize({ forceBufferMode: true });
       const audioFile = await taglib.open(tempFile);
-      audioFile.setProperty("REPLAYGAIN_TRACK_GAIN", "-6.5 dB");
-      audioFile.setProperty("REPLAYGAIN_TRACK_PEAK", "0.95");
+      audioFile.setProperty("replayGainTrackGain", "-6.5 dB");
+      audioFile.setProperty("replayGainTrackPeak", "0.95");
       audioFile.save();
       await audioFile.saveToFile(tempFile);
       audioFile.dispose();

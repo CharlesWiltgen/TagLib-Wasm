@@ -8,6 +8,7 @@ import type {
   OpenOptions,
   PropertyMap,
 } from "../types.ts";
+import { fromTagLibKey, toTagLibKey } from "../constants/properties.ts";
 import { MetadataError, UnsupportedFormatError } from "../errors.ts";
 import type { MutableTag } from "./mutable-tag.ts";
 
@@ -140,24 +141,27 @@ export abstract class BaseAudioFileImpl {
   properties(): PropertyMap {
     const jsObj = this.handle.getProperties();
     const result: PropertyMap = {};
-    const keys = Object.keys(jsObj);
-    for (const key of keys) {
-      result[key] = jsObj[key];
+    for (const key of Object.keys(jsObj)) {
+      result[fromTagLibKey(key)] = jsObj[key];
     }
     return result;
   }
 
   setProperties(properties: PropertyMap): void {
-    this.handle.setProperties(properties);
+    const translated: PropertyMap = {};
+    for (const [key, values] of Object.entries(properties)) {
+      translated[toTagLibKey(key)] = values;
+    }
+    this.handle.setProperties(translated);
   }
 
   getProperty(key: string): string | undefined {
-    const value = this.handle.getProperty(key);
+    const value = this.handle.getProperty(toTagLibKey(key));
     return value === "" ? undefined : value;
   }
 
   setProperty(key: string, value: string): void {
-    this.handle.setProperty(key, value);
+    this.handle.setProperty(toTagLibKey(key), value);
   }
 
   isMP4(): boolean {
