@@ -11,8 +11,8 @@
       "default": "./dist/index.js"
     },
     "./simple": {
-      "types": "./dist/src/simple/index.d.ts",
-      "default": "./dist/src/simple/index.js"
+      "types": "./dist/simple.d.ts",
+      "default": "./dist/simple.js"
     },
     "./folder": {
       "types": "./dist/folder.d.ts",
@@ -27,11 +27,34 @@
       "default": "./dist/rating.js"
     }
   },
+  "typesVersions": {
+    "*": {
+      "simple": [
+        "dist/simple.d.ts"
+      ],
+      "folder": [
+        "dist/folder.d.ts"
+      ],
+      "web": [
+        "dist/web.d.ts"
+      ],
+      "rating": [
+        "dist/rating.d.ts"
+      ]
+    }
+  },
   "files": [
     "dist/**/*",
     "!dist/poc",
     "!dist/browser",
     "!dist/deno-compile",
+    "index.ts",
+    "simple.ts",
+    "folder.ts",
+    "web.ts",
+    "rating.ts",
+    "src/**/*.ts",
+    "!src/**/*.test.ts",
     "README.md",
     "LICENSE"
   ],
@@ -65,7 +88,9 @@
     "release": "./scripts/release-safe.sh",
     "release:quick": "./scripts/release.sh",
     "publish:npm": "echo 'Use GitHub Actions workflow for publishing'",
-    "publish:github": "echo 'Use GitHub Actions workflow for publishing'"
+    "publish:github": "echo 'Use GitHub Actions workflow for publishing'",
+    "lint:ts": "eslint .",
+    "lint:ts:time": "time eslint ."
   },
   "engines": {
     "node": ">=22.6.0"
@@ -111,10 +136,17 @@
     "@types/emscripten": "^1.41.5",
     "@types/node": "^24.10.4",
     "esbuild": "^0.27.2",
+    "eslint": "^10.0.2",
     "tsx": "^4.21.0",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.56.1"
   },
   "peerDependencies": {
     "typescript": ">=4.5.0"
+  },
+  "peerDependenciesMeta": {
+    "typescript": {
+      "optional": true
+    }
   }
 }

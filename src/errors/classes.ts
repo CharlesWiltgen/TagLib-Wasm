@@ -1,5 +1,9 @@
 import { SUPPORTED_FORMATS, TagLibError } from "./base.ts";
 
+export function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
 function createErrorMessage(prefix: string, details: string): string {
   return `${prefix}: ${details}`;
 }

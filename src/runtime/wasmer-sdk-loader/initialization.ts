@@ -4,7 +4,10 @@
 
 import { init } from "@wasmer/sdk";
 import { WasmerInitError } from "./types.ts";
-import { TagLibInitializationError } from "../../errors/classes.ts";
+import {
+  errorMessage,
+  TagLibInitializationError,
+} from "../../errors/classes.ts";
 
 // Track initialization state
 let isInitialized = false;
@@ -32,7 +35,7 @@ export async function initializeWasmer(useInline = false): Promise<void> {
     isInitialized = true;
   } catch (error) {
     throw new WasmerInitError(
-      `Failed to initialize Wasmer SDK: ${error}`,
+      `Failed to initialize Wasmer SDK: ${errorMessage(error)}`,
       error,
     );
   }

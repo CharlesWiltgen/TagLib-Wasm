@@ -1,7 +1,7 @@
 /** MessagePack encoder — converts JS objects to binary MessagePack for the C API. */
 
 import { encode, type EncoderOptions } from "@msgpack/msgpack";
-import { MetadataError } from "../errors/classes.ts";
+import { errorMessage, MetadataError } from "../errors/classes.ts";
 import type {
   AudioProperties,
   ExtendedTag,
@@ -33,7 +33,10 @@ export function encodeTagData(tagData: ExtendedTag): Uint8Array {
     }
     return encode(cleanObject(remapped), MSGPACK_ENCODE_OPTIONS);
   } catch (error) {
-    throw new MetadataError("write", `Failed to encode tag data: ${error}`);
+    throw new MetadataError(
+      "write",
+      `Failed to encode tag data: ${errorMessage(error)}`,
+    );
   }
 }
 
@@ -43,7 +46,7 @@ export function encodeAudioProperties(audioProps: AudioProperties): Uint8Array {
   } catch (error) {
     throw new MetadataError(
       "write",
-      `Failed to encode audio properties: ${error}`,
+      `Failed to encode audio properties: ${errorMessage(error)}`,
     );
   }
 }
@@ -52,7 +55,10 @@ export function encodePropertyMap(propertyMap: PropertyMap): Uint8Array {
   try {
     return encode(propertyMap, MSGPACK_ENCODE_OPTIONS);
   } catch (error) {
-    throw new MetadataError("write", `Failed to encode property map: ${error}`);
+    throw new MetadataError(
+      "write",
+      `Failed to encode property map: ${errorMessage(error)}`,
+    );
   }
 }
 
@@ -66,7 +72,10 @@ export function encodePicture(picture: Picture): Uint8Array {
     };
     return encode(cleanedPicture, MSGPACK_ENCODE_OPTIONS);
   } catch (error) {
-    throw new MetadataError("write", `Failed to encode picture: ${error}`);
+    throw new MetadataError(
+      "write",
+      `Failed to encode picture: ${errorMessage(error)}`,
+    );
   }
 }
 
@@ -82,7 +91,7 @@ export function encodePictureArray(pictures: Picture[]): Uint8Array {
   } catch (error) {
     throw new MetadataError(
       "write",
-      `Failed to encode picture array: ${error}`,
+      `Failed to encode picture array: ${errorMessage(error)}`,
     );
   }
 }
@@ -95,7 +104,10 @@ export function encodeMessagePack<T>(
     const mergedOptions = { ...MSGPACK_ENCODE_OPTIONS, ...options };
     return encode(cleanObject(data), mergedOptions);
   } catch (error) {
-    throw new MetadataError("write", `Failed to encode data: ${error}`);
+    throw new MetadataError(
+      "write",
+      `Failed to encode data: ${errorMessage(error)}`,
+    );
   }
 }
 
@@ -109,7 +121,10 @@ export function encodeMessagePackCompact<T>(data: T): Uint8Array {
     };
     return encode(cleanObject(data), compactOptions);
   } catch (error) {
-    throw new MetadataError("write", `Failed to encode compact data: ${error}`);
+    throw new MetadataError(
+      "write",
+      `Failed to encode compact data: ${errorMessage(error)}`,
+    );
   }
 }
 
@@ -143,7 +158,7 @@ export function encodeBatchTagData(tagDataArray: ExtendedTag[]): Uint8Array {
   } catch (error) {
     throw new MetadataError(
       "write",
-      `Failed to encode batch tag data: ${error}`,
+      `Failed to encode batch tag data: ${errorMessage(error)}`,
     );
   }
 }
@@ -161,7 +176,7 @@ export function* encodeMessagePackStream<T>(
   } catch (error) {
     throw new MetadataError(
       "write",
-      `Failed to encode streaming data: ${error}`,
+      `Failed to encode streaming data: ${errorMessage(error)}`,
     );
   }
 }
@@ -191,7 +206,7 @@ export function encodeFastTagData(
   } catch (error) {
     throw new MetadataError(
       "write",
-      `Failed to encode fast tag data: ${error}`,
+      `Failed to encode fast tag data: ${errorMessage(error)}`,
     );
   }
 }

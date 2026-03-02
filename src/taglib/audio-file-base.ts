@@ -8,7 +8,7 @@ import type {
   OpenOptions,
   PropertyMap,
 } from "../types.ts";
-import { fromTagLibKey, toTagLibKey } from "../constants/properties.ts";
+import { remapKeysFromTagLib, toTagLibKey } from "../constants/properties.ts";
 import { MetadataError, UnsupportedFormatError } from "../errors.ts";
 import type { MutableTag } from "./mutable-tag.ts";
 
@@ -139,18 +139,13 @@ export abstract class BaseAudioFileImpl {
   }
 
   properties(): PropertyMap {
-    const jsObj = this.handle.getProperties();
-    const result: PropertyMap = {};
-    for (const key of Object.keys(jsObj)) {
-      result[fromTagLibKey(key)] = jsObj[key];
-    }
-    return result;
+    return remapKeysFromTagLib(this.handle.getProperties()) as PropertyMap;
   }
 
   setProperties(properties: PropertyMap): void {
-    const translated: PropertyMap = {};
+    const translated: Record<string, string[]> = {};
     for (const [key, values] of Object.entries(properties)) {
-      translated[toTagLibKey(key)] = values;
+      if (values !== undefined) translated[toTagLibKey(key)] = values;
     }
     this.handle.setProperties(translated);
   }

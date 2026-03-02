@@ -1,7 +1,7 @@
 /** MessagePack decoder — converts binary MessagePack from the C API to JS objects. */
 
 import { decode, type DecoderOptions } from "@msgpack/msgpack";
-import { MetadataError } from "../errors/classes.ts";
+import { errorMessage, MetadataError } from "../errors/classes.ts";
 import type {
   AudioProperties,
   ExtendedTag,
@@ -9,7 +9,7 @@ import type {
   PropertyMap,
 } from "../types.ts";
 import type { MessagePackDataType } from "./types.ts";
-import { fromTagLibKey } from "../constants/properties.ts";
+import { remapKeysFromTagLib } from "../constants/properties.ts";
 
 const MSGPACK_DECODE_OPTIONS: DecoderOptions = {
   useBigInt64: false,
@@ -27,9 +27,12 @@ export function decodeTagData(msgpackBuffer: Uint8Array): ExtendedTag {
       string,
       unknown
     >;
-    return normalizeTagKeys(raw) as unknown as ExtendedTag;
+    return remapKeysFromTagLib(raw) as unknown as ExtendedTag;
   } catch (error) {
-    throw new MetadataError("read", `Failed to decode tag data: ${error}`);
+    throw new MetadataError(
+      "read",
+      `Failed to decode tag data: ${errorMessage(error)}`,
+    );
   }
 }
 
@@ -49,7 +52,7 @@ export function decodeAudioProperties(
   } catch (error) {
     throw new MetadataError(
       "read",
-      `Failed to decode audio properties: ${error}`,
+      `Failed to decode audio properties: ${errorMessage(error)}`,
     );
   }
 }
@@ -58,7 +61,10 @@ export function decodePropertyMap(msgpackBuffer: Uint8Array): PropertyMap {
   try {
     return decode(msgpackBuffer, MSGPACK_DECODE_OPTIONS) as PropertyMap;
   } catch (error) {
-    throw new MetadataError("read", `Failed to decode property map: ${error}`);
+    throw new MetadataError(
+      "read",
+      `Failed to decode property map: ${errorMessage(error)}`,
+    );
   }
 }
 
@@ -68,7 +74,10 @@ export function decodePicture(msgpackBuffer: Uint8Array): Picture {
     coercePictureData(picture);
     return picture as Picture;
   } catch (error) {
-    throw new MetadataError("read", `Failed to decode picture data: ${error}`);
+    throw new MetadataError(
+      "read",
+      `Failed to decode picture data: ${errorMessage(error)}`,
+    );
   }
 }
 
@@ -80,7 +89,10 @@ export function decodePictureArray(msgpackBuffer: Uint8Array): Picture[] {
       return picture as Picture;
     });
   } catch (error) {
-    throw new MetadataError("read", `Failed to decode picture array: ${error}`);
+    throw new MetadataError(
+      "read",
+      `Failed to decode picture array: ${errorMessage(error)}`,
+    );
   }
 }
 
@@ -92,7 +104,10 @@ export function decodeMessagePack<T = unknown>(
     const mergedOptions = { ...MSGPACK_DECODE_OPTIONS, ...options };
     return decode(msgpackBuffer, mergedOptions) as T;
   } catch (error) {
-    throw new MetadataError("read", `Failed to decode data: ${error}`);
+    throw new MetadataError(
+      "read",
+      `Failed to decode data: ${errorMessage(error)}`,
+    );
   }
 }
 
@@ -114,16 +129,6 @@ function coercePictureData(obj: Record<string, unknown>): void {
 function isTagLike(obj: Record<string, unknown>): boolean {
   return "title" in obj || "artist" in obj || "album" in obj ||
     "TITLE" in obj || "ARTIST" in obj || "ALBUM" in obj;
-}
-
-function normalizeTagKeys(
-  obj: Record<string, unknown>,
-): Record<string, unknown> {
-  const normalized: Record<string, unknown> = {};
-  for (const [key, value] of Object.entries(obj)) {
-    normalized[fromTagLibKey(key)] = value;
-  }
-  return normalized;
 }
 
 function isPropertyMap(obj: Record<string, unknown>): boolean {
@@ -153,7 +158,7 @@ export function decodeMessagePackAuto(
       // would match isTagLike's UPPERCASE check and get incorrectly normalized.
       if (isPropertyMap(obj)) return obj as unknown as PropertyMap;
       if (isTagLike(obj)) {
-        return normalizeTagKeys(obj) as unknown as ExtendedTag;
+        return remapKeysFromTagLib(obj) as unknown as ExtendedTag;
       }
     }
     throw new MetadataError(
@@ -163,7 +168,7 @@ export function decodeMessagePackAuto(
   } catch (error) {
     throw new MetadataError(
       "read",
-      `Failed to decode data with auto-detection: ${error}`,
+      `Failed to decode data with auto-detection: ${errorMessage(error)}`,
     );
   }
 }
@@ -242,6 +247,9 @@ export function decodeFastTagData(
       track: decoded.track,
     };
   } catch (error) {
-    throw new MetadataError("read", `Failed to decode fast tag data: ${error}`);
+    throw new MetadataError(
+      "read",
+      `Failed to decode fast tag data: ${errorMessage(error)}`,
+    );
   }
 }

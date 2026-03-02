@@ -99,7 +99,6 @@ export async function prepareWasmForEmbedding(
 
     for (const path of possiblePaths) {
       try {
-        // @ts-ignore: Deno global is only available in Deno runtime
         wasmData = await Deno.readFile(path);
         sourcePath = path.pathname;
         break;
@@ -116,7 +115,6 @@ export async function prepareWasmForEmbedding(
     }
 
     // Write to output path
-    // @ts-ignore: Deno global is only available in Deno runtime
     await Deno.writeFile(outputPath, wasmData);
     console.log(`WASM file copied from ${sourcePath} to ${outputPath}`);
     console.log(

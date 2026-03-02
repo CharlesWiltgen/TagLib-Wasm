@@ -1,3 +1,5 @@
+import type { PropertyKey } from "../constants/properties.ts";
+
 /**
  * Basic metadata tags common to all audio formats.
  * String fields always return arrays to support multi-value metadata.
@@ -186,22 +188,22 @@ export interface ExtendedTag extends Tag {
 }
 
 /**
- * Extended metadata properties map.
- * A flexible key-value structure where each key can have multiple values.
- * Used for accessing all metadata in a file, including non-standard fields.
+ * Extended metadata properties map with known-key autocomplete.
+ * Known keys (from PROPERTIES) are optional and provide IDE autocomplete.
+ * Arbitrary string keys are also supported for non-standard fields.
  *
  * @example
  * ```typescript
  * const properties: PropertyMap = {
- *   "ARTIST": ["Artist Name"],
- *   "ALBUMARTIST": ["Album Artist"],
- *   "MUSICBRAINZ_TRACKID": ["123e4567-e89b-12d3-a456-426614174000"]
+ *   title: ["Song Title"],
+ *   artist: ["Artist Name"],
+ *   musicbrainzTrackId: ["123e4567-e89b-12d3-a456-426614174000"]
  * };
  * ```
  */
-export interface PropertyMap {
-  [key: string]: string[];
-}
+export type PropertyMap =
+  & { [K in PropertyKey]?: string[] }
+  & { [key: string]: string[] | undefined };
 
 /**
  * Re-export TagName type from constants

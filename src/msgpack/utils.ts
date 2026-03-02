@@ -2,7 +2,7 @@
  * @fileoverview High-level MessagePack utilities for common TagLib-Wasm operations
  */
 
-import { MetadataError } from "../errors/classes.ts";
+import { errorMessage, MetadataError } from "../errors/classes.ts";
 import type {
   AudioProperties,
   ExtendedTag,
@@ -101,7 +101,10 @@ export class MessagePackUtils {
       const decoded = decodeMessagePackAuto(buffer);
       return JSON.stringify(decoded, null, 2);
     } catch (error) {
-      throw new MetadataError("read", `Failed to convert to JSON: ${error}`);
+      throw new MetadataError(
+        "read",
+        `Failed to convert to JSON: ${errorMessage(error)}`,
+      );
     }
   }
 
@@ -113,7 +116,10 @@ export class MessagePackUtils {
       const data = JSON.parse(jsonString);
       return encodeTagData(data);
     } catch (error) {
-      throw new MetadataError("write", `Failed to convert from JSON: ${error}`);
+      throw new MetadataError(
+        "write",
+        `Failed to convert from JSON: ${errorMessage(error)}`,
+      );
     }
   }
 
