@@ -63,5 +63,16 @@ export function fromTagLibKey(key: string): string {
   return _fromTagLib[key] ?? key;
 }
 
+/** Remap all keys of an object from TagLib ALL_CAPS to camelCase. */
+export function remapKeysFromTagLib<V>(
+  obj: Record<string, V>,
+): Record<string, V> {
+  const result: Record<string, V> = {};
+  for (const [key, value] of Object.entries(obj)) {
+    result[fromTagLibKey(key)] = value;
+  }
+  return result;
+}
+
 // Re-export property types
 export type { PropertyMetadata } from "./property-types.ts";

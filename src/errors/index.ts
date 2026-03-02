@@ -2,6 +2,7 @@ export { SUPPORTED_FORMATS, TagLibError } from "./base.ts";
 export type { TagLibErrorCode } from "./base.ts";
 export {
   EnvironmentError,
+  errorMessage,
   FileOperationError,
   InvalidFormatError,
   MemoryError,

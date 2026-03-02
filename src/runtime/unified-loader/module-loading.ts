@@ -2,6 +2,7 @@ import type { RuntimeDetectionResult } from "../detector.ts";
 import type { TagLibModule } from "../../wasm.ts";
 import type { LoadModuleResult, UnifiedLoaderOptions } from "./types.ts";
 import { ModuleLoadError } from "./types.ts";
+import { errorMessage } from "../../errors/classes.ts";
 
 function resolveWasmPath(relativePath: string): string {
   const url = new URL(relativePath, import.meta.url);
@@ -76,14 +77,12 @@ async function loadEmscriptenModule(
     let createModule: (config?: unknown) => Promise<TagLibModule>;
 
     try {
-      // @ts-ignore: Dynamic import handled at runtime
       const module = await import("../../../build/taglib-wrapper.js");
       createModule = module.default as (
         config?: unknown,
       ) => Promise<TagLibModule>;
     } catch {
       try {
-        // @ts-ignore: Dynamic import handled at runtime
         const module = await import("../../../dist/taglib-wrapper.js");
         createModule = module.default as (
           config?: unknown,
@@ -117,7 +116,7 @@ async function loadEmscriptenModule(
     return module;
   } catch (error) {
     throw new ModuleLoadError(
-      `Failed to load Emscripten module: ${error}`,
+      `Failed to load Emscripten module: ${errorMessage(error)}`,
       "emscripten",
       error,
     );

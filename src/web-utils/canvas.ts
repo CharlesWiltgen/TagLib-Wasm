@@ -79,21 +79,19 @@ export async function canvasToPicture(
 
   return new Promise((resolve, reject) => {
     canvas.toBlob(
-      async (blob) => {
+      (blob) => {
         if (!blob) {
           reject(new Error("Failed to convert canvas to blob"));
           return;
         }
 
-        const arrayBuffer = await blob.arrayBuffer();
-        const data = new Uint8Array(arrayBuffer);
-
-        resolve({
-          mimeType: format,
-          data,
-          type,
-          description,
-        });
+        blob.arrayBuffer().then(
+          (arrayBuffer) => {
+            const data = new Uint8Array(arrayBuffer);
+            resolve({ mimeType: format, data, type, description });
+          },
+          reject,
+        );
       },
       format,
       quality,

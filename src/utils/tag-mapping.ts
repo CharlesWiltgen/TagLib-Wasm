@@ -62,7 +62,7 @@ export function mapPropertiesToExtendedTag(props: PropertyMap): ExtendedTag {
 
   for (const [key, values] of Object.entries(props)) {
     if (BASIC_PROPERTY_KEYS[key]) continue;
-    if (values.length === 0) continue;
+    if (!values || values.length === 0) continue;
     // camelCase PropertyKeys pass through; ALL_CAPS pass-through keys get mapped
     const camelKey = fromTagLibKey(key);
 
@@ -91,7 +91,7 @@ export function mergeTagUpdates(
 export function normalizeTagInput(
   input: Partial<TagInput>,
 ): PropertyMap {
-  const props: PropertyMap = {};
+  const props: Record<string, string[]> = {};
   for (
     const field of [
       "title",
@@ -129,5 +129,5 @@ export function normalizeTagInput(
     }
   }
 
-  return props;
+  return props as PropertyMap;
 }

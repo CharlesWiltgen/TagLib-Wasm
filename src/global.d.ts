@@ -4,7 +4,7 @@
 
 // Declare Deno global for TypeScript when not in Deno environment
 declare global {
-  // @ts-ignore: Suppress redeclaration error in Deno environment
+  // @ts-expect-error: Suppress redeclaration error in Deno environment
   namespace Deno {
     type FsFile = any;
     type SeekMode = any;
@@ -13,7 +13,7 @@ declare global {
     type CommandStatus = any;
   }
 
-  // @ts-ignore: Suppress duplicate identifier error in Deno
+  // @ts-expect-error: Suppress duplicate identifier error in Deno
   const Deno: any;
 }
 
