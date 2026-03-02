@@ -17,6 +17,8 @@ import {
   fromPopm,
   fromStars,
   isValid,
+  normalized,
+  popm,
   RatingUtils,
   toNormalized,
   toPercent,
@@ -82,31 +84,31 @@ describe("Complex Properties Constants", () => {
 
 describe("Rating Utilities", () => {
   it("toNormalized - converts POPM (0-255) to normalized (0.0-1.0)", () => {
-    assertEquals(toNormalized(0), 0);
-    assertEquals(toNormalized(255), 1);
-    assertEquals(toNormalized(128), 128 / 255);
-    assertEquals(toNormalized(64), 64 / 255);
+    assertEquals(toNormalized(popm(0)), 0);
+    assertEquals(toNormalized(popm(255)), 1);
+    assertEquals(toNormalized(popm(128)), 128 / 255);
+    assertEquals(toNormalized(popm(64)), 64 / 255);
   });
 
   it("fromNormalized - converts normalized to POPM with rounding", () => {
-    assertEquals(fromNormalized(0), 0);
-    assertEquals(fromNormalized(1), 255);
-    assertEquals(fromNormalized(0.5), 128); // Rounds 127.5 to 128
-    assertEquals(fromNormalized(0.25), 64); // Rounds 63.75 to 64
+    assertEquals(fromNormalized(normalized(0)), 0);
+    assertEquals(fromNormalized(normalized(1)), 255);
+    assertEquals(fromNormalized(normalized(0.5)), 128); // Rounds 127.5 to 128
+    assertEquals(fromNormalized(normalized(0.25)), 64); // Rounds 63.75 to 64
   });
 
   it("toStars - converts normalized to star rating", () => {
     // 5-star scale (default)
-    assertEquals(toStars(0), 0);
-    assertEquals(toStars(0.2), 1);
-    assertEquals(toStars(0.4), 2);
-    assertEquals(toStars(0.6), 3);
-    assertEquals(toStars(0.8), 4);
-    assertEquals(toStars(1.0), 5);
+    assertEquals(toStars(normalized(0)), 0);
+    assertEquals(toStars(normalized(0.2)), 1);
+    assertEquals(toStars(normalized(0.4)), 2);
+    assertEquals(toStars(normalized(0.6)), 3);
+    assertEquals(toStars(normalized(0.8)), 4);
+    assertEquals(toStars(normalized(1.0)), 5);
 
     // 10-star scale
-    assertEquals(toStars(0.5, 10), 5);
-    assertEquals(toStars(1.0, 10), 10);
+    assertEquals(toStars(normalized(0.5), 10), 5);
+    assertEquals(toStars(normalized(1.0), 10), 10);
   });
 
   it("fromStars - converts star rating to normalized", () => {
@@ -122,33 +124,33 @@ describe("Rating Utilities", () => {
   });
 
   it("toPopm - converts normalized to standard POPM values", () => {
-    assertEquals(toPopm(0), 0); // Unrated
-    assertEquals(toPopm(0.2), 1); // 1 star
-    assertEquals(toPopm(0.4), 64); // 2 stars
-    assertEquals(toPopm(0.6), 128); // 3 stars
-    assertEquals(toPopm(0.8), 196); // 4 stars
-    assertEquals(toPopm(1.0), 255); // 5 stars
+    assertEquals(toPopm(normalized(0)), 0); // Unrated
+    assertEquals(toPopm(normalized(0.2)), 1); // 1 star
+    assertEquals(toPopm(normalized(0.4)), 64); // 2 stars
+    assertEquals(toPopm(normalized(0.6)), 128); // 3 stars
+    assertEquals(toPopm(normalized(0.8)), 196); // 4 stars
+    assertEquals(toPopm(normalized(1.0)), 255); // 5 stars
   });
 
   it("fromPopm - converts POPM to normalized star levels", () => {
-    assertEquals(fromPopm(0), 0); // Unrated
-    assertEquals(fromPopm(1), 0.2); // 1 star
-    assertEquals(fromPopm(64), 0.4); // 2 stars
-    assertEquals(fromPopm(128), 0.6); // 3 stars
-    assertEquals(fromPopm(196), 0.8); // 4 stars
-    assertEquals(fromPopm(255), 1.0); // 5 stars
+    assertEquals(fromPopm(popm(0)), 0); // Unrated
+    assertEquals(fromPopm(popm(1)), 0.2); // 1 star
+    assertEquals(fromPopm(popm(64)), 0.4); // 2 stars
+    assertEquals(fromPopm(popm(128)), 0.6); // 3 stars
+    assertEquals(fromPopm(popm(196)), 0.8); // 4 stars
+    assertEquals(fromPopm(popm(255)), 1.0); // 5 stars
 
     // In-between values should map to lower star level
-    assertEquals(fromPopm(50), 0.4); // Still 2 stars
-    assertEquals(fromPopm(100), 0.6); // Still 3 stars
-    assertEquals(fromPopm(200), 1.0); // 5 stars (>196)
+    assertEquals(fromPopm(popm(50)), 0.4); // Still 2 stars
+    assertEquals(fromPopm(popm(100)), 0.6); // Still 3 stars
+    assertEquals(fromPopm(popm(200)), 1.0); // 5 stars (>196)
   });
 
   it("toPercent - converts normalized to percentage", () => {
-    assertEquals(toPercent(0), 0);
-    assertEquals(toPercent(0.5), 50);
-    assertEquals(toPercent(1.0), 100);
-    assertEquals(toPercent(0.75), 75);
+    assertEquals(toPercent(normalized(0)), 0);
+    assertEquals(toPercent(normalized(0.5)), 50);
+    assertEquals(toPercent(normalized(1.0)), 100);
+    assertEquals(toPercent(normalized(0.75)), 75);
   });
 
   it("fromPercent - converts percentage to normalized", () => {
@@ -178,6 +180,8 @@ describe("Rating Utilities", () => {
   });
 
   it("RatingUtils namespace - exports all utilities", () => {
+    assertExists(RatingUtils.normalized);
+    assertExists(RatingUtils.popm);
     assertExists(RatingUtils.toNormalized);
     assertExists(RatingUtils.fromNormalized);
     assertExists(RatingUtils.toStars);
@@ -195,26 +199,26 @@ describe("Rating Utilities", () => {
 describe("Roundtrip Tests", () => {
   it("normalized roundtrip - precision preserved", () => {
     for (let i = 0; i <= 255; i++) {
-      const normalized = toNormalized(i);
-      const recovered = fromNormalized(normalized);
+      const nr = toNormalized(popm(i));
+      const recovered = fromNormalized(nr);
       assertEquals(recovered, i);
     }
   });
 
   it("stars roundtrip - whole stars preserved", () => {
     for (let stars = 0; stars <= 5; stars++) {
-      const normalized = fromStars(stars);
-      const recovered = toStars(normalized);
+      const nr = fromStars(stars);
+      const recovered = toStars(nr);
       assertEquals(recovered, stars);
     }
   });
 
   it("POPM star mapping roundtrip", () => {
     const popmValues = [0, 1, 64, 128, 196, 255];
-    for (const popm of popmValues) {
-      const normalized = fromPopm(popm);
-      const recovered = toPopm(normalized);
-      assertEquals(recovered, popm);
+    for (const p of popmValues) {
+      const nr = fromPopm(popm(p));
+      const recovered = toPopm(nr);
+      assertEquals(recovered, p);
     }
   });
 });
