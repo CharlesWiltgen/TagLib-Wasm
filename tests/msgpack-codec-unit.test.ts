@@ -97,13 +97,13 @@ describe("decodeTagData", () => {
     const tag = {
       title: "Song",
       artist: "Band",
-      track: 3,
+      trackNumber: 3,
     } as unknown as ExtendedTag;
     const encoded = encodeTagData(tag);
     const decoded = decodeTagData(encoded) as Record<string, unknown>;
     assertEquals(decoded.title, "Song");
     assertEquals(decoded.artist, "Band");
-    assertEquals(decoded.track, 3);
+    assertEquals(decoded.trackNumber, 3);
   });
 
   it("should throw on invalid data", () => {

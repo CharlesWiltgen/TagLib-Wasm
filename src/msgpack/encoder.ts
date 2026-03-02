@@ -8,7 +8,7 @@ import type {
   Picture,
   PropertyMap,
 } from "../types.ts";
-import { CAMEL_TO_VORBIS } from "../types/metadata-mappings.ts";
+import { toTagLibKey } from "../constants/properties.ts";
 
 const PASSTHROUGH_KEYS = new Set(["pictures", "ratings", "lyrics", "chapters"]);
 
@@ -28,7 +28,7 @@ export function encodeTagData(tagData: ExtendedTag): Uint8Array {
       if (PASSTHROUGH_KEYS.has(key)) {
         remapped[key] = value;
       } else {
-        remapped[CAMEL_TO_VORBIS[key] ?? key] = value;
+        remapped[toTagLibKey(key)] = value;
       }
     }
     return encode(cleanObject(remapped), MSGPACK_ENCODE_OPTIONS);

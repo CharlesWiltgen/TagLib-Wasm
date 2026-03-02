@@ -45,6 +45,14 @@ for (const [camelKey, meta] of Object.entries(PROPERTIES)) {
   _fromTagLib[wireKey] = camelKey;
 }
 
+// Forward-only aliases: ExtendedTag field names that map to the same wire keys
+// as their PropertyMap equivalents. Only added to _toTagLib (not _fromTagLib)
+// so that fromTagLibKey("DATE") still returns "date" (the canonical PropertyMap key).
+_toTagLib["year"] = "DATE";
+_toTagLib["track"] = "TRACKNUMBER";
+// Legacy: older C++ binaries sent "disc" instead of "discNumber"
+_fromTagLib["disc"] = "discNumber";
+
 /** Translate a camelCase property key to TagLib's ALL_CAPS wire key. Unknown keys pass through. */
 export function toTagLibKey(key: string): string {
   return _toTagLib[key] ?? key;
