@@ -19,6 +19,33 @@ export interface RuntimeDetectionResult {
 
 const g = globalThis as Record<string, unknown>;
 
+const MIN_NODE_MAJOR = 22;
+const MIN_NODE_MINOR = 6;
+
+/**
+ * Check if a Node.js version meets the minimum requirement (v22.6.0+).
+ * Returns an error message string if the version is too old, or undefined if OK.
+ * Pass undefined for non-Node environments (always returns undefined).
+ */
+export function checkNodeVersion(
+  nodeVersion: string | undefined,
+): string | undefined {
+  if (!nodeVersion) return undefined;
+  const parts = nodeVersion.split(".").map(Number);
+  const [major, minor] = parts;
+  if (
+    major < MIN_NODE_MAJOR ||
+    (major === MIN_NODE_MAJOR && minor < MIN_NODE_MINOR)
+  ) {
+    return (
+      `Node.js v${MIN_NODE_MAJOR}.${MIN_NODE_MINOR}.0 or higher is required. ` +
+      `Current version: v${nodeVersion}. ` +
+      `Older versions lack WASI and Wasm exception handling support.`
+    );
+  }
+  return undefined;
+}
+
 function hasWASISupport(): boolean {
   if (g.Deno !== undefined) return true;
   if (g.process !== undefined && (g.process as any).versions?.node) {
