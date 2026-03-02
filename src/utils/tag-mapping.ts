@@ -1,6 +1,6 @@
 import type { AudioFile } from "../taglib/audio-file-interface.ts";
 import type { ExtendedTag, PropertyMap, TagInput } from "../types.ts";
-import { fromTagLibKey, toTagLibKey } from "../constants/properties.ts";
+import { fromTagLibKey } from "../constants/properties.ts";
 
 const BASIC_PROPERTY_KEYS: Record<string, string> = {
   title: "title",
@@ -103,8 +103,7 @@ export function normalizeTagInput(
   ) {
     const val = input[field];
     if (val === undefined) continue;
-    const propKey = TAG_FIELD_TO_PROPERTY[field];
-    props[propKey] = Array.isArray(val) ? val : [val];
+    props[field] = Array.isArray(val) ? val : [val];
   }
   if (input.year !== undefined) {
     props.date = [String(input.year)];
@@ -115,17 +114,15 @@ export function normalizeTagInput(
 
   for (const [field, val] of Object.entries(input)) {
     if (BASIC_FIELDS.has(field) || val === undefined) continue;
-    const propKey = toTagLibKey(field);
-    if (propKey === field) continue;
 
     if (field === "compilation") {
-      props[propKey] = [val ? "1" : "0"];
+      props[field] = [val ? "1" : "0"];
     } else if (NUMERIC_FIELDS.has(field)) {
-      props[propKey] = [String(val)];
+      props[field] = [String(val)];
     } else if (typeof val === "string") {
-      props[propKey] = [val];
+      props[field] = [val];
     } else if (Array.isArray(val)) {
-      props[propKey] = val;
+      props[field] = val;
     }
   }
 
