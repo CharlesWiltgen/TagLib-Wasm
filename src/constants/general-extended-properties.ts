@@ -3,8 +3,7 @@
  * Includes album artist, composer, disc number, sorting properties, and common extended fields.
  */
 export const GENERAL_EXTENDED_PROPERTIES = {
-  // Extended Properties
-  ALBUMARTIST: {
+  albumArtist: {
     key: "ALBUMARTIST",
     description: "The album artist (band/orchestra/ensemble)",
     type: "string" as const,
@@ -15,7 +14,7 @@ export const GENERAL_EXTENDED_PROPERTIES = {
       mp4: "aART",
     },
   },
-  COMPOSER: {
+  composer: {
     key: "COMPOSER",
     description: "The original composer(s) of the track",
     type: "string" as const,
@@ -26,7 +25,7 @@ export const GENERAL_EXTENDED_PROPERTIES = {
       mp4: "©wrt",
     },
   },
-  COPYRIGHT: {
+  copyright: {
     key: "COPYRIGHT",
     description: "Copyright information",
     type: "string" as const,
@@ -35,7 +34,7 @@ export const GENERAL_EXTENDED_PROPERTIES = {
       vorbis: "COPYRIGHT",
     },
   },
-  ENCODEDBY: {
+  encodedBy: {
     key: "ENCODEDBY",
     description: "The encoding software or person",
     type: "string" as const,
@@ -44,7 +43,7 @@ export const GENERAL_EXTENDED_PROPERTIES = {
       vorbis: "ENCODEDBY",
     },
   },
-  DISCNUMBER: {
+  discNumber: {
     key: "DISCNUMBER",
     description: "The disc number for multi-disc sets",
     type: "string" as const,
@@ -55,7 +54,7 @@ export const GENERAL_EXTENDED_PROPERTIES = {
       mp4: "disk",
     },
   },
-  BPM: {
+  bpm: {
     key: "BPM",
     description: "Beats per minute",
     type: "string" as const,
@@ -68,7 +67,7 @@ export const GENERAL_EXTENDED_PROPERTIES = {
   },
 
   // Sorting Properties
-  TITLESORT: {
+  titleSort: {
     key: "TITLESORT",
     description: "Sort name for title (for alphabetization)",
     type: "string" as const,
@@ -79,7 +78,7 @@ export const GENERAL_EXTENDED_PROPERTIES = {
       mp4: "sonm",
     },
   },
-  ARTISTSORT: {
+  artistSort: {
     key: "ARTISTSORT",
     description: "Sort name for artist (for alphabetization)",
     type: "string" as const,
@@ -90,7 +89,7 @@ export const GENERAL_EXTENDED_PROPERTIES = {
       mp4: "soar",
     },
   },
-  ALBUMSORT: {
+  albumSort: {
     key: "ALBUMSORT",
     description: "Sort name for album (for alphabetization)",
     type: "string" as const,
@@ -103,7 +102,7 @@ export const GENERAL_EXTENDED_PROPERTIES = {
   },
 
   // Additional common properties
-  LYRICIST: {
+  lyricist: {
     key: "LYRICIST",
     description: "The lyrics/text writer(s)",
     type: "string" as const,
@@ -112,7 +111,7 @@ export const GENERAL_EXTENDED_PROPERTIES = {
       vorbis: "LYRICIST",
     },
   },
-  CONDUCTOR: {
+  conductor: {
     key: "CONDUCTOR",
     description: "The conductor",
     type: "string" as const,
@@ -121,7 +120,7 @@ export const GENERAL_EXTENDED_PROPERTIES = {
       vorbis: "CONDUCTOR",
     },
   },
-  REMIXEDBY: {
+  remixedBy: {
     key: "REMIXEDBY",
     description: "Person who remixed the track",
     type: "string" as const,
@@ -130,7 +129,7 @@ export const GENERAL_EXTENDED_PROPERTIES = {
       vorbis: "REMIXEDBY",
     },
   },
-  LANGUAGE: {
+  language: {
     key: "LANGUAGE",
     description: "Language of vocals/lyrics",
     type: "string" as const,
@@ -139,7 +138,7 @@ export const GENERAL_EXTENDED_PROPERTIES = {
       vorbis: "LANGUAGE",
     },
   },
-  PUBLISHER: {
+  publisher: {
     key: "PUBLISHER",
     description: "The publisher",
     type: "string" as const,
@@ -148,7 +147,7 @@ export const GENERAL_EXTENDED_PROPERTIES = {
       vorbis: "PUBLISHER",
     },
   },
-  MOOD: {
+  mood: {
     key: "MOOD",
     description: "The mood/atmosphere of the track",
     type: "string" as const,
@@ -157,7 +156,7 @@ export const GENERAL_EXTENDED_PROPERTIES = {
       vorbis: "MOOD",
     },
   },
-  MEDIA: {
+  media: {
     key: "MEDIA",
     description: "Media type (CD, vinyl, etc.)",
     type: "string" as const,
@@ -166,7 +165,7 @@ export const GENERAL_EXTENDED_PROPERTIES = {
       vorbis: "MEDIA",
     },
   },
-  GROUPING: {
+  grouping: {
     key: "GROUPING",
     description: "Content group/work",
     type: "string" as const,
@@ -175,7 +174,7 @@ export const GENERAL_EXTENDED_PROPERTIES = {
       vorbis: "GROUPING",
     },
   },
-  WORK: {
+  work: {
     key: "WORK",
     description: "Work name",
     type: "string" as const,
@@ -184,7 +183,7 @@ export const GENERAL_EXTENDED_PROPERTIES = {
       vorbis: "WORK",
     },
   },
-  LYRICS: {
+  lyrics: {
     key: "LYRICS",
     description: "Lyrics content",
     type: "string" as const,
@@ -193,7 +192,7 @@ export const GENERAL_EXTENDED_PROPERTIES = {
       vorbis: "LYRICS",
     },
   },
-  ISRC: {
+  isrc: {
     key: "ISRC",
     description: "International Standard Recording Code",
     type: "string" as const,
@@ -202,7 +201,7 @@ export const GENERAL_EXTENDED_PROPERTIES = {
       vorbis: "ISRC",
     },
   },
-  CATALOGNUMBER: {
+  catalogNumber: {
     key: "CATALOGNUMBER",
     description: "Catalog number",
     type: "string" as const,
@@ -211,7 +210,7 @@ export const GENERAL_EXTENDED_PROPERTIES = {
       vorbis: "CATALOGNUMBER",
     },
   },
-  BARCODE: {
+  barcode: {
     key: "BARCODE",
     description: "Barcode (EAN/UPC)",
     type: "string" as const,

@@ -122,17 +122,17 @@ export interface FileMetadata {
 
 function extractDynamics(audioFile: AudioFile): AudioDynamics | undefined {
   const dynamics: Record<string, string> = {};
-  const props: Array<[string, string]> = [
-    ["REPLAYGAIN_TRACK_GAIN", "replayGainTrackGain"],
-    ["REPLAYGAIN_TRACK_PEAK", "replayGainTrackPeak"],
-    ["REPLAYGAIN_ALBUM_GAIN", "replayGainAlbumGain"],
-    ["REPLAYGAIN_ALBUM_PEAK", "replayGainAlbumPeak"],
+  const fields = [
+    "replayGainTrackGain",
+    "replayGainTrackPeak",
+    "replayGainAlbumGain",
+    "replayGainAlbumPeak",
   ];
-  for (const [key, field] of props) {
-    const val = audioFile.getProperty(key);
+  for (const field of fields) {
+    const val = audioFile.getProperty(field);
     if (val) dynamics[field] = val;
   }
-  let appleSoundCheck = audioFile.getProperty("ITUNNORM");
+  let appleSoundCheck = audioFile.getProperty("appleSoundCheck");
   if (!appleSoundCheck && audioFile.isMP4()) {
     appleSoundCheck = audioFile.getMP4Item("----:com.apple.iTunes:iTunNORM");
   }

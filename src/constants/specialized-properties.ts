@@ -4,7 +4,7 @@
  */
 export const SPECIALIZED_PROPERTIES = {
   // MusicBrainz Identifiers
-  MUSICBRAINZ_ARTISTID: {
+  musicbrainzArtistId: {
     key: "MUSICBRAINZ_ARTISTID",
     description: "MusicBrainz Artist ID (UUID)",
     type: "string" as const,
@@ -15,7 +15,7 @@ export const SPECIALIZED_PROPERTIES = {
       mp4: "----:com.apple.iTunes:MusicBrainz Artist Id",
     },
   },
-  MUSICBRAINZ_ALBUMID: {
+  musicbrainzReleaseId: {
     key: "MUSICBRAINZ_ALBUMID",
     description: "MusicBrainz Release ID (UUID)",
     type: "string" as const,
@@ -26,7 +26,7 @@ export const SPECIALIZED_PROPERTIES = {
       mp4: "----:com.apple.iTunes:MusicBrainz Album Id",
     },
   },
-  MUSICBRAINZ_TRACKID: {
+  musicbrainzTrackId: {
     key: "MUSICBRAINZ_TRACKID",
     description: "MusicBrainz Recording ID (UUID)",
     type: "string" as const,
@@ -37,7 +37,7 @@ export const SPECIALIZED_PROPERTIES = {
       mp4: "----:com.apple.iTunes:MusicBrainz Track Id",
     },
   },
-  MUSICBRAINZ_RELEASEGROUPID: {
+  musicbrainzReleaseGroupId: {
     key: "MUSICBRAINZ_RELEASEGROUPID",
     description: "MusicBrainz Release Group ID (UUID)",
     type: "string" as const,
@@ -50,7 +50,7 @@ export const SPECIALIZED_PROPERTIES = {
   },
 
   // ReplayGain Properties
-  REPLAYGAIN_TRACK_GAIN: {
+  replayGainTrackGain: {
     key: "REPLAYGAIN_TRACK_GAIN",
     description: "ReplayGain track gain in dB (e.g., '-6.54 dB')",
     type: "string" as const,
@@ -61,7 +61,7 @@ export const SPECIALIZED_PROPERTIES = {
       mp4: "----:com.apple.iTunes:replaygain_track_gain",
     },
   },
-  REPLAYGAIN_TRACK_PEAK: {
+  replayGainTrackPeak: {
     key: "REPLAYGAIN_TRACK_PEAK",
     description: "ReplayGain track peak value (0.0-1.0)",
     type: "string" as const,
@@ -72,7 +72,7 @@ export const SPECIALIZED_PROPERTIES = {
       mp4: "----:com.apple.iTunes:replaygain_track_peak",
     },
   },
-  REPLAYGAIN_ALBUM_GAIN: {
+  replayGainAlbumGain: {
     key: "REPLAYGAIN_ALBUM_GAIN",
     description: "ReplayGain album gain in dB",
     type: "string" as const,
@@ -83,7 +83,7 @@ export const SPECIALIZED_PROPERTIES = {
       mp4: "----:com.apple.iTunes:replaygain_album_gain",
     },
   },
-  REPLAYGAIN_ALBUM_PEAK: {
+  replayGainAlbumPeak: {
     key: "REPLAYGAIN_ALBUM_PEAK",
     description: "ReplayGain album peak value (0.0-1.0)",
     type: "string" as const,
@@ -96,7 +96,7 @@ export const SPECIALIZED_PROPERTIES = {
   },
 
   // AcoustID Properties
-  ACOUSTID_FINGERPRINT: {
+  acoustidFingerprint: {
     key: "ACOUSTID_FINGERPRINT",
     description: "AcoustID fingerprint (Chromaprint)",
     type: "string" as const,
@@ -107,7 +107,7 @@ export const SPECIALIZED_PROPERTIES = {
       mp4: "----:com.apple.iTunes:Acoustid Fingerprint",
     },
   },
-  ACOUSTID_ID: {
+  acoustidId: {
     key: "ACOUSTID_ID",
     description: "AcoustID UUID",
     type: "string" as const,
@@ -120,7 +120,7 @@ export const SPECIALIZED_PROPERTIES = {
   },
 
   // Apple Sound Check
-  ITUNNORM: {
+  appleSoundCheck: {
     key: "ITUNNORM",
     description: "Apple Sound Check normalization data",
     type: "string" as const,

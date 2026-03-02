@@ -6,7 +6,7 @@ import { FileOperationError, InvalidFormatError } from "../errors.ts";
 import { readFileData } from "../utils/file.ts";
 import { writeFileData } from "../utils/write.ts";
 import type { AudioFile } from "./audio-file-interface.ts";
-import { ExtendedAudioFileImpl } from "./audio-file-extended.ts";
+import { BaseAudioFileImpl } from "./audio-file-base.ts";
 
 /**
  * Implementation of AudioFile interface using Embind API.
@@ -14,7 +14,7 @@ import { ExtendedAudioFileImpl } from "./audio-file-extended.ts";
  * @internal This class is not meant to be instantiated directly.
  * Use TagLib.open() to create instances.
  */
-export class AudioFileImpl extends ExtendedAudioFileImpl implements AudioFile {
+export class AudioFileImpl extends BaseAudioFileImpl implements AudioFile {
   constructor(
     module: TagLibModule,
     fileHandle: FileHandle,
