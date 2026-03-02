@@ -111,17 +111,17 @@ describe(normalizeTagInput.name, () => {
     assertEquals(result.trackNumber, ["3"]);
   });
 
-  it("should map extended string fields to ALL_CAPS PropertyMap keys", () => {
+  it("should map extended string fields to camelCase PropertyMap keys", () => {
     const result = normalizeTagInput({
       albumArtist: "VA",
       composer: ["Bach", "Handel"],
       conductor: "Karajan",
       lyricist: ["A", "B"],
     });
-    assertEquals(result.ALBUMARTIST, ["VA"]);
-    assertEquals(result.COMPOSER, ["Bach", "Handel"]);
-    assertEquals(result.CONDUCTOR, ["Karajan"]);
-    assertEquals(result.LYRICIST, ["A", "B"]);
+    assertEquals(result.albumArtist, ["VA"]);
+    assertEquals(result.composer, ["Bach", "Handel"]);
+    assertEquals(result.conductor, ["Karajan"]);
+    assertEquals(result.lyricist, ["A", "B"]);
   });
 
   it("should map numeric extended fields as string arrays", () => {
@@ -131,31 +131,31 @@ describe(normalizeTagInput.name, () => {
       totalDiscs: 3,
       bpm: 128,
     });
-    assertEquals(result.DISCNUMBER, ["2"]);
-    assertEquals(result.TRACKTOTAL, ["12"]);
-    assertEquals(result.DISCTOTAL, ["3"]);
-    assertEquals(result.BPM, ["128"]);
+    assertEquals(result.discNumber, ["2"]);
+    assertEquals(result.totalTracks, ["12"]);
+    assertEquals(result.totalDiscs, ["3"]);
+    assertEquals(result.bpm, ["128"]);
   });
 
   it("should handle numeric 0 values", () => {
     const result = normalizeTagInput({ bpm: 0, discNumber: 0 });
-    assertEquals(result.BPM, ["0"]);
-    assertEquals(result.DISCNUMBER, ["0"]);
+    assertEquals(result.bpm, ["0"]);
+    assertEquals(result.discNumber, ["0"]);
   });
 
   it("should map compilation true to '1'", () => {
     const result = normalizeTagInput({ compilation: true });
-    assertEquals(result.COMPILATION, ["1"]);
+    assertEquals(result.compilation, ["1"]);
   });
 
   it("should map compilation false to '0'", () => {
     const result = normalizeTagInput({ compilation: false });
-    assertEquals(result.COMPILATION, ["0"]);
+    assertEquals(result.compilation, ["0"]);
   });
 
   it("should pass through empty arrays", () => {
     const result = normalizeTagInput({ albumArtist: [] });
-    assertEquals(result.ALBUMARTIST, []);
+    assertEquals(result.albumArtist, []);
   });
 
   it("should skip undefined fields", () => {
@@ -168,8 +168,8 @@ describe(normalizeTagInput.name, () => {
       musicbrainzTrackId: "abc-123",
       replayGainTrackGain: "-6.54 dB",
     });
-    assertEquals(result.MUSICBRAINZ_TRACKID, ["abc-123"]);
-    assertEquals(result.REPLAYGAIN_TRACK_GAIN, ["-6.54 dB"]);
+    assertEquals(result.musicbrainzTrackId, ["abc-123"]);
+    assertEquals(result.replayGainTrackGain, ["-6.54 dB"]);
   });
 
   it("should not duplicate basic fields handled by the initial loop", () => {
