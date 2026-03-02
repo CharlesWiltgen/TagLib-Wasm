@@ -8,10 +8,10 @@ import {
 describe(mapPropertiesToExtendedTag.name, () => {
   it("should map basic fields", () => {
     const result = mapPropertiesToExtendedTag({
-      TITLE: ["Hello"],
-      ARTIST: ["Artist"],
-      DATE: ["2025"],
-      TRACKNUMBER: ["3"],
+      title: ["Hello"],
+      artist: ["Artist"],
+      date: ["2025"],
+      trackNumber: ["3"],
     });
     assertEquals(result, {
       title: ["Hello"],
@@ -23,10 +23,10 @@ describe(mapPropertiesToExtendedTag.name, () => {
 
   it("should map extended string fields", () => {
     const result = mapPropertiesToExtendedTag({
-      ALBUMARTIST: ["Various Artists"],
-      COMPOSER: ["Bach", "Handel"],
-      MUSICBRAINZ_TRACKID: ["abc-123"],
-      REPLAYGAIN_TRACK_GAIN: ["-6.54 dB"],
+      albumArtist: ["Various Artists"],
+      composer: ["Bach", "Handel"],
+      musicbrainzTrackId: ["abc-123"],
+      replayGainTrackGain: ["-6.54 dB"],
     });
     assertEquals(result, {
       albumArtist: ["Various Artists"],
@@ -38,10 +38,10 @@ describe(mapPropertiesToExtendedTag.name, () => {
 
   it("should map numeric extended fields", () => {
     const result = mapPropertiesToExtendedTag({
-      DISCNUMBER: ["2"],
-      TRACKTOTAL: ["12"],
-      DISCTOTAL: ["3"],
-      BPM: ["128"],
+      discNumber: ["2"],
+      totalTracks: ["12"],
+      totalDiscs: ["3"],
+      bpm: ["128"],
     });
     assertEquals(result, {
       discNumber: 2,
@@ -53,58 +53,62 @@ describe(mapPropertiesToExtendedTag.name, () => {
 
   it("should map compilation to boolean", () => {
     assertEquals(
-      mapPropertiesToExtendedTag({ COMPILATION: ["1"] }).compilation,
+      mapPropertiesToExtendedTag({ compilation: ["1"] }).compilation,
       true,
     );
     assertEquals(
-      mapPropertiesToExtendedTag({ COMPILATION: ["0"] }).compilation,
+      mapPropertiesToExtendedTag({ compilation: ["0"] }).compilation,
       false,
     );
   });
 
-  it("should skip unmapped property keys", () => {
+  it("should pass through unknown camelCase property keys", () => {
     const result = mapPropertiesToExtendedTag({
-      TITLE: ["X"],
-      SOME_UNKNOWN_KEY: ["ignored"],
+      title: ["X"],
+      someUnknownKey: ["kept"],
     });
-    assertEquals(result, { title: ["X"] });
+    assertEquals(result.title, ["X"]);
+    assertEquals(
+      (result as Record<string, unknown>).someUnknownKey,
+      ["kept"],
+    );
   });
 
   it("should skip fields with empty values arrays", () => {
     const result = mapPropertiesToExtendedTag({
-      TITLE: [],
-      ALBUMARTIST: [],
-      DISCNUMBER: [],
-      COMPILATION: [],
+      title: [],
+      albumArtist: [],
+      discNumber: [],
+      compilation: [],
     });
     assertEquals(result, {});
   });
 
   it("should return undefined for non-numeric year and track", () => {
     const result = mapPropertiesToExtendedTag({
-      DATE: ["not-a-number"],
-      TRACKNUMBER: ["abc"],
+      date: ["not-a-number"],
+      trackNumber: ["abc"],
     });
     assertEquals(result, {});
   });
 });
 
 describe(normalizeTagInput.name, () => {
-  it("should map basic string fields to UPPERCASE PropertyMap keys", () => {
+  it("should map basic string fields to camelCase PropertyMap keys", () => {
     const result = normalizeTagInput({
       title: "Hello",
       artist: ["A", "B"],
       album: "Album",
     });
-    assertEquals(result.TITLE, ["Hello"]);
-    assertEquals(result.ARTIST, ["A", "B"]);
-    assertEquals(result.ALBUM, ["Album"]);
+    assertEquals(result.title, ["Hello"]);
+    assertEquals(result.artist, ["A", "B"]);
+    assertEquals(result.album, ["Album"]);
   });
 
   it("should map year and track as string arrays", () => {
     const result = normalizeTagInput({ year: 2025, track: 3 });
-    assertEquals(result.DATE, ["2025"]);
-    assertEquals(result.TRACKNUMBER, ["3"]);
+    assertEquals(result.date, ["2025"]);
+    assertEquals(result.trackNumber, ["3"]);
   });
 
   it("should map extended string fields via CAMEL_TO_VORBIS", () => {
@@ -156,7 +160,7 @@ describe(normalizeTagInput.name, () => {
 
   it("should skip undefined fields", () => {
     const result = normalizeTagInput({ title: "X" });
-    assertEquals(Object.keys(result), ["TITLE"]);
+    assertEquals(Object.keys(result), ["title"]);
   });
 
   it("should map MusicBrainz and ReplayGain fields", () => {
@@ -170,8 +174,8 @@ describe(normalizeTagInput.name, () => {
 
   it("should not duplicate basic fields handled by the initial loop", () => {
     const result = normalizeTagInput({ title: "T", artist: ["A", "B"] });
-    assertEquals(result.TITLE, ["T"]);
-    assertEquals(result.ARTIST, ["A", "B"]);
+    assertEquals(result.title, ["T"]);
+    assertEquals(result.artist, ["A", "B"]);
     assertEquals(Object.keys(result).length, 2);
   });
 });

@@ -187,7 +187,7 @@ function showMetadataMappingTable() {
   console.log("// • MP4: ----:com.apple.iTunes:Acoustid Fingerprint atom");
   console.log("");
   console.log("// Or using string property names:");
-  console.log('file.setProperty("ACOUSTID_FINGERPRINT", "...");');
+  console.log('file.setProperty("acoustidFingerprint", "...");');
   console.log("```");
 }
 

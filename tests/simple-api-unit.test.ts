@@ -559,8 +559,8 @@ describe("readMetadata with dynamics", () => {
     const mp3 = await Deno.readFile(FIXTURE_PATH.mp3);
     const audioFile = await taglib.open(new Uint8Array(mp3));
     try {
-      audioFile.setProperty("REPLAYGAIN_TRACK_GAIN", "-6.5 dB");
-      audioFile.setProperty("REPLAYGAIN_TRACK_PEAK", "0.98765");
+      audioFile.setProperty("replayGainTrackGain", "-6.5 dB");
+      audioFile.setProperty("replayGainTrackPeak", "0.98765");
       audioFile.save();
       const buffer = audioFile.getFileBuffer();
 
@@ -584,10 +584,10 @@ describe("readMetadata with dynamics", () => {
     const flac = await Deno.readFile(FIXTURE_PATH.flac);
     const audioFile = await taglib.open(new Uint8Array(flac));
     try {
-      audioFile.setProperty("REPLAYGAIN_TRACK_GAIN", "-3.2 dB");
-      audioFile.setProperty("REPLAYGAIN_TRACK_PEAK", "0.95");
-      audioFile.setProperty("REPLAYGAIN_ALBUM_GAIN", "-2.1 dB");
-      audioFile.setProperty("REPLAYGAIN_ALBUM_PEAK", "0.99");
+      audioFile.setProperty("replayGainTrackGain", "-3.2 dB");
+      audioFile.setProperty("replayGainTrackPeak", "0.95");
+      audioFile.setProperty("replayGainAlbumGain", "-2.1 dB");
+      audioFile.setProperty("replayGainAlbumPeak", "0.99");
       audioFile.save();
       const buffer = audioFile.getFileBuffer();
 
@@ -688,7 +688,7 @@ describe("readMetadata with Sound Check", () => {
     const audioFile = await taglib.open(new Uint8Array(mp3));
     try {
       audioFile.setProperty(
-        "ITUNNORM",
+        "itunNorm",
         " 00001234 00001234 00002345 00002345 00000000 00000000 00001234 00001234 00000000 00000000",
       );
       audioFile.save();

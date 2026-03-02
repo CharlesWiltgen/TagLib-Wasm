@@ -52,21 +52,21 @@ export async function processFileWithTagLib(
     const hasCoverArt = pictures.length > 0;
 
     const dynamics: AudioDynamics = {};
-    const fields = [
-      { key: "REPLAYGAIN_TRACK_GAIN", prop: "replayGainTrackGain" },
-      { key: "REPLAYGAIN_TRACK_PEAK", prop: "replayGainTrackPeak" },
-      { key: "REPLAYGAIN_ALBUM_GAIN", prop: "replayGainAlbumGain" },
-      { key: "REPLAYGAIN_ALBUM_PEAK", prop: "replayGainAlbumPeak" },
+    const fieldNames = [
+      "replayGainTrackGain",
+      "replayGainTrackPeak",
+      "replayGainAlbumGain",
+      "replayGainAlbumPeak",
     ];
 
-    for (const { key, prop } of fields) {
-      const value = audioFile.getProperty(key);
+    for (const field of fieldNames) {
+      const value = audioFile.getProperty(field);
       if (value) {
-        (dynamics as any)[prop] = value;
+        (dynamics as any)[field] = value;
       }
     }
 
-    let appleSoundCheck = audioFile.getProperty("ITUNNORM");
+    let appleSoundCheck = audioFile.getProperty("appleSoundCheck");
     if (!appleSoundCheck && audioFile.isMP4()) {
       appleSoundCheck = audioFile.getMP4Item("----:com.apple.iTunes:iTunNORM");
     }
