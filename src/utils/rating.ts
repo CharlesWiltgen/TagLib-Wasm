@@ -10,13 +10,13 @@
  * import { RatingUtils } from 'taglib-wasm';
  *
  * // Convert from 5-star to normalized
- * const normalized = RatingUtils.fromStars(4, 5);  // 0.8
+ * const rating = RatingUtils.fromStars(4, 5);     // NormalizedRating(0.8)
  *
  * // Convert to POPM value for ID3v2
- * const popm = RatingUtils.toPopm(0.8);  // 196
+ * const popmVal = RatingUtils.toPopm(rating);      // PopmRating(196)
  *
  * // Display as percentage
- * const percent = RatingUtils.toPercent(0.8);  // 80
+ * const percent = RatingUtils.toPercent(rating);    // 80
  * ```
  */
 
@@ -46,7 +46,7 @@ export function popm(value: number): PopmRating {
  * @returns Normalized rating (0.0-1.0)
  */
 export function toNormalized(value: PopmRating): NormalizedRating {
-  return value / 255 as NormalizedRating;
+  return (value / 255) as NormalizedRating;
 }
 
 /**
@@ -79,7 +79,7 @@ export function toStars(value: NormalizedRating, maxStars = 5): number {
  * @returns Normalized rating (0.0-1.0)
  */
 export function fromStars(stars: number, maxStars = 5): NormalizedRating {
-  return stars / maxStars as NormalizedRating;
+  return (stars / maxStars) as NormalizedRating;
 }
 
 /**
@@ -140,7 +140,7 @@ export function toPercent(value: NormalizedRating): number {
  * @returns Normalized rating (0.0-1.0)
  */
 export function fromPercent(percent: number): NormalizedRating {
-  return percent / 100 as NormalizedRating;
+  return (percent / 100) as NormalizedRating;
 }
 
 /**
