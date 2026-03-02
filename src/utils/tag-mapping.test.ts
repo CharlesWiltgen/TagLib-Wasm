@@ -111,7 +111,7 @@ describe(normalizeTagInput.name, () => {
     assertEquals(result.trackNumber, ["3"]);
   });
 
-  it("should map extended string fields via CAMEL_TO_VORBIS", () => {
+  it("should map extended string fields to ALL_CAPS PropertyMap keys", () => {
     const result = normalizeTagInput({
       albumArtist: "VA",
       composer: ["Bach", "Handel"],

@@ -1,9 +1,6 @@
 import type { AudioFile } from "../taglib/audio-file-interface.ts";
 import type { ExtendedTag, PropertyMap, TagInput } from "../types.ts";
-import {
-  CAMEL_TO_VORBIS,
-  VORBIS_TO_CAMEL,
-} from "../types/metadata-mappings.ts";
+import { fromTagLibKey, toTagLibKey } from "../constants/properties.ts";
 
 const BASIC_PROPERTY_KEYS: Record<string, string> = {
   title: "title",
@@ -67,7 +64,7 @@ export function mapPropertiesToExtendedTag(props: PropertyMap): ExtendedTag {
     if (BASIC_PROPERTY_KEYS[key]) continue;
     if (values.length === 0) continue;
     // camelCase PropertyKeys pass through; ALL_CAPS pass-through keys get mapped
-    const camelKey = VORBIS_TO_CAMEL[key] ?? key;
+    const camelKey = fromTagLibKey(key);
     if (!camelKey) continue;
 
     if (NUMERIC_FIELDS.has(camelKey)) {
@@ -119,8 +116,8 @@ export function normalizeTagInput(
 
   for (const [field, val] of Object.entries(input)) {
     if (BASIC_FIELDS.has(field) || val === undefined) continue;
-    const propKey = CAMEL_TO_VORBIS[field];
-    if (!propKey) continue;
+    const propKey = toTagLibKey(field);
+    if (propKey === field) continue;
 
     if (field === "compilation") {
       props[propKey] = [val ? "1" : "0"];
