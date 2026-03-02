@@ -531,30 +531,54 @@ audioFile.save();
 
 ### RatingUtils for Conversions
 
+RatingUtils uses branded types (`NormalizedRating` and `PopmRating`) for
+type-safe conversions. Use `normalized()` and `popm()` constructors to create
+branded values from plain numbers.
+
 ```typescript
 import { RatingUtils } from "taglib-wasm";
+import type { NormalizedRating, PopmRating } from "taglib-wasm";
 
-// Normalized <-> POPM (ID3v2 0-255 scale)
-RatingUtils.toPopm(0.8); // 196
-RatingUtils.fromPopm(196); // 0.8
+const { normalized, popm } = RatingUtils;
+
+// Branded constructors — wrap plain numbers for type safety
+const rating: NormalizedRating = normalized(0.8);
+const popmVal: PopmRating = popm(196);
+
+// Standard star-based POPM mapping (WMP convention)
+RatingUtils.toPopm(normalized(0.8)); // PopmRating(196)
+RatingUtils.fromPopm(popm(196)); // NormalizedRating(0.8)
+
+// Linear POPM conversion (precision-preserving, no star rounding)
+RatingUtils.fromNormalized(normalized(0.8)); // PopmRating(204)
+RatingUtils.toNormalized(popm(204)); // NormalizedRating(0.8)
 
 // Normalized <-> Stars
-RatingUtils.toStars(0.8); // 4 (default 5-star scale)
-RatingUtils.toStars(0.8, 10); // 8 (10-star scale)
-RatingUtils.fromStars(4); // 0.8
-RatingUtils.fromStars(8, 10); // 0.8
+RatingUtils.toStars(normalized(0.8)); // 4 (default 5-star scale)
+RatingUtils.toStars(normalized(0.8), 10); // 8 (10-star scale)
+RatingUtils.fromStars(4); // NormalizedRating(0.8)
+RatingUtils.fromStars(8, 10); // NormalizedRating(0.8)
 
 // Normalized <-> Percent
-RatingUtils.toPercent(0.8); // 80
-RatingUtils.fromPercent(80); // 0.8
+RatingUtils.toPercent(normalized(0.8)); // 80
+RatingUtils.fromPercent(80); // NormalizedRating(0.8)
 
-// Validation
-RatingUtils.isValid(0.8); // true
+// Validation — isValid() is a type predicate (narrows to NormalizedRating)
+RatingUtils.isValid(0.8); // true (value is NormalizedRating)
 RatingUtils.isValid(1.5); // false
-RatingUtils.clamp(1.5); // 1.0
+RatingUtils.clamp(1.5); // NormalizedRating(1.0)
 
 // Standard POPM values (WMP convention)
 RatingUtils.POPM_STAR_VALUES; // [0, 1, 64, 128, 196, 255]
+```
+
+Individual functions are also available via the `/rating` subpath:
+
+```typescript
+import { fromStars, normalized, toPopm } from "taglib-wasm/rating";
+
+const rating = fromStars(4, 5); // NormalizedRating(0.8)
+const popmVal = toPopm(rating); // PopmRating(196)
 ```
 
 ### Using the Simple API
@@ -805,11 +829,11 @@ import { TagLib } from "taglib-wasm";
 import { PROPERTIES, PropertyKey } from "taglib-wasm/constants";
 
 const taglib = await TagLib.initialize();
-using audioFile = taglib.openFile(buffer);
+using audioFile = await taglib.open(buffer);
 
 // Get complete property map - all metadata as key-value pairs
 const properties = audioFile.properties();
-console.log(properties); // { ALBUMARTIST: ["Various"], BPM: ["120"], ... }
+console.log(properties); // { albumArtist: ["Various"], bpm: ["120"], ... }
 
 // Using PROPERTIES constant for type-safe access (recommended)
 const title = audioFile.getProperty(PROPERTIES.TITLE.key);
@@ -1650,8 +1674,16 @@ interface AudioProperties {
 }
 
 interface PropertyMap {
-  [key: string]: string[];
+  [key: string]: string[]; // Keys are camelCase (e.g., albumArtist, discNumber)
 }
+
+// Rating Types (branded for type safety)
+type NormalizedRating = number & { readonly __brand: "NormalizedRating" }; // 0.0-1.0
+type PopmRating = number & { readonly __brand: "PopmRating" }; // 0-255
+
+function normalized(value: number): NormalizedRating; // Branded constructor
+function popm(value: number): PopmRating; // Branded constructor
+function isValid(rating: number): rating is NormalizedRating; // Type predicate
 
 // Folder API Types
 interface FolderScanOptions {
@@ -1951,21 +1983,17 @@ Different audio formats use different tag names. taglib-wasm handles this automa
 
 ### Accessing Format-Specific Tags
 
+taglib-wasm normalizes all format-specific tag names to camelCase via `properties()`:
+
 ```typescript
 const taglib = await TagLib.initialize();
 using audioFile = await taglib.open("song.mp3");
-const propMap = audioFile.propertyMap();
-const props = propMap.properties();
+const props = audioFile.properties();
 
-// ID3v2 specific
-const id3AlbumArtist = props["TPE2"]?.[0];
-
-// Vorbis specific
-const vorbisAlbumArtist = props["ALBUMARTIST"]?.[0];
-
-// Unified access (recommended)
-const albumArtist = props["ALBUMARTIST"]?.[0] || props["TPE2"]?.[0] ||
-  props["aART"]?.[0];
+// Unified camelCase access — works across all formats
+const albumArtist = props.albumArtist?.[0]; // "Various Artists"
+const discNumber = props.discNumber?.[0]; // "1"
+const bpm = props.bpm?.[0]; // "120"
 ```
 
 ## Format Conversion Workflows
