@@ -34,7 +34,10 @@
  */
 
 // Full API
-export type { AudioFile } from "./src/taglib/audio-file-interface.ts";
+export type {
+  AudioFile,
+  TypedAudioFile,
+} from "./src/taglib/audio-file-interface.ts";
 export { AudioFileImpl, createTagLib, TagLib } from "./src/taglib.ts";
 export type { MutableTag } from "./src/taglib.ts";
 
@@ -178,6 +181,10 @@ export {
 } from "./src/types.ts";
 
 export type { PropertyKey, PropertyValue } from "./src/constants.ts";
+export type {
+  FormatPropertyKey,
+  TagFormat,
+} from "./src/types/format-property-keys.ts";
 
 // Complex property types and constants
 export {
