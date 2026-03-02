@@ -293,3 +293,4 @@
 {"actor":"Charles Wiltgen","comment":null,"created_at":"2026-03-01T19:06:44Z","event_type":"created","id":293,"issue_id":"taglib-wasm-aw9","new_value":"","old_value":""}
 {"actor":"Charles Wiltgen","comment":null,"created_at":"2026-03-01T19:06:52Z","event_type":"created","id":294,"issue_id":"taglib-wasm-8dy","new_value":"","old_value":""}
 {"actor":"Charles Wiltgen","comment":null,"created_at":"2026-03-01T19:06:56Z","event_type":"created","id":295,"issue_id":"taglib-wasm-wog","new_value":"","old_value":""}
+{"actor":"Charles Wiltgen","comment":null,"created_at":"2026-03-01T20:23:06Z","event_type":"closed","id":296,"issue_id":"taglib-wasm-8dy","new_value":"Implemented PropertyMap as mapped type with known PropertyKey keys + index signature fallback. Extracted remapKeysFromTagLib helper, fixed undefined handling in Object.entries consumers.","old_value":""}
