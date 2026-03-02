@@ -12,6 +12,7 @@ import {
   _forceRuntime,
   _getDetectionResult,
   canLoadWasmType,
+  checkNodeVersion,
   detectRuntime,
   getEnvironmentDescription,
   type RuntimeDetectionResult,
@@ -220,6 +221,30 @@ describe("RuntimeDetector", () => {
     }
 
     _clearRuntimeOverride();
+  });
+
+  it("checkNodeVersion - accepts valid versions", () => {
+    assertEquals(checkNodeVersion("22.6.0"), undefined);
+    assertEquals(checkNodeVersion("22.11.0"), undefined);
+    assertEquals(checkNodeVersion("23.0.0"), undefined);
+    assertEquals(checkNodeVersion("24.1.3"), undefined);
+  });
+
+  it("checkNodeVersion - rejects versions below 22.6.0", () => {
+    const err20 = checkNodeVersion("20.18.1");
+    assertEquals(err20 !== undefined, true);
+    assertEquals(err20!.includes("22.6.0"), true);
+    assertEquals(err20!.includes("20.18.1"), true);
+
+    const err22old = checkNodeVersion("22.5.9");
+    assertEquals(err22old !== undefined, true);
+
+    const err18 = checkNodeVersion("18.20.0");
+    assertEquals(err18 !== undefined, true);
+  });
+
+  it("checkNodeVersion - returns undefined for non-Node environments", () => {
+    assertEquals(checkNodeVersion(undefined), undefined);
   });
 
   it("filesystem support matches environment capabilities", () => {

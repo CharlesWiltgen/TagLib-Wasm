@@ -7,8 +7,13 @@
 
 import type { LoadTagLibOptions } from "./loader-types.ts";
 import type { TagLibModule } from "../wasm.ts";
-import { errorMessage, TagLibInitializationError } from "../errors/classes.ts";
+import {
+  EnvironmentError,
+  errorMessage,
+  TagLibInitializationError,
+} from "../errors/classes.ts";
 import { isDenoCompiled } from "./deno-detect.ts";
+import { checkNodeVersion } from "./detector.ts";
 
 /**
  * Load the TagLib Wasm module.
@@ -47,6 +52,14 @@ import { isDenoCompiled } from "./deno-detect.ts";
 export async function loadTagLibModule(
   options?: LoadTagLibOptions,
 ): Promise<TagLibModule> {
+  const nodeVersion = (globalThis as any).process?.versions?.node as
+    | string
+    | undefined;
+  const versionError = checkNodeVersion(nodeVersion);
+  if (versionError) {
+    throw new EnvironmentError("Node.js", versionError, "WASI support");
+  }
+
   if (
     !options?.forceBufferMode && !options?.wasmBinary && !options?.wasmUrl &&
     !options?.forceWasmType && isDenoCompiled()
