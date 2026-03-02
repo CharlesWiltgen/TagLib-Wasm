@@ -38,10 +38,10 @@ describe("MessagePack", () => {
           title: fc.option(fc.string(), { nil: undefined }),
           artist: fc.option(fc.string(), { nil: undefined }),
           album: fc.option(fc.string(), { nil: undefined }),
-          year: fc.option(fc.integer({ min: 1900, max: 2100 }), {
+          date: fc.option(fc.integer({ min: 1900, max: 2100 }), {
             nil: undefined,
           }),
-          track: fc.option(fc.integer({ min: 0, max: 999 }), {
+          trackNumber: fc.option(fc.integer({ min: 0, max: 999 }), {
             nil: undefined,
           }),
           genre: fc.option(fc.string(), { nil: undefined }),
@@ -263,7 +263,7 @@ describe("MessagePack", () => {
         fc.record({
           title: fc.constantFrom("", null, undefined),
           artist: fc.constantFrom("", null, undefined),
-          year: fc.constantFrom(0, null, undefined),
+          date: fc.constantFrom(0, null, undefined),
         }),
         (tagData) => {
           const encoded = encodeTagData(tagData as any);
@@ -284,8 +284,8 @@ describe("MessagePack", () => {
           }
 
           // Zero values should be preserved
-          if (tagData.year === 0) {
-            assertEquals(decoded.year, 0);
+          if (tagData.date === 0) {
+            assertEquals(decoded.date, 0);
           }
 
           return true;

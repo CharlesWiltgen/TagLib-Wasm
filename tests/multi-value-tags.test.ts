@@ -180,9 +180,9 @@ describe("applyTagsToBuffer with extended fields", () => {
     const props = audioFile.properties();
     assertEquals(props.bpm, ["128"]);
     assertEquals(props.discNumber, ["2"]);
-    assertEquals(props.TRACKTOTAL, ["12"]);
-    assertEquals(props.DISCTOTAL, ["3"]);
-    assertEquals(props.COMPILATION, ["1"]);
+    assertEquals(props.totalTracks, ["12"]);
+    assertEquals(props.totalDiscs, ["3"]);
+    assertEquals(props.compilation, ["1"]);
   });
 
   it("should roundtrip compilation false via simple API", async () => {
@@ -194,7 +194,7 @@ describe("applyTagsToBuffer with extended fields", () => {
     const taglib = await getTagLib();
     using audioFile = await taglib.open(modified);
     const props = audioFile.properties();
-    assertEquals(props.COMPILATION, ["0"]);
+    assertEquals(props.compilation, ["0"]);
   });
 
   it("should roundtrip MusicBrainz and ReplayGain fields via simple API", async () => {
