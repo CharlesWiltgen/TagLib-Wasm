@@ -3,8 +3,7 @@
  * These are the core tags that most audio files should have.
  */
 export const BASIC_PROPERTIES = {
-  // Basic Properties
-  TITLE: {
+  title: {
     key: "TITLE",
     description: "The title of the track",
     type: "string" as const,
@@ -16,7 +15,7 @@ export const BASIC_PROPERTIES = {
       wav: "INAM",
     },
   },
-  ARTIST: {
+  artist: {
     key: "ARTIST",
     description: "The primary performer(s) of the track",
     type: "string" as const,
@@ -28,7 +27,7 @@ export const BASIC_PROPERTIES = {
       wav: "IART",
     },
   },
-  ALBUM: {
+  album: {
     key: "ALBUM",
     description: "The album/collection name",
     type: "string" as const,
@@ -40,7 +39,7 @@ export const BASIC_PROPERTIES = {
       wav: "IPRD",
     },
   },
-  DATE: {
+  date: {
     key: "DATE",
     description: "The date of recording (typically year)",
     type: "string" as const,
@@ -52,7 +51,7 @@ export const BASIC_PROPERTIES = {
       wav: "ICRD",
     },
   },
-  TRACKNUMBER: {
+  trackNumber: {
     key: "TRACKNUMBER",
     description: "The track number within the album",
     type: "string" as const,
@@ -64,7 +63,7 @@ export const BASIC_PROPERTIES = {
       wav: "ITRK",
     },
   },
-  GENRE: {
+  genre: {
     key: "GENRE",
     description: "The musical genre",
     type: "string" as const,
@@ -76,7 +75,7 @@ export const BASIC_PROPERTIES = {
       wav: "IGNR",
     },
   },
-  COMMENT: {
+  comment: {
     key: "COMMENT",
     description: "Comments or notes about the track",
     type: "string" as const,
