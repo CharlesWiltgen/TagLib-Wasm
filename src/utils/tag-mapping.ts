@@ -12,16 +12,6 @@ const BASIC_PROPERTY_KEYS: Record<string, string> = {
   trackNumber: "track",
 };
 
-const TAG_FIELD_TO_PROPERTY: Record<string, string> = {
-  title: "title",
-  artist: "artist",
-  album: "album",
-  comment: "comment",
-  genre: "genre",
-  year: "date",
-  track: "trackNumber",
-};
-
 const BASIC_FIELDS = new Set([
   "title",
   "artist",
