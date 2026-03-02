@@ -1,6 +1,7 @@
 /**
  * Convenience constants for common property names.
- * Values are camelCase PropertyKeys — pass them to getProperty/setProperty.
+ * Values are camelCase PropertyKeys where defined in PROPERTIES.
+ * Keys not in PROPERTIES use their TagLib ALL_CAPS wire name (pass-through).
  */
 export const Tags = {
   // Basic Properties
