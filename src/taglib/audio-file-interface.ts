@@ -6,6 +6,7 @@ import type {
 } from "../types.ts";
 import type { Rating } from "../constants/complex-properties.ts";
 import type { MutableTag } from "./mutable-tag.ts";
+import type { FormatPropertyKey } from "../types/format-property-keys.ts";
 
 /**
  * Represents an audio file with metadata and audio properties.
@@ -44,6 +45,9 @@ export interface AudioFile {
 
   /** Set a single property value (string version). */
   setProperty(key: string, value: string): void;
+
+  /** Type-narrowing check: returns true if this file matches the given format. */
+  isFormat<F extends FileType>(format: F): this is TypedAudioFile<F>;
 
   /** Check if this is an MP4/M4A file. */
   isMP4(): boolean;
@@ -101,4 +105,25 @@ export interface AudioFile {
 
   /** Enable `using file = ...` for automatic cleanup. */
   [Symbol.dispose](): void;
+}
+
+/**
+ * An AudioFile narrowed to a specific format, constraining getProperty/setProperty
+ * to only accept property keys valid for that format's tag system.
+ *
+ * Note: The string-accepting overloads are intentionally removed. If you need
+ * arbitrary string keys (e.g. custom tags), use the un-narrowed AudioFile reference.
+ */
+export interface TypedAudioFile<F extends FileType>
+  extends Omit<AudioFile, "getProperty" | "setProperty"> {
+  getFormat(): F;
+
+  getProperty<K extends FormatPropertyKey<F>>(
+    key: K,
+  ): import("../constants.ts").PropertyValue<K> | undefined;
+
+  setProperty<K extends FormatPropertyKey<F>>(
+    key: K,
+    value: import("../constants.ts").PropertyValue<K>,
+  ): void;
 }
