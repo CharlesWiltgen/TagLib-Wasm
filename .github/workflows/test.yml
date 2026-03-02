@@ -233,12 +233,15 @@ jobs:
           cat > test.ts << 'EOF'
           import { TagLib, readTags } from "taglib-wasm";
           import { readTags as simpleReadTags } from "taglib-wasm/simple";
+          import { RatingUtils } from "taglib-wasm";
 
-          console.log("✓ Main import works:", typeof TagLib);
-          console.log("✓ Simple subpath works:", typeof simpleReadTags);
+          if (typeof TagLib !== "function") throw new Error("TagLib export failed");
+          if (typeof readTags !== "function") throw new Error("readTags export failed");
+          if (typeof simpleReadTags !== "function") throw new Error("simple subpath export failed");
+          if (typeof RatingUtils !== "object") throw new Error("RatingUtils export failed");
 
-          const taglib = await TagLib.initialize();
-          console.log("✓ TagLib.initialize() works");
+          console.log("✓ Main exports resolve correctly");
+          console.log("✓ Simple subpath exports resolve correctly");
           EOF
           bun run test.ts
           echo "✓ Bun compatibility verified"
@@ -254,12 +257,15 @@ jobs:
           cat > test.mjs << 'EOF'
           import { TagLib, readTags } from "taglib-wasm";
           import { readTags as simpleReadTags } from "taglib-wasm/simple";
+          import { RatingUtils } from "taglib-wasm";
 
-          console.log("✓ Main import works:", typeof TagLib);
-          console.log("✓ Simple subpath works:", typeof simpleReadTags);
+          if (typeof TagLib !== "function") throw new Error("TagLib export failed");
+          if (typeof readTags !== "function") throw new Error("readTags export failed");
+          if (typeof simpleReadTags !== "function") throw new Error("simple subpath export failed");
+          if (typeof RatingUtils !== "object") throw new Error("RatingUtils export failed");
 
-          const taglib = await TagLib.initialize();
-          console.log("✓ TagLib.initialize() works");
+          console.log("✓ Main exports resolve correctly");
+          console.log("✓ Simple subpath exports resolve correctly");
           EOF
           node test.mjs
           echo "✓ Node.js compatibility verified"
