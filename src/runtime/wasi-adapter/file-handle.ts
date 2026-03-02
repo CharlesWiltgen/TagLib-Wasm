@@ -271,7 +271,9 @@ export class WasiFileHandle implements FileHandle {
   removeMP4Item(key: string): void {
     this.checkNotDestroyed();
     if (this.tagData) {
-      delete this.tagData[fromTagLibKey(key)];
+      const mappedKey = fromTagLibKey(key);
+      const storeKey = NUMERIC_FIELD_ALIASES[mappedKey] ?? mappedKey;
+      delete this.tagData[storeKey];
     }
   }
 
