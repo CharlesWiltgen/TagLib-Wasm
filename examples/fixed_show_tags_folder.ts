@@ -189,12 +189,12 @@ export async function showTagsWithFolderAPI(
           const properties = propertyMap.properties();
 
           // Check for ReplayGain album values
-          if (properties["REPLAYGAIN_ALBUM_GAIN"]) {
-            albumGain = properties["REPLAYGAIN_ALBUM_GAIN"][0];
+          if (properties["replayGainAlbumGain"]) {
+            albumGain = properties["replayGainAlbumGain"][0];
             hasExtendedMetadata = true;
           }
-          if (properties["REPLAYGAIN_ALBUM_PEAK"]) {
-            albumPeak = properties["REPLAYGAIN_ALBUM_PEAK"][0];
+          if (properties["replayGainAlbumPeak"]) {
+            albumPeak = properties["replayGainAlbumPeak"][0];
             hasExtendedMetadata = true;
           }
         } finally {
@@ -229,21 +229,21 @@ export async function showTagsWithFolderAPI(
 
             // Check for AcoustID
             if (
-              properties["ACOUSTID_ID"] || properties["ACOUSTID_FINGERPRINT"]
+              properties["acoustidId"] || properties["acoustidFingerprint"]
             ) {
               acoustId = "✓";
             }
 
             // Check for track ReplayGain
             const replayGainInfo = [];
-            if (properties["REPLAYGAIN_TRACK_GAIN"]) {
+            if (properties["replayGainTrackGain"]) {
               replayGainInfo.push(
-                `G: ${properties["REPLAYGAIN_TRACK_GAIN"][0]}`,
+                `G: ${properties["replayGainTrackGain"][0]}`,
               );
             }
-            if (properties["REPLAYGAIN_TRACK_PEAK"]) {
+            if (properties["replayGainTrackPeak"]) {
               replayGainInfo.push(
-                `P: ${properties["REPLAYGAIN_TRACK_PEAK"][0]}`,
+                `P: ${properties["replayGainTrackPeak"][0]}`,
               );
             }
             if (replayGainInfo.length > 0) {
@@ -355,10 +355,10 @@ async function checkMusicBrainzPresence(
 
         // Check for any MusicBrainz properties
         const mbProperties = [
-          "MUSICBRAINZ_TRACKID",
-          "MUSICBRAINZ_ALBUMID",
-          "MUSICBRAINZ_ARTISTID",
-          "MUSICBRAINZ_RELEASEGROUPID",
+          "musicbrainzTrackId",
+          "musicbrainzReleaseId",
+          "musicbrainzArtistId",
+          "musicbrainzReleaseGroupId",
           "MUSICBRAINZ_RELEASETRACKID",
         ];
 

@@ -109,11 +109,11 @@ describe("clearTags", () => {
       try {
         assertEquals(verifyFile.tag().title, "");
         assertEquals(verifyFile.tag().artist, "");
-        assertEquals(verifyFile.getProperty("ALBUMARTIST"), undefined);
-        assertEquals(verifyFile.getProperty("COMPOSER"), undefined);
-        assertEquals(verifyFile.getProperty("MUSICBRAINZ_TRACKID"), undefined);
+        assertEquals(verifyFile.getProperty("albumArtist"), undefined);
+        assertEquals(verifyFile.getProperty("composer"), undefined);
+        assertEquals(verifyFile.getProperty("musicbrainzTrackId"), undefined);
         assertEquals(
-          verifyFile.getProperty("REPLAYGAIN_TRACK_GAIN"),
+          verifyFile.getProperty("replayGainTrackGain"),
           undefined,
         );
         assertEquals(verifyFile.getPictures().length, 0);

@@ -59,11 +59,11 @@ async function demonstrateBunUsage() {
 
         // Write new metadata
         console.log("\n✏️  Writing new metadata...");
-        file.setTitle("Bun Test Song");
-        file.setArtist("Bun Test Artist");
-        file.setAlbum("Bun Test Album");
-        file.setYear(2024);
-        file.setGenre("Electronic");
+        file.setProperty("title", "Bun Test Song");
+        file.setProperty("artist", "Bun Test Artist");
+        file.setProperty("album", "Bun Test Album");
+        file.setProperty("date", "2024");
+        file.setProperty("genre", "Electronic");
 
         // Read back the updated metadata
         const updatedTags = file.tag();
@@ -77,18 +77,18 @@ async function demonstrateBunUsage() {
         // Demonstrate advanced metadata using PropertyMap
         console.log("\n🔬 Advanced Metadata (Using PropertyMap):");
         file.setProperty(
-          "ACOUSTID_FINGERPRINT",
+          "acoustidFingerprint",
           "AQADtMmybfGO8NCNEESLnzHyXNOHeHnG...",
         );
-        file.setProperty("ACOUSTID_ID", "e7359e88-f1f7-41ed-b9f6-16e58e906997");
+        file.setProperty("acoustidId", "e7359e88-f1f7-41ed-b9f6-16e58e906997");
         file.setProperty(
-          "MUSICBRAINZ_TRACKID",
+          "musicbrainzTrackId",
           "f4d1b6b8-8c1e-4d9a-9f2a-1234567890ab",
         );
 
         // ReplayGain properties
-        file.setProperty("REPLAYGAIN_TRACK_GAIN", "-6.54 dB");
-        file.setProperty("REPLAYGAIN_TRACK_PEAK", "0.987654");
+        file.setProperty("replayGainTrackGain", "-6.54 dB");
+        file.setProperty("replayGainTrackPeak", "0.987654");
 
         // Apple Sound Check for MP4 files
         if (file.isMP4()) {

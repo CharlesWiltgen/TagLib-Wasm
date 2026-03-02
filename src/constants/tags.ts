@@ -54,6 +54,10 @@ export const Tags = {
   MusicBrainzReleaseGroupId: "musicbrainzReleaseGroupId",
   MusicBrainzReleaseTrackId: "MUSICBRAINZ_RELEASETRACKID",
 
+  // AcoustID
+  AcoustidFingerprint: "acoustidFingerprint",
+  AcoustidId: "acoustidId",
+
   // Podcast Properties
   PodcastId: "PODCASTID",
   PodcastUrl: "PODCASTURL",

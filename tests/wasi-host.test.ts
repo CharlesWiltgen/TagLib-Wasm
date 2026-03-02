@@ -316,7 +316,7 @@ describe(
       handle.loadFromBuffer(fileData);
 
       // ALBUMARTIST should map to albumArtist key in decoded data
-      const result = handle.getProperty("ALBUMARTIST");
+      const result = handle.getProperty("albumArtist");
       assertEquals(typeof result, "string");
       handle.destroy();
     });
@@ -474,13 +474,13 @@ describe(
       );
       handle.loadFromBuffer(fileData);
 
-      handle.setProperty("ALBUMARTIST", "Test Album Artist");
+      handle.setProperty("albumArtist", "Test Album Artist");
       const saved = handle.save();
       assertEquals(saved, true, "save() should succeed");
 
       const handle2 = new WasiFileHandle(wasi);
       handle2.loadFromBuffer(handle.getBuffer());
-      assertEquals(handle2.getProperty("ALBUMARTIST"), "Test Album Artist");
+      assertEquals(handle2.getProperty("albumArtist"), "Test Album Artist");
 
       handle2.destroy();
       handle.destroy();
@@ -501,14 +501,14 @@ describe(
       );
       handle.loadFromBuffer(fileData);
 
-      handle.setProperty("ACOUSTID_FINGERPRINT", "AQADtNQYhYkYRcg");
+      handle.setProperty("acoustidFingerprint", "AQADtNQYhYkYRcg");
       const saved = handle.save();
       assertEquals(saved, true, "save() should succeed");
 
       const handle2 = new WasiFileHandle(wasi);
       handle2.loadFromBuffer(handle.getBuffer());
       assertEquals(
-        handle2.getProperty("ACOUSTID_FINGERPRINT"),
+        handle2.getProperty("acoustidFingerprint"),
         "AQADtNQYhYkYRcg",
       );
 
@@ -516,7 +516,7 @@ describe(
       handle.destroy();
     });
 
-    it("should return UPPERCASE keys from getProperties()", async () => {
+    it("should return camelCase keys from getProperties()", async () => {
       using wasi = await loadWasiHost({
         wasmPath: WASM_PATH,
         preopens: { "/test": TEST_FILES_DIR },
@@ -532,12 +532,12 @@ describe(
       handle.loadFromBuffer(fileData);
 
       const props = handle.getProperties();
-      // Keys should be UPPERCASE
-      assertExists(props["TITLE"]);
-      assertEquals(props["TITLE"], ["Kiss"]);
-      // camelCase keys should not exist
-      assertEquals("title" in props, false);
-      assertEquals("artist" in props, false);
+      // Keys should be camelCase
+      assertExists(props["title"]);
+      assertEquals(props["title"], ["Kiss"]);
+      // UPPERCASE keys should not exist
+      assertEquals("TITLE" in props, false);
+      assertEquals("ARTIST" in props, false);
 
       handle.destroy();
     });
@@ -567,7 +567,7 @@ describe(
       handle.destroy();
     });
 
-    it("should roundtrip ALBUMARTIST via getProperties after buffer write", async () => {
+    it("should roundtrip albumArtist via getProperties after buffer write", async () => {
       using wasi = await loadWasiHost({
         wasmPath: WASM_PATH,
         preopens: { "/test": TEST_FILES_DIR },
@@ -582,13 +582,13 @@ describe(
       );
       handle.loadFromBuffer(fileData);
 
-      handle.setProperty("ALBUMARTIST", "Various Artists");
+      handle.setProperty("albumArtist", "Various Artists");
       handle.save();
 
       const handle2 = new WasiFileHandle(wasi);
       handle2.loadFromBuffer(handle.getBuffer());
       const props = handle2.getProperties();
-      assertEquals(props["ALBUMARTIST"], ["Various Artists"]);
+      assertEquals(props["albumArtist"], ["Various Artists"]);
 
       handle2.destroy();
       handle.destroy();
@@ -641,9 +641,9 @@ describe(
       handle.loadFromBuffer(fileData);
 
       handle.setProperties({
-        TITLE: ["Properties Title"],
-        ARTIST: ["Properties Artist"],
-        ALBUMARTIST: ["VA"],
+        title: ["Properties Title"],
+        artist: ["Properties Artist"],
+        albumArtist: ["VA"],
       });
       const saved = handle.save();
       assertEquals(saved, true, "save() should succeed");
@@ -652,10 +652,10 @@ describe(
       handle2.loadFromBuffer(handle.getBuffer());
       assertEquals(handle2.getTag().title(), "Properties Title");
       assertEquals(handle2.getTag().artist(), "Properties Artist");
-      assertEquals(handle2.getProperty("ALBUMARTIST"), "VA");
+      assertEquals(handle2.getProperty("albumArtist"), "VA");
       const props = handle2.getProperties();
-      assertEquals(props["TITLE"], ["Properties Title"]);
-      assertEquals(props["ALBUMARTIST"], ["VA"]);
+      assertEquals(props["title"], ["Properties Title"]);
+      assertEquals(props["albumArtist"], ["VA"]);
 
       handle2.destroy();
       handle.destroy();

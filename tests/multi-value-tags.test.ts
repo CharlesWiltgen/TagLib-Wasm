@@ -160,9 +160,9 @@ describe("applyTagsToBuffer with extended fields", () => {
     const taglib = await getTagLib();
     using audioFile = await taglib.open(modified);
     const props = audioFile.properties();
-    assertEquals(props.ALBUMARTIST, ["Various Artists"]);
-    assertEquals(props.COMPOSER, ["Bach", "Handel"]);
-    assertEquals(props.CONDUCTOR, ["Karajan"]);
+    assertEquals(props.albumArtist, ["Various Artists"]);
+    assertEquals(props.composer, ["Bach", "Handel"]);
+    assertEquals(props.conductor, ["Karajan"]);
   });
 
   it("should roundtrip extended numeric and boolean fields via simple API", async () => {
@@ -178,8 +178,8 @@ describe("applyTagsToBuffer with extended fields", () => {
     const taglib = await getTagLib();
     using audioFile = await taglib.open(modified);
     const props = audioFile.properties();
-    assertEquals(props.BPM, ["128"]);
-    assertEquals(props.DISCNUMBER, ["2"]);
+    assertEquals(props.bpm, ["128"]);
+    assertEquals(props.discNumber, ["2"]);
     assertEquals(props.TRACKTOTAL, ["12"]);
     assertEquals(props.DISCTOTAL, ["3"]);
     assertEquals(props.COMPILATION, ["1"]);
@@ -207,10 +207,10 @@ describe("applyTagsToBuffer with extended fields", () => {
     const taglib = await getTagLib();
     using audioFile = await taglib.open(modified);
     const props = audioFile.properties();
-    assertEquals(props.MUSICBRAINZ_TRACKID, [
+    assertEquals(props.musicbrainzTrackId, [
       "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
     ]);
-    assertEquals(props.REPLAYGAIN_TRACK_GAIN, ["-6.54 dB"]);
+    assertEquals(props.replayGainTrackGain, ["-6.54 dB"]);
   });
 
   it("should not drop extended fields when mixed with basic fields", async () => {
@@ -231,7 +231,7 @@ describe("applyTagsToBuffer with extended fields", () => {
     const taglib = await getTagLib();
     using audioFile = await taglib.open(modified);
     const props = audioFile.properties();
-    assertEquals(props.ALBUMARTIST, ["Album Artist"]);
-    assertEquals(props.BPM, ["140"]);
+    assertEquals(props.albumArtist, ["Album Artist"]);
+    assertEquals(props.bpm, ["140"]);
   });
 });
