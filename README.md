@@ -52,8 +52,9 @@ import { TagLib } from "@charlesw/taglib-wasm";
 npm install taglib-wasm
 ```
 
-> **Note:** Requires Node.js v22.6.0 or higher. If you want to use the
-> TypeScript version with Node.js, see the
+> **Note:** Requires Node.js v22.6.0 or higher (for WebAssembly exception
+> handling and `import.meta.url` support). If you want to use the TypeScript
+> version with Node.js, see the
 > [installation guide](https://charleswiltgen.github.io/TagLib-Wasm/guide/installation.html).
 
 ### Bun
