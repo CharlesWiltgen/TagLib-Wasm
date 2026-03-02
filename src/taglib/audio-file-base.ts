@@ -11,6 +11,7 @@ import type {
 import { remapKeysFromTagLib, toTagLibKey } from "../constants/properties.ts";
 import { MetadataError, UnsupportedFormatError } from "../errors.ts";
 import type { MutableTag } from "./mutable-tag.ts";
+import type { TypedAudioFile } from "./audio-file-interface.ts";
 
 /**
  * Base implementation with core read/property operations.
@@ -50,6 +51,10 @@ export abstract class BaseAudioFileImpl {
 
   getFormat(): FileType {
     return this.handle.getFormat() as FileType;
+  }
+
+  isFormat<F extends FileType>(format: F): this is TypedAudioFile<F> {
+    return this.getFormat() === format;
   }
 
   tag(): MutableTag {

@@ -19,3 +19,6 @@ export * from "./pictures.ts";
 
 // Configuration types
 export * from "./config.ts";
+
+// Format-specific property key narrowing
+export * from "./format-property-keys.ts";
