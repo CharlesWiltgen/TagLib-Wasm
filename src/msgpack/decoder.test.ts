@@ -51,8 +51,8 @@ describe("decodeTagData key normalization", () => {
     assertEquals(decoded.title, "Test");
     assertEquals(decoded.artist, "Artist");
     assertEquals(decoded.album, "Album");
-    assertEquals(decoded.year, 2025);
-    assertEquals(decoded.track, 3);
+    assertEquals(decoded.date, 2025);
+    assertEquals(decoded.trackNumber, 3);
   });
 
   it("should decode MusicBrainz fields to camelCase", () => {

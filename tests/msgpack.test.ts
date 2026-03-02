@@ -34,8 +34,8 @@ const sampleTagData = {
   title: "Test Song",
   artist: "Test Artist",
   album: "Test Album",
-  year: 2025,
-  track: 5,
+  date: 2025,
+  trackNumber: 5,
   genre: "Rock",
   albumArtist: "Various Artists",
   composer: "Test Composer",
@@ -72,11 +72,15 @@ describe("MessagePack", () => {
     const encoded = encodeTagData(sampleTagData);
     const decoded = decodeTagData(encoded);
 
-    assertEquals(decoded.title, sampleTagData.title);
-    assertEquals(decoded.artist, sampleTagData.artist);
-    assertEquals(decoded.album, sampleTagData.album);
-    assertEquals(decoded.year, sampleTagData.year);
-    assertEquals(decoded.track, sampleTagData.track);
+    const sample = sampleTagData as unknown as Record<string, unknown>;
+    assertEquals(decoded.title, sample.title);
+    assertEquals(decoded.artist, sample.artist);
+    assertEquals(decoded.album, sample.album);
+    assertEquals((decoded as Record<string, unknown>).date, sample.date);
+    assertEquals(
+      (decoded as Record<string, unknown>).trackNumber,
+      sample.trackNumber,
+    );
   });
 
   it("encodeAudioProperties - encodes audio properties to MessagePack", () => {
@@ -294,8 +298,8 @@ describe("MessagePack", () => {
   it("handles special values", () => {
     const specialData = {
       title: "Test",
-      year: 0, // Zero value
-      track: undefined, // Undefined (should be omitted)
+      date: 0, // Zero value
+      trackNumber: undefined, // Undefined (should be omitted)
       comment: "", // Empty string (should be omitted)
       genre: null as any, // Null value
       albumArtist: "Valid Artist",
@@ -305,9 +309,9 @@ describe("MessagePack", () => {
     const decoded = decodeTagData(encoded) as Record<string, unknown>;
 
     assertEquals(decoded.title, "Test");
-    assertEquals(decoded.year, 0); // Zero should be preserved
+    assertEquals(decoded.date, 0); // Zero should be preserved
     assertEquals(decoded.albumArtist, "Valid Artist");
-    assertEquals("track" in decoded, false); // Undefined should be omitted
+    assertEquals("trackNumber" in decoded, false); // Undefined should be omitted
     assertEquals("comment" in decoded, false); // Empty string should be omitted
   });
 
