@@ -1,56 +1,57 @@
 /**
  * Convenience constants for common property names.
+ * Values are camelCase PropertyKeys — pass them to getProperty/setProperty.
  */
 export const Tags = {
   // Basic Properties
-  Title: "TITLE",
-  Artist: "ARTIST",
-  Album: "ALBUM",
-  Date: "DATE",
-  TrackNumber: "TRACKNUMBER",
-  Genre: "GENRE",
-  Comment: "COMMENT",
+  Title: "title",
+  Artist: "artist",
+  Album: "album",
+  Date: "date",
+  TrackNumber: "trackNumber",
+  Genre: "genre",
+  Comment: "comment",
 
   // Extended Properties
-  AlbumArtist: "ALBUMARTIST",
-  Composer: "COMPOSER",
-  Copyright: "COPYRIGHT",
-  EncodedBy: "ENCODEDBY",
-  DiscNumber: "DISCNUMBER",
-  Bpm: "BPM",
-  Lyricist: "LYRICIST",
-  Conductor: "CONDUCTOR",
-  Remixer: "REMIXEDBY",
-  Language: "LANGUAGE",
-  Publisher: "PUBLISHER",
-  Mood: "MOOD",
-  Media: "MEDIA",
+  AlbumArtist: "albumArtist",
+  Composer: "composer",
+  Copyright: "copyright",
+  EncodedBy: "encodedBy",
+  DiscNumber: "discNumber",
+  Bpm: "bpm",
+  Lyricist: "lyricist",
+  Conductor: "conductor",
+  Remixer: "remixedBy",
+  Language: "language",
+  Publisher: "publisher",
+  Mood: "mood",
+  Media: "media",
   RadioStationOwner: "RADIOSTATIONOWNER",
   Producer: "PRODUCER",
   Subtitle: "SUBTITLE",
   Label: "LABEL",
 
   // Sorting Properties
-  TitleSort: "TITLESORT",
-  ArtistSort: "ARTISTSORT",
+  TitleSort: "titleSort",
+  ArtistSort: "artistSort",
   AlbumArtistSort: "ALBUMARTISTSORT",
-  AlbumSort: "ALBUMSORT",
+  AlbumSort: "albumSort",
   ComposerSort: "COMPOSERSORT",
 
   // Identifiers
-  Isrc: "ISRC",
+  Isrc: "isrc",
   Asin: "ASIN",
-  CatalogNumber: "CATALOGNUMBER",
-  Barcode: "BARCODE",
+  CatalogNumber: "catalogNumber",
+  Barcode: "barcode",
 
   // MusicBrainz Identifiers
-  MusicBrainzArtistId: "MUSICBRAINZ_ARTISTID",
+  MusicBrainzArtistId: "musicbrainzArtistId",
   MusicBrainzReleaseArtistId: "MUSICBRAINZ_ALBUMARTISTID",
   MusicBrainzWorkId: "MUSICBRAINZ_WORKID",
-  MusicBrainzReleaseId: "MUSICBRAINZ_ALBUMID",
-  MusicBrainzRecordingId: "MUSICBRAINZ_TRACKID",
-  MusicBrainzTrackId: "MUSICBRAINZ_TRACKID",
-  MusicBrainzReleaseGroupId: "MUSICBRAINZ_RELEASEGROUPID",
+  MusicBrainzReleaseId: "musicbrainzReleaseId",
+  MusicBrainzRecordingId: "musicbrainzTrackId",
+  MusicBrainzTrackId: "musicbrainzTrackId",
+  MusicBrainzReleaseGroupId: "musicbrainzReleaseGroupId",
   MusicBrainzReleaseTrackId: "MUSICBRAINZ_RELEASETRACKID",
 
   // Podcast Properties
@@ -58,15 +59,15 @@ export const Tags = {
   PodcastUrl: "PODCASTURL",
 
   // Grouping and Work
-  Grouping: "GROUPING",
-  Work: "WORK",
+  Grouping: "grouping",
+  Work: "work",
 
   // Additional Metadata
-  Lyrics: "LYRICS",
-  AlbumGain: "REPLAYGAIN_ALBUM_GAIN",
-  AlbumPeak: "REPLAYGAIN_ALBUM_PEAK",
-  TrackGain: "REPLAYGAIN_TRACK_GAIN",
-  TrackPeak: "REPLAYGAIN_TRACK_PEAK",
+  Lyrics: "lyrics",
+  AlbumGain: "replayGainAlbumGain",
+  AlbumPeak: "replayGainAlbumPeak",
+  TrackGain: "replayGainTrackGain",
+  TrackPeak: "replayGainTrackPeak",
 
   // Special handling
   OriginalArtist: "ORIGINALARTIST",
