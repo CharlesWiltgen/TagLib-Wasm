@@ -290,3 +290,6 @@
 {"actor":"Charles Wiltgen","comment":null,"created_at":"2026-03-01T17:25:45Z","event_type":"created","id":290,"issue_id":"taglib-wasm-t6r","new_value":"","old_value":""}
 {"actor":"Charles Wiltgen","comment":null,"created_at":"2026-03-01T18:04:07Z","event_type":"closed","id":291,"issue_id":"taglib-wasm-dni","new_value":"Unified dual mapping systems: replaced VORBIS_TO_CAMEL/CAMEL_TO_VORBIS with toTagLibKey/fromTagLibKey from PROPERTIES. All 181 tests pass.","old_value":""}
 {"actor":"Charles Wiltgen","comment":null,"created_at":"2026-03-01T19:06:37Z","event_type":"created","id":292,"issue_id":"taglib-wasm-e1r","new_value":"","old_value":""}
+{"actor":"Charles Wiltgen","comment":null,"created_at":"2026-03-01T19:06:44Z","event_type":"created","id":293,"issue_id":"taglib-wasm-aw9","new_value":"","old_value":""}
+{"actor":"Charles Wiltgen","comment":null,"created_at":"2026-03-01T19:06:52Z","event_type":"created","id":294,"issue_id":"taglib-wasm-8dy","new_value":"","old_value":""}
+{"actor":"Charles Wiltgen","comment":null,"created_at":"2026-03-01T19:06:56Z","event_type":"created","id":295,"issue_id":"taglib-wasm-wog","new_value":"","old_value":""}
