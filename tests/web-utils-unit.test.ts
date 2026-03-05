@@ -1,6 +1,14 @@
-import { assertEquals, assertThrows } from "@std/assert";
+import { assertEquals, assertRejects, assertThrows } from "@std/assert";
 import { describe, it } from "@std/testing/bdd";
-import { dataURLToPicture, pictureToDataURL } from "../src/web-utils/index.ts";
+import {
+  canvasToPicture,
+  createPictureDownloadURL,
+  dataURLToPicture,
+  displayPicture,
+  imageFileToPicture,
+  pictureToDataURL,
+  setCoverArtFromCanvas,
+} from "../src/web-utils/index.ts";
 import type { Picture } from "../src/types.ts";
 
 function makePicture(
@@ -223,5 +231,262 @@ describe("pictureToDataURL and dataURLToPicture roundtrip", () => {
 
     assertEquals(restored.mimeType, "image/webp");
     assertEquals(restored.data, original.data);
+  });
+});
+
+describe("imageFileToPicture", () => {
+  it("should convert a File to a Picture with default type", async () => {
+    const fileData = new Uint8Array([0xFF, 0xD8, 0xFF, 0xE0]);
+    const file = new File([fileData], "cover.jpg", { type: "image/jpeg" });
+
+    const result = await imageFileToPicture(file);
+
+    assertEquals(result.mimeType, "image/jpeg");
+    assertEquals(result.data, fileData);
+    assertEquals(result.type, "FrontCover");
+    assertEquals(result.description, "cover.jpg");
+  });
+
+  it("should use provided type and description", async () => {
+    const fileData = new Uint8Array([0x89, 0x50, 0x4E, 0x47]);
+    const file = new File([fileData], "back.png", { type: "image/png" });
+
+    const result = await imageFileToPicture(file, "BackCover", "Back cover");
+
+    assertEquals(result.mimeType, "image/png");
+    assertEquals(result.type, "BackCover");
+    assertEquals(result.description, "Back cover");
+  });
+
+  it("should fall back to file name when description is omitted", async () => {
+    const file = new File([new Uint8Array([1])], "art.webp", {
+      type: "image/webp",
+    });
+
+    const result = await imageFileToPicture(file);
+
+    assertEquals(result.description, "art.webp");
+  });
+
+  it("should handle empty file", async () => {
+    const file = new File([], "empty.jpg", { type: "image/jpeg" });
+
+    const result = await imageFileToPicture(file);
+
+    assertEquals(result.data, new Uint8Array(0));
+    assertEquals(result.mimeType, "image/jpeg");
+  });
+});
+
+describe("canvasToPicture", () => {
+  function mockCanvas(
+    blobData: Uint8Array | null,
+  ): HTMLCanvasElement {
+    return {
+      toBlob(
+        callback: (blob: Blob | null) => void,
+        _format?: string,
+        _quality?: number,
+      ) {
+        if (blobData === null) {
+          callback(null);
+        } else {
+          callback(
+            new Blob([blobData.buffer as ArrayBuffer], { type: "image/jpeg" }),
+          );
+        }
+      },
+    } as unknown as HTMLCanvasElement;
+  }
+
+  it("should convert canvas blob to Picture with defaults", async () => {
+    const pixelData = new Uint8Array([0xFF, 0x00, 0xFF]);
+    const canvas = mockCanvas(pixelData);
+
+    const result = await canvasToPicture(canvas);
+
+    assertEquals(result.mimeType, "image/jpeg");
+    assertEquals(result.data, pixelData);
+    assertEquals(result.type, "FrontCover");
+    assertEquals(result.description, undefined);
+  });
+
+  it("should use provided options", async () => {
+    const pixelData = new Uint8Array([0x89, 0x50]);
+    const canvas = mockCanvas(pixelData);
+
+    const result = await canvasToPicture(canvas, {
+      format: "image/png",
+      quality: 1.0,
+      type: "BackCover",
+      description: "Canvas art",
+    });
+
+    assertEquals(result.mimeType, "image/png");
+    assertEquals(result.type, "BackCover");
+    assertEquals(result.description, "Canvas art");
+  });
+
+  it("should reject when canvas produces null blob", async () => {
+    const canvas = mockCanvas(null);
+
+    await assertRejects(
+      () => canvasToPicture(canvas),
+      Error,
+      "Failed to convert canvas to blob",
+    );
+  });
+});
+
+describe("setCoverArtFromCanvas", () => {
+  it("should call toDataURL with correct format and quality", async () => {
+    const calls: { format: string; quality: number }[] = [];
+    const canvas = {
+      toDataURL(format: string, quality: number): string {
+        calls.push({ format, quality });
+        return "data:image/jpeg;base64,AAEC";
+      },
+    } as unknown as HTMLCanvasElement;
+
+    try {
+      await setCoverArtFromCanvas(new Uint8Array([1]), canvas, {
+        format: "image/png",
+        quality: 0.8,
+      });
+    } catch {
+      // applyPictures will throw because TagLib is not initialized
+    }
+
+    assertEquals(calls.length, 1);
+    assertEquals(calls[0].format, "image/png");
+    assertEquals(calls[0].quality, 0.8);
+  });
+
+  it("should use default format and quality", async () => {
+    const calls: { format: string; quality: number }[] = [];
+    const canvas = {
+      toDataURL(format: string, quality: number): string {
+        calls.push({ format, quality });
+        return "data:image/jpeg;base64,AAEC";
+      },
+    } as unknown as HTMLCanvasElement;
+
+    try {
+      await setCoverArtFromCanvas(new Uint8Array([1]), canvas);
+    } catch {
+      // applyPictures will throw because TagLib is not initialized
+    }
+
+    assertEquals(calls.length, 1);
+    assertEquals(calls[0].format, "image/jpeg");
+    assertEquals(calls[0].quality, 0.92);
+  });
+});
+
+describe("displayPicture", () => {
+  it("should set imgElement.src to a blob URL", () => {
+    const picture = makePicture({ data: new Uint8Array([0xFF, 0xD8]) });
+    const listeners: { event: string; fn: () => void }[] = [];
+    const imgElement = {
+      src: "",
+      addEventListener(
+        event: string,
+        fn: () => void,
+        _opts?: { once: boolean },
+      ) {
+        listeners.push({ event, fn });
+      },
+    } as unknown as HTMLImageElement;
+
+    displayPicture(picture, imgElement);
+
+    assertEquals(imgElement.src.startsWith("blob:"), true);
+    assertEquals(listeners.length, 1);
+    assertEquals(listeners[0].event, "load");
+  });
+
+  it("should revoke previous blob URL before setting new one", () => {
+    const revokedURLs: string[] = [];
+    const originalRevoke = URL.revokeObjectURL;
+    URL.revokeObjectURL = (url: string) => {
+      revokedURLs.push(url);
+    };
+
+    try {
+      const picture = makePicture({ data: new Uint8Array([0xFF]) });
+      const imgElement = {
+        src: "blob:http://localhost/old-uuid",
+        addEventListener() {},
+      } as unknown as HTMLImageElement;
+
+      displayPicture(picture, imgElement);
+
+      assertEquals(
+        revokedURLs.includes("blob:http://localhost/old-uuid"),
+        true,
+      );
+      assertEquals(imgElement.src.startsWith("blob:"), true);
+    } finally {
+      URL.revokeObjectURL = originalRevoke;
+    }
+  });
+
+  it("should not revoke non-blob src", () => {
+    const revokedURLs: string[] = [];
+    const originalRevoke = URL.revokeObjectURL;
+    URL.revokeObjectURL = (url: string) => {
+      revokedURLs.push(url);
+    };
+
+    try {
+      const picture = makePicture({ data: new Uint8Array([0xFF]) });
+      const imgElement = {
+        src: "https://example.com/image.jpg",
+        addEventListener() {},
+      } as unknown as HTMLImageElement;
+
+      displayPicture(picture, imgElement);
+
+      assertEquals(revokedURLs.length, 0);
+    } finally {
+      URL.revokeObjectURL = originalRevoke;
+    }
+  });
+});
+
+describe("createPictureDownloadURL", () => {
+  it("should return a blob URL", () => {
+    const picture = makePicture({
+      data: new Uint8Array([0xFF, 0xD8, 0xFF]),
+    });
+
+    const url = createPictureDownloadURL(picture);
+
+    assertEquals(url.startsWith("blob:"), true);
+    URL.revokeObjectURL(url);
+  });
+
+  it("should create distinct URLs for different pictures", () => {
+    const picture1 = makePicture({ data: new Uint8Array([1, 2, 3]) });
+    const picture2 = makePicture({ data: new Uint8Array([4, 5, 6]) });
+
+    const url1 = createPictureDownloadURL(picture1);
+    const url2 = createPictureDownloadURL(picture2);
+
+    assertEquals(url1 !== url2, true);
+    URL.revokeObjectURL(url1);
+    URL.revokeObjectURL(url2);
+  });
+
+  it("should work with PNG MIME type", () => {
+    const picture = makePicture({
+      mimeType: "image/png",
+      data: new Uint8Array([0x89, 0x50, 0x4E, 0x47]),
+    });
+
+    const url = createPictureDownloadURL(picture, "cover.png");
+
+    assertEquals(url.startsWith("blob:"), true);
+    URL.revokeObjectURL(url);
   });
 });
