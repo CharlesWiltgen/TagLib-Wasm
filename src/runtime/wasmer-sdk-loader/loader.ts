@@ -9,7 +9,7 @@ import { initializeWasmer, loadWasmBinary } from "./initialization.ts";
 import { errorMessage } from "../../errors/classes.ts";
 import { instantiateWasi } from "./wasi-stubs.ts";
 import { createWasiModule } from "./module-creation.ts";
-import { fromFileUrl } from "@std/path";
+import { fileUrlToPath } from "../../utils/path.ts";
 
 /**
  * Load WASI module using Wasmer SDK
@@ -20,7 +20,7 @@ export async function loadWasmerWasi(
   const {
     wasmPath = (() => {
       const url = new URL("../../../build/taglib_wasi.wasm", import.meta.url);
-      return url.protocol === "file:" ? fromFileUrl(url) : url.href;
+      return url.protocol === "file:" ? fileUrlToPath(url) : url.href;
     })(),
     useInlineWasm = false,
     mounts = {},

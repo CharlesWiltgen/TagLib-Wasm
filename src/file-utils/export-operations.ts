@@ -3,7 +3,7 @@ import type { Picture, PictureType } from "../types.ts";
 import { readCoverArt, readPictures } from "../simple/index.ts";
 import { writeFileData } from "../utils/write.ts";
 import { generatePictureFilename } from "./mime-detection.ts";
-import { join } from "@std/path";
+import { joinPath as join } from "../utils/path.ts";
 
 /**
  * Export cover art from an audio file to an image file

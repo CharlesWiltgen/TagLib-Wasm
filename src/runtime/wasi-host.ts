@@ -1,5 +1,5 @@
 import type { FileSystemProvider, WasiFileHandle } from "./wasi-fs-provider.ts";
-import { join } from "@std/path";
+import { joinPath as join } from "../utils/path.ts";
 
 export interface WasiHostConfig {
   preopens: Record<string, string>;
