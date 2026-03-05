@@ -14,7 +14,8 @@ declare global {
   }
 
   // @ts-expect-error: Suppress duplicate identifier error in Deno
-  const Deno: unknown;
+  // deno-lint-ignore no-explicit-any
+  const Deno: any;
 }
 
 export {};
