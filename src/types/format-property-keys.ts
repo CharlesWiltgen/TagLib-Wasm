@@ -16,7 +16,7 @@ export type TagFormat = "ID3v2" | "MP4" | "Vorbis" | "WAV";
 export type FileTypeToTagFormat<F extends FileType> = F extends "MP3" | "AIFF"
   ? "ID3v2"
   : F extends "MP4" ? "MP4"
-  : F extends "FLAC" | "OGG" | "OPUS" | "OGG_FLAC" | "SPEEX" ? "Vorbis"
+  : F extends "FLAC" | "OGG" | "OPUS" | "OggFLAC" | "SPEEX" ? "Vorbis"
   : F extends "WAV" ? "WAV"
   : TagFormat;
 

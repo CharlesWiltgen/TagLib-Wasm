@@ -131,7 +131,7 @@ ExtendedAudioInfo get_extended_audio_info(
             info.bitsPerSample = props->bitsPerSample();
             info.isEncrypted = props->isEncrypted();
             if (props->codec() == TagLib::ASF::Properties::WMA9Lossless) {
-                info.codec = "WMA Lossless";
+                info.codec = "WMALossless";
                 info.isLossless = true;
             } else {
                 info.codec = "WMA";

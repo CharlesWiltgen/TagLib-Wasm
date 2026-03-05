@@ -166,11 +166,11 @@ describe("WasiFileHandle", () => {
     assertEquals(fh.getBuffer().length, 0);
   });
 
-  it("should return Unknown format before loading", () => {
+  it("should return unknown format before loading", () => {
     const mock = createMockWasiModule();
     const adapter = new WasiToTagLibAdapter(mock);
     const fh = adapter.createFileHandle();
-    assertEquals(fh.getFormat(), "Unknown");
+    assertEquals(fh.getFormat(), "unknown");
   });
 
   it("should throw on loadFromPath", () => {
