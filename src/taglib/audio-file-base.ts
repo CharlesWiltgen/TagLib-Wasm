@@ -133,9 +133,9 @@ export abstract class BaseAudioFileImpl {
         sampleRate: propsWrapper.sampleRate(),
         channels: propsWrapper.channels(),
         bitsPerSample: propsWrapper.bitsPerSample(),
-        codec: (propsWrapper.codec() || "Unknown") as AudioCodec,
+        codec: (propsWrapper.codec() || "unknown") as AudioCodec,
         containerFormat:
-          (propsWrapper.containerFormat() || "UNKNOWN") as ContainerFormat,
+          (propsWrapper.containerFormat() || "unknown") as ContainerFormat,
         isLossless: propsWrapper.isLossless(),
       };
     }

@@ -5,7 +5,7 @@ export type AudioFileInput = string | Uint8Array | ArrayBuffer | File;
 
 /**
  * Supported file types detected by TagLib.
- * "UNKNOWN" indicates the format could not be determined.
+ * "unknown" indicates the format could not be determined.
  *
  * @example
  * ```typescript
@@ -36,9 +36,9 @@ export type FileType =
   | "S3M"
   | "IT"
   | "XM"
-  | "OGG_FLAC"
+  | "OggFLAC"
   | "SPEEX"
-  | "UNKNOWN";
+  | "unknown";
 
 /**
  * Container formats for audio files.
@@ -71,7 +71,7 @@ export type ContainerFormat =
   | "S3M" // Scream Tracker 3 Module
   | "IT" // Impulse Tracker Module
   | "XM" // Extended Module
-  | "UNKNOWN";
+  | "unknown";
 
 /**
  * Audio codecs (compression formats) for audio data.
@@ -98,10 +98,10 @@ export type AudioCodec =
   | "Opus" // Opus (lossy)
   | "Speex" // Speex (lossy, speech)
   | "PCM" // Pulse Code Modulation (uncompressed)
-  | "IEEE Float" // IEEE floating-point PCM
+  | "IEEEFloat" // IEEE floating-point PCM
   | "WAV" // Generic WAV codec (when specific codec unknown)
   | "WMA" // Windows Media Audio (lossy)
-  | "WMA Lossless" // Windows Media Audio Lossless
+  | "WMALossless" // Windows Media Audio Lossless
   | "APE" // Monkey's Audio (lossless)
   | "DSD" // Direct Stream Digital
   | "WavPack" // WavPack (lossless or hybrid)
@@ -112,7 +112,7 @@ export type AudioCodec =
   | "S3M" // Scream Tracker 3 Module
   | "IT" // Impulse Tracker Module
   | "XM" // Extended Module
-  | "Unknown";
+  | "unknown";
 
 /**
  * Audio properties containing technical information about the file.
