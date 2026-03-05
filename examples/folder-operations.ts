@@ -26,14 +26,17 @@ async function scanAndDisplay() {
     },
   });
 
+  const files = result.items.filter((i) => i.status === "ok");
+  const errors = result.items.filter((i) => i.status === "error");
+
   console.log("\n📊 Scan Results:");
-  console.log(`  Total files found: ${result.totalFound}`);
-  console.log(`  Successfully processed: ${result.totalProcessed}`);
-  console.log(`  Errors: ${result.errors.length}`);
+  console.log(`  Total files found: ${result.items.length}`);
+  console.log(`  Successfully processed: ${files.length}`);
+  console.log(`  Errors: ${errors.length}`);
   console.log(`  Time taken: ${result.duration}ms`);
 
   console.log("\n🎵 Audio Files:");
-  for (const file of result.files) {
+  for (const file of files) {
     console.log(`\n  ${file.path}`);
     console.log(`    Artist: ${file.tags.artist || "(unknown)"}`);
     console.log(`    Album: ${file.tags.album || "(unknown)"}`);
@@ -44,9 +47,9 @@ async function scanAndDisplay() {
     }
   }
 
-  if (result.errors.length > 0) {
+  if (errors.length > 0) {
     console.log("\n❌ Errors:");
-    for (const error of result.errors) {
+    for (const error of errors) {
       console.log(`  ${error.path}: ${error.error.message}`);
     }
   }
@@ -96,7 +99,8 @@ async function batchUpdateExample() {
   });
 
   // Prepare updates - add a compilation flag to all files
-  const updates = scanResult.files.map((file) => ({
+  const scannedFiles = scanResult.items.filter((i) => i.status === "ok");
+  const updates = scannedFiles.map((file) => ({
     path: file.path,
     tags: {
       comment: "Part of my music collection",
@@ -107,18 +111,22 @@ async function batchUpdateExample() {
 
   console.log(`Updating ${updates.length} files...`);
 
-  const updateResult = await updateFolderTags(updates, {
-    concurrency: 4, // Process 4 files at a time
-  });
+  const updateResult = await updateFolderTags(updates);
+
+  const failed = updateResult.items.filter((i) => i.status === "error");
 
   console.log(`\n✅ Update complete:`);
-  console.log(`  Successful: ${updateResult.successful}`);
-  console.log(`  Failed: ${updateResult.failed.length}`);
+  console.log(
+    `  Successful: ${
+      updateResult.items.filter((i) => i.status === "ok").length
+    }`,
+  );
+  console.log(`  Failed: ${failed.length}`);
   console.log(`  Time taken: ${updateResult.duration}ms`);
 
-  if (updateResult.failed.length > 0) {
+  if (failed.length > 0) {
     console.log("\n❌ Failed updates:");
-    for (const failure of updateResult.failed) {
+    for (const failure of failed) {
       console.log(`  ${failure.path}: ${failure.error.message}`);
     }
   }
@@ -147,32 +155,38 @@ async function exportMetadata() {
   console.log(`  Duration: ${data.summary.duration}ms`);
 }
 
-// Example 5: Performance comparison - sequential vs parallel
-async function performanceComparison() {
-  console.log("\n⚡ Performance comparison...\n");
+// Example 5: Scan with and without audio properties
+async function propertiesComparison() {
+  console.log("\n⚡ Properties comparison...\n");
 
-  // Sequential processing (concurrency = 1)
-  console.log("Sequential processing (concurrency = 1):");
+  // Without properties (faster)
+  console.log("Without audio properties:");
   const start1 = Date.now();
   const result1 = await scanFolder("./examples/sample-music", {
-    concurrency: 1,
-    includeProperties: true,
+    includeProperties: false,
   });
   const duration1 = Date.now() - start1;
-  console.log(`  Processed ${result1.totalProcessed} files in ${duration1}ms`);
+  console.log(
+    `  Processed ${
+      result1.items.filter((i) => i.status === "ok").length
+    } files in ${duration1}ms`,
+  );
 
-  // Parallel processing (concurrency = 4)
-  console.log("\nParallel processing (concurrency = 4):");
+  // With properties (more data)
+  console.log("\nWith audio properties:");
   const start2 = Date.now();
   const result2 = await scanFolder("./examples/sample-music", {
-    concurrency: 4,
     includeProperties: true,
   });
   const duration2 = Date.now() - start2;
-  console.log(`  Processed ${result2.totalProcessed} files in ${duration2}ms`);
+  console.log(
+    `  Processed ${
+      result2.items.filter((i) => i.status === "ok").length
+    } files in ${duration2}ms`,
+  );
 
-  const speedup = ((duration1 / duration2 - 1) * 100).toFixed(1);
-  console.log(`\n🚀 Parallel processing was ${speedup}% faster!`);
+  const speedup = ((duration2 / duration1 - 1) * 100).toFixed(1);
+  console.log(`\n📊 Including properties adds ~${speedup}% overhead`);
 }
 
 // Main function to run examples
@@ -196,7 +210,7 @@ async function main() {
     });
 
     console.log("Found test files:");
-    for (const file of testResult.files) {
+    for (const file of testResult.items.filter((i) => i.status === "ok")) {
       console.log(`  - ${file.path}`);
     }
     return;
@@ -219,7 +233,7 @@ async function main() {
       await exportMetadata();
       break;
     case "performance":
-      await performanceComparison();
+      await propertiesComparison();
       break;
     default:
       console.log("\nAvailable examples:");
@@ -245,7 +259,7 @@ async function main() {
       // Skip update example by default to avoid modifying files
       // await batchUpdateExample();
       await exportMetadata();
-      await performanceComparison();
+      await propertiesComparison();
   }
 }
 

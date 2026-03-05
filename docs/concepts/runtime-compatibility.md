@@ -133,12 +133,8 @@ the optimal one for your environment:
 
 ### Checking the Active Implementation
 
-```typescript
-const taglib = await TagLib.initialize();
-
-console.log(taglib.isWasi); // true for Deno/Node.js
-console.log(taglib.isEmscripten); // true for browsers/Workers
-```
+The runtime is selected automatically based on your environment. No manual
+checking is needed -- TagLib-Wasm always picks the optimal implementation.
 
 ### Performance Benefits
 

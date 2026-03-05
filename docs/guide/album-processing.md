@@ -97,7 +97,7 @@ async function analyzeAlbum(albumPath: string): Promise<AlbumAnalysis> {
     albumArtist: "",
     year: 0,
     genre: "",
-    trackCount: result.results.length,
+    trackCount: result.items.length,
     totalDuration: 0,
     averageBitrate: 0,
     format: "",
@@ -110,7 +110,7 @@ async function analyzeAlbum(albumPath: string): Promise<AlbumAnalysis> {
   let totalBitrate = 0;
   const formats = new Set<string>();
 
-  for (const { file, data } of result.results) {
+  for (const { path, data } of result.items) {
     // Extract album-level data from first track
     if (albumData.albumName === "" && data.tags.album) {
       albumData.albumName = data.tags.album;
@@ -137,9 +137,9 @@ async function analyzeAlbum(albumPath: string): Promise<AlbumAnalysis> {
 
     // Add track info
     albumData.tracks.push({
-      filename: basename(file),
+      filename: basename(path),
       trackNumber: data.tags.track || 0,
-      title: data.tags.title || basename(file),
+      title: data.tags.title || basename(path),
       artist: data.tags.artist || albumData.albumArtist,
       duration: data.properties?.length || 0,
       bitrate: data.properties?.bitrate || 0,
@@ -149,7 +149,7 @@ async function analyzeAlbum(albumPath: string): Promise<AlbumAnalysis> {
   }
 
   // Calculate averages
-  albumData.averageBitrate = Math.round(totalBitrate / result.results.length);
+  albumData.averageBitrate = Math.round(totalBitrate / result.items.length);
   albumData.format = Array.from(formats).join(", ");
 
   // Sort tracks by track number
@@ -192,8 +192,8 @@ async function checkAlbumCompleteness(albumPath: string) {
     missingReplayGain: [],
   };
 
-  for (const { file, data } of result.results) {
-    const filename = basename(file);
+  for (const { path, data } of result.items) {
+    const filename = basename(path);
 
     if (!data.tags.title) issues.missingTitles.push(filename);
     if (!data.tags.track) issues.missingTrackNumbers.push(filename);
@@ -282,9 +282,9 @@ async function addAlbumArt(albumPath: string, artworkPath: string) {
 
   // Check which files need artwork
   const metadata = await readMetadataBatch(files, { concurrency: 8 });
-  const filesNeedingArt = metadata.results
-    .filter((r) => !r.data.hasCoverArt)
-    .map((r) => r.file);
+  const filesNeedingArt = metadata.items
+    .filter((r) => r.status === "ok" && !r.data.hasCoverArt)
+    .map((r) => r.path);
 
   if (filesNeedingArt.length === 0) {
     console.log("All tracks already have cover art");
@@ -399,7 +399,7 @@ async function processLargeAlbum(albumPath: string) {
     const batchResult = await readMetadataBatch(batch, {
       concurrency: 4,
     });
-    results.push(...batchResult.results);
+    results.push(...batchResult.items);
 
     // Optional: Force garbage collection
     if (global.gc) global.gc();
@@ -446,17 +446,18 @@ async function safeAlbumProcess(albumPath: string) {
       concurrency: 8,
     });
 
-    if (result.errors.length > 0) {
-      console.warn(`Failed to process ${result.errors.length} files:`);
-      for (const error of result.errors) {
-        console.warn(`- ${error.file}: ${error.error}`);
+    const errors = result.items.filter((i) => i.status === "error");
+    if (errors.length > 0) {
+      console.warn(`Failed to process ${errors.length} files:`);
+      for (const error of errors) {
+        console.warn(`- ${error.path}: ${error.error}`);
       }
     }
 
     return {
       success: true,
-      processed: result.results.length,
-      failed: result.errors.length,
+      processed: result.items.filter((i) => i.status === "ok").length,
+      failed: errors.length,
       data: result,
     };
   } catch (error) {
