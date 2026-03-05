@@ -168,6 +168,7 @@ describe(
         ["MP3", "mp3/kiss-snippet.mp3"],
         ["FLAC", "flac/kiss-snippet.flac"],
         ["OGG", "ogg/kiss-snippet.ogg"],
+        ["M4A", "mp4/kiss-snippet.m4a"],
       ] as const
     ) {
       it(`should roundtrip extended fields in ${format}`, async () => {
@@ -302,6 +303,7 @@ describe(
         ["MP3", "mp3/kiss-snippet.mp3"],
         ["FLAC", "flac/kiss-snippet.flac"],
         ["OGG", "ogg/kiss-snippet.ogg"],
+        ["M4A", "mp4/kiss-snippet.m4a"],
       ] as const
     ) {
       it(`should roundtrip multi-value extended fields in ${format}`, async () => {
