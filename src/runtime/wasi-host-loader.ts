@@ -13,7 +13,7 @@ import {
 import type { FileSystemProvider } from "./wasi-fs-provider.ts";
 import type { WasiModule } from "./wasmer-sdk-loader/index.ts";
 import { TagLibError } from "../errors/base.ts";
-import { fromFileUrl } from "@std/path";
+import { fileUrlToPath } from "../utils/path.ts";
 
 export interface WasiHostLoaderConfig {
   wasmPath?: string;
@@ -47,7 +47,7 @@ export async function loadWasiHost(
 ): Promise<WasiModule & Disposable> {
   const defaultPath = (() => {
     const url = new URL("../../build/taglib_wasi.wasm", import.meta.url);
-    return url.protocol === "file:" ? fromFileUrl(url) : url.href;
+    return url.protocol === "file:" ? fileUrlToPath(url) : url.href;
   })();
   const wasmPath = config.wasmPath ?? defaultPath;
   const preopens = config.preopens ?? {};
