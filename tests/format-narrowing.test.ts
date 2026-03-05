@@ -9,7 +9,7 @@ import { assert, assertEquals } from "@std/assert";
 import { afterAll, beforeAll, describe, it } from "@std/testing/bdd";
 import type { TypedAudioFile } from "../src/taglib/audio-file-interface.ts";
 import type { FormatPropertyKey } from "../src/types/format-property-keys.ts";
-import { TagLib } from "../src/mod.ts";
+import { TagLib } from "../src/taglib.ts";
 import { fileExists, FIXTURE_PATH } from "./shared-fixtures.ts";
 
 describe("FormatPropertyKey type narrowing", () => {

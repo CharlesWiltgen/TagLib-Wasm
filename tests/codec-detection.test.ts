@@ -2,7 +2,7 @@
 
 import { assertEquals } from "@std/assert";
 import { describe, it } from "@std/testing/bdd";
-import { TagLib } from "../src/mod.ts";
+import { TagLib } from "../src/taglib.ts";
 import { join } from "@std/path";
 
 describe("Codec Detection", () => {

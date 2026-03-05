@@ -11,8 +11,8 @@ import {
   assertRejects,
   type assertThrows,
 } from "@std/assert";
-import { TagLib } from "../src/mod.ts";
-import type { AudioFile } from "../src/mod.ts";
+import { TagLib } from "../src/taglib.ts";
+import type { AudioFile } from "../src/taglib.ts";
 import {
   readProperties,
   readTags,

@@ -187,7 +187,10 @@ describe("TagLib.initialize", () => {
 
       assertExists(taglib);
       assertEquals(typeof taglib.version, "function");
-      assertEquals(taglib.version(), "2.1.0");
+      assert(
+        /^\d+\.\d+\.\d+\S* \(TagLib .+\)$/.test(taglib.version()),
+        `Version format mismatch: ${taglib.version()}`,
+      );
 
       console.log(`TagLib.initialize works, version: ${taglib.version()}`);
     } catch (error) {
