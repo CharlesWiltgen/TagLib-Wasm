@@ -40,7 +40,8 @@ async function loadWasiModuleWithFallback(
     return { module: wasiModule, actualWasmType: "wasi" };
   } catch (hostError) {
     if (runtime.environment === "node-wasi" && !supportsExnref()) {
-      const nodeVersion = (globalThis as any).process?.versions?.node ?? "";
+      const g = globalThis as Record<string, unknown>;
+      const nodeVersion = ((g.process as any)?.versions?.node ?? "") as string;
       console.warn(
         `[taglib-wasm] WASI unavailable: Node.js ${nodeVersion} requires --experimental-wasm-exnref. ` +
           `Falling back to Emscripten. Run with: node --experimental-wasm-exnref your-script.js`,

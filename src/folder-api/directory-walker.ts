@@ -3,7 +3,7 @@
  */
 
 import { DEFAULT_AUDIO_EXTENSIONS, type FolderScanOptions } from "./types.ts";
-import { EnvironmentError } from "../errors/classes.ts";
+import { getPlatformIO } from "../runtime/platform-io.ts";
 
 function join(...paths: string[]): string {
   return paths.filter(Boolean).join("/").replaceAll(/\/+/g, "/");
@@ -35,56 +35,13 @@ async function* processDirectoryEntry(
   }
 }
 
-async function getDirectoryReader() {
-  if (typeof Deno !== "undefined") {
-    return {
-      readDir: async function* (path: string) {
-        for await (const entry of Deno.readDir(path)) {
-          yield {
-            name: entry.name,
-            isDirectory: entry.isDirectory,
-            isFile: entry.isFile,
-          };
-        }
-      },
-    };
-  }
-
-  const isNode = (globalThis as any).process !== undefined &&
-    (globalThis as any).process.versions?.node;
-  const isBun = (globalThis as any).process !== undefined &&
-    (globalThis as any).process.versions?.bun;
-
-  if (isNode || isBun) {
-    const fs = await import("node:fs/promises");
-    return {
-      readDir: async function* (path: string) {
-        const entries = await fs.readdir(path, { withFileTypes: true });
-        for (const entry of entries) {
-          yield {
-            name: entry.name,
-            isDirectory: entry.isDirectory(),
-            isFile: entry.isFile(),
-          };
-        }
-      },
-    };
-  }
-
-  throw new EnvironmentError(
-    "unknown",
-    "Directory scanning not supported",
-    "filesystem API",
-  );
-}
-
 export async function* walkDirectory(
   path: string,
   options: FolderScanOptions = {},
 ): AsyncGenerator<string> {
-  const reader = await getDirectoryReader();
+  const io = getPlatformIO();
 
-  for await (const entry of reader.readDir(path)) {
+  for await (const entry of io.readDir(path)) {
     yield* processDirectoryEntry(
       path,
       entry.name,
