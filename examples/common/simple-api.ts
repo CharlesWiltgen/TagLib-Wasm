@@ -8,7 +8,7 @@
  */
 
 import {
-  applyTagsToBuffer,
+  applyTags,
   clearTags,
   isValidAudioFile,
   readFormat,
@@ -65,7 +65,7 @@ async function demonstrateSimpleAPI() {
   console.log("\n✏️ Example 6: Applying tags");
   console.log("Note: Changes are in-memory only");
 
-  const modifiedBuffer = await applyTagsToBuffer(testFile, {
+  const modifiedBuffer = await applyTags(testFile, {
     title: "Simple API Demo",
     artist: "TagLib-Wasm",
     album: "Examples Album",
@@ -182,7 +182,7 @@ async function demonstrateRealWorldUsage() {
 
   for (const file of filesToUpdate) {
     try {
-      await applyTagsToBuffer(file, {
+      await applyTags(file, {
         album: "Bulk Update Album",
         year: 2025,
         genre: "Updated",

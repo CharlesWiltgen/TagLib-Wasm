@@ -38,7 +38,7 @@ export interface Tag {
  *
  * @example
  * ```typescript
- * await applyTagsToBuffer(file, {
+ * await applyTags(file, {
  *   title: "New Title",
  *   artist: ["Artist One", "Artist Two"],
  *   year: 2025

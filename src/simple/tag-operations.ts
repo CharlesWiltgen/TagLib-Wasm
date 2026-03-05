@@ -224,6 +224,3 @@ export async function clearTags(
     audioFile.dispose();
   }
 }
-
-/** @deprecated Use `applyTags` instead. */
-export const applyTagsToBuffer = applyTags;

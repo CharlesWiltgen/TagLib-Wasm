@@ -4,7 +4,7 @@ import {
   addPicture,
   applyCoverArt,
   applyPictures,
-  applyTagsToBuffer,
+  applyTags,
   clearPictures,
   clearTags,
   findPictureByType,
@@ -518,10 +518,10 @@ describe("replacePictureByType", () => {
   });
 });
 
-describe("applyTagsToBuffer", () => {
+describe("applyTags", () => {
   it("should apply tag changes and return modified buffer", async () => {
     const mp3 = await Deno.readFile(FIXTURE_PATH.mp3);
-    const result = await applyTagsToBuffer(new Uint8Array(mp3), {
+    const result = await applyTags(new Uint8Array(mp3), {
       title: "New Title",
       artist: "New Artist",
     });

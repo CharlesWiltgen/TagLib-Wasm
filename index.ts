@@ -75,7 +75,6 @@ export {
   applyCoverArt,
   applyPictures,
   applyTags,
-  applyTagsToBuffer,
   type BatchItem,
   type BatchOptions,
   type BatchResult,
