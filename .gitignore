@@ -28,6 +28,7 @@ sonarcloud-report-*.*
 
 # Deno coverage
 cov_profile/
+.coverage/
 
 # ===================
 # Development tools
