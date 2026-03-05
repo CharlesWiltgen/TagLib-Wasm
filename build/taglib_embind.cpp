@@ -24,6 +24,12 @@
 #include <wavproperties.h>
 #include <aifffile.h>
 #include <aiffproperties.h>
+#include <wavpackfile.h>
+#include <wavpackproperties.h>
+#include <trueaudiofile.h>
+#include <trueaudioproperties.h>
+#include <asffile.h>
+#include <asfproperties.h>
 #include <id3v2tag.h>
 #include <attachedpictureframe.h>
 #include <popularimeterframe.h>
@@ -68,7 +74,15 @@ public:
     }
     
     unsigned int year() const {
-        return tag ? tag->year() : 0;
+        if (!tag) return 0;
+        unsigned int y = tag->year();
+        if (y != 0) return y;
+        TagLib::PropertyMap props = tag->properties();
+        auto it = props.find("DATE");
+        if (it != props.end() && !it->second.isEmpty()) {
+            y = it->second.front().toInt();
+        }
+        return y;
     }
     
     unsigned int track() const {
@@ -152,12 +166,24 @@ public:
         else if (TagLib::RIFF::AIFF::Properties* aiffProps = dynamic_cast<TagLib::RIFF::AIFF::Properties*>(props)) {
             return aiffProps->bitsPerSample();
         }
-        
+        // WavPack files
+        else if (TagLib::WavPack::Properties* wvProps = dynamic_cast<TagLib::WavPack::Properties*>(props)) {
+            return wvProps->bitsPerSample();
+        }
+        // TrueAudio files
+        else if (TagLib::TrueAudio::Properties* ttaProps = dynamic_cast<TagLib::TrueAudio::Properties*>(props)) {
+            return ttaProps->bitsPerSample();
+        }
+        // ASF/WMA files
+        else if (TagLib::ASF::Properties* asfProps = dynamic_cast<TagLib::ASF::Properties*>(props)) {
+            return asfProps->bitsPerSample();
+        }
+
         return 0;
     }
     
     std::string codec() const {
-        if (!props || !file) return "Unknown";
+        if (!props || !file) return "unknown";
         
         // MP4/M4A files
         if (TagLib::MP4::Properties* mp4Props = dynamic_cast<TagLib::MP4::Properties*>(props)) {
@@ -167,7 +193,7 @@ public:
                 case TagLib::MP4::Properties::ALAC:
                     return "ALAC";
                 default:
-                    return "Unknown";
+                    return "unknown";
             }
         }
         // MP3 files
@@ -192,7 +218,7 @@ public:
             if (TagLib::RIFF::WAV::Properties* wavProps = dynamic_cast<TagLib::RIFF::WAV::Properties*>(props)) {
                 unsigned int format = wavProps->format();
                 if (format == 1) return "PCM";
-                else if (format == 3) return "IEEE Float";
+                else if (format == 3) return "IEEEFloat";
                 else return "WAV";
             }
             return "WAV";
@@ -201,8 +227,20 @@ public:
         else if (dynamic_cast<TagLib::RIFF::AIFF::File*>(file)) {
             return "PCM"; // AIFF is typically uncompressed PCM
         }
-        
-        return "Unknown";
+        // WavPack files
+        else if (dynamic_cast<TagLib::WavPack::File*>(file)) {
+            return "WavPack";
+        }
+        // TrueAudio files
+        else if (dynamic_cast<TagLib::TrueAudio::File*>(file)) {
+            return "TTA";
+        }
+        // ASF/WMA files
+        else if (dynamic_cast<TagLib::ASF::File*>(file)) {
+            return "WMA";
+        }
+
+        return "unknown";
     }
     
     bool isLossless() const {
@@ -212,7 +250,9 @@ public:
         if (codecName == "ALAC" ||      // Apple Lossless
             codecName == "FLAC" ||      // Free Lossless Audio Codec
             codecName == "PCM" ||       // Uncompressed PCM (WAV/AIFF)
-            codecName == "IEEE Float") {  // Uncompressed floating point
+            codecName == "IEEEFloat" || // Uncompressed floating point
+            codecName == "WavPack" ||   // WavPack lossless
+            codecName == "TTA") {       // TrueAudio lossless
             return true;
         }
         
@@ -229,7 +269,7 @@ public:
     }
     
     std::string containerFormat() const {
-        if (!file) return "UNKNOWN";
+        if (!file) return "unknown";
         
         // Detect container format based on file type
         if (dynamic_cast<TagLib::MPEG::File*>(file)) {
@@ -251,8 +291,17 @@ public:
         else if (dynamic_cast<TagLib::RIFF::AIFF::File*>(file)) {
             return "AIFF";
         }
-        
-        return "UNKNOWN";
+        else if (dynamic_cast<TagLib::WavPack::File*>(file)) {
+            return "WavPack";
+        }
+        else if (dynamic_cast<TagLib::TrueAudio::File*>(file)) {
+            return "TTA";
+        }
+        else if (dynamic_cast<TagLib::ASF::File*>(file)) {
+            return "ASF";
+        }
+
+        return "unknown";
     }
 };
 
@@ -361,7 +410,7 @@ public:
     }
     
     std::string getFormat() const {
-        if (!fileRef || !fileRef->file()) return "UNKNOWN";
+        if (!fileRef || !fileRef->file()) return "unknown";
         
         TagLib::File* f = fileRef->file();
         if (dynamic_cast<TagLib::MPEG::File*>(f)) return "MP3";
@@ -371,8 +420,11 @@ public:
         if (dynamic_cast<TagLib::Ogg::Opus::File*>(f)) return "OPUS";
         if (dynamic_cast<TagLib::RIFF::WAV::File*>(f)) return "WAV";
         if (dynamic_cast<TagLib::RIFF::AIFF::File*>(f)) return "AIFF";
-        
-        return "UNKNOWN";
+        if (dynamic_cast<TagLib::WavPack::File*>(f)) return "WV";
+        if (dynamic_cast<TagLib::TrueAudio::File*>(f)) return "TTA";
+        if (dynamic_cast<TagLib::ASF::File*>(f)) return "ASF";
+
+        return "unknown";
     }
     
     val getProperties() const {
