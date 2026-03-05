@@ -6,15 +6,15 @@
 declare global {
   // @ts-expect-error: Suppress redeclaration error in Deno environment
   namespace Deno {
-    type FsFile = any;
-    type SeekMode = any;
-    type OpenOptions = any;
-    type ChildProcess = any;
-    type CommandStatus = any;
+    type FsFile = unknown;
+    type SeekMode = unknown;
+    type OpenOptions = unknown;
+    type ChildProcess = unknown;
+    type CommandStatus = unknown;
   }
 
   // @ts-expect-error: Suppress duplicate identifier error in Deno
-  const Deno: any;
+  const Deno: unknown;
 }
 
 export {};
