@@ -1,6 +1,7 @@
 {
   "version": "5",
   "specifiers": {
+    "jsr:@charlesw/taglib-wasm@*": "0.9.0",
     "jsr:@std/assert@0.220": "0.220.1",
     "jsr:@std/assert@^1.0.14": "1.0.16",
     "jsr:@std/assert@^1.0.15": "1.0.16",
@@ -32,6 +33,13 @@
     "npm:yaml@*": "2.8.2"
   },
   "jsr": {
+    "@charlesw/taglib-wasm@0.9.0": {
+      "integrity": "a9ee3914aa25a61ab0865a13875628e3787959cff582e9bf9f227bbdcc22a8b9",
+      "dependencies": [
+        "npm:@msgpack/msgpack@^3.1.3",
+        "npm:@wasmer/sdk@0.10"
+      ]
+    },
     "@std/assert@0.220.1": {
       "integrity": "88710d54f3afdd7a5761e7805abba1f56cd14e4b212feffeb3e73a9f77482425",
       "dependencies": [
@@ -1287,6 +1295,7 @@
         "npm:@types/node@^24.10.4",
         "npm:esbuild@~0.27.2",
         "npm:eslint@^10.0.2",
+        "npm:fast-check@^4.5.3",
         "npm:tsx@^4.21.0",
         "npm:typescript-eslint@^8.56.1",
         "npm:typescript@^5.9.3"
