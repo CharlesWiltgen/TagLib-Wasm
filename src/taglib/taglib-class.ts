@@ -167,9 +167,9 @@ export class TagLib {
     }
   }
 
-  /** Returns the TagLib C++ library version string. */
+  /** Returns the taglib-wasm version with embedded TagLib version. */
   version(): string {
-    return "2.1.0";
+    return "1.0.0-beta.12 (TagLib 2.1.1)";
   }
 }
 

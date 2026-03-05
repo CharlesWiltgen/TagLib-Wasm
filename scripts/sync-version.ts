@@ -24,6 +24,7 @@ interface DenoJson {
 const PACKAGE_JSON_PATH = "./package.json";
 const DENO_JSON_PATH = "./deno.json";
 const SONAR_PROPERTIES_PATH = "./sonar-project.properties";
+const TAGLIB_CLASS_PATH = "./src/taglib/taglib-class.ts";
 
 /**
  * Read and parse JSON file
@@ -100,19 +101,49 @@ async function checkVersions(): Promise<boolean> {
     // sonar-project.properties not found
   }
 
+  let taglibClassVersion: string | null = null;
+  try {
+    const content = await Deno.readTextFile(TAGLIB_CLASS_PATH);
+    const match = content.match(/return "(\d+\.\d+\.\d+\S*) \(TagLib/);
+    if (match) taglibClassVersion = match[1];
+  } catch {
+    // taglib-class.ts not found
+  }
+
   const allMatch = packageJson.version === denoJson.version &&
-    (!sonarVersion || sonarVersion === packageJson.version);
+    (!sonarVersion || sonarVersion === packageJson.version) &&
+    (!taglibClassVersion || taglibClassVersion === packageJson.version);
 
   console.log(`package.json version:           ${packageJson.version}`);
   console.log(`deno.json version:              ${denoJson.version}`);
   if (sonarVersion) {
     console.log(`sonar-project.properties:       ${sonarVersion}`);
   }
+  if (taglibClassVersion) {
+    console.log(`taglib-class.ts version:        ${taglibClassVersion}`);
+  }
   console.log(
     `Status: ${allMatch ? "✅ Versions match" : "❌ Versions differ"}`,
   );
 
   return allMatch;
+}
+
+async function updateTagLibClass(newVersion: string): Promise<boolean> {
+  try {
+    const content = await Deno.readTextFile(TAGLIB_CLASS_PATH);
+    const updated = content.replace(
+      /return "\d+\.\d+\.\d+\S* \(TagLib .+?\)";/,
+      `return "${newVersion} (TagLib 2.1.1)";`,
+    );
+    if (updated !== content) {
+      await Deno.writeTextFile(TAGLIB_CLASS_PATH, updated);
+      return true;
+    }
+    return false;
+  } catch {
+    return false;
+  }
 }
 
 async function updateSonarProperties(newVersion: string): Promise<boolean> {
@@ -154,12 +185,16 @@ async function updateVersion(newVersion: string): Promise<void> {
   await writeJsonFile(DENO_JSON_PATH, denoJson);
 
   // Update sonar-project.properties
-  const updated = await updateSonarProperties(newVersion);
+  const updatedSonar = await updateSonarProperties(newVersion);
+
+  // Update hardcoded version in TagLib class
+  const updatedTagLib = await updateTagLibClass(newVersion);
 
   console.log(`✅ Updated version: ${oldVersion} → ${newVersion}`);
   console.log(`   Updated: package.json`);
   console.log(`   Updated: deno.json`);
-  if (updated) console.log(`   Updated: sonar-project.properties`);
+  if (updatedSonar) console.log(`   Updated: sonar-project.properties`);
+  if (updatedTagLib) console.log(`   Updated: src/taglib/taglib-class.ts`);
 }
 
 /**
