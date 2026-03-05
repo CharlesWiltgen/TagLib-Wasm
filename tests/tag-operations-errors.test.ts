@@ -3,7 +3,6 @@ import { assertInstanceOf } from "@std/assert/instance-of";
 import { describe, it } from "@std/testing/bdd";
 import {
   applyTags,
-  applyTagsToBuffer,
   clearTags,
   readFormat,
   readTags,
@@ -40,17 +39,17 @@ describe("readTags error paths", () => {
   });
 });
 
-describe("applyTagsToBuffer", () => {
+describe("applyTags", () => {
   it("should throw InvalidFormatError for corrupted buffer", async () => {
     await assertRejects(
-      () => applyTagsToBuffer(makeCorruptedBuffer(), { title: "Test" }),
+      () => applyTags(makeCorruptedBuffer(), { title: "Test" }),
       InvalidFormatError,
     );
   });
 
   it("should return a valid buffer when applying tags to valid file", async () => {
     const original = await Deno.readFile(FIXTURE_PATH.mp3);
-    const result = await applyTagsToBuffer(new Uint8Array(original), {
+    const result = await applyTags(new Uint8Array(original), {
       title: "Modified Title",
     });
     assertInstanceOf(result, Uint8Array);
@@ -149,20 +148,6 @@ describe("readTags extended fields", () => {
     assertEquals(tags.compilation, true);
     assertEquals(tags.musicbrainzTrackId, ["abc-123"]);
     assertEquals(tags.replayGainTrackGain, ["-6.54 dB"]);
-  });
-});
-
-describe("applyTags (renamed from applyTagsToBuffer)", () => {
-  it("should work identically to applyTagsToBuffer", async () => {
-    const original = await Deno.readFile(FIXTURE_PATH.mp3);
-    const result = await applyTags(new Uint8Array(original), {
-      title: "Via applyTags",
-    });
-    assertInstanceOf(result, Uint8Array);
-    assert(result.length > 0);
-
-    const tags = await readTags(result);
-    assertEquals(tags.title, ["Via applyTags"]);
   });
 });
 

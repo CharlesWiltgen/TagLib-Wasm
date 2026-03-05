@@ -8,7 +8,7 @@ The JSR package (`@charlesw/taglib-wasm`) includes everything you need:
 
 - Folder API (scanFolder, updateFolderTags, etc.)
 - Deno compile utilities (isDenoCompiled, initializeForDenoCompile)
-- Simple API (readTags, applyTagsToBuffer, writeTagsToFile)
+- Simple API (readTags, applyTags, writeTagsToFile)
 - Full API (TagLib class)
 - All TypeScript types
 
@@ -106,10 +106,16 @@ async function scanFolderExample() {
     },
   });
 
+  const errors = result.items.filter((i) => i.status === "error");
+
   console.log("\n\n📊 Scan Results:");
-  console.log(`  Total files found: ${result.totalFound}`);
-  console.log(`  Successfully processed: ${result.totalProcessed}`);
-  console.log(`  Errors: ${result.errors.length}`);
+  console.log(`  Total files found: ${result.items.length}`);
+  console.log(
+    `  Successfully processed: ${
+      result.items.filter((i) => i.status === "ok").length
+    }`,
+  );
+  console.log(`  Errors: ${errors.length}`);
   console.log(`  Time taken: ${result.duration}ms`);
 
   // Group by album

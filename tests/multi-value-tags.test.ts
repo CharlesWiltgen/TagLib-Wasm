@@ -7,7 +7,7 @@
 import { assertEquals, assertExists } from "@std/assert";
 import { describe, it } from "@std/testing/bdd";
 import {
-  applyTagsToBuffer,
+  applyTags,
   clearTags,
   getTagLib,
   readTags,
@@ -68,12 +68,12 @@ describe("readTags multi-value", () => {
   });
 });
 
-describe("applyTagsToBuffer with TagInput", () => {
+describe("applyTags with TagInput", () => {
   it("should accept single strings", async () => {
     const original = await Deno.readFile(FIXTURE_PATH.mp3);
     const input: Partial<TagInput> = { title: "New Title" };
 
-    const modified = await applyTagsToBuffer(new Uint8Array(original), input);
+    const modified = await applyTags(new Uint8Array(original), input);
     assertExists(modified);
 
     const tags = await readTags(modified);
@@ -86,7 +86,7 @@ describe("applyTagsToBuffer with TagInput", () => {
       artist: ["Artist One", "Artist Two"],
     };
 
-    const modified = await applyTagsToBuffer(new Uint8Array(original), input);
+    const modified = await applyTags(new Uint8Array(original), input);
     assertExists(modified);
 
     const tags = await readTags(modified);
@@ -95,7 +95,7 @@ describe("applyTagsToBuffer with TagInput", () => {
 
   it("should clear field when writing empty array", async () => {
     const original = await Deno.readFile(FIXTURE_PATH.flac);
-    const modified = await applyTagsToBuffer(new Uint8Array(original), {
+    const modified = await applyTags(new Uint8Array(original), {
       artist: [],
     });
     const tags = await readTags(modified);
@@ -108,7 +108,7 @@ describe("applyTagsToBuffer with TagInput", () => {
   it("should roundtrip many values in a single field", async () => {
     const original = await Deno.readFile(FIXTURE_PATH.flac);
     const artists = Array.from({ length: 20 }, (_, i) => `Artist ${i + 1}`);
-    const modified = await applyTagsToBuffer(new Uint8Array(original), {
+    const modified = await applyTags(new Uint8Array(original), {
       artist: artists,
     });
     const tags = await readTags(modified);
@@ -123,7 +123,7 @@ describe("applyTagsToBuffer with TagInput", () => {
       year: 2025,
     };
 
-    const modified = await applyTagsToBuffer(new Uint8Array(original), input);
+    const modified = await applyTags(new Uint8Array(original), input);
     const tags = await readTags(modified);
 
     assertEquals(tags.title, ["Single Title"]);
@@ -148,10 +148,10 @@ describe("clearTags", () => {
   });
 });
 
-describe("applyTagsToBuffer with extended fields", () => {
+describe("applyTags with extended fields", () => {
   it("should roundtrip extended string fields via simple API", async () => {
     const original = await Deno.readFile(FIXTURE_PATH.flac);
-    const modified = await applyTagsToBuffer(new Uint8Array(original), {
+    const modified = await applyTags(new Uint8Array(original), {
       albumArtist: "Various Artists",
       composer: ["Bach", "Handel"],
       conductor: "Karajan",
@@ -167,7 +167,7 @@ describe("applyTagsToBuffer with extended fields", () => {
 
   it("should roundtrip extended numeric and boolean fields via simple API", async () => {
     const original = await Deno.readFile(FIXTURE_PATH.flac);
-    const modified = await applyTagsToBuffer(new Uint8Array(original), {
+    const modified = await applyTags(new Uint8Array(original), {
       bpm: 128,
       discNumber: 2,
       totalTracks: 12,
@@ -187,7 +187,7 @@ describe("applyTagsToBuffer with extended fields", () => {
 
   it("should roundtrip compilation false via simple API", async () => {
     const original = await Deno.readFile(FIXTURE_PATH.flac);
-    const modified = await applyTagsToBuffer(new Uint8Array(original), {
+    const modified = await applyTags(new Uint8Array(original), {
       compilation: false,
     });
 
@@ -199,7 +199,7 @@ describe("applyTagsToBuffer with extended fields", () => {
 
   it("should roundtrip MusicBrainz and ReplayGain fields via simple API", async () => {
     const original = await Deno.readFile(FIXTURE_PATH.flac);
-    const modified = await applyTagsToBuffer(new Uint8Array(original), {
+    const modified = await applyTags(new Uint8Array(original), {
       musicbrainzTrackId: "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
       replayGainTrackGain: "-6.54 dB",
     });
@@ -215,7 +215,7 @@ describe("applyTagsToBuffer with extended fields", () => {
 
   it("should not drop extended fields when mixed with basic fields", async () => {
     const original = await Deno.readFile(FIXTURE_PATH.flac);
-    const modified = await applyTagsToBuffer(new Uint8Array(original), {
+    const modified = await applyTags(new Uint8Array(original), {
       title: "Test Title",
       artist: "Test Artist",
       albumArtist: "Album Artist",
