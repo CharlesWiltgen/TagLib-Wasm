@@ -56,11 +56,11 @@ Promise resolving to a `Tag` object:
 
 ```typescript
 interface Tag {
-  title?: string;
-  artist?: string;
-  album?: string;
-  comment?: string;
-  genre?: string;
+  title?: string[];
+  artist?: string[];
+  album?: string[];
+  comment?: string[];
+  genre?: string[];
   year?: number;
   track?: number;
 }
@@ -796,13 +796,13 @@ interface AudioProperties {
 Get the tag object for reading/writing basic metadata.
 
 ```typescript
-tag(): Tag
+tag(): MutableTag
 ```
 
-Returns a `Tag` object with getters and setters for metadata fields:
+Returns a `MutableTag` object with getters and setters for metadata fields:
 
 ```typescript
-interface Tag {
+interface MutableTag {
   // Read properties
   title: string;
   artist: string;
