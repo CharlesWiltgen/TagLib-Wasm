@@ -188,8 +188,9 @@ try {
   });
 
   // Handle errors
-  if (result.errors.length > 0) {
-    console.error("Some files failed:", result.errors);
+  const errors = result.items.filter((i) => i.status === "error");
+  if (errors.length > 0) {
+    console.error("Some files failed:", errors);
   }
 } catch (error) {
   console.error("Fatal error:", error);

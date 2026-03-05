@@ -94,11 +94,15 @@ async function scanSpecificFiles(
       });
 
       // Filter to only include files we care about
-      const relevantFiles = result.files.filter((f) => fileSet.has(f.path));
-      allFiles.push(...relevantFiles);
+      const relevantFiles = result.items
+        .filter((i) => i.status === "ok" && fileSet.has(i.path));
+      allFiles.push(...(relevantFiles as AudioFileMetadata[]));
 
       // Add errors for files in our list
-      const relevantErrors = result.errors.filter((e) => fileSet.has(e.path));
+      const relevantErrors = result.items
+        .filter((i) => i.status === "error" && fileSet.has(i.path)) as Array<
+          { status: "error"; path: string; error: Error }
+        >;
       allErrors.push(...relevantErrors);
 
       totalDuration += result.duration;
@@ -110,11 +114,13 @@ async function scanSpecificFiles(
     }
   }
 
+  const items: FolderScanResult["items"] = [
+    ...allFiles.map((f) => ({ status: "ok" as const, ...f })),
+    ...allErrors.map((e) => ({ status: "error" as const, ...e })),
+  ];
+
   return {
-    files: allFiles,
-    errors: allErrors,
-    totalFound: filesToProcess.length,
-    totalProcessed: processedCount,
+    items,
     duration: totalDuration,
   };
 }
@@ -147,14 +153,20 @@ export async function showTagsWithFolderAPI(
         const progress = Math.round((processed / total) * 100);
         spinner.suffixText = `${processed}/${total} (${progress}%)`;
       },
-      concurrency: 8, // Process up to 8 files in parallel
       includeProperties: true, // Include audio properties
     });
 
-    spinner.succeed(`Read metadata from ${result.files.length} files`);
+    const files = result.items.filter((i) => i.status === "ok") as Array<
+      { status: "ok" } & AudioFileMetadata
+    >;
+    const errors = result.items.filter((i) => i.status === "error") as Array<
+      { status: "error"; path: string; error: Error }
+    >;
+
+    spinner.succeed(`Read metadata from ${files.length} files`);
 
     // Group files by album
-    const filesByAlbum = groupFilesByAlbum(result.files);
+    const filesByAlbum = groupFilesByAlbum(files);
 
     // Display results
     let firstAlbum = true;
@@ -320,14 +332,13 @@ export async function showTagsWithFolderAPI(
     // Summary
     console.log("\n" + "═".repeat(80));
     console.log(`\n📊 Summary:`);
-    console.log(`  Total files: ${result.files.length}`);
+    console.log(`  Total files: ${files.length}`);
     console.log(`  Albums: ${filesByAlbum.size}`);
 
-    const errors = result.errors.length;
-    if (errors > 0) {
-      console.log(`  Errors: ${errors}`);
+    if (errors.length > 0) {
+      console.log(`  Errors: ${errors.length}`);
       console.log("\n❌ Error details:");
-      for (const error of result.errors) {
+      for (const error of errors) {
         console.log(`  ${error.path}: ${error.error.message}`);
       }
     }

@@ -35,16 +35,17 @@ const result = await scanFolder("/path/to/music", {
   maxFiles: 1000, // Limit number of files (default: unlimited)
   includeProperties: true, // Include audio properties (default: true)
   continueOnError: true, // Continue if files fail (default: true)
-  concurrency: 4, // Parallel processing (default: 4)
   onProgress: (processed, total, file) => {
     console.log(`Processing ${processed}/${total}: ${file}`);
   },
 });
 
 // Access results
-console.log(`Found ${result.totalFound} audio files`);
-console.log(`Processed ${result.totalProcessed} successfully`);
-console.log(`Errors: ${result.errors.length}`);
+const okItems = result.items.filter((i) => i.status === "ok");
+const errorItems = result.items.filter((i) => i.status === "error");
+console.log(`Found ${result.items.length} audio files`);
+console.log(`Processed ${okItems.length} successfully`);
+console.log(`Errors: ${errorItems.length}`);
 console.log(`Time taken: ${result.duration}ms`);
 
 // Process each file
@@ -60,14 +61,12 @@ for (const file of result.items) {
 ### Result Structure
 
 ```typescript
+type FolderScanItem =
+  | ({ status: "ok" } & AudioFileMetadata)
+  | { status: "error"; path: string; error: Error };
+
 interface FolderScanResult {
-  files: AudioFileMetadata[]; // Successfully processed files
-  errors: Array<{ // Failed files with errors
-    path: string;
-    error: Error;
-  }>;
-  totalFound: number; // Total audio files found
-  totalProcessed: number; // Successfully processed count
+  items: FolderScanItem[]; // All processed files (ok or error)
   duration: number; // Time taken in milliseconds
 }
 
@@ -100,12 +99,14 @@ const result = await updateFolderTags(updates, {
   concurrency: 4, // Process 4 files in parallel
 });
 
-console.log(`Updated ${result.successful} files`);
-console.log(`Failed: ${result.failed.length}`);
+const updated = result.items.filter((i) => i.status === "ok").length;
+const failures = result.items.filter((i) => i.status === "error");
+console.log(`Updated ${updated} files`);
+console.log(`Failed: ${failures.length}`);
 console.log(`Time: ${result.duration}ms`);
 
 // Check failures
-for (const failure of result.failed) {
+for (const failure of failures) {
   console.error(`Failed to update ${failure.path}: ${failure.error.message}`);
 }
 ```
@@ -187,17 +188,10 @@ await exportFolderMetadata("/path/to/music", "./music-catalog.json", {
 
 ## Performance Optimization
 
-### Concurrency Control
+### Concurrency
 
-The `concurrency` option controls how many files are processed in parallel:
-
-```typescript
-// Sequential processing (slower but uses less memory)
-const sequential = await scanFolder("/music", { concurrency: 1 });
-
-// Parallel processing (faster but uses more memory)
-const parallel = await scanFolder("/music", { concurrency: 8 });
-```
+`scanFolder` uses a fixed concurrency of 4 internally. For custom concurrency
+control, use batch APIs like `readTagsBatch` or `readMetadataBatch`.
 
 ### Memory Management
 
@@ -208,7 +202,6 @@ When processing large collections:
 const result = await scanFolder("/huge-library", {
   maxFiles: 100, // Process only 100 files at a time
   includeProperties: false, // Skip audio properties to save memory
-  concurrency: 2, // Lower concurrency for memory savings
 });
 ```
 
@@ -317,10 +310,11 @@ const result = await scanFolder("/music", {
 });
 
 // Check for errors
-if (result.errors.length > 0) {
-  console.error(`Failed to process ${result.errors.length} files:`);
+const errors = result.items.filter((i) => i.status === "error");
+if (errors.length > 0) {
+  console.error(`Failed to process ${errors.length} files:`);
 
-  for (const { path, error } of result.errors) {
+  for (const { path, error } of errors) {
     if (error.message.includes("Invalid audio file format")) {
       console.error(`Corrupted file: ${path}`);
     } else if (error.message.includes("Permission denied")) {

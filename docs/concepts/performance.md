@@ -65,7 +65,7 @@ async function processAlbum(albumFiles: string[]) {
     concurrency: 8, // Process 8 tracks simultaneously
   });
 
-  return metadata.results.map(({ data }) => ({
+  return metadata.items.map(({ data }) => ({
     title: data.tags.title,
     duration: data.properties?.length,
     hasCoverArt: data.hasCoverArt,
@@ -585,14 +585,14 @@ async function processAlbum(albumPath: string) {
 
   // Extract album-level statistics
   const albumData = {
-    trackCount: result.results.length,
+    trackCount: result.items.length,
     totalDuration: 0,
     averageBitrate: 0,
     hasCompleteCoverArt: true,
     tracks: [],
   };
 
-  for (const { file, data } of result.results) {
+  for (const { path: filePath, data } of result.items) {
     if (data.properties) {
       albumData.totalDuration += data.properties.duration || 0;
       albumData.averageBitrate += data.properties.bitrate || 0;
@@ -603,7 +603,7 @@ async function processAlbum(albumPath: string) {
     }
 
     albumData.tracks.push({
-      file: path.basename(file),
+      file: path.basename(filePath),
       ...data.tags,
       duration: data.properties?.length,
       bitrate: data.properties?.bitrate,
@@ -612,7 +612,7 @@ async function processAlbum(albumPath: string) {
   }
 
   albumData.averageBitrate = Math.round(
-    albumData.averageBitrate / result.results.length,
+    albumData.averageBitrate / result.items.length,
   );
 
   return albumData;
@@ -1076,14 +1076,14 @@ async function analyzeAlbum(albumPath: string) {
 
   // Extract insights
   const analysis = {
-    totalTracks: results.results.length,
-    totalDuration: results.results.reduce(
+    totalTracks: results.items.length,
+    totalDuration: results.items.reduce(
       (sum, r) => sum + (r.data.properties?.length || 0),
       0,
     ),
-    missingCoverArt: results.results.filter((r) => !r.data.hasCoverArt).length,
+    missingCoverArt: results.items.filter((r) => !r.data.hasCoverArt).length,
     needsNormalization:
-      results.results.filter((r) => !r.data.dynamics?.replayGainTrackGain)
+      results.items.filter((r) => !r.data.dynamics?.replayGainTrackGain)
         .length,
   };
 
@@ -1100,7 +1100,6 @@ import { scanFolder } from "taglib-wasm";
 async function scanMusicLibrary(rootPath: string) {
   const result = await scanFolder(rootPath, {
     recursive: true,
-    concurrency: 8, // Increase from default 4
     onProgress: (processed, total) => {
       if (processed % 100 === 0) {
         console.log(`Progress: ${processed}/${total}`);
@@ -1108,7 +1107,11 @@ async function scanMusicLibrary(rootPath: string) {
     },
   });
 
-  console.log(`Scanned ${result.totalProcessed} files in ${result.duration}ms`);
+  console.log(
+    `Scanned ${
+      result.items.filter((i) => i.status === "ok").length
+    } files in ${result.duration}ms`,
+  );
   return result;
 }
 ```
@@ -1136,7 +1139,7 @@ async function* streamLargeLibrary(files: string[], batchSize = 50) {
 // Usage
 let totalProcessed = 0;
 for await (const batch of streamLargeLibrary(allFiles)) {
-  totalProcessed += batch.results.length;
+  totalProcessed += batch.items.length;
   console.log(`Processed: ${totalProcessed} files`);
 }
 ```
@@ -1208,12 +1211,13 @@ async function adaptiveBatchProcess(files: string[]) {
     const result = await readTagsBatch(batch, { concurrency });
 
     // Reduce concurrency if errors occur
-    if (result.errors.length > errors) {
+    const errorCount = result.items.filter((i) => i.status === "error").length;
+    if (errorCount > errors) {
       concurrency = Math.floor(concurrency / 2);
       console.log(`Reducing concurrency to ${concurrency}`);
     }
 
-    errors = result.errors.length;
+    errors = errorCount;
   }
 }
 ```
@@ -1237,8 +1241,8 @@ class PredictiveCache {
       });
 
       // Cache all results
-      results.results.forEach(({ file, data }) => {
-        this.cache.set(file, data);
+      results.items.forEach(({ path, data }) => {
+        this.cache.set(path, data);
       });
     }
   }
@@ -1281,7 +1285,7 @@ class MemoryEfficientProcessor {
       const batchResult = await readTagsBatch(batch, {
         concurrency: 4, // Lower concurrency for memory efficiency
       });
-      results.push(...batchResult.results);
+      results.push(...batchResult.items);
 
       // Force GC between batches
       if (global.gc) global.gc();

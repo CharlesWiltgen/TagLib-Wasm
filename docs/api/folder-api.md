@@ -74,13 +74,8 @@ function updateFolderTags(
   updates: Array<{ path: string; tags: Partial<Tag> }>,
   options?: {
     continueOnError?: boolean;
-    concurrency?: number;
   },
-): Promise<{
-  successful: number;
-  failed: Array<{ path: string; error: Error }>;
-  duration: number;
-}>;
+): Promise<FolderUpdateResult>;
 ```
 
 **Parameters:**
@@ -88,7 +83,6 @@ function updateFolderTags(
 - `updates` - Array of file paths and tag updates
 - `options` - Optional configuration
   - `continueOnError` - Continue if files fail (default: `true`)
-  - `concurrency` - Parallel processing limit (default: `4`)
 
 **Returns:** Promise with update results
 
@@ -191,11 +185,14 @@ interface FolderScanOptions {
   /** Continue on errors (default: true) */
   continueOnError?: boolean;
 
-  /** Parallel processing limit (default: 4) */
-  concurrency?: number;
+  /** Force buffer mode instead of WASI file I/O */
+  forceBufferMode?: boolean;
 
   /** Tag fields to compare for duplicate detection (default: ["artist", "title"]) */
   criteria?: Array<keyof Tag>;
+
+  /** AbortSignal for cancellation */
+  signal?: AbortSignal;
 }
 ```
 
@@ -204,21 +201,31 @@ interface FolderScanOptions {
 Results from a folder scan operation.
 
 ```typescript
+type FolderScanItem =
+  | ({ status: "ok" } & AudioFileMetadata)
+  | { status: "error"; path: string; error: Error };
+
 interface FolderScanResult {
-  /** Successfully processed files with metadata */
-  files: AudioFileMetadata[];
+  /** All scan results (check status to discriminate ok vs error) */
+  items: FolderScanItem[];
 
-  /** Files that failed to process */
-  errors: Array<{
-    path: string;
-    error: Error;
-  }>;
+  /** Time taken in milliseconds */
+  duration: number;
+}
+```
 
-  /** Total number of audio files found */
-  totalFound: number;
+### FolderUpdateResult
 
-  /** Total number of files successfully processed */
-  totalProcessed: number;
+Results from a folder update operation.
+
+```typescript
+type FolderUpdateItem =
+  | { status: "ok"; path: string }
+  | { status: "error"; path: string; error: Error };
+
+interface FolderUpdateResult {
+  /** All update results (check status to discriminate ok vs error) */
+  items: FolderUpdateItem[];
 
   /** Time taken in milliseconds */
   duration: number;
@@ -300,11 +307,8 @@ const DEFAULT_AUDIO_EXTENSIONS = [
 
 ### Concurrency
 
-The `concurrency` option controls parallel processing:
-
-- **Higher values** (8-16): Faster processing, more memory usage
-- **Lower values** (1-4): Slower processing, less memory usage
-- **Default** (4): Balanced for most systems
+Folder operations use a hardcoded concurrency of 4 for balanced performance and
+memory usage.
 
 ### Memory Usage
 
@@ -313,7 +317,6 @@ Each concurrent operation loads a file into memory. For large collections:
 ```typescript
 // Memory-efficient settings
 const result = await scanFolder("/huge-library", {
-  concurrency: 2, // Process fewer files at once
   includeProperties: false, // Skip audio properties
 });
 ```
@@ -343,10 +346,11 @@ try {
   const result = await scanFolder("/music");
 
   // Check for partial failures
-  if (result.errors.length > 0) {
-    console.warn(`Failed to process ${result.errors.length} files`);
-    for (const { path, error } of result.errors) {
-      console.error(`${path}: ${error.message}`);
+  const errors = result.items.filter((i) => i.status === "error");
+  if (errors.length > 0) {
+    console.warn(`Failed to process ${errors.length} files`);
+    for (const item of errors) {
+      console.error(`${item.path}: ${item.error.message}`);
     }
   }
 } catch (error) {
