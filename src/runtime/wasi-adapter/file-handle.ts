@@ -29,6 +29,18 @@ const AUDIO_KEYS = new Set([
 
 const INTERNAL_KEYS = new Set(["pictures", "ratings"]);
 
+const CONTAINER_TO_FORMAT: Record<string, string> = {
+  MP3: "MP3",
+  MP4: "MP4",
+  FLAC: "FLAC",
+  OGG: "OGG",
+  WAV: "WAV",
+  AIFF: "AIFF",
+  WavPack: "WV",
+  TTA: "TTA",
+  ASF: "ASF",
+};
+
 const NUMERIC_FIELD_ALIASES: Record<string, string> = {
   date: "year",
   trackNumber: "track",
@@ -155,7 +167,15 @@ export class WasiFileHandle implements FileHandle {
 
   getFormat(): string {
     this.checkNotDestroyed();
-    if (!this.fileData || this.fileData.length < 8) return "Unknown";
+    if (!this.fileData || this.fileData.length < 8) return "unknown";
+
+    const container = this.tagData?.containerFormat as string | undefined;
+    if (container) {
+      const codec = this.tagData?.codec as string | undefined;
+      if (container === "OGG" && codec === "Opus") return "OPUS";
+      if (CONTAINER_TO_FORMAT[container]) return CONTAINER_TO_FORMAT[container];
+    }
+
     const magic = this.fileData.slice(0, 4);
     if (magic[0] === 0xFF && (magic[1] & 0xE0) === 0xE0) return "MP3";
     if (magic[0] === 0x49 && magic[1] === 0x44 && magic[2] === 0x33) {
@@ -168,17 +188,50 @@ export class WasiFileHandle implements FileHandle {
     if (
       magic[0] === 0x4F && magic[1] === 0x67 && magic[2] === 0x67 &&
       magic[3] === 0x53
-    ) return "OGG";
+    ) return this.detectOggCodec();
     if (
       magic[0] === 0x52 && magic[1] === 0x49 && magic[2] === 0x46 &&
       magic[3] === 0x46
     ) return "WAV";
+    // WavPack: "wvpk"
+    if (
+      magic[0] === 0x77 && magic[1] === 0x76 && magic[2] === 0x70 &&
+      magic[3] === 0x6B
+    ) return "WV";
+    // TrueAudio: "TTA1"
+    if (
+      magic[0] === 0x54 && magic[1] === 0x54 && magic[2] === 0x41 &&
+      magic[3] === 0x31
+    ) return "TTA";
+    // ASF/WMA: ASF header object GUID
+    if (
+      this.fileData.length >= 16 &&
+      magic[0] === 0x30 && magic[1] === 0x26 &&
+      magic[2] === 0xB2 && magic[3] === 0x75
+    ) return "ASF";
     const ftyp = this.fileData.slice(4, 8);
     if (
       ftyp[0] === 0x66 && ftyp[1] === 0x74 && ftyp[2] === 0x79 &&
       ftyp[3] === 0x70
     ) return "MP4";
-    return "Unknown";
+    return "unknown";
+  }
+
+  private detectOggCodec(): string {
+    if (!this.fileData || this.fileData.length < 37) return "OGG";
+    // OGG page header: "OggS" at 0, then header_type(1), granule(8),
+    // serial(4), seq(4), crc(4), segments(1), segment_table(variable).
+    // First page payload starts after 27 + segment_count bytes.
+    const segCount = this.fileData[26];
+    if (segCount === undefined) return "OGG";
+    const payloadStart = 27 + segCount;
+    if (this.fileData.length < payloadStart + 8) return "OGG";
+    // Opus: payload starts with "OpusHead"
+    const sig = String.fromCharCode(
+      ...this.fileData.slice(payloadStart, payloadStart + 8),
+    );
+    if (sig === "OpusHead") return "OPUS";
+    return "OGG";
   }
 
   getBuffer(): Uint8Array {
