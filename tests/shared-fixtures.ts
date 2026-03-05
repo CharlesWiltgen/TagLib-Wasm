@@ -7,7 +7,19 @@
 
 import { resolve } from "@std/path";
 
-export const FORMATS = ["mp3", "flac", "ogg", "m4a", "wav"] as const;
+export const FORMATS = [
+  "mp3",
+  "flac",
+  "ogg",
+  "m4a",
+  "wav",
+  "opus",
+  "mp4",
+  "oga",
+  "wv",
+  "tta",
+  "wma",
+] as const;
 export type Format = (typeof FORMATS)[number];
 
 const PROJECT_ROOT = resolve(Deno.cwd());
@@ -19,6 +31,12 @@ export const FIXTURE_PATH: Record<Format, string> = {
   ogg: resolve(TEST_FILES_DIR, "ogg/kiss-snippet.ogg"),
   m4a: resolve(TEST_FILES_DIR, "mp4/kiss-snippet.m4a"),
   wav: resolve(TEST_FILES_DIR, "wav/kiss-snippet.wav"),
+  opus: resolve(TEST_FILES_DIR, "opus/kiss-snippet.opus"),
+  mp4: resolve(TEST_FILES_DIR, "mp4/kiss-snippet.mp4"),
+  oga: resolve(TEST_FILES_DIR, "oga/kiss-snippet.oga"),
+  wv: resolve(TEST_FILES_DIR, "wv/kiss-snippet.wv"),
+  tta: resolve(TEST_FILES_DIR, "tta/kiss-snippet.tta"),
+  wma: resolve(TEST_FILES_DIR, "wma/kiss-snippet.wma"),
 };
 
 export const WASI_VIRTUAL_PATH: Record<Format, string> = {
@@ -27,6 +45,12 @@ export const WASI_VIRTUAL_PATH: Record<Format, string> = {
   ogg: "/test/ogg/kiss-snippet.ogg",
   m4a: "/test/mp4/kiss-snippet.m4a",
   wav: "/test/wav/kiss-snippet.wav",
+  opus: "/test/opus/kiss-snippet.opus",
+  mp4: "/test/mp4/kiss-snippet.mp4",
+  oga: "/test/oga/kiss-snippet.oga",
+  wv: "/test/wv/kiss-snippet.wv",
+  tta: "/test/tta/kiss-snippet.tta",
+  wma: "/test/wma/kiss-snippet.wma",
 };
 
 export const EXPECTED_KISS_TAGS = {
@@ -83,6 +107,54 @@ export const EXPECTED_AUDIO_PROPS: Record<
     channels: 2,
     bitrateMin: 500,
     bitrateMax: 2000,
+    lengthMin: 1,
+    lengthMax: 30,
+  },
+  opus: {
+    sampleRate: 48000,
+    channels: 2,
+    bitrateMin: 50,
+    bitrateMax: 200,
+    lengthMin: 1,
+    lengthMax: 30,
+  },
+  mp4: {
+    sampleRate: 44100,
+    channels: 2,
+    bitrateMin: 50,
+    bitrateMax: 500,
+    lengthMin: 1,
+    lengthMax: 30,
+  },
+  oga: {
+    sampleRate: 44100,
+    channels: 2,
+    bitrateMin: 50,
+    bitrateMax: 500,
+    lengthMin: 1,
+    lengthMax: 30,
+  },
+  wv: {
+    sampleRate: 44100,
+    channels: 2,
+    bitrateMin: 500,
+    bitrateMax: 2000,
+    lengthMin: 1,
+    lengthMax: 30,
+  },
+  tta: {
+    sampleRate: 44100,
+    channels: 2,
+    bitrateMin: 500,
+    bitrateMax: 2000,
+    lengthMin: 1,
+    lengthMax: 30,
+  },
+  wma: {
+    sampleRate: 44100,
+    channels: 2,
+    bitrateMin: 50,
+    bitrateMax: 300,
     lengthMin: 1,
     lengthMax: 30,
   },

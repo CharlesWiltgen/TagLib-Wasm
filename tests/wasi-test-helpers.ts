@@ -29,6 +29,30 @@ export const FORMAT_FILES: Record<string, { virtual: string; real: string }> = {
     virtual: "/test/ogg/kiss-snippet.ogg",
     real: "ogg/kiss-snippet.ogg",
   },
+  OPUS: {
+    virtual: "/test/opus/kiss-snippet.opus",
+    real: "opus/kiss-snippet.opus",
+  },
+  MP4: {
+    virtual: "/test/mp4/kiss-snippet.mp4",
+    real: "mp4/kiss-snippet.mp4",
+  },
+  OGA: {
+    virtual: "/test/oga/kiss-snippet.oga",
+    real: "oga/kiss-snippet.oga",
+  },
+  WV: {
+    virtual: "/test/wv/kiss-snippet.wv",
+    real: "wv/kiss-snippet.wv",
+  },
+  TTA: {
+    virtual: "/test/tta/kiss-snippet.tta",
+    real: "tta/kiss-snippet.tta",
+  },
+  WMA: {
+    virtual: "/test/wma/kiss-snippet.wma",
+    real: "wma/kiss-snippet.wma",
+  },
 };
 
 export function fileExists(path: string): boolean {

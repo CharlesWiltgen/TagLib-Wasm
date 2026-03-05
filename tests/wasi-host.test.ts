@@ -683,6 +683,12 @@ describe(
           WAV: "WAV",
           M4A: "MP4",
           OGG: "OGG",
+          OPUS: "OGG",
+          MP4: "MP4",
+          OGA: "OGG",
+          WV: "Unknown",
+          TTA: "MP3",
+          WMA: "Unknown",
         };
         assertEquals(
           handle.getFormat(),
@@ -748,6 +754,42 @@ describe(
             containerFormat: "MP4",
             isLossless: false,
             hasBitsPerSample: false,
+          },
+          OPUS: {
+            codec: "Opus",
+            containerFormat: "OGG",
+            isLossless: false,
+            hasBitsPerSample: false,
+          },
+          MP4: {
+            codec: "AAC",
+            containerFormat: "MP4",
+            isLossless: false,
+            hasBitsPerSample: true,
+          },
+          OGA: {
+            codec: "Vorbis",
+            containerFormat: "OGG",
+            isLossless: false,
+            hasBitsPerSample: false,
+          },
+          WV: {
+            codec: "WavPack",
+            containerFormat: "WavPack",
+            isLossless: true,
+            hasBitsPerSample: true,
+          },
+          TTA: {
+            codec: "TTA",
+            containerFormat: "TTA",
+            isLossless: true,
+            hasBitsPerSample: true,
+          },
+          WMA: {
+            codec: "WMA",
+            containerFormat: "ASF",
+            isLossless: false,
+            hasBitsPerSample: true,
           },
         };
 

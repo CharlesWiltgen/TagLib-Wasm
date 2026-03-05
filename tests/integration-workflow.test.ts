@@ -21,7 +21,7 @@ forEachBackend("Integration Workflows", (adapter: BackendAdapter) => {
     await adapter.dispose();
   });
 
-  it("library scan: read tags from all 5 formats", async () => {
+  it("library scan: read tags from all formats", async () => {
     const results: Record<string, string> = {};
 
     for (const format of FORMATS) {
@@ -30,7 +30,7 @@ forEachBackend("Integration Workflows", (adapter: BackendAdapter) => {
       results[format] = tags.title;
     }
 
-    assertEquals(Object.keys(results).length, 5);
+    assertEquals(Object.keys(results).length, FORMATS.length);
     for (const format of FORMATS) {
       assertEquals(results[format], "Kiss", `${format}: wrong title`);
     }
@@ -78,7 +78,7 @@ forEachBackend("Integration Workflows", (adapter: BackendAdapter) => {
       processed.push(format);
     }
 
-    assertEquals(processed.length, 5);
+    assertEquals(processed.length, FORMATS.length);
   });
 
   it("format converter metadata: read from one format, write to another", async () => {
