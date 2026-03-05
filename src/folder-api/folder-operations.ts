@@ -3,7 +3,7 @@
  */
 
 import type { Tag, TagInput } from "../simple/index.ts";
-import { writeTagsToFile } from "../simple/index.ts";
+import { applyTagsToFile } from "../simple/index.ts";
 import { writeFileData } from "../utils/write.ts";
 import { processBatch } from "./file-processors.ts";
 import { scanFolder } from "./scan-operations.ts";
@@ -56,7 +56,7 @@ export async function updateFolderTags(
       async (path) => {
         const update = updateMap.get(path)!;
         try {
-          await writeTagsToFile(update.path, update.tags);
+          await applyTagsToFile(update.path, update.tags);
           items.push({ status: "ok", path: update.path });
         } catch (error) {
           const err = error instanceof Error ? error : new Error(String(error));

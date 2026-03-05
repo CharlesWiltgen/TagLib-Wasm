@@ -1055,7 +1055,7 @@ Processing multiple files?
 │   └─ Whole directory? → scanFolder()
 └─ NO → Use simple API
     ├─ Just reading? → readTags()
-    └─ Need to modify? → writeTagsToFile()
+    └─ Need to modify? → applyTagsToFile()
 ```
 
 ### 🚀 Real-World Examples

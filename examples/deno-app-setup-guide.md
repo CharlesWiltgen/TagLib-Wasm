@@ -8,7 +8,7 @@ The JSR package (`@charlesw/taglib-wasm`) includes everything you need:
 
 - Folder API (scanFolder, updateFolderTags, etc.)
 - Deno compile utilities (isDenoCompiled, initializeForDenoCompile)
-- Simple API (readTags, applyTags, writeTagsToFile)
+- Simple API (readTags, applyTags, applyTagsToFile)
 - Full API (TagLib class)
 - All TypeScript types
 
@@ -39,6 +39,7 @@ The JSR package (`@charlesw/taglib-wasm`) includes everything you need:
 
 ```typescript
 import {
+  applyTagsToFile,
   type AudioFileMetadata,
   FileOperationError,
   type FolderScanOptions,
@@ -51,7 +52,6 @@ import {
   scanFolder,
   // Error types
   TagLibError,
-  writeTagsToFile,
 } from "@charlesw/taglib-wasm";
 
 import { dirname } from "@std/path";

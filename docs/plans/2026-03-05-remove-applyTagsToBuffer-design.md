@@ -8,7 +8,7 @@
 
 The codebase had conflicting signals: the planning doc said to deprecate `applyTags` in favor of `applyTagsToBuffer`, but the source code did the opposite. The closed issue `2jn` confirmed `applyTags` as the canonical name. For 1.0, we remove the alias entirely rather than keeping a deprecated export.
 
-`applyTags` aligns with the `readTags`/`applyTags`/`writeTagsToFile` naming pattern.
+`applyTags` aligns with the `readTags`/`applyTags`/`applyTagsToFile` naming pattern.
 
 ## Changes
 
@@ -49,5 +49,5 @@ Replace all `applyTagsToBuffer` references with `applyTags`:
 ### Not changed
 
 - The `applyTags` function signature and behavior — no changes
-- `writeTagsToFile` — unrelated
+- `applyTagsToFile` — unrelated
 - The old planning doc (`2026-02-23-1.0-release-blockers.md`) — left as historical record

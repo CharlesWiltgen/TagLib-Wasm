@@ -2,12 +2,12 @@ export { getTagLib, setBufferMode } from "./config.ts";
 
 export {
   applyTags,
+  applyTagsToFile,
   clearTags,
   isValidAudioFile,
   readFormat,
   readProperties,
   readTags,
-  writeTagsToFile,
 } from "./tag-operations.ts";
 
 export {

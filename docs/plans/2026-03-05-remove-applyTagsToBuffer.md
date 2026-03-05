@@ -119,7 +119,7 @@ Special cases:
 
 - `docs/api/index.md`: Rename the `### applyTagsToBuffer()` heading to `### applyTags()`
 - `docs/advanced/implementation.md`: Update the description text mentioning function names
-- `docs/guide/platform-examples.md`: The note "Use `applyTagsToBuffer` (not `writeTagsToFile`)" becomes "Use `applyTags` (not `writeTagsToFile`)"
+- `docs/guide/platform-examples.md`: The note "Use `applyTagsToBuffer` (not `applyTagsToFile`)" becomes "Use `applyTags` (not `applyTagsToFile`)"
 
 **Step 2: Verify no stale references remain**
 

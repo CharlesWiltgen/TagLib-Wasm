@@ -44,7 +44,7 @@ taglib-wasm provides three APIs for different use cases:
 
 - **Best for**: Quick reads, one-off operations, cover art handling, batch processing
 - **Memory**: Automatically managed
-- **Functions**: `readTags()`, `applyTags()`, `writeTagsToFile()`, `readProperties()`,
+- **Functions**: `readTags()`, `applyTags()`, `applyTagsToFile()`, `readProperties()`,
   `readCoverArt()`, `applyCoverArt()`
 - **Batch Functions**: `readTagsBatch()`, `readPropertiesBatch()`, `readMetadataBatch()`
   - 10-20x faster than sequential processing
@@ -98,7 +98,7 @@ const tags = await readTagsBatch(files, { concurrency: 8 });
 ## Which API Should I Use?
 
 - **Reading tags from one file?** → Simple API: `readTags()`
-- **Writing tags to one file?** → Simple API: `writeTagsToFile()` or `applyTags()`
+- **Writing tags to one file?** → Simple API: `applyTagsToFile()` or `applyTags()`
 - **Processing many files?** → **Simple API: `readTagsBatch()` (10-20x faster)** or Folder API: `scanFolder()`
 - **Need maximum performance?** → **Simple API batch functions with concurrency: 8**
 - **Processing album folder?** → **`readMetadataBatch()` with high concurrency**
@@ -119,7 +119,7 @@ const tags = await readTagsBatch(files, { concurrency: 8 });
 | Task                 | Simple API                                            | Full API                                      |
 | -------------------- | ----------------------------------------------------- | --------------------------------------------- |
 | Read tags            | `await readTags("file.mp3")`                          | `audioFile.tag().title`                       |
-| Write tags           | `await writeTagsToFile("file.mp3", tags)`             | `tag.setTitle("New")`                         |
+| Write tags           | `await applyTagsToFile("file.mp3", tags)`             | `tag.setTitle("New")`                         |
 | Get duration         | `(await readProperties("file.mp3")).duration`         | `audioFile.audioProperties().duration`        |
 | Get codec/container  | `(await readProperties("file.mp3")).codec`            | `audioFile.audioProperties().codec`           |
 | Get modified buffer  | `await applyTags("file.mp3", tags)`                   | `audioFile.save(); audioFile.getFileBuffer()` |
@@ -141,12 +141,12 @@ import { TagLib } from "jsr:@charlesw/taglib-wasm";
 import {
   applyCoverArt,
   applyTags,
+  applyTagsToFile,
   readCoverArt,
   readMetadataBatch,
   readPropertiesBatch,
   readTags,
   readTagsBatch,
-  writeTagsToFile,
 } from "jsr:@charlesw/taglib-wasm/simple";
 import { findDuplicates, scanFolder } from "jsr:@charlesw/taglib-wasm";
 
@@ -154,9 +154,9 @@ import { findDuplicates, scanFolder } from "jsr:@charlesw/taglib-wasm";
 import { TagLib } from "npm:taglib-wasm";
 import {
   applyTags,
+  applyTagsToFile,
   readTags,
   readTagsBatch,
-  writeTagsToFile,
 } from "npm:taglib-wasm/simple";
 import { findDuplicates, scanFolder } from "npm:taglib-wasm";
 
@@ -165,12 +165,12 @@ import { TagLib } from "taglib-wasm";
 import {
   applyCoverArt,
   applyTags,
+  applyTagsToFile,
   readCoverArt,
   readMetadataBatch,
   readPropertiesBatch,
   readTags,
   readTagsBatch,
-  writeTagsToFile,
 } from "taglib-wasm/simple";
 import { findDuplicates, scanFolder } from "taglib-wasm";
 
@@ -362,7 +362,7 @@ const success = audioFile.save(); // Returns boolean
 const buffer = audioFile.getFileBuffer(); // Get modified data
 
 // Pattern 2: Using Simple API (file path required)
-await writeTagsToFile("file.mp3", { title: "New" }); // Writes to disk
+await applyTagsToFile("file.mp3", { title: "New" }); // Writes to disk
 
 // Pattern 3: Using Simple API (get buffer)
 const buffer = await applyTags("file.mp3", { title: "New" }); // Returns buffer
@@ -588,27 +588,27 @@ For basic operations without manual memory management:
 import {
   applyCoverArt,
   applyTags,
+  applyTagsToFile,
   readCoverArt,
   readTags,
-  writeTagsToFile,
 } from "jsr:@charlesw/taglib-wasm/simple";
 
 // Deno (NPM)
 import {
   applyCoverArt,
   applyTags,
+  applyTagsToFile,
   readCoverArt,
   readTags,
-  writeTagsToFile,
 } from "npm:taglib-wasm/simple";
 
 // Node.js/Bun
 import {
   applyCoverArt,
   applyTags,
+  applyTagsToFile,
   readCoverArt,
   readTags,
-  writeTagsToFile,
 } from "taglib-wasm/simple";
 
 // Read tags - no need to manage AudioFile instances
@@ -622,7 +622,7 @@ const modifiedBuffer = await applyTags("song.mp3", {
 });
 
 // Update tags in-place (file path only)
-await writeTagsToFile("song.mp3", {
+await applyTagsToFile("song.mp3", {
   title: "New Title",
   artist: "New Artist",
 });
@@ -1093,16 +1093,16 @@ for (const file of result.items) {
 ### Recipe: Convert Tags Between Formats
 
 ```typescript
-import { readTags, writeTagsToFile } from "taglib-wasm/simple";
+import { applyTagsToFile, readTags } from "taglib-wasm/simple";
 
 // Read tags from MP3 (ID3v2)
 const mp3Tags = await readTags("song.mp3");
 
 // Apply same tags to FLAC (Vorbis Comments)
-await writeTagsToFile("song.flac", mp3Tags);
+await applyTagsToFile("song.flac", mp3Tags);
 
 // Apply to M4A (iTunes atoms)
-await writeTagsToFile("song.m4a", mp3Tags);
+await applyTagsToFile("song.m4a", mp3Tags);
 
 // Note: Format-specific fields are automatically mapped
 ```
@@ -2535,7 +2535,7 @@ async function processUpdateQueue(
 ) {
   await Promise.all(queue.map(async ({ path, updates }) => {
     try {
-      await writeTagsToFile(path, updates);
+      await applyTagsToFile(path, updates);
     } catch (error) {
       console.error(`Failed to update ${path}:`, error);
     }
@@ -2790,7 +2790,7 @@ import { readTags } from "taglib-wasm/simple";
 // Mock the module
 vi.mock("taglib-wasm/simple", () => ({
   readTags: vi.fn(),
-  writeTagsToFile: vi.fn(),
+  applyTagsToFile: vi.fn(),
 }));
 
 test("should process music file", async () => {
