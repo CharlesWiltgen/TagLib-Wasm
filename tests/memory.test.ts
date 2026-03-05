@@ -11,7 +11,7 @@ const TEST_FILE = TEST_FILES.mp3;
 
 describe("Memory Management", () => {
   it("dispose() prevents memory accumulation", async () => {
-    const taglib = await TagLib.initialize({ forceBufferMode: true });
+    const taglib = await TagLib.initialize({ forceWasmType: "emscripten" });
 
     const getHeapSize = () => {
       if ((taglib as any).module && (taglib as any).module.HEAP8) {
@@ -51,7 +51,7 @@ describe("Memory Management", () => {
   });
 
   it("dispose() can be called multiple times safely", async () => {
-    const taglib = await TagLib.initialize({ forceBufferMode: true });
+    const taglib = await TagLib.initialize({ forceWasmType: "emscripten" });
     const audioFile = await taglib.open(TEST_FILE);
 
     audioFile.dispose();
@@ -71,7 +71,7 @@ describe("Memory Management", () => {
   });
 
   it("memory usage scales with file size", async () => {
-    const taglib = await TagLib.initialize({ forceBufferMode: true });
+    const taglib = await TagLib.initialize({ forceWasmType: "emscripten" });
 
     const files = [
       TEST_FILES.wav, // Larger

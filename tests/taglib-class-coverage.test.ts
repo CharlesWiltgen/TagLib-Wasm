@@ -7,7 +7,7 @@ import { FIXTURE_PATH } from "./shared-fixtures.ts";
 let taglib: TagLib;
 
 beforeAll(async () => {
-  taglib = await TagLib.initialize({ forceBufferMode: true });
+  taglib = await TagLib.initialize({ forceWasmType: "emscripten" });
 });
 
 describe("TagLib.edit() with buffer input", () => {

@@ -42,7 +42,7 @@ deno compile --allow-read --include taglib-web.wasm myapp.ts
 **How it works:**
 
 1. Detects compiled binary via `Deno.mainModule` containing `deno-compile://`
-2. Automatically sets `forceBufferMode: true` (Emscripten, not WASI)
+2. Automatically sets `forceWasmType: "emscripten"` (Emscripten, not WASI)
 3. Tries to load embedded Wasm using the multi-strategy fallback (see
    [Path Resolution](#3-path-resolution))
 4. Warns and falls back gracefully if embedded Wasm not found

@@ -410,10 +410,7 @@ automatically based on the environment.
 To force a specific backend (e.g., for testing or compatibility):
 
 ```typescript
-// Force Emscripten buffer mode (in-memory I/O)
-const taglib = await TagLib.initialize({ forceBufferMode: true });
-
-// Force a specific Wasm backend
+// Force Emscripten mode (in-memory I/O)
 const taglib = await TagLib.initialize({ forceWasmType: "emscripten" });
 
 // For Simple API, set buffer mode globally
@@ -1691,7 +1688,6 @@ interface FolderScanOptions {
   onProgress?: (processed: number, total: number, currentFile: string) => void;
   includeProperties?: boolean; // Include audio properties (default: true)
   continueOnError?: boolean; // Continue on errors (default: true)
-  forceBufferMode?: boolean; // Force buffer mode instead of WASI file I/O
   signal?: AbortSignal; // AbortSignal for cancellation
 }
 

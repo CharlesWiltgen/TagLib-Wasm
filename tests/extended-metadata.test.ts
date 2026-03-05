@@ -17,7 +17,7 @@ import {
 
 describe("Extended Metadata", () => {
   it("MusicBrainz IDs", async () => {
-    const taglib = await TagLib.initialize({ forceBufferMode: true });
+    const taglib = await TagLib.initialize({ forceWasmType: "emscripten" });
 
     // Test with MP3 (ID3v2)
     const mp3Buffer = await readFileData(TEST_FILES.mp3);
@@ -57,7 +57,7 @@ describe("Extended Metadata", () => {
   });
 
   it("MusicBrainz Release Group ID", async () => {
-    const taglib = await TagLib.initialize({ forceBufferMode: true });
+    const taglib = await TagLib.initialize({ forceWasmType: "emscripten" });
     const mp3Buffer = await readFileData(TEST_FILES.mp3);
     const file = await taglib.open(mp3Buffer);
 
@@ -87,7 +87,7 @@ describe("Extended Metadata", () => {
   });
 
   it("Total tracks and discs", async () => {
-    const taglib = await TagLib.initialize({ forceBufferMode: true });
+    const taglib = await TagLib.initialize({ forceWasmType: "emscripten" });
     const flacBuffer = await readFileData(TEST_FILES.flac);
     const file = await taglib.open(flacBuffer);
 
@@ -112,7 +112,7 @@ describe("Extended Metadata", () => {
   });
 
   it("ReplayGain values", async () => {
-    const taglib = await TagLib.initialize({ forceBufferMode: true });
+    const taglib = await TagLib.initialize({ forceWasmType: "emscripten" });
 
     // Test with FLAC (native ReplayGain support)
     const flacBuffer = await readFileData(TEST_FILES.flac);
@@ -160,7 +160,7 @@ describe("Extended Metadata", () => {
   });
 
   it("AcoustID fingerprint", async () => {
-    const taglib = await TagLib.initialize({ forceBufferMode: true });
+    const taglib = await TagLib.initialize({ forceWasmType: "emscripten" });
 
     // Test across different formats
     for (const [format, path] of Object.entries(TEST_FILES)) {
@@ -191,7 +191,7 @@ describe("Extended Metadata", () => {
   });
 
   it("Apple Sound Check", async () => {
-    const taglib = await TagLib.initialize({ forceBufferMode: true });
+    const taglib = await TagLib.initialize({ forceWasmType: "emscripten" });
 
     // Test with M4A (iTunes metadata)
     const m4aBuffer = await readFileData(TEST_FILES.m4a);
@@ -215,7 +215,7 @@ describe("Extended Metadata", () => {
   });
 
   it("Performance", async () => {
-    const taglib = await TagLib.initialize({ forceBufferMode: true });
+    const taglib = await TagLib.initialize({ forceWasmType: "emscripten" });
     const buffer = await readFileData(TEST_FILES.flac);
 
     const { timeMs } = await measureTime(async () => {
@@ -245,7 +245,7 @@ describe("Extended Metadata", () => {
   });
 
   it("Cross-format compatibility", async () => {
-    const taglib = await TagLib.initialize({ forceBufferMode: true });
+    const taglib = await TagLib.initialize({ forceWasmType: "emscripten" });
 
     // Test that extended metadata works across all formats
     const formats = ["mp3", "flac", "m4a", "ogg"] as const;
@@ -283,7 +283,7 @@ describe("Extended Metadata", () => {
   });
 
   it("Persistence after save", async () => {
-    const taglib = await TagLib.initialize({ forceBufferMode: true });
+    const taglib = await TagLib.initialize({ forceWasmType: "emscripten" });
 
     // Create a file with extended metadata
     const originalBuffer = await readFileData(TEST_FILES.flac);
@@ -356,7 +356,7 @@ describe("Extended Metadata", () => {
   });
 
   it("Empty value handling", async () => {
-    const taglib = await TagLib.initialize({ forceBufferMode: true });
+    const taglib = await TagLib.initialize({ forceWasmType: "emscripten" });
     const buffer = await readFileData(TEST_FILES.mp3);
     const file = await taglib.open(buffer);
 
@@ -385,7 +385,7 @@ describe("Extended Metadata", () => {
   });
 
   it("PropertyMap integration", async () => {
-    const taglib = await TagLib.initialize({ forceBufferMode: true });
+    const taglib = await TagLib.initialize({ forceWasmType: "emscripten" });
     const buffer = await readFileData(TEST_FILES.flac);
     const file = await taglib.open(buffer);
 
@@ -432,7 +432,7 @@ describe("Extended Metadata", () => {
   });
 
   it("getProperty/setProperty accept camelCase keys", async () => {
-    const taglib = await TagLib.initialize({ forceBufferMode: true });
+    const taglib = await TagLib.initialize({ forceWasmType: "emscripten" });
     const buffer = await readFileData(TEST_FILES.mp3);
     const file = await taglib.open(buffer);
 
@@ -451,7 +451,7 @@ describe("Extended Metadata", () => {
   });
 
   it("properties() returns camelCase keys", async () => {
-    const taglib = await TagLib.initialize({ forceBufferMode: true });
+    const taglib = await TagLib.initialize({ forceWasmType: "emscripten" });
     const buffer = await readFileData(TEST_FILES.flac);
     const file = await taglib.open(buffer);
 
@@ -471,7 +471,7 @@ describe("Extended Metadata", () => {
   });
 
   it("setProperties() accepts camelCase keys", async () => {
-    const taglib = await TagLib.initialize({ forceBufferMode: true });
+    const taglib = await TagLib.initialize({ forceWasmType: "emscripten" });
     const buffer = await readFileData(TEST_FILES.flac);
     const file = await taglib.open(buffer);
 
@@ -491,7 +491,7 @@ describe("Extended Metadata", () => {
   });
 
   it("Complex Apple Sound Check scenarios", async () => {
-    const taglib = await TagLib.initialize({ forceBufferMode: true });
+    const taglib = await TagLib.initialize({ forceWasmType: "emscripten" });
 
     // Test with M4A (native support)
     const m4aBuffer = await readFileData(TEST_FILES.m4a);

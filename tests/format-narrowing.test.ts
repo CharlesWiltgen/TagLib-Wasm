@@ -145,7 +145,7 @@ describe("isFormat runtime behavior", () => {
   let taglib: TagLib;
 
   beforeAll(async () => {
-    taglib = await TagLib.initialize({ forceBufferMode: true });
+    taglib = await TagLib.initialize({ forceWasmType: "emscripten" });
   });
 
   afterAll(() => {

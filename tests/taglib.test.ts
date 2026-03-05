@@ -32,14 +32,14 @@ setBufferMode(true);
 
 describe("Initialization", () => {
   it("TagLib: Initialization", async () => {
-    const taglib = await TagLib.initialize({ forceBufferMode: true });
+    const taglib = await TagLib.initialize({ forceWasmType: "emscripten" });
     assertExists(taglib, "TagLib instance should exist after init");
   });
 });
 
 describe("Full API", () => {
   it("Basic Operations", async () => {
-    const taglib = await TagLib.initialize({ forceBufferMode: true });
+    const taglib = await TagLib.initialize({ forceWasmType: "emscripten" });
     assertExists(taglib, "TagLib instance should exist");
 
     const version = taglib.version();
@@ -50,7 +50,7 @@ describe("Full API", () => {
   });
 
   it("Format Detection", async () => {
-    const taglib = await TagLib.initialize({ forceBufferMode: true });
+    const taglib = await TagLib.initialize({ forceWasmType: "emscripten" });
 
     for (const [format, path] of Object.entries(TEST_FILES)) {
       const audioData = await Deno.readFile(path);
@@ -68,7 +68,7 @@ describe("Full API", () => {
   });
 
   it("Audio Properties", async () => {
-    const taglib = await TagLib.initialize({ forceBufferMode: true });
+    const taglib = await TagLib.initialize({ forceWasmType: "emscripten" });
     const audioData = await Deno.readFile(TEST_FILES.mp3);
     const file = await taglib.open(audioData.buffer);
 
@@ -83,7 +83,7 @@ describe("Full API", () => {
   });
 
   it("Tag Reading", async () => {
-    const taglib = await TagLib.initialize({ forceBufferMode: true });
+    const taglib = await TagLib.initialize({ forceWasmType: "emscripten" });
     const audioData = await Deno.readFile(TEST_FILES.mp3);
     const file = await taglib.open(audioData.buffer);
 
@@ -101,7 +101,7 @@ describe("Full API", () => {
   });
 
   it("Tag Writing", async () => {
-    const taglib = await TagLib.initialize({ forceBufferMode: true });
+    const taglib = await TagLib.initialize({ forceWasmType: "emscripten" });
     const audioData = await Deno.readFile(TEST_FILES.mp3);
     const file = await taglib.open(audioData.buffer);
 
@@ -135,7 +135,7 @@ describe("Full API", () => {
   });
 
   it("Extended Tag Support", async () => {
-    const taglib = await TagLib.initialize({ forceBufferMode: true });
+    const taglib = await TagLib.initialize({ forceWasmType: "emscripten" });
     const audioData = await Deno.readFile(TEST_FILES.mp3);
     const file = await taglib.open(audioData.buffer);
 
@@ -146,7 +146,7 @@ describe("Full API", () => {
   });
 
   it("Memory Management", async () => {
-    const taglib = await TagLib.initialize({ forceBufferMode: true });
+    const taglib = await TagLib.initialize({ forceWasmType: "emscripten" });
 
     for (let i = 0; i < 10; i++) {
       const audioData = await Deno.readFile(TEST_FILES.mp3);
@@ -159,7 +159,7 @@ describe("Full API", () => {
   });
 
   it("Symbol.dispose enables using statement", async () => {
-    const taglib = await TagLib.initialize({ forceBufferMode: true });
+    const taglib = await TagLib.initialize({ forceWasmType: "emscripten" });
     const audioData = await Deno.readFile(TEST_FILES.mp3);
 
     let fileRef: AudioFile | null = null;
@@ -178,7 +178,7 @@ describe("Full API", () => {
   });
 
   it("Double disposal is safe", async () => {
-    const taglib = await TagLib.initialize({ forceBufferMode: true });
+    const taglib = await TagLib.initialize({ forceWasmType: "emscripten" });
     const audioData = await Deno.readFile(TEST_FILES.mp3);
 
     {
@@ -189,7 +189,7 @@ describe("Full API", () => {
   });
 
   it("Symbol.dispose cleans up on exception", async () => {
-    const taglib = await TagLib.initialize({ forceBufferMode: true });
+    const taglib = await TagLib.initialize({ forceWasmType: "emscripten" });
     const audioData = await Deno.readFile(TEST_FILES.mp3);
 
     let fileRef: AudioFile | null = null;
@@ -304,7 +304,7 @@ describe("Error Handling", () => {
   });
 
   it("Invalid Audio Data", async () => {
-    const taglib = await TagLib.initialize({ forceBufferMode: true });
+    const taglib = await TagLib.initialize({ forceWasmType: "emscripten" });
     const invalidData = new Uint8Array([0, 1, 2, 3, 4, 5]);
 
     try {
@@ -321,7 +321,7 @@ describe("Error Handling", () => {
   });
 
   it("Empty Buffer", async () => {
-    const taglib = await TagLib.initialize({ forceBufferMode: true });
+    const taglib = await TagLib.initialize({ forceWasmType: "emscripten" });
     const emptyData = new Uint8Array(0);
 
     try {
@@ -340,7 +340,7 @@ describe("Error Handling", () => {
 
 describe("Performance", () => {
   it("Format Processing Speed", async () => {
-    const taglib = await TagLib.initialize({ forceBufferMode: true });
+    const taglib = await TagLib.initialize({ forceWasmType: "emscripten" });
     const results: Record<string, number> = {};
 
     for (const [format, path] of Object.entries(TEST_FILES)) {
@@ -368,7 +368,7 @@ describe("Performance", () => {
     const audioData = await Deno.readFile(TEST_FILES.mp3);
 
     const coreStart = performance.now();
-    const taglib = await TagLib.initialize({ forceBufferMode: true });
+    const taglib = await TagLib.initialize({ forceWasmType: "emscripten" });
     const file = await taglib.open(audioData.buffer);
     file.tag();
     file.dispose();
@@ -421,7 +421,7 @@ describe("Format Tests", () => {
   });
 
   it("Systematic All Formats", async () => {
-    const taglib = await TagLib.initialize({ forceBufferMode: true });
+    const taglib = await TagLib.initialize({ forceWasmType: "emscripten" });
     const results: Record<string, boolean> = {};
 
     console.log("\n🎵 Systematic Format Testing");
@@ -627,7 +627,7 @@ describe("Integration", () => {
     fn: async () => {
       let taglib: TagLib | undefined;
       try {
-        taglib = await TagLib.initialize({ forceBufferMode: true });
+        taglib = await TagLib.initialize({ forceWasmType: "emscripten" });
         const { createTestFiles, measureTime } = await import(
           "./test-utils.ts"
         );
@@ -715,7 +715,7 @@ describe("Integration", () => {
     await Deno.writeFile(tempFile, testData);
 
     try {
-      const taglib = await TagLib.initialize({ forceBufferMode: true });
+      const taglib = await TagLib.initialize({ forceWasmType: "emscripten" });
       const audioFile = await taglib.open(tempFile);
       audioFile.setProperty("replayGainTrackGain", "-6.5 dB");
       audioFile.setProperty("replayGainTrackPeak", "0.95");

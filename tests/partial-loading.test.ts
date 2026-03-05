@@ -11,7 +11,7 @@ const TEST_FILES_DIR = join(Deno.cwd(), "tests/test-files");
 
 describe("Partial Loading", () => {
   it("should load file with partial option", async () => {
-    const taglib = await TagLib.initialize({ forceBufferMode: true });
+    const taglib = await TagLib.initialize({ forceWasmType: "emscripten" });
     const filePath = join(TEST_FILES_DIR, "mp3/kiss-snippet.mp3");
     const file = await taglib.open(filePath, { partial: true });
 
@@ -23,7 +23,7 @@ describe("Partial Loading", () => {
   });
 
   it("should use default sizes when not specified", async () => {
-    const taglib = await TagLib.initialize({ forceBufferMode: true });
+    const taglib = await TagLib.initialize({ forceWasmType: "emscripten" });
     const filePath = join(TEST_FILES_DIR, "mp3/kiss-snippet.mp3");
     const file = await taglib.open(filePath, { partial: true });
 
@@ -34,7 +34,7 @@ describe("Partial Loading", () => {
   });
 
   it("should work with File objects in browser-like environment", async () => {
-    const taglib = await TagLib.initialize({ forceBufferMode: true });
+    const taglib = await TagLib.initialize({ forceWasmType: "emscripten" });
     const fileData = await Deno.readFile(
       join(TEST_FILES_DIR, "mp3/kiss-snippet.mp3"),
     );
@@ -51,7 +51,7 @@ describe("Partial Loading", () => {
   });
 
   it("should fallback to full loading for small files", async () => {
-    const taglib = await TagLib.initialize({ forceBufferMode: true });
+    const taglib = await TagLib.initialize({ forceWasmType: "emscripten" });
     const filePath = join(TEST_FILES_DIR, "wav/kiss-snippet.wav");
     const file = await taglib.open(filePath, {
       partial: true,
@@ -66,7 +66,7 @@ describe("Partial Loading", () => {
   });
 
   it("should handle save with partial loading", async () => {
-    const taglib = await TagLib.initialize({ forceBufferMode: true });
+    const taglib = await TagLib.initialize({ forceWasmType: "emscripten" });
     const filePath = join(TEST_FILES_DIR, "mp3/kiss-snippet.mp3");
     const outputPath = join(
       TEST_FILES_DIR,
@@ -93,7 +93,7 @@ describe("Partial Loading", () => {
   });
 
   it("should preserve audio data when saving partially loaded file", async () => {
-    const taglib = await TagLib.initialize({ forceBufferMode: true });
+    const taglib = await TagLib.initialize({ forceWasmType: "emscripten" });
     const filePath = join(TEST_FILES_DIR, "mp3/kiss-snippet.mp3");
     const outputPath = join(
       TEST_FILES_DIR,
@@ -118,7 +118,7 @@ describe("Partial Loading", () => {
   });
 
   it("should throw error when calling save() on partially loaded file", async () => {
-    const taglib = await TagLib.initialize({ forceBufferMode: true });
+    const taglib = await TagLib.initialize({ forceWasmType: "emscripten" });
     const filePath = join(TEST_FILES_DIR, "mp3/kiss-snippet.mp3");
     const file = await taglib.open(filePath, {
       partial: true,
@@ -140,7 +140,7 @@ describe("Partial Loading", () => {
   });
 
   it("should work with custom header/footer sizes", async () => {
-    const taglib = await TagLib.initialize({ forceBufferMode: true });
+    const taglib = await TagLib.initialize({ forceWasmType: "emscripten" });
     const filePath = join(TEST_FILES_DIR, "flac/kiss-snippet.flac");
     const file = await taglib.open(filePath, {
       partial: true,

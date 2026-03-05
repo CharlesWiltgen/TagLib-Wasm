@@ -21,13 +21,6 @@ export interface LoadTagLibOptions {
   wasmUrl?: string;
 
   /**
-   * Force buffer mode: use Emscripten-based in-memory I/O instead of
-   * WASI filesystem I/O. Use for compatibility or when WASI is unavailable.
-   * @default false
-   */
-  forceBufferMode?: boolean;
-
-  /**
    * Force a specific Wasm backend type.
    * Passed through to the unified loader's `selectWasmType()`.
    */

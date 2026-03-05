@@ -502,7 +502,6 @@ Initialize the TagLib WebAssembly module.
 static async initialize(options?: {
   wasmBinary?: ArrayBuffer | Uint8Array;
   wasmUrl?: string;
-  forceBufferMode?: boolean;
   forceWasmType?: "wasi" | "emscripten";
   disableOptimizations?: boolean;
 }): Promise<TagLib>
@@ -513,7 +512,6 @@ static async initialize(options?: {
 - `options` (optional): Configuration for loading the WASM module
   - `wasmBinary`: Pre-loaded WASM binary (for offline usage)
   - `wasmUrl`: Custom WASM URL
-  - `forceBufferMode`: Force Emscripten backend (disable WASI auto-detection)
   - `forceWasmType`: Explicitly select `"wasi"` or `"emscripten"` backend
   - `disableOptimizations`: Disable runtime optimizations
 
@@ -531,7 +529,7 @@ const taglib = await TagLib.initialize({ wasmBinary });
 const taglib = await TagLib.initialize({ wasmUrl: "/assets/taglib.wasm" });
 
 // Force Emscripten backend
-const taglib = await TagLib.initialize({ forceBufferMode: true });
+const taglib = await TagLib.initialize({ forceWasmType: "emscripten" });
 ```
 
 #### taglib.open()

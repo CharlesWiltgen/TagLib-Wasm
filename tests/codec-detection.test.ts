@@ -7,7 +7,7 @@ import { join } from "@std/path";
 
 describe("Codec Detection", () => {
   it("MP3 - both container and codec", async () => {
-    const taglib = await TagLib.initialize({ forceBufferMode: true });
+    const taglib = await TagLib.initialize({ forceWasmType: "emscripten" });
     const mp3Path = join("tests", "test-files", "mp3", "kiss-snippet.mp3");
     const mp3Buffer = await Deno.readFile(mp3Path);
     const file = await taglib.open(mp3Buffer);
@@ -25,7 +25,7 @@ describe("Codec Detection", () => {
   });
 
   it("FLAC - both container and codec", async () => {
-    const taglib = await TagLib.initialize({ forceBufferMode: true });
+    const taglib = await TagLib.initialize({ forceWasmType: "emscripten" });
     const flacPath = join("tests", "test-files", "flac", "kiss-snippet.flac");
     const flacBuffer = await Deno.readFile(flacPath);
     const file = await taglib.open(flacBuffer);
@@ -43,7 +43,7 @@ describe("Codec Detection", () => {
   });
 
   it("WAV container - uncompressed PCM codec", async () => {
-    const taglib = await TagLib.initialize({ forceBufferMode: true });
+    const taglib = await TagLib.initialize({ forceWasmType: "emscripten" });
     const wavPath = join("tests", "test-files", "wav", "kiss-snippet.wav");
     const wavBuffer = await Deno.readFile(wavPath);
     const file = await taglib.open(wavBuffer);
@@ -61,7 +61,7 @@ describe("Codec Detection", () => {
   });
 
   it("OGG container - Vorbis codec", async () => {
-    const taglib = await TagLib.initialize({ forceBufferMode: true });
+    const taglib = await TagLib.initialize({ forceWasmType: "emscripten" });
     const oggPath = join("tests", "test-files", "ogg", "kiss-snippet.ogg");
     const oggBuffer = await Deno.readFile(oggPath);
     const file = await taglib.open(oggBuffer);
@@ -79,7 +79,7 @@ describe("Codec Detection", () => {
   });
 
   it("MP4 container (M4A file) - AAC codec", async () => {
-    const taglib = await TagLib.initialize({ forceBufferMode: true });
+    const taglib = await TagLib.initialize({ forceWasmType: "emscripten" });
     const m4aPath = join("tests", "test-files", "mp4", "kiss-snippet.m4a");
     const m4aBuffer = await Deno.readFile(m4aPath);
     const file = await taglib.open(m4aBuffer);

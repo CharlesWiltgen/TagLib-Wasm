@@ -43,7 +43,7 @@ setBufferMode(true);
 
 describe("Core Picture API", () => {
   it("reads pictures from files", async () => {
-    const taglib = await TagLib.initialize({ forceBufferMode: true });
+    const taglib = await TagLib.initialize({ forceWasmType: "emscripten" });
 
     const mp3File = await taglib.open(TEST_FILES.mp3);
     const mp3Pictures = mp3File.getPictures();
@@ -74,7 +74,7 @@ describe("Core Picture API", () => {
   });
 
   it("adds and retrieves pictures", async () => {
-    const taglib = await TagLib.initialize({ forceBufferMode: true });
+    const taglib = await TagLib.initialize({ forceWasmType: "emscripten" });
 
     // Test with MP3
     {
@@ -130,7 +130,7 @@ describe("Core Picture API", () => {
   });
 
   it("removes pictures", async () => {
-    const taglib = await TagLib.initialize({ forceBufferMode: true });
+    const taglib = await TagLib.initialize({ forceWasmType: "emscripten" });
     const buffer = await readFileData(TEST_FILES.mp3);
     const file = await taglib.open(buffer);
 
@@ -152,7 +152,7 @@ describe("Core Picture API", () => {
   });
 
   it("handles different picture types", async () => {
-    const taglib = await TagLib.initialize({ forceBufferMode: true });
+    const taglib = await TagLib.initialize({ forceWasmType: "emscripten" });
     const buffer = await readFileData(TEST_FILES.flac);
     const file = await taglib.open(buffer);
 

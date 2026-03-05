@@ -19,7 +19,7 @@ const TEST_FILES = {
 
 describe("RatingAPI", () => {
   it("getRatings returns empty array for files without ratings", async () => {
-    const taglib = await TagLib.initialize({ forceBufferMode: true });
+    const taglib = await TagLib.initialize({ forceWasmType: "emscripten" });
     const audioData = await Deno.readFile(TEST_FILES.mp3);
     const file = await taglib.open(audioData.buffer);
 
@@ -31,7 +31,7 @@ describe("RatingAPI", () => {
   });
 
   it("setRatings and getRatings roundtrip for MP3", async () => {
-    const taglib = await TagLib.initialize({ forceBufferMode: true });
+    const taglib = await TagLib.initialize({ forceWasmType: "emscripten" });
     const audioData = await Deno.readFile(TEST_FILES.mp3);
     const file = await taglib.open(audioData.buffer);
 
@@ -56,7 +56,7 @@ describe("RatingAPI", () => {
   });
 
   it("convenience methods getRating/setRating", async () => {
-    const taglib = await TagLib.initialize({ forceBufferMode: true });
+    const taglib = await TagLib.initialize({ forceWasmType: "emscripten" });
     const audioData = await Deno.readFile(TEST_FILES.mp3);
     const file = await taglib.open(audioData.buffer);
 
@@ -75,7 +75,7 @@ describe("RatingAPI", () => {
   });
 
   it("multiple ratings", async () => {
-    const taglib = await TagLib.initialize({ forceBufferMode: true });
+    const taglib = await TagLib.initialize({ forceWasmType: "emscripten" });
     const audioData = await Deno.readFile(TEST_FILES.mp3);
     const file = await taglib.open(audioData.buffer);
 
@@ -97,7 +97,7 @@ describe("RatingAPI", () => {
   });
 
   it("FLAC format support", async () => {
-    const taglib = await TagLib.initialize({ forceBufferMode: true });
+    const taglib = await TagLib.initialize({ forceWasmType: "emscripten" });
     const audioData = await Deno.readFile(TEST_FILES.flac);
     const file = await taglib.open(audioData.buffer);
 
@@ -114,7 +114,7 @@ describe("RatingAPI", () => {
   });
 
   it("OGG format support", async () => {
-    const taglib = await TagLib.initialize({ forceBufferMode: true });
+    const taglib = await TagLib.initialize({ forceWasmType: "emscripten" });
     const audioData = await Deno.readFile(TEST_FILES.ogg);
     const file = await taglib.open(audioData.buffer);
 
@@ -131,7 +131,7 @@ describe("RatingAPI", () => {
   });
 
   it("M4A/MP4 format support", async () => {
-    const taglib = await TagLib.initialize({ forceBufferMode: true });
+    const taglib = await TagLib.initialize({ forceWasmType: "emscripten" });
     const audioData = await Deno.readFile(TEST_FILES.m4a);
     const file = await taglib.open(audioData.buffer);
 
@@ -148,7 +148,7 @@ describe("RatingAPI", () => {
   });
 
   it("Opus format support", async () => {
-    const taglib = await TagLib.initialize({ forceBufferMode: true });
+    const taglib = await TagLib.initialize({ forceWasmType: "emscripten" });
     const audioData = await Deno.readFile(TEST_FILES.opus);
     const file = await taglib.open(audioData.buffer);
 

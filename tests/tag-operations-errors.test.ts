@@ -93,7 +93,7 @@ describe("clearTags", () => {
         replayGainTrackGain: "-6.54 dB",
       });
 
-      const taglib = await TagLib.initialize({ forceBufferMode: true });
+      const taglib = await TagLib.initialize({ forceWasmType: "emscripten" });
       const withPicture = await taglib.edit(withExtended, (file) => {
         file.addPicture({
           mimeType: "image/png",

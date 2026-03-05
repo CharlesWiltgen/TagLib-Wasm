@@ -28,7 +28,7 @@ setBufferMode(true);
 
 describe("Error Handling", () => {
   it("error messages include helpful context", async () => {
-    const taglib = await TagLib.initialize({ forceBufferMode: true });
+    const taglib = await TagLib.initialize({ forceWasmType: "emscripten" });
 
     const tinyBuffer = new Uint8Array(100);
 
@@ -53,7 +53,7 @@ describe("Error Handling", () => {
   });
 
   it("format-specific errors provide clear guidance", async () => {
-    const taglib = await TagLib.initialize({ forceBufferMode: true });
+    const taglib = await TagLib.initialize({ forceWasmType: "emscripten" });
 
     const mp3Buffer = await Deno.readFile(
       "tests/test-files/mp3/kiss-snippet.mp3",
@@ -120,7 +120,7 @@ describe("Error Handling", () => {
   });
 
   it("error type guards work correctly", async () => {
-    const taglib = await TagLib.initialize({ forceBufferMode: true });
+    const taglib = await TagLib.initialize({ forceWasmType: "emscripten" });
 
     try {
       await taglib.open(new Uint8Array(50).buffer);
@@ -203,7 +203,7 @@ describe("Error Handling", () => {
   });
 
   it("error codes enable programmatic error handling", async () => {
-    const taglib = await TagLib.initialize({ forceBufferMode: true });
+    const taglib = await TagLib.initialize({ forceWasmType: "emscripten" });
 
     try {
       await taglib.open(new Uint8Array(10).buffer);

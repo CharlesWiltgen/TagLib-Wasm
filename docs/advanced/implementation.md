@@ -14,8 +14,7 @@ TagLib-Wasm has a dual-backend architecture:
 | **Selection**    | Auto for browsers, Workers                  | Auto for Deno, Node.js                                |
 
 A unified loader (`src/runtime/unified-loader.ts`) auto-selects the backend
-based on runtime detection. Users can override with `forceBufferMode: true`
-or `forceWasmType: "emscripten" | "wasi"`.
+based on runtime detection. Users can override with `forceWasmType: "emscripten" | "wasi"`.
 
 ## Emscripten Backend
 
