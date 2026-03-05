@@ -20,7 +20,7 @@
  * Run with: deno run --allow-read examples/codec-detection.ts <audio-file>
  */
 
-import { TagLib } from "../src/mod.ts";
+import { TagLib } from "../src/taglib.ts";
 
 async function analyzeAudioFile(filePath: string) {
   console.log(`\n🎵 Analyzing: ${filePath}`);

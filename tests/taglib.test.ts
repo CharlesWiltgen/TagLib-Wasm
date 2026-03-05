@@ -15,10 +15,10 @@ import {
   type assertThrows,
 } from "@std/assert";
 import { describe, it } from "@std/testing/bdd";
-import { TagLib } from "../src/mod.ts";
-import type { AudioFile } from "../src/mod.ts";
+import { TagLib } from "../src/taglib.ts";
+import type { AudioFile } from "../src/taglib.ts";
 import {
-  applyTagsToBuffer,
+  applyTags,
   isValidAudioFile,
   readFormat,
   readProperties,
@@ -43,7 +43,10 @@ describe("Full API", () => {
     assertExists(taglib, "TagLib instance should exist");
 
     const version = taglib.version();
-    assertEquals(version, "2.1.0", "Should return correct TagLib version");
+    assert(
+      /^\d+\.\d+\.\d+\S* \(TagLib \d+\.\d+\.\d+\)$/.test(version),
+      `Version should match format 'X.Y.Z (TagLib X.Y.Z)', got: ${version}`,
+    );
   });
 
   it("Format Detection", async () => {
@@ -245,7 +248,7 @@ describe("Simple API", () => {
   });
 
   it("Tag Writing", async () => {
-    const modifiedBuffer = await applyTagsToBuffer(TEST_FILES.mp3, {
+    const modifiedBuffer = await applyTags(TEST_FILES.mp3, {
       title: "Simple API Test",
       artist: "Test Suite",
       album: "Test Album",
@@ -499,7 +502,7 @@ describe("Integration", () => {
       artist: "Test Suite",
       year: 2024,
     };
-    const modifiedBuffer = await applyTagsToBuffer(TEST_FILES.mp3, newTags);
+    const modifiedBuffer = await applyTags(TEST_FILES.mp3, newTags);
 
     assert(modifiedBuffer.length > 0, "Should return a buffer");
   });
@@ -516,7 +519,7 @@ describe("Integration", () => {
       assert(props.duration > 0, `${format} should have duration`);
 
       try {
-        const modified = await applyTagsToBuffer(path, {
+        const modified = await applyTags(path, {
           title: `${format} Test`,
         });
         assert(modified.length > 0, `${format} should support writing`);
@@ -527,7 +530,7 @@ describe("Integration", () => {
   });
 
   it("Music Library Processing", async () => {
-    const { applyTagsToBuffer, readTags, applyCoverArt } = await import(
+    const { applyTags, readTags, applyCoverArt } = await import(
       "../src/simple/index.ts"
     );
     const { RED_PNG, createTestFiles, measureTime } = await import(
@@ -550,7 +553,7 @@ describe("Integration", () => {
           track: index + 1,
         };
 
-        const tagged = await applyTagsToBuffer(buffer, trackTags);
+        const tagged = await applyTags(buffer, trackTags);
 
         if (index === 0) {
           return await applyCoverArt(tagged, RED_PNG, "image/png");
@@ -569,7 +572,7 @@ describe("Integration", () => {
   });
 
   it("Batch Tag Updates", async () => {
-    const { applyTagsToBuffer, readTags } = await import(
+    const { applyTags, readTags } = await import(
       "../src/simple/index.ts"
     );
     const { createTestFiles } = await import("./test-utils.ts");
@@ -583,7 +586,7 @@ describe("Integration", () => {
     };
 
     const updatedFiles = await Promise.all(
-      files.map((buffer) => applyTagsToBuffer(buffer, updates)),
+      files.map((buffer) => applyTags(buffer, updates)),
     );
 
     for (const buffer of updatedFiles) {
@@ -595,21 +598,21 @@ describe("Integration", () => {
   });
 
   it("Cross-Format Tag Transfer", async () => {
-    const { readTags, applyTagsToBuffer } = await import(
+    const { readTags, applyTags } = await import(
       "../src/simple/index.ts"
     );
     const { readFileData } = await import("../src/utils/file.ts");
     const { TEST_TAGS } = await import("./test-utils.ts");
 
     const sourceBuffer = await readFileData(TEST_FILES.mp3);
-    const sourceWithTags = await applyTagsToBuffer(
+    const sourceWithTags = await applyTags(
       sourceBuffer,
       TEST_TAGS.basic,
     );
     const sourceTags = await readTags(sourceWithTags);
 
     const targetBuffer = await readFileData(TEST_FILES.flac);
-    const targetWithTags = await applyTagsToBuffer(targetBuffer, sourceTags);
+    const targetWithTags = await applyTags(targetBuffer, sourceTags);
 
     const targetTags = await readTags(targetWithTags);
     assertEquals(targetTags.title, sourceTags.title);

@@ -60,7 +60,7 @@ node --experimental-wasm-exnref --import tsx your-script.ts
 ```javascript
 // The NPM package includes pre-compiled JavaScript
 import { TagLib } from "taglib-wasm";
-import { applyTagsToBuffer, readTags } from "taglib-wasm/simple";
+import { applyTags, readTags } from "taglib-wasm/simple";
 
 // Works the same as TypeScript
 const taglib = await TagLib.initialize();

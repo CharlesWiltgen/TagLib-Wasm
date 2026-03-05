@@ -120,18 +120,14 @@ const taglib = await TagLib.initialize({ wasmBinary });
 ### Simple API
 
 ```typescript
-import {
-  applyTagsToBuffer,
-  readTags,
-  writeTagsToFile,
-} from "taglib-wasm/simple";
+import { applyTags, readTags, writeTagsToFile } from "taglib-wasm/simple";
 
 // Read tags
 const tags = await readTags("song.mp3");
 console.log(tags.title, tags.artist, tags.album);
 
 // Apply tags and get modified buffer (in-memory)
-const modifiedBuffer = await applyTagsToBuffer("song.mp3", {
+const modifiedBuffer = await applyTags("song.mp3", {
   title: "New Title",
   artist: "New Artist",
   album: "New Album",
@@ -196,14 +192,17 @@ import { findDuplicates, scanFolder } from "taglib-wasm";
 // Scan a music library
 const result = await scanFolder("/path/to/music", {
   recursive: true,
-  concurrency: 4,
   onProgress: (processed, total, file) => {
     console.log(`Processing ${processed}/${total}: ${file}`);
   },
 });
 
-console.log(`Found ${result.totalFound} audio files`);
-console.log(`Successfully processed ${result.totalProcessed} files`);
+console.log(`Found ${result.items.length} audio files`);
+console.log(
+  `Successfully processed ${
+    result.items.filter((i) => i.status === "ok").length
+  } files`,
+);
 
 // Process results
 for (const file of result.items) {

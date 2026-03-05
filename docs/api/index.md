@@ -7,7 +7,7 @@ JavaScript/TypeScript.
 
 - [Simple API](#simple-api)
   - [readTags()](#readtags)
-  - [applyTagsToBuffer()](#applytags)
+  - [applyTags()](#applytags)
   - [writeTagsToFile()](#updatetags)
   - [readProperties()](#readproperties)
   - [Batch Processing](#batch-processing)
@@ -86,12 +86,12 @@ const file = document.getElementById("file-input").files[0];
 const tags = await readTags(file);
 ```
 
-### applyTagsToBuffer()
+### applyTags()
 
 Apply metadata tags to an audio file and return the modified buffer.
 
 ```typescript
-function applyTagsToBuffer(
+function applyTags(
   input: string | Uint8Array | ArrayBuffer | File,
   tags: Partial<Tags>,
   options?: number,
@@ -114,7 +114,7 @@ Promise resolving to the modified audio file as Uint8Array.
 
 ```typescript
 // Update specific tags from file path
-const modifiedBuffer = await applyTagsToBuffer("song.mp3", {
+const modifiedBuffer = await applyTags("song.mp3", {
   title: "New Title",
   artist: "New Artist",
   year: 2024,
@@ -125,7 +125,7 @@ await Deno.writeFile("song-updated.mp3", modifiedBuffer);
 
 // From File object (browsers)
 const file = document.getElementById("file-input").files[0];
-const modifiedBuffer = await applyTagsToBuffer(file, {
+const modifiedBuffer = await applyTags(file, {
   title: "New Title",
   artist: "New Artist",
 });
@@ -413,14 +413,14 @@ function scanFolder(
 ```typescript
 const result = await scanFolder("/music", {
   recursive: true,
-  concurrency: 4,
   onProgress: (processed, total, file) => {
     console.log(`Processing ${processed}/${total}: ${file}`);
   },
 });
 
-console.log(`Found ${result.totalFound} files`);
-console.log(`Processed ${result.totalProcessed} successfully`);
+const okItems = result.items.filter((i) => i.status === "ok");
+console.log(`Found ${result.items.length} files`);
+console.log(`Processed ${okItems.length} successfully`);
 ```
 
 ### updateFolderTags()
@@ -430,12 +430,8 @@ Update metadata for multiple files in batch.
 ```typescript
 function updateFolderTags(
   updates: Array<{ path: string; tags: Partial<Tag> }>,
-  options?: { continueOnError?: boolean; concurrency?: number },
-): Promise<{
-  successful: number;
-  failed: Array<{ path: string; error: Error }>;
-  duration: number;
-}>;
+  options?: { continueOnError?: boolean },
+): Promise<FolderUpdateResult>;
 ```
 
 #### Example
@@ -446,7 +442,8 @@ const result = await updateFolderTags([
   { path: "/music/song2.mp3", tags: { album: "New Album" } },
 ]);
 
-console.log(`Updated ${result.successful} files`);
+const updated = result.items.filter((i) => i.status === "ok").length;
+console.log(`Updated ${updated} files`);
 ```
 
 ### findDuplicates()

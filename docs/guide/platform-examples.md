@@ -39,7 +39,7 @@ you handle yourself:
 const tags = await readTags(audioData);
 
 // Write returns a new buffer (buffer in, buffer out)
-const modified = await applyTagsToBuffer(audioData, { title: "New Title" });
+const modified = await applyTags(audioData, { title: "New Title" });
 
 // edit() with a buffer returns the modified Uint8Array
 const modified = await taglib.edit(audioData, (file) => {
@@ -111,7 +111,7 @@ Browsers have no filesystem access. Audio data comes from the
 `fetch()`, or drag-and-drop — always as an `ArrayBuffer` or `Uint8Array`.
 
 ```typescript
-import { applyTagsToBuffer, readTags } from "taglib-wasm/simple";
+import { applyTags, readTags } from "taglib-wasm/simple";
 
 // Get audio data from a file input
 const input = document.querySelector('input[type="file"]');
@@ -121,10 +121,10 @@ const audioData = new Uint8Array(await input.files[0].arrayBuffer());
 const tags = await readTags(audioData);
 
 // Write — returns modified buffer (you decide what to do with it)
-const modified = await applyTagsToBuffer(audioData, { title: "New Title" });
+const modified = await applyTags(audioData, { title: "New Title" });
 ```
 
-Use `applyTagsToBuffer` (not `writeTagsToFile`) since there's no file path to write back to.
+Use `applyTags` (not `writeTagsToFile`) since there's no file path to write back to.
 To let the user save the result:
 
 ```typescript

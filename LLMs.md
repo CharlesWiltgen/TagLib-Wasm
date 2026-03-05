@@ -44,7 +44,7 @@ taglib-wasm provides three APIs for different use cases:
 
 - **Best for**: Quick reads, one-off operations, cover art handling, batch processing
 - **Memory**: Automatically managed
-- **Functions**: `readTags()`, `applyTagsToBuffer()`, `writeTagsToFile()`, `readProperties()`,
+- **Functions**: `readTags()`, `applyTags()`, `writeTagsToFile()`, `readProperties()`,
   `readCoverArt()`, `applyCoverArt()`
 - **Batch Functions**: `readTagsBatch()`, `readPropertiesBatch()`, `readMetadataBatch()`
   - 10-20x faster than sequential processing
@@ -98,7 +98,7 @@ const tags = await readTagsBatch(files, { concurrency: 8 });
 ## Which API Should I Use?
 
 - **Reading tags from one file?** → Simple API: `readTags()`
-- **Writing tags to one file?** → Simple API: `writeTagsToFile()` or `applyTagsToBuffer()`
+- **Writing tags to one file?** → Simple API: `writeTagsToFile()` or `applyTags()`
 - **Processing many files?** → **Simple API: `readTagsBatch()` (10-20x faster)** or Folder API: `scanFolder()`
 - **Need maximum performance?** → **Simple API batch functions with concurrency: 8**
 - **Processing album folder?** → **`readMetadataBatch()` with high concurrency**
@@ -122,7 +122,7 @@ const tags = await readTagsBatch(files, { concurrency: 8 });
 | Write tags           | `await writeTagsToFile("file.mp3", tags)`             | `tag.setTitle("New")`                         |
 | Get duration         | `(await readProperties("file.mp3")).duration`         | `audioFile.audioProperties().duration`        |
 | Get codec/container  | `(await readProperties("file.mp3")).codec`            | `audioFile.audioProperties().codec`           |
-| Get modified buffer  | `await applyTagsToBuffer("file.mp3", tags)`           | `audioFile.save(); audioFile.getFileBuffer()` |
+| Get modified buffer  | `await applyTags("file.mp3", tags)`                   | `audioFile.save(); audioFile.getFileBuffer()` |
 | Get cover art        | `await readCoverArt("file.mp3")`                      | Use PropertyMap API                           |
 | Set cover art        | `await applyCoverArt("file.mp3", data, type)`         | Use PropertyMap API                           |
 | Get rating           | N/A (use Full API)                                    | `audioFile.getRating()`                       |
@@ -140,7 +140,7 @@ const tags = await readTagsBatch(files, { concurrency: 8 });
 import { TagLib } from "jsr:@charlesw/taglib-wasm";
 import {
   applyCoverArt,
-  applyTagsToBuffer,
+  applyTags,
   readCoverArt,
   readMetadataBatch,
   readPropertiesBatch,
@@ -153,7 +153,7 @@ import { findDuplicates, scanFolder } from "jsr:@charlesw/taglib-wasm";
 // Deno (NPM - Alternative)
 import { TagLib } from "npm:taglib-wasm";
 import {
-  applyTagsToBuffer,
+  applyTags,
   readTags,
   readTagsBatch,
   writeTagsToFile,
@@ -164,7 +164,7 @@ import { findDuplicates, scanFolder } from "npm:taglib-wasm";
 import { TagLib } from "taglib-wasm";
 import {
   applyCoverArt,
-  applyTagsToBuffer,
+  applyTags,
   readCoverArt,
   readMetadataBatch,
   readPropertiesBatch,
@@ -365,7 +365,7 @@ const buffer = audioFile.getFileBuffer(); // Get modified data
 await writeTagsToFile("file.mp3", { title: "New" }); // Writes to disk
 
 // Pattern 3: Using Simple API (get buffer)
-const buffer = await applyTagsToBuffer("file.mp3", { title: "New" }); // Returns buffer
+const buffer = await applyTags("file.mp3", { title: "New" }); // Returns buffer
 ```
 
 ### Initialization Options
@@ -400,14 +400,12 @@ taglib-wasm automatically selects the optimal WebAssembly backend:
 | **Browsers / Workers** | Emscripten (auto) | Entire file loaded into memory as buffer                              |
 
 ```typescript
+// Runtime detection is automatic — no configuration needed
 const taglib = await TagLib.initialize();
-
-// Check which implementation is active
-console.log(taglib.isWasi); // true for Deno/Node.js
-console.log(taglib.isEmscripten); // true for browsers/Workers
 ```
 
-Most users don't need to configure this — it's automatic.
+Most users don't need to configure this — the optimal backend is selected
+automatically based on the environment.
 
 To force a specific backend (e.g., for testing or compatibility):
 
@@ -589,7 +587,7 @@ For basic operations without manual memory management:
 // Deno (JSR)
 import {
   applyCoverArt,
-  applyTagsToBuffer,
+  applyTags,
   readCoverArt,
   readTags,
   writeTagsToFile,
@@ -598,7 +596,7 @@ import {
 // Deno (NPM)
 import {
   applyCoverArt,
-  applyTagsToBuffer,
+  applyTags,
   readCoverArt,
   readTags,
   writeTagsToFile,
@@ -607,7 +605,7 @@ import {
 // Node.js/Bun
 import {
   applyCoverArt,
-  applyTagsToBuffer,
+  applyTags,
   readCoverArt,
   readTags,
   writeTagsToFile,
@@ -618,7 +616,7 @@ const tags = await readTags("song.mp3");
 console.log(tags); // { title, artist, album, year, ... }
 
 // Apply tags to get modified buffer
-const modifiedBuffer = await applyTagsToBuffer("song.mp3", {
+const modifiedBuffer = await applyTags("song.mp3", {
   title: "New Title",
   artist: "New Artist",
 });
@@ -762,7 +760,6 @@ import {
 const result = await scanFolder("/path/to/music", {
   recursive: true, // Scan subdirectories (default: true)
   extensions: [".mp3", ".flac"], // File types to include
-  concurrency: 4, // Parallel processing (default: 4)
   onProgress: (processed, total, file) => {
     console.log(`Processing ${processed}/${total}: ${file}`);
   },
@@ -802,7 +799,8 @@ const updates = [
 ];
 
 const updateResult = await updateFolderTags(updates);
-console.log(`Updated ${updateResult.successful} files`);
+const updatedCount = updateResult.items.filter((i) => i.status === "ok").length;
+console.log(`Updated ${updatedCount} files`);
 
 // Find duplicates
 const duplicates = await findDuplicates("/music", {
@@ -1397,14 +1395,14 @@ for (const file of files.files) {
 - Full example:
 
 ```typescript
-import { applyTagsToBuffer, readTags } from "jsr:@charlesw/taglib-wasm/simple";
+import { applyTags, readTags } from "jsr:@charlesw/taglib-wasm/simple";
 
 // Read tags
 const tags = await readTags("song.mp3");
 console.log(tags.artist);
 
 // Modify tags (returns buffer)
-const modified = await applyTagsToBuffer("song.mp3", {
+const modified = await applyTags("song.mp3", {
   artist: "New Artist",
   album: "New Album",
 });
@@ -1693,7 +1691,8 @@ interface FolderScanOptions {
   onProgress?: (processed: number, total: number, currentFile: string) => void;
   includeProperties?: boolean; // Include audio properties (default: true)
   continueOnError?: boolean; // Continue on errors (default: true)
-  concurrency?: number; // Parallel processing limit (default: 4)
+  forceBufferMode?: boolean; // Force buffer mode instead of WASI file I/O
+  signal?: AbortSignal; // AbortSignal for cancellation
 }
 
 type FolderScanItem =
@@ -1751,7 +1750,6 @@ async function analyzeMusicLibrary(directory: string) {
   // Scan with progress tracking
   const result = await scanFolder(directory, {
     recursive: true,
-    concurrency: 8, // Process 8 files in parallel
     onProgress: (processed, total, file) => {
       if (processed % 100 === 0) { // Log every 100 files
         console.log(
@@ -2003,7 +2001,7 @@ taglib-wasm excels at preserving metadata when converting between audio formats.
 ### Basic Format Conversion Pattern
 
 ```typescript
-import { applyTagsToBuffer, readTags } from "taglib-wasm/simple";
+import { applyTags, readTags } from "taglib-wasm/simple";
 import { TagLib } from "taglib-wasm";
 
 async function convertMetadata(sourcePath: string, targetPath: string) {
@@ -2020,7 +2018,7 @@ async function convertMetadata(sourcePath: string, targetPath: string) {
   }
 
   // Step 3: Apply to target file
-  const modifiedTarget = await applyTagsToBuffer(targetPath, sourceTags);
+  const modifiedTarget = await applyTags(targetPath, sourceTags);
 
   // Step 4: Apply advanced metadata
   using targetFile = await taglib.open(modifiedTarget);
@@ -2298,7 +2296,6 @@ async function* processAudioStream(
 
   const result = await scanFolder(directory, {
     recursive: true,
-    concurrency: 4,
     onProgress: (processed, total, file) => {
       // Progress tracking without storing all results
     },
@@ -2415,7 +2412,6 @@ async function exportLibraryAsJSONLines(
 
   await scanFolder(directory, {
     recursive: true,
-    concurrency: 4,
     continueOnError: true,
     onProgress: async (processed, total, currentFile) => {
       // Write progress to stderr so it doesn't interfere with output
