@@ -1,4 +1,5 @@
 import type { RuntimeDetectionResult } from "../detector.ts";
+import { supportsExnref } from "../detector.ts";
 import type { TagLibModule } from "../../wasm.ts";
 import type { LoadModuleResult, UnifiedLoaderOptions } from "./types.ts";
 import { ModuleLoadError } from "./types.ts";
@@ -11,11 +12,11 @@ function resolveWasmPath(relativePath: string): string {
 
 export async function loadModule(
   wasmType: "wasi" | "emscripten",
-  _runtime: RuntimeDetectionResult,
+  runtime: RuntimeDetectionResult,
   options: UnifiedLoaderOptions,
 ): Promise<LoadModuleResult> {
   if (wasmType === "wasi") {
-    return await loadWasiModuleWithFallback(options);
+    return await loadWasiModuleWithFallback(runtime, options);
   } else {
     return {
       module: await loadEmscriptenModule(options),
@@ -25,6 +26,7 @@ export async function loadModule(
 }
 
 async function loadWasiModuleWithFallback(
+  runtime: RuntimeDetectionResult,
   options: UnifiedLoaderOptions,
 ): Promise<LoadModuleResult> {
   const defaultWasmPath = resolveWasmPath("../../../build/taglib_wasi.wasm");
@@ -37,7 +39,13 @@ async function loadWasiModuleWithFallback(
     });
     return { module: wasiModule, actualWasmType: "wasi" };
   } catch (hostError) {
-    if (options.debug) {
+    if (runtime.environment === "node-wasi" && !supportsExnref()) {
+      const nodeVersion = (globalThis as any).process?.versions?.node ?? "";
+      console.warn(
+        `[taglib-wasm] WASI unavailable: Node.js ${nodeVersion} requires --experimental-wasm-exnref. ` +
+          `Falling back to Emscripten. Run with: node --experimental-wasm-exnref your-script.js`,
+      );
+    } else if (options.debug) {
       console.warn(`[UnifiedLoader] WASI host failed:`, hostError);
     }
   }

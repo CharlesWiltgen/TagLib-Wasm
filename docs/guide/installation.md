@@ -33,8 +33,12 @@ bun add taglib-wasm
 
 **Requirements:** Node.js v22.6.0 or higher
 
-Node.js requires the `--experimental-wasm-exnref` flag for TagLib-Wasm's Wasm
-exception handling. Deno and Bun work without any flags.
+TagLib-Wasm works out of the box on Node.js — the library automatically falls
+back to the Emscripten backend if WASI isn't available. For optimal WASI
+performance, add the `--experimental-wasm-exnref` flag (Node.js 24 LTS). Node.js
+25+ supports exnref natively with no flag needed.
+
+Deno and Bun work without any flags.
 
 #### TypeScript Usage
 
@@ -46,6 +50,10 @@ node --experimental-wasm-exnref --experimental-strip-types your-script.ts
 npm install --save-dev tsx
 node --experimental-wasm-exnref --import tsx your-script.ts
 ```
+
+> **Tip:** Without `--experimental-wasm-exnref`, taglib-wasm still works — it
+> uses the Emscripten backend and logs a warning suggesting the flag for better
+> performance.
 
 #### JavaScript Usage
 

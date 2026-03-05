@@ -122,13 +122,14 @@ export default {
 TagLib-Wasm includes two WebAssembly implementations and automatically selects
 the optimal one for your environment:
 
-| Environment            | Implementation | Reason                                                    |
-| ---------------------- | -------------- | --------------------------------------------------------- |
-| **Deno**               | WASI           | Native filesystem, best performance                       |
-| **Bun**                | WASI           | Native filesystem via node:fs provider                    |
-| **Node.js 22+**        | WASI           | Native filesystem (requires `--experimental-wasm-exnref`) |
-| **Browsers**           | Emscripten     | Required for web compatibility                            |
-| **Cloudflare Workers** | Emscripten     | WASI not available                                        |
+| Environment            | Implementation | Reason                                                                 |
+| ---------------------- | -------------- | ---------------------------------------------------------------------- |
+| **Deno**               | WASI           | Native filesystem, best performance                                    |
+| **Bun**                | WASI           | Native filesystem via node:fs provider                                 |
+| **Node.js 24 LTS**     | WASI           | Add `--experimental-wasm-exnref` for WASI; auto-fallback to Emscripten |
+| **Node.js 25+**        | WASI           | Native filesystem, exnref supported natively                           |
+| **Browsers**           | Emscripten     | Required for web compatibility                                         |
+| **Cloudflare Workers** | Emscripten     | WASI not available                                                     |
 
 ### Checking the Active Implementation
 
@@ -257,9 +258,11 @@ npm test
 
 #### Node.js
 
-- Requires `--experimental-wasm-exnref` flag for Wasm exception handling
-- Requires TypeScript loader for direct .ts execution
 - Requires Node.js 22.6.0 or higher
+- Node.js 24 LTS: add `--experimental-wasm-exnref` for optimal WASI performance
+  (auto-falls back to Emscripten with a warning if omitted)
+- Node.js 25+: WASI works natively, no flag needed
+- Requires TypeScript loader for direct .ts execution
 
 #### Browser
 

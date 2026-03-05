@@ -7,6 +7,7 @@ import {
   canLoadWasmType,
   detectRuntime,
   getEnvironmentDescription,
+  supportsExnref,
 } from "../src/runtime/detector.ts";
 import type { RuntimeDetectionResult } from "../src/runtime/detector.ts";
 
@@ -80,6 +81,16 @@ describe("canLoadWasmType", () => {
 
   it("should always report emscripten as loadable", () => {
     assertEquals(canLoadWasmType("emscripten"), true);
+  });
+});
+
+describe("supportsExnref", () => {
+  it("should return consistent results across calls", () => {
+    assertEquals(supportsExnref(), supportsExnref());
+  });
+
+  it("should return true in Deno (supports exnref natively)", () => {
+    assertEquals(supportsExnref(), true);
   });
 });
 
