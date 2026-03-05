@@ -178,6 +178,9 @@ lib-cov
 *.backup
 package.json.backup
 
+# Beads issue tracker
+.beads/
+
 # Dolt database files (added by bd init)
 .dolt/
 *.db
