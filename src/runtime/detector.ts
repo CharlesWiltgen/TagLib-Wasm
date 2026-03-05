@@ -167,6 +167,27 @@ export function detectRuntime(): RuntimeDetectionResult {
   };
 }
 
+// deno-fmt-ignore
+const EXNREF_PROBE = new Uint8Array([
+  0x00, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00, // Wasm header
+  0x06, 0x06,                                       // Global section, 6 bytes
+  0x01,                                             // 1 global
+  0x69, 0x00,                                       // exnref, const
+  0xd0, 0x69, 0x0b,                                 // ref.null exnref, end
+]);
+
+/**
+ * Detect whether the runtime supports the Wasm `exnref` type.
+ * Uses `WebAssembly.validate()` with a minimal probe module — synchronous and zero-cost.
+ */
+export function supportsExnref(): boolean {
+  try {
+    return WebAssembly.validate(EXNREF_PROBE);
+  } catch {
+    return false;
+  }
+}
+
 export function getEnvironmentDescription(env: RuntimeEnvironment): string {
   switch (env) {
     case "deno-wasi":
