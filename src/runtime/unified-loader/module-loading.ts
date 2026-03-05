@@ -4,10 +4,11 @@ import type { TagLibModule } from "../../wasm.ts";
 import type { LoadModuleResult, UnifiedLoaderOptions } from "./types.ts";
 import { ModuleLoadError } from "./types.ts";
 import { errorMessage } from "../../errors/classes.ts";
+import { fromFileUrl } from "@std/path";
 
 function resolveWasmPath(relativePath: string): string {
   const url = new URL(relativePath, import.meta.url);
-  return url.protocol === "file:" ? url.pathname : url.href;
+  return url.protocol === "file:" ? fromFileUrl(url) : url.href;
 }
 
 export async function loadModule(

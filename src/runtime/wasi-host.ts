@@ -1,4 +1,5 @@
 import type { FileSystemProvider, WasiFileHandle } from "./wasi-fs-provider.ts";
+import { join } from "@std/path";
 
 export interface WasiHostConfig {
   preopens: Record<string, string>;
@@ -59,7 +60,7 @@ export function createWasiImports(
     const segments = normalized.split("/");
     if (segments.includes("..") || normalized.startsWith("/")) return null;
 
-    return `${dir.realPath}/${normalized}`;
+    return join(dir.realPath, normalized);
   }
   return {
     args_get: (_argv: number, _buf: number) => WASI_ESUCCESS,

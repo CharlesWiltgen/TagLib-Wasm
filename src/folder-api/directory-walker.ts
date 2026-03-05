@@ -4,10 +4,7 @@
 
 import { DEFAULT_AUDIO_EXTENSIONS, type FolderScanOptions } from "./types.ts";
 import { getPlatformIO } from "../runtime/platform-io.ts";
-
-function join(...paths: string[]): string {
-  return paths.filter(Boolean).join("/").replaceAll(/\/+/g, "/");
-}
+import { join } from "@std/path";
 
 function extname(path: string): string {
   const lastDot = path.lastIndexOf(".");

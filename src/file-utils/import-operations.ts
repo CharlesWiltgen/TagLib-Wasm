@@ -3,6 +3,7 @@ import { applyCoverArt, replacePictureByType } from "../simple/index.ts";
 import { readFileData } from "../utils/file.ts";
 import { writeFileData } from "../utils/write.ts";
 import { detectMimeType } from "./mime-detection.ts";
+import { basename } from "@std/path";
 
 /**
  * Import cover art from an image file to an audio file
@@ -113,7 +114,7 @@ export async function loadPictureFromFile(
     mimeType,
     data,
     type,
-    description: options.description ?? imagePath.split("/").pop(),
+    description: options.description ?? basename(imagePath),
   };
 }
 

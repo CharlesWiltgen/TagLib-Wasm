@@ -75,7 +75,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest] # Temporarily disable Windows tests
+        os: [ubuntu-latest, macos-latest, windows-latest]
         runtime: [deno]
         # Bun: verified via package-compat import test; full suite needs Bun test framework port
     runs-on: ${{ matrix.os }}
