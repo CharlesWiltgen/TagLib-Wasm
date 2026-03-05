@@ -10,7 +10,7 @@
  * - With or without network access
  */
 
-import { type ExtendedTag, readTags, TagLib } from "../../mod.ts";
+import { type ExtendedTag, readTags, TagLib } from "../../index.ts";
 
 // Configuration from environment
 const USE_EMBEDDED = Deno.env.get("USE_EMBEDDED_WASM") === "true";
