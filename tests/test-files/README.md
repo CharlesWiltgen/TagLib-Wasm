@@ -12,6 +12,11 @@ test-files/
 ├── ogg/           # Ogg Vorbis files
 ├── wav/           # WAV files (some with INFO tags)
 ├── mp4/           # MP4/M4A files with iTunes-style metadata
+├── opus/          # Opus files (Ogg container)
+├── oga/           # OGA files (Ogg Vorbis, .oga extension alias)
+├── wv/            # WavPack lossless audio
+├── tta/           # TrueAudio lossless audio
+├── wma/           # Windows Media Audio (ASF container)
 └── README.md      # This file
 ```
 

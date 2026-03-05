@@ -1,5 +1,5 @@
 /**
- * @fileoverview WASI write roundtrip tests for all 5 formats.
+ * @fileoverview WASI write roundtrip tests for all formats.
  *
  * The existing wasi-host.test.ts only tests write for FLAC.
  * This file extends coverage to all formats with varied tag data.
