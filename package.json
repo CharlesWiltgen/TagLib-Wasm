@@ -73,7 +73,7 @@
     "test:memory": "deno test --allow-read --allow-write --allow-env tests/memory.test.ts",
     "test:extended": "deno test --allow-read --allow-write --allow-env tests/extended-metadata.test.ts",
     "test:multi-runtime": "./tests/test-runtimes.sh",
-    "test:bun": "bun test tests/index.test.ts",
+    "test:bun": "bun test tests/bun-integration.test.ts",
     "test:node": "tsx --test tests/index.test.ts",
     "test:watch": "deno test --allow-read --allow-write --allow-env --watch tests/",
     "test:coverage": "deno test --allow-read --allow-write --allow-env --coverage=coverage tests/ && deno coverage coverage",

@@ -83,6 +83,11 @@
     "singleQuote": false,
     "proseWrap": "preserve"
   },
+  "test": {
+    "exclude": [
+      "tests/bun-integration.test.ts"
+    ]
+  },
   "tasks": {
     "build": "deno task build:ts && deno task build:wasm",
     "build:ts": "deno run -A scripts/build-js.mjs",

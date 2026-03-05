@@ -246,6 +246,11 @@ jobs:
           bun run test.ts
           echo "✓ Bun compatibility verified"
 
+      - name: Bun - integration tests
+        run: |
+          bun test tests/bun-integration.test.ts
+          echo "✓ Bun integration tests passed"
+
       - name: Node.js - import test
         run: |
           cd /tmp
