@@ -68,7 +68,7 @@ initialization.
 ## TypeScript API Layers
 
 1. **`src/taglib.ts`** — Core `TagLib` class and `AudioFile` interface
-2. **`src/simple.ts`** — Simple API (`readTags`, `applyTags`, `writeTagsToFile`)
+2. **`src/simple.ts`** — Simple API (`readTags`, `applyTags`, `applyTagsToFile`)
 3. **`src/folder-api.ts`** — Batch folder operations (`scanFolder`,
    `findDuplicates`)
 4. **`src/runtime/unified-loader.ts`** — Backend auto-selection and loading

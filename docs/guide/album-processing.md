@@ -224,7 +224,7 @@ async function checkAlbumCompleteness(albumPath: string) {
 ### 2. Apply Album-Wide Changes
 
 ```typescript
-import { writeTagsToFile } from "taglib-wasm/simple";
+import { applyTagsToFile } from "taglib-wasm/simple";
 
 async function updateAlbumMetadata(
   albumPath: string,
@@ -240,7 +240,7 @@ async function updateAlbumMetadata(
   // Update all tracks in parallel
   const updatePromises = files.map(async (file) => {
     try {
-      await writeTagsToFile(file, updates);
+      await applyTagsToFile(file, updates);
       return { file, success: true };
     } catch (error) {
       return { file, success: false, error };

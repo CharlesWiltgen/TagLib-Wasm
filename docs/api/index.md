@@ -8,7 +8,7 @@ JavaScript/TypeScript.
 - [Simple API](#simple-api)
   - [readTags()](#readtags)
   - [applyTags()](#applytags)
-  - [writeTagsToFile()](#updatetags)
+  - [applyTagsToFile()](#updatetags)
   - [readProperties()](#readproperties)
   - [Batch Processing](#batch-processing)
     - [readTagsBatch()](#readtagsbatch)
@@ -131,12 +131,12 @@ const modifiedBuffer = await applyTags(file, {
 });
 ```
 
-### writeTagsToFile()
+### applyTagsToFile()
 
 Update metadata tags in an audio file and save changes to disk.
 
 ```typescript
-function writeTagsToFile(
+function applyTagsToFile(
   file: string,
   tags: Partial<Tags>,
   options?: number,
@@ -158,7 +158,7 @@ Promise that resolves when the file has been successfully updated on disk.
 
 ```typescript
 // Update tags in place
-await writeTagsToFile("song.mp3", {
+await applyTagsToFile("song.mp3", {
   title: "New Title",
   artist: "New Artist",
   year: 2024,
@@ -166,7 +166,7 @@ await writeTagsToFile("song.mp3", {
 // File on disk now has updated tags
 
 // Update only specific tags
-await writeTagsToFile("song.mp3", {
+await applyTagsToFile("song.mp3", {
   genre: "Electronic",
 });
 ```
@@ -1505,9 +1505,9 @@ async function processAudioFile(filePath: string) {
 await processAudioFile("song.mp3");
 
 // Alternative: Using the simple API
-import { writeTagsToFile } from "taglib-wasm";
+import { applyTagsToFile } from "taglib-wasm";
 
-await writeTagsToFile("song.mp3", {
+await applyTagsToFile("song.mp3", {
   title: "New Title",
   artist: "New Artist",
   album: "New Album",

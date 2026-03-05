@@ -93,14 +93,14 @@ export async function applyTags(
  * @throws {InvalidFormatError} If the file is corrupted or in an unsupported format
  * @throws {EnvironmentError} If the runtime does not support filesystem write access
  */
-export async function writeTagsToFile(
+export async function applyTagsToFile(
   file: string,
   tags: Partial<TagInput>,
 ): Promise<void> {
   if (typeof file !== "string") {
     throw new FileOperationError(
       "save",
-      "writeTagsToFile requires a file path string to save changes",
+      "applyTagsToFile requires a file path string to save changes",
     );
   }
 

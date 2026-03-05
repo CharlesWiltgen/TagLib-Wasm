@@ -75,6 +75,7 @@ export {
   applyCoverArt,
   applyPictures,
   applyTags,
+  applyTagsToFile,
   type BatchItem,
   type BatchOptions,
   type BatchResult,
@@ -95,7 +96,6 @@ export {
   readTagsBatch,
   replacePictureByType,
   setBufferMode,
-  writeTagsToFile,
 } from "./src/simple/index.ts";
 
 // Property constants and utilities

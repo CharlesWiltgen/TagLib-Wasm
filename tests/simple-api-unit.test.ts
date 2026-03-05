@@ -5,6 +5,7 @@ import {
   applyCoverArt,
   applyPictures,
   applyTags,
+  applyTagsToFile,
   clearPictures,
   clearTags,
   findPictureByType,
@@ -22,7 +23,6 @@ import {
   readTagsBatch,
   replacePictureByType,
   setBufferMode,
-  writeTagsToFile,
 } from "../src/simple/index.ts";
 import { FileOperationError } from "../src/errors.ts";
 import type { Picture, PictureType } from "../src/types.ts";
@@ -533,12 +533,12 @@ describe("applyTags", () => {
   });
 });
 
-describe("writeTagsToFile", () => {
+describe("applyTagsToFile", () => {
   it("should write tags to a file on disk", async () => {
     const tempFile = await Deno.makeTempFile({ suffix: ".mp3" });
     try {
       await Deno.copyFile(FIXTURE_PATH.mp3, tempFile);
-      await writeTagsToFile(tempFile, {
+      await applyTagsToFile(tempFile, {
         title: "Written Title",
         artist: "Written Artist",
       });
@@ -645,15 +645,15 @@ describe("readPropertiesBatch error handling", () => {
   });
 });
 
-describe("writeTagsToFile error handling", () => {
+describe("applyTagsToFile error handling", () => {
   it("should throw FileOperationError for non-string input", async () => {
     await assertRejects(
       () =>
-        writeTagsToFile(new Uint8Array([1]) as unknown as string, {
+        applyTagsToFile(new Uint8Array([1]) as unknown as string, {
           title: "test",
         }),
       FileOperationError,
-      "writeTagsToFile requires a file path string",
+      "applyTagsToFile requires a file path string",
     );
   });
 });

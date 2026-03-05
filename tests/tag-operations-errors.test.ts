@@ -3,11 +3,11 @@ import { assertInstanceOf } from "@std/assert/instance-of";
 import { describe, it } from "@std/testing/bdd";
 import {
   applyTags,
+  applyTagsToFile,
   clearTags,
   readFormat,
   readTags,
   setBufferMode,
-  writeTagsToFile,
 } from "../src/simple/index.ts";
 import { TagLib } from "../src/taglib.ts";
 import { FileOperationError, InvalidFormatError } from "../src/errors.ts";
@@ -57,12 +57,12 @@ describe("applyTags", () => {
   });
 });
 
-describe("writeTagsToFile error paths", () => {
+describe("applyTagsToFile error paths", () => {
   it("should throw FileOperationError when given a buffer instead of path", async () => {
     const buffer = new Uint8Array(100);
     await assertRejects(
       // deno-lint-ignore no-explicit-any
-      () => writeTagsToFile(buffer as any, { title: "Test" }),
+      () => applyTagsToFile(buffer as any, { title: "Test" }),
       FileOperationError,
       "requires a file path string",
     );
@@ -72,7 +72,7 @@ describe("writeTagsToFile error paths", () => {
     const buffer = new ArrayBuffer(100);
     await assertRejects(
       // deno-lint-ignore no-explicit-any
-      () => writeTagsToFile(buffer as any, { title: "Test" }),
+      () => applyTagsToFile(buffer as any, { title: "Test" }),
       FileOperationError,
       "requires a file path string",
     );
