@@ -175,3 +175,7 @@ lib-cov
 # ===================
 *.backup
 package.json.backup
+
+# Dolt database files (added by bd init)
+.dolt/
+*.db
