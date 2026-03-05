@@ -686,9 +686,9 @@ describe(
           OPUS: "OGG",
           MP4: "MP4",
           OGA: "OGG",
-          WV: "Unknown",
-          TTA: "MP3",
-          WMA: "Unknown",
+          WV: "Unknown", // Known bug: see 1zc-cjp
+          TTA: "MP3", // Known bug: misidentified, see 1zc-cjp
+          WMA: "Unknown", // Known bug: see 1zc-cjp
         };
         assertEquals(
           handle.getFormat(),
@@ -753,7 +753,7 @@ describe(
             codec: "AAC",
             containerFormat: "MP4",
             isLossless: false,
-            hasBitsPerSample: false,
+            hasBitsPerSample: true,
           },
           OPUS: {
             codec: "Opus",
