@@ -1,4 +1,4 @@
-import { assertEquals } from "@std/assert";
+import { assert, assertEquals } from "@std/assert";
 import { assertInstanceOf } from "@std/assert/instance-of";
 import { beforeAll, describe, it } from "@std/testing/bdd";
 import { TagLib } from "../src/taglib.ts";
@@ -171,7 +171,11 @@ describe("updateFile with extended fields", () => {
 });
 
 describe("TagLib.version()", () => {
-  it("should return version 2.1.0", () => {
-    assertEquals(taglib.version(), "2.1.0");
+  it("should return version with TagLib version", () => {
+    const version = taglib.version();
+    assert(
+      /^\d+\.\d+\.\d+\S* \(TagLib \d+\.\d+\.\d+\)$/.test(version),
+      `Version should match format 'X.Y.Z (TagLib X.Y.Z)', got: ${version}`,
+    );
   });
 });

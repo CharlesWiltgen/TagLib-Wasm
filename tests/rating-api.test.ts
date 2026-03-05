@@ -5,7 +5,7 @@
 
 import { describe, it } from "@std/testing/bdd";
 import { assertEquals, assertExists } from "@std/assert";
-import { TagLib } from "../src/mod.ts";
+import { TagLib } from "../src/taglib.ts";
 import type { Rating } from "../src/constants/complex-properties.ts";
 
 // Test file paths

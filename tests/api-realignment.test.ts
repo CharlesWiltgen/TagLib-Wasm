@@ -6,7 +6,7 @@
 
 import { assert, assertEquals, assertExists, assertRejects } from "@std/assert";
 import { describe, it } from "@std/testing/bdd";
-import { TagLib } from "../src/mod.ts";
+import { TagLib } from "../src/taglib.ts";
 import { TEST_FILES, withTempFile } from "./test-utils.ts";
 import { readFileData } from "../src/utils/file.ts";
 import { setBufferMode } from "../src/simple/index.ts";
