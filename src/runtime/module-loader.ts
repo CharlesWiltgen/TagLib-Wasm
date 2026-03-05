@@ -35,8 +35,8 @@ import { checkNodeVersion } from "./detector.ts";
  * const module = await loadTagLibModule();
  * const taglib = new TagLib(module);
  *
- * // Force buffer mode (Emscripten-based in-memory I/O)
- * const module = await loadTagLibModule({ forceBufferMode: true });
+ * // Force Emscripten mode (in-memory I/O)
+ * const module = await loadTagLibModule({ forceWasmType: "emscripten" });
  *
  * // Force WASI mode (Deno/Node.js only)
  * const module = await loadTagLibModule({ forceWasmType: "wasi" });
@@ -62,7 +62,7 @@ export async function loadTagLibModule(
   }
 
   if (
-    !options?.forceBufferMode && !options?.wasmBinary && !options?.wasmUrl &&
+    !options?.wasmBinary && !options?.wasmUrl &&
     !options?.forceWasmType && isDenoCompiled()
   ) {
     const wasmBinary = await tryLoadEmbeddedWasm();
@@ -74,12 +74,12 @@ export async function loadTagLibModule(
     }
     return loadBufferModeTagLibModule({
       ...options,
-      forceBufferMode: true,
+      forceWasmType: "emscripten",
       ...(wasmBinary ? { wasmBinary } : {}),
     });
   }
 
-  if (options?.forceBufferMode) {
+  if (options?.forceWasmType === "emscripten") {
     return loadBufferModeTagLibModule(options);
   }
 
@@ -106,7 +106,7 @@ export async function loadTagLibModule(
 
 /**
  * Emscripten-only module loader for buffer mode (in-memory I/O).
- * Used for fallback compatibility and when forceBufferMode is explicitly requested.
+ * Used for fallback compatibility and when forceWasmType is "emscripten".
  *
  * @internal
  */

@@ -94,7 +94,6 @@ describe("scanFolder", () => {
   it("should scan directory recursively", async () => {
     const result = await scanFolder(TEST_FILES_DIR, {
       recursive: true,
-      forceBufferMode: true,
     });
 
     expect(result.items.length).toBeGreaterThanOrEqual(5);
@@ -108,7 +107,6 @@ describe("scanFolder", () => {
     const result = await scanFolder(TEST_FILES_DIR, {
       extensions: [".mp3"],
       recursive: true,
-      forceBufferMode: true,
     });
 
     for (const item of result.items) {
@@ -120,7 +118,6 @@ describe("scanFolder", () => {
     const result = await scanFolder(TEST_FILES_DIR, {
       maxFiles: 2,
       recursive: true,
-      forceBufferMode: true,
     });
 
     expect(result.items).toHaveLength(2);

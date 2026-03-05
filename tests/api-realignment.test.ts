@@ -81,7 +81,7 @@ describe("API Realignment", () => {
 
   describe("taglib.edit() - Callback-Scoped Write", () => {
     it("edit(buffer, fn) applies tags and returns modified Uint8Array", async () => {
-      const taglib = await TagLib.initialize({ forceBufferMode: true });
+      const taglib = await TagLib.initialize({ forceWasmType: "emscripten" });
       const buffer = await readFileData(TEST_FILES.mp3);
 
       const result = await taglib.edit(buffer, (file) => {
@@ -97,7 +97,7 @@ describe("API Realignment", () => {
     });
 
     it("edit(path, fn) writes to disk and returns void", async () => {
-      const taglib = await TagLib.initialize({ forceBufferMode: true });
+      const taglib = await TagLib.initialize({ forceWasmType: "emscripten" });
       const sourceData = await readFileData(TEST_FILES.mp3);
 
       await withTempFile("test.mp3", sourceData, async (path) => {
@@ -116,7 +116,7 @@ describe("API Realignment", () => {
     });
 
     it("edit() supports async callbacks", async () => {
-      const taglib = await TagLib.initialize({ forceBufferMode: true });
+      const taglib = await TagLib.initialize({ forceWasmType: "emscripten" });
       const buffer = await readFileData(TEST_FILES.flac);
 
       const result = await taglib.edit(buffer, async (file) => {
@@ -130,7 +130,7 @@ describe("API Realignment", () => {
     });
 
     it("edit() disposes file even when callback throws", async () => {
-      const taglib = await TagLib.initialize({ forceBufferMode: true });
+      const taglib = await TagLib.initialize({ forceWasmType: "emscripten" });
       const buffer = await readFileData(TEST_FILES.mp3);
 
       await assertRejects(
@@ -151,7 +151,7 @@ describe("API Realignment", () => {
 
   describe("Fluent MutableTag Setters", () => {
     it("MutableTag setters return the tag for chaining", async () => {
-      const taglib = await TagLib.initialize({ forceBufferMode: true });
+      const taglib = await TagLib.initialize({ forceWasmType: "emscripten" });
       const buffer = await readFileData(TEST_FILES.mp3);
       const file = await taglib.open(buffer);
 
@@ -180,7 +180,7 @@ describe("API Realignment", () => {
     });
 
     it("fluent setters work inside edit() callback", async () => {
-      const taglib = await TagLib.initialize({ forceBufferMode: true });
+      const taglib = await TagLib.initialize({ forceWasmType: "emscripten" });
       const buffer = await readFileData(TEST_FILES.flac);
 
       const result = await taglib.edit(buffer, (file) => {

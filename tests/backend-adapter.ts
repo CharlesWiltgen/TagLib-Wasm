@@ -259,7 +259,7 @@ export class EmscriptenBackendAdapter implements BackendAdapter {
 
   async init(): Promise<void> {
     const { TagLib } = await import("../src/taglib.ts");
-    this.#taglib = await TagLib.initialize({ forceBufferMode: true });
+    this.#taglib = await TagLib.initialize({ forceWasmType: "emscripten" });
   }
 
   async dispose(): Promise<void> {

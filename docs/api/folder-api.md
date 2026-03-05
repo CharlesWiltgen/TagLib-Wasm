@@ -185,9 +185,6 @@ interface FolderScanOptions {
   /** Continue on errors (default: true) */
   continueOnError?: boolean;
 
-  /** Force buffer mode instead of WASI file I/O */
-  forceBufferMode?: boolean;
-
   /** Tag fields to compare for duplicate detection (default: ["artist", "title"]) */
   criteria?: Array<keyof Tag>;
 

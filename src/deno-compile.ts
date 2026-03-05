@@ -52,7 +52,10 @@ export async function initializeForDenoCompile(
     for (const strategy of strategies) {
       try {
         const wasmBinary = await strategy();
-        return await TagLib.initialize({ wasmBinary, forceBufferMode: true });
+        return await TagLib.initialize({
+          wasmBinary,
+          forceWasmType: "emscripten",
+        });
       } catch {
         // Try next strategy
       }
@@ -63,7 +66,7 @@ export async function initializeForDenoCompile(
   }
 
   // Fall back to default network-based initialization (Emscripten for compile targets)
-  return await TagLib.initialize({ forceBufferMode: true });
+  return await TagLib.initialize({ forceWasmType: "emscripten" });
 }
 
 /**
