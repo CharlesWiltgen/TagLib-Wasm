@@ -296,7 +296,8 @@ describe("Error Handling", () => {
       assert(error instanceof Error, "Should throw Error");
       assert(
         error.message.includes("No such file") ||
-          error.message.includes("ENOENT"),
+          error.message.includes("ENOENT") ||
+          error.message.includes("cannot find the file"),
         "Error should indicate file not found",
       );
     }

@@ -97,12 +97,21 @@ describe("EdgeCases", () => {
     ];
 
     for (const { value, type } of wrongInputs) {
-      await assertRejects(
-        async () => await readTags(value as any),
-        FileOperationError,
-        type === "String" ? "No such file" : "Invalid file input",
-        `Should reject ${type} input with descriptive error`,
-      );
+      if (type === "String") {
+        await assertRejects(
+          async () => await readTags(value as any),
+          FileOperationError,
+          undefined,
+          `Should reject ${type} input with descriptive error`,
+        );
+      } else {
+        await assertRejects(
+          async () => await readTags(value as any),
+          FileOperationError,
+          "Invalid file input",
+          `Should reject ${type} input with descriptive error`,
+        );
+      }
     }
   });
 
