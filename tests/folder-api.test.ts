@@ -20,7 +20,6 @@ describe("folder-api", () => {
     const result = await scanFolder(TEST_FILES_DIR, {
       recursive: true,
 
-      forceBufferMode: true,
       onProgress: (processed, total) => {
         console.log(`Progress: ${processed}/${total}`);
       },
@@ -65,8 +64,6 @@ describe("folder-api", () => {
     const result = await scanFolder(TEST_FILES_DIR, {
       extensions: [".mp3"],
       recursive: true,
-
-      forceBufferMode: true,
     });
 
     // Should only find MP3 files
@@ -79,8 +76,6 @@ describe("folder-api", () => {
     const result = await scanFolder(TEST_FILES_DIR, {
       maxFiles: 2,
       recursive: true,
-
-      forceBufferMode: true,
     });
 
     assertEquals(result.items.length, 2);
@@ -96,8 +91,6 @@ describe("folder-api", () => {
     try {
       const result = await scanFolder(tempDir, {
         continueOnError: true,
-
-        forceBufferMode: true,
       });
 
       assertEquals(result.items.length, 1);
@@ -185,9 +178,7 @@ describe("folder-api", () => {
     ]);
 
     try {
-      const duplicates = await findDuplicates(tempDir, {
-        forceBufferMode: true,
-      });
+      const duplicates = await findDuplicates(tempDir, {});
 
       // Should find one group of duplicates
       assertEquals(duplicates.length, 1);
@@ -214,8 +205,6 @@ describe("folder-api", () => {
     try {
       await exportFolderMetadata(TEST_FILES_DIR, tempFile, {
         recursive: true,
-
-        forceBufferMode: true,
       });
 
       // Read and parse the exported JSON
@@ -247,7 +236,6 @@ describe("folder-api", () => {
   it("scanFolder - processes all files", async () => {
     const result = await scanFolder(TEST_FILES_DIR, {
       recursive: true,
-      forceBufferMode: true,
     });
 
     assertEquals(result.items.length > 0, true);
@@ -258,8 +246,6 @@ describe("folder-api", () => {
   it("scanFolder - detects cover art presence", async () => {
     const result = await scanFolder(TEST_FILES_DIR, {
       recursive: true,
-
-      forceBufferMode: true,
     });
 
     // Check that hasCoverArt is populated for all ok files
@@ -287,8 +273,6 @@ describe("folder-api", () => {
   it("scanFolder - extracts audio dynamics data", async () => {
     const result = await scanFolder(TEST_FILES_DIR, {
       recursive: true,
-
-      forceBufferMode: true,
     });
 
     // Check that dynamics data is extracted when available

@@ -164,7 +164,7 @@ describe("Main API", () => {
 
   it("supports buffer mode", async () => {
     try {
-      const module = await loadTagLibModule({ forceBufferMode: true });
+      const module = await loadTagLibModule({ forceWasmType: "emscripten" });
 
       assertExists(module);
       assertExists(module.createFileHandle);
@@ -203,7 +203,7 @@ describe("TagLib.initialize", () => {
       const taglib1 = await TagLib.initialize({ forceWasmType: "wasi" });
       assertExists(taglib1);
 
-      const taglib2 = await TagLib.initialize({ forceBufferMode: true });
+      const taglib2 = await TagLib.initialize({ forceWasmType: "emscripten" });
       assertExists(taglib2);
 
       const taglib3 = await TagLib.initialize({ disableOptimizations: true });

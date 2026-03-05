@@ -2,7 +2,7 @@
  * Scanning operations for folder-level metadata reading
  */
 
-import { TagLib } from "../taglib.ts";
+import type { TagLib } from "../taglib.ts";
 import { getTagLib } from "../simple/config.ts";
 import { walkDirectory } from "./directory-walker.ts";
 import { processBatch, processFileWithTagLib } from "./file-processors.ts";
@@ -91,7 +91,6 @@ export async function scanFolder(
     includeProperties = true,
     continueOnError = true,
     onProgress,
-    forceBufferMode,
     signal,
   } = options;
 
@@ -107,9 +106,7 @@ export async function scanFolder(
 
   const totalFound = filePaths.length;
 
-  const taglib = forceBufferMode
-    ? await TagLib.initialize({ forceBufferMode: true })
-    : await getTagLib();
+  const taglib = await getTagLib();
 
   const processOpts: ScanProcessOptions = {
     includeProperties,

@@ -35,7 +35,7 @@ describe("EdgeCases", () => {
   // ===========================================================================
 
   it("Input Validation: Too small buffers", async () => {
-    const taglib = await TagLib.initialize({ forceBufferMode: true });
+    const taglib = await TagLib.initialize({ forceWasmType: "emscripten" });
 
     // Test various small buffer sizes
     const sizes = [0, 1, 10, 100, 500, 999];
@@ -53,7 +53,7 @@ describe("EdgeCases", () => {
   });
 
   it("Input Validation: Null and undefined inputs", async () => {
-    const taglib = await TagLib.initialize({ forceBufferMode: true });
+    const taglib = await TagLib.initialize({ forceWasmType: "emscripten" });
 
     // Test Full API
     await assertRejects(
@@ -116,7 +116,7 @@ describe("EdgeCases", () => {
   });
 
   it("Input Validation: Empty buffers", async () => {
-    const taglib = await TagLib.initialize({ forceBufferMode: true });
+    const taglib = await TagLib.initialize({ forceWasmType: "emscripten" });
 
     // Test completely empty buffer
     const emptyBuffer = new Uint8Array(0);
@@ -140,7 +140,7 @@ describe("EdgeCases", () => {
   });
 
   it("Input Validation: Non-audio data", async () => {
-    const taglib = await TagLib.initialize({ forceBufferMode: true });
+    const taglib = await TagLib.initialize({ forceWasmType: "emscripten" });
 
     // Test with plain text
     const textData = new TextEncoder().encode("This is not an audio file!");
@@ -186,7 +186,7 @@ describe("EdgeCases", () => {
   // ===========================================================================
 
   it("Audio Properties: Invalid values handling", async () => {
-    const taglib = await TagLib.initialize({ forceBufferMode: true });
+    const taglib = await TagLib.initialize({ forceWasmType: "emscripten" });
 
     // We'll use a valid file and check that properties are reasonable
     const audioData = await Deno.readFile(TEST_FILES.mp3);
@@ -265,7 +265,7 @@ describe("EdgeCases", () => {
   });
 
   it("Audio Properties: Corrupted header handling", async () => {
-    const taglib = await TagLib.initialize({ forceBufferMode: true });
+    const taglib = await TagLib.initialize({ forceWasmType: "emscripten" });
 
     // Create a buffer that looks like MP3 but has corrupted header
     const corruptedMP3 = new Uint8Array(2048);

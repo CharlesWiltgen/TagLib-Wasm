@@ -84,11 +84,6 @@ export interface FolderScanOptions {
   includeProperties?: boolean;
   /** Whether to continue on errors (default: true) */
   continueOnError?: boolean;
-  /**
-   * Force buffer mode: Emscripten in-memory I/O (bypasses unified loader).
-   * @deprecated Use `setBufferMode(true)` before calling scanFolder instead.
-   */
-  forceBufferMode?: boolean;
   /** Tag fields to compare when finding duplicates (default: ["artist", "title"]) */
   criteria?: Array<keyof Tag>;
   /** AbortSignal to cancel the operation between processing chunks. */

@@ -20,7 +20,7 @@ try {
   const wasmBinary = await Deno.readFile(wasmPath);
   const module = await loadTagLibModule({
     wasmBinary,
-    forceBufferMode: true,
+    forceWasmType: "emscripten",
   });
   emscriptenAvailable = module != null;
 } catch {
@@ -40,7 +40,7 @@ describe("OfflineSupport", () => {
       const wasmBinary = await Deno.readFile(wasmPath);
       const module = await loadTagLibModule({
         wasmBinary,
-        forceBufferMode: true,
+        forceWasmType: "emscripten",
       });
       assertExists(module);
       const { createTagLib } = await import("../src/taglib.ts");
@@ -62,7 +62,7 @@ describe("OfflineSupport", () => {
       const wasmUrl = new URL("../dist/taglib-web.wasm", import.meta.url).href;
       const module = await loadTagLibModule({
         wasmUrl,
-        forceBufferMode: true,
+        forceWasmType: "emscripten",
       });
       assertExists(module);
       const { createTagLib } = await import("../src/taglib.ts");
@@ -85,7 +85,7 @@ describe("OfflineSupport", () => {
       const wasmBinary = await Deno.readFile(wasmPath);
       const taglib = await TagLib.initialize({
         wasmBinary,
-        forceBufferMode: true,
+        forceWasmType: "emscripten",
       });
       assertExists(taglib);
       const testFile = await Deno.readFile(
