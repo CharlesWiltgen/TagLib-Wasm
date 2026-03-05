@@ -18,6 +18,7 @@ redirect
 # Sync state (local-only, per-machine)
 # These files are machine-specific and should not be shared across clones
 .sync.lock
+.jsonl.lock
 export-state/
 
 # Ephemeral store (SQLite - wisps/molecules, intentionally not versioned)
