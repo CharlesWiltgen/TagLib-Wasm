@@ -8,7 +8,7 @@
  * and doesn't require complex embedding strategies.
  */
 
-import { readTags, TagLib } from "../../mod.ts";
+import { readTags, TagLib } from "../../index.ts";
 
 // Create a test WAV file with minimal valid header
 function createTestWav(): Uint8Array {
