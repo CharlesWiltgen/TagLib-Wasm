@@ -3,6 +3,7 @@ import type { Picture, PictureType } from "../types.ts";
 import { readCoverArt, readPictures } from "../simple/index.ts";
 import { writeFileData } from "../utils/write.ts";
 import { generatePictureFilename } from "./mime-detection.ts";
+import { join } from "@std/path";
 
 /**
  * Export cover art from an audio file to an image file
@@ -97,15 +98,13 @@ export async function exportAllPictures(
   const pictures = await readPictures(audioPath);
   const exportedPaths: string[] = [];
 
-  const dir = outputDir.endsWith("/") ? outputDir : outputDir + "/";
-
   for (let i = 0; i < pictures.length; i++) {
     const picture = pictures[i];
     const filename = options.nameFormat
       ? options.nameFormat(picture, i)
       : generatePictureFilename(picture, i);
 
-    const fullPath = dir + filename;
+    const fullPath = join(outputDir, filename);
     await writeFileData(fullPath, picture.data);
     exportedPaths.push(fullPath);
   }

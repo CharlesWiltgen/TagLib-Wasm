@@ -8,11 +8,12 @@ import {
   updateFolderTags,
 } from "../src/folder-api/index.ts";
 import { readTags, setBufferMode } from "../src/simple/index.ts";
+import { fromFileUrl } from "@std/path";
 
 // Force Emscripten backend for Simple API calls
 setBufferMode(true);
 
-const TEST_FILES_DIR = new URL("./test-files", import.meta.url).pathname;
+const TEST_FILES_DIR = fromFileUrl(new URL("./test-files", import.meta.url));
 
 describe("folder-api", () => {
   it("scanFolder - reads all audio files with metadata", async () => {

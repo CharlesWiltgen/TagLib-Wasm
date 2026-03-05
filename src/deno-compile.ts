@@ -10,6 +10,7 @@
 import { TagLib } from "./taglib.ts";
 import { FileOperationError } from "./errors/classes.ts";
 import { isDenoCompiled } from "./runtime/deno-detect.ts";
+import { fromFileUrl } from "@std/path";
 export { isDenoCompiled } from "./runtime/deno-detect.ts";
 
 /**
@@ -100,7 +101,7 @@ export async function prepareWasmForEmbedding(
     for (const path of possiblePaths) {
       try {
         wasmData = await Deno.readFile(path);
-        sourcePath = path.pathname;
+        sourcePath = fromFileUrl(path);
         break;
       } catch {
         // Try next path
