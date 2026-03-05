@@ -52,7 +52,8 @@ import { checkNodeVersion } from "./detector.ts";
 export async function loadTagLibModule(
   options?: LoadTagLibOptions,
 ): Promise<TagLibModule> {
-  const nodeVersion = (globalThis as any).process?.versions?.node as
+  const g = globalThis as Record<string, unknown>;
+  const nodeVersion = (g.process as any)?.versions?.node as
     | string
     | undefined;
   const versionError = checkNodeVersion(nodeVersion);

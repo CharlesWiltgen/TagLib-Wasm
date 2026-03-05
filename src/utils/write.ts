@@ -1,67 +1,22 @@
-/**
- * File writing utilities for TagLib-Wasm
- * Provides cross-runtime support for writing files
- */
-
 import { EnvironmentError, FileOperationError } from "../errors.ts";
+import { getPlatformIO } from "../runtime/platform-io.ts";
 
 /**
  * Write data to a file across different runtimes.
  * Supports Node.js, Deno, and Bun environments.
- *
- * @param path - File path to write to
- * @param data - Data to write (Uint8Array)
- * @throws {FileOperationError} If file write fails
- * @throws {EnvironmentError} If environment doesn't support file writing
  */
 export async function writeFileData(
   path: string,
   data: Uint8Array,
 ): Promise<void> {
   try {
-    // Deno
-    if ((globalThis as any).Deno !== undefined) {
-      await (globalThis as any).Deno.writeFile(path, data);
-      return;
-    }
-
-    // Node.js
-    if (
-      (globalThis as any).process !== undefined &&
-      (globalThis as any).process.versions?.node
-    ) {
-      const { writeFile } = await import("node:fs/promises");
-      await writeFile(path, data);
-      return;
-    }
-
-    // Bun
-    if ((globalThis as any).Bun !== undefined) {
-      await (globalThis as any).Bun.write(path, data);
-      return;
-    }
+    await getPlatformIO().writeFile(path, data);
   } catch (error) {
-    // Convert system file errors to FileOperationError
+    if (error instanceof EnvironmentError) throw error;
     throw new FileOperationError(
       "write",
       (error as Error).message,
       path,
     );
   }
-
-  let env: string;
-  if ((globalThis as any).Deno !== undefined) {
-    env = "Deno";
-  } else if ((globalThis as any).process !== undefined) {
-    env = "Node.js";
-  } else if ((globalThis as any).Bun === undefined) {
-    env = "Browser";
-  } else {
-    env = "Bun";
-  }
-  throw new EnvironmentError(
-    env,
-    "does not support file path writing",
-    "filesystem access",
-  );
 }
