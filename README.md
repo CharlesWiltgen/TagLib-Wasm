@@ -310,6 +310,7 @@ Supported formats:
 - [Cloudflare Workers](https://charleswiltgen.github.io/TagLib-Wasm/advanced/cloudflare-workers.html)
 - [Error Handling](https://charleswiltgen.github.io/TagLib-Wasm/concepts/error-handling.html)
 - [Contributing](CONTRIBUTING.md)
+- [AI Agent Documentation](AGENTS.md)
 
 ## Supported Formats
 
