@@ -144,9 +144,9 @@ async function processSpecificFiles(files: string[]) {
 
     for (const file of ourFiles) {
       console.log(`📄 ${file.path}`);
-      console.log(`   Title: ${file.tags.title || "(none)"}`);
-      console.log(`   Artist: ${file.tags.artist || "(none)"}`);
-      console.log(`   Album: ${file.tags.album || "(none)"}`);
+      console.log(`   Title: ${file.tags.title?.[0] || "(none)"}`);
+      console.log(`   Artist: ${file.tags.artist?.[0] || "(none)"}`);
+      console.log(`   Album: ${file.tags.album?.[0] || "(none)"}`);
       if (file.properties) {
         console.log(`   Duration: ${formatDuration(file.properties.duration)}`);
         console.log(`   Bitrate: ${file.properties.bitrate} kbps`);
@@ -162,7 +162,7 @@ function groupByAlbum(
 ): Map<string, AudioFileMetadata[]> {
   const albums = new Map<string, AudioFileMetadata[]>();
   for (const file of files) {
-    const album = file.tags.album || "Unknown Album";
+    const album = file.tags.album?.[0] || "Unknown Album";
     const albumFiles = albums.get(album) || [];
     albumFiles.push(file);
     albums.set(album, albumFiles);

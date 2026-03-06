@@ -144,7 +144,7 @@ The Simple API automatically handles memory management:
 ```typescript
 // Memory is automatically managed
 const tags = await readTags("song.mp3");
-console.log(tags.title);
+console.log(tags.title?.[0]);
 
 // No need to call dispose() - handled internally
 ```

@@ -49,8 +49,8 @@ const taglib = await TagLib.initialize({
 
 // Read tags from a file
 const tags = await readTags("song.mp3");
-console.log("Title:", tags.title);
-console.log("Artist:", tags.artist);
+console.log("Title:", tags.title?.[0]);
+console.log("Artist:", tags.artist?.[0]);
 ```
 
 ## Trade-offs
