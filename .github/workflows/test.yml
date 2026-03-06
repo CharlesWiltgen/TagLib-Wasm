@@ -275,6 +275,48 @@ jobs:
           node test.mjs
           echo "✓ Node.js compatibility verified"
 
+      - name: Vite - browser bundle test
+        run: |
+          cd /tmp
+          mkdir -p vite-compat-test
+          cd vite-compat-test
+          npm init -y
+          npm pkg set type=module
+          npm install $GITHUB_WORKSPACE
+          npm install --save-dev vite
+
+          cat > index.html << 'HTMLEOF'
+          <!DOCTYPE html>
+          <html><body><script type="module" src="/main.js"></script></body></html>
+          HTMLEOF
+
+          cat > main.js << 'JSEOF'
+          import { TagLib, readTags } from "taglib-wasm";
+          import { readTags as simpleReadTags } from "taglib-wasm/simple";
+          import { RatingUtils } from "taglib-wasm";
+
+          if (typeof TagLib !== "function") throw new Error("TagLib export failed");
+          if (typeof readTags !== "function") throw new Error("readTags export failed");
+          if (typeof simpleReadTags !== "function") throw new Error("simple subpath export failed");
+          if (typeof RatingUtils !== "object") throw new Error("RatingUtils export failed");
+
+          console.log("taglib-wasm browser imports OK");
+          JSEOF
+
+          npx vite build 2>&1
+          echo "✓ Vite build succeeded"
+
+          # Check for server-only entry points in the bundle.
+          # Note: node:fs/node:module refs from Emscripten's universal runtime are
+          # expected (Vite externalizes them to empty shims). The real regression
+          # signals are @wasmer/wasi-host imports, which mean Vite resolved the
+          # server entry point instead of the browser one.
+          if grep -rlE "@wasmer|wasi-host" dist/; then
+            echo "✗ Server-only imports found in Vite output bundle"
+            exit 1
+          fi
+          echo "✓ No server-only imports in browser bundle"
+
   test-summary:
     name: Test Summary
     needs: [build, test, lint, package-compat]
