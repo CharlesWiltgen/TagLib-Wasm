@@ -24,7 +24,7 @@ export class TagLib {
    * @throws {TagLibInitializationError} If the Wasm module fails to load.
    */
   static async initialize(options?: LoadTagLibOptions): Promise<TagLib> {
-    const { loadTagLibModule } = await import("../../index.ts");
+    const { loadTagLibModule } = await import("../runtime/module-loader.ts");
     const module = await loadTagLibModule(options);
     return new TagLib(module);
   }

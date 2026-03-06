@@ -22,7 +22,9 @@
   },
   "include": [
     "index.ts",
+    "index.browser.ts",
     "simple.ts",
+    "simple.browser.ts",
     "folder.ts",
     "web.ts",
     "rating.ts",
