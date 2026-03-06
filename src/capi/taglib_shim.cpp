@@ -26,6 +26,8 @@
 #include <tbytevectorstream.h>
 #include <tfilestream.h>
 #include <audioproperties.h>
+#include <mp4file.h>
+#include <mpegfile.h>
 
 #include <mpack/mpack.h>
 
@@ -99,9 +101,52 @@ static void write_mpack_string(mpack_writer_t* w, const TagLib::String& s) {
     mpack_write_str(w, utf8.c_str(), static_cast<uint32_t>(utf8.size()));
 }
 
+static bool uses_intpair_format(TagLib::File* file) {
+    return dynamic_cast<TagLib::MP4::File*>(file) ||
+           dynamic_cast<TagLib::MPEG::File*>(file);
+}
+
+static void split_intpair_properties(TagLib::PropertyMap& props) {
+    auto splitPair = [&props](const char* numberKey, const char* totalKey) {
+        auto it = props.find(numberKey);
+        if (it == props.end() || it->second.isEmpty()) return;
+        TagLib::String val = it->second.front();
+        int slash = val.find("/");
+        if (slash == -1) return;
+        TagLib::String number = val.substr(0, slash);
+        TagLib::String total = val.substr(slash + 1);
+        props[numberKey] = TagLib::StringList(number);
+        if (total.toInt() > 0) {
+            props[totalKey] = TagLib::StringList(total);
+        }
+    };
+    splitPair("TRACKNUMBER", "TRACKTOTAL");
+    splitPair("DISCNUMBER", "DISCTOTAL");
+}
+
+static void merge_intpair_properties(TagLib::PropertyMap& propMap) {
+    auto mergePair = [&propMap](const char* numberKey, const char* totalKey) {
+        auto totalIt = propMap.find(totalKey);
+        if (totalIt == propMap.end() || totalIt->second.isEmpty()) return;
+        TagLib::String total = totalIt->second.front();
+        TagLib::String number = "0";
+        auto numIt = propMap.find(numberKey);
+        if (numIt != propMap.end() && !numIt->second.isEmpty()) {
+            number = numIt->second.front();
+        }
+        propMap[numberKey] = TagLib::StringList(number + "/" + total);
+        propMap.erase(totalKey);
+    };
+    mergePair("TRACKNUMBER", "TRACKTOTAL");
+    mergePair("DISCNUMBER", "DISCTOTAL");
+}
+
 static tl_error_code encode_file_to_msgpack(TagLib::File* file,
                                             uint8_t** out_buf, size_t* out_size) {
     TagLib::PropertyMap props = file->properties();
+    if (uses_intpair_format(file)) {
+        split_intpair_properties(props);
+    }
     TagLib::AudioProperties* audio = file->audioProperties();
 
     uint32_t count = 0;
@@ -444,6 +489,9 @@ static tl_error_code write_to_path(const char* path,
         TagLib::FileRef ref(path);
         if (ref.isNull() || !ref.tag()) return TL_ERROR_IO_WRITE;
 
+        if (uses_intpair_format(ref.file())) {
+            merge_intpair_properties(propMap);
+        }
         apply_propmap(ref, propMap);
         apply_pictures_from_msgpack(ref.file(), tags_msgpack, tags_msgpack_len);
         apply_ratings_from_msgpack(ref.file(), tags_msgpack, tags_msgpack_len);
@@ -471,6 +519,9 @@ static tl_error_code write_to_buffer(const uint8_t* buf, size_t len,
         TagLib::FileRef ref(&stream);
         if (ref.isNull() || !ref.tag()) return TL_ERROR_PARSE_FAILED;
 
+        if (uses_intpair_format(ref.file())) {
+            merge_intpair_properties(propMap);
+        }
         apply_propmap(ref, propMap);
         apply_pictures_from_msgpack(ref.file(), tags_msgpack, tags_msgpack_len);
         apply_ratings_from_msgpack(ref.file(), tags_msgpack, tags_msgpack_len);

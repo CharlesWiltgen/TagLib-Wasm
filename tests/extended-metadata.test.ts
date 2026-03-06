@@ -111,6 +111,50 @@ describe("Extended Metadata", () => {
     file2.dispose();
   });
 
+  it("Total tracks and discs roundtrip (MP4)", async () => {
+    const taglib = await TagLib.initialize({ forceWasmType: "emscripten" });
+    const m4aBuffer = await readFileData(TEST_FILES.m4a);
+    const file = await taglib.open(m4aBuffer);
+
+    file.setProperty("TRACKNUMBER", "3");
+    file.setProperty("TRACKTOTAL", "12");
+    file.setProperty("DISCNUMBER", "1");
+    file.setProperty("DISCTOTAL", "2");
+    file.save();
+
+    const savedBuffer = file.getFileBuffer();
+    file.dispose();
+
+    const file2 = await taglib.open(savedBuffer);
+    assertEquals(file2.getProperty("TRACKNUMBER"), "3");
+    assertEquals(file2.getProperty("TRACKTOTAL"), "12");
+    assertEquals(file2.getProperty("DISCNUMBER"), "1");
+    assertEquals(file2.getProperty("DISCTOTAL"), "2");
+    file2.dispose();
+  });
+
+  it("Total tracks and discs roundtrip (MP3)", async () => {
+    const taglib = await TagLib.initialize({ forceWasmType: "emscripten" });
+    const mp3Buffer = await readFileData(TEST_FILES.mp3);
+    const file = await taglib.open(mp3Buffer);
+
+    file.setProperty("TRACKNUMBER", "7");
+    file.setProperty("TRACKTOTAL", "15");
+    file.setProperty("DISCNUMBER", "2");
+    file.setProperty("DISCTOTAL", "3");
+    file.save();
+
+    const savedBuffer = file.getFileBuffer();
+    file.dispose();
+
+    const file2 = await taglib.open(savedBuffer);
+    assertEquals(file2.getProperty("TRACKNUMBER"), "7");
+    assertEquals(file2.getProperty("TRACKTOTAL"), "15");
+    assertEquals(file2.getProperty("DISCNUMBER"), "2");
+    assertEquals(file2.getProperty("DISCTOTAL"), "3");
+    file2.dispose();
+  });
+
   it("ReplayGain values", async () => {
     const taglib = await TagLib.initialize({ forceWasmType: "emscripten" });
 
