@@ -5,7 +5,7 @@
 #include <audioproperties.h>
 #include <tpropertymap.h>
 #include <tbytevector.h>
-#include <tbytevectorstream.h>
+#include <tiostream.h>
 #include <mpegfile.h>
 #include <mpegproperties.h>
 #include <mp4file.h>
@@ -319,10 +319,114 @@ public:
         : mimeType(mime), data(imgData), type(picType), description(desc) {}
 };
 
-// Helper class to manage ByteVectorStream lifetime
+// Custom IOStream backed by std::vector<char> instead of TagLib::ByteVector.
+// This eliminates COW (copy-on-write) sharing that causes ByteVectorStream to
+// deep-copy the entire file buffer during save(). ByteVectorStream::readBlock()
+// uses ByteVector::mid() which creates COW-shared slices. Metadata blocks parsed
+// during file loading hold these shared references, so when save() calls insert()
+// → truncate() → resize() → detach(), the stream must copy the whole buffer.
+// VectorStream's readBlock() constructs ByteVectors from raw pointers, producing
+// independent copies (only of the small metadata blocks, not the whole file).
+class VectorStream : public TagLib::IOStream {
+public:
+    VectorStream(const char *data, unsigned int length)
+        : buf_(data, data + length), position_(0) {}
+
+    VectorStream(std::vector<char> &&data)
+        : buf_(std::move(data)), position_(0) {}
+
+    TagLib::FileName name() const override { return ""; }
+
+    TagLib::ByteVector readBlock(size_t length) override {
+        if(length == 0 || position_ < 0 ||
+           position_ >= static_cast<TagLib::offset_t>(buf_.size()))
+            return TagLib::ByteVector();
+
+        size_t avail = buf_.size() - static_cast<size_t>(position_);
+        size_t toRead = std::min(length, avail);
+        TagLib::ByteVector v(buf_.data() + position_,
+                             static_cast<unsigned int>(toRead));
+        position_ += static_cast<TagLib::offset_t>(toRead);
+        return v;
+    }
+
+    void writeBlock(const TagLib::ByteVector &data) override {
+        if(position_ < 0)
+            return;
+        size_t end = static_cast<size_t>(position_) + data.size();
+        if(end > buf_.size())
+            buf_.resize(end);
+        memcpy(buf_.data() + position_, data.data(), data.size());
+        position_ += data.size();
+    }
+
+    void insert(const TagLib::ByteVector &data,
+                TagLib::offset_t start = 0, size_t replace = 0) override {
+        long long sizeDiff = static_cast<long long>(data.size()) -
+                             static_cast<long long>(replace);
+        if(sizeDiff < 0) {
+            removeBlock(start + data.size(),
+                        static_cast<size_t>(-sizeDiff));
+        } else if(sizeDiff > 0) {
+            size_t oldSize = buf_.size();
+            buf_.resize(oldSize + static_cast<size_t>(sizeDiff));
+            size_t readPos  = static_cast<size_t>(start) + replace;
+            size_t writePos = static_cast<size_t>(start) + data.size();
+            if(readPos < oldSize) {
+                memmove(buf_.data() + writePos, buf_.data() + readPos,
+                        oldSize - readPos);
+            }
+        }
+        seek(start);
+        writeBlock(data);
+    }
+
+    void removeBlock(TagLib::offset_t start = 0, size_t length = 0) override {
+        size_t readPos  = static_cast<size_t>(start) + length;
+        size_t writePos = static_cast<size_t>(start);
+        if(readPos < buf_.size()) {
+            size_t toMove = buf_.size() - readPos;
+            memmove(buf_.data() + writePos, buf_.data() + readPos, toMove);
+            writePos += toMove;
+        }
+        position_ = static_cast<TagLib::offset_t>(writePos);
+        buf_.resize(writePos);
+    }
+
+    bool readOnly() const override { return false; }
+    bool isOpen() const override { return true; }
+
+    void seek(TagLib::offset_t offset, Position p = Beginning) override {
+        switch(p) {
+        case Beginning: position_ = offset; break;
+        case Current:   position_ += offset; break;
+        case End:       position_ = static_cast<TagLib::offset_t>(buf_.size()) + offset; break;
+        }
+    }
+
+    void clear() override {}
+
+    TagLib::offset_t tell() const override { return position_; }
+    TagLib::offset_t length() override {
+        return static_cast<TagLib::offset_t>(buf_.size());
+    }
+
+    void truncate(TagLib::offset_t length) override {
+        buf_.resize(static_cast<size_t>(length));
+    }
+
+    const char *bufData() const { return buf_.data(); }
+    size_t bufSize() const { return buf_.size(); }
+
+private:
+    std::vector<char> buf_;
+    TagLib::offset_t position_;
+};
+
+// Helper class to manage stream lifetime
 class FileHandle {
 private:
-    std::unique_ptr<TagLib::ByteVectorStream> stream;
+    std::unique_ptr<VectorStream> stream;
     std::unique_ptr<TagLib::FileRef> fileRef;
     std::unique_ptr<TagLib::File> file;
     
@@ -334,19 +438,18 @@ public:
             unsigned int length = jsBuffer["length"].as<unsigned int>();
             if (length == 0) return false;
 
-            // Single-copy path: allocate ByteVector, then bulk-copy JS data
-            // directly into it via typed_memory_view. This avoids the 2x peak
-            // memory of convertJSArrayToNumberVector (std::vector + ByteVector).
-            TagLib::ByteVector buffer(length, '\0');
+            // Allocate a temporary buffer and bulk-copy JS data via
+            // typed_memory_view, then move it into VectorStream.
+            std::vector<char> buf(length, '\0');
             val memoryView = val(emscripten::typed_memory_view(
-                length, reinterpret_cast<uint8_t*>(buffer.data())));
+                length, reinterpret_cast<uint8_t*>(buf.data())));
             memoryView.call<void>("set", jsBuffer);
 
             char header[12] = {};
             unsigned int headerLen = length < 12u ? length : 12u;
-            memcpy(header, buffer.data(), headerLen);
+            memcpy(header, buf.data(), headerLen);
 
-            stream = std::make_unique<TagLib::ByteVectorStream>(buffer);
+            stream = std::make_unique<VectorStream>(std::move(buf));
             stream->seek(0, TagLib::IOStream::Beginning);
             
             // Try to create FileRef first
@@ -627,23 +730,15 @@ private:
 public:
     // Get the current file buffer after modifications
     val getBuffer() const {
-        if (stream && stream->data()) {
-            const TagLib::ByteVector* data = stream->data();
-            size_t sz = data->size();
+        if (stream && stream->bufSize() > 0) {
+            size_t sz = stream->bufSize();
 
-            if (sz == 0) return val::global("Uint8Array").new_(0);
-            
-            // typed_memory_view creates a zero-copy Uint8Array view over the
-            // WASM heap bytes owned by the ByteVector. Passing it to
-            // new Uint8Array(...) performs a single native bulk copy into a
-            // fresh JS-owned buffer.
             auto view = emscripten::typed_memory_view(
-                sz, reinterpret_cast<const uint8_t*>(data->data()));
+                sz, reinterpret_cast<const uint8_t*>(stream->bufData()));
 
             return val::global("Uint8Array").new_(view);
         }
-        
-        // Return an empty Uint8Array if no data
+
         return val::global("Uint8Array").new_(0);
     }
     
