@@ -331,24 +331,21 @@ public:
     
     bool loadFromBuffer(const val& jsBuffer) {
         try {
-            // convertJSArrayToNumberVector<uint8_t> performs a single bulk copy
-            // from the JS TypedArray into a std::vector via typed_memory_view +
-            // _emval_array_to_memory_view (which resolves to dst.set(src)) —
-            // one native call, O(N) with a tiny constant.
-            const auto data = emscripten::convertJSArrayToNumberVector<uint8_t>(jsBuffer);
-            const unsigned int length = static_cast<unsigned int>(data.size());
-
+            unsigned int length = jsBuffer["length"].as<unsigned int>();
             if (length == 0) return false;
 
-            // Capture the first 12 bytes for format detection.
+            // Single-copy path: allocate ByteVector, then bulk-copy JS data
+            // directly into it via typed_memory_view. This avoids the 2x peak
+            // memory of convertJSArrayToNumberVector (std::vector + ByteVector).
+            TagLib::ByteVector buffer(length, '\0');
+            val memoryView = val(emscripten::typed_memory_view(
+                length, reinterpret_cast<uint8_t*>(buffer.data())));
+            memoryView.call<void>("set", jsBuffer);
+
             char header[12] = {};
             unsigned int headerLen = length < 12u ? length : 12u;
-            memcpy(header, data.data(), headerLen);
+            memcpy(header, buffer.data(), headerLen);
 
-            // Create ByteVector — TagLib makes its own internal copy here.
-            TagLib::ByteVector buffer(reinterpret_cast<const char*>(data.data()), length);
-            
-            // Create a ByteVectorStream
             stream = std::make_unique<TagLib::ByteVectorStream>(buffer);
             stream->seek(0, TagLib::IOStream::Beginning);
             
