@@ -331,20 +331,22 @@ public:
     
     bool loadFromBuffer(const val& jsBuffer) {
         try {
-            // Get the buffer length
-            unsigned int length = jsBuffer["length"].as<unsigned int>();
-            
-            // Create a vector to hold the data
-            std::vector<char> data(length);
-            
-            // Copy data from JavaScript typed array to C++ vector
-            // This preserves binary data without any encoding conversions
-            for (unsigned int i = 0; i < length; i++) {
-                data[i] = jsBuffer[i].as<unsigned char>();
-            }
-            
-            // Create ByteVector from the buffer
-            TagLib::ByteVector buffer(data.data(), data.size());
+            // convertJSArrayToNumberVector<uint8_t> performs a single bulk copy
+            // from the JS TypedArray into a std::vector via typed_memory_view +
+            // _emval_array_to_memory_view (which resolves to dst.set(src)) —
+            // one native call, O(N) with a tiny constant.
+            const auto data = emscripten::convertJSArrayToNumberVector<uint8_t>(jsBuffer);
+            const unsigned int length = static_cast<unsigned int>(data.size());
+
+            if (length == 0) return false;
+
+            // Capture the first 12 bytes for format detection.
+            char header[12] = {};
+            unsigned int headerLen = length < 12u ? length : 12u;
+            memcpy(header, data.data(), headerLen);
+
+            // Create ByteVector — TagLib makes its own internal copy here.
+            TagLib::ByteVector buffer(reinterpret_cast<const char*>(data.data()), length);
             
             // Create a ByteVectorStream
             stream = std::make_unique<TagLib::ByteVectorStream>(buffer);
@@ -359,7 +361,7 @@ public:
             
             // If FileRef failed, try specific file types based on format detection
             stream->seek(0, TagLib::IOStream::Beginning);
-            std::string format = detectFormat(std::string(data.data(), data.size()));
+            std::string format = detectFormat(std::string(header, headerLen));
             
             if (format == "mp3") {
                 file.reset(new TagLib::MPEG::File(stream.get()));
@@ -602,22 +604,46 @@ private:
         
         return "unknown";
     }
-    
+
+    // Convert a TagLib::ByteVector to a JavaScript Uint8Array using a single
+    // native bulk copy via typed_memory_view instead of a byte-by-byte loop.
+    // typed_memory_view(n, ptr) creates a Uint8Array view backed by WASM memory;
+    // passing it to new Uint8Array(...) performs a single native copy into JS.
+    static val byteVectorToUint8Array(const TagLib::ByteVector& bv) {
+        if (bv.isEmpty()) return val::global("Uint8Array").new_(0);
+        auto view = emscripten::typed_memory_view(
+            bv.size(), reinterpret_cast<const uint8_t*>(bv.data()));
+        return val::global("Uint8Array").new_(view);
+    }
+
+    // Copy a JavaScript Uint8Array into a TagLib::ByteVector using a single
+    // native bulk copy. convertJSArrayToNumberVector uses typed_memory_view +
+    // _emval_array_to_memory_view (dst.set(src)) internally — one native call.
+    // NOTE: vecFromJSArray<T> must NOT be used here; it loops byte-by-byte.
+    static TagLib::ByteVector uint8ArrayToByteVector(const val& jsArray) {
+        const auto vec = emscripten::convertJSArrayToNumberVector<uint8_t>(jsArray);
+        if (vec.empty()) return TagLib::ByteVector();
+        return TagLib::ByteVector(reinterpret_cast<const char*>(vec.data()),
+                                  static_cast<unsigned int>(vec.size()));
+    }
+
 public:
     // Get the current file buffer after modifications
     val getBuffer() const {
         if (stream && stream->data()) {
             const TagLib::ByteVector* data = stream->data();
+            size_t sz = data->size();
+
+            if (sz == 0) return val::global("Uint8Array").new_(0);
             
-            // Create a JavaScript Uint8Array with the binary data
-            val uint8Array = val::global("Uint8Array").new_(data->size());
-            
-            // Copy the data directly to preserve binary integrity
-            for (size_t i = 0; i < data->size(); i++) {
-                uint8Array.set(i, static_cast<unsigned char>((*data)[i]));
-            }
-            
-            return uint8Array;
+            // typed_memory_view creates a zero-copy Uint8Array view over the
+            // WASM heap bytes owned by the ByteVector. Passing it to
+            // new Uint8Array(...) performs a single native bulk copy into a
+            // fresh JS-owned buffer.
+            auto view = emscripten::typed_memory_view(
+                sz, reinterpret_cast<const uint8_t*>(data->data()));
+
+            return val::global("Uint8Array").new_(view);
         }
         
         // Return an empty Uint8Array if no data
@@ -647,13 +673,9 @@ public:
                         pictureObj.set("type", static_cast<int>(pictureFrame->type()));
                         pictureObj.set("description", std::string(pictureFrame->description().toCString(true)));
                         
-                        // Convert picture data to Uint8Array
+                        // Convert picture data to Uint8Array (fast bulk copy)
                         TagLib::ByteVector picData = pictureFrame->picture();
-                        val uint8Array = val::global("Uint8Array").new_(picData.size());
-                        for (size_t i = 0; i < picData.size(); i++) {
-                            uint8Array.set(i, static_cast<unsigned char>(picData[i]));
-                        }
-                        pictureObj.set("data", uint8Array);
+                        pictureObj.set("data", byteVectorToUint8Array(picData));
                         
                         pictures.call<void>("push", pictureObj);
                     }
@@ -693,13 +715,9 @@ public:
                         pictureObj.set("type", 3); // FrontCover for MP4
                         pictureObj.set("description", "");
                         
-                        // Convert picture data to Uint8Array
+                        // Convert picture data to Uint8Array (fast bulk copy)
                         TagLib::ByteVector picData = cover.data();
-                        val uint8Array = val::global("Uint8Array").new_(picData.size());
-                        for (size_t i = 0; i < picData.size(); i++) {
-                            uint8Array.set(i, static_cast<unsigned char>(picData[i]));
-                        }
-                        pictureObj.set("data", uint8Array);
+                        pictureObj.set("data", byteVectorToUint8Array(picData));
                         
                         pictures.call<void>("push", pictureObj);
                     }
@@ -716,13 +734,9 @@ public:
                 pictureObj.set("type", static_cast<int>(picture->type()));
                 pictureObj.set("description", std::string(picture->description().toCString(true)));
                 
-                // Convert picture data to Uint8Array
+                // Convert picture data to Uint8Array (fast bulk copy)
                 TagLib::ByteVector picData = picture->data();
-                val uint8Array = val::global("Uint8Array").new_(picData.size());
-                for (size_t i = 0; i < picData.size(); i++) {
-                    uint8Array.set(i, static_cast<unsigned char>(picData[i]));
-                }
-                pictureObj.set("data", uint8Array);
+                pictureObj.set("data", byteVectorToUint8Array(picData));
                 
                 pictures.call<void>("push", pictureObj);
             }
@@ -738,13 +752,9 @@ public:
                     pictureObj.set("type", static_cast<int>(picture->type()));
                     pictureObj.set("description", std::string(picture->description().toCString(true)));
                     
-                    // Convert picture data to Uint8Array
+                    // Convert picture data to Uint8Array (fast bulk copy)
                     TagLib::ByteVector picData = picture->data();
-                    val uint8Array = val::global("Uint8Array").new_(picData.size());
-                    for (size_t i = 0; i < picData.size(); i++) {
-                        uint8Array.set(i, static_cast<unsigned char>(picData[i]));
-                    }
-                    pictureObj.set("data", uint8Array);
+                    pictureObj.set("data", byteVectorToUint8Array(picData));
                     
                     pictures.call<void>("push", pictureObj);
                 }
@@ -782,14 +792,8 @@ public:
                 frame->setType(static_cast<TagLib::ID3v2::AttachedPictureFrame::Type>(picture["type"].as<int>()));
                 frame->setDescription(TagLib::String(picture["description"].as<std::string>(), TagLib::String::UTF8));
                 
-                // Convert Uint8Array to ByteVector
-                val data = picture["data"];
-                int dataLength = data["length"].as<int>();
-                std::vector<char> buffer(dataLength);
-                for (int j = 0; j < dataLength; j++) {
-                    buffer[j] = data[j].as<unsigned char>();
-                }
-                frame->setPicture(TagLib::ByteVector(buffer.data(), buffer.size()));
+                // Convert Uint8Array to ByteVector (fast bulk copy)
+                frame->setPicture(uint8ArrayToByteVector(picture["data"]));
                 
                 id3v2Tag->addFrame(frame);
             }
@@ -818,15 +822,8 @@ public:
                     format = TagLib::MP4::CoverArt::GIF;
                 }
                 
-                // Convert Uint8Array to ByteVector
-                val data = picture["data"];
-                int dataLength = data["length"].as<int>();
-                std::vector<char> buffer(dataLength);
-                for (int j = 0; j < dataLength; j++) {
-                    buffer[j] = data[j].as<unsigned char>();
-                }
-                
-                TagLib::MP4::CoverArt coverArt(format, TagLib::ByteVector(buffer.data(), buffer.size()));
+                // Convert Uint8Array to ByteVector (fast bulk copy)
+                TagLib::MP4::CoverArt coverArt(format, uint8ArrayToByteVector(picture["data"]));
                 coverList.append(coverArt);
             }
             
@@ -851,14 +848,8 @@ public:
                 flacPicture->setType(static_cast<TagLib::FLAC::Picture::Type>(picture["type"].as<int>()));
                 flacPicture->setDescription(TagLib::String(picture["description"].as<std::string>(), TagLib::String::UTF8));
                 
-                // Convert Uint8Array to ByteVector
-                val data = picture["data"];
-                int dataLength = data["length"].as<int>();
-                std::vector<char> buffer(dataLength);
-                for (int j = 0; j < dataLength; j++) {
-                    buffer[j] = data[j].as<unsigned char>();
-                }
-                flacPicture->setData(TagLib::ByteVector(buffer.data(), buffer.size()));
+                // Convert Uint8Array to ByteVector (fast bulk copy)
+                flacPicture->setData(uint8ArrayToByteVector(picture["data"]));
                 
                 flacFile->addPicture(flacPicture);
             }
@@ -880,14 +871,8 @@ public:
                 flacPicture->setType(static_cast<TagLib::FLAC::Picture::Type>(picture["type"].as<int>()));
                 flacPicture->setDescription(TagLib::String(picture["description"].as<std::string>(), TagLib::String::UTF8));
                 
-                // Convert Uint8Array to ByteVector
-                val data = picture["data"];
-                int dataLength = data["length"].as<int>();
-                std::vector<char> buffer(dataLength);
-                for (int j = 0; j < dataLength; j++) {
-                    buffer[j] = data[j].as<unsigned char>();
-                }
-                flacPicture->setData(TagLib::ByteVector(buffer.data(), buffer.size()));
+                // Convert Uint8Array to ByteVector (fast bulk copy)
+                flacPicture->setData(uint8ArrayToByteVector(picture["data"]));
                 
                 vorbisFile->tag()->addPicture(flacPicture);
             }

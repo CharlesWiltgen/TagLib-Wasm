@@ -169,7 +169,7 @@ export class TagLib {
 
   /** Returns the taglib-wasm version with embedded TagLib version. */
   version(): string {
-    return "1.0.2 (TagLib 2.1.1)";
+    return "1.0.3 (TagLib 2.1.1)";
   }
 }
 
