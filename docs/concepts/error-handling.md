@@ -153,7 +153,7 @@ const results = await processBatch([
 // Check results
 results.forEach((result) => {
   if (result.success) {
-    console.log(`✓ ${result.path}: ${result.tags.title}`);
+    console.log(`✓ ${result.path}: ${result.tags.title?.[0]}`);
   } else {
     console.log(`✗ ${result.path}: ${result.error}`);
   }

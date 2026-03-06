@@ -112,11 +112,11 @@ async function analyzeAlbum(albumPath: string): Promise<AlbumAnalysis> {
 
   for (const { path, data } of result.items) {
     // Extract album-level data from first track
-    if (albumData.albumName === "" && data.tags.album) {
-      albumData.albumName = data.tags.album;
-      albumData.albumArtist = data.tags.artist || "Various Artists";
-      albumData.year = data.tags.year || 0;
-      albumData.genre = data.tags.genre || "Unknown";
+    if (albumData.albumName === "" && data.tags.album?.[0]) {
+      albumData.albumName = data.tags.album[0];
+      albumData.albumArtist = data.tags.artist?.[0] || "Various Artists";
+      albumData.year = data.tags.year?.[0] || 0;
+      albumData.genre = data.tags.genre?.[0] || "Unknown";
     }
 
     // Accumulate statistics
@@ -138,9 +138,9 @@ async function analyzeAlbum(albumPath: string): Promise<AlbumAnalysis> {
     // Add track info
     albumData.tracks.push({
       filename: basename(path),
-      trackNumber: data.tags.track || 0,
-      title: data.tags.title || basename(path),
-      artist: data.tags.artist || albumData.albumArtist,
+      trackNumber: data.tags.track?.[0] || 0,
+      title: data.tags.title?.[0] || basename(path),
+      artist: data.tags.artist?.[0] || albumData.albumArtist,
       duration: data.properties?.length || 0,
       bitrate: data.properties?.bitrate || 0,
       hasCoverArt: data.hasCoverArt || false,
@@ -195,11 +195,13 @@ async function checkAlbumCompleteness(albumPath: string) {
   for (const { path, data } of result.items) {
     const filename = basename(path);
 
-    if (!data.tags.title) issues.missingTitles.push(filename);
-    if (!data.tags.track) issues.missingTrackNumbers.push(filename);
+    if (!data.tags.title?.[0]) issues.missingTitles.push(filename);
+    if (!data.tags.track?.[0]) issues.missingTrackNumbers.push(filename);
     if (!data.hasCoverArt) issues.missingCoverArt.push(filename);
-    if (data.tags.album) issues.inconsistentAlbum.add(data.tags.album);
-    if (data.tags.artist) issues.inconsistentArtist.add(data.tags.artist);
+    if (data.tags.album?.[0]) issues.inconsistentAlbum.add(data.tags.album[0]);
+    if (data.tags.artist?.[0]) {
+      issues.inconsistentArtist.add(data.tags.artist[0]);
+    }
     if (!data.dynamics?.replayGainTrackGain) {
       issues.missingReplayGain.push(filename);
     }

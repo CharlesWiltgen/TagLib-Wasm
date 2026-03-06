@@ -53,7 +53,7 @@ function groupFilesByAlbum(
   const albums = new Map<string, AudioFileMetadata[]>();
 
   for (const file of files) {
-    const albumName = file.tags.album || "Unknown Album";
+    const albumName = file.tags.album?.[0] || "Unknown Album";
     const albumFiles = albums.get(albumName) || [];
     albumFiles.push(file);
     albums.set(albumName, albumFiles);
