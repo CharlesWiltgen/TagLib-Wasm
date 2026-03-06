@@ -513,9 +513,11 @@ static tl_error_code write_to_buffer(const uint8_t* buf, size_t len,
         tl_error_code rc = decode_msgpack_to_propmap(tags_msgpack, tags_msgpack_len, propMap);
         if (rc != TL_SUCCESS) return rc;
 
-        TagLib::ByteVector bv(reinterpret_cast<const char*>(buf),
-                              static_cast<unsigned int>(len));
-        TagLib::ByteVectorStream stream(bv);
+        // Construct ByteVectorStream from a temporary ByteVector so the local
+        // variable doesn't keep a COW shared reference alive during save().
+        TagLib::ByteVectorStream stream(
+            TagLib::ByteVector(reinterpret_cast<const char*>(buf),
+                               static_cast<unsigned int>(len)));
         TagLib::FileRef ref(&stream);
         if (ref.isNull() || !ref.tag()) return TL_ERROR_PARSE_FAILED;
 
