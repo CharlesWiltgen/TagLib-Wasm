@@ -128,7 +128,7 @@ async function loadBufferModeTagLibModule(
     }
   }
 
-  const moduleConfig: any = {};
+  const moduleConfig: Record<string, unknown> = {};
 
   if (options?.wasmBinary) {
     moduleConfig.wasmBinary = options.wasmBinary;
