@@ -14,7 +14,7 @@ import ... from "npm:taglib-wasm"            // Deno (alternative)
 // Read tags (simplest approach)
 import { readTags } from "taglib-wasm/simple";
 const tags = await readTags("song.mp3");
-console.log(tags.artist, tags.title, tags.album);
+console.log(tags.artist?.[0], tags.title?.[0], tags.album?.[0]);
 
 // That's it! For more control, keep reading...
 ```
@@ -672,7 +672,7 @@ const metadata = await readMetadataBatch(files, { concurrency: 8 });
 for (const item of metadata.items) {
   if (item.status === "ok") {
     console.log(`${item.path}:`);
-    console.log(`  Title: ${item.data.tags.title}`);
+    console.log(`  Title: ${item.data.tags.title?.[0]}`);
     console.log(`  Duration: ${item.data.properties?.duration}s`);
     console.log(`  Bitrate: ${item.data.properties?.bitrate}kbps`);
     console.log(`  Has cover art: ${item.data.hasCoverArt}`);
@@ -772,7 +772,9 @@ console.log(
 // Access metadata for each file
 for (const item of result.items) {
   if (item.status !== "ok") continue;
-  console.log(`${item.path}: ${item.tags.artist} - ${item.tags.title}`);
+  console.log(
+    `${item.path}: ${item.tags.artist?.[0]} - ${item.tags.title?.[0]}`,
+  );
   console.log(`Duration: ${item.properties?.duration}s`);
 
   // Check for cover art
@@ -1275,19 +1277,19 @@ const result = await scanFolder("/messy-music");
 const updates = result.items.map((file) => {
   const cleaned = {
     // Capitalize properly
-    artist: file.tags.artist?.split(" ")
+    artist: file.tags.artist?.[0]?.split(" ")
       .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
       .join(" "),
 
     // Remove "Unknown" values
-    album: file.tags.album === "Unknown Album" ? "" : file.tags.album,
+    album: file.tags.album?.[0] === "Unknown Album" ? "" : file.tags.album?.[0],
 
     // Extract year from comment if needed
-    year: file.tags.year ||
-      parseInt(file.tags.comment?.match(/\b(19|20)\d{2}\b/)?.[0] || ""),
+    year: file.tags.year?.[0] ||
+      parseInt(file.tags.comment?.[0]?.match(/\b(19|20)\d{2}\b/)?.[0] || ""),
 
     // Clean up genre
-    genre: file.tags.genre?.replace(/\(\d+\)/, "").trim(),
+    genre: file.tags.genre?.[0]?.replace(/\(\d+\)/, "").trim(),
   };
 
   return { path: file.path, tags: cleaned };
@@ -1396,7 +1398,7 @@ import { applyTags, readTags } from "jsr:@charlesw/taglib-wasm/simple";
 
 // Read tags
 const tags = await readTags("song.mp3");
-console.log(tags.artist);
+console.log(tags.artist?.[0]);
 
 // Modify tags (returns buffer)
 const modified = await applyTags("song.mp3", {
@@ -2946,11 +2948,11 @@ CMD ["deno", "run", "--allow-read", "--allow-write", "process.ts"]
 function formatForScreenReader(tags: Tag): string {
   const parts = [];
 
-  if (tags.title) parts.push(`Title: ${tags.title}`);
-  if (tags.artist) parts.push(`Artist: ${tags.artist}`);
-  if (tags.album) parts.push(`Album: ${tags.album}`);
-  if (tags.year) parts.push(`Year: ${tags.year}`);
-  if (tags.track) parts.push(`Track number: ${tags.track}`);
+  if (tags.title?.[0]) parts.push(`Title: ${tags.title[0]}`);
+  if (tags.artist?.[0]) parts.push(`Artist: ${tags.artist[0]}`);
+  if (tags.album?.[0]) parts.push(`Album: ${tags.album[0]}`);
+  if (tags.year?.[0]) parts.push(`Year: ${tags.year[0]}`);
+  if (tags.track?.[0]) parts.push(`Track number: ${tags.track[0]}`);
 
   return parts.join(". ") + ".";
 }
@@ -2959,14 +2961,14 @@ function formatForScreenReader(tags: Tag): string {
 function renderAccessibleMetadata(tags: Tag): string {
   return `
     <div role="article" aria-label="Audio file metadata">
-      <h3>${tags.title || "Untitled"}</h3>
+      <h3>${tags.title?.[0] || "Untitled"}</h3>
       <dl>
         <dt>Artist</dt>
-        <dd>${tags.artist || "Unknown artist"}</dd>
+        <dd>${tags.artist?.[0] || "Unknown artist"}</dd>
         <dt>Album</dt>
-        <dd>${tags.album || "Unknown album"}</dd>
+        <dd>${tags.album?.[0] || "Unknown album"}</dd>
         <dt>Year</dt>
-        <dd>${tags.year || "Unknown year"}</dd>
+        <dd>${tags.year?.[0] || "Unknown year"}</dd>
       </dl>
     </div>
   `;

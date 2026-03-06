@@ -51,8 +51,8 @@ console.log(`Time taken: ${result.duration}ms`);
 // Process each file
 for (const file of result.items) {
   console.log(`Path: ${file.path}`);
-  console.log(`Title: ${file.tags.title}`);
-  console.log(`Artist: ${file.tags.artist}`);
+  console.log(`Title: ${file.tags.title?.[0]}`);
+  console.log(`Artist: ${file.tags.artist?.[0]}`);
   console.log(`Duration: ${file.properties?.duration}s`);
   console.log(`Bitrate: ${file.properties?.bitrate} kbps`);
 }
@@ -240,9 +240,9 @@ const result = await scanFolder("/music", {
 const result = await scanFolder("/unsorted-music");
 
 for (const file of result.items) {
-  const artist = file.tags.artist || "Unknown Artist";
-  const album = file.tags.album || "Unknown Album";
-  const title = file.tags.title || path.basename(file.path);
+  const artist = file.tags.artist?.[0] || "Unknown Artist";
+  const album = file.tags.album?.[0] || "Unknown Album";
+  const title = file.tags.title?.[0] || path.basename(file.path);
 
   // Create organized structure
   const newPath = path.join("/organized-music", artist, album, `${title}.mp3`);
@@ -257,9 +257,9 @@ for (const file of result.items) {
 const result = await scanFolder("/music");
 
 const needsFixing = result.items.filter((file) =>
-  !file.tags.artist ||
-  !file.tags.title ||
-  !file.tags.album
+  !file.tags.artist?.[0] ||
+  !file.tags.title?.[0] ||
+  !file.tags.album?.[0]
 );
 
 console.log(`Found ${needsFixing.length} files with missing metadata`);
@@ -268,9 +268,10 @@ console.log(`Found ${needsFixing.length} files with missing metadata`);
 const updates = needsFixing.map((file) => ({
   path: file.path,
   tags: {
-    artist: file.tags.artist || "Unknown Artist",
-    album: file.tags.album || "Unknown Album",
-    title: file.tags.title || path.basename(file.path, path.extname(file.path)),
+    artist: file.tags.artist?.[0] || "Unknown Artist",
+    album: file.tags.album?.[0] || "Unknown Album",
+    title: file.tags.title?.[0] ||
+      path.basename(file.path, path.extname(file.path)),
   },
 }));
 

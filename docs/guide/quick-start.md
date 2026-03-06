@@ -14,7 +14,7 @@ import { readProperties, readTags } from "taglib-wasm/simple";
 // Read basic tags
 const tags = await readTags("song.mp3");
 console.log(tags);
-// Output: { title: "My Song", artist: "Artist Name", album: "Album Name", ... }
+// Output: { title: ["My Song"], artist: ["Artist Name"], album: ["Album Name"], ... }
 
 // Read audio properties
 const props = await readProperties("song.mp3");

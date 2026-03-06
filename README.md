@@ -122,9 +122,9 @@ const taglib = await TagLib.initialize({ wasmBinary });
 ```typescript
 import { applyTags, applyTagsToFile, readTags } from "taglib-wasm/simple";
 
-// Read tags
+// Read tags (string fields are arrays to support multi-value metadata)
 const tags = await readTags("song.mp3");
-console.log(tags.title, tags.artist, tags.album);
+console.log(tags.title?.[0], tags.artist?.[0], tags.album?.[0]);
 
 // Apply tags and get modified buffer (in-memory)
 const modifiedBuffer = await applyTags("song.mp3", {
@@ -206,7 +206,9 @@ console.log(
 
 // Process results
 for (const file of result.items) {
-  console.log(`${file.path}: ${file.tags.artist} - ${file.tags.title}`);
+  console.log(
+    `${file.path}: ${file.tags.artist?.[0]} - ${file.tags.title?.[0]}`,
+  );
   console.log(`Duration: ${file.properties?.duration}s`);
 }
 

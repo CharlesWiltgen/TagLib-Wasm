@@ -189,15 +189,15 @@ async function processAudioFile(filePath: string) {
     // Read existing tags
     const tags = await readTags(filePath);
     console.log(`\n📄 File: ${filePath}`);
-    console.log(`  Title: ${tags.title || "(none)"}`);
-    console.log(`  Artist: ${tags.artist || "(none)"}`);
-    console.log(`  Album: ${tags.album || "(none)"}`);
+    console.log(`  Title: ${tags.title?.[0] || "(none)"}`);
+    console.log(`  Artist: ${tags.artist?.[0] || "(none)"}`);
+    console.log(`  Album: ${tags.album?.[0] || "(none)"}`);
 
     // Modify tags if needed
-    if (!tags.comment?.includes("Processed")) {
+    if (!tags.comment?.[0]?.includes("Processed")) {
       await applyTagsToFile(filePath, {
         ...tags,
-        comment: `${tags.comment || ""} - Processed by TagLib-Wasm`,
+        comment: `${tags.comment?.[0] || ""} - Processed by TagLib-Wasm`,
       });
       console.log("  ✅ Updated comment tag");
     }

@@ -66,7 +66,7 @@ async function processAlbum(albumFiles: string[]) {
   });
 
   return metadata.items.map(({ data }) => ({
-    title: data.tags.title,
+    title: data.tags.title?.[0],
     duration: data.properties?.length,
     hasCoverArt: data.hasCoverArt,
   }));

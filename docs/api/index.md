@@ -71,7 +71,7 @@ interface Tag {
 ```typescript
 // From file path (Node.js/Deno/Bun only)
 const tags = await readTags("song.mp3");
-console.log(tags.title, tags.artist);
+console.log(tags.title?.[0], tags.artist?.[0]);
 
 // From buffer
 const buffer = await Deno.readFile("song.mp3");
@@ -357,8 +357,8 @@ const result = await readMetadataBatch(files, {
 for (const item of result.items) {
   if (item.status === "ok") {
     console.log(`${item.path}:`);
-    console.log(`  Artist: ${item.data.tags.artist}`);
-    console.log(`  Title: ${item.data.tags.title}`);
+    console.log(`  Artist: ${item.data.tags.artist?.[0]}`);
+    console.log(`  Title: ${item.data.tags.title?.[0]}`);
     console.log(`  Duration: ${item.data.properties?.duration}s`);
     console.log(`  Bitrate: ${item.data.properties?.bitrate}kbps`);
     console.log(`  Has cover art: ${item.data.hasCoverArt}`);

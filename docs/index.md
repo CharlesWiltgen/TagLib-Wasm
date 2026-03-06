@@ -35,7 +35,7 @@ import { applyTagsToFile, readTags } from "taglib-wasm/simple";
 
 // Read tags - just one function call!
 const tags = await readTags("song.mp3");
-console.log(tags.title, tags.artist, tags.album);
+console.log(tags.title?.[0], tags.artist?.[0], tags.album?.[0]);
 
 // Update tags in-place - even simpler!
 await applyTagsToFile("song.mp3", {
