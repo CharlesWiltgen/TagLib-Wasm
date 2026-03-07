@@ -134,7 +134,7 @@ async function updateTagLibClass(newVersion: string): Promise<boolean> {
     const content = await Deno.readTextFile(TAGLIB_CLASS_PATH);
     const updated = content.replace(
       /return "\d+\.\d+\.\d+\S* \(TagLib .+?\)";/,
-      `return "${newVersion} (TagLib 2.1.1)";`,
+      `return "${newVersion} (TagLib 2.2.1)";`,
     );
     if (updated !== content) {
       await Deno.writeTextFile(TAGLIB_CLASS_PATH, updated);

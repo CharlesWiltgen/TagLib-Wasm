@@ -212,7 +212,8 @@ emcc "$BUILD_DIR/capi"/*.o \
     -s INITIAL_MEMORY=16MB \
     -s MAXIMUM_MEMORY=2GB \
     -s STACK_SIZE=1MB \
-    -DTAGLIB_VERSION=\"2.0.2\" \
+    -s USE_ZLIB=1 \
+    -DTAGLIB_VERSION=\"2.2.1\" \
     -O3 \
     -std=c++17
 
