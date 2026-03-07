@@ -20,6 +20,8 @@ export const FORMATS = [
   "tta",
   "wma",
   "mka",
+  "mkv",
+  "webm",
 ] as const;
 export type Format = (typeof FORMATS)[number];
 
@@ -39,6 +41,8 @@ export const FIXTURE_PATH: Record<Format, string> = {
   tta: resolve(TEST_FILES_DIR, "tta/kiss-snippet.tta"),
   wma: resolve(TEST_FILES_DIR, "wma/kiss-snippet.wma"),
   mka: resolve(TEST_FILES_DIR, "matroska/kiss-snippet.mka"),
+  mkv: resolve(TEST_FILES_DIR, "matroska/kiss-snippet.mkv"),
+  webm: resolve(TEST_FILES_DIR, "matroska/kiss-snippet.webm"),
 };
 
 export const WASI_VIRTUAL_PATH: Record<Format, string> = {
@@ -54,6 +58,8 @@ export const WASI_VIRTUAL_PATH: Record<Format, string> = {
   tta: "/test/tta/kiss-snippet.tta",
   wma: "/test/wma/kiss-snippet.wma",
   mka: "/test/matroska/kiss-snippet.mka",
+  mkv: "/test/matroska/kiss-snippet.mkv",
+  webm: "/test/matroska/kiss-snippet.webm",
 };
 
 export const EXPECTED_KISS_TAGS = {
@@ -162,6 +168,22 @@ export const EXPECTED_AUDIO_PROPS: Record<
     lengthMax: 30,
   },
   mka: {
+    sampleRate: 48000,
+    channels: 1,
+    bitrateMin: 50,
+    bitrateMax: 500,
+    lengthMin: 1,
+    lengthMax: 30,
+  },
+  mkv: {
+    sampleRate: 48000,
+    channels: 1,
+    bitrateMin: 50,
+    bitrateMax: 500,
+    lengthMin: 1,
+    lengthMax: 30,
+  },
+  webm: {
     sampleRate: 48000,
     channels: 1,
     bitrateMin: 50,

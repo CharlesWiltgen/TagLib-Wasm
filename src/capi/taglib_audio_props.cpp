@@ -246,6 +246,8 @@ ExtendedAudioInfo get_extended_audio_info(
                 if (name.find("OPUS") != std::string::npos) info.codec = "Opus";
                 else if (name.find("VORBIS") != std::string::npos) info.codec = "Vorbis";
                 else if (name.find("FLAC") != std::string::npos) { info.codec = "FLAC"; info.isLossless = true; }
+                else if (name.find("PCM") != std::string::npos) { info.codec = "PCM"; info.isLossless = true; }
+                else if (name.find("TRUEHD") != std::string::npos) { info.codec = "TrueHD"; info.isLossless = true; }
                 else if (name.find("AAC") != std::string::npos) info.codec = "AAC";
                 else if (name.find("MPEG") != std::string::npos) info.codec = "MP3";
             }

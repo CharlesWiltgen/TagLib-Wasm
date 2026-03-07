@@ -13,6 +13,8 @@ export const TEST_FILES = {
   ogg: "./tests/test-files/ogg/kiss-snippet.ogg",
   m4a: "./tests/test-files/mp4/kiss-snippet.m4a",
   mka: "./tests/test-files/matroska/kiss-snippet.mka",
+  mkv: "./tests/test-files/matroska/kiss-snippet.mkv",
+  webm: "./tests/test-files/matroska/kiss-snippet.webm",
 } as const;
 
 // Expected format names
@@ -23,6 +25,8 @@ export const EXPECTED_FORMATS = {
   ogg: "OGG",
   m4a: "MP4",
   mka: "MATROSKA",
+  mkv: "MATROSKA",
+  webm: "MATROSKA",
 } as const;
 
 // Test image data - 1x1 red PNG (67 bytes)

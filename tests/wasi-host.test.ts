@@ -689,6 +689,9 @@ describe(
           WV: "WV",
           TTA: "TTA",
           WMA: "ASF",
+          MKA: "MATROSKA",
+          MKV: "MATROSKA",
+          WEBM: "MATROSKA",
         };
         assertEquals(
           handle.getFormat(),
@@ -790,6 +793,24 @@ describe(
             containerFormat: "ASF",
             isLossless: false,
             hasBitsPerSample: true,
+          },
+          MKA: {
+            codec: "Opus",
+            containerFormat: "Matroska",
+            isLossless: false,
+            hasBitsPerSample: false,
+          },
+          MKV: {
+            codec: "Opus",
+            containerFormat: "Matroska",
+            isLossless: false,
+            hasBitsPerSample: false,
+          },
+          WEBM: {
+            codec: "Opus",
+            containerFormat: "Matroska",
+            isLossless: false,
+            hasBitsPerSample: false,
           },
         };
 

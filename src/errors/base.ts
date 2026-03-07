@@ -8,7 +8,7 @@ export const SUPPORTED_FORMATS = [
   "FLAC",
   "OGG",
   "WAV",
-  "MATROSKA",
+  "MKA",
 ] as const;
 
 /**
