@@ -38,6 +38,8 @@
 #include <s3m/s3mfile.h>
 #include <it/itfile.h>
 #include <xm/xmfile.h>
+#include <matroska/matroskafile.h>
+#include <matroska/matroskaproperties.h>
 
 ExtendedAudioInfo get_extended_audio_info(
     TagLib::File* file, TagLib::AudioProperties* /* audio */)
@@ -231,6 +233,24 @@ ExtendedAudioInfo get_extended_audio_info(
     if (dynamic_cast<TagLib::XM::File*>(file)) {
         info.codec = "XM";
         info.container = "XM";
+        return info;
+    }
+
+    if (auto* f = dynamic_cast<TagLib::Matroska::File*>(file)) {
+        auto* props = dynamic_cast<TagLib::Matroska::Properties*>(f->audioProperties());
+        if (props) {
+            info.bitsPerSample = props->bitsPerSample();
+            TagLib::String cn = props->codecName();
+            if (!cn.isEmpty()) {
+                std::string name = cn.to8Bit(true);
+                if (name.find("OPUS") != std::string::npos) info.codec = "Opus";
+                else if (name.find("VORBIS") != std::string::npos) info.codec = "Vorbis";
+                else if (name.find("FLAC") != std::string::npos) { info.codec = "FLAC"; info.isLossless = true; }
+                else if (name.find("AAC") != std::string::npos) info.codec = "AAC";
+                else if (name.find("MPEG") != std::string::npos) info.codec = "MP3";
+            }
+        }
+        info.container = "Matroska";
         return info;
     }
 

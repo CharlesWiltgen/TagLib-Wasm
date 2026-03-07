@@ -39,6 +39,7 @@ const CONTAINER_TO_FORMAT: Record<string, string> = {
   WavPack: "WV",
   TTA: "TTA",
   ASF: "ASF",
+  Matroska: "MATROSKA",
 };
 
 const NUMERIC_FIELD_ALIASES: Record<string, string> = {
@@ -209,6 +210,11 @@ export class WasiFileHandle implements FileHandle {
       magic[0] === 0x30 && magic[1] === 0x26 &&
       magic[2] === 0xB2 && magic[3] === 0x75
     ) return "ASF";
+    // Matroska/WebM: EBML signature
+    if (
+      magic[0] === 0x1A && magic[1] === 0x45 && magic[2] === 0xDF &&
+      magic[3] === 0xA3
+    ) return "MATROSKA";
     const ftyp = this.fileData.slice(4, 8);
     if (
       ftyp[0] === 0x66 && ftyp[1] === 0x74 && ftyp[2] === 0x79 &&

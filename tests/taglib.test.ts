@@ -394,6 +394,7 @@ describe("Format Tests", () => {
       flac: "66 4c 61 43", // fLaC
       ogg: "4f 67 67 53", // OggS
       m4a: "00 00 00", // MP4/M4A (variable)
+      mka: "1a 45 df a3", // EBML (Matroska/WebM)
     };
 
     for (const [format, path] of Object.entries(TEST_FILES)) {
