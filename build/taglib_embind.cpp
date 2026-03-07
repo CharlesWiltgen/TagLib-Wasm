@@ -254,9 +254,10 @@ public:
                     if (name.find("OPUS") != std::string::npos) return "Opus";
                     if (name.find("VORBIS") != std::string::npos) return "Vorbis";
                     if (name.find("FLAC") != std::string::npos) return "FLAC";
+                    if (name.find("PCM") != std::string::npos) return "PCM";
+                    if (name.find("TRUEHD") != std::string::npos) return "TrueHD";
                     if (name.find("AAC") != std::string::npos) return "AAC";
-                    if (name.find("MP3") != std::string::npos || name.find("MPEG") != std::string::npos) return "MP3";
-                    return name;
+                    if (name.find("MPEG") != std::string::npos) return "MP3";
                 }
             }
             return "unknown";

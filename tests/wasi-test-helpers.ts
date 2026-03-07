@@ -53,6 +53,18 @@ export const FORMAT_FILES: Record<string, { virtual: string; real: string }> = {
     virtual: "/test/wma/kiss-snippet.wma",
     real: "wma/kiss-snippet.wma",
   },
+  MKA: {
+    virtual: "/test/matroska/kiss-snippet.mka",
+    real: "matroska/kiss-snippet.mka",
+  },
+  MKV: {
+    virtual: "/test/matroska/kiss-snippet.mkv",
+    real: "matroska/kiss-snippet.mkv",
+  },
+  WEBM: {
+    virtual: "/test/matroska/kiss-snippet.webm",
+    real: "matroska/kiss-snippet.webm",
+  },
 };
 
 export function fileExists(path: string): boolean {

@@ -87,7 +87,7 @@ describe("Error Classes", () => {
     assertEquals(error.code, "UNSUPPORTED_FORMAT");
     assertEquals(
       error.message,
-      "Unsupported audio format: WMA. Supported formats: MP3, MP4, M4A, FLAC, OGG, WAV, MATROSKA",
+      "Unsupported audio format: WMA. Supported formats: MP3, MP4, M4A, FLAC, OGG, WAV, MKA",
     );
     assertEquals(error.format, "WMA");
     assertEquals(error.supportedFormats, [
@@ -97,7 +97,7 @@ describe("Error Classes", () => {
       "FLAC",
       "OGG",
       "WAV",
-      "MATROSKA",
+      "MKA",
     ]);
 
     const error2 = new UnsupportedFormatError("APE", ["MP3", "FLAC"]);
