@@ -2,6 +2,15 @@
 
 ## 1.0.6
 
+### Features
+
+- Add Matroska/WebM (.mka, .mkv, .webm) format support across all backends
+- Add Matroska format detection via EBML magic bytes
+
+### CI
+
+- Consolidate test.yml and dual-build.yml into single ci.yml pipeline
+
 ### Dependencies
 
 - Update TagLib from 2.1.1 to 2.2.1 (Matroska/WebM support, Ogg FLAC fixes, stricter ID3v2 verification)
