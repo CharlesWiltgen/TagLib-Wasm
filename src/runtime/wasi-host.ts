@@ -233,6 +233,11 @@ export function createWasiImports(
       dv.setBigUint64(timePtr, BigInt(Date.now()) * 1_000_000n, true);
       return WASI_ESUCCESS;
     },
+    random_get: (bufPtr: number, bufLen: number) => {
+      const buf = new Uint8Array(memory.buffer, bufPtr, bufLen);
+      crypto.getRandomValues(buf);
+      return WASI_ESUCCESS;
+    },
     proc_exit: (code: number) => {
       throw new Error(`WASI proc_exit called: code ${code}`);
     },
