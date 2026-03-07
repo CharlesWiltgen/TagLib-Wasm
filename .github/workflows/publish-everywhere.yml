@@ -54,7 +54,7 @@ jobs:
           COMMIT_SHA="${{ github.sha }}"
 
           # Get the status of the Tests workflow for this commit
-          RESULT=$(gh run list --workflow=test.yml --commit=$COMMIT_SHA --json conclusion --limit 1 -q '.[0].conclusion' || echo "not_found")
+          RESULT=$(gh run list --workflow=ci.yml --commit=$COMMIT_SHA --json conclusion --limit 1 -q '.[0].conclusion' || echo "not_found")
 
           if [ "$RESULT" = "success" ]; then
             echo "✅ Tests workflow passed for commit $COMMIT_SHA"
