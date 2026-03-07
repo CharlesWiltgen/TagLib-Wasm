@@ -57,7 +57,8 @@ typedef enum {
     TL_FORMAT_IT,
     TL_FORMAT_XM,
     TL_FORMAT_OGG_FLAC,
-    TL_FORMAT_SPEEX
+    TL_FORMAT_SPEEX,
+    TL_FORMAT_MATROSKA
 } tl_format;
 
 // Core memory management functions

@@ -212,6 +212,11 @@ tl_format tl_detect_format(const uint8_t* buf, size_t len) {
         return TL_FORMAT_SHN;
     }
 
+    // Matroska/WebM: EBML signature (0x1A 0x45 0xDF 0xA3)
+    if (buf[0] == 0x1A && buf[1] == 0x45 && buf[2] == 0xDF && buf[3] == 0xA3) {
+        return TL_FORMAT_MATROSKA;
+    }
+
     // IT (Impulse Tracker): "IMPM" signature
     if (memcmp(buf, "IMPM", 4) == 0) {
         return TL_FORMAT_IT;
@@ -265,6 +270,7 @@ const char* tl_format_name(tl_format format) {
         case TL_FORMAT_XM: return "Extended Module";
         case TL_FORMAT_OGG_FLAC: return "Ogg FLAC";
         case TL_FORMAT_SPEEX: return "Speex";
+        case TL_FORMAT_MATROSKA: return "Matroska";
         case TL_FORMAT_AUTO: return "Auto-detect";
         default: return "Unknown";
     }
