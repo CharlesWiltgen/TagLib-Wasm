@@ -19,6 +19,7 @@ export const FORMATS = [
   "wv",
   "tta",
   "wma",
+  "mka",
 ] as const;
 export type Format = (typeof FORMATS)[number];
 
@@ -37,6 +38,7 @@ export const FIXTURE_PATH: Record<Format, string> = {
   wv: resolve(TEST_FILES_DIR, "wv/kiss-snippet.wv"),
   tta: resolve(TEST_FILES_DIR, "tta/kiss-snippet.tta"),
   wma: resolve(TEST_FILES_DIR, "wma/kiss-snippet.wma"),
+  mka: resolve(TEST_FILES_DIR, "matroska/no-tags.mka"),
 };
 
 export const WASI_VIRTUAL_PATH: Record<Format, string> = {
@@ -51,6 +53,7 @@ export const WASI_VIRTUAL_PATH: Record<Format, string> = {
   wv: "/test/wv/kiss-snippet.wv",
   tta: "/test/tta/kiss-snippet.tta",
   wma: "/test/wma/kiss-snippet.wma",
+  mka: "/test/matroska/no-tags.mka",
 };
 
 export const EXPECTED_KISS_TAGS = {
@@ -156,6 +159,14 @@ export const EXPECTED_AUDIO_PROPS: Record<
     bitrateMin: 50,
     bitrateMax: 300,
     lengthMin: 1,
+    lengthMax: 30,
+  },
+  mka: {
+    sampleRate: 44100,
+    channels: 2,
+    bitrateMin: 50,
+    bitrateMax: 500,
+    lengthMin: 0,
     lengthMax: 30,
   },
 };

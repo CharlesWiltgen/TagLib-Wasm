@@ -12,6 +12,7 @@ export const TEST_FILES = {
   flac: "./tests/test-files/flac/kiss-snippet.flac",
   ogg: "./tests/test-files/ogg/kiss-snippet.ogg",
   m4a: "./tests/test-files/mp4/kiss-snippet.m4a",
+  mka: "./tests/test-files/matroska/no-tags.mka",
 } as const;
 
 // Expected format names
@@ -21,6 +22,7 @@ export const EXPECTED_FORMATS = {
   flac: "FLAC",
   ogg: "OGG",
   m4a: "MP4",
+  mka: "MATROSKA",
 } as const;
 
 // Test image data - 1x1 red PNG (67 bytes)
