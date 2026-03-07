@@ -269,7 +269,7 @@ done
     -Wl,--export=__data_end \
     -Wl,--initial-memory=16777216 \
     -Wl,--max-memory=2147483648 \
-    -DTAGLIB_VERSION=\"2.1.1\" \
+    -DTAGLIB_VERSION=\"2.2.1\" \
     -O3 \
     -std=c++17 \
     -fwasm-exceptions \
