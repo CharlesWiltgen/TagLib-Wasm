@@ -12,7 +12,7 @@ export const TEST_FILES = {
   flac: "./tests/test-files/flac/kiss-snippet.flac",
   ogg: "./tests/test-files/ogg/kiss-snippet.ogg",
   m4a: "./tests/test-files/mp4/kiss-snippet.m4a",
-  mka: "./tests/test-files/matroska/no-tags.mka",
+  mka: "./tests/test-files/matroska/kiss-snippet.mka",
 } as const;
 
 // Expected format names

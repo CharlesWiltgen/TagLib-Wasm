@@ -30,6 +30,7 @@
 #include <trueaudioproperties.h>
 #include <asffile.h>
 #include <asfproperties.h>
+#include <matroskafile.h>
 #include <id3v2tag.h>
 #include <attachedpictureframe.h>
 #include <popularimeterframe.h>
@@ -178,6 +179,10 @@ public:
         else if (TagLib::ASF::Properties* asfProps = dynamic_cast<TagLib::ASF::Properties*>(props)) {
             return asfProps->bitsPerSample();
         }
+        // Matroska files
+        else if (TagLib::Matroska::Properties* mkProps = dynamic_cast<TagLib::Matroska::Properties*>(props)) {
+            return mkProps->bitsPerSample();
+        }
 
         return 0;
     }
@@ -239,6 +244,23 @@ public:
         else if (dynamic_cast<TagLib::ASF::File*>(file)) {
             return "WMA";
         }
+        // Matroska files - report codec name from container
+        else if (auto* mkFile = dynamic_cast<TagLib::Matroska::File*>(file)) {
+            auto* mkProps = dynamic_cast<TagLib::Matroska::Properties*>(mkFile->audioProperties());
+            if (mkProps) {
+                TagLib::String cn = mkProps->codecName();
+                if (!cn.isEmpty()) {
+                    std::string name = cn.to8Bit(true);
+                    if (name.find("OPUS") != std::string::npos) return "Opus";
+                    if (name.find("VORBIS") != std::string::npos) return "Vorbis";
+                    if (name.find("FLAC") != std::string::npos) return "FLAC";
+                    if (name.find("AAC") != std::string::npos) return "AAC";
+                    if (name.find("MP3") != std::string::npos || name.find("MPEG") != std::string::npos) return "MP3";
+                    return name;
+                }
+            }
+            return "unknown";
+        }
 
         return "unknown";
     }
@@ -299,6 +321,9 @@ public:
         }
         else if (dynamic_cast<TagLib::ASF::File*>(file)) {
             return "ASF";
+        }
+        else if (dynamic_cast<TagLib::Matroska::File*>(file)) {
+            return "Matroska";
         }
 
         return "unknown";
@@ -475,6 +500,8 @@ public:
                 file.reset(new TagLib::RIFF::WAV::File(stream.get()));
             } else if (format == "aiff") {
                 file.reset(new TagLib::RIFF::AIFF::File(stream.get()));
+            } else if (format == "matroska") {
+                file.reset(new TagLib::Matroska::File(stream.get()));
             }
             
             if (file && file->isValid()) {
@@ -525,6 +552,7 @@ public:
         if (dynamic_cast<TagLib::WavPack::File*>(f)) return "WV";
         if (dynamic_cast<TagLib::TrueAudio::File*>(f)) return "TTA";
         if (dynamic_cast<TagLib::ASF::File*>(f)) return "ASF";
+        if (dynamic_cast<TagLib::Matroska::File*>(f)) return "MATROSKA";
 
         return "unknown";
     }
@@ -701,7 +729,13 @@ private:
         if (data.size() >= 12 && memcmp(d, "FORM", 4) == 0 && memcmp(d + 8, "AIFF", 4) == 0) {
             return "aiff";
         }
-        
+
+        // Matroska/WebM - EBML signature
+        if (data.size() >= 4 && (unsigned char)d[0] == 0x1A && (unsigned char)d[1] == 0x45 &&
+            (unsigned char)d[2] == 0xDF && (unsigned char)d[3] == 0xA3) {
+            return "matroska";
+        }
+
         return "unknown";
     }
 
