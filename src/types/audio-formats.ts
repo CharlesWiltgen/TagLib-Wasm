@@ -38,6 +38,7 @@ export type FileType =
   | "XM"
   | "OggFLAC"
   | "SPEEX"
+  | "MATROSKA"
   | "unknown";
 
 /**
@@ -71,6 +72,7 @@ export type ContainerFormat =
   | "S3M" // Scream Tracker 3 Module
   | "IT" // Impulse Tracker Module
   | "XM" // Extended Module
+  | "Matroska" // Matroska container (MKA, MKV, WebM)
   | "unknown";
 
 /**

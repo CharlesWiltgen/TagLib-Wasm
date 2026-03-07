@@ -33,6 +33,9 @@ export const DEFAULT_AUDIO_EXTENSIONS = [
   ".mpc",
   ".tta",
   ".wma",
+  ".mkv",
+  ".mka",
+  ".webm",
 ];
 
 /**
