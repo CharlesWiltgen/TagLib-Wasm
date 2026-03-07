@@ -1,0 +1,572 @@
+name: Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      skip_emscripten:
+        description: "Skip Emscripten build"
+        required: false
+        default: false
+        type: boolean
+      skip_wasi:
+        description: "Skip WASI build"
+        required: false
+        default: false
+        type: boolean
+
+jobs:
+  lint:
+    name: Lint & Format
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Setup Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      - name: Cache dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.npm
+            node_modules
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Check formatting
+        run: deno fmt --check
+
+      - name: Run linter
+        run: deno lint
+
+      - name: Type check
+        run: deno check ./src ./tests
+
+  build-embind:
+    name: Build (Embind)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Setup Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      - name: Cache dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.npm
+            node_modules
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Install Emscripten
+        uses: mymindstorm/setup-emsdk@v14
+        with:
+          version: 5.0.2
+
+      - name: Build WebAssembly
+        run: npm run build:wasm
+
+      - name: Copy WASM files to dist
+        run: |
+          mkdir -p dist
+          cp build/taglib-web.wasm dist/
+          cp build/taglib-wrapper.js dist/
+          cp build/taglib-wrapper.d.ts dist/
+
+      - name: Build TypeScript
+        run: npm run build:ts
+
+      - name: Run postbuild
+        run: npm run postbuild
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: embind-build
+          path: |
+            dist/
+            build/taglib-web.wasm
+            build/taglib-wrapper.js
+            build/taglib-wrapper.d.ts
+
+  build-emscripten:
+    name: Build (Emscripten C API)
+    runs-on: ubuntu-latest
+    if: ${{ !inputs.skip_emscripten }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install Emscripten
+        uses: mymindstorm/setup-emsdk@v14
+        with:
+          version: 5.0.2
+
+      - name: Cache Emscripten build
+        uses: actions/cache@v4
+        with:
+          path: |
+            build/emscripten
+          key: ${{ runner.os }}-emscripten-${{ hashFiles('lib/taglib/**/*.cpp', 'lib/taglib/**/*.h') }}
+          restore-keys: |
+            ${{ runner.os }}-emscripten-
+
+      - name: Build with Emscripten
+        run: |
+          chmod +x build/build-emscripten.sh
+          ./build/build-emscripten.sh
+
+      - name: Verify Emscripten artifacts
+        run: |
+          ls -lah dist/browser/
+          file dist/browser/taglib_emscripten.wasm
+          wc -c dist/browser/taglib_emscripten.wasm
+
+      - name: Upload Emscripten artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: emscripten-build
+          path: |
+            dist/browser/
+
+  build-wasi:
+    name: Build (WASI)
+    runs-on: ubuntu-latest
+    if: ${{ !inputs.skip_wasi }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Setup WASI SDK
+        run: |
+          WASI_VERSION=30.0
+          WASI_URL="https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-${WASI_VERSION%%.*}/wasi-sdk-${WASI_VERSION}-x86_64-linux.tar.gz"
+          mkdir -p build/wasi-sdk
+          cd build/wasi-sdk
+          wget -q "$WASI_URL"
+          tar xf wasi-sdk-*.tar.gz
+          rm wasi-sdk-*.tar.gz
+          echo "WASI_SDK_PATH=$PWD/wasi-sdk-${WASI_VERSION}-x86_64-linux" >> $GITHUB_ENV
+          echo "$PWD/wasi-sdk-${WASI_VERSION}-x86_64-linux/bin" >> $GITHUB_PATH
+
+      - name: Install wasm-opt and ninja
+        run: |
+          npm install -g wasm-opt
+          sudo apt-get install -y ninja-build
+
+      - name: Cache EH sysroot
+        uses: actions/cache@v4
+        with:
+          path: |
+            build/wasi-sdk-src
+            build/sysroot-build
+          key: ${{ runner.os }}-eh-sysroot-${{ hashFiles('build/build-eh-sysroot.sh') }}
+
+      - name: Build EH sysroot
+        run: |
+          printf '#!/bin/bash\nexport WASI_SDK_PATH="%s"\nexport PATH="$WASI_SDK_PATH/bin:$PATH"\n' "$WASI_SDK_PATH" > build/wasi-env.sh
+          chmod +x build/build-eh-sysroot.sh
+          ./build/build-eh-sysroot.sh
+
+      - name: Cache WASI build
+        uses: actions/cache@v4
+        with:
+          path: |
+            build/wasi
+          key: ${{ runner.os }}-wasi-${{ hashFiles('lib/taglib/**/*.cpp', 'lib/taglib/**/*.h', 'build/build-eh-sysroot.sh') }}
+
+      - name: Build with WASI SDK
+        run: |
+          chmod +x build/build-wasi.sh
+          printf '#!/bin/bash\nexport WASI_SDK_PATH="%s"\nexport PATH="$WASI_SDK_PATH/bin:$PATH"\necho "WASI SDK environment configured"\n' "$WASI_SDK_PATH" > build/wasi-env.sh
+          ./build/build-wasi.sh
+
+      - name: Verify WASI artifacts
+        run: |
+          ls -lah dist/wasi/
+          file dist/wasi/taglib_wasi.wasm
+          wc -c dist/wasi/taglib_wasi.wasm
+
+      - name: Upload WASI artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: wasi-build
+          path: |
+            dist/wasi/
+
+  test:
+    name: Test (${{ matrix.os }})
+    needs: build-embind
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Setup Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      - name: Cache dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.npm
+            node_modules
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: embind-build
+          path: .
+
+      - name: Run tests
+        run: deno test --allow-read --allow-write --allow-env --coverage=coverage tests/
+
+      - name: Generate coverage report
+        if: matrix.os == 'ubuntu-latest'
+        run: deno coverage coverage --lcov --output=coverage.lcov
+
+      - name: Upload coverage reports
+        if: matrix.os == 'ubuntu-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-lcov
+          path: coverage.lcov
+
+  test-wasi:
+    name: Test (WASI)
+    needs: build-wasi
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Setup Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      - name: Download WASI artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: wasi-build
+          path: dist/wasi
+
+      - name: Run WASI tests
+        run: |
+          deno test --allow-read --allow-write --allow-env \
+            tests/wasi-host.test.ts \
+            tests/wasi-write-roundtrip.test.ts \
+            tests/extended-write-roundtrip.test.ts \
+            tests/security.test.ts
+
+  package-compat:
+    name: Package Compatibility
+    needs: build-embind
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Setup Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: embind-build
+          path: .
+
+      - name: NPM - publint
+        run: npx publint
+
+      - name: NPM - arethetypeswrong
+        run: |
+          npx @arethetypeswrong/cli --pack --profile esm-only
+          echo "Note: Using esm-only profile (CJS dynamic import warnings are expected)"
+
+      - name: JSR - deno doc lint
+        run: |
+          # Check for missing documentation (warnings only, don't fail)
+          deno doc --lint index.ts 2>&1 | head -50 || true
+          echo ":: JSR documentation check complete"
+
+      - name: Bun - import test
+        run: |
+          cd /tmp
+          mkdir -p bun-compat-test
+          cd bun-compat-test
+          bun init -y
+          bun add $GITHUB_WORKSPACE
+          cat > test.ts << 'EOF'
+          import { TagLib, readTags } from "taglib-wasm";
+          import { readTags as simpleReadTags } from "taglib-wasm/simple";
+          import { RatingUtils } from "taglib-wasm";
+
+          if (typeof TagLib !== "function") throw new Error("TagLib export failed");
+          if (typeof readTags !== "function") throw new Error("readTags export failed");
+          if (typeof simpleReadTags !== "function") throw new Error("simple subpath export failed");
+          if (typeof RatingUtils !== "object") throw new Error("RatingUtils export failed");
+
+          console.log(":: Main exports resolve correctly");
+          console.log(":: Simple subpath exports resolve correctly");
+          EOF
+          bun run test.ts
+          echo ":: Bun compatibility verified"
+
+      - name: Bun - integration tests
+        run: |
+          bun test tests/bun-integration.test.ts
+          echo ":: Bun integration tests passed"
+
+      - name: Node.js - import test
+        run: |
+          cd /tmp
+          mkdir -p node-compat-test
+          cd node-compat-test
+          npm init -y
+          npm pkg set type=module
+          npm install $GITHUB_WORKSPACE
+          cat > test.mjs << 'EOF'
+          import { TagLib, readTags } from "taglib-wasm";
+          import { readTags as simpleReadTags } from "taglib-wasm/simple";
+          import { RatingUtils } from "taglib-wasm";
+
+          if (typeof TagLib !== "function") throw new Error("TagLib export failed");
+          if (typeof readTags !== "function") throw new Error("readTags export failed");
+          if (typeof simpleReadTags !== "function") throw new Error("simple subpath export failed");
+          if (typeof RatingUtils !== "object") throw new Error("RatingUtils export failed");
+
+          console.log(":: Main exports resolve correctly");
+          console.log(":: Simple subpath exports resolve correctly");
+          EOF
+          node test.mjs
+          echo ":: Node.js compatibility verified"
+
+      - name: Vite - browser bundle test
+        run: |
+          cd /tmp
+          mkdir -p vite-compat-test
+          cd vite-compat-test
+          npm init -y
+          npm pkg set type=module
+          npm install $GITHUB_WORKSPACE
+          npm install --save-dev vite
+
+          cat > index.html << 'HTMLEOF'
+          <!DOCTYPE html>
+          <html><body><script type="module" src="/main.js"></script></body></html>
+          HTMLEOF
+
+          cat > main.js << 'JSEOF'
+          import { TagLib, readTags } from "taglib-wasm";
+          import { readTags as simpleReadTags } from "taglib-wasm/simple";
+          import { RatingUtils } from "taglib-wasm";
+
+          if (typeof TagLib !== "function") throw new Error("TagLib export failed");
+          if (typeof readTags !== "function") throw new Error("readTags export failed");
+          if (typeof simpleReadTags !== "function") throw new Error("simple subpath export failed");
+          if (typeof RatingUtils !== "object") throw new Error("RatingUtils export failed");
+
+          console.log("taglib-wasm browser imports OK");
+          JSEOF
+
+          npx vite build 2>&1
+          echo ":: Vite build succeeded"
+
+          # Check for server-only entry points in the bundle.
+          # Note: node:fs/node:module refs from Emscripten's universal runtime are
+          # expected (Vite externalizes them to empty shims). The real regression
+          # signals are @wasmer/wasi-host imports, which mean Vite resolved the
+          # server entry point instead of the browser one.
+          if grep -rlE "@wasmer|wasi-host" dist/; then
+            echo ":: Server-only imports found in Vite output bundle"
+            exit 1
+          fi
+          echo ":: No server-only imports in browser bundle"
+
+  size-report:
+    name: Size Report
+    needs: [build-emscripten, build-wasi]
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download Emscripten artifacts
+        if: needs.build-emscripten.result == 'success'
+        uses: actions/download-artifact@v4
+        with:
+          name: emscripten-build
+          path: emscripten-build
+
+      - name: Download WASI artifacts
+        if: needs.build-wasi.result == 'success'
+        uses: actions/download-artifact@v4
+        with:
+          name: wasi-build
+          path: wasi-build
+
+      - name: Generate size report
+        run: |
+          echo "## Build Size Report" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Build | File | Size | Compressed (gzip) |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|------|------|-------------------|" >> $GITHUB_STEP_SUMMARY
+
+          # Emscripten build
+          if [ -f emscripten-build/taglib_emscripten.wasm ]; then
+            EMCC_SIZE_H=$(ls -lh emscripten-build/taglib_emscripten.wasm | awk '{print $5}')
+            gzip -c emscripten-build/taglib_emscripten.wasm > /tmp/emcc.wasm.gz
+            EMCC_GZIP_H=$(ls -lh /tmp/emcc.wasm.gz | awk '{print $5}')
+            echo "| Emscripten | taglib_emscripten.wasm | $EMCC_SIZE_H | $EMCC_GZIP_H |" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "| Emscripten | _(skipped)_ | - | - |" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          # WASI build
+          if [ -f wasi-build/taglib_wasi.wasm ]; then
+            WASI_SIZE_H=$(ls -lh wasi-build/taglib_wasi.wasm | awk '{print $5}')
+            gzip -c wasi-build/taglib_wasi.wasm > /tmp/wasi.wasm.gz
+            WASI_GZIP_H=$(ls -lh /tmp/wasi.wasm.gz | awk '{print $5}')
+            echo "| WASI SDK | taglib_wasi.wasm | $WASI_SIZE_H | $WASI_GZIP_H |" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "| WASI SDK | _(skipped)_ | - | - |" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Target Environments" >> $GITHUB_STEP_SUMMARY
+          echo "- **Emscripten**: Browser, Node.js, Web Workers" >> $GITHUB_STEP_SUMMARY
+          echo "- **WASI SDK**: Deno, Node.js (WASI), Cloudflare Workers" >> $GITHUB_STEP_SUMMARY
+
+  summary:
+    name: Summary
+    needs: [
+      lint,
+      build-embind,
+      build-emscripten,
+      build-wasi,
+      test,
+      test-wasi,
+      package-compat,
+      size-report,
+    ]
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: Check results
+        run: |
+          echo "## CI Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          # Required jobs (must pass)
+          FAILED=false
+          for job in lint build-embind test package-compat; do
+            result="${{ needs.lint.result }}"
+            case "$job" in
+              lint) result="${{ needs.lint.result }}" ;;
+              build-embind) result="${{ needs.build-embind.result }}" ;;
+              test) result="${{ needs.test.result }}" ;;
+              package-compat) result="${{ needs.package-compat.result }}" ;;
+            esac
+            if [ "$result" != "success" ]; then
+              echo "- **$job**: $result" >> $GITHUB_STEP_SUMMARY
+              FAILED=true
+            else
+              echo "- **$job**: success" >> $GITHUB_STEP_SUMMARY
+            fi
+          done
+
+          # Optional jobs (report but don't gate on skipped)
+          for job in build-emscripten build-wasi test-wasi size-report; do
+            case "$job" in
+              build-emscripten) result="${{ needs.build-emscripten.result }}" ;;
+              build-wasi) result="${{ needs.build-wasi.result }}" ;;
+              test-wasi) result="${{ needs.test-wasi.result }}" ;;
+              size-report) result="${{ needs.size-report.result }}" ;;
+            esac
+            if [ "$result" = "failure" ]; then
+              echo "- **$job**: failure" >> $GITHUB_STEP_SUMMARY
+              FAILED=true
+            else
+              echo "- **$job**: $result" >> $GITHUB_STEP_SUMMARY
+            fi
+          done
+
+          if [ "$FAILED" = "true" ]; then
+            echo ""
+            echo "CI failed." >> $GITHUB_STEP_SUMMARY
+            exit 1
+          else
+            echo ""
+            echo "All checks passed." >> $GITHUB_STEP_SUMMARY
+          fi
