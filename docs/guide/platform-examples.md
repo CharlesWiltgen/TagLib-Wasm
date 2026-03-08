@@ -11,6 +11,7 @@ everywhere — the only meaningful difference is how your platform accesses file
 | **Node.js**            | Yes                      | Yes     | `npm install taglib-wasm`                                          |
 | **Bun**                | Yes                      | Yes     | `bun add taglib-wasm`                                              |
 | **Browser**            | No                       | Yes     | Use a bundler (Vite, Webpack, Parcel)                              |
+| **Web Workers**        | No                       | Yes     | Use a bundler (Vite, Webpack, Parcel)                              |
 | **Cloudflare Workers** | No                       | Yes     | `npm install taglib-wasm`                                          |
 | **Electron**           | Main: Yes / Renderer: No | Yes     | `npm install taglib-wasm`                                          |
 
@@ -140,6 +141,83 @@ URL.revokeObjectURL(url);
 ::: tip Bundler required
 TagLib-Wasm uses ES modules. Use Vite, Webpack, Parcel, or another bundler
 that can resolve `taglib-wasm` and serve the `.wasm` file.
+:::
+
+## Web Workers
+
+Use a Web Worker to offload CPU-intensive tag parsing off the main thread,
+keeping your UI responsive. The runtime detector automatically recognizes
+workers as a `"worker"` environment and uses the Emscripten backend.
+
+A **SharedWorker** shares one TagLib instance across all tabs — ideal for apps
+that open multiple windows. A **dedicated Worker** (`new Worker()`) is simpler
+and has broader browser support. Choose whichever fits your architecture.
+
+### SharedWorker (`shared-worker.ts`)
+
+```typescript
+import { TagLib } from "taglib-wasm";
+
+const taglib = await TagLib.initialize();
+
+self.addEventListener("connect", (e: MessageEvent) => {
+  const port = (e as MessageEvent).ports[0];
+
+  port.addEventListener("message", async (msg: MessageEvent) => {
+    try {
+      const audioData = new Uint8Array(msg.data.buffer);
+      using file = await taglib.open(audioData);
+
+      port.postMessage({
+        title: file.tag().title,
+        artist: file.tag().artist,
+        album: file.tag().album,
+        duration: file.audioProperties()?.length,
+      });
+    } catch (err) {
+      port.postMessage({ error: (err as Error).message });
+    }
+  });
+
+  port.start();
+});
+```
+
+### Main thread (`main.ts`)
+
+```typescript
+const worker = new SharedWorker(
+  new URL("./shared-worker.ts", import.meta.url),
+  { type: "module" },
+);
+
+function readTagsInWorker(file: File): Promise<Record<string, unknown>> {
+  return new Promise(async (resolve) => {
+    const buffer = await file.arrayBuffer();
+
+    worker.port.onmessage = (e: MessageEvent) => resolve(e.data);
+    worker.port.postMessage({ buffer }, [buffer]);
+  });
+}
+
+// Usage with a file input
+const input = document.querySelector<HTMLInputElement>('input[type="file"]');
+input?.addEventListener("change", async () => {
+  const tags = await readTagsInWorker(input.files![0]);
+  console.log(tags);
+});
+```
+
+::: warning Limitations
+
+- **Emscripten backend only** — WASI and filesystem paths are not available in
+  workers
+- **Buffer-only** — pass audio data as `ArrayBuffer` or `Uint8Array`
+- **SharedWorker browser support varies** —
+  [check compatibility](https://caniuse.com/sharedworkers)
+- See [#18](https://github.com/CharlesWiltgen/TagLib-Wasm/issues/18) for
+  ongoing Web Worker enhancements
+
 :::
 
 ## Cloudflare Workers
