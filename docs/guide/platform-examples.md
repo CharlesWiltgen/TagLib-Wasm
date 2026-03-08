@@ -215,8 +215,7 @@ input?.addEventListener("change", async () => {
 - **Buffer-only** — pass audio data as `ArrayBuffer` or `Uint8Array`
 - **SharedWorker browser support varies** —
   [check compatibility](https://caniuse.com/sharedworkers)
-- See [#18](https://github.com/CharlesWiltgen/TagLib-Wasm/issues/18) for
-  ongoing Web Worker enhancements
+- Full Web Worker support (dedicated workers, transferable buffers) is planned
 
 :::
 
