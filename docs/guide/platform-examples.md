@@ -243,10 +243,12 @@ export default {
 };
 ```
 
-Key differences from other platforms:
+::: warning Limitations
 
-- **Memory limit**: 128MB per request
-- **No filesystem**: Buffer-only
+- **Memory limit** — 128MB per request
+- **Buffer-only** — no filesystem access
+
+:::
 
 See [Cloudflare Workers Guide](../advanced/cloudflare-workers.md) for detailed
 configuration.
