@@ -84,7 +84,7 @@ async function executeBatch<T>(
 /**
  * Read tags from multiple files with configurable concurrency.
  *
- * @param files - Array of file paths, Uint8Arrays, ArrayBuffers, or File objects.
+ * @param files - Array of file paths, Uint8Arrays, ArrayBuffers, File objects, or NamedAudioInputs.
  * @param options - Batch processing options (concurrency, error handling, progress).
  * @returns Batch result containing a `BatchItem` per file and total duration in ms.
  * @throws If `continueOnError` is `false` and any file fails to process.
@@ -103,7 +103,7 @@ export async function readTagsBatch(
 /**
  * Read audio properties from multiple files with configurable concurrency.
  *
- * @param files - Array of file paths, Uint8Arrays, ArrayBuffers, or File objects.
+ * @param files - Array of file paths, Uint8Arrays, ArrayBuffers, File objects, or NamedAudioInputs.
  * @param options - Batch processing options (concurrency, error handling, progress).
  * @returns Batch result containing a `BatchItem` per file and total duration in ms.
  * @throws If `continueOnError` is `false` and any file fails to process.
@@ -191,7 +191,7 @@ export async function readMetadata(
 /**
  * Read complete metadata from multiple files with configurable concurrency.
  *
- * @param files - Array of file paths, Uint8Arrays, ArrayBuffers, or File objects.
+ * @param files - Array of file paths, Uint8Arrays, ArrayBuffers, File objects, or NamedAudioInputs.
  * @param options - Batch processing options (concurrency, error handling, progress).
  * @returns Batch result containing a `BatchItem` per file and total duration in ms.
  * @throws If `continueOnError` is `false` and any file fails to process.
