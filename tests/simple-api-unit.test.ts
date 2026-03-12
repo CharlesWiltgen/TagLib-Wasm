@@ -665,7 +665,38 @@ describe("readTagsBatch with buffer input", () => {
     assertEquals(result.items.length, 1);
     assertEquals(result.items[0].status, "ok");
     // Buffer input should use generated file name
-    assertEquals(result.items[0].path, "file-0");
+    assertEquals(result.items[0].path, "buffer-0");
+  });
+});
+
+describe("readTagsBatch with NamedAudioInput", () => {
+  it("should use name from NamedAudioInput for path", async () => {
+    const mp3 = await Deno.readFile(FIXTURE_PATH.mp3);
+    const result = await readTagsBatch([
+      { name: "my-song.mp3", data: new Uint8Array(mp3) },
+    ]);
+    assertEquals(result.items.length, 1);
+    assertEquals(result.items[0].status, "ok");
+    assertEquals(result.items[0].path, "my-song.mp3");
+  });
+
+  it("should use File.name for File input path", async () => {
+    const mp3 = await Deno.readFile(FIXTURE_PATH.mp3);
+    const file = new File([mp3], "from-file-api.mp3", { type: "audio/mpeg" });
+    const result = await readTagsBatch([file]);
+    assertEquals(result.items.length, 1);
+    assertEquals(result.items[0].status, "ok");
+    assertEquals(result.items[0].path, "from-file-api.mp3");
+  });
+
+  it("should use buffer-N fallback for unnamed buffers", async () => {
+    const mp3 = await Deno.readFile(FIXTURE_PATH.mp3);
+    const result = await readTagsBatch([
+      new Uint8Array(mp3),
+      new Uint8Array(mp3),
+    ]);
+    assertEquals(result.items[0].path, "buffer-0");
+    assertEquals(result.items[1].path, "buffer-1");
   });
 });
 

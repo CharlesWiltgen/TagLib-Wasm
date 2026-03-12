@@ -1,6 +1,7 @@
 import type { TagLibModule, WasmModule } from "../wasm.ts";
 import type { AudioFileInput, OpenOptions, TagInput } from "../types.ts";
 import type { LoadTagLibOptions } from "../runtime/loader-types.ts";
+import { isNamedAudioInput } from "../types/audio-formats.ts";
 import { InvalidFormatError, TagLibInitializationError } from "../errors.ts";
 import type { AudioFile } from "./audio-file-interface.ts";
 import { AudioFileImpl } from "./audio-file-impl.ts";
@@ -48,7 +49,10 @@ export class TagLib {
       );
     }
 
-    const sourcePath = typeof input === "string" ? input : undefined;
+    const actualInput = isNamedAudioInput(input) ? input.data : input;
+    const sourcePath = typeof actualInput === "string"
+      ? actualInput
+      : undefined;
     const opts = {
       partial: false,
       maxHeaderSize: 1024 * 1024,
@@ -57,7 +61,7 @@ export class TagLib {
     };
 
     const { data: audioData, isPartiallyLoaded } = await loadAudioData(
-      input,
+      actualInput,
       opts,
     );
 
@@ -80,7 +84,7 @@ export class TagLib {
         this.module,
         fileHandle,
         sourcePath,
-        input,
+        actualInput,
         isPartiallyLoaded,
         opts,
       );

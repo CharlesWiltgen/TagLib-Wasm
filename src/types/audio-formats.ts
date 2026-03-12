@@ -1,7 +1,35 @@
 /**
+ * Named audio input for buffer-based operations.
+ * Provides a name for correlation in batch results.
+ */
+export interface NamedAudioInput {
+  readonly name: string;
+  readonly data: Uint8Array | ArrayBuffer;
+}
+
+/**
  * Input types accepted by TagLib-Wasm for audio files
  */
-export type AudioFileInput = string | Uint8Array | ArrayBuffer | File;
+export type AudioFileInput =
+  | string
+  | Uint8Array
+  | ArrayBuffer
+  | File
+  | NamedAudioInput;
+
+export function isNamedAudioInput(
+  input: AudioFileInput,
+): input is NamedAudioInput {
+  return (
+    typeof input === "object" &&
+    input !== null &&
+    "name" in input &&
+    "data" in input &&
+    !(input instanceof File) &&
+    !(input instanceof Uint8Array) &&
+    !(input instanceof ArrayBuffer)
+  );
+}
 
 /**
  * Supported file types detected by TagLib.

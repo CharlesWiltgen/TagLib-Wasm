@@ -1,7 +1,6 @@
 import type { FileHandle, TagLibModule } from "../wasm.ts";
 import type {
   AudioCodec,
-  AudioFileInput,
   AudioProperties,
   ContainerFormat,
   FileType,
@@ -23,7 +22,7 @@ export abstract class BaseAudioFileImpl {
   protected fileHandle: FileHandle | null;
   protected cachedAudioProperties: AudioProperties | null = null;
   protected readonly sourcePath?: string;
-  protected originalSource?: AudioFileInput;
+  protected originalSource?: string | Uint8Array | ArrayBuffer | File;
   protected isPartiallyLoaded: boolean = false;
   protected readonly partialLoadOptions?: OpenOptions;
 
@@ -31,7 +30,7 @@ export abstract class BaseAudioFileImpl {
     protected readonly module: TagLibModule,
     fileHandle: FileHandle,
     sourcePath?: string,
-    originalSource?: AudioFileInput,
+    originalSource?: string | Uint8Array | ArrayBuffer | File,
     isPartiallyLoaded: boolean = false,
     partialLoadOptions?: OpenOptions,
   ) {
