@@ -241,6 +241,8 @@ interface BatchOptions {
   continueOnError?: boolean;
   /** Progress callback */
   onProgress?: (processed: number, total: number, currentFile: string) => void;
+  /** AbortSignal to cancel the batch operation between chunks */
+  signal?: AbortSignal;
 }
 ```
 
@@ -269,7 +271,7 @@ Read tags from multiple files efficiently.
 function readTagsBatch(
   files: Array<string | Uint8Array | ArrayBuffer | File>,
   options?: BatchOptions,
-): Promise<BatchResult<Tag>>;
+): Promise<BatchResult<ExtendedTag>>;
 ```
 
 #### Example
@@ -330,7 +332,7 @@ function readMetadataBatch(
   options?: BatchOptions,
 ): Promise<
   BatchResult<{
-    tags: Tag;
+    tags: ExtendedTag;
     properties: AudioProperties | null;
     hasCoverArt: boolean;
     dynamics?: {
