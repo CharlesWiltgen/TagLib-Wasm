@@ -10,6 +10,7 @@ import type { AudioFile } from "./audio-file-interface.ts";
 import { AudioFileImpl } from "./audio-file-impl.ts";
 import { loadAudioData } from "./load-audio-data.ts";
 import { mergeTagUpdates } from "../utils/tag-mapping.ts";
+import { VERSION } from "../version.ts";
 
 /**
  * Main TagLib interface for audio metadata operations.
@@ -178,7 +179,17 @@ export class TagLib {
 
   /** Returns the taglib-wasm version with embedded TagLib version. */
   version(): string {
-    return "1.0.6 (TagLib 2.2.1)";
+    return `${VERSION} (TagLib ${this.taglibVersion()})`;
+  }
+
+  private taglibVersion(): string {
+    if (this.module.getVersion) {
+      return this.module.getVersion();
+    }
+    if (this.module.version) {
+      return this.module.version();
+    }
+    return "unknown";
   }
 }
 

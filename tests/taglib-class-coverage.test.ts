@@ -2,6 +2,7 @@ import { assert, assertEquals } from "@std/assert";
 import { assertInstanceOf } from "@std/assert/instance-of";
 import { beforeAll, describe, it } from "@std/testing/bdd";
 import { TagLib } from "../src/taglib.ts";
+import type { WasmModule } from "../src/wasm.ts";
 import { FIXTURE_PATH } from "./shared-fixtures.ts";
 
 let taglib: TagLib;
@@ -171,11 +172,31 @@ describe("updateFile with extended fields", () => {
 });
 
 describe("TagLib.version()", () => {
-  it("should return version with TagLib version", () => {
+  it("should return package version with TagLib version from Wasm", () => {
     const version = taglib.version();
     assert(
       /^\d+\.\d+\.\d+\S* \(TagLib \d+\.\d+\.\d+\)$/.test(version),
       `Version should match format 'X.Y.Z (TagLib X.Y.Z)', got: ${version}`,
+    );
+  });
+
+  it("should use deno.json version as package version", async () => {
+    const denoJson = JSON.parse(
+      await Deno.readTextFile(new URL("../deno.json", import.meta.url)),
+    );
+    const version = taglib.version();
+    assert(
+      version.startsWith(denoJson.version),
+      `Version should start with deno.json version '${denoJson.version}', got: ${version}`,
+    );
+  });
+
+  it("should return 'unknown' TagLib version when module has no version method", () => {
+    const mockModule = {} as WasmModule;
+    const instance = new TagLib(mockModule);
+    assert(
+      instance.version().endsWith("(TagLib unknown)"),
+      `Expected version to end with '(TagLib unknown)', got: ${instance.version()}`,
     );
   });
 });

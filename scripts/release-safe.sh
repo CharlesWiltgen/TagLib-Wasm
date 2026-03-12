@@ -246,7 +246,7 @@ create_release() {
     fi
 
     # Commit version changes (skip if already at target version)
-    git add package.json deno.json sonar-project.properties src/taglib/taglib-class.ts
+    git add package.json deno.json sonar-project.properties src/version.ts
     if git diff --cached --quiet; then
         print_warning "Version already at $version, skipping commit"
     else

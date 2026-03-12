@@ -36,10 +36,9 @@ fi
 echo "📥 Pulling latest changes..."
 git pull origin main
 
-# Update version in package.json
+# Update version in all files
 echo "📝 Updating version to $VERSION..."
-sed -i.bak "s/\"version\": \"[^\"]*\"/\"version\": \"$VERSION\"/" package.json
-rm package.json.bak
+deno run --allow-read --allow-write scripts/sync-version.ts set "$VERSION"
 
 # Run tests
 echo "🧪 Running tests..."
@@ -69,7 +68,7 @@ echo "✅ WASM binaries verified"
 
 # Commit version bump
 echo "💾 Committing version bump..."
-git add package.json deno.json
+git add package.json deno.json sonar-project.properties src/version.ts
 git commit -m "chore: bump version to $VERSION"
 
 # Create and push tag

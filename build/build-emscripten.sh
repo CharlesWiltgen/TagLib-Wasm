@@ -22,6 +22,14 @@ TAGLIB_DIR="$PROJECT_ROOT/lib/taglib"
 BUILD_DIR="$PROJECT_ROOT/build/emscripten"
 DIST_DIR="$PROJECT_ROOT/dist/browser"
 
+# Extract TagLib version from source header
+TAGLIB_HEADER="$TAGLIB_DIR/taglib/toolkit/taglib.h"
+TAGLIB_MAJOR=$(grep '#define TAGLIB_MAJOR_VERSION' "$TAGLIB_HEADER" | awk '{print $3}')
+TAGLIB_MINOR=$(grep '#define TAGLIB_MINOR_VERSION' "$TAGLIB_HEADER" | awk '{print $3}')
+TAGLIB_PATCH=$(grep '#define TAGLIB_PATCH_VERSION' "$TAGLIB_HEADER" | awk '{print $3}')
+TAGLIB_VER="${TAGLIB_MAJOR}.${TAGLIB_MINOR}.${TAGLIB_PATCH}"
+echo -e "${BLUE}TagLib version: ${TAGLIB_VER}${NC}"
+
 # Check for Emscripten
 if ! command -v emcc &> /dev/null; then
     echo -e "${RED}❌ emcc not found. Please install Emscripten.${NC}"
@@ -187,6 +195,7 @@ emcc "${CAPI_CPP_SOURCES[@]}" \
     -DMSGPACK_NO_BOOST=1 \
     -DMSGPACK_ENDIAN_LITTLE_BYTE=1 \
     -DMSGPACK_ENDIAN_BIG_BYTE=0 \
+    -DTAGLIB_VERSION=\"${TAGLIB_VER}\" \
     -O3 -std=c++17 -c
 
 # Compile C files
@@ -213,7 +222,6 @@ emcc "$BUILD_DIR/capi"/*.o \
     -s MAXIMUM_MEMORY=2GB \
     -s STACK_SIZE=1MB \
     -s USE_ZLIB=1 \
-    -DTAGLIB_VERSION=\"2.2.1\" \
     -O3 \
     -std=c++17
 
