@@ -5,17 +5,14 @@ import type {
   FileType,
   TagInput,
 } from "../types.ts";
-import {
-  FileOperationError,
-  InvalidFormatError,
-  MetadataError,
-} from "../errors.ts";
+import { FileOperationError, MetadataError } from "../errors.ts";
 import { writeFileData } from "../utils/write.ts";
 import {
   mapPropertiesToExtendedTag,
   mergeTagUpdates,
 } from "../utils/tag-mapping.ts";
 import { getTagLib } from "./config.ts";
+import { withAudioFile, withAudioFileSave } from "./with-audio-file.ts";
 
 /**
  * Reads all metadata tags from an audio file.
@@ -28,20 +25,10 @@ import { getTagLib } from "./config.ts";
 export async function readTags(
   file: AudioFileInput,
 ): Promise<ExtendedTag> {
-  const taglib = await getTagLib();
-  const audioFile = await taglib.open(file);
-  try {
-    if (!audioFile.isValid()) {
-      throw new InvalidFormatError(
-        "File may be corrupted or in an unsupported format",
-      );
-    }
-
-    const props = audioFile.properties();
-    return mapPropertiesToExtendedTag(props);
-  } finally {
-    audioFile.dispose();
-  }
+  return withAudioFile(
+    file,
+    (audioFile) => mapPropertiesToExtendedTag(audioFile.properties()),
+  );
 }
 
 /**
@@ -58,28 +45,9 @@ export async function applyTags(
   file: AudioFileInput,
   tags: Partial<TagInput>,
 ): Promise<Uint8Array> {
-  const taglib = await getTagLib();
-  const audioFile = await taglib.open(file);
-  try {
-    if (!audioFile.isValid()) {
-      throw new InvalidFormatError(
-        "File may be corrupted or in an unsupported format",
-      );
-    }
-
+  return withAudioFileSave(file, (audioFile) => {
     mergeTagUpdates(audioFile, tags);
-
-    if (!audioFile.save()) {
-      throw new FileOperationError(
-        "save",
-        "Failed to save metadata changes. The file may be read-only or corrupted.",
-      );
-    }
-
-    return audioFile.getFileBuffer();
-  } finally {
-    audioFile.dispose();
-  }
+  });
 }
 
 /**
@@ -120,15 +88,7 @@ export async function applyTagsToFile(
 export async function readProperties(
   file: AudioFileInput,
 ): Promise<AudioProperties> {
-  const taglib = await getTagLib();
-  const audioFile = await taglib.open(file);
-  try {
-    if (!audioFile.isValid()) {
-      throw new InvalidFormatError(
-        "File may be corrupted or in an unsupported format",
-      );
-    }
-
+  return withAudioFile(file, (audioFile) => {
     const props = audioFile.audioProperties();
     if (!props) {
       throw new MetadataError(
@@ -138,9 +98,7 @@ export async function readProperties(
       );
     }
     return props;
-  } finally {
-    audioFile.dispose();
-  }
+  });
 }
 
 /**
@@ -181,7 +139,6 @@ export async function readFormat(
     if (!audioFile.isValid()) {
       return undefined;
     }
-
     return audioFile.getFormat();
   } finally {
     audioFile.dispose();
@@ -200,27 +157,8 @@ export async function readFormat(
 export async function clearTags(
   file: AudioFileInput,
 ): Promise<Uint8Array> {
-  const taglib = await getTagLib();
-  const audioFile = await taglib.open(file);
-  try {
-    if (!audioFile.isValid()) {
-      throw new InvalidFormatError(
-        "File may be corrupted or in an unsupported format",
-      );
-    }
-
+  return withAudioFileSave(file, (audioFile) => {
     audioFile.setProperties({});
     audioFile.removePictures();
-
-    if (!audioFile.save()) {
-      throw new FileOperationError(
-        "save",
-        "Failed to save metadata changes. The file may be read-only or corrupted.",
-      );
-    }
-
-    return audioFile.getFileBuffer();
-  } finally {
-    audioFile.dispose();
-  }
+  });
 }
