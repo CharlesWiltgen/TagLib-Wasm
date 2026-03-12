@@ -117,6 +117,11 @@ else
     LIBCXXABI=$(find "$WASI_SDK_PATH" -name "libc++abi.a" 2>/dev/null | head -1)
     if [ -n "$LIBCXXABI" ]; then
         echo -e "${GREEN}libc++abi.a found at: $LIBCXXABI${NC}"
+        if "$WASI_SDK_PATH/bin/llvm-objdump" --section=target_features "$LIBCXXABI" 2>/dev/null | grep -q "exception-handling"; then
+            echo -e "${GREEN}libc++abi.a has exception-handling feature${NC}"
+        else
+            echo -e "${YELLOW}Could not verify exception-handling feature in libc++abi.a (may still work)${NC}"
+        fi
     else
         echo -e "${YELLOW}libc++abi.a not found at expected location${NC}"
     fi
