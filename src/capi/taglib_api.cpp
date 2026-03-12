@@ -16,37 +16,63 @@
 // External error handling functions from taglib_error.cpp
 extern "C" void tl_set_error(tl_error_code code, const char* message);
 
-// Helper to detect format from buffer
-static tl_format detect_format_from_buffer(const uint8_t* buf, size_t len) {
-    if (len < 12) return TL_FORMAT_AUTO;
-    
-    // MP3: ID3 tag or MPEG sync
-    if ((buf[0] == 'I' && buf[1] == 'D' && buf[2] == '3') ||
-        (buf[0] == 0xFF && (buf[1] & 0xE0) == 0xE0)) {
+// Helper to detect format from buffer (inner, without ID3 skip)
+static tl_format detect_format_inner(const uint8_t* buf, size_t len) {
+    if (len < 4) return TL_FORMAT_AUTO;
+
+    // MPEG sync word
+    if (buf[0] == 0xFF && (buf[1] & 0xE0) == 0xE0) {
         return TL_FORMAT_MP3;
     }
-    
+
     // FLAC: "fLaC" signature
     if (memcmp(buf, "fLaC", 4) == 0) {
         return TL_FORMAT_FLAC;
     }
-    
+
     // M4A/MP4: "ftyp" at offset 4
     if (len > 8 && memcmp(buf + 4, "ftyp", 4) == 0) {
         return TL_FORMAT_M4A;
     }
-    
+
     // OGG: "OggS" signature
     if (memcmp(buf, "OggS", 4) == 0) {
         return TL_FORMAT_OGG;
     }
-    
+
     // WAV: "RIFF" and "WAVE"
     if (len > 12 && memcmp(buf, "RIFF", 4) == 0 && memcmp(buf + 8, "WAVE", 4) == 0) {
         return TL_FORMAT_WAV;
     }
-    
+
+    // TrueAudio: "TTA1" signature
+    if (memcmp(buf, "TTA1", 4) == 0) {
+        return TL_FORMAT_TTA;
+    }
+
     return TL_FORMAT_AUTO;
+}
+
+// Helper to detect format from buffer (with ID3v2 skip)
+static tl_format detect_format_from_buffer(const uint8_t* buf, size_t len) {
+    if (len < 12) return TL_FORMAT_AUTO;
+
+    // ID3v2 header: skip past it to detect the actual audio format
+    if (buf[0] == 'I' && buf[1] == 'D' && buf[2] == '3' && len >= 10) {
+        uint32_t id3_size = ((uint32_t)(buf[6] & 0x7F) << 21) |
+                            ((uint32_t)(buf[7] & 0x7F) << 14) |
+                            ((uint32_t)(buf[8] & 0x7F) << 7) |
+                            ((uint32_t)(buf[9] & 0x7F));
+        uint32_t offset = 10 + id3_size;
+        if (buf[5] & 0x10) offset += 10;
+        if (offset + 12 <= len) {
+            tl_format inner = detect_format_inner(buf + offset, len - offset);
+            if (inner != TL_FORMAT_AUTO) return inner;
+        }
+        return TL_FORMAT_MP3;
+    }
+
+    return detect_format_inner(buf, len);
 }
 
 // Pack tag data into MessagePack using pure C API

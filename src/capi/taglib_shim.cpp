@@ -26,8 +26,29 @@
 #include <tbytevectorstream.h>
 #include <tfilestream.h>
 #include <audioproperties.h>
-#include <mp4file.h>
 #include <mpegfile.h>
+#include <flacfile.h>
+#include <mp4file.h>
+#include <oggfile.h>
+#include <vorbisfile.h>
+#include <wavfile.h>
+#include <opusfile.h>
+#include <aifffile.h>
+#include <apefile.h>
+#include <wavpackfile.h>
+#include <mpcfile.h>
+#include <asffile.h>
+#include <dsffile.h>
+#include <trueaudiofile.h>
+#include <oggflacfile.h>
+#include <speexfile.h>
+#include <dsdifffile.h>
+#include <shortenfile.h>
+#include <modfile.h>
+#include <s3mfile.h>
+#include <itfile.h>
+#include <xmfile.h>
+#include <matroskafile.h>
 
 #include <mpack/mpack.h>
 
@@ -252,16 +273,55 @@ static tl_error_code encode_file_to_msgpack(TagLib::File* file,
     return TL_SUCCESS;
 }
 
+static TagLib::File* create_file_for_format(tl_format format, TagLib::IOStream* stream) {
+    switch (format) {
+        case TL_FORMAT_MP3:      return new TagLib::MPEG::File(stream);
+        case TL_FORMAT_FLAC:     return new TagLib::FLAC::File(stream);
+        case TL_FORMAT_M4A:      return new TagLib::MP4::File(stream);
+        case TL_FORMAT_OGG:      return new TagLib::Ogg::Vorbis::File(stream);
+        case TL_FORMAT_WAV:      return new TagLib::RIFF::WAV::File(stream);
+        case TL_FORMAT_OPUS:     return new TagLib::Ogg::Opus::File(stream);
+        case TL_FORMAT_AIFF:     return new TagLib::RIFF::AIFF::File(stream);
+        case TL_FORMAT_APE:      return new TagLib::APE::File(stream);
+        case TL_FORMAT_WV:       return new TagLib::WavPack::File(stream);
+        case TL_FORMAT_MPC:      return new TagLib::MPC::File(stream);
+        case TL_FORMAT_ASF:      return new TagLib::ASF::File(stream);
+        case TL_FORMAT_DSF:      return new TagLib::DSF::File(stream);
+        case TL_FORMAT_TTA:      return new TagLib::TrueAudio::File(stream);
+        case TL_FORMAT_OGG_FLAC: return new TagLib::Ogg::FLAC::File(stream);
+        case TL_FORMAT_SPEEX:    return new TagLib::Ogg::Speex::File(stream);
+        case TL_FORMAT_DSDIFF:   return new TagLib::DSDIFF::File(stream);
+        case TL_FORMAT_SHN:      return new TagLib::Shorten::File(stream);
+        case TL_FORMAT_MOD:      return new TagLib::Mod::File(stream);
+        case TL_FORMAT_S3M:      return new TagLib::S3M::File(stream);
+        case TL_FORMAT_IT:       return new TagLib::IT::File(stream);
+        case TL_FORMAT_XM:       return new TagLib::XM::File(stream);
+        case TL_FORMAT_MATROSKA: return new TagLib::Matroska::File(stream);
+        default:                 return nullptr;
+    }
+}
+
 static tl_error_code read_from_buffer(const uint8_t* buf, size_t len,
-                                      tl_format /* format */,
+                                      tl_format format,
                                       uint8_t** out_buf, size_t* out_size) {
     try {
         TagLib::ByteVector bv(reinterpret_cast<const char*>(buf),
                               static_cast<unsigned int>(len));
         TagLib::ByteVectorStream stream(bv);
+
+        if (format == TL_FORMAT_AUTO) {
+            format = tl_detect_format(buf, len);
+        }
+
+        std::unique_ptr<TagLib::File> file(create_file_for_format(format, &stream));
+
+        if (file && file->isValid()) {
+            return encode_file_to_msgpack(file.get(), out_buf, out_size);
+        }
+
+        file.reset();
         TagLib::FileRef ref(&stream);
         if (ref.isNull()) return TL_ERROR_PARSE_FAILED;
-
         return encode_file_to_msgpack(ref.file(), out_buf, out_size);
     } catch (...) {
         return TL_ERROR_PARSE_FAILED;
@@ -451,10 +511,10 @@ static tl_error_code decode_msgpack_to_propmap(
     return (error == mpack_ok) ? TL_SUCCESS : TL_ERROR_PARSE_FAILED;
 }
 
-static void apply_propmap(TagLib::FileRef& ref, const TagLib::PropertyMap& propMap) {
-    ref.file()->setProperties(propMap);
+static void apply_propmap(TagLib::File* file, const TagLib::PropertyMap& propMap) {
+    file->setProperties(propMap);
 
-    TagLib::Tag* tag = ref.tag();
+    TagLib::Tag* tag = file->tag();
     if (!tag) return;
     auto it = propMap.find("TITLE");
     if (it != propMap.end() && it->second.size() == 1)
@@ -492,7 +552,7 @@ static tl_error_code write_to_path(const char* path,
         if (uses_intpair_format(ref.file())) {
             merge_intpair_properties(propMap);
         }
-        apply_propmap(ref, propMap);
+        apply_propmap(ref.file(), propMap);
         apply_pictures_from_msgpack(ref.file(), tags_msgpack, tags_msgpack_len);
         apply_ratings_from_msgpack(ref.file(), tags_msgpack, tags_msgpack_len);
         apply_lyrics_from_msgpack(ref.file(), tags_msgpack, tags_msgpack_len);
@@ -513,24 +573,34 @@ static tl_error_code write_to_buffer(const uint8_t* buf, size_t len,
         tl_error_code rc = decode_msgpack_to_propmap(tags_msgpack, tags_msgpack_len, propMap);
         if (rc != TL_SUCCESS) return rc;
 
-        // Construct ByteVectorStream from a temporary ByteVector so the local
-        // variable doesn't keep a COW shared reference alive during save().
         TagLib::ByteVectorStream stream(
             TagLib::ByteVector(reinterpret_cast<const char*>(buf),
                                static_cast<unsigned int>(len)));
-        TagLib::FileRef ref(&stream);
-        if (ref.isNull() || !ref.tag()) return TL_ERROR_PARSE_FAILED;
 
-        if (uses_intpair_format(ref.file())) {
+        tl_format format = tl_detect_format(buf, len);
+        std::unique_ptr<TagLib::File> file(create_file_for_format(format, &stream));
+        TagLib::FileRef ref_fallback;
+        TagLib::File* f = nullptr;
+
+        if (file && file->isValid() && file->tag()) {
+            f = file.get();
+        } else {
+            file.reset();
+            ref_fallback = TagLib::FileRef(&stream);
+            if (ref_fallback.isNull() || !ref_fallback.tag()) return TL_ERROR_PARSE_FAILED;
+            f = ref_fallback.file();
+        }
+
+        if (uses_intpair_format(f)) {
             merge_intpair_properties(propMap);
         }
-        apply_propmap(ref, propMap);
-        apply_pictures_from_msgpack(ref.file(), tags_msgpack, tags_msgpack_len);
-        apply_ratings_from_msgpack(ref.file(), tags_msgpack, tags_msgpack_len);
-        apply_lyrics_from_msgpack(ref.file(), tags_msgpack, tags_msgpack_len);
-        apply_chapters_from_msgpack(ref.file(), tags_msgpack, tags_msgpack_len);
+        apply_propmap(f, propMap);
+        apply_pictures_from_msgpack(f, tags_msgpack, tags_msgpack_len);
+        apply_ratings_from_msgpack(f, tags_msgpack, tags_msgpack_len);
+        apply_lyrics_from_msgpack(f, tags_msgpack, tags_msgpack_len);
+        apply_chapters_from_msgpack(f, tags_msgpack, tags_msgpack_len);
 
-        if (!ref.save()) return TL_ERROR_IO_WRITE;
+        if (!f->save()) return TL_ERROR_IO_WRITE;
 
         const TagLib::ByteVector* result = stream.data();
         *out_size = result->size();

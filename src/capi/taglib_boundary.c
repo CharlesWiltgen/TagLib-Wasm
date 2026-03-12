@@ -123,13 +123,37 @@ int tl_write_tags(const char* path, const uint8_t* buf, size_t len,
     return TL_SUCCESS;
 }
 
+// Forward declaration for recursive call after ID3 skip
+static tl_format detect_format_at(const uint8_t* buf, size_t len);
+
 // Format detection
 tl_format tl_detect_format(const uint8_t* buf, size_t len) {
     if (len < 12) return TL_FORMAT_AUTO;
 
-    // MP3: ID3 tag or MPEG sync
-    if ((buf[0] == 'I' && buf[1] == 'D' && buf[2] == '3') ||
-        (buf[0] == 0xFF && (buf[1] & 0xE0) == 0xE0)) {
+    // ID3v2 header: skip past it to detect the actual audio format.
+    // Many formats (MP3, FLAC, TTA, AIFF) can be prepended with ID3 tags.
+    if (buf[0] == 'I' && buf[1] == 'D' && buf[2] == '3' && len >= 10) {
+        uint32_t id3_size = ((uint32_t)(buf[6] & 0x7F) << 21) |
+                            ((uint32_t)(buf[7] & 0x7F) << 14) |
+                            ((uint32_t)(buf[8] & 0x7F) << 7) |
+                            ((uint32_t)(buf[9] & 0x7F));
+        uint32_t offset = 10 + id3_size;
+        if (buf[5] & 0x10) offset += 10;
+        if (offset + 12 <= len) {
+            tl_format inner = detect_format_at(buf + offset, len - offset);
+            if (inner != TL_FORMAT_AUTO) return inner;
+        }
+        return TL_FORMAT_MP3;
+    }
+
+    return detect_format_at(buf, len);
+}
+
+static tl_format detect_format_at(const uint8_t* buf, size_t len) {
+    if (len < 4) return TL_FORMAT_AUTO;
+
+    // MPEG sync word
+    if (buf[0] == 0xFF && (buf[1] & 0xE0) == 0xE0) {
         return TL_FORMAT_MP3;
     }
 
