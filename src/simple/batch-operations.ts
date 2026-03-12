@@ -152,7 +152,7 @@ function extractDynamics(audioFile: AudioFile): AudioDynamics | undefined {
 /**
  * Read complete metadata (tags, properties, cover art, dynamics) from a single file.
  *
- * @param file - A file path, Uint8Array, ArrayBuffer, or File object.
+ * @param file - A file path, Uint8Array, ArrayBuffer, File object, or NamedAudioInput.
  * @returns The file's complete metadata.
  * @throws `InvalidFormatError` if the file is corrupted or in an unsupported format.
  */

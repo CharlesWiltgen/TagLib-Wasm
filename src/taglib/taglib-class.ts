@@ -1,7 +1,10 @@
 import type { TagLibModule, WasmModule } from "../wasm.ts";
 import type { AudioFileInput, OpenOptions, TagInput } from "../types.ts";
 import type { LoadTagLibOptions } from "../runtime/loader-types.ts";
-import { isNamedAudioInput } from "../types/audio-formats.ts";
+import {
+  isNamedAudioInput,
+  type NamedAudioInput,
+} from "../types/audio-formats.ts";
 import { InvalidFormatError, TagLibInitializationError } from "../errors.ts";
 import type { AudioFile } from "./audio-file-interface.ts";
 import { AudioFileImpl } from "./audio-file-impl.ts";
@@ -32,7 +35,7 @@ export class TagLib {
 
   /**
    * Open an audio file for reading and writing metadata.
-   * @param input - File path, Uint8Array, ArrayBuffer, or File object.
+   * @param input - File path, Uint8Array, ArrayBuffer, File object, or NamedAudioInput.
    * @param options - Partial-loading options for large files.
    * @returns An AudioFile instance (use `using` for automatic cleanup).
    * @throws {TagLibInitializationError} If the module is not properly initialized.
@@ -111,7 +114,7 @@ export class TagLib {
     fn: (file: AudioFile) => void | Promise<void>,
   ): Promise<void>;
   async edit(
-    input: Uint8Array | ArrayBuffer | File,
+    input: Uint8Array | ArrayBuffer | File | NamedAudioInput,
     fn: (file: AudioFile) => void | Promise<void>,
   ): Promise<Uint8Array>;
   async edit(
