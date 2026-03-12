@@ -90,12 +90,12 @@ echo ""
 echo -e "${BLUE}Step 5: Verifying EH support${NC}"
 
 # Check that libunwind was built
-LIBUNWIND="$WASI_SDK_PATH/share/wasi-sysroot/lib/wasm32-wasi/libunwind.a"
+LIBUNWIND="$WASI_SDK_PATH/share/wasi-sysroot/lib/wasm32-wasip1/libunwind.a"
 if [ -f "$LIBUNWIND" ]; then
     echo -e "${GREEN}libunwind.a found${NC}"
     ls -lh "$LIBUNWIND"
 else
-    # Try alternate location (SDK 31 may use wasm32-wasip1)
+    # Try alternate location (some SDK versions use wasm32-wasi)
     LIBUNWIND=$(find "$WASI_SDK_PATH" -name "libunwind.a" 2>/dev/null | head -1)
     if [ -n "$LIBUNWIND" ]; then
         echo -e "${GREEN}libunwind.a found at: $LIBUNWIND${NC}"
@@ -106,7 +106,7 @@ else
 fi
 
 # Check that libc++abi was rebuilt with EH
-LIBCXXABI="$WASI_SDK_PATH/share/wasi-sysroot/lib/wasm32-wasi/libc++abi.a"
+LIBCXXABI="$WASI_SDK_PATH/share/wasi-sysroot/lib/wasm32-wasip1/libc++abi.a"
 if [ -f "$LIBCXXABI" ]; then
     if "$WASI_SDK_PATH/bin/llvm-objdump" --section=target_features "$LIBCXXABI" 2>/dev/null | grep -q "exception-handling"; then
         echo -e "${GREEN}libc++abi.a has exception-handling feature${NC}"
@@ -114,7 +114,12 @@ if [ -f "$LIBCXXABI" ]; then
         echo -e "${YELLOW}Could not verify exception-handling feature in libc++abi.a (may still work)${NC}"
     fi
 else
-    echo -e "${YELLOW}libc++abi.a not found at expected location${NC}"
+    LIBCXXABI=$(find "$WASI_SDK_PATH" -name "libc++abi.a" 2>/dev/null | head -1)
+    if [ -n "$LIBCXXABI" ]; then
+        echo -e "${GREEN}libc++abi.a found at: $LIBCXXABI${NC}"
+    else
+        echo -e "${YELLOW}libc++abi.a not found at expected location${NC}"
+    fi
 fi
 
 echo ""
