@@ -5,8 +5,8 @@
 set -e
 
 # Configuration - Using latest stable version
-WASI_SDK_VERSION="30"
-WASI_SDK_VERSION_FULL="30.0"
+WASI_SDK_VERSION="31"
+WASI_SDK_VERSION_FULL="31.0"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 WASI_SDK_DIR="$PROJECT_ROOT/build/wasi-sdk"
@@ -93,6 +93,18 @@ rm "$TARBALL"
 WASI_SDK_PATH="$WASI_SDK_DIR/${SDK_DIR_NAME}"
 
 if [ -f "$WASI_SDK_PATH/bin/clang" ]; then
+    # Fix hardcoded libedit path in SDK 31 macOS binaries (packaging bug)
+    if [ "$PLATFORM" = "macos" ] && [ -f "$WASI_SDK_PATH/lib/libLLVM.dylib" ]; then
+        if otool -L "$WASI_SDK_PATH/lib/libLLVM.dylib" 2>/dev/null | grep -q "/Users/runner/"; then
+            echo "Fixing hardcoded dylib paths in SDK binaries..."
+            install_name_tool -change \
+                /Users/runner/work/wasi-sdk/wasi-sdk/build/toolchain/install/lib/libedit.0.dylib \
+                /usr/lib/libedit.3.dylib \
+                "$WASI_SDK_PATH/lib/libLLVM.dylib"
+            echo -e "${GREEN}✅ Fixed libedit dylib path${NC}"
+        fi
+    fi
+
     echo -e "${GREEN}✅ WASI SDK ${WASI_SDK_VERSION_FULL} installed successfully!${NC}"
     echo ""
     echo "Installation path: $WASI_SDK_PATH"
