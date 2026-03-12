@@ -11,8 +11,12 @@ import {
   type WasmExports,
   WasmMemoryError,
 } from "../wasi-memory.ts";
+import { InvalidFormatError } from "../../errors/classes.ts";
 import { encodeTagData } from "../../msgpack/encoder.ts";
 import type { ExtendedTag } from "../../types.ts";
+
+const TL_ERROR_UNSUPPORTED_FORMAT = -2;
+const TL_ERROR_PARSE_FAILED = -6;
 
 export function readTagsFromWasm(
   wasi: WasiModule,
@@ -32,6 +36,15 @@ export function readTagsFromWasm(
 
   if (resultPtr === 0) {
     const errorCode = wasi.tl_get_last_error_code();
+    if (
+      errorCode === TL_ERROR_UNSUPPORTED_FORMAT ||
+      errorCode === TL_ERROR_PARSE_FAILED
+    ) {
+      throw new InvalidFormatError(
+        "File may be corrupted or in an unsupported format",
+        buffer.length,
+      );
+    }
     throw new WasmMemoryError(
       `error code ${errorCode}. Buffer size: ${buffer.length} bytes`,
       "read tags",
