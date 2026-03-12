@@ -1,5 +1,5 @@
 import type { FileHandle, TagLibModule } from "../wasm.ts";
-import type { AudioFileInput, OpenOptions, Picture } from "../types.ts";
+import type { OpenOptions, Picture } from "../types.ts";
 import { PICTURE_TYPE_NAMES, PICTURE_TYPE_VALUES } from "../types.ts";
 import type { Rating } from "../constants/complex-properties.ts";
 import { FileOperationError, InvalidFormatError } from "../errors.ts";
@@ -19,7 +19,7 @@ export class AudioFileImpl extends BaseAudioFileImpl implements AudioFile {
     module: TagLibModule,
     fileHandle: FileHandle,
     sourcePath?: string,
-    originalSource?: AudioFileInput,
+    originalSource?: string | Uint8Array | ArrayBuffer | File,
     isPartiallyLoaded: boolean = false,
     partialLoadOptions?: OpenOptions,
   ) {

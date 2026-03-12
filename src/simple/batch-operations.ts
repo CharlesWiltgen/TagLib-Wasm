@@ -1,6 +1,7 @@
 import type { AudioFile } from "../taglib.ts";
 import type { AudioDynamics } from "../folder-api/types.ts";
 import type { AudioFileInput, AudioProperties, ExtendedTag } from "../types.ts";
+import { isNamedAudioInput } from "../types/audio-formats.ts";
 import { InvalidFormatError } from "../errors.ts";
 import { mapPropertiesToExtendedTag } from "../utils/tag-mapping.ts";
 import { getTagLib } from "./config.ts";
@@ -44,7 +45,13 @@ async function executeBatch<T>(
     const chunk = files.slice(i, i + concurrency);
     const chunkPromises = chunk.map(async (file, idx) => {
       const index = i + idx;
-      const fileName = typeof file === "string" ? file : `file-${index}`;
+      const fileName = typeof file === "string"
+        ? file
+        : file instanceof File
+        ? file.name
+        : isNamedAudioInput(file)
+        ? file.name
+        : `buffer-${index}`;
       try {
         const audioFile = await taglib.open(file);
         try {
@@ -160,6 +167,8 @@ export async function readMetadata(
       if (typeof file === "string") {
         name = file;
       } else if (file instanceof File) {
+        name = file.name;
+      } else if (isNamedAudioInput(file)) {
         name = file.name;
       } else {
         name = `buffer (${file.byteLength} bytes)`;
