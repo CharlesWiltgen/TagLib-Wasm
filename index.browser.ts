@@ -14,6 +14,7 @@ export type {
 } from "./src/taglib/audio-file-interface.ts";
 export { AudioFileImpl, createTagLib, TagLib } from "./src/taglib.ts";
 export type { MutableTag } from "./src/taglib.ts";
+export { isNamedAudioInput } from "./src/types/audio-formats.ts";
 
 // Error types
 export {
@@ -102,6 +103,7 @@ export type {
   ExtendedTag,
   FieldMapping,
   FileType,
+  NamedAudioInput,
   OpenOptions,
   Picture,
   PictureType,
