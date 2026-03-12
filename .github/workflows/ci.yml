@@ -1,5 +1,8 @@
 name: Tests
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 on:
   push:
     branches: [main]
@@ -23,11 +26,11 @@ jobs:
     name: Lint & Format
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           submodules: recursive
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: 22
 
@@ -37,7 +40,7 @@ jobs:
           deno-version: v2.x
 
       - name: Cache dependencies
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: |
             ~/.npm
@@ -62,11 +65,11 @@ jobs:
     name: Build (Embind)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           submodules: recursive
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: 22
 
@@ -76,7 +79,7 @@ jobs:
           deno-version: v2.x
 
       - name: Cache dependencies
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: |
             ~/.npm
@@ -110,7 +113,7 @@ jobs:
         run: npm run postbuild
 
       - name: Upload build artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: embind-build
           path: |
@@ -124,12 +127,12 @@ jobs:
     runs-on: ubuntu-latest
     if: ${{ !inputs.skip_emscripten }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           submodules: recursive
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: 22
 
@@ -139,7 +142,7 @@ jobs:
           version: 5.0.2
 
       - name: Cache Emscripten build
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: |
             build/emscripten
@@ -159,7 +162,7 @@ jobs:
           wc -c dist/browser/taglib_emscripten.wasm
 
       - name: Upload Emscripten artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: emscripten-build
           path: |
@@ -170,7 +173,7 @@ jobs:
     runs-on: ubuntu-latest
     if: ${{ !inputs.skip_wasi }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           submodules: recursive
 
@@ -192,7 +195,7 @@ jobs:
           sudo apt-get install -y ninja-build
 
       - name: Cache EH sysroot
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: |
             build/wasi-sdk-src
@@ -206,7 +209,7 @@ jobs:
           ./build/build-eh-sysroot.sh
 
       - name: Cache WASI build
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: |
             build/wasi
@@ -225,7 +228,7 @@ jobs:
           wc -c dist/wasi/taglib_wasi.wasm
 
       - name: Upload WASI artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: wasi-build
           path: |
@@ -240,11 +243,11 @@ jobs:
         os: [ubuntu-latest, macos-latest, windows-latest]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           submodules: recursive
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: 22
 
@@ -254,7 +257,7 @@ jobs:
           deno-version: v2.x
 
       - name: Cache dependencies
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: |
             ~/.npm
@@ -267,7 +270,7 @@ jobs:
         run: npm install
 
       - name: Download build artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: embind-build
           path: .
@@ -281,7 +284,7 @@ jobs:
 
       - name: Upload coverage reports
         if: matrix.os == 'ubuntu-latest'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: coverage-lcov
           path: coverage.lcov
@@ -291,7 +294,7 @@ jobs:
     needs: build-wasi
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           submodules: recursive
 
@@ -301,7 +304,7 @@ jobs:
           deno-version: v2.x
 
       - name: Download WASI artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: wasi-build
           path: dist/wasi
@@ -319,11 +322,11 @@ jobs:
     needs: build-embind
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           submodules: recursive
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: 22
 
@@ -341,7 +344,7 @@ jobs:
         run: npm install
 
       - name: Download build artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: embind-build
           path: .
@@ -460,18 +463,18 @@ jobs:
     runs-on: ubuntu-latest
     if: always()
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Download Emscripten artifacts
         if: needs.build-emscripten.result == 'success'
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: emscripten-build
           path: emscripten-build
 
       - name: Download WASI artifacts
         if: needs.build-wasi.result == 'success'
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: wasi-build
           path: wasi-build
