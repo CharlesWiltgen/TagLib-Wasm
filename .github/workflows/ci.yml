@@ -210,7 +210,7 @@ jobs:
         with:
           path: |
             build/wasi
-          key: ${{ runner.os }}-wasi-${{ hashFiles('lib/taglib/**/*.cpp', 'lib/taglib/**/*.h', 'build/build-eh-sysroot.sh') }}
+          key: ${{ runner.os }}-wasi-${{ hashFiles('lib/taglib/**/*.cpp', 'lib/taglib/**/*.h', 'src/capi/**', 'build/build-wasi.sh', 'build/build-eh-sysroot.sh') }}
 
       - name: Build with WASI SDK
         run: |
