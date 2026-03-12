@@ -333,7 +333,7 @@ function readMetadataBatch(
 ): Promise<
   BatchResult<{
     tags: ExtendedTag;
-    properties: AudioProperties | null;
+    properties: AudioProperties | undefined;
     hasCoverArt: boolean;
     dynamics?: {
       replayGainTrackGain?: string;
