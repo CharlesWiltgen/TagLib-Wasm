@@ -207,48 +207,31 @@ run_preflight_checks() {
     print_success "NPM package contents verified"
 }
 
-# Function to check version sync
+# Function to check version sync (delegates to sync-version.ts for all 4 files)
 check_version_sync() {
     print_step "Checking version synchronization..."
-    
-    # Get versions from both files
-    local pkg_version=$(node -p "require('./package.json').version")
-    local deno_version=$(node -p "JSON.parse(require('fs').readFileSync('./deno.json', 'utf8')).version")
 
-    if [[ "$pkg_version" != "$deno_version" ]]; then
+    if ! deno task version:check; then
         print_error "Version mismatch detected!"
-        print_warning "package.json: $pkg_version"
-        print_warning "deno.json: $deno_version"
+        print_warning "Run 'deno task version:set <version>' to synchronize all version references"
         exit 1
     fi
-    
+
+    local pkg_version=$(node -p "require('./package.json').version")
     print_success "Versions are synchronized: $pkg_version"
     echo "$pkg_version"
 }
 
-# Function to update versions
+# Function to update versions (delegates to sync-version.ts for all 4 files)
 update_versions() {
     local new_version=$1
-    
+
     print_step "Updating version to $new_version..."
-    
-    # Update package.json
-    node -e "
-        const fs = require('fs');
-        const pkg = require('./package.json');
-        pkg.version = '$new_version';
-        fs.writeFileSync('./package.json', JSON.stringify(pkg, null, 2) + '\\n');
-    "
-    
-    # Update deno.json
-    node -e "
-        const fs = require('fs');
-        const deno = JSON.parse(fs.readFileSync('./deno.json', 'utf8'));
-        deno.version = '$new_version';
-        fs.writeFileSync('./deno.json', JSON.stringify(deno, null, 2) + '\\n');
-    "
-    
-    print_success "Versions updated to $new_version"
+
+    if ! deno task version:set "$new_version"; then
+        print_error "Failed to update versions"
+        exit 1
+    fi
 }
 
 # Function to create tag and release
@@ -263,7 +246,7 @@ create_release() {
     fi
 
     # Commit version changes (skip if already at target version)
-    git add package.json deno.json
+    git add package.json deno.json sonar-project.properties src/taglib/taglib-class.ts
     if git diff --cached --quiet; then
         print_warning "Version already at $version, skipping commit"
     else
