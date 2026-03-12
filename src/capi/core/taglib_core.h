@@ -11,8 +11,7 @@
 extern "C" {
 #endif
 
-// Version information
-#define TAGLIB_WASM_VERSION "3.0.0"
+// API version
 #define TAGLIB_WASM_API_VERSION 3
 
 // Error codes

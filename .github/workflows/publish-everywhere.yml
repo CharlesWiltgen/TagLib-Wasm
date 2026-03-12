@@ -169,6 +169,10 @@ jobs:
             deno.version = '$VERSION';
             fs.writeFileSync(denoPath, JSON.stringify(deno, null, 2) + '\n');
 
+            // Update src/version.ts
+            const versionTsPath = path.join(__dirname, 'src', 'version.ts');
+            fs.writeFileSync(versionTsPath, 'export const VERSION = \"$VERSION\";\n');
+
             console.log('Updated versions to $VERSION');
           "
 

@@ -132,6 +132,12 @@ export interface TagLibModule extends Omit<EmscriptenModule, "then"> {
   /** @internal Create a new file handle for audio file operations */
   createFileHandle(): FileHandle;
 
+  /** @internal Embind function: returns TagLib version (e.g. "2.2.1") */
+  getVersion?(): string;
+
+  /** @internal WASI adapter: returns TagLib version (e.g. "2.2.1") */
+  version?(): string;
+
   /** @internal C-style function: create file from buffer */
   _taglib_file_new_from_buffer?(ptr: number, size: number): number;
   /** @internal C-style function: delete file handle */

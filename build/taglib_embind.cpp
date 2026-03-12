@@ -1,5 +1,6 @@
 #include <emscripten/bind.h>
 #include <emscripten/val.h>
+#include <taglib.h>
 #include <fileref.h>
 #include <tag.h>
 #include <audioproperties.h>
@@ -1366,4 +1367,11 @@ EMSCRIPTEN_BINDINGS(taglib) {
     function("createFileHandle", +[]() -> FileHandle* {
         return new FileHandle();
     }, allow_raw_pointers());
+
+    // Version information
+    function("getVersion", +[]() -> std::string {
+        return std::to_string(TAGLIB_MAJOR_VERSION) + "." +
+               std::to_string(TAGLIB_MINOR_VERSION) + "." +
+               std::to_string(TAGLIB_PATCH_VERSION);
+    });
 }

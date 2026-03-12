@@ -188,7 +188,7 @@ describe("TagLib.initialize", () => {
       assertExists(taglib);
       assertEquals(typeof taglib.version, "function");
       assert(
-        /^\d+\.\d+\.\d+\S* \(TagLib .+\)$/.test(taglib.version()),
+        /^\d+\.\d+\.\d+\S* \(TagLib \d+\.\d+\.\d+\)$/.test(taglib.version()),
         `Version format mismatch: ${taglib.version()}`,
       );
 
@@ -215,5 +215,21 @@ describe("TagLib.initialize", () => {
         `TagLib.initialize options test skipped due to error: ${error}`,
       );
     }
+  });
+
+  it("returns dynamic version from WASI backend", async () => {
+    const taglib = await TagLib.initialize({ forceWasmType: "wasi" });
+    const version = taglib.version();
+    assert(
+      /^\d+\.\d+\.\d+\S* \(TagLib \d+\.\d+\.\d+\)$/.test(version),
+      `WASI version format mismatch: ${version}`,
+    );
+    const denoJson = JSON.parse(
+      await Deno.readTextFile(new URL("../deno.json", import.meta.url)),
+    );
+    assert(
+      version.startsWith(denoJson.version),
+      `WASI version should start with deno.json version '${denoJson.version}', got: ${version}`,
+    );
   });
 });

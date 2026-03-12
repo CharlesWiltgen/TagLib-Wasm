@@ -68,12 +68,12 @@ void tl_clear_error(void) {
     g_last_error_message[0] = '\0';
 }
 
-// Version information
+// Version information — returns the TagLib version string
 const char* tl_version(void) {
     #ifdef TAGLIB_VERSION
-        return TAGLIB_WASM_VERSION " (TagLib " TAGLIB_VERSION ")";
+        return TAGLIB_VERSION;
     #else
-        return TAGLIB_WASM_VERSION " (TagLib Unknown)";
+        return "unknown";
     #endif
 }
 

@@ -24,7 +24,7 @@ interface DenoJson {
 const PACKAGE_JSON_PATH = "./package.json";
 const DENO_JSON_PATH = "./deno.json";
 const SONAR_PROPERTIES_PATH = "./sonar-project.properties";
-const TAGLIB_CLASS_PATH = "./src/taglib/taglib-class.ts";
+const VERSION_TS_PATH = "./src/version.ts";
 
 /**
  * Read and parse JSON file
@@ -92,6 +92,8 @@ async function checkVersions(): Promise<boolean> {
   const packageJson = await readJsonFile<PackageJson>(PACKAGE_JSON_PATH);
   const denoJson = await readJsonFile<DenoJson>(DENO_JSON_PATH);
 
+  const versionTsVersion = await readVersionTs();
+
   let sonarVersion: string | null = null;
   try {
     const content = await Deno.readTextFile(SONAR_PROPERTIES_PATH);
@@ -101,26 +103,17 @@ async function checkVersions(): Promise<boolean> {
     // sonar-project.properties not found
   }
 
-  let taglibClassVersion: string | null = null;
-  try {
-    const content = await Deno.readTextFile(TAGLIB_CLASS_PATH);
-    const match = content.match(/return "(\d+\.\d+\.\d+\S*) \(TagLib/);
-    if (match) taglibClassVersion = match[1];
-  } catch {
-    // taglib-class.ts not found
-  }
-
   const allMatch = packageJson.version === denoJson.version &&
-    (!sonarVersion || sonarVersion === packageJson.version) &&
-    (!taglibClassVersion || taglibClassVersion === packageJson.version);
+    (!versionTsVersion || versionTsVersion === packageJson.version) &&
+    (!sonarVersion || sonarVersion === packageJson.version);
 
   console.log(`package.json version:           ${packageJson.version}`);
   console.log(`deno.json version:              ${denoJson.version}`);
+  if (versionTsVersion) {
+    console.log(`src/version.ts:                 ${versionTsVersion}`);
+  }
   if (sonarVersion) {
     console.log(`sonar-project.properties:       ${sonarVersion}`);
-  }
-  if (taglibClassVersion) {
-    console.log(`taglib-class.ts version:        ${taglibClassVersion}`);
   }
   console.log(
     `Status: ${allMatch ? "✅ Versions match" : "❌ Versions differ"}`,
@@ -129,20 +122,18 @@ async function checkVersions(): Promise<boolean> {
   return allMatch;
 }
 
-async function updateTagLibClass(newVersion: string): Promise<boolean> {
+async function updateVersionTs(newVersion: string): Promise<void> {
+  const content = `export const VERSION = "${newVersion}";\n`;
+  await Deno.writeTextFile(VERSION_TS_PATH, content);
+}
+
+async function readVersionTs(): Promise<string | null> {
   try {
-    const content = await Deno.readTextFile(TAGLIB_CLASS_PATH);
-    const updated = content.replace(
-      /return "\d+\.\d+\.\d+\S* \(TagLib .+?\)";/,
-      `return "${newVersion} (TagLib 2.2.1)";`,
-    );
-    if (updated !== content) {
-      await Deno.writeTextFile(TAGLIB_CLASS_PATH, updated);
-      return true;
-    }
-    return false;
+    const content = await Deno.readTextFile(VERSION_TS_PATH);
+    const match = content.match(/^export const VERSION = "(.+)";$/m);
+    return match ? match[1] : null;
   } catch {
-    return false;
+    return null;
   }
 }
 
@@ -184,17 +175,17 @@ async function updateVersion(newVersion: string): Promise<void> {
   await writeJsonFile(PACKAGE_JSON_PATH, packageJson);
   await writeJsonFile(DENO_JSON_PATH, denoJson);
 
+  // Update src/version.ts
+  await updateVersionTs(newVersion);
+
   // Update sonar-project.properties
   const updatedSonar = await updateSonarProperties(newVersion);
-
-  // Update hardcoded version in TagLib class
-  const updatedTagLib = await updateTagLibClass(newVersion);
 
   console.log(`✅ Updated version: ${oldVersion} → ${newVersion}`);
   console.log(`   Updated: package.json`);
   console.log(`   Updated: deno.json`);
+  console.log(`   Updated: src/version.ts`);
   if (updatedSonar) console.log(`   Updated: sonar-project.properties`);
-  if (updatedTagLib) console.log(`   Updated: src/taglib/taglib-class.ts`);
 }
 
 /**

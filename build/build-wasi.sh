@@ -22,6 +22,14 @@ TAGLIB_DIR="$PROJECT_ROOT/lib/taglib"
 BUILD_DIR="$PROJECT_ROOT/build/wasi"
 DIST_DIR="$PROJECT_ROOT/dist/wasi"
 
+# Extract TagLib version from source header
+TAGLIB_HEADER="$TAGLIB_DIR/taglib/toolkit/taglib.h"
+TAGLIB_MAJOR=$(grep '#define TAGLIB_MAJOR_VERSION' "$TAGLIB_HEADER" | awk '{print $3}')
+TAGLIB_MINOR=$(grep '#define TAGLIB_MINOR_VERSION' "$TAGLIB_HEADER" | awk '{print $3}')
+TAGLIB_PATCH=$(grep '#define TAGLIB_PATCH_VERSION' "$TAGLIB_HEADER" | awk '{print $3}')
+TAGLIB_VER="${TAGLIB_MAJOR}.${TAGLIB_MINOR}.${TAGLIB_PATCH}"
+echo -e "${BLUE}TagLib version: ${TAGLIB_VER}${NC}"
+
 # Source WASI environment
 source "$SCRIPT_DIR/wasi-env.sh"
 
@@ -235,6 +243,7 @@ for src in "${CAPI_SOURCES[@]}"; do
             --sysroot="$WASI_SDK_PATH/share/wasi-sysroot" \
             -I"$SRC_DIR" \
             -I"$MPACK_DIR/src" \
+            -DTAGLIB_VERSION=\"${TAGLIB_VER}\" \
             -O3 -std=c++17 -fwasm-exceptions -mllvm -wasm-use-legacy-eh=false \
             -c -o "$BUILD_DIR/$obj_name"
     fi
@@ -277,7 +286,6 @@ CAPI_OBJECTS+=("$BUILD_DIR/wasm_eh_tag.obj")
     -Wl,--export=__data_end \
     -Wl,--initial-memory=16777216 \
     -Wl,--max-memory=2147483648 \
-    -DTAGLIB_VERSION=\"2.2.1\" \
     -O3 \
     -std=c++17 \
     -fwasm-exceptions \
@@ -332,7 +340,7 @@ echo "━━━━━━━━━━━━━━━━━━━━━━━━�
 cat > "$DIST_DIR/taglib_wasi.json" << EOF
 {
   "name": "taglib-wasi",
-  "version": "3.0.0",
+  "version": "${TAGLIB_VER}",
   "target": "wasm32-wasip1",
   "exports": [
     "tl_read_tags",
