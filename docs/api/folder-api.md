@@ -238,8 +238,8 @@ interface AudioFileMetadata {
   /** Absolute or relative path to the audio file */
   path: string;
 
-  /** Basic tag information */
-  tags: Tag;
+  /** Tag information including extended fields */
+  tags: ExtendedTag;
 
   /** Audio properties (optional) */
   properties?: AudioProperties;
@@ -249,9 +249,6 @@ interface AudioFileMetadata {
 
   /** Audio dynamics data (ReplayGain and Sound Check) */
   dynamics?: AudioDynamics;
-
-  /** Error if processing failed */
-  error?: Error;
 }
 ```
 
