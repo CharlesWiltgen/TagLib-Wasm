@@ -60,7 +60,7 @@ if [ ! -f "$ZLIB_BUILD_DIR/libz.a" ]; then
         rm -f "$BUILD_DIR/zlib.tar.gz"
     fi
 
-    echo "Building zlib for wasm32-wasi..."
+    echo "Building zlib for wasm32-wasip1..."
     mkdir -p "$ZLIB_BUILD_DIR"
 
     # Compile core zlib sources directly (no configure/cmake needed).
@@ -69,7 +69,7 @@ if [ ! -f "$ZLIB_BUILD_DIR/libz.a" ]; then
     ZLIB_SRCS="adler32 compress crc32 deflate infback inffast inflate inftrees trees uncompr zutil"
     for src in $ZLIB_SRCS; do
         "$WASI_SDK_PATH/bin/clang" \
-            --target=wasm32-wasi \
+            --target=wasm32-wasip1 \
             --sysroot="$WASI_SDK_PATH/share/wasi-sysroot" \
             -O3 -fwasm-exceptions \
             -I"$ZLIB_SRC_DIR" \
@@ -107,8 +107,8 @@ cmake "$TAGLIB_DIR" \
     -DCMAKE_CXX_COMPILER="$WASI_SDK_PATH/bin/clang++" \
     -DCMAKE_AR="$WASI_SDK_PATH/bin/llvm-ar" \
     -DCMAKE_RANLIB="$WASI_SDK_PATH/bin/llvm-ranlib" \
-    -DCMAKE_C_COMPILER_TARGET=wasm32-wasi \
-    -DCMAKE_CXX_COMPILER_TARGET=wasm32-wasi \
+    -DCMAKE_C_COMPILER_TARGET=wasm32-wasip1 \
+    -DCMAKE_CXX_COMPILER_TARGET=wasm32-wasip1 \
     -DCMAKE_SYSROOT="$WASI_SDK_PATH/share/wasi-sysroot" \
     -DCMAKE_BUILD_TYPE=Release \
     -DBUILD_SHARED_LIBS=OFF \
@@ -158,7 +158,7 @@ if [ ! -f "$MPACK_BUILD_DIR/libmpack.a" ]; then
         "$MPACK_DIR/src/mpack/mpack-platform.c" \
         "$MPACK_DIR/src/mpack/mpack-reader.c" \
         "$MPACK_DIR/src/mpack/mpack-writer.c" \
-        --target=wasm32-wasi \
+        --target=wasm32-wasip1 \
         --sysroot="$WASI_SDK_PATH/share/wasi-sysroot" \
         -I"$MPACK_DIR/src" \
         -O3 -fwasm-exceptions -c
@@ -205,7 +205,7 @@ for src in "${CAPI_SOURCES[@]}"; do
         echo "Compiling C file: $src"
         # Compile C files with -fwasm-exceptions for feature flag consistency
         "$WASI_SDK_PATH/bin/clang" "$src" \
-            --target=wasm32-wasi \
+            --target=wasm32-wasip1 \
             --sysroot="$WASI_SDK_PATH/share/wasi-sysroot" \
             -I"$SRC_DIR" -I"$MPACK_DIR/src" \
             -O3 -fwasm-exceptions -c -o "$BUILD_DIR/$obj_name"
@@ -222,7 +222,7 @@ for src in "${CAPI_SOURCES[@]}"; do
             TAGLIB_INCLUDES+=(-I"$d")
         done < <(find "$TAGLIB_DIR/taglib" -type d)
         "$WASI_SDK_PATH/bin/clang++" "$src" \
-            --target=wasm32-wasi \
+            --target=wasm32-wasip1 \
             --sysroot="$WASI_SDK_PATH/share/wasi-sysroot" \
             "${TAGLIB_INCLUDES[@]}" \
             -O3 -std=c++17 -fwasm-exceptions -mllvm -wasm-use-legacy-eh=false \
@@ -231,7 +231,7 @@ for src in "${CAPI_SOURCES[@]}"; do
         echo "Compiling C++ support file with Wasm EH: $src"
         # C++ support files - use Wasm EH for std::string compatibility
         "$WASI_SDK_PATH/bin/clang++" "$src" \
-            --target=wasm32-wasi \
+            --target=wasm32-wasip1 \
             --sysroot="$WASI_SDK_PATH/share/wasi-sysroot" \
             -I"$SRC_DIR" \
             -I"$MPACK_DIR/src" \
@@ -244,7 +244,7 @@ done
 # Compile Wasm EH tag definition (LLVM 22+ requires external __cpp_exception tag)
 echo "Compiling Wasm EH tag definition"
 "$WASI_SDK_PATH/bin/clang" "$SRC_DIR/core/wasm_eh_tag.S" \
-    --target=wasm32-wasi \
+    --target=wasm32-wasip1 \
     --sysroot="$WASI_SDK_PATH/share/wasi-sysroot" \
     -mexception-handling -c -o "$BUILD_DIR/wasm_eh_tag.obj"
 CAPI_OBJECTS+=("$BUILD_DIR/wasm_eh_tag.obj")
@@ -254,7 +254,7 @@ CAPI_OBJECTS+=("$BUILD_DIR/wasm_eh_tag.obj")
     "$BUILD_DIR/taglib/taglib/libtag.a" \
     "$MPACK_BUILD_DIR/libmpack.a" \
     "$ZLIB_BUILD_DIR/libz.a" \
-    --target=wasm32-wasi \
+    --target=wasm32-wasip1 \
     --sysroot="$WASI_SDK_PATH/share/wasi-sysroot" \
     -mexec-model=reactor \
     -o "$DIST_DIR/taglib_wasi.wasm" \
@@ -333,7 +333,7 @@ cat > "$DIST_DIR/taglib_wasi.json" << EOF
 {
   "name": "taglib-wasi",
   "version": "3.0.0",
-  "target": "wasm32-wasi",
+  "target": "wasm32-wasip1",
   "exports": [
     "tl_read_tags",
     "tl_read_tags_ex",
