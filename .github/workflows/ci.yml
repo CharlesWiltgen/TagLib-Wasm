@@ -176,7 +176,7 @@ jobs:
 
       - name: Setup WASI SDK
         run: |
-          WASI_VERSION=30.0
+          WASI_VERSION=31.0
           WASI_URL="https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-${WASI_VERSION%%.*}/wasi-sdk-${WASI_VERSION}-x86_64-linux.tar.gz"
           mkdir -p build/wasi-sdk
           cd build/wasi-sdk
