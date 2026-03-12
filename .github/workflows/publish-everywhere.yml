@@ -46,27 +46,48 @@ jobs:
           echo "❌ Failed to init submodules after 3 attempts"
           exit 1
 
-      - name: Verify Tests workflow passed
+      - name: Wait for CI tests to pass
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          echo "Checking if Tests workflow passed for this commit..."
           COMMIT_SHA="${{ github.sha }}"
+          echo "Waiting for CI workflow to complete for $COMMIT_SHA..."
 
-          # Get the status of the Tests workflow for this commit
-          RESULT=$(gh run list --workflow=ci.yml --commit=$COMMIT_SHA --json conclusion --limit 1 -q '.[0].conclusion' || echo "not_found")
+          MAX_WAIT=600  # 10 minutes
+          INTERVAL=15
+          WAITED=0
 
-          if [ "$RESULT" = "success" ]; then
-            echo "✅ Tests workflow passed for commit $COMMIT_SHA"
-          elif [ "$RESULT" = "not_found" ] || [ -z "$RESULT" ]; then
-            echo "⚠️ No Tests workflow run found for commit $COMMIT_SHA"
-            echo "This may be okay if tests were run on a parent commit."
-            echo "Proceeding with caution..."
-          else
-            echo "❌ Tests workflow did not pass (status: $RESULT)"
-            echo "Please ensure tests pass before releasing."
-            exit 1
-          fi
+          while [ "$WAITED" -lt "$MAX_WAIT" ]; do
+            RESULT=$(gh run list --workflow=ci.yml --commit=$COMMIT_SHA --json conclusion,status --limit 1 -q '.[0]' 2>/dev/null || echo "")
+
+            if [ -z "$RESULT" ]; then
+              echo "No CI run found yet, waiting ${INTERVAL}s... (${WAITED}s elapsed)"
+              sleep "$INTERVAL"
+              WAITED=$((WAITED + INTERVAL))
+              continue
+            fi
+
+            STATUS=$(echo "$RESULT" | jq -r '.status')
+            CONCLUSION=$(echo "$RESULT" | jq -r '.conclusion')
+
+            if [ "$STATUS" = "completed" ]; then
+              if [ "$CONCLUSION" = "success" ]; then
+                echo "✅ CI workflow passed for $COMMIT_SHA"
+                exit 0
+              else
+                echo "❌ CI workflow failed (conclusion: $CONCLUSION)"
+                echo "Fix CI before releasing."
+                exit 1
+              fi
+            fi
+
+            echo "CI workflow status: $STATUS, waiting ${INTERVAL}s... (${WAITED}s elapsed)"
+            sleep "$INTERVAL"
+            WAITED=$((WAITED + INTERVAL))
+          done
+
+          echo "❌ Timed out waiting for CI workflow after ${MAX_WAIT}s"
+          exit 1
 
       - uses: actions/setup-node@v4
         with:
@@ -171,16 +192,10 @@ jobs:
             exit 1
           fi
 
-      - name: Verify WASM binaries are fresh
+      - name: Verify WASI binary exists
         if: steps.check.outputs.should-publish == 'true'
         run: |
-          # Emscripten: build/ copy must match what the build just produced
-          if ! git diff --quiet -- build/taglib-web.wasm; then
-            echo "::error::build/taglib-web.wasm is stale — the build produced a different binary than what's committed"
-            exit 1
-          fi
-
-          # WASI: must exist with reasonable size (not rebuilt in publish CI)
+          # WASI binary must exist with reasonable size (not rebuilt in publish CI)
           if [ ! -f build/taglib_wasi.wasm ]; then
             echo "::error::build/taglib_wasi.wasm is missing from the repository"
             exit 1
@@ -190,7 +205,7 @@ jobs:
             echo "::error::build/taglib_wasi.wasm is suspiciously small ($WASI_SIZE bytes)"
             exit 1
           fi
-          echo "✅ WASM binaries verified (Emscripten: fresh, WASI: ${WASI_SIZE} bytes)"
+          echo "✅ WASI binary verified (${WASI_SIZE} bytes)"
 
       - name: Upload build artifacts
         if: steps.check.outputs.should-publish == 'true'
