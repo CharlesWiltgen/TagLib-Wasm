@@ -29,7 +29,7 @@ TagLib-Wasm provides explicit memory management through the `using` keyword
 using audioFile = await taglib.open("song.mp3");
 // Work with the file
 const tags = audioFile.tag();
-console.log(tags.title());
+console.log(tags.title);
 // Automatically disposed when audioFile goes out of scope
 ```
 
@@ -40,7 +40,7 @@ don't support `using`:
 const audioFile = await taglib.open("song.mp3");
 try {
   const tags = audioFile.tag();
-  console.log(tags.title());
+  console.log(tags.title);
 } finally {
   audioFile.dispose();
 }
@@ -173,7 +173,7 @@ async function processMusicLibrary(files: string[]) {
     await Promise.all(batch.map(async (file) => {
       using audio = await taglib.open(file);
       const tags = audio.tag();
-      console.log(`${file}: ${tags.artist()} - ${tags.title()}`);
+      console.log(`${file}: ${tags.artist} - ${tags.title}`);
     }));
 
     // Optional: Log memory usage after each batch

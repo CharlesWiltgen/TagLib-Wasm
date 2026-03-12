@@ -19,7 +19,7 @@ console.log(tags);
 // Read audio properties
 const props = await readProperties("song.mp3");
 console.log(props);
-// Output: { duration: 180, bitrate: 320, sampleRate: 44100, channels: 2, codec: "MP3", isLossless: false, bitsPerSample: 16 }
+// Output: { duration: 180, bitrate: 320, sampleRate: 44100, channels: 2, bitsPerSample: 16, codec: "MP3", containerFormat: "MP3", isLossless: false }
 ```
 
 ### Writing Tags
@@ -116,16 +116,19 @@ if (success) {
 
 ```typescript
 // MusicBrainz integration
-file.setMusicBrainzTrackId("12345678-90ab-cdef-1234-567890abcdef");
-file.setMusicBrainzReleaseId("abcdef12-3456-7890-abcd-ef1234567890");
+file.setProperty("musicbrainzTrackId", "12345678-90ab-cdef-1234-567890abcdef");
+file.setProperty(
+  "musicbrainzReleaseId",
+  "abcdef12-3456-7890-abcd-ef1234567890",
+);
 
 // AcoustID fingerprinting
-file.setAcoustIdFingerprint("AQADtMmybfGO8NCNEESLnzHyXNOHeHnG...");
-file.setAcoustIdId("e7359e88-f1f7-41ed-b9f6-16e58e906997");
+file.setProperty("acoustidFingerprint", "AQADtMmybfGO8NCNEESLnzHyXNOHeHnG...");
+file.setProperty("acoustidId", "e7359e88-f1f7-41ed-b9f6-16e58e906997");
 
 // ReplayGain volume normalization
-file.setReplayGainTrackGain("-6.54 dB");
-file.setReplayGainTrackPeak("0.987654");
+file.setProperty("replayGainTrackGain", "-6.54 dB");
+file.setProperty("replayGainTrackPeak", "0.987654");
 ```
 
 ### Using Tag Constants
@@ -190,7 +193,7 @@ const taglib = await TagLib.initialize();
 const audioData = await readFile("input.mp3");
 using file = await taglib.open(new Uint8Array(audioData));
 
-file.setTitle("Node.js Title");
+file.tag().setTitle("Node.js Title");
 file.save();
 
 // Get updated buffer after saving
@@ -249,7 +252,7 @@ Always handle potential errors:
 
 ```typescript
 try {
-  using file = taglib.openFile(audioData);
+  using file = await taglib.open(audioData);
 
   if (!file.isValid()) {
     throw new Error("Invalid audio file format");

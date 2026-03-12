@@ -41,7 +41,7 @@ function formatMetadataForDisplay(
 ): Record<string, any> {
   return {
     ...file.tags,
-    duration: file.properties?.length,
+    duration: file.properties?.duration,
     bitrate: file.properties?.bitrate,
     sampleRate: file.properties?.sampleRate,
   };
@@ -81,7 +81,7 @@ async function scanSpecificFiles(
   }
 
   // Aggregate results
-  const allFiles: AudioFileMetadata[] = [];
+  const allItems: FolderScanItem[] = [];
 
   // Scan each directory
   for (const dir of directories) {
@@ -91,11 +91,11 @@ async function scanSpecificFiles(
     });
 
     // Filter to only include files we want
-    const relevantFiles = result.items.filter((f) => fileSet.has(f.path));
-    allFiles.push(...relevantFiles);
+    const relevantItems = result.items.filter((f) => fileSet.has(f.path));
+    allItems.push(...relevantItems);
   }
 
-  return { files: allFiles /* ... */ };
+  return { items: allItems, duration: 0 };
 }
 ```
 
@@ -110,18 +110,17 @@ const taglib = await TagLib.initialize();
 // Open file to access extended metadata
 const audioFile = await taglib.open(filePath);
 try {
-  const propertyMap = audioFile.propertyMap();
-  const properties = propertyMap.properties();
+  const properties = audioFile.properties();
 
   // Access ReplayGain
-  const trackGain = properties["REPLAYGAIN_TRACK_GAIN"]?.[0];
-  const trackPeak = properties["REPLAYGAIN_TRACK_PEAK"]?.[0];
+  const trackGain = properties["replayGainTrackGain"]?.[0];
+  const trackPeak = properties["replayGainTrackPeak"]?.[0];
 
   // Access AcoustID
-  const acoustId = properties["ACOUSTID_ID"]?.[0];
+  const acoustId = properties["acoustidId"]?.[0];
 
   // Access MusicBrainz
-  const mbTrackId = properties["MUSICBRAINZ_TRACKID"]?.[0];
+  const mbTrackId = properties["musicbrainzTrackId"]?.[0];
 } finally {
   audioFile.dispose();
 }
@@ -141,20 +140,24 @@ interface AudioFileMetadata {
 }
 
 interface Tag {
-  title?: string;
-  artist?: string;
-  album?: string;
+  title?: string[];
+  artist?: string[];
+  album?: string[];
   year?: number;
   track?: number;
-  genre?: string;
-  comment?: string;
+  genre?: string[];
+  comment?: string[];
 }
 
 interface AudioProperties {
-  length: number; // Duration in seconds
+  duration: number; // Duration in seconds
   bitrate: number; // Bitrate in kbps
   sampleRate: number; // Sample rate in Hz
   channels: number; // Number of channels
+  bitsPerSample: number; // Bits per sample
+  codec: string; // Audio codec
+  containerFormat: string; // Container format
+  isLossless: boolean; // Whether lossless
 }
 ```
 
