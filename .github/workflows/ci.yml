@@ -197,7 +197,7 @@ jobs:
           path: |
             build/wasi-sdk-src
             build/sysroot-build
-          key: ${{ runner.os }}-eh-sysroot-${{ hashFiles('build/build-eh-sysroot.sh') }}
+          key: ${{ runner.os }}-eh-sysroot-${{ hashFiles('build/build-eh-sysroot.sh', 'build/setup-wasi-sdk.sh') }}
 
       - name: Build EH sysroot
         run: |
