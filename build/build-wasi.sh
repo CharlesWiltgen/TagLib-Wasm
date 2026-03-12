@@ -122,7 +122,7 @@ cmake "$TAGLIB_DIR" \
     -DZLIB_LIBRARY="$BUILD_DIR/zlib/libz.a" \
     -DZLIB_INCLUDE_DIR="$BUILD_DIR/zlib" \
     -DCMAKE_CXX_FLAGS="-O3 -fwasm-exceptions -mllvm -wasm-use-legacy-eh=false" \
-    -DCMAKE_C_FLAGS="-O3"
+    -DCMAKE_C_FLAGS="-O3 -fwasm-exceptions"
 
 # Build TagLib
 echo "Building TagLib..."

@@ -96,12 +96,19 @@ if [ -f "$WASI_SDK_PATH/bin/clang" ]; then
     # Fix hardcoded libedit path in SDK 31 macOS binaries (packaging bug)
     if [ "$PLATFORM" = "macos" ] && [ -f "$WASI_SDK_PATH/lib/libLLVM.dylib" ]; then
         if otool -L "$WASI_SDK_PATH/lib/libLLVM.dylib" 2>/dev/null | grep -q "/Users/runner/"; then
-            echo "Fixing hardcoded dylib paths in SDK binaries..."
-            install_name_tool -change \
-                /Users/runner/work/wasi-sdk/wasi-sdk/build/toolchain/install/lib/libedit.0.dylib \
-                /usr/lib/libedit.3.dylib \
-                "$WASI_SDK_PATH/lib/libLLVM.dylib"
-            echo -e "${GREEN}✅ Fixed libedit dylib path${NC}"
+            # SDK 31 macOS binaries have hardcoded CI runner path for libedit.
+            # Replace with system libedit (in dyld shared cache on macOS 11+).
+            SYSTEM_LIBEDIT="/usr/lib/libedit.3.dylib"
+            if [ -f "$SYSTEM_LIBEDIT" ] || /usr/bin/dyld_info -exports "$SYSTEM_LIBEDIT" &>/dev/null; then
+                echo "Fixing hardcoded dylib paths in SDK binaries..."
+                install_name_tool -change \
+                    /Users/runner/work/wasi-sdk/wasi-sdk/build/toolchain/install/lib/libedit.0.dylib \
+                    "$SYSTEM_LIBEDIT" \
+                    "$WASI_SDK_PATH/lib/libLLVM.dylib"
+                echo -e "${GREEN}✅ Fixed libedit dylib path${NC}"
+            else
+                echo -e "${YELLOW}⚠️  System libedit not found — SDK clang may crash on some operations${NC}"
+            fi
         fi
     fi
 
