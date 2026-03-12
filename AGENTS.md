@@ -1704,11 +1704,10 @@ interface FolderScanResult {
 
 interface AudioFileMetadata {
   path: string; // File path
-  tags: Tag; // Metadata tags
+  tags: ExtendedTag; // Metadata tags (including extended fields)
   properties?: AudioProperties; // Audio properties (optional)
   hasCoverArt?: boolean; // Whether file has embedded cover art
   dynamics?: AudioDynamics; // ReplayGain and Sound Check data
-  error?: Error; // Error if processing failed
 }
 
 interface AudioDynamics {

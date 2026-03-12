@@ -31,7 +31,8 @@ import { EMPTY_TAG } from "./types.ts";
  * ];
  *
  * const result = await updateFolderTags(updates);
- * console.log(`Updated ${result.successful} files`);
+ * const updated = result.items.filter((i) => i.status === "ok").length;
+ * console.log(`Updated ${updated} files`);
  * ```
  */
 export async function updateFolderTags(
