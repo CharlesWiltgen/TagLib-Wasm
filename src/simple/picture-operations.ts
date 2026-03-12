@@ -1,6 +1,5 @@
 import type { AudioFileInput, Picture, PictureType } from "../types.ts";
-import { FileOperationError, InvalidFormatError } from "../errors.ts";
-import { getTagLib } from "./config.ts";
+import { withAudioFile, withAudioFileSave } from "./with-audio-file.ts";
 
 /**
  * Reads all embedded pictures from an audio file.
@@ -13,19 +12,7 @@ import { getTagLib } from "./config.ts";
 export async function readPictures(
   file: AudioFileInput,
 ): Promise<Picture[]> {
-  const taglib = await getTagLib();
-  const audioFile = await taglib.open(file);
-  try {
-    if (!audioFile.isValid()) {
-      throw new InvalidFormatError(
-        "File may be corrupted or in an unsupported format",
-      );
-    }
-
-    return audioFile.getPictures();
-  } finally {
-    audioFile.dispose();
-  }
+  return withAudioFile(file, (audioFile) => audioFile.getPictures());
 }
 
 /**
@@ -42,28 +29,9 @@ export async function applyPictures(
   file: AudioFileInput,
   pictures: Picture[],
 ): Promise<Uint8Array> {
-  const taglib = await getTagLib();
-  const audioFile = await taglib.open(file);
-  try {
-    if (!audioFile.isValid()) {
-      throw new InvalidFormatError(
-        "File may be corrupted or in an unsupported format",
-      );
-    }
-
+  return withAudioFileSave(file, (audioFile) => {
     audioFile.setPictures(pictures);
-
-    if (!audioFile.save()) {
-      throw new FileOperationError(
-        "save",
-        "Failed to save picture changes. The file may be read-only or corrupted.",
-      );
-    }
-
-    return audioFile.getFileBuffer();
-  } finally {
-    audioFile.dispose();
-  }
+  });
 }
 
 /**
@@ -80,28 +48,9 @@ export async function addPicture(
   file: AudioFileInput,
   picture: Picture,
 ): Promise<Uint8Array> {
-  const taglib = await getTagLib();
-  const audioFile = await taglib.open(file);
-  try {
-    if (!audioFile.isValid()) {
-      throw new InvalidFormatError(
-        "File may be corrupted or in an unsupported format",
-      );
-    }
-
+  return withAudioFileSave(file, (audioFile) => {
     audioFile.addPicture(picture);
-
-    if (!audioFile.save()) {
-      throw new FileOperationError(
-        "save",
-        "Failed to save picture changes. The file may be read-only or corrupted.",
-      );
-    }
-
-    return audioFile.getFileBuffer();
-  } finally {
-    audioFile.dispose();
-  }
+  });
 }
 
 /**

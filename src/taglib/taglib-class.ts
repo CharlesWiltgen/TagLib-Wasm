@@ -68,6 +68,8 @@ export class TagLib {
       opts,
     );
 
+    // Isolate a copy — the WASI adapter stores this buffer directly, so it
+    // must not share the caller's underlying ArrayBuffer.
     const buffer = audioData.buffer.slice(
       audioData.byteOffset,
       audioData.byteOffset + audioData.byteLength,
