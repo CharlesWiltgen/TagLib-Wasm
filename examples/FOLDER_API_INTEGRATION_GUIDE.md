@@ -134,9 +134,10 @@ The correct types from TagLib-Wasm:
 ```typescript
 interface AudioFileMetadata {
   path: string;
-  tags: Tag; // Basic tags: title, artist, album, etc.
+  tags: ExtendedTag; // Tags including extended fields (albumArtist, composer, etc.)
   properties?: AudioProperties; // Duration, bitrate, sampleRate, etc.
-  error?: Error;
+  hasCoverArt?: boolean; // Whether file has embedded cover art
+  dynamics?: AudioDynamics; // ReplayGain and Sound Check data
 }
 
 interface Tag {
