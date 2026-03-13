@@ -265,27 +265,46 @@ describe("TypedAudioProperties narrowing", () => {
         taglib = await TagLib.initialize({ forceWasmType: backend });
       });
 
-      it("MP3 audioProperties has mpegVersion after isFormat narrowing", async () => {
+      it("MP3 audioProperties has mpegVersion=1 and mpegLayer=3", async () => {
         if (!fileExists(FIXTURE_PATH.mp3)) return;
         const buffer = await Deno.readFile(FIXTURE_PATH.mp3);
         using file = await taglib.open(buffer);
         if (file.isFormat("MP3")) {
           const props = file.audioProperties();
           assert(props !== undefined);
-          assertEquals(typeof props.mpegVersion, "number");
-          assertEquals(typeof props.mpegLayer, "number");
+          assertEquals(props.mpegVersion, 1);
+          assertEquals(props.mpegLayer, 3);
         }
       });
 
-      it("MP4 audioProperties has isEncrypted after isFormat narrowing", async () => {
+      it("MP4 audioProperties has isEncrypted=false", async () => {
         if (!fileExists(FIXTURE_PATH.m4a)) return;
         const buffer = await Deno.readFile(FIXTURE_PATH.m4a);
         using file = await taglib.open(buffer);
         if (file.isFormat("MP4")) {
           const props = file.audioProperties();
           assert(props !== undefined);
-          assertEquals(typeof props.isEncrypted, "boolean");
+          assertEquals(props.isEncrypted, false);
         }
+      });
+
+      it("WV audioProperties has formatVersion", async () => {
+        if (!fileExists(FIXTURE_PATH.wv)) return;
+        const buffer = await Deno.readFile(FIXTURE_PATH.wv);
+        using file = await taglib.open(buffer);
+        const props = file.audioProperties();
+        assert(props !== undefined);
+        assertEquals(typeof props.formatVersion, "number");
+        assert(props.formatVersion! > 0);
+      });
+
+      it("TTA audioProperties has formatVersion=1", async () => {
+        if (!fileExists(FIXTURE_PATH.tta)) return;
+        const buffer = await Deno.readFile(FIXTURE_PATH.tta);
+        using file = await taglib.open(buffer);
+        const props = file.audioProperties();
+        assert(props !== undefined);
+        assertEquals(props.formatVersion, 1);
       });
     });
   }
