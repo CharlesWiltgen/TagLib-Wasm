@@ -126,6 +126,11 @@ export abstract class BaseAudioFileImpl {
         return undefined;
       }
 
+      const containerFormat =
+        (propsWrapper.containerFormat() || "unknown") as ContainerFormat;
+      const mpegVersion = propsWrapper.mpegVersion();
+      const formatVersion = propsWrapper.formatVersion();
+
       this.cachedAudioProperties = {
         duration: propsWrapper.lengthInSeconds(),
         bitrate: propsWrapper.bitrate(),
@@ -133,9 +138,15 @@ export abstract class BaseAudioFileImpl {
         channels: propsWrapper.channels(),
         bitsPerSample: propsWrapper.bitsPerSample(),
         codec: (propsWrapper.codec() || "unknown") as AudioCodec,
-        containerFormat:
-          (propsWrapper.containerFormat() || "unknown") as ContainerFormat,
+        containerFormat,
         isLossless: propsWrapper.isLossless(),
+        ...(mpegVersion
+          ? { mpegVersion, mpegLayer: propsWrapper.mpegLayer() }
+          : {}),
+        ...(containerFormat === "MP4" || containerFormat === "ASF"
+          ? { isEncrypted: propsWrapper.isEncrypted() }
+          : {}),
+        ...(formatVersion ? { formatVersion } : {}),
       };
     }
 
