@@ -20,10 +20,14 @@ const AUDIO_KEYS = new Set([
   "channels",
   "codec",
   "containerFormat",
+  "formatVersion",
+  "isEncrypted",
   "isLossless",
   "duration",
   "length",
   "lengthMs",
+  "mpegLayer",
+  "mpegVersion",
   "sampleRate",
 ]);
 
@@ -163,6 +167,10 @@ export class WasiFileHandle implements FileHandle {
       codec: () => (data.codec as string) ?? "",
       containerFormat: () => (data.containerFormat as string) ?? "",
       isLossless: () => (data.isLossless as boolean) ?? false,
+      mpegVersion: () => (data.mpegVersion as number) ?? 0,
+      mpegLayer: () => (data.mpegLayer as number) ?? 0,
+      isEncrypted: () => (data.isEncrypted as boolean) ?? false,
+      formatVersion: () => (data.formatVersion as number) ?? 0,
     };
   }
 

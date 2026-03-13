@@ -4,6 +4,7 @@ import type {
   Picture,
   PropertyMap,
 } from "../types.ts";
+import type { TypedAudioProperties } from "../types/audio-formats.ts";
 import type { Rating } from "../constants/complex-properties.ts";
 import type { MutableTag } from "./mutable-tag.ts";
 import type { FormatPropertyKey } from "../types/format-property-keys.ts";
@@ -115,8 +116,10 @@ export interface AudioFile {
  * arbitrary string keys (e.g. custom tags), use the un-narrowed AudioFile reference.
  */
 export interface TypedAudioFile<F extends FileType>
-  extends Omit<AudioFile, "getProperty" | "setProperty"> {
+  extends Omit<AudioFile, "getProperty" | "setProperty" | "audioProperties"> {
   getFormat(): F;
+
+  audioProperties(): TypedAudioProperties<F> | undefined;
 
   getProperty<K extends FormatPropertyKey<F>>(
     key: K,

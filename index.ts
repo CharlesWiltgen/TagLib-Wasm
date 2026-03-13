@@ -186,6 +186,7 @@ export type {
   FormatPropertyKey,
   TagFormat,
 } from "./src/types/format-property-keys.ts";
+export type { TypedAudioProperties } from "./src/types/audio-formats.ts";
 
 // Complex property types and constants
 export {

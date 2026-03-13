@@ -185,3 +185,31 @@ export interface AudioProperties {
   /** Format-specific version number (APE, WavPack, TTA, etc.) */
   readonly formatVersion?: number;
 }
+
+/**
+ * AudioProperties narrowed by file format, making format-specific fields required.
+ *
+ * After narrowing via `isFormat()`, optional fields that are guaranteed present
+ * for a given format become required:
+ * - MP3: `mpegVersion`, `mpegLayer`
+ * - MP4/ASF: `isEncrypted`
+ * - APE/WV/TTA: `formatVersion`
+ *
+ * @example
+ * ```typescript
+ * if (file.isFormat("MP3")) {
+ *   const props = file.audioProperties();
+ *   props?.mpegVersion; // number (not number | undefined)
+ * }
+ * ```
+ */
+export type TypedAudioProperties<F extends FileType> = F extends "MP3"
+  ? AudioProperties & {
+    readonly mpegVersion: number;
+    readonly mpegLayer: number;
+  }
+  : F extends "MP4" | "ASF"
+    ? AudioProperties & { readonly isEncrypted: boolean }
+  : F extends "APE" | "WV" | "TTA"
+    ? AudioProperties & { readonly formatVersion: number }
+  : AudioProperties;

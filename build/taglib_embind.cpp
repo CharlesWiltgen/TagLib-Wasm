@@ -31,6 +31,8 @@
 #include <trueaudioproperties.h>
 #include <asffile.h>
 #include <asfproperties.h>
+#include <apefile.h>
+#include <apeproperties.h>
 #include <matroskafile.h>
 #include <id3v2tag.h>
 #include <attachedpictureframe.h>
@@ -292,6 +294,47 @@ public:
         return false;
     }
     
+    int mpegVersion() const {
+        if (!props) return 0;
+        if (auto* mpegProps = dynamic_cast<TagLib::MPEG::Properties*>(props)) {
+            return mpegProps->version() == TagLib::MPEG::Header::Version1 ? 1 : 2;
+        }
+        return 0;
+    }
+
+    int mpegLayer() const {
+        if (!props) return 0;
+        if (auto* mpegProps = dynamic_cast<TagLib::MPEG::Properties*>(props)) {
+            return mpegProps->layer();
+        }
+        return 0;
+    }
+
+    bool isEncrypted() const {
+        if (!props) return false;
+        if (auto* mp4Props = dynamic_cast<TagLib::MP4::Properties*>(props)) {
+            return mp4Props->isEncrypted();
+        }
+        if (auto* asfProps = dynamic_cast<TagLib::ASF::Properties*>(props)) {
+            return asfProps->isEncrypted();
+        }
+        return false;
+    }
+
+    int formatVersion() const {
+        if (!props) return 0;
+        if (auto* apeProps = dynamic_cast<TagLib::APE::Properties*>(props)) {
+            return static_cast<int>(apeProps->version() / 1000.0);
+        }
+        if (auto* wvProps = dynamic_cast<TagLib::WavPack::Properties*>(props)) {
+            return wvProps->version();
+        }
+        if (auto* ttaProps = dynamic_cast<TagLib::TrueAudio::Properties*>(props)) {
+            return ttaProps->ttaVersion();
+        }
+        return 0;
+    }
+
     std::string containerFormat() const {
         if (!file) return "unknown";
         
@@ -1350,7 +1393,11 @@ EMSCRIPTEN_BINDINGS(taglib) {
         .function("bitsPerSample", &AudioPropertiesWrapper::bitsPerSample)
         .function("codec", &AudioPropertiesWrapper::codec)
         .function("isLossless", &AudioPropertiesWrapper::isLossless)
-        .function("containerFormat", &AudioPropertiesWrapper::containerFormat);
+        .function("containerFormat", &AudioPropertiesWrapper::containerFormat)
+        .function("mpegVersion", &AudioPropertiesWrapper::mpegVersion)
+        .function("mpegLayer", &AudioPropertiesWrapper::mpegLayer)
+        .function("isEncrypted", &AudioPropertiesWrapper::isEncrypted)
+        .function("formatVersion", &AudioPropertiesWrapper::formatVersion);
     
     // PictureWrapper class
     class_<PictureWrapper>("PictureWrapper")

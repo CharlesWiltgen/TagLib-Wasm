@@ -114,6 +114,10 @@ export interface AudioPropertiesWrapper {
   codec(): string;
   containerFormat(): string;
   isLossless(): boolean;
+  mpegVersion(): number;
+  mpegLayer(): number;
+  isEncrypted(): boolean;
+  formatVersion(): number;
 }
 
 /**

@@ -9,6 +9,7 @@ import { assert, assertEquals } from "@std/assert";
 import { afterAll, beforeAll, describe, it } from "@std/testing/bdd";
 import type { TypedAudioFile } from "../src/taglib/audio-file-interface.ts";
 import type { FormatPropertyKey } from "../src/types/format-property-keys.ts";
+import type { TypedAudioProperties } from "../src/types/audio-formats.ts";
 import { TagLib } from "../src/taglib.ts";
 import { fileExists, FIXTURE_PATH } from "./shared-fixtures.ts";
 
@@ -183,4 +184,109 @@ describe("isFormat runtime behavior", () => {
     assertEquals(file.isFormat("FLAC"), true);
     assertEquals(file.isFormat("MP3"), false);
   });
+});
+
+describe("TypedAudioProperties narrowing", () => {
+  describe("type-level tests", () => {
+    it("MP3 requires mpegVersion and mpegLayer", () => {
+      void ((_p: TypedAudioProperties<"MP3">) => {
+        const _version: number = _p.mpegVersion;
+        const _layer: number = _p.mpegLayer;
+        void [_version, _layer];
+      });
+    });
+
+    it("AIFF has no extra required fields", () => {
+      void ((_p: TypedAudioProperties<"AIFF">) => {
+        const _mpegVersion: number | undefined = _p.mpegVersion;
+        void _mpegVersion;
+      });
+    });
+
+    it("MP4 requires isEncrypted", () => {
+      void ((_p: TypedAudioProperties<"MP4">) => {
+        const _encrypted: boolean = _p.isEncrypted;
+        void _encrypted;
+      });
+    });
+
+    it("ASF requires isEncrypted", () => {
+      void ((_p: TypedAudioProperties<"ASF">) => {
+        const _encrypted: boolean = _p.isEncrypted;
+        void _encrypted;
+      });
+    });
+
+    it("APE requires formatVersion", () => {
+      void ((_p: TypedAudioProperties<"APE">) => {
+        const _version: number = _p.formatVersion;
+        void _version;
+      });
+    });
+
+    it("WAV has no extra required fields", () => {
+      void ((_p: TypedAudioProperties<"WAV">) => {
+        // @ts-expect-error: mpegVersion is optional on WAV, not assignable to number
+        const _mpegVersion: number = _p.mpegVersion;
+        // @ts-expect-error: isEncrypted is optional on WAV, not assignable to boolean
+        const _isEncrypted: boolean = _p.isEncrypted;
+        // @ts-expect-error: formatVersion is optional on WAV, not assignable to number
+        const _formatVersion: number = _p.formatVersion;
+        void [_mpegVersion, _isEncrypted, _formatVersion];
+      });
+    });
+
+    it("FLAC has no extra required fields", () => {
+      void ((_p: TypedAudioProperties<"FLAC">) => {
+        const _mpegVersion: number | undefined = _p.mpegVersion;
+        void _mpegVersion;
+      });
+    });
+
+    it("TypedAudioFile audioProperties returns narrowed type", () => {
+      void ((_f: TypedAudioFile<"MP3">) => {
+        const props = _f.audioProperties();
+        if (props) {
+          const _version: number = props.mpegVersion;
+          const _layer: number = props.mpegLayer;
+          void [_version, _layer];
+        }
+      });
+    });
+  });
+
+  for (
+    const backend of ["wasi", "emscripten"] as const
+  ) {
+    describe(`runtime tests (${backend})`, () => {
+      let taglib: TagLib;
+
+      beforeAll(async () => {
+        taglib = await TagLib.initialize({ forceWasmType: backend });
+      });
+
+      it("MP3 audioProperties has mpegVersion after isFormat narrowing", async () => {
+        if (!fileExists(FIXTURE_PATH.mp3)) return;
+        const buffer = await Deno.readFile(FIXTURE_PATH.mp3);
+        using file = await taglib.open(buffer);
+        if (file.isFormat("MP3")) {
+          const props = file.audioProperties();
+          assert(props !== undefined);
+          assertEquals(typeof props.mpegVersion, "number");
+          assertEquals(typeof props.mpegLayer, "number");
+        }
+      });
+
+      it("MP4 audioProperties has isEncrypted after isFormat narrowing", async () => {
+        if (!fileExists(FIXTURE_PATH.m4a)) return;
+        const buffer = await Deno.readFile(FIXTURE_PATH.m4a);
+        using file = await taglib.open(buffer);
+        if (file.isFormat("MP4")) {
+          const props = file.audioProperties();
+          assert(props !== undefined);
+          assertEquals(typeof props.isEncrypted, "boolean");
+        }
+      });
+    });
+  }
 });
