@@ -140,13 +140,13 @@ export abstract class BaseAudioFileImpl {
         codec: (propsWrapper.codec() || "unknown") as AudioCodec,
         containerFormat,
         isLossless: propsWrapper.isLossless(),
-        ...(mpegVersion
+        ...(mpegVersion > 0
           ? { mpegVersion, mpegLayer: propsWrapper.mpegLayer() }
           : {}),
         ...(containerFormat === "MP4" || containerFormat === "ASF"
           ? { isEncrypted: propsWrapper.isEncrypted() }
           : {}),
-        ...(formatVersion ? { formatVersion } : {}),
+        ...(formatVersion > 0 ? { formatVersion } : {}),
       };
     }
 

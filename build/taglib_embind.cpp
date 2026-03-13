@@ -324,7 +324,7 @@ public:
     int formatVersion() const {
         if (!props) return 0;
         if (auto* apeProps = dynamic_cast<TagLib::APE::Properties*>(props)) {
-            return static_cast<int>(apeProps->version() / 1000.0);
+            return apeProps->version();
         }
         if (auto* wvProps = dynamic_cast<TagLib::WavPack::Properties*>(props)) {
             return wvProps->version();
