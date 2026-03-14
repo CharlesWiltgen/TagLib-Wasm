@@ -44,6 +44,7 @@ cov_profile/
 !.vscode/extensions.json
 .vscode-test
 .claude/
+.githooks/
 
 # Tool configuration
 mise.toml
