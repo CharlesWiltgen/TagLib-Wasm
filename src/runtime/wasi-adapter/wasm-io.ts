@@ -5,7 +5,7 @@
  * and TagLib C API calls for reading and writing audio metadata.
  */
 
-import type { WasiModule } from "../wasmer-sdk-loader/index.ts";
+import type { WasiModule } from "../wasmer-sdk-loader/types.ts";
 import {
   WasmArena,
   type WasmExports,

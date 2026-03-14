@@ -8,8 +8,8 @@ import type {
   RawPicture,
   TagWrapper,
 } from "../../wasm.ts";
-import type { WasiModule } from "../wasmer-sdk-loader/index.ts";
-import { WasmerExecutionError } from "../wasmer-sdk-loader/index.ts";
+import type { WasiModule } from "../wasmer-sdk-loader/types.ts";
+import { WasmerExecutionError } from "../wasmer-sdk-loader/types.ts";
 import { decodeTagData } from "../../msgpack/decoder.ts";
 import { fromTagLibKey, toTagLibKey } from "../../constants/properties.ts";
 import { readTagsFromWasm, writeTagsToWasm } from "./wasm-io.ts";

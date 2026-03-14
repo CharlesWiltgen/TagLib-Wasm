@@ -6,8 +6,8 @@
  */
 
 import type { FileHandle, TagLibModule } from "../../wasm.ts";
-import type { WasiModule } from "../wasmer-sdk-loader/index.ts";
-import { WasmerExecutionError } from "../wasmer-sdk-loader/index.ts";
+import type { WasiModule } from "../wasmer-sdk-loader/types.ts";
+import { WasmerExecutionError } from "../wasmer-sdk-loader/types.ts";
 import { MemoryError } from "../../errors/classes.ts";
 import { WasiFileHandle } from "./file-handle.ts";
 

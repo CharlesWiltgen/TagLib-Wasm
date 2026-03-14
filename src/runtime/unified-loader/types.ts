@@ -1,5 +1,5 @@
 import type { RuntimeDetectionResult } from "../detector.ts";
-import type { WasiModule } from "../wasmer-sdk-loader/index.ts";
+import type { WasiModule } from "../wasmer-sdk-loader/types.ts";
 import type { TagLibModule } from "../../wasm.ts";
 import { TagLibError } from "../../errors/base.ts";
 

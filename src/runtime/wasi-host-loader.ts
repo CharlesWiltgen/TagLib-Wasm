@@ -11,7 +11,7 @@ import {
   type WasiImportDisposable,
 } from "./wasi-host.ts";
 import type { FileSystemProvider } from "./wasi-fs-provider.ts";
-import type { WasiModule } from "./wasmer-sdk-loader/index.ts";
+import type { WasiModule } from "./wasmer-sdk-loader/types.ts";
 import { TagLibError } from "../errors/base.ts";
 import { fileUrlToPath } from "../utils/path.ts";
 
