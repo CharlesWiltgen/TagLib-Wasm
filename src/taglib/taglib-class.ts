@@ -58,7 +58,7 @@ export class TagLib {
       ? actualInput
       : undefined;
     const opts = {
-      partial: false,
+      partial: true,
       maxHeaderSize: 1024 * 1024,
       maxFooterSize: 128 * 1024,
       ...options,
@@ -69,20 +69,26 @@ export class TagLib {
       opts,
     );
 
-    // Isolate a copy — the WASI adapter stores this buffer directly, so it
-    // must not share the caller's underlying ArrayBuffer.
-    const buffer = audioData.buffer.slice(
-      audioData.byteOffset,
-      audioData.byteOffset + audioData.byteLength,
-    );
-    const uint8Array = new Uint8Array(buffer);
+    // Only copy when the caller passed a Uint8Array directly, since
+    // loadAudioData returns the same reference in that case and the
+    // WASI adapter stores the buffer. For all other inputs (path, File,
+    // ArrayBuffer), loadAudioData already returns an owned copy.
+    const uint8Array = actualInput instanceof Uint8Array &&
+        audioData.buffer === actualInput.buffer
+      ? new Uint8Array(
+        audioData.buffer.slice(
+          audioData.byteOffset,
+          audioData.byteOffset + audioData.byteLength,
+        ),
+      )
+      : audioData;
     const fileHandle = this.module.createFileHandle();
     try {
       const success = fileHandle.loadFromBuffer(uint8Array);
       if (!success) {
         throw new InvalidFormatError(
           "Failed to load audio file. File may be corrupted or in an unsupported format",
-          buffer.byteLength,
+          uint8Array.byteLength,
         );
       }
 

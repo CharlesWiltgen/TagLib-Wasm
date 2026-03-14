@@ -17,7 +17,7 @@ export interface OpenOptions {
    * When enabled, only the header and footer sections are loaded initially.
    * The full file is loaded automatically when save() is called.
    *
-   * @default false
+   * @default true
    */
   partial?: boolean;
 
