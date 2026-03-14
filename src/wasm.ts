@@ -62,6 +62,7 @@ export interface EmscriptenModule {
 // Embind class interfaces
 export interface FileHandle {
   loadFromBuffer(data: Uint8Array): boolean;
+  loadFromPath?(path: string): boolean;
   isValid(): boolean;
   save(): boolean;
   getFormat(): string;
