@@ -8,10 +8,21 @@ import { writeFileData } from "../utils/write.ts";
 import type { AudioFile } from "./audio-file-interface.ts";
 import { BaseAudioFileImpl } from "./audio-file-base.ts";
 
+let _nodeFs: { readFileSync(path: string): Uint8Array } | null | undefined;
+
 function readFileSync(path: string): Uint8Array {
   if (typeof Deno !== "undefined") return Deno.readFileSync(path);
-  const fs = require("node:fs");
-  return new Uint8Array(fs.readFileSync(path));
+  if (_nodeFs === undefined) {
+    try {
+      // Dynamic import cached at module level. Uses Function constructor
+      // to hide from bundlers that would try to resolve "node:fs".
+      _nodeFs = new Function("return require('node:fs')")();
+    } catch {
+      _nodeFs = null;
+    }
+  }
+  if (_nodeFs) return new Uint8Array(_nodeFs.readFileSync(path));
+  return new Uint8Array(0);
 }
 
 /**
