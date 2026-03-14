@@ -66,14 +66,18 @@ export class AudioFileImpl extends BaseAudioFileImpl implements AudioFile {
     }
 
     if (this.isPartiallyLoaded && this.originalSource) {
-      const fullData = await readFileData(this.originalSource);
       const fullFileHandle = this.module.createFileHandle();
       try {
-        const success = fullFileHandle.loadFromBuffer(fullData);
+        // Scope fullData so it can be GC'd after copy to Wasm heap,
+        // reducing peak memory from 3x to 2x file size.
+        const success = await (async () => {
+          const data = await readFileData(this.originalSource!);
+          return fullFileHandle.loadFromBuffer(data);
+        })();
         if (!success) {
           throw new InvalidFormatError(
             "Failed to load full audio file for saving",
-            fullData.byteLength,
+            0,
           );
         }
 
