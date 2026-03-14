@@ -400,6 +400,64 @@ describe("Property key translation", () => {
     assertEquals(fromTagLibKey("DATE"), "date");
   });
 
+  it("translates additional properties (formerly ALL_CAPS pass-through)", () => {
+    // Sorting
+    assertEquals(toTagLibKey("albumArtistSort"), "ALBUMARTISTSORT");
+    assertEquals(toTagLibKey("composerSort"), "COMPOSERSORT");
+    assertEquals(fromTagLibKey("ALBUMARTISTSORT"), "albumArtistSort");
+    assertEquals(fromTagLibKey("COMPOSERSORT"), "composerSort");
+
+    // Identifiers
+    assertEquals(toTagLibKey("asin"), "ASIN");
+    assertEquals(
+      toTagLibKey("musicbrainzReleaseArtistId"),
+      "MUSICBRAINZ_ALBUMARTISTID",
+    );
+    assertEquals(toTagLibKey("musicbrainzWorkId"), "MUSICBRAINZ_WORKID");
+    assertEquals(
+      toTagLibKey("musicbrainzReleaseTrackId"),
+      "MUSICBRAINZ_RELEASETRACKID",
+    );
+    assertEquals(
+      fromTagLibKey("MUSICBRAINZ_ALBUMARTISTID"),
+      "musicbrainzReleaseArtistId",
+    );
+
+    // Miscellaneous
+    assertEquals(toTagLibKey("label"), "LABEL");
+    assertEquals(toTagLibKey("subtitle"), "SUBTITLE");
+    assertEquals(toTagLibKey("producer"), "PRODUCER");
+    assertEquals(toTagLibKey("originalDate"), "ORIGINALDATE");
+    assertEquals(toTagLibKey("involvedPeople"), "INVOLVEDPEOPLE");
+    assertEquals(toTagLibKey("encoding"), "ENCODING");
+    assertEquals(fromTagLibKey("ENCODING"), "encoding");
+    assertEquals(fromTagLibKey("INVOLVEDPEOPLE"), "involvedPeople");
+
+    // Corrected wire name (was REMIXEDBY, now REMIXER)
+    assertEquals(toTagLibKey("remixedBy"), "REMIXER");
+    assertEquals(fromTagLibKey("REMIXER"), "remixedBy");
+  });
+
+  it("Tags constants all use camelCase values (no ALL_CAPS)", () => {
+    for (const [key, value] of Object.entries(Tags)) {
+      assertEquals(
+        value[0],
+        value[0].toLowerCase(),
+        `Tags.${key} = "${value}" should start lowercase`,
+      );
+      assertEquals(
+        value.includes("_"),
+        false,
+        `Tags.${key} = "${value}" should not contain underscores`,
+      );
+      assertEquals(
+        value === value.toUpperCase(),
+        false,
+        `Tags.${key} = "${value}" should not be ALL_CAPS`,
+      );
+    }
+  });
+
   it("unknown keys pass through untranslated", () => {
     assertEquals(toTagLibKey("MY_CUSTOM_TAG"), "MY_CUSTOM_TAG");
     assertEquals(fromTagLibKey("MY_CUSTOM_TAG"), "MY_CUSTOM_TAG");

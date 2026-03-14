@@ -9,6 +9,7 @@
  * Use `toTagLibKey()` / `fromTagLibKey()` to translate between the two vocabularies.
  */
 
+import { ADDITIONAL_PROPERTIES } from "./additional-properties.ts";
 import { BASIC_PROPERTIES } from "./basic-properties.ts";
 import { GENERAL_EXTENDED_PROPERTIES } from "./general-extended-properties.ts";
 import { SPECIALIZED_PROPERTIES } from "./specialized-properties.ts";
@@ -18,6 +19,7 @@ export const PROPERTIES = {
   ...BASIC_PROPERTIES,
   ...GENERAL_EXTENDED_PROPERTIES,
   ...SPECIALIZED_PROPERTIES,
+  ...ADDITIONAL_PROPERTIES,
 } as const;
 
 /**

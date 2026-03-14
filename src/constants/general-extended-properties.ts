@@ -154,12 +154,14 @@ export const GENERAL_EXTENDED_PROPERTIES = {
     },
   },
   remixedBy: {
-    key: "REMIXEDBY",
+    key: "REMIXER",
     description: "Person who remixed the track",
     type: "string" as const,
-    supportedFormats: ["Vorbis"] as const,
+    supportedFormats: ["ID3v2", "MP4", "Vorbis"] as const,
     mappings: {
-      vorbis: "REMIXEDBY",
+      id3v2: { frame: "TPE4" },
+      vorbis: "REMIXER",
+      mp4: "----:com.apple.iTunes:REMIXER",
     },
   },
   language: {
