@@ -92,7 +92,6 @@ export async function loadTagLibModule(
       wasmUrl: options?.wasmUrl,
       forceWasmType: options?.forceWasmType,
       debug: false,
-      useInlineWasm: false,
     });
   } catch (error) {
     console.warn(

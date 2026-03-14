@@ -53,27 +53,9 @@ async function loadWasiModuleWithFallback(
     }
   }
 
-  // Strategy 2: Wasmer SDK (fallback for environments without native fs)
-  try {
-    const { initializeWasmer, loadWasmerWasi } = await import(
-      "../wasmer-sdk-loader/index.ts"
-    );
-    await initializeWasmer(options.useInlineWasm);
-    const wasiModule = await loadWasmerWasi({
-      wasmPath: options.wasmUrl || defaultWasmPath,
-      useInlineWasm: options.useInlineWasm,
-      debug: options.debug,
-    });
-    return { module: wasiModule, actualWasmType: "wasi" };
-  } catch (sdkError) {
-    if (options.debug) {
-      console.warn(`[UnifiedLoader] Wasmer SDK failed:`, sdkError);
-    }
-  }
-
-  // Strategy 3: Emscripten fallback
+  // Strategy 2: Emscripten fallback
   if (options.debug) {
-    console.warn(`[UnifiedLoader] All WASI loaders failed, using Emscripten`);
+    console.warn(`[UnifiedLoader] WASI loader failed, using Emscripten`);
   }
   return {
     module: await loadEmscriptenModule(options),
