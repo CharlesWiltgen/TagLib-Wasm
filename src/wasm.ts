@@ -126,6 +126,9 @@ export interface AudioPropertiesWrapper {
  * @internal Most users should use {@link TagLib} instead of accessing this directly.
  */
 export interface TagLibModule extends Omit<EmscriptenModule, "then"> {
+  /** Whether this module uses the WASI backend (vs Emscripten) */
+  isWasi?: boolean;
+
   /** @internal Embind FileHandle class constructor */
   FileHandle: new () => FileHandle;
   /** @internal Embind TagWrapper class constructor */

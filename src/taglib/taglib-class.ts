@@ -59,8 +59,7 @@ export class TagLib {
       : undefined;
 
     // WASI path-based I/O: skip buffer loading entirely
-    const moduleAny = this.module as unknown as Record<string, unknown>;
-    if (typeof actualInput === "string" && moduleAny.isWasi) {
+    if (typeof actualInput === "string" && this.module.isWasi) {
       const fileHandle = this.module.createFileHandle();
       try {
         const fh = fileHandle as { loadFromPath?: (p: string) => boolean };
