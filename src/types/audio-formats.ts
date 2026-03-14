@@ -193,7 +193,7 @@ export interface AudioProperties {
  * for a given format become required:
  * - MP3: `mpegVersion`, `mpegLayer`
  * - MP4/ASF: `isEncrypted`
- * - APE/WV/TTA: `formatVersion`
+ * - APE/WV/TTA/MPC/SHN: `formatVersion`
  *
  * @example
  * ```typescript
@@ -210,6 +210,6 @@ export type TypedAudioProperties<F extends FileType> = F extends "MP3"
   }
   : F extends "MP4" | "ASF"
     ? AudioProperties & { readonly isEncrypted: boolean }
-  : F extends "APE" | "WV" | "TTA"
+  : F extends "APE" | "WV" | "TTA" | "MPC" | "SHN"
     ? AudioProperties & { readonly formatVersion: number }
   : AudioProperties;

@@ -33,6 +33,10 @@
 #include <asfproperties.h>
 #include <apefile.h>
 #include <apeproperties.h>
+#include <mpcfile.h>
+#include <mpcproperties.h>
+#include <shortenfile.h>
+#include <shortenproperties.h>
 #include <matroskafile.h>
 #include <id3v2tag.h>
 #include <attachedpictureframe.h>
@@ -331,6 +335,12 @@ public:
         }
         if (auto* ttaProps = dynamic_cast<TagLib::TrueAudio::Properties*>(props)) {
             return ttaProps->ttaVersion();
+        }
+        if (auto* mpcProps = dynamic_cast<TagLib::MPC::Properties*>(props)) {
+            return mpcProps->mpcVersion();
+        }
+        if (auto* shnProps = dynamic_cast<TagLib::Shorten::Properties*>(props)) {
+            return shnProps->shortenVersion();
         }
         return 0;
     }

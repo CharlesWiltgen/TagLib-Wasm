@@ -224,6 +224,20 @@ describe("TypedAudioProperties narrowing", () => {
       });
     });
 
+    it("MPC requires formatVersion", () => {
+      void ((_p: TypedAudioProperties<"MPC">) => {
+        const _version: number = _p.formatVersion;
+        void _version;
+      });
+    });
+
+    it("SHN requires formatVersion", () => {
+      void ((_p: TypedAudioProperties<"SHN">) => {
+        const _version: number = _p.formatVersion;
+        void _version;
+      });
+    });
+
     it("WAV has no extra required fields", () => {
       void ((_p: TypedAudioProperties<"WAV">) => {
         // @ts-expect-error: mpegVersion is optional on WAV, not assignable to number
@@ -305,6 +319,28 @@ describe("TypedAudioProperties narrowing", () => {
         const props = file.audioProperties();
         assert(props !== undefined);
         assertEquals(props.formatVersion, 1);
+      });
+
+      it("MPC audioProperties has formatVersion", async () => {
+        const mpcPath = "lib/taglib/tests/data/sv8_header.mpc";
+        if (!fileExists(mpcPath)) return;
+        const buffer = await Deno.readFile(mpcPath);
+        using file = await taglib.open(buffer);
+        const props = file.audioProperties();
+        assert(props !== undefined);
+        assertEquals(typeof props.formatVersion, "number");
+        assert(props.formatVersion! > 0);
+      });
+
+      it("SHN audioProperties has formatVersion", async () => {
+        const shnPath = "lib/taglib/tests/data/2sec-silence.shn";
+        if (!fileExists(shnPath)) return;
+        const buffer = await Deno.readFile(shnPath);
+        using file = await taglib.open(buffer);
+        const props = file.audioProperties();
+        assert(props !== undefined);
+        assertEquals(typeof props.formatVersion, "number");
+        assert(props.formatVersion! > 0);
       });
     });
   }

@@ -30,6 +30,7 @@
 #include <wavpack/wavpackfile.h>
 #include <wavpack/wavpackproperties.h>
 #include <mpc/mpcfile.h>
+#include <mpc/mpcproperties.h>
 #include <trueaudio/trueaudiofile.h>
 #include <trueaudio/trueaudioproperties.h>
 #include <shorten/shortenfile.h>
@@ -185,7 +186,9 @@ ExtendedAudioInfo get_extended_audio_info(
         return info;
     }
 
-    if (dynamic_cast<TagLib::MPC::File*>(file)) {
+    if (auto* f = dynamic_cast<TagLib::MPC::File*>(file)) {
+        auto* props = f->audioProperties();
+        if (props) info.version = props->mpcVersion();
         info.codec = "MPC";
         info.container = "MPC";
         return info;
@@ -205,7 +208,10 @@ ExtendedAudioInfo get_extended_audio_info(
 
     if (auto* f = dynamic_cast<TagLib::Shorten::File*>(file)) {
         auto* props = f->audioProperties();
-        if (props) info.bitsPerSample = props->bitsPerSample();
+        if (props) {
+            info.bitsPerSample = props->bitsPerSample();
+            info.version = props->shortenVersion();
+        }
         info.codec = "Shorten";
         info.container = "Shorten";
         info.isLossless = true;
