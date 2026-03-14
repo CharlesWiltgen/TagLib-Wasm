@@ -29,6 +29,24 @@ function fixImportsInFile(filePath) {
     /import\(["'][^"']*(?:build|dist)\/taglib-wrapper\.js["']\)/g,
     `import("${wrapperRelPath}")`,
   );
+
+  // Fix wasm binary paths: strip "build/" so they resolve to dist/ root
+  const wasiWasmRelPath = (depth === 0 ? "./" : "../".repeat(depth)) +
+    "taglib_wasi.wasm";
+  const emscriptenWasmRelPath = (depth === 0 ? "./" : "../".repeat(depth)) +
+    "taglib-web.wasm";
+  content = content.replace(
+    /new\s+URL\(\s*["'][^"']*build\/taglib_wasi\.wasm["']/g,
+    `new URL("${wasiWasmRelPath}"`,
+  );
+  content = content.replace(
+    /new\s+URL\(\s*["'][^"']*build\/taglib-web\.wasm["']/g,
+    `new URL("${emscriptenWasmRelPath}"`,
+  );
+  content = content.replace(
+    /resolveWasmPath\(\s*["'][^"']*build\/taglib_wasi\.wasm["']/g,
+    `resolveWasmPath("${wasiWasmRelPath}"`,
+  );
   modified = true;
 
   // Fix import statements
