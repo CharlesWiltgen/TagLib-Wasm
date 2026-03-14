@@ -16,8 +16,9 @@ PROJECT_ROOT="$(dirname "$BUILD_DIR")"
 TAGLIB_DIR="$PROJECT_ROOT/lib/taglib"
 OUTPUT_DIR="$BUILD_DIR"
 
-# Create CMake build directory
+# Create CMake build directory (clean rebuild to ensure flag changes take effect)
 CMAKE_BUILD_DIR="$BUILD_DIR/cmake-build"
+rm -rf "$CMAKE_BUILD_DIR"
 mkdir -p "$CMAKE_BUILD_DIR"
 cd "$CMAKE_BUILD_DIR"
 
