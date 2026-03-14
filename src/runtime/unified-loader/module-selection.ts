@@ -38,7 +38,6 @@ export function getRecommendedConfig(): UnifiedLoaderOptions {
   if (runtime.supportsFilesystem) {
     return {
       forceWasmType: "wasi",
-      useInlineWasm: false,
       disableOptimizations: false,
     };
   }

@@ -36,8 +36,6 @@ export interface UnifiedLoaderOptions {
   wasmUrl?: string;
   /** Enable debug output */
   debug?: boolean;
-  /** Use inline WASM for bundling */
-  useInlineWasm?: boolean;
 }
 
 export interface UnifiedTagLibModule extends TagLibModule {
