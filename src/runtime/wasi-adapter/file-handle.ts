@@ -12,7 +12,12 @@ import type { WasiModule } from "../wasmer-sdk-loader/types.ts";
 import { WasmerExecutionError } from "../wasmer-sdk-loader/types.ts";
 import { decodeTagData } from "../../msgpack/decoder.ts";
 import { fromTagLibKey, toTagLibKey } from "../../constants/properties.ts";
-import { readTagsFromWasm, writeTagsToWasm } from "./wasm-io.ts";
+import {
+  readTagsFromWasm,
+  readTagsFromWasmPath,
+  writeTagsToWasm,
+  writeTagsToWasmPath,
+} from "./wasm-io.ts";
 
 const AUDIO_KEYS = new Set([
   "bitrate",
@@ -54,6 +59,7 @@ const NUMERIC_FIELD_ALIASES: Record<string, string> = {
 export class WasiFileHandle implements FileHandle {
   private readonly wasi: WasiModule;
   private fileData: Uint8Array | null = null;
+  private filePath: string | null = null;
   private tagData: Record<string, unknown> | null = null;
   private destroyed = false;
 
@@ -80,24 +86,36 @@ export class WasiFileHandle implements FileHandle {
     return true;
   }
 
-  loadFromPath(_path: string): boolean {
+  loadFromPath(path: string): boolean {
     this.checkNotDestroyed();
-    throw new WasmerExecutionError(
-      "loadFromPath not implemented for WASI - use loadFromBuffer",
-    );
+    this.filePath = path;
+    const msgpackData = readTagsFromWasmPath(this.wasi, path);
+    this.tagData = decodeTagData(msgpackData) as unknown as Record<
+      string,
+      unknown
+    >;
+    return true;
   }
 
   isValid(): boolean {
     this.checkNotDestroyed();
-    return this.fileData !== null && this.fileData.length > 0;
+    return (this.fileData !== null && this.fileData.length > 0) ||
+      (this.filePath !== null && this.tagData !== null);
   }
 
   save(): boolean {
     this.checkNotDestroyed();
-    if (!this.fileData || !this.tagData) {
-      return false;
+    if (!this.tagData) return false;
+
+    if (this.filePath) {
+      return writeTagsToWasmPath(
+        this.wasi,
+        this.filePath,
+        this.tagData as import("../../types.ts").ExtendedTag,
+      );
     }
 
+    if (!this.fileData) return false;
     const result = writeTagsToWasm(this.wasi, this.fileData, this.tagData);
     if (result) {
       this.fileData = result;

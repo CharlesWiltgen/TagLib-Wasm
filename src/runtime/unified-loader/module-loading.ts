@@ -37,6 +37,7 @@ async function loadWasiModuleWithFallback(
     const { loadWasiHost } = await import("../wasi-host-loader.ts");
     const wasiModule = await loadWasiHost({
       wasmPath: options.wasmUrl || defaultWasmPath,
+      preopens: { "/": "/" },
     });
     return { module: wasiModule, actualWasmType: "wasi" };
   } catch (hostError) {
