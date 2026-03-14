@@ -116,7 +116,15 @@ export function writeTagsToWasmPath(
     outSizePtr.ptr,
   );
 
-  return result === 0;
+  if (result !== 0) {
+    const errorCode = wasi.tl_get_last_error_code();
+    throw new WasmMemoryError(
+      `error code ${errorCode}. Path: ${path}`,
+      "write tags to path",
+      errorCode,
+    );
+  }
+  return true;
 }
 
 export function writeTagsToWasm(

@@ -194,8 +194,8 @@ export class WasiFileHandle implements FileHandle {
 
   getFormat(): string {
     this.checkNotDestroyed();
-    if (!this.fileData || this.fileData.length < 8) return "unknown";
 
+    // Container-based detection works for both path and buffer modes
     const container = this.tagData?.containerFormat as string | undefined;
     if (container) {
       const codec = this.tagData?.codec as string | undefined;
@@ -203,6 +203,8 @@ export class WasiFileHandle implements FileHandle {
       if (CONTAINER_TO_FORMAT[container]) return CONTAINER_TO_FORMAT[container];
     }
 
+    // Magic byte fallback requires buffer data
+    if (!this.fileData || this.fileData.length < 8) return "unknown";
     const magic = this.fileData.slice(0, 4);
     if (magic[0] === 0xFF && (magic[1] & 0xE0) === 0xE0) return "MP3";
     if (magic[0] === 0x49 && magic[1] === 0x44 && magic[2] === 0x33) {
@@ -333,7 +335,10 @@ export class WasiFileHandle implements FileHandle {
 
   isMP4(): boolean {
     this.checkNotDestroyed();
-    if (!this.fileData || this.fileData.length < 8) return false;
+    if (!this.fileData) {
+      return (this.tagData?.containerFormat as string | undefined) === "MP4";
+    }
+    if (this.fileData.length < 8) return false;
     const magic = this.fileData.slice(4, 8);
     return (
       magic[0] === 0x66 &&
