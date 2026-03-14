@@ -8,6 +8,12 @@ import { writeFileData } from "../utils/write.ts";
 import type { AudioFile } from "./audio-file-interface.ts";
 import { BaseAudioFileImpl } from "./audio-file-base.ts";
 
+function readFileSync(path: string): Uint8Array {
+  if (typeof Deno !== "undefined") return Deno.readFileSync(path);
+  const fs = require("node:fs");
+  return new Uint8Array(fs.readFileSync(path));
+}
+
 /**
  * Implementation of AudioFile interface using Embind API.
  *
@@ -15,6 +21,8 @@ import { BaseAudioFileImpl } from "./audio-file-base.ts";
  * Use TagLib.open() to create instances.
  */
 export class AudioFileImpl extends BaseAudioFileImpl implements AudioFile {
+  private pathModeBuffer: Uint8Array | null = null;
+
   constructor(
     module: TagLibModule,
     fileHandle: FileHandle,
@@ -48,10 +56,15 @@ export class AudioFileImpl extends BaseAudioFileImpl implements AudioFile {
   getFileBuffer(): Uint8Array {
     const buffer = this.handle.getBuffer();
     if (buffer.length > 0) return buffer;
-    // Path-mode WASI: no in-memory buffer, file was written to disk.
-    // Read it back so callers who expect a buffer still work.
-    if (this.sourcePath && typeof Deno !== "undefined") {
-      return Deno.readFileSync(this.sourcePath);
+    // Path-mode WASI: file data lives on disk, not in memory.
+    if (this.pathModeBuffer) return this.pathModeBuffer;
+    if (this.sourcePath) {
+      try {
+        this.pathModeBuffer = readFileSync(this.sourcePath);
+        return this.pathModeBuffer;
+      } catch {
+        return new Uint8Array(0);
+      }
     }
     return new Uint8Array(0);
   }
@@ -77,7 +90,6 @@ export class AudioFileImpl extends BaseAudioFileImpl implements AudioFile {
         if (!success) {
           throw new InvalidFormatError(
             "Failed to load full audio file for saving",
-            0,
           );
         }
 
@@ -120,7 +132,7 @@ export class AudioFileImpl extends BaseAudioFileImpl implements AudioFile {
       }
       // Path-mode WASI: save() wrote directly to disk via filesystem
       // syscalls — getFileBuffer() will be empty. Skip writeFileData.
-      const buffer = this.getFileBuffer();
+      const buffer = this.handle.getBuffer();
       if (buffer.length > 0) {
         await writeFileData(targetPath, buffer);
       }
