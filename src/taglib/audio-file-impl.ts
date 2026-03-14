@@ -108,7 +108,12 @@ export class AudioFileImpl extends BaseAudioFileImpl implements AudioFile {
           "Failed to save changes to in-memory buffer",
         );
       }
-      await writeFileData(targetPath, this.getFileBuffer());
+      // Path-mode WASI: save() wrote directly to disk via filesystem
+      // syscalls — getFileBuffer() will be empty. Skip writeFileData.
+      const buffer = this.getFileBuffer();
+      if (buffer.length > 0) {
+        await writeFileData(targetPath, buffer);
+      }
     }
   }
 

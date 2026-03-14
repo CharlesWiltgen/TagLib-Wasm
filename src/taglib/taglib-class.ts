@@ -57,6 +57,36 @@ export class TagLib {
     const sourcePath = typeof actualInput === "string"
       ? actualInput
       : undefined;
+
+    // WASI path-based I/O: skip buffer loading entirely
+    const moduleAny = this.module as unknown as Record<string, unknown>;
+    if (typeof actualInput === "string" && moduleAny.isWasi) {
+      const fileHandle = this.module.createFileHandle();
+      try {
+        const fh = fileHandle as { loadFromPath?: (p: string) => boolean };
+        if (fh.loadFromPath) {
+          const success = fh.loadFromPath(actualInput);
+          if (!success) {
+            throw new InvalidFormatError(
+              `Failed to load audio file. Path: ${actualInput}`,
+            );
+          }
+          return new AudioFileImpl(
+            this.module,
+            fileHandle,
+            sourcePath,
+            actualInput,
+            false,
+          );
+        }
+      } catch (error) {
+        if (typeof fileHandle.destroy === "function") {
+          fileHandle.destroy();
+        }
+        throw error;
+      }
+    }
+
     const opts = {
       partial: true,
       maxHeaderSize: 1024 * 1024,

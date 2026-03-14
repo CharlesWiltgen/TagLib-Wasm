@@ -59,6 +59,66 @@ export function readTagsFromWasm(
   return result;
 }
 
+export function readTagsFromWasmPath(
+  wasi: WasiModule,
+  path: string,
+): Uint8Array {
+  using arena = new WasmArena(wasi as WasmExports);
+
+  const pathAlloc = arena.allocString(path);
+  const outSizePtr = arena.allocUint32();
+
+  const resultPtr = wasi.tl_read_tags(pathAlloc.ptr, 0, 0, outSizePtr.ptr);
+
+  if (resultPtr === 0) {
+    const errorCode = wasi.tl_get_last_error_code();
+    if (
+      errorCode === TL_ERROR_UNSUPPORTED_FORMAT ||
+      errorCode === TL_ERROR_PARSE_FAILED
+    ) {
+      throw new InvalidFormatError(
+        `File may be corrupted or in an unsupported format. Path: ${path}`,
+      );
+    }
+    throw new WasmMemoryError(
+      `error code ${errorCode}. Path: ${path}`,
+      "read tags from path",
+      errorCode,
+    );
+  }
+
+  const outSize = outSizePtr.readUint32();
+  const u8 = new Uint8Array(wasi.memory.buffer);
+  const result = new Uint8Array(u8.slice(resultPtr, resultPtr + outSize));
+  wasi.free(resultPtr);
+  return result;
+}
+
+export function writeTagsToWasmPath(
+  wasi: WasiModule,
+  path: string,
+  tagData: ExtendedTag,
+): boolean {
+  using arena = new WasmArena(wasi as WasmExports);
+
+  const pathAlloc = arena.allocString(path);
+  const tagBytes = encodeTagData(tagData);
+  const tagBuf = arena.allocBuffer(tagBytes);
+  const outSizePtr = arena.allocUint32();
+
+  const result = wasi.tl_write_tags(
+    pathAlloc.ptr,
+    0,
+    0,
+    tagBuf.ptr,
+    tagBuf.size,
+    0,
+    outSizePtr.ptr,
+  );
+
+  return result === 0;
+}
+
 export function writeTagsToWasm(
   wasi: WasiModule,
   fileData: Uint8Array,
