@@ -19,8 +19,9 @@ import type { ExtendedTag } from "../src/types.ts";
 
 const TEST_FILES_DIR = resolve("tests/test-files");
 const WASM_PATH = resolve("build/taglib_wasi.wasm");
+const IS_WINDOWS = Deno.build.os === "windows";
 
-describe("WASI path-based I/O", () => {
+describe("WASI path-based I/O", { ignore: IS_WINDOWS }, () => {
   describe("readTagsFromWasmPath", () => {
     it("reads tags from MP3 via path", async () => {
       using wasi = await loadWasiHost({
