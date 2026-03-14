@@ -73,6 +73,14 @@ export interface TagInput {
   readonly titleSort?: string | string[];
   readonly artistSort?: string | string[];
   readonly albumSort?: string | string[];
+  readonly albumArtistSort?: string | string[];
+  readonly composerSort?: string | string[];
+  readonly label?: string | string[];
+  readonly subtitle?: string | string[];
+  readonly producer?: string | string[];
+  readonly originalArtist?: string | string[];
+  readonly originalAlbum?: string | string[];
+  readonly originalDate?: string | string[];
   readonly acoustidFingerprint?: string | string[];
   readonly acoustidId?: string | string[];
   readonly musicbrainzTrackId?: string | string[];
@@ -144,6 +152,10 @@ export interface ExtendedTag extends Tag {
   readonly artistSort?: string[];
   /** Sort album for alphabetization */
   readonly albumSort?: string[];
+  /** Sort album artist for alphabetization */
+  readonly albumArtistSort?: string[];
+  /** Sort composer for alphabetization */
+  readonly composerSort?: string[];
   /** Conductor */
   readonly conductor?: string[];
   /** Copyright */
@@ -154,6 +166,18 @@ export interface ExtendedTag extends Tag {
   readonly isrc?: string[];
   /** Lyricist */
   readonly lyricist?: string[];
+  /** Record label */
+  readonly label?: string[];
+  /** Subtitle or description refinement */
+  readonly subtitle?: string[];
+  /** Producer */
+  readonly producer?: string[];
+  /** Original artist of a cover or remix */
+  readonly originalArtist?: string[];
+  /** Original album of a cover or remix */
+  readonly originalAlbum?: string[];
+  /** Original release date */
+  readonly originalDate?: string[];
 
   // ReplayGain fields
   /** ReplayGain track gain in dB (e.g., "-6.54 dB") */

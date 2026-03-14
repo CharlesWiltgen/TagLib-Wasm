@@ -1,7 +1,7 @@
 /**
  * Convenience constants for common property names.
- * Values are camelCase PropertyKeys where defined in PROPERTIES.
- * Keys not in PROPERTIES use their TagLib ALL_CAPS wire name (pass-through).
+ * All values are camelCase PropertyKeys backed by PROPERTIES entries.
+ * Use toTagLibKey()/fromTagLibKey() to translate to/from TagLib wire names.
  */
 export const Tags = {
   // Basic Properties
@@ -30,41 +30,41 @@ export const Tags = {
   Publisher: "publisher",
   Mood: "mood",
   Media: "media",
-  RadioStationOwner: "RADIOSTATIONOWNER",
-  Producer: "PRODUCER",
-  Subtitle: "SUBTITLE",
-  Label: "LABEL",
+  RadioStationOwner: "radioStationOwner",
+  Producer: "producer",
+  Subtitle: "subtitle",
+  Label: "label",
 
   // Sorting Properties
   TitleSort: "titleSort",
   ArtistSort: "artistSort",
-  AlbumArtistSort: "ALBUMARTISTSORT",
+  AlbumArtistSort: "albumArtistSort",
   AlbumSort: "albumSort",
-  ComposerSort: "COMPOSERSORT",
+  ComposerSort: "composerSort",
 
   // Identifiers
   Isrc: "isrc",
-  Asin: "ASIN",
+  Asin: "asin",
   CatalogNumber: "catalogNumber",
   Barcode: "barcode",
 
   // MusicBrainz Identifiers
   MusicBrainzArtistId: "musicbrainzArtistId",
-  MusicBrainzReleaseArtistId: "MUSICBRAINZ_ALBUMARTISTID",
-  MusicBrainzWorkId: "MUSICBRAINZ_WORKID",
+  MusicBrainzReleaseArtistId: "musicbrainzReleaseArtistId",
+  MusicBrainzWorkId: "musicbrainzWorkId",
   MusicBrainzReleaseId: "musicbrainzReleaseId",
   MusicBrainzRecordingId: "musicbrainzTrackId",
   MusicBrainzTrackId: "musicbrainzTrackId",
   MusicBrainzReleaseGroupId: "musicbrainzReleaseGroupId",
-  MusicBrainzReleaseTrackId: "MUSICBRAINZ_RELEASETRACKID",
+  MusicBrainzReleaseTrackId: "musicbrainzReleaseTrackId",
 
   // AcoustID
   AcoustidFingerprint: "acoustidFingerprint",
   AcoustidId: "acoustidId",
 
   // Podcast Properties
-  PodcastId: "PODCASTID",
-  PodcastUrl: "PODCASTURL",
+  PodcastId: "podcastId",
+  PodcastUrl: "podcastUrl",
 
   // Grouping and Work
   Grouping: "grouping",
@@ -77,16 +77,15 @@ export const Tags = {
   TrackGain: "replayGainTrackGain",
   TrackPeak: "replayGainTrackPeak",
 
-  // Special handling
-  OriginalArtist: "ORIGINALARTIST",
-  OriginalAlbum: "ORIGINALALBUM",
-  OriginalDate: "ORIGINALDATE",
-  Script: "SCRIPT",
-  InvolvedPeopleList: "INVOLVEDPEOPLELIST",
+  // Original release
+  OriginalArtist: "originalArtist",
+  OriginalAlbum: "originalAlbum",
+  OriginalDate: "originalDate",
 
-  // Technical Properties
-  EncoderSettings: "ENCODERSETTINGS",
-  SourceMedia: "SOURCEMEDIA",
+  // Miscellaneous
+  Script: "script",
+  InvolvedPeople: "involvedPeople",
+  Encoding: "encoding",
 } as const;
 
 /**

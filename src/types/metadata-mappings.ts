@@ -173,6 +173,16 @@ export const METADATA_MAPPINGS: Record<
     vorbis: "ALBUMSORT",
     mp4: "soal",
   },
+  albumArtistSort: {
+    id3v2: { frame: "TSO2" },
+    vorbis: "ALBUMARTISTSORT",
+    mp4: "soaa",
+  },
+  composerSort: {
+    id3v2: { frame: "TSOC" },
+    vorbis: "COMPOSERSORT",
+    mp4: "soco",
+  },
   conductor: {
     id3v2: { frame: "TPE3" },
     vorbis: "CONDUCTOR",
@@ -186,7 +196,7 @@ export const METADATA_MAPPINGS: Record<
   encodedBy: {
     id3v2: { frame: "TENC" },
     vorbis: "ENCODEDBY",
-    mp4: "©too",
+    mp4: "©enc",
   },
   isrc: {
     id3v2: { frame: "TSRC" },
@@ -198,6 +208,15 @@ export const METADATA_MAPPINGS: Record<
     vorbis: "LYRICIST",
     mp4: "----:com.apple.iTunes:LYRICIST",
   },
+  label: { id3v2: { frame: "TPUB" }, vorbis: "LABEL", wav: "IPUB" },
+  subtitle: { id3v2: { frame: "TIT3" }, vorbis: "SUBTITLE" },
+  producer: {
+    id3v2: { frame: "TXXX", description: "PRODUCER" },
+    vorbis: "PRODUCER",
+  },
+  originalArtist: { id3v2: { frame: "TOPE" }, vorbis: "ORIGINALARTIST" },
+  originalAlbum: { id3v2: { frame: "TOAL" }, vorbis: "ORIGINALALBUM" },
+  originalDate: { id3v2: { frame: "TDOR" }, vorbis: "ORIGINALDATE" },
 
   // ReplayGain mappings
   replayGainTrackGain: {

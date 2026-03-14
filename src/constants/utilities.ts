@@ -42,6 +42,6 @@ export function getAllProperties(): readonly [
  */
 export function getPropertiesByFormat(format: string): PropertyKey[] {
   return getAllPropertyKeys().filter((key) =>
-    PROPERTIES[key].supportedFormats.includes(format as any)
+    (PROPERTIES[key].supportedFormats as readonly string[]).includes(format)
   );
 }
