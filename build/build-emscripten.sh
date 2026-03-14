@@ -219,7 +219,7 @@ emcc "$BUILD_DIR/capi"/*.o \
     -s ENVIRONMENT='web,worker,node' \
     -s FILESYSTEM=1 \
     -s INITIAL_MEMORY=16MB \
-    -s MAXIMUM_MEMORY=2GB \
+    -s MAXIMUM_MEMORY=4GB \
     -s STACK_SIZE=1MB \
     -s USE_ZLIB=1 \
     -O3 \

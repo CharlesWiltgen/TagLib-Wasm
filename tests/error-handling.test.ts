@@ -84,8 +84,8 @@ describe("Error Handling", () => {
     await assertRejects(
       async () => await readTags("/non/existent/file.mp3"),
       FileOperationError,
-      "read",
-      "Should include operation type and file path",
+      "/non/existent/file.mp3",
+      "Should include file path in error",
     );
 
     await assertRejects(

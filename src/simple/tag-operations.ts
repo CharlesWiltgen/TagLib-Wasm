@@ -6,13 +6,17 @@ import type {
   TagInput,
 } from "../types.ts";
 import { FileOperationError, MetadataError } from "../errors.ts";
-import { writeFileData } from "../utils/write.ts";
+
 import {
   mapPropertiesToExtendedTag,
   mergeTagUpdates,
 } from "../utils/tag-mapping.ts";
 import { getTagLib } from "./config.ts";
-import { withAudioFile, withAudioFileSave } from "./with-audio-file.ts";
+import {
+  withAudioFile,
+  withAudioFileSave,
+  withAudioFileSaveToFile,
+} from "./with-audio-file.ts";
 
 /**
  * Reads all metadata tags from an audio file.
@@ -72,8 +76,9 @@ export async function applyTagsToFile(
     );
   }
 
-  const modifiedBuffer = await applyTags(file, tags);
-  await writeFileData(file, modifiedBuffer);
+  await withAudioFileSaveToFile(file, (audioFile) => {
+    mergeTagUpdates(audioFile, tags);
+  });
 }
 
 /**
