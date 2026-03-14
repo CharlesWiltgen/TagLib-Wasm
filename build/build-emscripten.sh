@@ -40,7 +40,8 @@ fi
 echo "Found emcc: $(which emcc)"
 emcc --version | head -1
 
-# Create build directories
+# Clean rebuild to ensure flag changes take effect
+rm -rf "$BUILD_DIR"
 mkdir -p "$BUILD_DIR/taglib"
 mkdir -p "$DIST_DIR"
 
