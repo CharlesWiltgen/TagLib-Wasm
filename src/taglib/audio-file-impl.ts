@@ -47,7 +47,13 @@ export class AudioFileImpl extends BaseAudioFileImpl implements AudioFile {
 
   getFileBuffer(): Uint8Array {
     const buffer = this.handle.getBuffer();
-    return buffer ?? new Uint8Array(0);
+    if (buffer.length > 0) return buffer;
+    // Path-mode WASI: no in-memory buffer, file was written to disk.
+    // Read it back so callers who expect a buffer still work.
+    if (this.sourcePath && typeof Deno !== "undefined") {
+      return Deno.readFileSync(this.sourcePath);
+    }
+    return new Uint8Array(0);
   }
 
   async saveToFile(path?: string): Promise<void> {
