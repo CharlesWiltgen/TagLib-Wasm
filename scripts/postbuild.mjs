@@ -28,6 +28,7 @@ const wasmFiles = [
   "taglib-wrapper.js",
   "taglib-wrapper.d.ts",
   "taglib-web.wasm",
+  "taglib_wasi.wasm",
 ];
 
 console.log("📦 Copying runtime files to dist...");
@@ -70,6 +71,31 @@ try {
   );
 } catch (error) {
   console.error("❌ Failed to fix imports:", error.message);
+}
+
+// Verify no stale build/ wasm references remain
+console.log("\n🔍 Verifying wasm path resolution...");
+const { readFileSync } = await import("node:fs");
+const wasmLoaders = [
+  "dist/src/runtime/unified-loader/module-loading.js",
+  "dist/src/runtime/wasi-host-loader.js",
+  "dist/src/runtime/module-loader.js",
+];
+let wasmPathsOk = true;
+for (const file of wasmLoaders) {
+  const fullPath = join(rootDir, file);
+  if (!existsSync(fullPath)) continue;
+  const src = readFileSync(fullPath, "utf8");
+  if (
+    src.includes("build/taglib_wasi.wasm") ||
+    src.includes("build/taglib-web.wasm")
+  ) {
+    console.error(`  ✗ ${file} still contains build/ wasm references`);
+    wasmPathsOk = false;
+  }
+}
+if (wasmPathsOk) {
+  console.log("  ✓ All wasm paths resolve correctly");
 }
 
 console.log("\n✨ Post-build complete!");
