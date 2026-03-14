@@ -14,36 +14,41 @@ software together.
 
 - **Deno 2.x** - Primary development runtime
 - **Node.js 22.6+** - For npm compatibility testing
-- **Emscripten SDK** - For building WebAssembly
-- **Git** - With git subtree support for TagLib updates
+- **Emscripten SDK** - For building the Emscripten Wasm backend
+- **WASI SDK 31** - For building the WASI Wasm backend (optional for TS-only changes)
+- **Git** - With submodule support
 
 ### Development Setup
 
-1. **Clone the repository**
+1. **Clone the repository** (includes TagLib, mpack, and msgpack submodules)
    ```bash
-   git clone https://github.com/CharlesWiltgen/TagLib-Wasm.git
-   cd taglib-wasm
+   git clone --recurse-submodules https://github.com/CharlesWiltgen/TagLib-Wasm.git
+   cd TagLib-Wasm
    ```
 
-2. **Install Emscripten**
+2. **Install Emscripten** (required for Wasm builds)
    ```bash
    # Follow instructions at https://emscripten.org/docs/getting_started/downloads.html
    # Or use brew on macOS:
    brew install emscripten
    ```
 
-3. **Build the project**
+3. **Install WASI SDK** (only needed if modifying the WASI backend)
    ```bash
-   npm run build
-   # or
-   deno task build
+   bash build/setup-wasi-sdk.sh        # Downloads WASI SDK 31
+   bash build/build-eh-sysroot.sh      # Builds EH-enabled sysroot (one-time, ~5-10 min)
    ```
 
-4. **Run tests**
+4. **Build the project**
    ```bash
-   npm test
-   # or
-   deno task test
+   deno task build          # Build TypeScript + Emscripten Wasm
+   deno task build:wasm     # Rebuild Emscripten Wasm only
+   bash build/build-wasi.sh # Rebuild WASI Wasm only
+   ```
+
+5. **Run tests**
+   ```bash
+   deno task test           # Run ALL checks (format, lint, typecheck, tests)
    ```
 
 ## 📝 Development Guidelines
@@ -58,20 +63,27 @@ software together.
 ### Project Structure
 
 ```
-taglib-wasm/
-├── src/           # TypeScript source code
-├── build/         # Build scripts and C++ wrapper
-├── tests/         # Test files
-├── docs/          # Documentation
-├── examples/      # Usage examples
-└── lib/taglib/    # TagLib C++ library (git subtree)
+TagLib-Wasm/
+├── src/            # TypeScript source (core runtime, types, errors)
+│   ├── capi/       # C/C++ binding layer (Wasm shim, MessagePack, boundary)
+│   └── runtime/    # WASI host implementation
+├── build/          # Build scripts (Emscripten + WASI)
+├── tests/          # Test files
+├── docs/           # Documentation site
+├── examples/       # Usage examples
+├── simple.ts       # Simple API entry point
+├── index.ts        # Full API entry point
+├── folder.ts       # Folder API entry point
+└── lib/            # Git submodules (taglib, mpack, msgpack)
 ```
 
 ### Key Files
 
-- `build/taglib_embind.cpp` - C++ wrapper using Embind
+- `build/taglib_embind.cpp` - Emscripten C++ wrapper using Embind
+- `src/capi/taglib_shim.cpp` - WASI C++ shim (FileRef-based)
+- `src/capi/core/taglib_boundary.c` - Pure C WASI exports
 - `src/taglib.ts` - Core TypeScript API
-- `src/simple.ts` - Simplified API
+- `simple.ts` - Simple API entry point
 - `tests/index.test.ts` - Main test suite
 
 ## 🧪 Testing
@@ -79,17 +91,14 @@ taglib-wasm/
 ### Running Tests
 
 ```bash
-# Run all tests
-npm test
-
-# Run specific test category
-npm run test:core      # Core functionality
-npm run test:edge      # Edge cases
-npm run test:errors    # Error handling
-npm run test:memory    # Memory management
+# Run all checks (format, lint, typecheck, tests)
+deno task test
 
 # Watch mode
-npm run test:watch
+deno test --allow-read --allow-write --allow-env --watch tests/
+
+# Run a specific test file
+deno test --allow-read --allow-write --allow-env tests/basic-tags.test.ts
 ```
 
 ### Writing Tests
@@ -139,9 +148,7 @@ describe("Feature", () => {
 
 4. **Test your changes**
    ```bash
-   npm test
-   deno task fmt   # Format code
-   deno task lint  # Check for issues
+   deno task test  # Runs format, lint, typecheck, and tests
    ```
 
 5. **Commit your changes**
@@ -188,22 +195,21 @@ chore: update TagLib to v2.1.1
 
 ## 🔧 Building WebAssembly
 
-If you modify the C++ wrapper (`build/taglib_embind.cpp`):
+The project has two Wasm backends:
 
-1. **Edit the C++ code**
-2. **Rebuild Wasm**
-   ```bash
-   npm run build:wasm
-   ```
-3. **Test thoroughly** - C++ changes can break everything
+| Backend    | Script                     | Used by           | C++ entry point            |
+| ---------- | -------------------------- | ----------------- | -------------------------- |
+| Emscripten | `deno task build:wasm`     | Browsers, Workers | `build/taglib_embind.cpp`  |
+| WASI       | `bash build/build-wasi.sh` | Deno, Node.js     | `src/capi/taglib_shim.cpp` |
+
+After C++ changes, rebuild the affected backend and test thoroughly.
 
 ### C++ Guidelines
 
-- Use `std::unique_ptr` for memory management
-- Validate all inputs from JavaScript
-- Handle exceptions gracefully
-- Use Embind's `val` type for JavaScript objects
-- Document any new exported functions
+- All C++ files **must** use `-fwasm-exceptions` (not `-fexceptions`) for consistent EH
+- The WASI boundary layer (`taglib_boundary.c`) is pure C — keep it that way
+- Validate all inputs from JavaScript/TypeScript side
+- See `.claude/rules/wasm-exception-handling.md` for detailed EH constraints
 
 ## 📚 Documentation
 
@@ -288,14 +294,16 @@ Brief description of changes
 
 ## 🔄 Updating TagLib
 
-To update the TagLib C++ library:
+TagLib is a git submodule at `lib/taglib/`. To update:
 
 ```bash
-./scripts/update-taglib.sh [version]
-# Default: v2.1
+cd lib/taglib
+git fetch --tags
+git checkout v2.2.1  # or desired version
+cd ../..
+git add lib/taglib
+git commit -m "chore: update TagLib to v2.2.1"
 ```
-
-This uses git subtree to update `lib/taglib/`.
 
 ## ❓ Questions?
 
