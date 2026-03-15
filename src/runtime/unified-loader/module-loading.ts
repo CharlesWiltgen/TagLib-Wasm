@@ -6,8 +6,8 @@ import { ModuleLoadError } from "./types.ts";
 import { errorMessage } from "../../errors/classes.ts";
 import { fileUrlToPath } from "../../utils/path.ts";
 
-function getFilesystemRoot(): string {
-  const isWindows = typeof Deno !== "undefined"
+function isWindows(): boolean {
+  return typeof Deno !== "undefined"
     ? Deno.build.os === "windows"
     : (globalThis as Record<string, unknown>).process
     ? ((globalThis as Record<string, unknown>).process as Record<
@@ -15,14 +15,27 @@ function getFilesystemRoot(): string {
       string
     >).platform === "win32"
     : false;
-  if (!isWindows) return "/";
-  const drive = typeof Deno !== "undefined"
-    ? Deno.env.get("SystemDrive")
-    : (((globalThis as Record<string, unknown>).process as Record<
-      string,
-      Record<string, string>
-    >)?.env?.SystemDrive);
-  return (drive || "C:") + "\\";
+}
+
+function getPreopens(): Record<string, string> {
+  if (!isWindows()) return { "/": "/" };
+  // Map each drive letter to a virtual path so WASI can access any drive
+  const preopens: Record<string, string> = {};
+  for (const letter of "CDEFGHIJKLMNOPQRSTUVWXYZAB") {
+    const root = `${letter}:\\`;
+    try {
+      if (typeof Deno !== "undefined") {
+        Deno.statSync(root);
+      } else {
+        const fs = new Function("return require('node:fs')")();
+        fs.statSync(root);
+      }
+      preopens[`/${letter}`] = root;
+    } catch {
+      // Drive doesn't exist
+    }
+  }
+  return Object.keys(preopens).length > 0 ? preopens : { "/C": "C:\\" };
 }
 
 function resolveWasmPath(relativePath: string): string {
@@ -56,7 +69,7 @@ async function loadWasiModuleWithFallback(
     const { loadWasiHost } = await import("../wasi-host-loader.ts");
     const wasiModule = await loadWasiHost({
       wasmPath: options.wasmUrl || defaultWasmPath,
-      preopens: { "/": getFilesystemRoot() },
+      preopens: getPreopens(),
     });
     return { module: wasiModule, actualWasmType: "wasi" };
   } catch (hostError) {

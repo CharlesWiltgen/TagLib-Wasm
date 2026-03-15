@@ -35,9 +35,12 @@ function toWasiPath(osPath: string): string {
     }
   }
 
-  // Normalize separators and strip drive letter
+  // Normalize separators and map drive letter to virtual prefix
   p = p.replaceAll("\\", "/");
-  if (/^[A-Za-z]:/.test(p)) p = p.slice(2);
+  const driveMatch = p.match(/^([A-Za-z]):\//);
+  if (driveMatch) {
+    p = `/${driveMatch[1].toUpperCase()}${p.slice(2)}`;
+  }
 
   // Collapse dot segments and ensure leading /
   p = p.replace(/\/\.\//g, "/").replace(/\/+/g, "/");
@@ -118,12 +121,7 @@ export class TagLib {
         if (typeof fileHandle.destroy === "function") {
           fileHandle.destroy();
         }
-        // IO read errors (e.g., wrong drive preopen on Windows) fall
-        // through to buffer-based loading. Other errors propagate.
-        const isIoError = error instanceof Error &&
-          "errorCode" in error &&
-          (error as { errorCode: number }).errorCode === -4;
-        if (!isIoError) throw error;
+        throw error;
       }
     }
 
