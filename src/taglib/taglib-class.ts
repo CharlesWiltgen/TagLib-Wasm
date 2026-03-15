@@ -118,7 +118,12 @@ export class TagLib {
         if (typeof fileHandle.destroy === "function") {
           fileHandle.destroy();
         }
-        throw error;
+        // IO read errors (e.g., wrong drive preopen on Windows) fall
+        // through to buffer-based loading. Other errors propagate.
+        const isIoError = error instanceof Error &&
+          "errorCode" in error &&
+          (error as { errorCode: number }).errorCode === -4;
+        if (!isIoError) throw error;
       }
     }
 
