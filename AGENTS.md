@@ -89,7 +89,9 @@ interface Tag {
 
 // ExtendedTag adds (all optional):
 //   albumArtist, composer, conductor, copyright, isrc, lyricist: string[]
-//   titleSort, artistSort, albumSort: string[]
+//   label, subtitle, producer: string[]
+//   originalArtist, originalAlbum, originalDate: string[]
+//   titleSort, artistSort, albumSort, albumArtistSort, composerSort: string[]
 //   musicbrainzTrackId, musicbrainzReleaseId, musicbrainzArtistId, musicbrainzReleaseGroupId: string[]
 //   acoustidFingerprint, acoustidId: string[]
 //   replayGainTrackGain, replayGainTrackPeak: string[]
@@ -234,7 +236,8 @@ paths: `import { initializeForDenoCompile } from "taglib-wasm"`. For offline,
 embed with `deno compile --allow-read --include taglib-web.wasm myapp.ts`.
 
 **Memory**: Simple API auto-manages. Full API requires `using` (preferred) or `dispose()`.
-Each file uses ~2x its size in memory during processing.
+WASI path mode (Deno/Node.js with file paths) uses ~1-2MB regardless of file size.
+Buffer mode (browsers, or when passing Uint8Array) uses ~2x file size.
 
 **Supported formats**: MP3 (ID3v1/v2), MP4/M4A, FLAC, OGG Vorbis, WAV, Opus, APE,
 MPC, WavPack, TrueAudio, Matroska/WebM. Auto-detected from content.
@@ -282,11 +285,14 @@ await TagLib.initialize({ forceWasmType: "emscripten" }); // Force backend
 
 ```typescript
 const taglib = await TagLib.initialize();
+
+// Simplest: edit + auto-save in one call
+await taglib.edit("song.mp3", (file) => file.tag().setTitle("Updated Title"));
+
+// Or manual control:
 using audioFile = await taglib.open("song.mp3");
-const tag = audioFile.tag();
-tag.setTitle("Updated Title");
-audioFile.save();
-await Deno.writeFile("song.mp3", audioFile.getFileBuffer());
+audioFile.tag().setTitle("Updated Title");
+await audioFile.saveToFile("song.mp3");
 ```
 
 ### Cover Art
