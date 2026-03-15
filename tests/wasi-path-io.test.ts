@@ -100,6 +100,12 @@ describe("WASI path-based I/O", () => {
       assertEquals(file.tag().artist, "Prince");
     });
 
+    it("opens file by relative path", async () => {
+      const taglib = await TagLib.initialize();
+      using file = await taglib.open("tests/test-files/mp3/kiss-snippet.mp3");
+      assertEquals(file.tag().title, "Kiss");
+    });
+
     it("returns correct audio properties", async () => {
       const taglib = await TagLib.initialize();
       const mp3Path = resolve(TEST_FILES_DIR, "mp3/kiss-snippet.mp3");
