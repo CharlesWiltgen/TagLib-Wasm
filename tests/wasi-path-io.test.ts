@@ -102,7 +102,9 @@ describe("WASI path-based I/O", () => {
 
     it("opens file by relative path", async () => {
       const taglib = await TagLib.initialize();
-      using file = await taglib.open("tests/test-files/mp3/kiss-snippet.mp3");
+      const absPath = resolve(TEST_FILES_DIR, "mp3/kiss-snippet.mp3");
+      const relPath = absPath.slice(Deno.cwd().length + 1);
+      using file = await taglib.open(relPath);
       assertEquals(file.tag().title, "Kiss");
     });
 
