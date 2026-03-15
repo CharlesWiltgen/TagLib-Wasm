@@ -6,6 +6,25 @@ import { ModuleLoadError } from "./types.ts";
 import { errorMessage } from "../../errors/classes.ts";
 import { fileUrlToPath } from "../../utils/path.ts";
 
+function getFilesystemRoot(): string {
+  const isWindows = typeof Deno !== "undefined"
+    ? Deno.build.os === "windows"
+    : (globalThis as Record<string, unknown>).process
+    ? ((globalThis as Record<string, unknown>).process as Record<
+      string,
+      string
+    >).platform === "win32"
+    : false;
+  if (!isWindows) return "/";
+  const drive = typeof Deno !== "undefined"
+    ? Deno.env.get("SystemDrive")
+    : (((globalThis as Record<string, unknown>).process as Record<
+      string,
+      Record<string, string>
+    >)?.env?.SystemDrive);
+  return (drive || "C:") + "\\";
+}
+
 function resolveWasmPath(relativePath: string): string {
   const url = new URL(relativePath, import.meta.url);
   return url.protocol === "file:" ? fileUrlToPath(url) : url.href;
@@ -37,7 +56,7 @@ async function loadWasiModuleWithFallback(
     const { loadWasiHost } = await import("../wasi-host-loader.ts");
     const wasiModule = await loadWasiHost({
       wasmPath: options.wasmUrl || defaultWasmPath,
-      preopens: { "/": "/" },
+      preopens: { "/": getFilesystemRoot() },
     });
     return { module: wasiModule, actualWasmType: "wasi" };
   } catch (hostError) {
