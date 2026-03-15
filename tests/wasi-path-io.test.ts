@@ -15,11 +15,14 @@ import {
   readTagsFromWasmPath,
   writeTagsToWasmPath,
 } from "../src/runtime/wasi-adapter/wasm-io.ts";
+import { supportsExnref } from "../src/runtime/detector.ts";
 import type { ExtendedTag } from "../src/types.ts";
 
 const TEST_FILES_DIR = resolve("tests/test-files");
 const WASM_PATH = resolve("build/taglib_wasi.wasm");
-describe("WASI path-based I/O", () => {
+const WASI_AVAILABLE = supportsExnref();
+
+describe("WASI path-based I/O", { ignore: !WASI_AVAILABLE }, () => {
   describe("readTagsFromWasmPath", () => {
     it("reads tags from MP3 via path", async () => {
       using wasi = await loadWasiHost({
