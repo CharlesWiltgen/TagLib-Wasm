@@ -1,49 +1,46 @@
 name: SonarCloud Analysis
 
 on:
-  workflow_run:
-    workflows: ["Tests"]
-    types:
-      - completed
-    branches:
-      - main
+  schedule:
+    - cron: "0 6 * * 1" # Weekly on Monday at 6am UTC
+  workflow_dispatch: # Manual trigger
 
 jobs:
   sonarcloud:
     name: SonarCloud Analysis
     runs-on: ubuntu-latest
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0 # Shallow clones should be disabled for better analysis
-
-      - name: Download coverage artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: coverage-lcov
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          run-id: ${{ github.event.workflow_run.id }}
-
-      - name: Fix coverage paths for SonarCloud
-        run: |
-          # SonarCloud expects relative paths in lcov files
-          sed -i 's|SF:/Users/.*/TagLib-Wasm/|SF:|g' coverage.lcov || true
-          sed -i 's|SF:.*/TagLib-Wasm/|SF:|g' coverage.lcov || true
-          # Move to expected location
-          mkdir -p coverage
-          mv coverage.lcov coverage/lcov.info
+          fetch-depth: 0
 
       - name: Setup Deno
         uses: denoland/setup-deno@v2
         with:
           deno-version: v2.x
 
+      - name: Setup Emscripten
+        uses: mymindstorm/setup-emsdk@v14
+        with:
+          version: latest
+
+      - name: Build Wasm
+        run: deno task build:wasm
+
+      - name: Run tests with coverage
+        run: deno test --allow-read --allow-write --allow-env --coverage=coverage tests/
+
+      - name: Generate coverage report
+        run: |
+          deno coverage coverage --lcov --output=coverage.lcov
+          sed -i 's|SF:/home/.*/TagLib-Wasm/|SF:|g' coverage.lcov || true
+          mkdir -p coverage
+          mv coverage.lcov coverage/lcov.info
+
       - name: Generate test execution report
         run: |
-          # Generate SonarQube test execution report
           ./scripts/generate-sonar-test-report.ts || echo "Failed to generate test report"
 
       - name: SonarCloud Scan
