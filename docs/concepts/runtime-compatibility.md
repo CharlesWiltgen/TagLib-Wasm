@@ -151,17 +151,15 @@ In rare cases, you may want to force a specific implementation:
 ```typescript
 // Force Emscripten mode (in-memory I/O, works everywhere)
 const taglib = await TagLib.initialize({ forceWasmType: "emscripten" });
-
-// For Simple API, set buffer mode globally
-import { setBufferMode } from "taglib-wasm";
-setBufferMode(true); // All subsequent Simple API calls use Emscripten
 ```
 
-`forceWasmType` lets you choose the specific Wasm backend (`"wasi"`
-or `"emscripten"`).
+`forceWasmType` lets you choose the specific Wasm backend (`"wasi"` or
+`"emscripten"`).
 
 ::: tip Most users never need to configure this. The automatic selection
-provides optimal performance for each environment. :::
+provides optimal performance for each environment. The WASI backend uses
+path-based filesystem I/O on Deno/Node.js, reading only metadata headers instead
+of loading entire files into memory. :::
 
 ## 🔧 Runtime-Specific Features
 

@@ -227,7 +227,10 @@ console.log(`Lossless: ${props.isLossless}`);
 
 ### Batch Processing
 
-The Simple API includes high-performance batch processing functions for efficiently handling multiple files. These functions reuse a single TagLib instance and support configurable concurrency, providing 10-20x performance improvements over sequential processing.
+The Simple API includes high-performance batch processing functions for
+efficiently handling multiple files. These functions reuse a single TagLib
+instance and support configurable concurrency, providing 10-20x performance
+improvements over sequential processing.
 
 #### BatchOptions
 
@@ -324,7 +327,9 @@ for (const item of result.items) {
 
 ### readMetadataBatch()
 
-Read tags, audio properties, cover art presence, and audio dynamics data from multiple files in a single operation. This is the most efficient method for getting complete metadata.
+Read tags, audio properties, cover art presence, and audio dynamics data from
+multiple files in a single operation. This is the most efficient method for
+getting complete metadata.
 
 ```typescript
 function readMetadataBatch(
@@ -389,9 +394,8 @@ The Folder API provides batch operations for processing multiple audio files in
 directories. This API is ideal for building music library managers, duplicate
 finders, and batch metadata editors.
 
-::: tip
-The folder API requires filesystem access and is only available in Deno, Node.js, and Bun environments.
-:::
+::: tip The folder API requires filesystem access and is only available in Deno,
+Node.js, and Bun environments. :::
 
 ### Import
 
@@ -550,7 +554,7 @@ open(input: string | ArrayBuffer | Uint8Array | File, options?: OpenOptions): Pr
 
 ```typescript
 interface OpenOptions {
-  partial?: boolean; // Enable partial loading (default: false)
+  partial?: boolean; // Enable partial loading (default: true)
   maxHeaderSize?: number; // Max header size in bytes (default: 1MB)
   maxFooterSize?: number; // Max footer size in bytes (default: 128KB)
 }
@@ -582,18 +586,15 @@ using file = await taglib.open(arrayBuffer);
 const fileInput = document.getElementById("file-input").files[0];
 using file = await taglib.open(fileInput);
 
-// With partial loading for large files
-using largeFile = await taglib.open("large-concert.flac", {
-  partial: true,
-  maxHeaderSize: 2 * 1024 * 1024, // 2MB
-  maxFooterSize: 256 * 1024, // 256KB
-});
+// Partial loading is enabled by default — only headers/footers are read.
+// Disable for operations that need the full file buffer:
+using fullFile = await taglib.open("song.mp3", { partial: false });
 ```
 
 #### taglib.updateFile()
 
-Update tags in a file and save changes to disk in one operation.
-This is a convenience method that opens, modifies, saves, and closes the file.
+Update tags in a file and save changes to disk in one operation. This is a
+convenience method that opens, modifies, saves, and closes the file.
 
 ```typescript
 updateFile(path: string, tags: Partial<Tag>): Promise<void>
@@ -725,9 +726,9 @@ Returns version string (e.g., "2.1.0")
 
 ### AudioFile Class
 
-Represents an open audio file with methods to read and write metadata.
-AudioFile implements `Symbol.dispose`, enabling automatic cleanup with the
-`using` keyword:
+Represents an open audio file with methods to read and write metadata. AudioFile
+implements `Symbol.dispose`, enabling automatic cleanup with the `using`
+keyword:
 
 ```typescript
 using file = await taglib.open("song.mp3");
@@ -835,8 +836,8 @@ tag.setTitle("New Title"); // Write
 
 ##### properties()
 
-Get all metadata properties as a key-value map.
-Includes both standard and format-specific properties.
+Get all metadata properties as a key-value map. Includes both standard and
+format-specific properties.
 
 ```typescript
 properties(): PropertyMap
@@ -1130,8 +1131,8 @@ await file.saveToFile("song-updated.mp3");
 
 ##### getFileBuffer()
 
-Get the current file data as a buffer, including any modifications.
-Call this after save() to get the updated file data.
+Get the current file data as a buffer, including any modifications. Call this
+after save() to get the updated file data.
 
 ```typescript
 getFileBuffer(): Uint8Array
@@ -1199,7 +1200,8 @@ const tag = file.tag();
 console.log(tag.title);
 ```
 
-The WebAssembly module automatically detects the Workers environment and optimizes memory usage accordingly.
+The WebAssembly module automatically detects the Workers environment and
+optimizes memory usage accordingly.
 
 ## Error Handling
 
@@ -1426,7 +1428,8 @@ using file = await taglib.open("song.mp3");
 
 ### Memory Configuration
 
-The WebAssembly module automatically configures memory based on your environment. For most use cases, the default configuration works well.
+The WebAssembly module automatically configures memory based on your
+environment. For most use cases, the default configuration works well.
 
 ```typescript
 // Default initialization (recommended)
