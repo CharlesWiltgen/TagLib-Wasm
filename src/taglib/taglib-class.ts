@@ -10,7 +10,41 @@ import type { AudioFile } from "./audio-file-interface.ts";
 import { AudioFileImpl } from "./audio-file-impl.ts";
 import { loadAudioData } from "./load-audio-data.ts";
 import { mergeTagUpdates } from "../utils/tag-mapping.ts";
+import { FileOperationError } from "../errors.ts";
 import { VERSION } from "../version.ts";
+
+function toWasiPath(osPath: string): string {
+  // Reject UNC paths (\\server\share\...) — not supported in WASI
+  if (osPath.startsWith("\\\\") || osPath.startsWith("//")) {
+    throw new FileOperationError(
+      "read",
+      `UNC paths are not supported. Path: ${osPath}`,
+    );
+  }
+
+  let p = osPath;
+
+  // Resolve relative paths against CWD
+  if (!p.startsWith("/") && !/^[A-Za-z]:/.test(p)) {
+    const g = globalThis as Record<string, unknown>;
+    const cwd = typeof Deno !== "undefined"
+      ? Deno.cwd()
+      : (g.process as { cwd(): string })?.cwd?.();
+    if (cwd) {
+      p = cwd.replace(/[/\\]+$/, "") + "/" + p;
+    }
+  }
+
+  // Normalize separators and strip drive letter
+  p = p.replaceAll("\\", "/");
+  if (/^[A-Za-z]:/.test(p)) p = p.slice(2);
+
+  // Collapse dot segments and ensure leading /
+  p = p.replace(/\/\.\//g, "/").replace(/\/+/g, "/");
+  if (!p.startsWith("/")) p = "/" + p;
+
+  return p;
+}
 
 /**
  * Main TagLib interface for audio metadata operations.
@@ -64,19 +98,8 @@ export class TagLib {
       try {
         const fh = fileHandle as { loadFromPath?: (p: string) => boolean };
         if (fh.loadFromPath) {
-          // Resolve relative paths to absolute, then normalize for WASI
-          let wasiPath = actualInput;
-          if (!wasiPath.startsWith("/") && !/^[A-Za-z]:/.test(wasiPath)) {
-            // Relative path — resolve against CWD
-            const g = globalThis as Record<string, unknown>;
-            const cwd = typeof Deno !== "undefined"
-              ? Deno.cwd()
-              : (g.process as { cwd(): string })?.cwd?.();
-            if (cwd) wasiPath = cwd + "/" + wasiPath;
-          }
-          wasiPath = wasiPath.replaceAll("\\", "/");
-          if (/^[A-Za-z]:/.test(wasiPath)) wasiPath = wasiPath.slice(2);
-          if (!wasiPath.startsWith("/")) wasiPath = "/" + wasiPath;
+          // Normalize path for WASI virtual filesystem
+          const wasiPath = toWasiPath(actualInput);
           const success = fh.loadFromPath(wasiPath);
           if (!success) {
             throw new InvalidFormatError(
