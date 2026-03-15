@@ -64,7 +64,11 @@ export class TagLib {
       try {
         const fh = fileHandle as { loadFromPath?: (p: string) => boolean };
         if (fh.loadFromPath) {
-          const success = fh.loadFromPath(actualInput);
+          // Normalize for WASI: strip Windows drive letter, use forward slashes
+          let wasiPath = actualInput.replaceAll("\\", "/");
+          if (/^[A-Za-z]:/.test(wasiPath)) wasiPath = wasiPath.slice(2);
+          if (!wasiPath.startsWith("/")) wasiPath = "/" + wasiPath;
+          const success = fh.loadFromPath(wasiPath);
           if (!success) {
             throw new InvalidFormatError(
               `Failed to load audio file. Path: ${actualInput}`,
