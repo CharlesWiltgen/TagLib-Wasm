@@ -64,8 +64,17 @@ export class TagLib {
       try {
         const fh = fileHandle as { loadFromPath?: (p: string) => boolean };
         if (fh.loadFromPath) {
-          // Normalize for WASI: strip Windows drive letter, use forward slashes
-          let wasiPath = actualInput.replaceAll("\\", "/");
+          // Resolve relative paths to absolute, then normalize for WASI
+          let wasiPath = actualInput;
+          if (!wasiPath.startsWith("/") && !/^[A-Za-z]:/.test(wasiPath)) {
+            // Relative path — resolve against CWD
+            const g = globalThis as Record<string, unknown>;
+            const cwd = typeof Deno !== "undefined"
+              ? Deno.cwd()
+              : (g.process as { cwd(): string })?.cwd?.();
+            if (cwd) wasiPath = cwd + "/" + wasiPath;
+          }
+          wasiPath = wasiPath.replaceAll("\\", "/");
           if (/^[A-Za-z]:/.test(wasiPath)) wasiPath = wasiPath.slice(2);
           if (!wasiPath.startsWith("/")) wasiPath = "/" + wasiPath;
           const success = fh.loadFromPath(wasiPath);
