@@ -34,6 +34,21 @@ export interface Tag {
 }
 
 /**
+ * Basic tag data as returned by the internal FileHandle interface.
+ * Single string values (not arrays) matching TagLib's C++ Tag accessors.
+ * @internal
+ */
+export interface BasicTagData {
+  title: string;
+  artist: string;
+  album: string;
+  comment: string;
+  genre: string;
+  year: number;
+  track: number;
+}
+
+/**
  * Input type for writing tags. Accepts both single strings and arrays.
  *
  * @example
