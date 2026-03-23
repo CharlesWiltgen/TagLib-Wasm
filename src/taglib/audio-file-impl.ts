@@ -7,6 +7,7 @@ import { readFileData } from "../utils/file.ts";
 import { writeFileData } from "../utils/write.ts";
 import type { AudioFile } from "./audio-file-interface.ts";
 import { BaseAudioFileImpl } from "./audio-file-base.ts";
+import { type EmbindFileHandle, wrapEmbindHandle } from "./taglib-class.ts";
 
 let _nodeFs: { readFileSync(path: string): Uint8Array } | null | undefined;
 
@@ -90,7 +91,10 @@ export class AudioFileImpl extends BaseAudioFileImpl implements AudioFile {
     }
 
     if (this.isPartiallyLoaded && this.originalSource) {
-      const fullFileHandle = this.module.createFileHandle();
+      const rawFullHandle = this.module.createFileHandle();
+      const fullFileHandle = this.module.isWasi
+        ? rawFullHandle
+        : wrapEmbindHandle(rawFullHandle as unknown as EmbindFileHandle);
       try {
         // Scope fullData so it can be GC'd after copy to Wasm heap,
         // reducing peak memory from 3x to 2x file size.
@@ -104,17 +108,7 @@ export class AudioFileImpl extends BaseAudioFileImpl implements AudioFile {
           );
         }
 
-        const partialTag = this.handle.getTag();
-        const fullTag = fullFileHandle.getTag();
-        if (partialTag && fullTag) {
-          fullTag.setTitle(partialTag.title());
-          fullTag.setArtist(partialTag.artist());
-          fullTag.setAlbum(partialTag.album());
-          fullTag.setComment(partialTag.comment());
-          fullTag.setGenre(partialTag.genre());
-          fullTag.setYear(partialTag.year());
-          fullTag.setTrack(partialTag.track());
-        }
+        fullFileHandle.setTagData(this.handle.getTagData());
 
         fullFileHandle.setProperties(this.handle.getProperties());
         fullFileHandle.setPictures(this.handle.getPictures());

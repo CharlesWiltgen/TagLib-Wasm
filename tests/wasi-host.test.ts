@@ -384,19 +384,19 @@ describe(
         const props = handle.getAudioProperties();
         assertExists(props, `${format}: audioProperties should not be null`);
         assertGreater(
-          props!.sampleRate(),
+          props!.sampleRate,
           0,
           `${format}: sampleRate should be > 0`,
         );
         assertGreater(
-          props!.channels(),
+          props!.channels,
           0,
           `${format}: channels should be > 0`,
         );
         assertGreater(
-          props!.lengthInMilliseconds(),
+          props!.durationMs!,
           0,
-          `${format}: lengthMs should be > 0`,
+          `${format}: durationMs should be > 0`,
         );
 
         handle.destroy();
@@ -445,15 +445,14 @@ describe(
       );
       handle.loadFromBuffer(fileData);
 
-      const tag = handle.getTag();
-      tag.setTitle("Buffer Write Test");
+      handle.setTagData({ title: "Buffer Write Test" });
       const saved = handle.save();
       assertEquals(saved, true, "save() should return true for buffer write");
 
       // Re-read the modified buffer
       const handle2 = new WasiFileHandle(wasi);
       handle2.loadFromBuffer(handle.getBuffer());
-      assertEquals(handle2.getTag().title(), "Buffer Write Test");
+      assertEquals(handle2.getTagData().title, "Buffer Write Test");
 
       handle2.destroy();
       handle.destroy();
@@ -609,7 +608,7 @@ describe(
       );
       handle.loadFromBuffer(fileData);
 
-      handle.getTag().setTitle("Completely New Title For Byte Diff");
+      handle.setTagData({ title: "Completely New Title For Byte Diff" });
       const saved = handle.save();
       assertEquals(saved, true, "save() should succeed");
 
@@ -650,8 +649,8 @@ describe(
 
       const handle2 = new WasiFileHandle(wasi);
       handle2.loadFromBuffer(handle.getBuffer());
-      assertEquals(handle2.getTag().title(), "Properties Title");
-      assertEquals(handle2.getTag().artist(), "Properties Artist");
+      assertEquals(handle2.getTagData().title, "Properties Title");
+      assertEquals(handle2.getTagData().artist, "Properties Artist");
       assertEquals(handle2.getProperty("ALBUMARTIST"), "VA");
       const props = handle2.getProperties();
       assertEquals(props["TITLE"], ["Properties Title"]);
@@ -816,23 +815,23 @@ describe(
 
         const exp = expected[format];
         assertEquals(
-          props!.codec(),
+          props!.codec,
           exp.codec,
           `${format}: codec mismatch`,
         );
         assertEquals(
-          props!.containerFormat(),
+          props!.containerFormat,
           exp.containerFormat,
           `${format}: containerFormat mismatch`,
         );
         assertEquals(
-          props!.isLossless(),
+          props!.isLossless,
           exp.isLossless,
           `${format}: isLossless mismatch`,
         );
         if (exp.hasBitsPerSample) {
           assertGreater(
-            props!.bitsPerSample(),
+            props!.bitsPerSample,
             0,
             `${format}: bitsPerSample should be > 0`,
           );

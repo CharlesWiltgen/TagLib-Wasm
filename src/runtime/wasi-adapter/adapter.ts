@@ -28,20 +28,6 @@ export class WasiToTagLibAdapter implements TagLibModule {
     }
   } as unknown as new () => FileHandle;
 
-  TagWrapper = class {
-    constructor() {
-      throw new WasmerExecutionError("TagWrapper not directly constructable");
-    }
-  } as unknown as new () => import("../../wasm.ts").TagWrapper;
-
-  AudioPropertiesWrapper = class {
-    constructor() {
-      throw new WasmerExecutionError(
-        "AudioPropertiesWrapper not directly constructable",
-      );
-    }
-  } as unknown as new () => import("../../wasm.ts").AudioPropertiesWrapper;
-
   get ready(): Promise<this> {
     return Promise.resolve(this);
   }

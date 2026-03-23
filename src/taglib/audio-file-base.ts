@@ -1,8 +1,6 @@
 import type { FileHandle, TagLibModule } from "../wasm.ts";
 import type {
-  AudioCodec,
   AudioProperties,
-  ContainerFormat,
   FileType,
   OpenOptions,
   PropertyMap,
@@ -57,62 +55,55 @@ export abstract class BaseAudioFileImpl {
   }
 
   tag(): MutableTag {
-    const tagWrapper = this.handle.getTag();
-    if (!tagWrapper) {
-      throw new MetadataError(
-        "read",
-        "Tag may be corrupted or format not fully supported",
-      );
-    }
-
+    const handle = this.handle;
     const tag: MutableTag = {
       get title() {
-        return tagWrapper.title();
+        return handle.getTagData().title;
       },
       get artist() {
-        return tagWrapper.artist();
+        return handle.getTagData().artist;
       },
       get album() {
-        return tagWrapper.album();
+        return handle.getTagData().album;
       },
       get comment() {
-        return tagWrapper.comment();
+        return handle.getTagData().comment;
       },
       get genre() {
-        return tagWrapper.genre();
+        return handle.getTagData().genre;
       },
       get year() {
-        return tagWrapper.year();
+        return handle.getTagData().year;
       },
       get track() {
-        return tagWrapper.track();
+        return handle.getTagData().track;
       },
       setTitle: (value: string) => {
-        tagWrapper.setTitle(value);
+        handle.setTagData({ title: value });
         return tag;
       },
       setArtist: (value: string) => {
-        tagWrapper.setArtist(value);
+        handle.setTagData({ artist: value });
         return tag;
       },
       setAlbum: (value: string) => {
-        tagWrapper.setAlbum(value);
+        handle.setTagData({ album: value });
         return tag;
       },
       setComment: (value: string) => {
-        tagWrapper.setComment(value);
+        handle.setTagData({ comment: value });
         return tag;
       },
       setGenre: (value: string) => {
-        tagWrapper.setGenre(value);
+        handle.setTagData({ genre: value });
         return tag;
       },
       setYear: (value: number) => {
-        tagWrapper.setYear(value);
+        handle.setTagData({ year: value });
         return tag;
       },
       setTrack: (value: number) => {
-        tagWrapper.setTrack(value);
+        handle.setTagData({ track: value });
         return tag;
       },
     };
@@ -121,36 +112,9 @@ export abstract class BaseAudioFileImpl {
 
   audioProperties(): AudioProperties | undefined {
     if (!this.cachedAudioProperties) {
-      const propsWrapper = this.handle.getAudioProperties();
-      if (!propsWrapper) {
-        return undefined;
-      }
-
-      const containerFormat =
-        (propsWrapper.containerFormat() || "unknown") as ContainerFormat;
-      const mpegVersion = propsWrapper.mpegVersion();
-      const formatVersion = propsWrapper.formatVersion();
-
-      this.cachedAudioProperties = {
-        duration: propsWrapper.lengthInSeconds(),
-        bitrate: propsWrapper.bitrate(),
-        sampleRate: propsWrapper.sampleRate(),
-        channels: propsWrapper.channels(),
-        bitsPerSample: propsWrapper.bitsPerSample(),
-        codec: (propsWrapper.codec() || "unknown") as AudioCodec,
-        containerFormat,
-        isLossless: propsWrapper.isLossless(),
-        ...(mpegVersion > 0
-          ? { mpegVersion, mpegLayer: propsWrapper.mpegLayer() }
-          : {}),
-        ...(containerFormat === "MP4" || containerFormat === "ASF"
-          ? { isEncrypted: propsWrapper.isEncrypted() }
-          : {}),
-        ...(formatVersion > 0 ? { formatVersion } : {}),
-      };
+      this.cachedAudioProperties = this.handle.getAudioProperties() ?? null;
     }
-
-    return this.cachedAudioProperties;
+    return this.cachedAudioProperties ?? undefined;
   }
 
   properties(): PropertyMap {
