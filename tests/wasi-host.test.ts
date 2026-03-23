@@ -394,7 +394,7 @@ describe(
           `${format}: channels should be > 0`,
         );
         assertGreater(
-          props!.durationMs!,
+          props!.durationMs ?? 0,
           0,
           `${format}: durationMs should be > 0`,
         );

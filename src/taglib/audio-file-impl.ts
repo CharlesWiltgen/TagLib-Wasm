@@ -7,7 +7,7 @@ import { readFileData } from "../utils/file.ts";
 import { writeFileData } from "../utils/write.ts";
 import type { AudioFile } from "./audio-file-interface.ts";
 import { BaseAudioFileImpl } from "./audio-file-base.ts";
-import { type EmbindFileHandle, wrapEmbindHandle } from "./taglib-class.ts";
+import { type EmbindFileHandle, wrapEmbindHandle } from "./embind-adapter.ts";
 
 let _nodeFs: { readFileSync(path: string): Uint8Array } | null | undefined;
 
