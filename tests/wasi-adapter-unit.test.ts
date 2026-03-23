@@ -139,16 +139,6 @@ describe("WasiToTagLibAdapter", () => {
     const adapter = new WasiToTagLibAdapter(createMockWasiModule());
     assertThrows(() => new adapter.FileHandle());
   });
-
-  it("should throw when constructing TagWrapper directly", () => {
-    const adapter = new WasiToTagLibAdapter(createMockWasiModule());
-    assertThrows(() => new adapter.TagWrapper());
-  });
-
-  it("should throw when constructing AudioPropertiesWrapper directly", () => {
-    const adapter = new WasiToTagLibAdapter(createMockWasiModule());
-    assertThrows(() => new adapter.AudioPropertiesWrapper());
-  });
 });
 
 describe("WasiFileHandle", () => {
@@ -259,10 +249,10 @@ describe("WasiFileHandle", () => {
     fh.loadFromBuffer(new Uint8Array([0xFF, 0xFB, 0, 0, 0, 0, 0, 0, 0, 0]));
 
     fh.setProperty("DATE", "2024");
-    assertEquals(fh.getTag().year(), 2024);
+    assertEquals(fh.getTagData().year, 2024);
 
     fh.setProperty("TRACKNUMBER", "7");
-    assertEquals(fh.getTag().track(), 7);
+    assertEquals(fh.getTagData().track, 7);
   });
 
   it("should manage MP4 items via property interface", () => {
@@ -331,10 +321,11 @@ describe("WasiFileHandle", () => {
     assertThrows(() => fh.getFormat());
     assertThrows(() => fh.getBuffer());
     assertThrows(() => fh.save());
-    assertThrows(() => fh.getTag());
+    assertThrows(() => fh.getTagData());
+    assertThrows(() => fh.setTagData({ title: "x" }));
   });
 
-  it("should return tag wrapper with getter/setter methods", () => {
+  it("should return tag data with getter/setter methods", () => {
     const mock = createMockWasiModule();
     mock.tl_read_tags = stubTlReadTags(mock);
 
@@ -342,15 +333,12 @@ describe("WasiFileHandle", () => {
     const fh = adapter.createFileHandle();
     fh.loadFromBuffer(new Uint8Array([0xFF, 0xFB, 0, 0, 0, 0, 0, 0, 0, 0]));
 
-    const tag = fh.getTag();
+    const tag = fh.getTagData();
     assertExists(tag);
-    assertEquals(typeof tag.title, "function");
-    assertEquals(typeof tag.setTitle, "function");
+    assertEquals(typeof tag.title, "string");
 
-    tag.setTitle("Test Title");
-    // Re-get tag to verify update
-    const tag2 = fh.getTag();
-    assertEquals(tag2.title(), "Test Title");
+    fh.setTagData({ title: "Test Title" });
+    assertEquals(fh.getTagData().title, "Test Title");
   });
 
   it("should return null audio properties when absent from data", () => {
@@ -375,8 +363,8 @@ describe("WasiFileHandle.getProperties()", () => {
     const fh = adapter.createFileHandle();
     fh.loadFromBuffer(new Uint8Array([0xFF, 0xFB, 0, 0, 0, 0, 0, 0, 0, 0]));
 
-    fh.getTag().setTitle("Test");
-    fh.getTag().setArtist("Artist");
+    fh.setTagData({ title: "Test" });
+    fh.setTagData({ artist: "Artist" });
 
     const props = fh.getProperties();
     assertExists(props["TITLE"]);
@@ -393,7 +381,7 @@ describe("WasiFileHandle.getProperties()", () => {
     const fh = adapter.createFileHandle();
     fh.loadFromBuffer(new Uint8Array([0xFF, 0xFB, 0, 0, 0, 0, 0, 0, 0, 0]));
 
-    fh.getTag().setTitle("Test");
+    fh.setTagData({ title: "Test" });
 
     const props = fh.getProperties();
     assertEquals(props["TITLE"], ["Test"]);
@@ -454,7 +442,7 @@ describe("WasiFileHandle.getProperties()", () => {
     const fh = adapter.createFileHandle();
     fh.loadFromBuffer(new Uint8Array([0xFF, 0xFB, 0, 0, 0, 0, 0, 0, 0, 0]));
 
-    fh.getTag().setTitle("Test");
+    fh.setTagData({ title: "Test" });
     // year and track default to 0 — should be omitted
 
     const props = fh.getProperties();
@@ -474,7 +462,7 @@ describe("WasiFileHandle.setProperties()", () => {
     fh.loadFromBuffer(new Uint8Array([0xFF, 0xFB, 0, 0, 0, 0, 0, 0, 0, 0]));
 
     fh.setProperties({ TITLE: ["New Title"] });
-    assertEquals(fh.getTag().title(), "New Title");
+    assertEquals(fh.getTagData().title, "New Title");
   });
 
   it("should roundtrip through getProperties()", () => {
@@ -525,7 +513,7 @@ describe("WasiFileHandle.setProperties()", () => {
     fh.loadFromBuffer(new Uint8Array([0xFF, 0xFB, 0, 0, 0, 0, 0, 0, 0, 0]));
 
     fh.setProperties({ DATE: ["2024"] });
-    assertEquals(fh.getTag().year(), 2024);
+    assertEquals(fh.getTagData().year, 2024);
   });
 
   it("should handle numeric value conversion for TRACKNUMBER", () => {
@@ -537,7 +525,7 @@ describe("WasiFileHandle.setProperties()", () => {
     fh.loadFromBuffer(new Uint8Array([0xFF, 0xFB, 0, 0, 0, 0, 0, 0, 0, 0]));
 
     fh.setProperties({ TRACKNUMBER: ["5"] });
-    assertEquals(fh.getTag().track(), 5);
+    assertEquals(fh.getTagData().track, 5);
   });
 });
 

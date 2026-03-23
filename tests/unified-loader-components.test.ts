@@ -140,11 +140,17 @@ describe("UnifiedLoaderComponents", () => {
         throw new Error("WASI validation not implemented");
       },
 
-      getTag: () => {
-        throw new Error(
-          "WASI tag reading not implemented: Requires TagLib-WASI.wasm",
-        );
-      },
+      getTagData: () => ({
+        title: "",
+        artist: "",
+        album: "",
+        comment: "",
+        genre: "",
+        year: 0,
+        track: 0,
+      }),
+
+      setTagData: () => {},
 
       getFormat: () => {
         throw new Error("WASI format detection not implemented");
@@ -167,12 +173,6 @@ describe("UnifiedLoaderComponents", () => {
       () => mockFileHandle.isValid(),
       Error,
       "WASI validation not implemented",
-    );
-
-    assertThrows(
-      () => mockFileHandle.getTag(),
-      Error,
-      "WASI tag reading not implemented",
     );
 
     assertThrows(

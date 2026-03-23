@@ -2,12 +2,13 @@
  * @fileoverview WASI-based FileHandle implementation
  */
 
+import type { FileHandle, RawPicture } from "../../wasm.ts";
+import type { BasicTagData } from "../../types/tags.ts";
 import type {
-  AudioPropertiesWrapper,
-  FileHandle,
-  RawPicture,
-  TagWrapper,
-} from "../../wasm.ts";
+  AudioCodec,
+  AudioProperties,
+  ContainerFormat,
+} from "../../types.ts";
 import type { WasiModule } from "../wasmer-sdk-loader/types.ts";
 import { WasmerExecutionError } from "../wasmer-sdk-loader/types.ts";
 import { decodeTagData } from "../../msgpack/decoder.ts";
@@ -55,6 +56,11 @@ const NUMERIC_FIELD_ALIASES: Record<string, string> = {
   date: "year",
   trackNumber: "track",
 };
+
+function firstString(v: unknown): string {
+  if (Array.isArray(v)) return (v[0] as string) ?? "";
+  return (v as string) || "";
+}
 
 export class WasiFileHandle implements FileHandle {
   private readonly wasi: WasiModule;
@@ -124,71 +130,50 @@ export class WasiFileHandle implements FileHandle {
     return false;
   }
 
-  getTag(): TagWrapper {
+  getTagData(): BasicTagData {
     this.checkNotDestroyed();
-    if (!this.tagData) {
-      return this.createTagWrapper({});
-    }
-
-    return this.createTagWrapper(this.tagData);
-  }
-
-  private createTagWrapper(data: Record<string, unknown>): TagWrapper {
-    const firstString = (v: unknown): string => {
-      if (Array.isArray(v)) return (v[0] as string) ?? "";
-      return (v as string) || "";
-    };
+    const d = this.tagData ?? {};
     return {
-      title: () => firstString(data.title),
-      artist: () => firstString(data.artist),
-      album: () => firstString(data.album),
-      comment: () => firstString(data.comment),
-      genre: () => firstString(data.genre),
-      year: () => (data.year as number) || 0,
-      track: () => (data.track as number) || 0,
-
-      setTitle: (value: string) => {
-        this.tagData = { ...this.tagData, title: value };
-      },
-      setArtist: (value: string) => {
-        this.tagData = { ...this.tagData, artist: value };
-      },
-      setAlbum: (value: string) => {
-        this.tagData = { ...this.tagData, album: value };
-      },
-      setComment: (value: string) => {
-        this.tagData = { ...this.tagData, comment: value };
-      },
-      setGenre: (value: string) => {
-        this.tagData = { ...this.tagData, genre: value };
-      },
-      setYear: (value: number) => {
-        this.tagData = { ...this.tagData, year: value };
-      },
-      setTrack: (value: number) => {
-        this.tagData = { ...this.tagData, track: value };
-      },
+      title: firstString(d.title),
+      artist: firstString(d.artist),
+      album: firstString(d.album),
+      comment: firstString(d.comment),
+      genre: firstString(d.genre),
+      year: (d.year as number) || 0,
+      track: (d.track as number) || 0,
     };
   }
 
-  getAudioProperties(): AudioPropertiesWrapper | null {
+  setTagData(data: Partial<BasicTagData>): void {
+    this.checkNotDestroyed();
+    this.tagData = { ...this.tagData, ...data } as Record<string, unknown>;
+  }
+
+  getAudioProperties(): AudioProperties | null {
     this.checkNotDestroyed();
     if (!this.tagData || !("sampleRate" in this.tagData)) return null;
-    const data = this.tagData;
+    const d = this.tagData;
+    const containerFormat =
+      ((d.containerFormat as string) || "unknown") as ContainerFormat;
+    const mpegVersion = (d.mpegVersion as number) ?? 0;
+    const formatVersion = (d.formatVersion as number) ?? 0;
     return {
-      lengthInSeconds: () => (data.length as number) ?? 0,
-      lengthInMilliseconds: () => (data.lengthMs as number) ?? 0,
-      bitrate: () => (data.bitrate as number) ?? 0,
-      sampleRate: () => (data.sampleRate as number) ?? 0,
-      channels: () => (data.channels as number) ?? 0,
-      bitsPerSample: () => (data.bitsPerSample as number) ?? 0,
-      codec: () => (data.codec as string) ?? "",
-      containerFormat: () => (data.containerFormat as string) ?? "",
-      isLossless: () => (data.isLossless as boolean) ?? false,
-      mpegVersion: () => (data.mpegVersion as number) ?? 0,
-      mpegLayer: () => (data.mpegLayer as number) ?? 0,
-      isEncrypted: () => (data.isEncrypted as boolean) ?? false,
-      formatVersion: () => (data.formatVersion as number) ?? 0,
+      duration: (d.length as number) ?? 0,
+      durationMs: (d.lengthMs as number) ?? 0,
+      bitrate: (d.bitrate as number) ?? 0,
+      sampleRate: (d.sampleRate as number) ?? 0,
+      channels: (d.channels as number) ?? 0,
+      bitsPerSample: (d.bitsPerSample as number) ?? 0,
+      codec: ((d.codec as string) || "unknown") as AudioCodec,
+      containerFormat,
+      isLossless: (d.isLossless as boolean) ?? false,
+      ...(mpegVersion > 0
+        ? { mpegVersion, mpegLayer: (d.mpegLayer as number) ?? 0 }
+        : {}),
+      ...(containerFormat === "MP4" || containerFormat === "ASF"
+        ? { isEncrypted: (d.isEncrypted as boolean) ?? false }
+        : {}),
+      ...(formatVersion > 0 ? { formatVersion } : {}),
     };
   }
 

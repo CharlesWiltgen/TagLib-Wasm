@@ -74,8 +74,9 @@ export interface FileHandle {
   getMP4Item(key: string): string;
   setMP4Item(key: string, value: string): void;
   removeMP4Item(key: string): void;
-  getTag(): TagWrapper;
-  getAudioProperties(): AudioPropertiesWrapper | null;
+  getTagData(): import("./types/tags.ts").BasicTagData;
+  setTagData(data: Partial<import("./types/tags.ts").BasicTagData>): void;
+  getAudioProperties(): import("./types.ts").AudioProperties | null;
   getBuffer(): Uint8Array;
   getPictures(): RawPicture[];
   setPictures(pictures: RawPicture[]): void;
@@ -86,39 +87,6 @@ export interface FileHandle {
     ratings: { rating: number; email?: string; counter?: number }[],
   ): void;
   destroy(): void;
-}
-
-export interface TagWrapper {
-  title(): string;
-  artist(): string;
-  album(): string;
-  comment(): string;
-  genre(): string;
-  year(): number;
-  track(): number;
-  setTitle(value: string): void;
-  setArtist(value: string): void;
-  setAlbum(value: string): void;
-  setComment(value: string): void;
-  setGenre(value: string): void;
-  setYear(value: number): void;
-  setTrack(value: number): void;
-}
-
-export interface AudioPropertiesWrapper {
-  lengthInSeconds(): number;
-  lengthInMilliseconds(): number;
-  bitrate(): number;
-  sampleRate(): number;
-  channels(): number;
-  bitsPerSample(): number;
-  codec(): string;
-  containerFormat(): string;
-  isLossless(): boolean;
-  mpegVersion(): number;
-  mpegLayer(): number;
-  isEncrypted(): boolean;
-  formatVersion(): number;
 }
 
 /**
@@ -132,11 +100,6 @@ export interface TagLibModule extends Omit<EmscriptenModule, "then"> {
 
   /** @internal Embind FileHandle class constructor */
   FileHandle: new () => FileHandle;
-  /** @internal Embind TagWrapper class constructor */
-  TagWrapper: new () => TagWrapper;
-  /** @internal Embind AudioPropertiesWrapper class constructor */
-  AudioPropertiesWrapper: new () => AudioPropertiesWrapper;
-
   /** @internal Create a new file handle for audio file operations */
   createFileHandle(): FileHandle;
 

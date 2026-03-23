@@ -124,14 +124,14 @@ export class WasiBackendAdapter implements BackendAdapter {
     handle.loadFromBuffer(buffer);
     const props = handle.getAudioProperties();
     const result: ExtendedAudioProps = {
-      duration: props?.lengthInSeconds() ?? 0,
-      bitrate: props?.bitrate() ?? 0,
-      sampleRate: props?.sampleRate() ?? 0,
-      channels: props?.channels() ?? 0,
-      bitsPerSample: props?.bitsPerSample() ?? 0,
-      codec: props?.codec() ?? "",
-      containerFormat: props?.containerFormat() ?? "",
-      isLossless: props?.isLossless() ?? false,
+      duration: props?.duration ?? 0,
+      bitrate: props?.bitrate ?? 0,
+      sampleRate: props?.sampleRate ?? 0,
+      channels: props?.channels ?? 0,
+      bitsPerSample: props?.bitsPerSample ?? 0,
+      codec: props?.codec ?? "",
+      containerFormat: props?.containerFormat ?? "",
+      isLossless: props?.isLossless ?? false,
     };
     handle.destroy();
     return result;
