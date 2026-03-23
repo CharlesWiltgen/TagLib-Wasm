@@ -56,54 +56,62 @@ export abstract class BaseAudioFileImpl {
 
   tag(): MutableTag {
     const handle = this.handle;
+    let data = handle.getTagData();
     const tag: MutableTag = {
       get title() {
-        return handle.getTagData().title;
+        return data.title;
       },
       get artist() {
-        return handle.getTagData().artist;
+        return data.artist;
       },
       get album() {
-        return handle.getTagData().album;
+        return data.album;
       },
       get comment() {
-        return handle.getTagData().comment;
+        return data.comment;
       },
       get genre() {
-        return handle.getTagData().genre;
+        return data.genre;
       },
       get year() {
-        return handle.getTagData().year;
+        return data.year;
       },
       get track() {
-        return handle.getTagData().track;
+        return data.track;
       },
       setTitle: (value: string) => {
         handle.setTagData({ title: value });
+        data = handle.getTagData();
         return tag;
       },
       setArtist: (value: string) => {
         handle.setTagData({ artist: value });
+        data = handle.getTagData();
         return tag;
       },
       setAlbum: (value: string) => {
         handle.setTagData({ album: value });
+        data = handle.getTagData();
         return tag;
       },
       setComment: (value: string) => {
         handle.setTagData({ comment: value });
+        data = handle.getTagData();
         return tag;
       },
       setGenre: (value: string) => {
         handle.setTagData({ genre: value });
+        data = handle.getTagData();
         return tag;
       },
       setYear: (value: number) => {
         handle.setTagData({ year: value });
+        data = handle.getTagData();
         return tag;
       },
       setTrack: (value: number) => {
         handle.setTagData({ track: value });
+        data = handle.getTagData();
         return tag;
       },
     };
