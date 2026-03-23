@@ -1,4 +1,4 @@
-import { assert, assertEquals } from "@std/assert";
+import { assert, assertEquals, assertThrows } from "@std/assert";
 import { assertInstanceOf } from "@std/assert/instance-of";
 import { describe, it } from "@std/testing/bdd";
 import { decode } from "@msgpack/msgpack";
@@ -218,14 +218,25 @@ describe("encodePicture", () => {
   });
 
   it("should convert ArrayBuffer data to Uint8Array", () => {
-    const arrayBuf = new Uint8Array([0xFF, 0xD8]).buffer;
+    const bytes = new Uint8Array([0xFF, 0xD8]);
     const pic = {
       mimeType: "image/png",
-      data: arrayBuf,
+      data: bytes.buffer,
       type: "FrontCover",
     } as unknown as Picture;
     const result = encodePicture(pic);
-    assertInstanceOf(result, Uint8Array);
+    const decoded = decode(result) as Record<string, unknown>;
+    assertEquals(decoded["mimeType"], "image/png");
+    assertInstanceOf(decoded["data"], Uint8Array);
+  });
+
+  it("should throw MetadataError on unencodable data", () => {
+    const unencodable = makeDeepNested();
+    assertThrows(
+      () => encodePicture(unencodable as unknown as Picture),
+      Error,
+      "Failed to encode picture",
+    );
   });
 });
 
@@ -249,6 +260,26 @@ describe("encodePictureArray", () => {
     assertEquals(decoded.length, 2);
     assertEquals(decoded[0]["mimeType"], "image/jpeg");
     assertEquals(decoded[1]["mimeType"], "image/png");
+  });
+
+  it("should convert ArrayBuffer data to Uint8Array", () => {
+    const bytes = new Uint8Array([0xFF, 0xD8]);
+    const pics = [
+      { mimeType: "image/png", data: bytes.buffer, type: "FrontCover" },
+    ] as unknown as Picture[];
+    const result = encodePictureArray(pics);
+    const decoded = decode(result) as Array<Record<string, unknown>>;
+    assertEquals(decoded.length, 1);
+    assertInstanceOf(decoded[0]["data"], Uint8Array);
+  });
+
+  it("should throw MetadataError on unencodable data", () => {
+    const unencodable = makeDeepNested();
+    assertThrows(
+      () => encodePictureArray([unencodable] as unknown as Picture[]),
+      Error,
+      "Failed to encode picture array",
+    );
   });
 });
 
@@ -286,8 +317,11 @@ describe("encodeBatchTagData", () => {
     ] as unknown as ExtendedTag[];
     const result = encodeBatchTagData(tags);
     assertInstanceOf(result, Uint8Array);
-    const decoded = decode(result) as unknown[];
+    const decoded = decode(result) as Record<string, unknown>[];
     assertEquals(decoded.length, 2);
+    // encodeBatchTagData uses cleanObject, not encodeTagData — no key remapping
+    assertEquals(decoded[0]["title"], "Song 1");
+    assertEquals(decoded[1]["artist"], "Artist 2");
   });
 });
 
@@ -342,6 +376,9 @@ describe("canEncodeToMessagePack", () => {
     assertEquals(canEncodeToMessagePack(42), true);
     assertEquals(canEncodeToMessagePack(null), true);
     assertEquals(canEncodeToMessagePack([1, 2, 3]), true);
+    assertEquals(canEncodeToMessagePack(undefined), true);
+    assertEquals(canEncodeToMessagePack(true), true);
+    assertEquals(canEncodeToMessagePack(0), true);
   });
 
   it("should return false for circular references", () => {
@@ -359,5 +396,162 @@ describe("compareEncodingEfficiency", () => {
     assert(result.jsonSize > 0);
     assert(result.sizeReduction >= 0);
     assertEquals(result.speedImprovement, 10);
+  });
+
+  it("should clamp sizeReduction to 0 when msgpack is larger", () => {
+    // Very small data where msgpack overhead > JSON
+    const result = compareEncodingEfficiency(1);
+    assertEquals(result.sizeReduction, 0);
+  });
+});
+
+// --- Error path coverage ---
+
+/** Build an object nested beyond msgpack maxDepth (32) to trigger encode errors. */
+function makeDeepNested(): Record<string, unknown> {
+  let obj: Record<string, unknown> = { val: "leaf" };
+  for (let i = 0; i < 40; i++) {
+    obj = { nested: obj };
+  }
+  return obj;
+}
+
+describe("encodeTagData error path", () => {
+  it("should throw MetadataError on unencodable data", () => {
+    const unencodable = makeDeepNested();
+    assertThrows(
+      () => encodeTagData(unencodable as unknown as ExtendedTag),
+      Error,
+      "Failed to encode tag data",
+    );
+  });
+});
+
+describe("encodeAudioProperties error path", () => {
+  it("should throw MetadataError on unencodable data", () => {
+    const unencodable = makeDeepNested();
+    assertThrows(
+      () =>
+        encodeAudioProperties(
+          unencodable as unknown as Parameters<typeof encodeAudioProperties>[0],
+        ),
+      Error,
+      "Failed to encode audio properties",
+    );
+  });
+});
+
+describe("encodePropertyMap error path", () => {
+  it("should throw MetadataError on unencodable data", () => {
+    const unencodable = makeDeepNested();
+    assertThrows(
+      () =>
+        encodePropertyMap(
+          unencodable as unknown as Parameters<typeof encodePropertyMap>[0],
+        ),
+      Error,
+      "Failed to encode property map",
+    );
+  });
+});
+
+describe("encodeMessagePack error path", () => {
+  it("should throw MetadataError on unencodable data", () => {
+    const unencodable = makeDeepNested();
+    assertThrows(
+      () => encodeMessagePack(unencodable),
+      Error,
+      "Failed to encode data",
+    );
+  });
+});
+
+describe("encodeMessagePackCompact error path", () => {
+  it("should throw MetadataError on unencodable data", () => {
+    const unencodable = makeDeepNested();
+    assertThrows(
+      () => encodeMessagePackCompact(unencodable),
+      Error,
+      "Failed to encode compact data",
+    );
+  });
+});
+
+describe("encodeBatchTagData error path", () => {
+  it("should throw MetadataError on unencodable data", () => {
+    const unencodable = makeDeepNested();
+    assertThrows(
+      () => encodeBatchTagData([unencodable] as unknown as ExtendedTag[]),
+      Error,
+      "Failed to encode batch tag data",
+    );
+  });
+});
+
+describe("encodeMessagePackStream error path", () => {
+  it("should throw MetadataError on unencodable data", () => {
+    const unencodable = makeDeepNested();
+    assertThrows(
+      () => [...encodeMessagePackStream([unencodable])],
+      Error,
+      "Failed to encode streaming data",
+    );
+  });
+});
+
+describe("estimateMessagePackSize fallback", () => {
+  it("should fall back to JSON-based estimation when encode throws", () => {
+    // Depth 40 exceeds MSGPACK_ENCODE_OPTIONS maxDepth (32), triggering
+    // the catch path which falls back to JSON.stringify length estimation
+    const deep = makeDeepNested();
+    const size = estimateMessagePackSize(deep);
+    assert(size > 0);
+  });
+});
+
+describe("encodeFastTagData error path", () => {
+  it("should throw MetadataError on unencodable data", () => {
+    const unencodable = makeDeepNested();
+    assertThrows(
+      () =>
+        encodeFastTagData(
+          unencodable as unknown as Parameters<typeof encodeFastTagData>[0],
+        ),
+      Error,
+      "Failed to encode fast tag data",
+    );
+  });
+});
+
+describe("cleanObject edge cases via encodeMessagePack", () => {
+  it("should pass through Date objects", () => {
+    const date = new Date("2025-01-01T00:00:00Z");
+    const result = encodeMessagePack({ date });
+    const decoded = decode(result) as Record<string, unknown>;
+    assertInstanceOf(decoded["date"], Date);
+  });
+
+  it("should pass through Uint8Array values", () => {
+    const bytes = new Uint8Array([1, 2, 3]);
+    const result = encodeMessagePack({ data: bytes });
+    const decoded = decode(result) as Record<string, unknown>;
+    assertInstanceOf(decoded["data"], Uint8Array);
+  });
+
+  it("should pass through arrays", () => {
+    const arr = [1, "two", 3];
+    const result = encodeMessagePack({ items: arr });
+    const decoded = decode(result) as Record<string, unknown>;
+    assertEquals(decoded["items"], [1, "two", 3]);
+  });
+
+  it("should handle null at top level", () => {
+    const result = encodeMessagePack(null);
+    assertEquals(decode(result), null);
+  });
+
+  it("should handle primitive at top level", () => {
+    const result = encodeMessagePack(42);
+    assertEquals(decode(result), 42);
   });
 });
