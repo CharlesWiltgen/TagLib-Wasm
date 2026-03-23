@@ -162,6 +162,8 @@ export type AudioCodec =
 export interface AudioProperties {
   /** Duration of the audio in seconds */
   readonly duration: number;
+  /** Duration of the audio in milliseconds (more precise than `duration`) */
+  readonly durationMs?: number;
   /** Bitrate in kb/s */
   readonly bitrate: number;
   /** Sample rate in Hz */
