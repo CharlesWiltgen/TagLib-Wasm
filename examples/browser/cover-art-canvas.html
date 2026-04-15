@@ -299,10 +299,8 @@
           await displayPictures();
 
           // Show sections
-          document.getElementById("gallerySection").style.display =
-            "block";
-          document.getElementById("canvasSection").style.display =
-            "block";
+          document.getElementById("gallerySection").style.display = "block";
+          document.getElementById("canvasSection").style.display = "block";
 
           showStatus(`Loaded: ${file.name}`, "success", loadStatus);
         } catch (error) {
@@ -332,9 +330,9 @@
         // Display metadata
         const metadata = await readPictureMetadata(currentAudioBuffer);
         const metadataText = metadata.map((info, i) =>
-          `Picture ${i + 1}: ${
-            PictureType[info.type]
-          } (${info.mimeType}, ${Math.round(info.size / 1024)} KB)`
+          `Picture ${i + 1}: ${PictureType[info.type]} (${info.mimeType}, ${
+            Math.round(info.size / 1024)
+          } KB)`
         ).join("\n");
         metadataDiv.textContent = metadataText || "No pictures found";
       }
