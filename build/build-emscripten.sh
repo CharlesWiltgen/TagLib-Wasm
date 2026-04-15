@@ -212,7 +212,7 @@ emcc "$BUILD_DIR/capi"/*.o \
     "$MPACK_BUILD_DIR/libmpack.a" \
     -o "$DIST_DIR/taglib_emscripten.js" \
     -s EXPORTED_FUNCTIONS='["_tl_read_tags","_tl_read_tags_ex","_tl_write_tags","_tl_free","_tl_malloc","_tl_version","_tl_get_last_error","_tl_get_last_error_code","_tl_clear_error","_tl_api_version","_tl_has_capability","_tl_detect_format","_tl_format_name","_tl_read_tags_json","_tl_stream_open","_tl_stream_read_metadata","_tl_stream_read_artwork","_tl_stream_close","_tl_read_mp3","_tl_write_mp3","_tl_read_flac","_tl_write_flac","_tl_read_m4a","_tl_write_m4a","_tl_pool_create","_tl_pool_alloc","_tl_pool_reset","_tl_pool_destroy","_malloc","_free"]' \
-    -s EXPORTED_RUNTIME_METHODS='["ccall","cwrap","UTF8ToString","stringToUTF8","lengthBytesUTF8","allocate","ALLOC_NORMAL","getValue","setValue"]' \
+    -s EXPORTED_RUNTIME_METHODS='["ccall","cwrap","UTF8ToString","stringToUTF8","lengthBytesUTF8","getValue","setValue"]' \
     -s ALLOW_MEMORY_GROWTH=1 \
     -s MODULARIZE=1 \
     -s EXPORT_ES6=1 \

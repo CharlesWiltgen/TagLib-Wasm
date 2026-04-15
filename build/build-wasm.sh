@@ -63,7 +63,7 @@ emcc "$BUILD_DIR/taglib_wasm.cpp" \
   -s EXPORT_NAME="createTagLibModule" \
   -s ALLOW_MEMORY_GROWTH=1 \
   -s MAXIMUM_MEMORY=4GB \
-  -s EXPORTED_RUNTIME_METHODS='["allocate", "getValue", "setValue", "UTF8ToString", "stringToUTF8", "lengthBytesUTF8", "ALLOC_NORMAL"]' \
+  -s EXPORTED_RUNTIME_METHODS='["getValue", "setValue", "UTF8ToString", "stringToUTF8", "lengthBytesUTF8"]' \
   -s NO_FILESYSTEM=1 \
   -s ENVIRONMENT='web,worker,node' \
   -s EXPORT_ES6=1 \

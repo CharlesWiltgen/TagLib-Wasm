@@ -5,8 +5,6 @@ declare module "taglib-wrapper" {
     UTF8ToString: (ptr: number, maxBytesToRead?: number) => string;
     stringToUTF8: (str: string, outPtr: number, maxBytesToWrite: number) => void;
     lengthBytesUTF8: (str: string) => number;
-    ALLOC_NORMAL: number;
-    allocate: (slab: Uint8Array | number[], allocator: number) => number;
     _malloc: (size: number) => number;
     _free: (ptr: number) => void;
     HEAPU8: Uint8Array;

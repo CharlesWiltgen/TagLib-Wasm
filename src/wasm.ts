@@ -27,9 +27,6 @@ export interface EmscriptenModule {
   _malloc(size: number): number;
   _free(ptr: number): void;
   _realloc?(ptr: number, newSize: number): number;
-  allocate?(data: number[] | Uint8Array, allocator: number): number;
-  ALLOC_NORMAL?: number;
-
   // String conversion
   ccall?(
     ident: string,
