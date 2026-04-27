@@ -91,7 +91,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: "22"
+          node-version: "24"
           cache: "npm"
 
       - name: Setup Deno
@@ -283,7 +283,7 @@ jobs:
     steps:
       - uses: actions/setup-node@v4
         with:
-          node-version: "22"
+          node-version: "24"
           registry-url: "https://registry.npmjs.org"
 
       - name: Download build artifacts
@@ -360,7 +360,7 @@ jobs:
     steps:
       - uses: actions/setup-node@v4
         with:
-          node-version: "22"
+          node-version: "24"
           registry-url: "https://npm.pkg.github.com"
 
       - name: Download build artifacts
