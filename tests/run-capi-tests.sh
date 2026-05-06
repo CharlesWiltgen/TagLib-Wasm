@@ -57,6 +57,24 @@ if [ ! -f "$TEST_BUILD_DIR/capi_memory_pool_test" ]; then
     exit 1
 fi
 
+echo "Compiling LAME parser unit tests..."
+$COMPILER \
+    "$SCRIPT_DIR/capi_lame_parser.test.cpp" \
+    "$SRC_DIR/formats/taglib_lame.cpp" \
+    -I"$SRC_DIR" \
+    -I"$SRC_DIR/formats" \
+    -std=c++17 \
+    -O2 \
+    -Wall \
+    -Wextra \
+    -Werror=return-type \
+    -o "$TEST_BUILD_DIR/capi_lame_parser_test"
+
+if [ ! -f "$TEST_BUILD_DIR/capi_lame_parser_test" ]; then
+    echo -e "${RED}❌ Failed to compile LAME parser tests${NC}"
+    exit 1
+fi
+
 echo -e "${GREEN}✅ C++ unit tests compiled successfully${NC}"
 
 echo ""
@@ -65,6 +83,12 @@ echo ""
 
 # Run the tests
 if "$TEST_BUILD_DIR/capi_memory_pool_test"; then
+    if "$TEST_BUILD_DIR/capi_lame_parser_test"; then
+        echo -e "${GREEN}✅ LAME parser tests passed${NC}"
+    else
+        echo -e "${RED}❌ LAME parser tests failed${NC}"
+        exit 1
+    fi
     echo ""
     echo -e "${GREEN}✅ All C++ unit tests passed!${NC}"
     
