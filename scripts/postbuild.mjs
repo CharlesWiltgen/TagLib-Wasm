@@ -28,7 +28,7 @@ const wasmFiles = [
   "taglib-wrapper.js",
   "taglib-wrapper.d.ts",
   "taglib-web.wasm",
-  "taglib_wasi.wasm",
+  "taglib-wasi.wasm",
 ];
 
 console.log("📦 Copying runtime files to dist...");
@@ -87,7 +87,7 @@ for (const file of wasmLoaders) {
   if (!existsSync(fullPath)) continue;
   const src = readFileSync(fullPath, "utf8");
   if (
-    src.includes("build/taglib_wasi.wasm") ||
+    src.includes("build/taglib-wasi.wasm") ||
     src.includes("build/taglib-web.wasm")
   ) {
     console.error(`  ✗ ${file} still contains build/ wasm references`);

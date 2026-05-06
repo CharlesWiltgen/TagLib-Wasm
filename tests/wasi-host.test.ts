@@ -31,7 +31,7 @@ import { readTagsFromWasm } from "../src/runtime/wasi-adapter/wasm-io.ts";
 
 const PROJECT_ROOT = resolve(Deno.cwd());
 const TEST_FILES_DIR = resolve(PROJECT_ROOT, "tests/test-files");
-const WASM_PATH = resolve(PROJECT_ROOT, "dist/wasi/taglib_wasi.wasm");
+const WASM_PATH = resolve(PROJECT_ROOT, "dist/wasi/taglib-wasi.wasm");
 
 const HAS_WASM = fileExists(WASM_PATH);
 

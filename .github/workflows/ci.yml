@@ -158,8 +158,8 @@ jobs:
       - name: Verify Emscripten artifacts
         run: |
           ls -lah dist/browser/
-          file dist/browser/taglib_emscripten.wasm
-          wc -c dist/browser/taglib_emscripten.wasm
+          file dist/browser/taglib-emscripten.wasm
+          wc -c dist/browser/taglib-emscripten.wasm
 
       - name: Upload Emscripten artifacts
         uses: actions/upload-artifact@v7
@@ -224,8 +224,8 @@ jobs:
       - name: Verify WASI artifacts
         run: |
           ls -lah dist/wasi/
-          file dist/wasi/taglib_wasi.wasm
-          wc -c dist/wasi/taglib_wasi.wasm
+          file dist/wasi/taglib-wasi.wasm
+          wc -c dist/wasi/taglib-wasi.wasm
 
       - name: Upload WASI artifacts
         uses: actions/upload-artifact@v7
@@ -487,21 +487,21 @@ jobs:
           echo "|-------|------|------|-------------------|" >> $GITHUB_STEP_SUMMARY
 
           # Emscripten build
-          if [ -f emscripten-build/taglib_emscripten.wasm ]; then
-            EMCC_SIZE_H=$(ls -lh emscripten-build/taglib_emscripten.wasm | awk '{print $5}')
-            gzip -c emscripten-build/taglib_emscripten.wasm > /tmp/emcc.wasm.gz
+          if [ -f emscripten-build/taglib-emscripten.wasm ]; then
+            EMCC_SIZE_H=$(ls -lh emscripten-build/taglib-emscripten.wasm | awk '{print $5}')
+            gzip -c emscripten-build/taglib-emscripten.wasm > /tmp/emcc.wasm.gz
             EMCC_GZIP_H=$(ls -lh /tmp/emcc.wasm.gz | awk '{print $5}')
-            echo "| Emscripten | taglib_emscripten.wasm | $EMCC_SIZE_H | $EMCC_GZIP_H |" >> $GITHUB_STEP_SUMMARY
+            echo "| Emscripten | taglib-emscripten.wasm | $EMCC_SIZE_H | $EMCC_GZIP_H |" >> $GITHUB_STEP_SUMMARY
           else
             echo "| Emscripten | _(skipped)_ | - | - |" >> $GITHUB_STEP_SUMMARY
           fi
 
           # WASI build
-          if [ -f wasi-build/taglib_wasi.wasm ]; then
-            WASI_SIZE_H=$(ls -lh wasi-build/taglib_wasi.wasm | awk '{print $5}')
-            gzip -c wasi-build/taglib_wasi.wasm > /tmp/wasi.wasm.gz
+          if [ -f wasi-build/taglib-wasi.wasm ]; then
+            WASI_SIZE_H=$(ls -lh wasi-build/taglib-wasi.wasm | awk '{print $5}')
+            gzip -c wasi-build/taglib-wasi.wasm > /tmp/wasi.wasm.gz
             WASI_GZIP_H=$(ls -lh /tmp/wasi.wasm.gz | awk '{print $5}')
-            echo "| WASI SDK | taglib_wasi.wasm | $WASI_SIZE_H | $WASI_GZIP_H |" >> $GITHUB_STEP_SUMMARY
+            echo "| WASI SDK | taglib-wasi.wasm | $WASI_SIZE_H | $WASI_GZIP_H |" >> $GITHUB_STEP_SUMMARY
           else
             echo "| WASI SDK | _(skipped)_ | - | - |" >> $GITHUB_STEP_SUMMARY
           fi

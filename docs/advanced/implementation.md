@@ -10,7 +10,7 @@ TagLib-Wasm has a dual-backend architecture:
 | ---------------- | ------------------------------------------- | ----------------------------------------------------- |
 | **C++ bindings** | Embind — direct JS ↔ C++ object access      | C shim — FileRef with MessagePack serialization       |
 | **I/O model**    | Buffer: entire file loaded into Wasm memory | Seek-based: reads only headers/tags via WASI syscalls |
-| **Binary**       | `taglib-web.wasm` (~2MB)                    | `taglib_wasi.wasm` (~28KB boundary + linked TagLib)   |
+| **Binary**       | `taglib-web.wasm` (~2MB)                    | `taglib-wasi.wasm` (~28KB boundary + linked TagLib)   |
 | **Selection**    | Auto for browsers, Workers                  | Auto for Deno, Node.js                                |
 
 A unified loader (`src/runtime/unified-loader.ts`) auto-selects the backend

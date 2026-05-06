@@ -132,28 +132,28 @@ verify_wasm_freshness() {
     print_success "build/taglib-web.wasm matches fresh build"
 
     # Check WASI binary: compare against dist output if available
-    if [ -f dist/wasi/taglib_wasi.wasm ]; then
-        if ! cmp -s build/taglib_wasi.wasm dist/wasi/taglib_wasi.wasm; then
-            print_error "build/taglib_wasi.wasm doesn't match dist/wasi/taglib_wasi.wasm!"
+    if [ -f dist/wasi/taglib-wasi.wasm ]; then
+        if ! cmp -s build/taglib-wasi.wasm dist/wasi/taglib-wasi.wasm; then
+            print_error "build/taglib-wasi.wasm doesn't match dist/wasi/taglib-wasi.wasm!"
             print_warning "The WASI build output differs from the committed copy."
-            print_warning "  cp dist/wasi/taglib_wasi.wasm build/ && git add build/taglib_wasi.wasm"
+            print_warning "  cp dist/wasi/taglib-wasi.wasm build/ && git add build/taglib-wasi.wasm"
             exit 1
         fi
-        print_success "build/taglib_wasi.wasm matches WASI build output"
+        print_success "build/taglib-wasi.wasm matches WASI build output"
     else
         # No dist to compare — verify the file exists with reasonable size
-        if [ ! -f build/taglib_wasi.wasm ]; then
-            print_error "build/taglib_wasi.wasm is missing!"
+        if [ ! -f build/taglib-wasi.wasm ]; then
+            print_error "build/taglib-wasi.wasm is missing!"
             print_warning "Run: bash build/build-wasi.sh"
             exit 1
         fi
         local size
-        size=$(stat -f%z build/taglib_wasi.wasm 2>/dev/null || stat -c%s build/taglib_wasi.wasm)
+        size=$(stat -f%z build/taglib-wasi.wasm 2>/dev/null || stat -c%s build/taglib-wasi.wasm)
         if [ "$size" -lt 100000 ]; then
-            print_error "build/taglib_wasi.wasm is suspiciously small (${size} bytes)"
+            print_error "build/taglib-wasi.wasm is suspiciously small (${size} bytes)"
             exit 1
         fi
-        print_warning "No dist/wasi/ to compare — build/taglib_wasi.wasm exists (${size} bytes)"
+        print_warning "No dist/wasi/ to compare — build/taglib-wasi.wasm exists (${size} bytes)"
     fi
 }
 

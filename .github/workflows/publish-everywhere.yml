@@ -200,13 +200,13 @@ jobs:
         if: steps.check.outputs.should-publish == 'true'
         run: |
           # WASI binary must exist with reasonable size (not rebuilt in publish CI)
-          if [ ! -f build/taglib_wasi.wasm ]; then
-            echo "::error::build/taglib_wasi.wasm is missing from the repository"
+          if [ ! -f build/taglib-wasi.wasm ]; then
+            echo "::error::build/taglib-wasi.wasm is missing from the repository"
             exit 1
           fi
-          WASI_SIZE=$(stat -c%s build/taglib_wasi.wasm 2>/dev/null || stat -f%z build/taglib_wasi.wasm)
+          WASI_SIZE=$(stat -c%s build/taglib-wasi.wasm 2>/dev/null || stat -f%z build/taglib-wasi.wasm)
           if [ "$WASI_SIZE" -lt 100000 ]; then
-            echo "::error::build/taglib_wasi.wasm is suspiciously small ($WASI_SIZE bytes)"
+            echo "::error::build/taglib-wasi.wasm is suspiciously small ($WASI_SIZE bytes)"
             exit 1
           fi
           echo "✅ WASI binary verified (${WASI_SIZE} bytes)"

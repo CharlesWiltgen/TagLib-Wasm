@@ -211,7 +211,7 @@ echo "Linking final WASM module..."
 emcc "$BUILD_DIR/capi"/*.o \
     "$BUILD_DIR/taglib/taglib/libtag.a" \
     "$MPACK_BUILD_DIR/libmpack.a" \
-    -o "$DIST_DIR/taglib_emscripten.js" \
+    -o "$DIST_DIR/taglib-emscripten.js" \
     -s EXPORTED_FUNCTIONS='["_tl_read_tags","_tl_read_tags_ex","_tl_write_tags","_tl_free","_tl_malloc","_tl_version","_tl_get_last_error","_tl_get_last_error_code","_tl_clear_error","_tl_api_version","_tl_has_capability","_tl_detect_format","_tl_format_name","_tl_read_tags_json","_tl_stream_open","_tl_stream_read_metadata","_tl_stream_read_artwork","_tl_stream_close","_tl_read_mp3","_tl_write_mp3","_tl_read_flac","_tl_write_flac","_tl_read_m4a","_tl_write_m4a","_tl_pool_create","_tl_pool_alloc","_tl_pool_reset","_tl_pool_destroy","_malloc","_free"]' \
     -s EXPORTED_RUNTIME_METHODS='["ccall","cwrap","UTF8ToString","stringToUTF8","lengthBytesUTF8","getValue","setValue"]' \
     -s ALLOW_MEMORY_GROWTH=1 \
@@ -228,7 +228,7 @@ emcc "$BUILD_DIR/capi"/*.o \
     -std=c++17
 
 # Check results
-if [ ! -f "$DIST_DIR/taglib_emscripten.wasm" ]; then
+if [ ! -f "$DIST_DIR/taglib-emscripten.wasm" ]; then
     echo -e "${RED}❌ WASM module build failed${NC}"
     exit 1
 fi
@@ -239,7 +239,7 @@ echo "━━━━━━━━━━━━━━━━━━━━━━━━�
 echo "📝 Step 3: Generating TypeScript definitions"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
-cat > "$DIST_DIR/taglib_emscripten.d.ts" << 'EOF'
+cat > "$DIST_DIR/taglib-emscripten.d.ts" << 'EOF'
 export interface TagLibEmscriptenModule {
   _tl_read_tags(path: number, buf: number, len: number): number;
   _tl_write_tags(path: number, buf: number, len: number, json: number, outBuf: number, outLen: number): number;
@@ -276,14 +276,14 @@ echo "━━━━━━━━━━━━━━━━━━━━━━━━�
 echo "✅ Build Summary"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
-WASM_SIZE=$(ls -lh "$DIST_DIR/taglib_emscripten.wasm" | awk '{print $5}')
-JS_SIZE=$(ls -lh "$DIST_DIR/taglib_emscripten.js" | awk '{print $5}')
+WASM_SIZE=$(ls -lh "$DIST_DIR/taglib-emscripten.wasm" | awk '{print $5}')
+JS_SIZE=$(ls -lh "$DIST_DIR/taglib-emscripten.js" | awk '{print $5}')
 
 echo -e "${GREEN}✅ Emscripten build successful${NC}"
 echo ""
 echo "Output files:"
-echo "  📦 WASM: $DIST_DIR/taglib_emscripten.wasm ($WASM_SIZE)"
-echo "  📜 JS:   $DIST_DIR/taglib_emscripten.js ($JS_SIZE)"
-echo "  📝 TS:   $DIST_DIR/taglib_emscripten.d.ts"
+echo "  📦 WASM: $DIST_DIR/taglib-emscripten.wasm ($WASM_SIZE)"
+echo "  📜 JS:   $DIST_DIR/taglib-emscripten.js ($JS_SIZE)"
+echo "  📝 TS:   $DIST_DIR/taglib-emscripten.d.ts"
 echo ""
 echo "Target environments: Browser, Web Worker, Node.js"

@@ -55,13 +55,13 @@ if ! git diff --quiet -- build/taglib-web.wasm; then
   echo "   Run: git add build/taglib-web.wasm && git commit --amend --no-edit"
   exit 1
 fi
-if [ ! -f build/taglib_wasi.wasm ]; then
-  echo "❌ build/taglib_wasi.wasm is missing! Run: bash build/build-wasi.sh"
+if [ ! -f build/taglib-wasi.wasm ]; then
+  echo "❌ build/taglib-wasi.wasm is missing! Run: bash build/build-wasi.sh"
   exit 1
 fi
-if [ -f dist/wasi/taglib_wasi.wasm ] && ! cmp -s build/taglib_wasi.wasm dist/wasi/taglib_wasi.wasm; then
-  echo "❌ build/taglib_wasi.wasm doesn't match dist/wasi/taglib_wasi.wasm!"
-  echo "   Run: cp dist/wasi/taglib_wasi.wasm build/ && git add build/taglib_wasi.wasm"
+if [ -f dist/wasi/taglib-wasi.wasm ] && ! cmp -s build/taglib-wasi.wasm dist/wasi/taglib-wasi.wasm; then
+  echo "❌ build/taglib-wasi.wasm doesn't match dist/wasi/taglib-wasi.wasm!"
+  echo "   Run: cp dist/wasi/taglib-wasi.wasm build/ && git add build/taglib-wasi.wasm"
   exit 1
 fi
 echo "✅ WASM binaries verified"

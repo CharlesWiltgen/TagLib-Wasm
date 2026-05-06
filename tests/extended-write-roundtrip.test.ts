@@ -17,7 +17,7 @@ import {
 } from "./wasi-test-helpers.ts";
 import { TEST_FILES_DIR_PATH } from "./shared-fixtures.ts";
 
-const WASM_PATH = resolve(Deno.cwd(), "dist/wasi/taglib_wasi.wasm");
+const WASM_PATH = resolve(Deno.cwd(), "dist/wasi/taglib-wasi.wasm");
 const HAS_WASM = fileExists(WASM_PATH);
 
 async function roundtrip(

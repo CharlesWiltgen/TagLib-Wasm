@@ -69,7 +69,7 @@ export interface BackendAdapter {
 // WASI adapter
 // ---------------------------------------------------------------------------
 
-const WASM_PATH = resolve(Deno.cwd(), "dist/wasi/taglib_wasi.wasm");
+const WASM_PATH = resolve(Deno.cwd(), "dist/wasi/taglib-wasi.wasm");
 export const HAS_WASI = fileExists(WASM_PATH);
 
 export class WasiBackendAdapter implements BackendAdapter {

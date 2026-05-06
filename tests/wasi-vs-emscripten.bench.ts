@@ -27,7 +27,7 @@ import {
 
 const PROJECT_ROOT = resolve(Deno.cwd());
 const TEST_FILES_DIR = resolve(PROJECT_ROOT, "tests/test-files");
-const WASM_PATH = resolve(PROJECT_ROOT, "dist/wasi/taglib_wasi.wasm");
+const WASM_PATH = resolve(PROJECT_ROOT, "dist/wasi/taglib-wasi.wasm");
 
 const DEEZER_DIR = "/Volumes/T9 (4TB)/Downloads/Deezer";
 const REAL_FLAC_SRC =

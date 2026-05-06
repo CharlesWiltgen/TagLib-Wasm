@@ -20,7 +20,7 @@ import type { ExtendedTag } from "../src/types.ts";
 
 type RawTag = Record<string, unknown>;
 
-const WASM_PATH = resolve(Deno.cwd(), "dist/wasi/taglib_wasi.wasm");
+const WASM_PATH = resolve(Deno.cwd(), "dist/wasi/taglib-wasi.wasm");
 const HAS_WASM = fileExists(WASM_PATH);
 
 describe(

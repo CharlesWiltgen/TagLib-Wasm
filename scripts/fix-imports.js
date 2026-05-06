@@ -32,11 +32,11 @@ function fixImportsInFile(filePath) {
 
   // Fix wasm binary paths: strip "build/" so they resolve to dist/ root
   const wasiWasmRelPath = (depth === 0 ? "./" : "../".repeat(depth)) +
-    "taglib_wasi.wasm";
+    "taglib-wasi.wasm";
   const emscriptenWasmRelPath = (depth === 0 ? "./" : "../".repeat(depth)) +
     "taglib-web.wasm";
   content = content.replace(
-    /new\s+URL\(\s*["'][^"']*build\/taglib_wasi\.wasm["']/g,
+    /new\s+URL\(\s*["'][^"']*build\/taglib-wasi\.wasm["']/g,
     `new URL("${wasiWasmRelPath}"`,
   );
   content = content.replace(
@@ -44,7 +44,7 @@ function fixImportsInFile(filePath) {
     `new URL("${emscriptenWasmRelPath}"`,
   );
   content = content.replace(
-    /resolveWasmPath\(\s*["'][^"']*build\/taglib_wasi\.wasm["']/g,
+    /resolveWasmPath\(\s*["'][^"']*build\/taglib-wasi\.wasm["']/g,
     `resolveWasmPath("${wasiWasmRelPath}"`,
   );
   modified = true;

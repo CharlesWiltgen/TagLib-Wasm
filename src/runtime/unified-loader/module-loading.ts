@@ -62,7 +62,7 @@ async function loadWasiModuleWithFallback(
   runtime: RuntimeDetectionResult,
   options: UnifiedLoaderOptions,
 ): Promise<LoadModuleResult> {
-  const defaultWasmPath = resolveWasmPath("../../../build/taglib_wasi.wasm");
+  const defaultWasmPath = resolveWasmPath("../../../build/taglib-wasi.wasm");
 
   // Strategy 1: In-process WASI host (Deno, Node, Bun — no external deps)
   try {

@@ -79,8 +79,8 @@ rm -f "$PROJECT_ROOT/runtime-test.ts"
 echo ""
 echo "=== WASI Host Tests ==="
 
-if [ ! -f "$PROJECT_ROOT/dist/wasi/taglib_wasi.wasm" ]; then
-  echo "Skipping WASI host tests: dist/wasi/taglib_wasi.wasm not found"
+if [ ! -f "$PROJECT_ROOT/dist/wasi/taglib-wasi.wasm" ]; then
+  echo "Skipping WASI host tests: dist/wasi/taglib-wasi.wasm not found"
 else
   echo -e "\nTesting with Deno (WASI Host)..."
   if command -v deno &> /dev/null; then

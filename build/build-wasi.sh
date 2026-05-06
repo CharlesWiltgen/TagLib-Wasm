@@ -268,7 +268,7 @@ CAPI_OBJECTS+=("$BUILD_DIR/wasm_eh_tag.obj")
     --target=wasm32-wasip1 \
     --sysroot="$WASI_SDK_PATH/share/wasi-sysroot" \
     -mexec-model=reactor \
-    -o "$DIST_DIR/taglib_wasi.wasm" \
+    -o "$DIST_DIR/taglib-wasi.wasm" \
     -Wl,--export=tl_read_tags \
     -Wl,--export=tl_read_tags_ex \
     -Wl,--export=tl_write_tags \
@@ -294,7 +294,7 @@ CAPI_OBJECTS+=("$BUILD_DIR/wasm_eh_tag.obj")
     -lunwind
 
 # Check results
-if [ ! -f "$DIST_DIR/taglib_wasi.wasm" ]; then
+if [ ! -f "$DIST_DIR/taglib-wasi.wasm" ]; then
     echo -e "${RED}❌ WASM module build failed${NC}"
     exit 1
 fi
@@ -310,8 +310,8 @@ if command -v wasm-opt &> /dev/null; then
     wasm-opt -Oz \
         --enable-bulk-memory \
         --enable-exception-handling \
-        "$DIST_DIR/taglib_wasi.wasm" \
-        -o "$DIST_DIR/taglib_wasi.wasm"
+        "$DIST_DIR/taglib-wasi.wasm" \
+        -o "$DIST_DIR/taglib-wasi.wasm"
     echo -e "${GREEN}✅ Optimization complete${NC}"
 else
     echo -e "${YELLOW}⚠️  wasm-opt not found, skipping optimization${NC}"
@@ -326,7 +326,7 @@ echo "━━━━━━━━━━━━━━━━━━━━━━━━�
 
 if command -v wasm-strip &> /dev/null; then
     echo "Stripping debug info..."
-    wasm-strip "$DIST_DIR/taglib_wasi.wasm"
+    wasm-strip "$DIST_DIR/taglib-wasi.wasm"
     echo -e "${GREEN}✅ Debug info stripped${NC}"
 else
     echo -e "${YELLOW}⚠️  wasm-strip not found, skipping${NC}"
@@ -381,18 +381,18 @@ echo "━━━━━━━━━━━━━━━━━━━━━━━━�
 echo "✅ Build Summary"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
-WASM_SIZE=$(ls -lh "$DIST_DIR/taglib_wasi.wasm" | awk '{print $5}')
+WASM_SIZE=$(ls -lh "$DIST_DIR/taglib-wasi.wasm" | awk '{print $5}')
 
 echo -e "${GREEN}✅ WASI SDK build successful${NC}"
 echo ""
 echo "Output files:"
-echo "  📦 WASM: $DIST_DIR/taglib_wasi.wasm ($WASM_SIZE)"
+echo "  📦 WASM: $DIST_DIR/taglib-wasi.wasm ($WASM_SIZE)"
 echo "  📝 Meta: $DIST_DIR/taglib_wasi.json"
 echo ""
 echo "Target environments: Deno, Node.js (WASI), Cloudflare Workers"
 echo "Optimizations: Size-optimized (-Oz), stripped"
 
 # Copy WASI binary to build/ for JSR publishing
-cp "$DIST_DIR/taglib_wasi.wasm" "$PROJECT_ROOT/build/taglib_wasi.wasm"
+cp "$DIST_DIR/taglib-wasi.wasm" "$PROJECT_ROOT/build/taglib-wasi.wasm"
 echo ""
-echo "Published copy: build/taglib_wasi.wasm"
+echo "Published copy: build/taglib-wasi.wasm"

@@ -10,7 +10,7 @@ import { loadWasiHost } from "../src/runtime/wasi-host-loader.ts";
 import { WasmArena, type WasmExports } from "../src/runtime/wasi-memory.ts";
 import { fileExists, TEST_FILES_DIR_PATH } from "./shared-fixtures.ts";
 
-const WASM_PATH = resolve(Deno.cwd(), "dist/wasi/taglib_wasi.wasm");
+const WASM_PATH = resolve(Deno.cwd(), "dist/wasi/taglib-wasi.wasm");
 const HAS_WASM = fileExists(WASM_PATH);
 
 describe(

@@ -1,7 +1,7 @@
 /**
  * @fileoverview WASI host loader for in-process filesystem access
  *
- * Loads the taglib_wasi.wasm binary with real WASI filesystem
+ * Loads the taglib-wasi.wasm binary with real WASI filesystem
  * implementations, enabling efficient seek-based file I/O.
  */
 
@@ -46,7 +46,7 @@ export async function loadWasiHost(
   config: WasiHostLoaderConfig,
 ): Promise<WasiModule & Disposable> {
   const defaultPath = (() => {
-    const url = new URL("../../build/taglib_wasi.wasm", import.meta.url);
+    const url = new URL("../../build/taglib-wasi.wasm", import.meta.url);
     return url.protocol === "file:" ? fileUrlToPath(url) : url.href;
   })();
   const wasmPath = config.wasmPath ?? defaultPath;

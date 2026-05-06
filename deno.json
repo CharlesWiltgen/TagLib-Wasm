@@ -32,7 +32,7 @@
       "!build/taglib-wrapper.js",
       "!build/taglib-wrapper.d.ts",
       "!build/taglib-web.wasm",
-      "!build/taglib_wasi.wasm",
+      "!build/taglib-wasi.wasm",
       ".beads/",
       ".github/",
       ".vscode/",
