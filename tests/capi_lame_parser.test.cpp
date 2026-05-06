@@ -126,6 +126,15 @@ int main() {
         check(!info.valid, "Too short for magic -> invalid");
     }
     {
+        auto f = buildFrame("Xing", true, 0x02);
+        // LAME magic at 0x9C-0x9F is readable, but method byte at 0xA5 is one
+        // byte past the buffer (frameLen=0xA5 means valid indices are 0..0xA4).
+        // Parser's bounds check should keep preliminary VBR.
+        auto info = parseLameInfo(f.data, 0xA5, 0, 0);
+        check(info.valid && info.mode == BitrateMode::VBR,
+              "LAME magic but method byte truncated -> preliminary VBR");
+    }
+    {
         // MPEG-1 mono (channelMode=3): magic at 0x15
         Frame f{};
         f.len = sizeof(f.data);
