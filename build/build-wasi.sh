@@ -339,7 +339,7 @@ echo "━━━━━━━━━━━━━━━━━━━━━━━━�
 echo "📝 Step 5: Generating metadata"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
-cat > "$DIST_DIR/taglib_wasi.json" << EOF
+cat > "$DIST_DIR/taglib-wasi.json" << EOF
 {
   "name": "taglib-wasi",
   "version": "${TAGLIB_VER}",
@@ -387,7 +387,7 @@ echo -e "${GREEN}✅ WASI SDK build successful${NC}"
 echo ""
 echo "Output files:"
 echo "  📦 WASM: $DIST_DIR/taglib-wasi.wasm ($WASM_SIZE)"
-echo "  📝 Meta: $DIST_DIR/taglib_wasi.json"
+echo "  📝 Meta: $DIST_DIR/taglib-wasi.json"
 echo ""
 echo "Target environments: Deno, Node.js (WASI), Cloudflare Workers"
 echo "Optimizations: Size-optimized (-Oz), stripped"
