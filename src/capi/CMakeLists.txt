@@ -21,9 +21,10 @@ set(CAPI_SOURCES
   core/taglib_error.cpp
   io/taglib_stream.cpp
   io/taglib_buffer.cpp
-  formats/taglib_mp3.cpp
   formats/taglib_flac.cpp
+  formats/taglib_lame.cpp
   formats/taglib_m4a.cpp
+  formats/taglib_mp3.cpp
 )
 
 # Create library

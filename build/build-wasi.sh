@@ -200,6 +200,7 @@ CAPI_SOURCES=(
     "$SRC_DIR/taglib_lyrics.cpp"          # C++ lyrics encode/decode via complexProperties
     "$SRC_DIR/taglib_chapters.cpp"        # C++ chapter encode/decode via ID3v2 CHAP frames
     "$SRC_DIR/taglib_audio_props.cpp"     # C++ extended audio properties via dynamic_cast
+    "$SRC_DIR/formats/taglib_lame.cpp"    # C++ LAME extension parser - exception-free
     "$SRC_DIR/core/taglib_error.cpp"      # C++ with pure C internals - compiled with Wasm EH
     "$SRC_DIR/core/taglib_msgpack.c"      # Pure C (no exceptions) - MessagePack implementation
 )
@@ -222,7 +223,8 @@ for src in "${CAPI_SOURCES[@]}"; do
          [[ "$(basename "$src")" == "taglib_ratings.cpp" ]] || \
          [[ "$(basename "$src")" == "taglib_lyrics.cpp" ]] || \
          [[ "$(basename "$src")" == "taglib_chapters.cpp" ]] || \
-         [[ "$(basename "$src")" == "taglib_audio_props.cpp" ]]; then
+         [[ "$(basename "$src")" == "taglib_audio_props.cpp" ]] || \
+         [[ "$(basename "$src")" == "taglib_lame.cpp" ]]; then
         echo "Compiling C++ with TagLib headers + Wasm EH: $src"
         # Collect all TagLib subdirectories for include paths
         TAGLIB_INCLUDES=(-I"$SRC_DIR" -I"$TAGLIB_DIR" -I"$TAGLIB_DIR/taglib" -I"$TAGLIB_DIR/taglib/toolkit" -I"$BUILD_DIR/taglib" -I"$MPACK_DIR/src")

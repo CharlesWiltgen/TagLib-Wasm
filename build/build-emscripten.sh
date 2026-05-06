@@ -156,6 +156,7 @@ CAPI_CPP_SOURCES=(
     "$SRC_DIR/io/taglib_buffer.cpp"
     "$SRC_DIR/formats/taglib_mp3.cpp"
     "$SRC_DIR/formats/taglib_flac.cpp"
+    "$SRC_DIR/formats/taglib_lame.cpp"
     "$SRC_DIR/formats/taglib_m4a.cpp"
 )
 
