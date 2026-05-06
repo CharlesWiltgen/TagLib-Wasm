@@ -1,5 +1,7 @@
 #include "taglib_audio_props.h"
 
+#include "formats/taglib_lame.h"
+
 #include <tfile.h>
 #include <audioproperties.h>
 #include <mpack/mpack.h>
@@ -45,13 +47,29 @@
 ExtendedAudioInfo get_extended_audio_info(
     TagLib::File* file, TagLib::AudioProperties* /* audio */)
 {
-    ExtendedAudioInfo info = {0, "", "", false, 0, 0, false, 0};
+    ExtendedAudioInfo info = {0, "", "", false, 0, 0, false, 0, nullptr};
 
     if (auto* f = dynamic_cast<TagLib::MPEG::File*>(file)) {
         auto* props = f->audioProperties();
         if (props) {
             info.mpegVersion = props->version() == TagLib::MPEG::Header::Version1 ? 1 : 2;
             info.mpegLayer = props->layer();
+
+            // Read first frame and parse LAME extension for bitrate-mode detection.
+            long firstFrame = f->firstFrameOffset();
+            if (firstFrame >= 0) {
+                f->seek(firstFrame);
+                TagLib::ByteVector frameBytes = f->readBlock(0x100);
+                int rawVersion = static_cast<int>(props->version());
+                int rawChannelMode = static_cast<int>(props->channelMode());
+                auto lame = taglib_wasm::parseLameInfo(
+                    reinterpret_cast<const unsigned char*>(frameBytes.data()),
+                    static_cast<size_t>(frameBytes.size()),
+                    rawVersion, rawChannelMode);
+                if (lame.valid && lame.mode != taglib_wasm::BitrateMode::Unknown) {
+                    info.bitrateMode = taglib_wasm::modeString(lame.mode);
+                }
+            }
         }
         info.codec = "MP3";
         info.container = "MP3";
@@ -275,6 +293,7 @@ uint32_t count_extended_audio_fields(const ExtendedAudioInfo& info) {
     if (info.mpegLayer > 0) count++;
     if (info.isEncrypted) count++;
     if (info.version > 0) count++;
+    if (info.bitrateMode != nullptr) count++;
     return count;
 }
 
@@ -326,6 +345,12 @@ uint32_t encode_extended_audio(
     if (info.version > 0) {
         mpack_write_cstr(writer, "formatVersion");
         mpack_write_uint(writer, static_cast<uint32_t>(info.version));
+        written++;
+    }
+
+    if (info.bitrateMode != nullptr) {
+        mpack_write_cstr(writer, "bitrateMode");
+        mpack_write_cstr(writer, info.bitrateMode);
         written++;
     }
 

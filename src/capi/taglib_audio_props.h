@@ -20,6 +20,7 @@ struct ExtendedAudioInfo {
     int mpegLayer;       // MPEG::Properties: 1, 2, or 3
     bool isEncrypted;    // MP4, ASF
     int version;         // APE, WavPack, MPC, TTA, Shorten version
+    const char* bitrateMode;  // "CBR" | "VBR" | "ABR" | nullptr (MP3 only)
 };
 
 ExtendedAudioInfo get_extended_audio_info(TagLib::File* file,
