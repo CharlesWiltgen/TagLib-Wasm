@@ -8,26 +8,26 @@
 [![Built with Emscripten](https://img.shields.io/badge/Built%20with-Emscripten-4B9BFF.svg)](https://emscripten.org/)
 [![Built with WebAssembly](https://img.shields.io/badge/Built%20with-WebAssembly-654ff0.svg?logo=webassembly&logoColor=white)](https://webassembly.org/)
 [![Built with TagLib](https://img.shields.io/badge/Built%20with-TagLib-brightgreen.svg)](https://taglib.org/)
-<br>[![Deno](https://img.shields.io/badge/Deno-000000?logo=deno&logoColor=white)](https://deno.land/)
-[![Node.js](https://img.shields.io/badge/Node.js-339933?logo=nodedotjs&logoColor=white)](https://nodejs.org/)
+<br>[![Node.js](https://img.shields.io/badge/Node.js-339933?logo=nodedotjs&logoColor=white)](https://nodejs.org/)
+[![Deno](https://img.shields.io/badge/Deno-000000?logo=deno&logoColor=white)](https://deno.land/)
 [![Bun](https://img.shields.io/badge/Bun-000000?logo=bun&logoColor=white)](https://bun.sh/)
 [![Cloudflare Workers](https://img.shields.io/badge/Cloudflare%20Workers-F38020?logo=cloudflare&logoColor=white)](https://workers.cloudflare.com/)
 [![Electron (Node.js)](https://img.shields.io/badge/Electron%20%28Node.js%29-47848F?logo=electron&logoColor=white)](https://www.electronjs.org/)
 [![Browsers](https://img.shields.io/badge/Browsers-E34C26?logo=html5&logoColor=white)](https://html.spec.whatwg.org/multipage/)
 
 TagLib-Wasm is the **universal tagging library for TypeScript/JavaScript**
-(TS|JS) platforms: **Deno**, **Node.js**, **Bun**, **Cloudflare Workers**,
+(TS|JS) platforms: **Node.js**, **Deno**, **Bun**, **Cloudflare Workers**,
 **Electron** (via Node.js), and **browsers**.
 
 ## Features
 
-- **Local filesystem support** – On Deno and Node.js, WASI enables seek-based
+- **Local filesystem support** – On Node.js and Deno, WASI enables seek-based
   I/O that reads only headers and tags from disk — not entire files
 - **Automatic runtime optimization** – Auto-selects WASI (server) or Emscripten
   (browser) for optimal performance with no configuration
 - **Full audio format support** – Supports all audio formats supported by TagLib
 - **TypeScript first** – Complete type definitions and modern API
-- **Wide TS/JS runtime support** – Deno, Node.js, Bun, Electron (Node.js),
+- **Wide TS/JS runtime support** – Node.js, Deno, Bun, Electron (Node.js),
   Cloudflare Workers, and browsers
 - **Format abstraction** – Handles container format details automatically when
   possible
@@ -40,12 +40,6 @@ TagLib-Wasm is the **universal tagging library for TypeScript/JavaScript**
 
 ## Installation
 
-### Deno
-
-```typescript
-import { TagLib } from "@charlesw/taglib-wasm";
-```
-
 ### Node.js
 
 ```bash
@@ -56,6 +50,12 @@ npm install taglib-wasm
 > exception handling support. To consume the package as TypeScript source
 > (e.g., via `tsx`), see the
 > [installation guide](https://charleswiltgen.github.io/TagLib-Wasm/guide/installation.html).
+
+### Deno
+
+```typescript
+import { TagLib } from "@charlesw/taglib-wasm";
+```
 
 ### Bun
 
@@ -388,10 +388,10 @@ taglib-wasm auto-selects the fastest available backend — no configuration need
 
 | Environment              | Backend           | How it works                                           | Performance |
 | ------------------------ | ----------------- | ------------------------------------------------------ | ----------- |
-| **Deno / Node.js / Bun** | WASI (auto)       | Seek-based filesystem I/O; reads only headers and tags | Fastest     |
+| **Node.js / Deno / Bun** | WASI (auto)       | Seek-based filesystem I/O; reads only headers and tags | Fastest     |
 | **Browsers / Workers**   | Emscripten (auto) | Entire file loaded into memory as buffer               | Baseline    |
 
-On Deno, Node.js, and Bun you get WASI automatically — nothing to configure.
+On Node.js, Deno, and Bun you get WASI automatically — nothing to configure.
 
 ## Runtime Compatibility
 
@@ -399,8 +399,8 @@ On Deno, Node.js, and Bun you get WASI automatically — nothing to configure.
 
 | Runtime                | Status  | Installation              | Notes                                                                                              |
 | ---------------------- | ------- | ------------------------- | -------------------------------------------------------------------------------------------------- |
-| **Deno**               | Full    | `npm:taglib-wasm`         | Native TypeScript                                                                                  |
 | **Node.js**            | Full    | `npm install taglib-wasm` | TypeScript via tsx                                                                                 |
+| **Deno**               | Full    | `npm:taglib-wasm`         | Native TypeScript                                                                                  |
 | **Bun**                | Partial | `bun add taglib-wasm`     | Import + init verified; full test suite is Deno-only                                               |
 | **Browser**            | Full    | Via bundler               | Full API support                                                                                   |
 | **Cloudflare Workers** | Full    | `npm install taglib-wasm` | Buffer-based (Emscripten); no filesystem. See [Workers guide](docs/advanced/cloudflare-workers.md) |
@@ -409,7 +409,7 @@ On Deno, Node.js, and Bun you get WASI automatically — nothing to configure.
 ## Known Limitations
 
 - **Memory Usage (browsers)** – In browser environments, entire files are loaded
-  into memory. On Deno/Node.js, WASI reads only headers and tags from disk.
+  into memory. On Node.js/Deno, WASI reads only headers and tags from disk.
 - **Concurrent Access** – Not thread-safe (JavaScript single-threaded nature
   mitigates this)
 
