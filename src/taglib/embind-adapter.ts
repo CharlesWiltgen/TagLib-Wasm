@@ -8,7 +8,12 @@
 
 import type { FileHandle } from "../wasm.ts";
 import type { BasicTagData } from "../types/tags.ts";
-import type { AudioCodec, AudioProperties, ContainerFormat } from "../types.ts";
+import type {
+  AudioCodec,
+  AudioProperties,
+  BitrateMode,
+  ContainerFormat,
+} from "../types.ts";
 
 /** @internal Embind-generated TagWrapper — methods on C++ prototype. */
 interface EmbindTagWrapper {
@@ -43,6 +48,7 @@ interface EmbindAudioPropertiesWrapper {
   mpegLayer(): number;
   isEncrypted(): boolean;
   formatVersion(): number;
+  bitrateMode(): string;
 }
 
 /** @internal The raw Embind FileHandle before adaptation. */
@@ -84,6 +90,7 @@ export function wrapEmbindHandle(raw: EmbindFileHandle): FileHandle {
         (pw.containerFormat() || "unknown") as ContainerFormat;
       const mpegVersion = pw.mpegVersion();
       const formatVersion = pw.formatVersion();
+      const bitrateMode = pw.bitrateMode();
       return {
         duration: pw.lengthInSeconds(),
         durationMs: pw.lengthInMilliseconds(),
@@ -99,6 +106,7 @@ export function wrapEmbindHandle(raw: EmbindFileHandle): FileHandle {
           ? { isEncrypted: pw.isEncrypted() }
           : {}),
         ...(formatVersion > 0 ? { formatVersion } : {}),
+        ...(bitrateMode ? { bitrateMode: bitrateMode as BitrateMode } : {}),
       };
     },
   };

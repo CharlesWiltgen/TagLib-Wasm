@@ -145,6 +145,14 @@ export type AudioCodec =
   | "unknown";
 
 /**
+ * Bitrate mode for MP3 audio.
+ *
+ * Detected by parsing the LAME extension header in the first MPEG frame.
+ * Undefined for non-MP3 formats and for MP3 files lacking Xing/Info/VBRI headers.
+ */
+export type BitrateMode = "CBR" | "VBR" | "ABR";
+
+/**
  * Audio properties containing technical information about the file.
  * All properties are read-only and represent the actual audio stream data.
  *
@@ -186,6 +194,8 @@ export interface AudioProperties {
   readonly isEncrypted?: boolean;
   /** Format-specific version number (APE, WavPack, TTA, etc.) */
   readonly formatVersion?: number;
+  /** Bitrate mode (MP3 only — undefined for formats where it is not meaningful or detectable) */
+  readonly bitrateMode?: BitrateMode;
 }
 
 /**
