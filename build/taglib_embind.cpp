@@ -42,6 +42,7 @@
 #include <attachedpictureframe.h>
 #include <popularimeterframe.h>
 #include <xiphcomment.h>
+#include "../src/capi/formats/taglib_lame.h"
 #include <memory>
 #include <string>
 #include <vector>
@@ -312,6 +313,30 @@ public:
             return mpegProps->layer();
         }
         return 0;
+    }
+
+    std::string bitrateMode() const {
+        if (!props || !file) return "";
+        auto* mpegFile = dynamic_cast<TagLib::MPEG::File*>(file);
+        auto* mpegProps = dynamic_cast<TagLib::MPEG::Properties*>(props);
+        if (!mpegFile || !mpegProps) return "";
+
+        long firstFrame = mpegFile->firstFrameOffset();
+        if (firstFrame < 0) return "";
+
+        mpegFile->seek(firstFrame);
+        TagLib::ByteVector frameBytes = mpegFile->readBlock(0x100);
+        int rawVersion = static_cast<int>(mpegProps->version());
+        int rawChannelMode = static_cast<int>(mpegProps->channelMode());
+        auto lame = taglib_wasm::parseLameInfo(
+            reinterpret_cast<const unsigned char*>(frameBytes.data()),
+            static_cast<size_t>(frameBytes.size()),
+            rawVersion, rawChannelMode);
+        if (lame.valid && lame.mode != taglib_wasm::BitrateMode::Unknown) {
+            const char* str = taglib_wasm::modeString(lame.mode);
+            return str ? std::string(str) : std::string();
+        }
+        return "";
     }
 
     bool isEncrypted() const {
@@ -1406,6 +1431,7 @@ EMSCRIPTEN_BINDINGS(taglib) {
         .function("containerFormat", &AudioPropertiesWrapper::containerFormat)
         .function("mpegVersion", &AudioPropertiesWrapper::mpegVersion)
         .function("mpegLayer", &AudioPropertiesWrapper::mpegLayer)
+        .function("bitrateMode", &AudioPropertiesWrapper::bitrateMode)
         .function("isEncrypted", &AudioPropertiesWrapper::isEncrypted)
         .function("formatVersion", &AudioPropertiesWrapper::formatVersion);
     

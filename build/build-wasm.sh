@@ -53,6 +53,8 @@ echo "🔗 Compiling Wasm module with Embind..."
 
 # Compile the Wasm module with Embind
 emcc "$BUILD_DIR/taglib_wasm.cpp" \
+  "$PROJECT_ROOT/src/capi/formats/taglib_lame.cpp" \
+  -I"$PROJECT_ROOT/src/capi/formats" \
   -I"$CMAKE_BUILD_DIR/install/include" \
   -I"$CMAKE_BUILD_DIR/install/include/taglib" \
   "$CMAKE_BUILD_DIR/install/lib/libtag.a" \
