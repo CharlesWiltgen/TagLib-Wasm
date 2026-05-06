@@ -271,6 +271,7 @@ console.log(props.codec); // "AAC" or "ALAC" (compressed media format)
 console.log(props.isLossless); // false for AAC, true for ALAC
 console.log(props.bitsPerSample); // 16 for most formats
 console.log(props.bitrate); // 256 (kbps)
+console.log(props.bitrateMode); // "CBR" | "VBR" | "ABR" | undefined (MP3 only)
 console.log(props.sampleRate); // 44100 (Hz)
 console.log(props.duration); // 180 (duration in seconds)
 ```

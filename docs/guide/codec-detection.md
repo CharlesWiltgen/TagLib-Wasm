@@ -23,8 +23,22 @@ interface AudioProperties {
 
   /** Whether the audio is lossless (uncompressed or losslessly compressed) */
   readonly isLossless: boolean;
+
+  /** Bitrate mode (MP3 only — undefined for formats where it is not meaningful or detectable) */
+  readonly bitrateMode?: "CBR" | "VBR" | "ABR";
 }
 ```
+
+## Bitrate Mode (MP3)
+
+For MP3 files, `bitrateMode` reports whether the file uses constant (`"CBR"`),
+variable (`"VBR"`), or average (`"ABR"`) bitrate encoding. Detection is based on
+the LAME extension header in the first MPEG frame; older or non-LAME-encoded
+files may fall back to detection from the Xing/Info/VBRI magic alone.
+
+The field is `undefined` for non-MP3 formats and for headerless MP3 files where
+the mode cannot be determined. Lossless formats (FLAC, WAV, AIFF, ALAC) are not
+reported as VBR/CBR — use `isLossless` instead.
 
 ## Container vs Codec
 

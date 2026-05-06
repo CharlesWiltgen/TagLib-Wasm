@@ -137,6 +137,7 @@ props.codec;
 props.containerFormat;
 props.isLossless;
 props.bitsPerSample;
+props.bitrateMode; // "CBR" | "VBR" | "ABR" | undefined (MP3 only)
 
 // Save
 audioFile.save(); // Returns boolean
