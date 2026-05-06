@@ -61,6 +61,17 @@ jobs:
       - name: Type check
         run: deno check ./src ./tests
 
+  test-capi-cpp:
+    name: Test (C API C++ unit tests)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          submodules: recursive
+
+      - name: Run C++ unit tests
+        run: bash tests/run-capi-tests.sh
+
   build-embind:
     name: Build (Embind)
     runs-on: ubuntu-latest
