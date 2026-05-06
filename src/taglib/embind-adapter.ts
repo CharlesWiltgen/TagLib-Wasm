@@ -15,6 +15,11 @@ import type {
   ContainerFormat,
 } from "../types.ts";
 
+/** @internal Type guard for `BitrateMode` strings emitted by the Embind layer. */
+function isValidBitrateMode(value: string): value is BitrateMode {
+  return value === "CBR" || value === "VBR" || value === "ABR";
+}
+
 /** @internal Embind-generated TagWrapper — methods on C++ prototype. */
 interface EmbindTagWrapper {
   title(): string;
@@ -106,7 +111,7 @@ export function wrapEmbindHandle(raw: EmbindFileHandle): FileHandle {
           ? { isEncrypted: pw.isEncrypted() }
           : {}),
         ...(formatVersion > 0 ? { formatVersion } : {}),
-        ...(bitrateMode ? { bitrateMode: bitrateMode as BitrateMode } : {}),
+        ...(isValidBitrateMode(bitrateMode) ? { bitrateMode } : {}),
       };
     },
   };
