@@ -39,3 +39,19 @@ Deno.test("bitrateMode: VBRI file -> 'VBR'", async () => {
 Deno.test("bitrateMode: no-Xing file -> undefined", async () => {
   assertEquals(await readBitrateMode("no-xing.mp3"), undefined);
 });
+
+// Regression pin: kiss-snippet.mp3 lives at tests/test-files/mp3/ (one level up
+// from the bitrate-mode fixtures). Measured against the implementation.
+Deno.test("bitrateMode: kiss-snippet.mp3 regression -> 'VBR'", async () => {
+  const taglib = await TagLib.initialize({ forceWasmType: "emscripten" });
+  const buffer = await Deno.readFile(
+    join("tests", "test-files", "mp3", "kiss-snippet.mp3"),
+  );
+  const file = await taglib.open(buffer);
+  try {
+    const props = file.audioProperties();
+    assertEquals(props?.bitrateMode, "VBR");
+  } finally {
+    file.dispose();
+  }
+});
