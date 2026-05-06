@@ -1,6 +1,6 @@
 # TagLib-Wasm
 
-[![Tests](https://github.com/CharlesWiltgen/TagLib-Wasm/actions/workflows/test.yml/badge.svg)](https://github.com/CharlesWiltgen/TagLib-Wasm/actions/workflows/test.yml)
+[![Tests](https://github.com/CharlesWiltgen/TagLib-Wasm/actions/workflows/ci.yml/badge.svg)](https://github.com/CharlesWiltgen/TagLib-Wasm/actions/workflows/ci.yml)
 [![npm version](https://img.shields.io/npm/v/taglib-wasm.svg)](https://www.npmjs.com/package/taglib-wasm)
 [![npm downloads](https://img.shields.io/npm/dm/taglib-wasm.svg)](https://www.npmjs.com/package/taglib-wasm)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/CharlesWiltgen/TagLib-Wasm/blob/main/LICENSE)
