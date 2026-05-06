@@ -325,7 +325,7 @@ public:
         if (firstFrame < 0) return "";
 
         mpegFile->seek(firstFrame);
-        TagLib::ByteVector frameBytes = mpegFile->readBlock(0x100);
+        TagLib::ByteVector frameBytes = mpegFile->readBlock(taglib_wasm::kRequiredFirstFrameBytes);
         int rawVersion = static_cast<int>(mpegProps->version());
         int rawChannelMode = static_cast<int>(mpegProps->channelMode());
         auto lame = taglib_wasm::parseLameInfo(

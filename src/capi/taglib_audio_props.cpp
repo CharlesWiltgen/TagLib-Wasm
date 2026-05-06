@@ -59,7 +59,7 @@ ExtendedAudioInfo get_extended_audio_info(
             long firstFrame = f->firstFrameOffset();
             if (firstFrame >= 0) {
                 f->seek(firstFrame);
-                TagLib::ByteVector frameBytes = f->readBlock(0x100);
+                TagLib::ByteVector frameBytes = f->readBlock(taglib_wasm::kRequiredFirstFrameBytes);
                 int rawVersion = static_cast<int>(props->version());
                 int rawChannelMode = static_cast<int>(props->channelMode());
                 auto lame = taglib_wasm::parseLameInfo(

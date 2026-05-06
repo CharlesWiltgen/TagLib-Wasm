@@ -6,6 +6,12 @@
 
 namespace taglib_wasm {
 
+// Minimum bytes of the first MPEG frame that `parseLameInfo` may inspect.
+// Callers that read the frame from a TagLib stream should pass at least this
+// many bytes to keep parser bounds checks satisfied across all magic types
+// (VBRI at 0x24, Xing/Info at 0x24/0x15/0x0D, LAME tag through 0xA5 from magic).
+inline constexpr size_t kRequiredFirstFrameBytes = 0x100;
+
 enum class BitrateMode {
     Unknown,
     CBR,
