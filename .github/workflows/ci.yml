@@ -42,12 +42,14 @@ jobs:
       - name: Cache dependencies
         uses: actions/cache@v5
         with:
-          path: |
-            ~/.npm
-            node_modules
-          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          # Cache only the npm download cache, not node_modules itself:
+          # node_modules contains Deno-managed junctions (nodeModulesDir: auto),
+          # and restoring a stale tree on Windows breaks `deno test` with
+          # "failed to create junction ... (os error 183)".
+          path: ~/.npm
+          key: ${{ runner.os }}-npm-${{ hashFiles('**/package-lock.json') }}
           restore-keys: |
-            ${{ runner.os }}-node-
+            ${{ runner.os }}-npm-
 
       - name: Install dependencies
         run: npm install
@@ -92,12 +94,14 @@ jobs:
       - name: Cache dependencies
         uses: actions/cache@v5
         with:
-          path: |
-            ~/.npm
-            node_modules
-          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          # Cache only the npm download cache, not node_modules itself:
+          # node_modules contains Deno-managed junctions (nodeModulesDir: auto),
+          # and restoring a stale tree on Windows breaks `deno test` with
+          # "failed to create junction ... (os error 183)".
+          path: ~/.npm
+          key: ${{ runner.os }}-npm-${{ hashFiles('**/package-lock.json') }}
           restore-keys: |
-            ${{ runner.os }}-node-
+            ${{ runner.os }}-npm-
 
       - name: Install dependencies
         run: npm install
@@ -270,12 +274,14 @@ jobs:
       - name: Cache dependencies
         uses: actions/cache@v5
         with:
-          path: |
-            ~/.npm
-            node_modules
-          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          # Cache only the npm download cache, not node_modules itself:
+          # node_modules contains Deno-managed junctions (nodeModulesDir: auto),
+          # and restoring a stale tree on Windows breaks `deno test` with
+          # "failed to create junction ... (os error 183)".
+          path: ~/.npm
+          key: ${{ runner.os }}-npm-${{ hashFiles('**/package-lock.json') }}
           restore-keys: |
-            ${{ runner.os }}-node-
+            ${{ runner.os }}-npm-
 
       - name: Install dependencies
         run: npm install
