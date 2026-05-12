@@ -41,8 +41,11 @@ const AUDIO_KEYS = new Set([
 const INTERNAL_KEYS = new Set([
   "pictures",
   "ratings",
+  "lyrics",
   "chapters",
   "_mp4ChapterStyle",
+  "bextData",
+  "ixml",
 ]);
 
 const CONTAINER_TO_FORMAT: Record<string, string> = {
@@ -395,6 +398,31 @@ export class WasiFileHandle implements FileHandle {
       _mp4ChapterStyle: mp4ChapterStyle,
       chapters,
     } as Record<string, unknown>;
+  }
+
+  getBextData(): Uint8Array | undefined {
+    this.checkNotDestroyed();
+    return (this.tagData?.bextData as Uint8Array | undefined) ?? undefined;
+  }
+
+  setBextData(data: Uint8Array | null): void {
+    this.checkNotDestroyed();
+    // Store `null` (not delete) so the encoder emits msgpack nil => C++ removes.
+    this.tagData = { ...this.tagData, bextData: data } as Record<
+      string,
+      unknown
+    >;
+  }
+
+  getIxml(): string | undefined {
+    this.checkNotDestroyed();
+    const v = this.tagData?.ixml;
+    return typeof v === "string" && v.length > 0 ? v : undefined;
+  }
+
+  setIxml(data: string | null): void {
+    this.checkNotDestroyed();
+    this.tagData = { ...this.tagData, ixml: data } as Record<string, unknown>;
   }
 
   getRatings(): { rating: number; email: string; counter: number }[] {

@@ -16,6 +16,8 @@ const PASSTHROUGH_KEYS = new Set([
   "lyrics",
   "chapters",
   "_mp4ChapterStyle",
+  "bextData",
+  "ixml",
 ]);
 
 const MSGPACK_ENCODE_OPTIONS: EncoderOptions = {

@@ -90,6 +90,10 @@ export interface FileHandle {
   removePictures(): void;
   getChapters(): RawChapter[];
   setChapters(chapters: RawChapter[], mp4ChapterStyle: string): void;
+  getBextData(): Uint8Array | undefined;
+  setBextData(data: Uint8Array | null): void;
+  getIxml(): string | undefined;
+  setIxml(data: string | null): void;
   getRatings(): { rating: number; email: string; counter: number }[];
   setRatings(
     ratings: { rating: number; email?: string; counter?: number }[],
