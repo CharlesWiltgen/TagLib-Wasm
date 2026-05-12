@@ -199,6 +199,7 @@ CAPI_SOURCES=(
     "$SRC_DIR/taglib_ratings.cpp"         # C++ rating encode/decode via format-specific APIs
     "$SRC_DIR/taglib_lyrics.cpp"          # C++ lyrics encode/decode via complexProperties
     "$SRC_DIR/taglib_chapters.cpp"        # C++ chapter encode/decode via ID3v2 CHAP frames
+    "$SRC_DIR/taglib_bwf.cpp"             # C++ BWF bext/iXML passthrough for WAV+FLAC
     "$SRC_DIR/taglib_audio_props.cpp"     # C++ extended audio properties via dynamic_cast
     "$SRC_DIR/formats/taglib_lame.cpp"    # C++ LAME extension parser - exception-free
     "$SRC_DIR/core/taglib_error.cpp"      # C++ with pure C internals - compiled with Wasm EH
@@ -223,6 +224,7 @@ for src in "${CAPI_SOURCES[@]}"; do
          [[ "$(basename "$src")" == "taglib_ratings.cpp" ]] || \
          [[ "$(basename "$src")" == "taglib_lyrics.cpp" ]] || \
          [[ "$(basename "$src")" == "taglib_chapters.cpp" ]] || \
+         [[ "$(basename "$src")" == "taglib_bwf.cpp" ]] || \
          [[ "$(basename "$src")" == "taglib_audio_props.cpp" ]] || \
          [[ "$(basename "$src")" == "taglib_lame.cpp" ]]; then
         echo "Compiling C++ with TagLib headers + Wasm EH: $src"

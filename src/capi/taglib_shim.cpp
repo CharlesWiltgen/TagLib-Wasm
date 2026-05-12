@@ -15,6 +15,7 @@
 #include "taglib_ratings.h"
 #include "taglib_lyrics.h"
 #include "taglib_chapters.h"
+#include "taglib_bwf.h"
 #include "taglib_audio_props.h"
 #include "core/taglib_msgpack.h"
 #include "core/taglib_core.h"
@@ -188,6 +189,9 @@ static tl_error_code encode_file_to_msgpack(TagLib::File* file,
     uint32_t chapter_count = count_chapters(file);
     if (chapter_count > 0) count++;  // "chapters" key + array
 
+    uint32_t bwf_keys = count_bwf_keys(file);
+    count += bwf_keys;  // "bextData" and/or "ixml" keys (WAV/FLAC)
+
     ExtendedAudioInfo ext_info = {0, "", "", false, 0, 0, false, 0, nullptr};
     if (audio) {
         ext_info = get_extended_audio_info(file, audio);
@@ -259,6 +263,8 @@ static tl_error_code encode_file_to_msgpack(TagLib::File* file,
     if (chapter_count > 0) {
         encode_chapters(&writer, file);
     }
+
+    encode_bwf(&writer, file);  // emits exactly `bwf_keys` keys (self-guards)
 
     mpack_finish_map(&writer);
 
@@ -340,9 +346,10 @@ static tl_error_code read_from_path(const char* path,
     }
 }
 
+// MUST stay sorted (byte-wise strcmp) — this array is binary-searched.
 static const char* SKIP_KEYS[] = {
-    "bitrate", "bitsPerSample", "channels", "chapters", "codec",
-    "containerFormat", "formatVersion", "isEncrypted", "isLossless",
+    "bextData", "bitrate", "bitsPerSample", "channels", "chapters", "codec",
+    "containerFormat", "formatVersion", "isEncrypted", "isLossless", "ixml",
     "length", "lengthMs", "lyrics", "mpegLayer", "mpegVersion",
     "pictures", "ratings", "sampleRate",
 };
@@ -557,6 +564,7 @@ static tl_error_code write_to_path(const char* path,
         apply_ratings_from_msgpack(ref.file(), tags_msgpack, tags_msgpack_len);
         apply_lyrics_from_msgpack(ref.file(), tags_msgpack, tags_msgpack_len);
         apply_chapters_from_msgpack(ref.file(), tags_msgpack, tags_msgpack_len);
+        apply_bwf_from_msgpack(ref.file(), tags_msgpack, tags_msgpack_len);
 
         if (!ref.save()) return TL_ERROR_IO_WRITE;
         return TL_SUCCESS;
@@ -599,6 +607,7 @@ static tl_error_code write_to_buffer(const uint8_t* buf, size_t len,
         apply_ratings_from_msgpack(f, tags_msgpack, tags_msgpack_len);
         apply_lyrics_from_msgpack(f, tags_msgpack, tags_msgpack_len);
         apply_chapters_from_msgpack(f, tags_msgpack, tags_msgpack_len);
+        apply_bwf_from_msgpack(f, tags_msgpack, tags_msgpack_len);
 
         if (!f->save()) return TL_ERROR_IO_WRITE;
 
