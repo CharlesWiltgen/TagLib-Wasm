@@ -792,6 +792,12 @@ interface AudioProperties {
 }
 ```
 
+When the file is narrowed to a specific format (`file.isFormat("OPUS")`), extra
+format-specific fields appear. For Opus, that is `outputGainDb` — the OpusHead
+output gain in decibels (RFC 7845). Players apply it unconditionally; it is
+separate from, and stacks with, ReplayGain / R128 tags, and is almost always
+`0`.
+
 ##### tag()
 
 Get the tag object for reading/writing basic metadata.
@@ -958,6 +964,64 @@ file.addPicture({
   type: "Cover (front)",
   description: "Album cover",
 });
+```
+
+#### Chapter Methods
+
+##### getChapters()
+
+Get all chapter markers, ordered by start time. Returns `[]` if the file has
+none.
+
+```typescript
+getChapters(): Chapter[]
+```
+
+```typescript
+interface Chapter {
+  startTimeMs: number; // Chapter start, ms from the start of the file
+  endTimeMs?: number; // Explicit for ID3v2 CHAP; inferred for MP4
+  title?: string;
+  id?: string; // ID3v2 CHAP element ID; undefined for MP4 chapters
+  source?: "id3" | "nero" | "quicktime";
+}
+```
+
+Chapters are read from ID3v2 `CHAP` frames (MP3) or, for MP4, a QuickTime
+chapter track (preferred when present) or a Nero `chpl` atom. `endTimeMs` is
+inferred for MP4 chapters as the next chapter's start time, or the track
+duration (`audioProperties().durationMs`) for the last chapter.
+
+##### setChapters()
+
+Replace all chapter markers in the file.
+
+```typescript
+setChapters(chapters: Chapter[], options?: SetChaptersOptions): void
+
+interface SetChaptersOptions {
+  // MP4 only. "quicktime" (default) writes a QuickTime chapter track;
+  // "nero" writes a Nero `chpl` atom (max 255 chapters); "both" writes both.
+  // The structure(s) not selected are removed.
+  mp4ChapterStyle?: "quicktime" | "nero" | "both";
+}
+```
+
+Only MP3 (ID3v2 CHAP) and MP4 are supported; other formats throw
+`UnsupportedFormatError`. `setChapters([])` clears all chapters. For MP3, an
+omitted `endTimeMs` is filled from the next chapter's start (and from the track
+duration for the last chapter). Call `save()` to persist.
+
+```typescript
+const file = await taglib.open("audiobook.m4b");
+for (const ch of file.getChapters()) {
+  console.log(`${ch.startTimeMs}ms ${ch.title} (${ch.source})`);
+}
+file.setChapters([
+  { startTimeMs: 0, title: "Intro" },
+  { startTimeMs: 95_000, title: "Chapter 1" },
+], { mp4ChapterStyle: "both" });
+file.save();
 ```
 
 #### MP4-Specific Methods

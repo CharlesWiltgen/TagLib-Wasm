@@ -41,6 +41,9 @@
 #include <id3v2tag.h>
 #include <attachedpictureframe.h>
 #include <popularimeterframe.h>
+#include <chapterframe.h>
+#include <textidentificationframe.h>
+#include <mp4chapter.h>
 #include <xiphcomment.h>
 #include "../src/capi/formats/taglib_lame.h"
 #include <memory>
@@ -1114,6 +1117,108 @@ public:
         setPictures(emptyArray);
     }
 
+    // Get all chapters from the audio file (ID3v2 CHAP / MP4 QuickTime > Nero).
+    // Returns array of {startTimeMs, endTimeMs?, title?, id?, source}.
+    val getChapters() const {
+        val chapters = val::array();
+        if (!fileRef || !fileRef->file()) return chapters;
+        TagLib::File* f = fileRef->file();
+
+        if (auto* mpegFile = dynamic_cast<TagLib::MPEG::File*>(f)) {
+            if (!mpegFile->hasID3v2Tag()) return chapters;
+            TagLib::ID3v2::Tag* tag = mpegFile->ID3v2Tag();
+            for (const auto& frame : tag->frameList("CHAP")) {
+                auto* chap = dynamic_cast<TagLib::ID3v2::ChapterFrame*>(frame);
+                if (!chap) continue;
+                val obj = val::object();
+                obj.set("id", std::string(chap->elementID().data(),
+                                          chap->elementID().size()));
+                obj.set("startTimeMs", static_cast<double>(chap->startTime()));
+                obj.set("endTimeMs", static_cast<double>(chap->endTime()));
+                obj.set("source", std::string("id3"));
+                auto embedded = chap->embeddedFrameList("TIT2");
+                if (!embedded.isEmpty()) {
+                    if (auto* tit2 = dynamic_cast<TagLib::ID3v2::TextIdentificationFrame*>(
+                            embedded.front()))
+                        obj.set("title", std::string(tit2->toString().toCString(true)));
+                }
+                chapters.call<void>("push", obj);
+            }
+        } else if (auto* mp4File = dynamic_cast<TagLib::MP4::File*>(f)) {
+            TagLib::MP4::ChapterList list = mp4File->qtChapters();
+            const char* source = "quicktime";
+            if (list.isEmpty()) { list = mp4File->neroChapters(); source = "nero"; }
+            for (const auto& ch : list) {
+                val obj = val::object();
+                long long st = ch.startTime();
+                obj.set("startTimeMs", static_cast<double>(st < 0 ? 0 : st));
+                obj.set("source", std::string(source));
+                if (!ch.title().isEmpty())
+                    obj.set("title", std::string(ch.title().toCString(true)));
+                chapters.call<void>("push", obj);
+            }
+        }
+        return chapters;
+    }
+
+    // Replace all chapters. mp4Style is "quicktime" (default) | "nero" | "both".
+    void setChapters(const val& chapters, const std::string& mp4Style) {
+        if (!fileRef || !fileRef->file() || !chapters.isArray()) return;
+        TagLib::File* f = fileRef->file();
+        int length = chapters["length"].as<int>();
+
+        if (auto* mpegFile = dynamic_cast<TagLib::MPEG::File*>(f)) {
+            if (!mpegFile->hasID3v2Tag()) mpegFile->ID3v2Tag(true);
+            TagLib::ID3v2::Tag* tag = mpegFile->ID3v2Tag();
+            tag->removeFrames("CHAP");
+            for (int i = 0; i < length; i++) {
+                val c = chapters[i];
+                std::string id = (c["id"].isUndefined() || c["id"].isNull())
+                    ? ("chap" + std::to_string(i)) : c["id"].as<std::string>();
+                if (id.empty()) id = "chap" + std::to_string(i);
+                unsigned int start = c["startTimeMs"].isUndefined()
+                    ? 0u : static_cast<unsigned int>(c["startTimeMs"].as<double>());
+                unsigned int end = c["endTimeMs"].isUndefined()
+                    ? 0u : static_cast<unsigned int>(c["endTimeMs"].as<double>());
+                TagLib::ID3v2::FrameList embedded;
+                if (!c["title"].isUndefined() && !c["title"].isNull()) {
+                    std::string title = c["title"].as<std::string>();
+                    if (!title.empty()) {
+                        auto* tit2 = new TagLib::ID3v2::TextIdentificationFrame("TIT2");
+                        tit2->setText(TagLib::String(title, TagLib::String::UTF8));
+                        embedded.append(tit2);
+                    }
+                }
+                tag->addFrame(new TagLib::ID3v2::ChapterFrame(
+                    TagLib::ByteVector(id.c_str(), static_cast<unsigned int>(id.size())),
+                    start, end, 0xFFFFFFFF, 0xFFFFFFFF, embedded));
+            }
+        } else if (auto* mp4File = dynamic_cast<TagLib::MP4::File*>(f)) {
+            TagLib::MP4::ChapterList list;
+            for (int i = 0; i < length; i++) {
+                val c = chapters[i];
+                std::string title = (!c["title"].isUndefined() && !c["title"].isNull())
+                    ? c["title"].as<std::string>() : "";
+                long long start = c["startTimeMs"].isUndefined()
+                    ? 0LL : static_cast<long long>(c["startTimeMs"].as<double>());
+                list.append(TagLib::MP4::Chapter(
+                    TagLib::String(title, TagLib::String::UTF8), start));
+            }
+            const bool wantQt = (mp4Style != "nero");
+            const bool wantNero = (mp4Style == "nero" || mp4Style == "both");
+            mp4File->setQtChapters(wantQt ? list : TagLib::MP4::ChapterList());
+            if (!wantNero) {
+                mp4File->setNeroChapters(TagLib::MP4::ChapterList());
+            } else if (list.size() > 255) {
+                TagLib::MP4::ChapterList capped;
+                for (unsigned int j = 0; j < 255; j++) capped.append(list[j]);
+                mp4File->setNeroChapters(capped);
+            } else {
+                mp4File->setNeroChapters(list);
+            }
+        }
+    }
+
     // Get all ratings from the audio file
     // Returns array of {rating: number (0.0-1.0), email: string, counter: number}
     val getRatings() const {
@@ -1404,6 +1509,8 @@ EMSCRIPTEN_BINDINGS(taglib) {
         .function("setPictures", &FileHandle::setPictures)
         .function("addPicture", &FileHandle::addPicture)
         .function("removePictures", &FileHandle::removePictures)
+        .function("getChapters", &FileHandle::getChapters)
+        .function("setChapters", &FileHandle::setChapters)
         .function("getRatings", &FileHandle::getRatings)
         .function("setRatings", &FileHandle::setRatings)
         .function("destroy", &FileHandle::destroy);

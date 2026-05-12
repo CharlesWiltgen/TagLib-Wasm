@@ -258,6 +258,35 @@ file.save();
 See the [Track Ratings Guide](https://charleswiltgen.github.io/TagLib-Wasm/guide/ratings.html)
 for RatingUtils API and cross-format conversion details.
 
+### Working with Chapters
+
+```typescript
+import { TagLib } from "taglib-wasm";
+
+const taglib = await TagLib.initialize();
+using file = await taglib.open("audiobook.m4b");
+
+// Read chapters (ordered by start time)
+for (const ch of file.getChapters()) {
+  console.log(`${ch.startTimeMs}–${ch.endTimeMs} ${ch.title} (${ch.source})`);
+}
+
+// Replace all chapters
+file.setChapters([
+  { startTimeMs: 0, title: "Intro" },
+  { startTimeMs: 95_000, title: "Chapter 1" },
+]);
+file.save();
+```
+
+Chapters are read from ID3v2 `CHAP` frames (MP3) or, for MP4, a QuickTime
+chapter track (preferred when present) or a Nero `chpl` atom — each chapter
+reports its `source`. `setChapters()` supports MP3 and MP4 only; for MP4,
+`mp4ChapterStyle` (`"quicktime"` default, `"nero"`, or `"both"`) selects which
+structure(s) to write (the Nero atom is capped at 255 chapters). `endTimeMs` is
+explicit for ID3v2 chapters and inferred for MP4 (the next chapter's start, or
+the track duration for the last chapter).
+
 ### Container Format and Codec Detection
 
 ```typescript
@@ -275,6 +304,11 @@ console.log(props.bitrateMode); // "CBR" | "VBR" | "ABR" | undefined (MP3 only)
 console.log(props.sampleRate); // 44100 (Hz)
 console.log(props.duration); // 180 (duration in seconds)
 ```
+
+For Opus files, `audioProperties()` additionally exposes `outputGainDb` — the
+OpusHead output gain in decibels (RFC 7845). Players apply this unconditionally;
+it is separate from, and stacks with, ReplayGain / R128 tags, and is almost
+always `0`.
 
 Container format vs Codec:
 

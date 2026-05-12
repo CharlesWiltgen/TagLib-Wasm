@@ -10,6 +10,15 @@ export interface RawPicture {
   description?: string;
 }
 
+/** Raw chapter as received from/sent across the C++ boundary. */
+export interface RawChapter {
+  startTimeMs: number;
+  endTimeMs?: number;
+  title?: string;
+  id?: string;
+  source?: string;
+}
+
 // Basic Emscripten module interface
 export interface EmscriptenModule {
   // Memory
@@ -79,6 +88,8 @@ export interface FileHandle {
   setPictures(pictures: RawPicture[]): void;
   addPicture(picture: RawPicture): void;
   removePictures(): void;
+  getChapters(): RawChapter[];
+  setChapters(chapters: RawChapter[], mp4ChapterStyle: string): void;
   getRatings(): { rating: number; email: string; counter: number }[];
   setRatings(
     ratings: { rating: number; email?: string; counter?: number }[],

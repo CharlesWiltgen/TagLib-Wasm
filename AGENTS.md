@@ -39,6 +39,7 @@ await applyTagsToFile("song.mp3", { title: "New Title", artist: "New Artist" });
 - **PropertyMap / MusicBrainz / ReplayGain?** → Full API
 - **Cover art?** → Simple API: `readCoverArt()`, `applyCoverArt()`
 - **Ratings?** → Full API: `audioFile.getRating()`, `audioFile.setRating(0.8)`
+- **Chapters?** → Full API: `audioFile.getChapters()`, `audioFile.setChapters([...])` (MP3 + MP4)
 
 ## Simple API Reference
 
@@ -160,6 +161,14 @@ audioFile.setProperties({ albumArtist: ["VA"], composer: ["Bach"] });
 audioFile.getRating(); // number | undefined
 audioFile.setRating(0.8); // 4/5 stars
 audioFile.setRating(0.8, "user@example.com");
+
+// Chapters (MP3 ID3v2 CHAP; MP4 QuickTime track / Nero chpl)
+audioFile.getChapters(); // Chapter[]: { startTimeMs, endTimeMs?, title?, id?, source? }
+audioFile.setChapters([{ startTimeMs: 0, title: "Intro" }]); // replaces all
+audioFile.setChapters([{ startTimeMs: 0, title: "Intro" }], { mp4ChapterStyle: "both" });
+audioFile.setChapters([]); // clears all chapters
+
+// Opus: audioProperties() also exposes outputGainDb (OpusHead gain, RFC 7845)
 ```
 
 ### RatingUtils

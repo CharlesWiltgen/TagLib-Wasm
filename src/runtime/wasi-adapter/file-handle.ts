@@ -2,7 +2,7 @@
  * @fileoverview WASI-based FileHandle implementation
  */
 
-import type { FileHandle, RawPicture } from "../../wasm.ts";
+import type { FileHandle, RawChapter, RawPicture } from "../../wasm.ts";
 import type { BasicTagData } from "../../types/tags.ts";
 import type {
   AudioCodec,
@@ -38,7 +38,12 @@ const AUDIO_KEYS = new Set([
   "sampleRate",
 ]);
 
-const INTERNAL_KEYS = new Set(["pictures", "ratings"]);
+const INTERNAL_KEYS = new Set([
+  "pictures",
+  "ratings",
+  "chapters",
+  "_mp4ChapterStyle",
+]);
 
 const CONTAINER_TO_FORMAT: Record<string, string> = {
   MP3: "MP3",
@@ -376,6 +381,20 @@ export class WasiFileHandle implements FileHandle {
   removePictures(): void {
     this.checkNotDestroyed();
     this.tagData = { ...this.tagData, pictures: [] } as Record<string, unknown>;
+  }
+
+  getChapters(): RawChapter[] {
+    this.checkNotDestroyed();
+    return (this.tagData?.chapters as RawChapter[] | undefined) ?? [];
+  }
+
+  setChapters(chapters: RawChapter[], mp4ChapterStyle: string): void {
+    this.checkNotDestroyed();
+    this.tagData = {
+      ...this.tagData,
+      _mp4ChapterStyle: mp4ChapterStyle,
+      chapters,
+    } as Record<string, unknown>;
   }
 
   getRatings(): { rating: number; email: string; counter: number }[] {

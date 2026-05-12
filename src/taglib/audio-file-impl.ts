@@ -1,8 +1,13 @@
-import type { FileHandle, TagLibModule } from "../wasm.ts";
+import type { FileHandle, RawChapter, TagLibModule } from "../wasm.ts";
 import type { OpenOptions, Picture } from "../types.ts";
 import { PICTURE_TYPE_NAMES, PICTURE_TYPE_VALUES } from "../types.ts";
+import type { Chapter, SetChaptersOptions } from "../types/chapters.ts";
 import type { Rating } from "../constants/complex-properties.ts";
-import { FileOperationError, InvalidFormatError } from "../errors.ts";
+import {
+  FileOperationError,
+  InvalidFormatError,
+  UnsupportedFormatError,
+} from "../errors.ts";
 import { readFileData } from "../utils/file.ts";
 import { writeFileData } from "../utils/write.ts";
 import type { AudioFile } from "./audio-file-interface.ts";
@@ -10,6 +15,23 @@ import { BaseAudioFileImpl } from "./audio-file-base.ts";
 import { type EmbindFileHandle, wrapEmbindHandle } from "./embind-adapter.ts";
 
 let _nodeFs: { readFileSync(path: string): Uint8Array } | null | undefined;
+
+function sortChapters<T extends { startTimeMs: number }>(
+  list: readonly T[],
+): T[] {
+  return [...list].sort((a, b) => a.startTimeMs - b.startTimeMs);
+}
+
+function inferEndTimeMs(
+  sorted: readonly { startTimeMs: number; endTimeMs?: number }[],
+  index: number,
+  trackEndMs: number | undefined,
+): number | undefined {
+  const own = sorted[index].endTimeMs;
+  if (own !== undefined) return own;
+  const next = sorted[index + 1];
+  return next ? next.startTimeMs : trackEndMs;
+}
 
 function readFileSync(path: string): Uint8Array {
   if (typeof Deno !== "undefined") return Deno.readFileSync(path);
@@ -174,6 +196,36 @@ export class AudioFileImpl extends BaseAudioFileImpl implements AudioFile {
 
   removePictures(): void {
     this.handle.removePictures();
+  }
+
+  getChapters(): Chapter[] {
+    const sorted = sortChapters(this.handle.getChapters());
+    const trackEndMs = this.audioProperties()?.durationMs;
+    return sorted.map((c, i) => ({
+      startTimeMs: c.startTimeMs,
+      endTimeMs: inferEndTimeMs(sorted, i, trackEndMs),
+      title: c.title || undefined,
+      id: c.id || undefined,
+      source: c.source as Chapter["source"],
+    }));
+  }
+
+  setChapters(chapters: Chapter[], options?: SetChaptersOptions): void {
+    const fmt = this.getFormat();
+    if (fmt !== "MP3" && fmt !== "MP4") {
+      throw new UnsupportedFormatError(fmt, ["MP3", "MP4"], {
+        operation: "setChapters",
+      });
+    }
+    const sorted = sortChapters(chapters);
+    const trackEndMs = this.audioProperties()?.durationMs;
+    const raw: RawChapter[] = sorted.map((c, i) => ({
+      id: c.id,
+      startTimeMs: c.startTimeMs,
+      endTimeMs: inferEndTimeMs(sorted, i, trackEndMs) ?? c.startTimeMs,
+      title: c.title,
+    }));
+    this.handle.setChapters(raw, options?.mp4ChapterStyle ?? "quicktime");
   }
 
   getRatings(): Rating[] {

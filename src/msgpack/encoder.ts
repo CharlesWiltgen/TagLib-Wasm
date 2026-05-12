@@ -10,7 +10,13 @@ import type {
 } from "../types.ts";
 import { toTagLibKey } from "../constants/properties.ts";
 
-const PASSTHROUGH_KEYS = new Set(["pictures", "ratings", "lyrics", "chapters"]);
+const PASSTHROUGH_KEYS = new Set([
+  "pictures",
+  "ratings",
+  "lyrics",
+  "chapters",
+  "_mp4ChapterStyle",
+]);
 
 const MSGPACK_ENCODE_OPTIONS: EncoderOptions = {
   sortKeys: false,

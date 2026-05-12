@@ -89,6 +89,23 @@ export interface AudioFile {
   /** Remove all pictures from the audio file. */
   removePictures(): void;
 
+  /**
+   * Get all chapter markers, ordered by start time. Empty array if the file
+   * has none. Read from ID3v2 CHAP frames (MP3) or, for MP4, QuickTime chapter
+   * tracks (preferred) or Nero `chpl` atoms.
+   */
+  getChapters(): import("../types/chapters.ts").Chapter[];
+
+  /**
+   * Replace all chapter markers in the file with `chapters`. Only MP3 (ID3v2
+   * CHAP) and MP4 are supported; other formats throw. See
+   * {@link import("../types/chapters.ts").SetChaptersOptions} for MP4 options.
+   */
+  setChapters(
+    chapters: import("../types/chapters.ts").Chapter[],
+    options?: import("../types/chapters.ts").SetChaptersOptions,
+  ): void;
+
   /** Get all ratings (normalized 0.0-1.0) from the audio file. */
   getRatings(): Rating[];
 
