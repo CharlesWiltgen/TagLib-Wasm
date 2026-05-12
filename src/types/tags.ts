@@ -217,13 +217,11 @@ export interface ExtendedTag extends Tag {
     description: string;
     language: string;
   }>;
-  /** Chapter markers (ID3v2 CHAP frames, MP3 only) */
-  readonly chapters?: Array<{
-    id: string;
-    startTimeMs: number;
-    endTimeMs: number;
-    title?: string;
-  }>;
+  /**
+   * Chapter markers. Populated from ID3v2 CHAP frames (MP3), QuickTime chapter
+   * tracks, or Nero `chpl` atoms (MP4). See {@link Chapter}.
+   */
+  readonly chapters?: import("./chapters.ts").Chapter[];
 }
 
 /**

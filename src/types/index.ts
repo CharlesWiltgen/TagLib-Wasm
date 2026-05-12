@@ -17,6 +17,9 @@ export * from "./metadata-mappings.ts";
 // Picture types and bitrate control modes
 export * from "./pictures.ts";
 
+// Chapter / cue-marker types
+export * from "./chapters.ts";
+
 // Configuration types
 export * from "./config.ts";
 
