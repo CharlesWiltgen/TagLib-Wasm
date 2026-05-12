@@ -222,6 +222,12 @@ export interface ExtendedTag extends Tag {
    * tracks, or Nero `chpl` atoms (MP4). See {@link Chapter}.
    */
   readonly chapters?: import("./chapters.ts").Chapter[];
+  /** Parsed BWF `bext` (Broadcast Audio Extension) chunk. WAV and FLAC only. */
+  readonly bext?: import("./bwf.ts").BroadcastAudioExtension;
+  /** Raw BWF `bext` chunk bytes. WAV and FLAC only. */
+  readonly bextData?: Uint8Array;
+  /** Raw iXML chunk as a string. WAV and FLAC only. */
+  readonly ixml?: string;
 }
 
 /**
