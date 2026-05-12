@@ -1,5 +1,30 @@
 # Changelog
 
+## Unreleased
+
+### Features
+
+- Chapters: `AudioFile.getChapters()` / `setChapters()` for MP3 (ID3v2 `CHAP`)
+  and MP4 (QuickTime chapter track and/or Nero `chpl` atom, selectable via
+  `SetChaptersOptions.mp4ChapterStyle`). Adds the `Chapter` and
+  `SetChaptersOptions` types and `ExtendedTag.chapters`.
+- Broadcast metadata (BWF): `AudioFile.getBext()` / `setBext()` parse and write
+  the `bext` chunk (EBU Tech 3285) on WAV and FLAC, with `getBextData()` /
+  `setBextData()` for raw chunk bytes and `getIxml()` / `setIxml()` for the iXML
+  chunk. Adds the `BroadcastAudioExtension` type, `ExtendedTag.bext` /
+  `bextData` / `ixml`, and a standalone `bwf.decodeBext` / `bwf.encodeBext`
+  codec.
+- Opus: `audioProperties()` exposes `outputGainDb` — the OpusHead output gain in
+  decibels (RFC 7845).
+
+### Dependencies
+
+- Update TagLib from 2.2.1 to 2.3 (released 2026-05-10). Inherited fixes that
+  ride along: correct ADTS/ESDS AAC bitrate reporting; fixed `MP4::ItemFactory`
+  data race; bounded EBML/MP4 atom recursion and atom-count caps; `stco`/`co64`
+  chunk-offset fix; more tolerant RIFF / ID3v2 / Matroska parsing; no false
+  positives in MPEG detection; faster Matroska seek-head handling.
+
 ## 1.0.6
 
 ### Features

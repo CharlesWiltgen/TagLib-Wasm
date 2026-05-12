@@ -60,6 +60,11 @@ export default defineConfig({
           items: [
             { text: "Cover Art", link: "/guide/cover-art" },
             { text: "Track Ratings", link: "/guide/ratings" },
+            { text: "Chapters", link: "/guide/chapters" },
+            {
+              text: "Broadcast Metadata (BWF)",
+              link: "/guide/broadcast-metadata",
+            },
             { text: "Folder Operations", link: "/guide/folder-operations" },
             { text: "Examples", link: "/guide/examples" },
             { text: "Codec Detection", link: "/guide/codec-detection" },

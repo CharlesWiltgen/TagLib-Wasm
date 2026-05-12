@@ -31,8 +31,10 @@ TagLib-Wasm is the **universal tagging library for TypeScript/JavaScript**
   Cloudflare Workers, and browsers
 - **Format abstraction** – Handles container format details automatically when
   possible
+- **Rich metadata** – Cover art, ratings, chapters (MP3 `CHAP`, MP4
+  QuickTime/Nero), and broadcast metadata (BWF `bext`/iXML for WAV/FLAC)
 - **Zero dependencies** – Self-contained Wasm bundle
-- **Tested** – 135+ tests across all formats
+- **Tested** – 265 tests across all formats
 - **Two API styles** – Use the "Simple" API (3 functions), or the full "Core"
   API for more advanced applications
 - **Batch folder operations** – Scan directories, process multiple files, find
@@ -372,6 +374,8 @@ Supported formats:
 - [Platform Examples](https://charleswiltgen.github.io/TagLib-Wasm/guide/platform-examples.html)
 - [Working with Cover Art](https://charleswiltgen.github.io/TagLib-Wasm/guide/cover-art.html)
 - [Track Ratings](https://charleswiltgen.github.io/TagLib-Wasm/guide/ratings.html)
+- [Chapters](https://charleswiltgen.github.io/TagLib-Wasm/guide/chapters.html)
+- [Broadcast Metadata (BWF bext / iXML)](https://charleswiltgen.github.io/TagLib-Wasm/guide/broadcast-metadata.html)
 - [Cloudflare Workers](https://charleswiltgen.github.io/TagLib-Wasm/advanced/cloudflare-workers.html)
 - [Error Handling](https://charleswiltgen.github.io/TagLib-Wasm/concepts/error-handling.html)
 - [Contributing](CONTRIBUTING.md)
@@ -383,9 +387,9 @@ Supported formats:
 
 - **.mp3** – ID3v2 and ID3v1 tags
 - **.m4a/.mp4** – MPEG-4/AAC metadata for AAC and Apple Lossless audio
-- **.flac** – Vorbis comments and audio properties
+- **.flac** – Vorbis comments and audio properties (plus BWF `bext`/iXML)
 - **.ogg** – Ogg Vorbis format with full metadata support
-- **.wav** – INFO chunk metadata
+- **.wav** – INFO chunk metadata, plus BWF `bext` and iXML
 - **Additional formats** – Opus, APE, MPC, WavPack, TrueAudio, AIFF, WMA, and
   more
 
