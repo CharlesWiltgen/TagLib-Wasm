@@ -252,10 +252,15 @@ tl_error_code apply_chapters_from_msgpack(
         key[klen] = '\0';
 
         if (strcmp(key, "_mp4ChapterStyle") == 0) {
-            char sbuf[16];
-            uint32_t slen = mpack_expect_str_buf(&reader, sbuf, sizeof(sbuf) - 1);
-            sbuf[slen < sizeof(sbuf) ? slen : sizeof(sbuf) - 1] = '\0';
-            style = parse_mp4_style(sbuf);
+            char sbuf[16] = {0};
+            mpack_tag_t st = mpack_peek_tag(&reader);
+            if (st.type == mpack_type_str && mpack_tag_str_length(&st) < sizeof(sbuf)) {
+                uint32_t slen = mpack_expect_str_buf(&reader, sbuf, sizeof(sbuf));
+                sbuf[slen] = '\0';
+                style = parse_mp4_style(sbuf);
+            } else {
+                mpack_discard(&reader);
+            }
         } else if (strcmp(key, "chapters") == 0) {
             if (mpack_peek_tag(&reader).type != mpack_type_array) { mpack_discard(&reader); continue; }
             found = true;
