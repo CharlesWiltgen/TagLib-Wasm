@@ -21,6 +21,8 @@ struct ExtendedAudioInfo {
     bool isEncrypted;    // MP4, ASF
     int version;         // APE, WavPack, MPC, TTA, Shorten version
     const char* bitrateMode;  // "CBR" | "VBR" | "ABR" | nullptr (MP3 only)
+    double outputGainDb;      // OpusHead output gain in dB (valid iff outputGainValid)
+    bool outputGainValid;     // true for Ogg::Opus files (even when the gain is 0)
 };
 
 ExtendedAudioInfo get_extended_audio_info(TagLib::File* file,

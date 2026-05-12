@@ -54,6 +54,7 @@ interface EmbindAudioPropertiesWrapper {
   isEncrypted(): boolean;
   formatVersion(): number;
   bitrateMode(): string;
+  outputGainDb(): number;
 }
 
 /** @internal The raw Embind FileHandle before adaptation. */
@@ -93,6 +94,7 @@ export function wrapEmbindHandle(raw: EmbindFileHandle): FileHandle {
       if (!pw) return null;
       const containerFormat =
         (pw.containerFormat() || "unknown") as ContainerFormat;
+      const codec = (pw.codec() || "unknown") as AudioCodec;
       const mpegVersion = pw.mpegVersion();
       const formatVersion = pw.formatVersion();
       const bitrateMode = pw.bitrateMode();
@@ -103,7 +105,7 @@ export function wrapEmbindHandle(raw: EmbindFileHandle): FileHandle {
         sampleRate: pw.sampleRate(),
         channels: pw.channels(),
         bitsPerSample: pw.bitsPerSample(),
-        codec: (pw.codec() || "unknown") as AudioCodec,
+        codec,
         containerFormat,
         isLossless: pw.isLossless(),
         ...(mpegVersion > 0 ? { mpegVersion, mpegLayer: pw.mpegLayer() } : {}),
@@ -112,6 +114,7 @@ export function wrapEmbindHandle(raw: EmbindFileHandle): FileHandle {
           : {}),
         ...(formatVersion > 0 ? { formatVersion } : {}),
         ...(isValidBitrateMode(bitrateMode) ? { bitrateMode } : {}),
+        ...(codec === "Opus" ? { outputGainDb: pw.outputGainDb() } : {}),
       };
     },
   };

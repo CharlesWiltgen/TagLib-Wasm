@@ -196,6 +196,12 @@ export interface AudioProperties {
   readonly formatVersion?: number;
   /** Bitrate mode (MP3 only — undefined for formats where it is not meaningful or detectable) */
   readonly bitrateMode?: BitrateMode;
+  /**
+   * OpusHead output gain in decibels (Opus only, RFC 7845 §5.1). Players apply
+   * this unconditionally; it is independent of, and stacks with, ReplayGain /
+   * R128 *tags*. Almost always 0.
+   */
+  readonly outputGainDb?: number;
 }
 
 /**
@@ -205,6 +211,7 @@ export interface AudioProperties {
  * for a given format become required:
  * - MP3: `mpegVersion`, `mpegLayer`
  * - MP4/ASF: `isEncrypted`
+ * - OPUS: `outputGainDb`
  * - APE/WV/TTA/MPC/SHN: `formatVersion`
  *
  * @example
@@ -222,6 +229,7 @@ export type TypedAudioProperties<F extends FileType> = F extends "MP3"
   }
   : F extends "MP4" | "ASF"
     ? AudioProperties & { readonly isEncrypted: boolean }
+  : F extends "OPUS" ? AudioProperties & { readonly outputGainDb: number }
   : F extends "APE" | "WV" | "TTA" | "MPC" | "SHN"
     ? AudioProperties & { readonly formatVersion: number }
   : AudioProperties;

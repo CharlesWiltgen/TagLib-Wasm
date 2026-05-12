@@ -47,7 +47,7 @@
 ExtendedAudioInfo get_extended_audio_info(
     TagLib::File* file, TagLib::AudioProperties* /* audio */)
 {
-    ExtendedAudioInfo info = {0, "", "", false, 0, 0, false, 0, nullptr};
+    ExtendedAudioInfo info = {0, "", "", false, 0, 0, false, 0, nullptr, 0.0, false};
 
     if (auto* f = dynamic_cast<TagLib::MPEG::File*>(file)) {
         auto* props = f->audioProperties();
@@ -107,7 +107,12 @@ ExtendedAudioInfo get_extended_audio_info(
         return info;
     }
 
-    if (dynamic_cast<TagLib::Ogg::Opus::File*>(file)) {
+    if (auto* f = dynamic_cast<TagLib::Ogg::Opus::File*>(file)) {
+        if (auto* props = f->audioProperties()) {
+            // TagLib returns the raw Q7.8 fixed-point value; dB = raw / 256.0.
+            info.outputGainDb = static_cast<double>(props->outputGain()) / 256.0;
+            info.outputGainValid = true;
+        }
         info.codec = "Opus";
         info.container = "OGG";
         return info;
@@ -294,6 +299,7 @@ uint32_t count_extended_audio_fields(const ExtendedAudioInfo& info) {
     if (info.isEncrypted) count++;
     if (info.version > 0) count++;
     if (info.bitrateMode != nullptr) count++;
+    if (info.outputGainValid) count++;
     return count;
 }
 
@@ -351,6 +357,12 @@ uint32_t encode_extended_audio(
     if (info.bitrateMode != nullptr) {
         mpack_write_cstr(writer, "bitrateMode");
         mpack_write_cstr(writer, info.bitrateMode);
+        written++;
+    }
+
+    if (info.outputGainValid) {
+        mpack_write_cstr(writer, "outputGainDb");
+        mpack_write_double(writer, info.outputGainDb);
         written++;
     }
 

@@ -155,7 +155,16 @@ public:
     int channels() const {
         return props ? props->channels() : 0;
     }
-    
+
+    // OpusHead output gain in dB (Opus only; 0.0 for any other format).
+    // TagLib exposes the raw Q7.8 fixed-point value; dB = raw / 256.0.
+    double outputGainDb() const {
+        if (auto* opusProps = dynamic_cast<TagLib::Ogg::Opus::Properties*>(props)) {
+            return static_cast<double>(opusProps->outputGain()) / 256.0;
+        }
+        return 0.0;
+    }
+
     int bitsPerSample() const {
         if (!props) return 0;
         
@@ -1433,7 +1442,8 @@ EMSCRIPTEN_BINDINGS(taglib) {
         .function("mpegLayer", &AudioPropertiesWrapper::mpegLayer)
         .function("bitrateMode", &AudioPropertiesWrapper::bitrateMode)
         .function("isEncrypted", &AudioPropertiesWrapper::isEncrypted)
-        .function("formatVersion", &AudioPropertiesWrapper::formatVersion);
+        .function("formatVersion", &AudioPropertiesWrapper::formatVersion)
+        .function("outputGainDb", &AudioPropertiesWrapper::outputGainDb);
     
     // PictureWrapper class
     class_<PictureWrapper>("PictureWrapper")

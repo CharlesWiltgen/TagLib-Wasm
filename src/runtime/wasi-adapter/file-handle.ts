@@ -34,6 +34,7 @@ const AUDIO_KEYS = new Set([
   "lengthMs",
   "mpegLayer",
   "mpegVersion",
+  "outputGainDb",
   "sampleRate",
 ]);
 
@@ -174,6 +175,9 @@ export class WasiFileHandle implements FileHandle {
         ? { isEncrypted: (d.isEncrypted as boolean) ?? false }
         : {}),
       ...(formatVersion > 0 ? { formatVersion } : {}),
+      ...(d.outputGainDb !== undefined
+        ? { outputGainDb: d.outputGainDb as number }
+        : {}),
     };
   }
 
