@@ -106,6 +106,29 @@ export interface AudioFile {
     options?: import("../types/chapters.ts").SetChaptersOptions,
   ): void;
 
+  /**
+   * Parsed BWF `bext` (Broadcast Audio Extension) chunk, or `undefined` if the
+   * file has none / the chunk is too short to parse. WAV and FLAC only.
+   */
+  getBext():
+    | import("../types/bwf.ts").BroadcastAudioExtension
+    | undefined;
+
+  /** Encode and write a `bext` chunk. Throws UnsupportedFormatError for non-WAV/FLAC. */
+  setBext(bext: import("../types/bwf.ts").BroadcastAudioExtension): void;
+
+  /** Raw `bext` chunk bytes (escape hatch for vendor extensions), or `undefined` if absent. */
+  getBextData(): Uint8Array | undefined;
+
+  /** Write raw `bext` chunk bytes; `null` removes the chunk. Throws for non-WAV/FLAC. */
+  setBextData(data: Uint8Array | null): void;
+
+  /** Raw iXML chunk as a string, or `undefined` if absent. WAV and FLAC only. */
+  getIxml(): string | undefined;
+
+  /** Write the iXML chunk; `null` removes it. Throws for non-WAV/FLAC. */
+  setIxml(data: string | null): void;
+
   /** Get all ratings (normalized 0.0-1.0) from the audio file. */
   getRatings(): Rating[];
 

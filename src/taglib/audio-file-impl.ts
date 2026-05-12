@@ -2,6 +2,8 @@ import type { FileHandle, RawChapter, TagLibModule } from "../wasm.ts";
 import type { OpenOptions, Picture } from "../types.ts";
 import { PICTURE_TYPE_NAMES, PICTURE_TYPE_VALUES } from "../types.ts";
 import type { Chapter, SetChaptersOptions } from "../types/chapters.ts";
+import type { BroadcastAudioExtension } from "../types/bwf.ts";
+import * as bwf from "./audio-file-bwf.ts";
 import type { Rating } from "../constants/complex-properties.ts";
 import {
   FileOperationError,
@@ -134,6 +136,10 @@ export class AudioFileImpl extends BaseAudioFileImpl implements AudioFile {
 
         fullFileHandle.setProperties(this.handle.getProperties());
         fullFileHandle.setPictures(this.handle.getPictures());
+        const bextBytes = this.handle.getBextData();
+        if (bextBytes !== undefined) fullFileHandle.setBextData(bextBytes);
+        const ixmlStr = this.handle.getIxml();
+        if (ixmlStr !== undefined) fullFileHandle.setIxml(ixmlStr);
 
         if (!fullFileHandle.save()) {
           throw new FileOperationError(
@@ -226,6 +232,30 @@ export class AudioFileImpl extends BaseAudioFileImpl implements AudioFile {
       title: c.title,
     }));
     this.handle.setChapters(raw, options?.mp4ChapterStyle ?? "quicktime");
+  }
+
+  getBext(): BroadcastAudioExtension | undefined {
+    return bwf.getBext(this.handle);
+  }
+
+  setBext(bext: BroadcastAudioExtension): void {
+    bwf.setBext(this.handle, this.getFormat(), bext);
+  }
+
+  getBextData(): Uint8Array | undefined {
+    return bwf.getBextData(this.handle);
+  }
+
+  setBextData(data: Uint8Array | null): void {
+    bwf.setBextData(this.handle, this.getFormat(), data);
+  }
+
+  getIxml(): string | undefined {
+    return bwf.getIxml(this.handle);
+  }
+
+  setIxml(data: string | null): void {
+    bwf.setIxml(this.handle, this.getFormat(), data);
   }
 
   getRatings(): Rating[] {
