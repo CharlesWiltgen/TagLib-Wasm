@@ -89,6 +89,27 @@ export function wrapEmbindHandle(raw: EmbindFileHandle): FileHandle {
       if (data.year !== undefined) tw.setYear(data.year);
       if (data.track !== undefined) tw.setTrack(data.track);
     },
+    getBextData(): Uint8Array | undefined {
+      const v = (raw as unknown as { getBextData(): unknown }).getBextData();
+      if (v === undefined || v === null) return undefined;
+      const u8 = v instanceof Uint8Array
+        ? v
+        : new Uint8Array(v as ArrayLike<number>);
+      return u8.length > 0 ? u8 : undefined;
+    },
+    setBextData(data: Uint8Array | null) {
+      (raw as unknown as { setBextData(d: Uint8Array | null): void })
+        .setBextData(data ?? null);
+    },
+    getIxml(): string | undefined {
+      const v = (raw as unknown as { getIxml(): unknown }).getIxml();
+      return typeof v === "string" && v.length > 0 ? v : undefined;
+    },
+    setIxml(data: string | null) {
+      (raw as unknown as { setIxml(d: string | null): void }).setIxml(
+        data ?? null,
+      );
+    },
     getAudioProperties(): AudioProperties | null {
       const pw = raw.getAudioProperties();
       if (!pw) return null;

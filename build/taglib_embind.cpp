@@ -1219,6 +1219,55 @@ public:
         }
     }
 
+    // BWF bext/iXML — raw passthrough for WAV and FLAC. Parsing is done in TS.
+    val getBextData() const {
+        if (!fileRef || !fileRef->file()) return val::undefined();
+        TagLib::File* f = fileRef->file();
+        TagLib::ByteVector bv;
+        if (auto* wav = dynamic_cast<TagLib::RIFF::WAV::File*>(f)) {
+            if (!wav->hasBEXTData()) return val::undefined();
+            bv = wav->BEXTData();
+        } else if (auto* flac = dynamic_cast<TagLib::FLAC::File*>(f)) {
+            if (!flac->hasBEXTData()) return val::undefined();
+            bv = flac->BEXTData();
+        } else {
+            return val::undefined();
+        }
+        return byteVectorToUint8Array(bv);
+    }
+
+    void setBextData(const val& data) {
+        if (!fileRef || !fileRef->file()) return;
+        TagLib::File* f = fileRef->file();
+        TagLib::ByteVector bv = (data.isNull() || data.isUndefined())
+            ? TagLib::ByteVector() : uint8ArrayToByteVector(data);
+        if (auto* wav = dynamic_cast<TagLib::RIFF::WAV::File*>(f)) wav->setBEXTData(bv);
+        else if (auto* flac = dynamic_cast<TagLib::FLAC::File*>(f)) flac->setBEXTData(bv);
+    }
+
+    val getIxml() const {
+        if (!fileRef || !fileRef->file()) return val::undefined();
+        TagLib::File* f = fileRef->file();
+        if (auto* wav = dynamic_cast<TagLib::RIFF::WAV::File*>(f)) {
+            if (!wav->hasiXMLData()) return val::undefined();
+            return val(std::string(wav->iXMLData().toCString(true)));
+        }
+        if (auto* flac = dynamic_cast<TagLib::FLAC::File*>(f)) {
+            if (!flac->hasiXMLData()) return val::undefined();
+            return val(std::string(flac->iXMLData().toCString(true)));
+        }
+        return val::undefined();
+    }
+
+    void setIxml(const val& data) {
+        if (!fileRef || !fileRef->file()) return;
+        TagLib::File* f = fileRef->file();
+        TagLib::String s = (data.isNull() || data.isUndefined())
+            ? TagLib::String() : TagLib::String(data.as<std::string>(), TagLib::String::UTF8);
+        if (auto* wav = dynamic_cast<TagLib::RIFF::WAV::File*>(f)) wav->setiXMLData(s);
+        else if (auto* flac = dynamic_cast<TagLib::FLAC::File*>(f)) flac->setiXMLData(s);
+    }
+
     // Get all ratings from the audio file
     // Returns array of {rating: number (0.0-1.0), email: string, counter: number}
     val getRatings() const {
@@ -1511,6 +1560,10 @@ EMSCRIPTEN_BINDINGS(taglib) {
         .function("removePictures", &FileHandle::removePictures)
         .function("getChapters", &FileHandle::getChapters)
         .function("setChapters", &FileHandle::setChapters)
+        .function("getBextData", &FileHandle::getBextData)
+        .function("setBextData", &FileHandle::setBextData)
+        .function("getIxml", &FileHandle::getIxml)
+        .function("setIxml", &FileHandle::setIxml)
         .function("getRatings", &FileHandle::getRatings)
         .function("setRatings", &FileHandle::setRatings)
         .function("destroy", &FileHandle::destroy);
