@@ -45,7 +45,16 @@ export interface FieldMapping {
  * ```
  */
 export const METADATA_MAPPINGS: Record<
-  Exclude<keyof ExtendedTag, "pictures" | "ratings" | "lyrics" | "chapters">,
+  Exclude<
+    keyof ExtendedTag,
+    | "pictures"
+    | "ratings"
+    | "lyrics"
+    | "chapters"
+    | "bext"
+    | "bextData"
+    | "ixml"
+  >,
   FieldMapping
 > = {
   // Basic fields (already handled by TagLib's standard API)
