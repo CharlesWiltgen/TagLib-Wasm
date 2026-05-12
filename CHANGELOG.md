@@ -25,6 +25,14 @@
   chunk-offset fix; more tolerant RIFF / ID3v2 / Matroska parsing; no false
   positives in MPEG detection; faster Matroska seek-head handling.
 
+### Internal
+
+- Remove a stale `git subtree` copy of TagLib (`CMakeLists.txt`, `taglib/`,
+  `bindings/`) from the repo root — unused by the build (which uses the
+  `lib/taglib` submodule) and only ever leaked into the JSR tarball. Tightened
+  `deno.json` `publish.exclude` and rewrote `scripts/update-taglib.sh` to use
+  the submodule flow instead of `git subtree`.
+
 ## 1.0.6
 
 ### Features
