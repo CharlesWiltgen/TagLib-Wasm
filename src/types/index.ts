@@ -20,6 +20,9 @@ export * from "./pictures.ts";
 // Chapter / cue-marker types
 export * from "./chapters.ts";
 
+// BWF (Broadcast Wave) types — bext / iXML
+export * from "./bwf.ts";
+
 // Configuration types
 export * from "./config.ts";
 

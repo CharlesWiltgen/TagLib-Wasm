@@ -161,6 +161,7 @@ export type {
   AudioFileInput,
   AudioProperties,
   BitrateControlMode,
+  BroadcastAudioExtension,
   Chapter,
   ContainerFormat,
   ExtendedTag,
@@ -207,6 +208,9 @@ export type {
 // Rating conversion utilities (individual functions available via taglib-wasm/rating)
 export { RatingUtils } from "./src/utils/rating.ts";
 export type { NormalizedRating, PopmRating } from "./src/utils/rating.ts";
+
+// BWF `bext` chunk codec — for working with raw bext bytes without a file handle
+export * as bwf from "./src/bwf/bext.ts";
 
 // Wasm module types and loader
 export type { TagLibModule, WasmModule } from "./src/wasm.ts";
