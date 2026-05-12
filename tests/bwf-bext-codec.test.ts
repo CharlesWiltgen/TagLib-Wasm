@@ -135,7 +135,7 @@ Deno.test("encodeBext: truncates over-long string fields to their widths", () =>
   assertEquals(b.description.length, 256);
 });
 
-Deno.test("encodeBext: loudness clamps at the Int16 edges and round-trips", () => {
+Deno.test("encodeBext: loudness clamps at the Int16 edges; 0x7FFF is the not-set sentinel", () => {
   const b = decodeBext(encodeBext({
     description: "",
     originator: "",
@@ -145,13 +145,36 @@ Deno.test("encodeBext: loudness clamps at the Int16 edges and round-trips", () =
     timeReferenceSamples: 0n,
     version: 2,
     codingHistory: "",
-    loudnessValueDb: 9999,
-    loudnessRangeDb: -9999,
-    maxTruePeakLevelDbtp: 327.67, // == 0x7FFF sentinel; round-trips literally
+    loudnessValueDb: 327.66, // largest representable real value (one below the sentinel)
+    loudnessRangeDb: -9999, // clamps to -327.68
+    maxTruePeakLevelDbtp: 9999, // clamps up to 0x7FFF == "not set" => decodes as undefined
+    // maxMomentaryLoudnessDb / maxShortTermLoudnessDb omitted => written as 0x7FFF => undefined
   }))!;
-  assertEquals(b.loudnessValueDb, 327.67);
+  assertEquals(b.loudnessValueDb, 327.66);
   assertEquals(b.loudnessRangeDb, -327.68);
-  assertEquals(b.maxTruePeakLevelDbtp, 327.67);
+  assertEquals(b.maxTruePeakLevelDbtp, undefined);
+  assertEquals(b.maxMomentaryLoudnessDb, undefined);
+  assertEquals(b.maxShortTermLoudnessDb, undefined);
+});
+
+Deno.test("bext: a v2 chunk with no loudness fields decodes them all as undefined", () => {
+  const b = decodeBext(encodeBext({
+    description: "x",
+    originator: "",
+    originatorReference: "",
+    originationDate: "",
+    originationTime: "",
+    timeReferenceSamples: 0n,
+    version: 2,
+    umid: "00".repeat(64),
+    codingHistory: "",
+  }))!;
+  assertEquals(b.version, 2);
+  assertEquals(b.loudnessValueDb, undefined);
+  assertEquals(b.loudnessRangeDb, undefined);
+  assertEquals(b.maxTruePeakLevelDbtp, undefined);
+  assertEquals(b.maxMomentaryLoudnessDb, undefined);
+  assertEquals(b.maxShortTermLoudnessDb, undefined);
 });
 
 Deno.test("encodeBext: version defaults to 2 when loudness fields are present", () => {
@@ -178,7 +201,9 @@ Deno.test("property: decodeBext(encodeBext(b)) === b for arbitrary valid structs
     fc.string({ maxLength: max }).map((s) =>
       s.replace(/[^\x20-\x7e]/g, "").slice(0, max)
     );
-  const cents = fc.integer({ min: -32768, max: 32767 }).map((n) => n / 100);
+  // Exclude 0x7FFF (32767) — that's the EBU "not set" sentinel, which round-trips
+  // to `undefined`, not to a numeric value (covered by dedicated tests above).
+  const cents = fc.integer({ min: -32768, max: 32766 }).map((n) => n / 100);
   fc.assert(
     fc.property(
       fc.record({

@@ -117,6 +117,7 @@ tl_error_code apply_bwf_from_msgpack(
         if (klen >= sizeof(key)) { mpack_reader_destroy(&reader); return TL_ERROR_PARSE_FAILED; }
         mpack_read_bytes(&reader, key, klen);
         mpack_done_str(&reader);
+        if (mpack_reader_error(&reader) != mpack_ok) break;
         key[klen] = '\0';
 
         if (strcmp(key, "bextData") == 0) {

@@ -4,7 +4,9 @@
  * `version` field selects which optional fields are meaningful (0 = none,
  * 1 = UMID, 2 = UMID + loudness). Fixed-width string fields are NUL-padded
  * ASCII; `codingHistory` is exposed verbatim (the spec uses CR/LF lines) and
- * is not promised to preserve embedded NUL bytes.
+ * is not promised to preserve embedded NUL bytes. Loudness fields use the EBU
+ * "value not set" sentinel `0x7FFF`: a sentinel decodes to `undefined`, and an
+ * `undefined` loudness field on a v2 encode is written as the sentinel.
  */
 
 import type { BroadcastAudioExtension } from "../types/bwf.ts";
@@ -14,6 +16,7 @@ const VERSION_OFFSET = 346;
 const UMID_OFFSET = 348;
 const UMID_LEN = 64;
 const LOUDNESS_OFFSET = 412; // five Int16 LE, ×100
+const LOUDNESS_UNSET = 0x7fff; // EBU "value not set" sentinel
 
 function readFixedString(
   bytes: Uint8Array,
@@ -44,7 +47,11 @@ function clampInt16(n: number): number {
 }
 
 function loudnessRaw(v: number | undefined): number {
-  return v === undefined ? 0 : clampInt16(v * 100);
+  return v === undefined ? LOUDNESS_UNSET : clampInt16(v * 100);
+}
+
+function loudnessFromRaw(raw: number): number | undefined {
+  return raw === LOUDNESS_UNSET ? undefined : raw / 100;
 }
 
 function bytesToHex(bytes: Uint8Array): string {
@@ -99,13 +106,16 @@ export function decodeBext(
     );
   }
   if (version >= 2 && bytes.length >= LOUDNESS_OFFSET + 10) {
-    result.loudnessValueDb = dv.getInt16(LOUDNESS_OFFSET, true) / 100;
-    result.loudnessRangeDb = dv.getInt16(LOUDNESS_OFFSET + 2, true) / 100;
-    result.maxTruePeakLevelDbtp = dv.getInt16(LOUDNESS_OFFSET + 4, true) / 100;
-    result.maxMomentaryLoudnessDb = dv.getInt16(LOUDNESS_OFFSET + 6, true) /
-      100;
-    result.maxShortTermLoudnessDb = dv.getInt16(LOUDNESS_OFFSET + 8, true) /
-      100;
+    const lv = loudnessFromRaw(dv.getInt16(LOUDNESS_OFFSET, true));
+    const lr = loudnessFromRaw(dv.getInt16(LOUDNESS_OFFSET + 2, true));
+    const mtp = loudnessFromRaw(dv.getInt16(LOUDNESS_OFFSET + 4, true));
+    const mml = loudnessFromRaw(dv.getInt16(LOUDNESS_OFFSET + 6, true));
+    const msl = loudnessFromRaw(dv.getInt16(LOUDNESS_OFFSET + 8, true));
+    if (lv !== undefined) result.loudnessValueDb = lv;
+    if (lr !== undefined) result.loudnessRangeDb = lr;
+    if (mtp !== undefined) result.maxTruePeakLevelDbtp = mtp;
+    if (mml !== undefined) result.maxMomentaryLoudnessDb = mml;
+    if (msl !== undefined) result.maxShortTermLoudnessDb = msl;
   }
   return result;
 }
@@ -114,8 +124,9 @@ export function decodeBext(
  * Serialize a `bext` chunk. The result is always `602 + codingHistory.length`
  * bytes. `version` defaults to 2 when any loudness field is present (else 1 if
  * `umid` is set, else 0). Over-long string fields are truncated to their widths;
- * loudness values are clamped to the Int16 range after ×100; UMID is written
- * only for version ≥ 1.
+ * loudness values are clamped to the Int16 range after ×100, with `undefined`
+ * written as the EBU `0x7FFF` "not set" sentinel; UMID is written only for
+ * version ≥ 1.
  */
 export function encodeBext(b: BroadcastAudioExtension): Uint8Array {
   const codingHistory = b.codingHistory ?? "";
