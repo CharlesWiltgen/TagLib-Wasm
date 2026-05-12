@@ -1024,6 +1024,86 @@ file.setChapters([
 file.save();
 ```
 
+#### BWF / Broadcast Metadata Methods (WAV and FLAC only)
+
+##### getBext()
+
+Parsed BWF `bext` (Broadcast Audio Extension, EBU Tech 3285) chunk, or
+`undefined` if the file has none / the chunk is too short to parse.
+
+```typescript
+getBext(): BroadcastAudioExtension | undefined
+```
+
+```typescript
+interface BroadcastAudioExtension {
+  description: string; // ≤ 256 bytes on write
+  originator: string; // ≤ 32 bytes
+  originatorReference: string; // ≤ 32 bytes
+  originationDate: string; // "YYYY-MM-DD"
+  originationTime: string; // "HH:MM:SS"
+  timeReferenceSamples: bigint; // samples since midnight
+  version: number; // 0 | 1 | 2
+  umid?: string; // hex; present when version ≥ 1
+  loudnessValueDb?: number; // present when version ≥ 2 (LUFS)
+  loudnessRangeDb?: number; // LU
+  maxTruePeakLevelDbtp?: number; // dBTP
+  maxMomentaryLoudnessDb?: number; // LUFS
+  maxShortTermLoudnessDb?: number; // LUFS
+  codingHistory: string; // CR/LF-delimited text
+}
+```
+
+##### setBext()
+
+Encode and write a `bext` chunk. Throws `UnsupportedFormatError` for non-WAV/FLAC
+files. `version` defaults to 2 when any loudness field is present; over-long
+string fields are truncated to their widths and loudness values are clamped.
+
+```typescript
+setBext(bext: BroadcastAudioExtension): void
+```
+
+##### getBextData() / setBextData()
+
+Raw `bext` chunk bytes — an escape hatch for vendor extensions or malformed
+chunks. `getBextData()` returns `undefined` if absent; `setBextData(null)`
+removes the chunk.
+
+```typescript
+getBextData(): Uint8Array | undefined
+setBextData(data: Uint8Array | null): void
+```
+
+##### getIxml() / setIxml()
+
+Raw iXML chunk as a string (passed through verbatim — not parsed).
+`setIxml(null)` removes the chunk.
+
+```typescript
+getIxml(): string | undefined
+setIxml(data: string | null): void
+```
+
+The v2 loudness fields are EBU R128-style integrated-loudness measurements and
+are distinct from ReplayGain tags. The `bwf.decodeBext` / `bwf.encodeBext`
+functions are also exported from the package root for working with raw `bext`
+bytes without a file handle.
+
+```typescript
+const file = await taglib.open("recording.wav");
+const bext = file.getBext();
+if (bext) console.log(bext.description, bext.codingHistory);
+file.setBext({
+  ...bext!,
+  description: "Updated",
+  version: 2,
+  loudnessValueDb: -16,
+});
+file.setIxml("<BWFXML>…</BWFXML>");
+file.save();
+```
+
 #### MP4-Specific Methods
 
 ##### isMP4()

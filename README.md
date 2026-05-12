@@ -287,6 +287,36 @@ structure(s) to write (the Nero atom is capped at 255 chapters). `endTimeMs` is
 explicit for ID3v2 chapters and inferred for MP4 (the next chapter's start, or
 the track duration for the last chapter).
 
+### Broadcast metadata (BWF `bext` / iXML)
+
+```typescript
+import { TagLib } from "taglib-wasm";
+
+const taglib = await TagLib.initialize();
+using file = await taglib.open("recording.wav");
+
+const bext = file.getBext(); // parsed EBU 3285 bext chunk, or undefined
+console.log(bext?.description, bext?.timeReferenceSamples, bext?.codingHistory);
+console.log(file.getIxml()); // raw iXML string, or undefined
+
+file.setBext({
+  ...bext!,
+  description: "Updated",
+  version: 2,
+  loudnessValueDb: -16,
+});
+file.setIxml("<BWFXML>…</BWFXML>");
+file.save();
+```
+
+`getBext()` / `setBext()` (WAV and FLAC only) parse and serialize the BWF
+Broadcast Audio Extension chunk; `getBextData()` / `setBextData()` expose the
+raw chunk bytes for vendor extensions or malformed chunks, and `setBextData(null)`
+removes the chunk. iXML is passed through verbatim as a string
+(`setIxml(null)` removes it). The `bext` v2 loudness fields are EBU R128-style
+measurements, distinct from ReplayGain tags. `bwf.decodeBext` / `bwf.encodeBext`
+are also exported for working with raw `bext` bytes directly.
+
 ### Container Format and Codec Detection
 
 ```typescript

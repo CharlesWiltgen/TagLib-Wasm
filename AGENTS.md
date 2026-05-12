@@ -40,6 +40,7 @@ await applyTagsToFile("song.mp3", { title: "New Title", artist: "New Artist" });
 - **Cover art?** → Simple API: `readCoverArt()`, `applyCoverArt()`
 - **Ratings?** → Full API: `audioFile.getRating()`, `audioFile.setRating(0.8)`
 - **Chapters?** → Full API: `audioFile.getChapters()`, `audioFile.setChapters([...])` (MP3 + MP4)
+- **Broadcast metadata (BWF `bext`/iXML)?** → Full API: `audioFile.getBext()` / `setBext(...)` / `getIxml()` / `setIxml(...)` (WAV + FLAC)
 
 ## Simple API Reference
 
@@ -169,6 +170,13 @@ audioFile.setChapters([{ startTimeMs: 0, title: "Intro" }], { mp4ChapterStyle: "
 audioFile.setChapters([]); // clears all chapters
 
 // Opus: audioProperties() also exposes outputGainDb (OpusHead gain, RFC 7845)
+
+// BWF bext + iXML (WAV/FLAC only); throws UnsupportedFormatError otherwise
+audioFile.getBext(); // BroadcastAudioExtension | undefined (parsed EBU 3285 chunk)
+audioFile.setBext({ description: "Take 1", version: 2, loudnessValueDb: -16, /* ... */ });
+audioFile.getBextData(); // raw bext bytes | undefined; setBextData(null) removes
+audioFile.getIxml(); // raw iXML string | undefined; setIxml(null) removes
+// Also: import { bwf } from "taglib-wasm"; bwf.decodeBext(rawBytes) / bwf.encodeBext(obj)
 ```
 
 ### RatingUtils
