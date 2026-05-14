@@ -18,6 +18,8 @@ const PASSTHROUGH_KEYS = new Set([
   "_mp4ChapterStyle",
   "bextData",
   "ixml",
+  "id3Tags",
+  "_stripId3",
 ]);
 
 const MSGPACK_ENCODE_OPTIONS: EncoderOptions = {

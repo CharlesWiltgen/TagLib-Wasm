@@ -435,6 +435,14 @@ export class WasiFileHandle implements FileHandle {
 
   stripId3Tags(opts: { v1: boolean; v2: boolean }): void {
     this.checkNotDestroyed();
+    // id3Tags is only emitted by the read path on FLAC files that have any
+    // ID3 attached. Skip the directive entirely on non-FLAC handles so the
+    // optimistic cache update doesn't synthesize a key the read path would
+    // never have written. hasId3Tags() returns {false,false} either way.
+    const current = this.tagData?.id3Tags as
+      | { v1?: boolean; v2?: boolean }
+      | undefined;
+    if (!current) return;
     // _stripId3 is a write-time directive consumed by the C++ shim. OR-merge
     // with any prior directive so successive calls accumulate (Embind applies
     // strip immediately and naturally composes; WASI must mirror that).
@@ -446,15 +454,12 @@ export class WasiFileHandle implements FileHandle {
     // Optimistically reflect the post-strip state in the local cache so that
     // hasId3Tags() on the same handle matches Embind semantics without a
     // round-trip through save+reload.
-    const current = this.tagData?.id3Tags as
-      | { v1?: boolean; v2?: boolean }
-      | undefined;
     this.tagData = {
       ...this.tagData,
       _stripId3: { v1: stripV1, v2: stripV2 },
       id3Tags: {
-        v1: (current?.v1 ?? false) && !stripV1,
-        v2: (current?.v2 ?? false) && !stripV2,
+        v1: (current.v1 ?? false) && !stripV1,
+        v2: (current.v2 ?? false) && !stripV2,
       },
     } as Record<string, unknown>;
   }
