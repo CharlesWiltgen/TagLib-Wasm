@@ -19,6 +19,7 @@
  */
 
 import type { Picture } from "../types.ts";
+import type { Chapter } from "../types/chapters.ts";
 
 /**
  * Rating metadata representing track popularity/rating.
@@ -77,21 +78,6 @@ export type VariantMap = Record<string, unknown>;
  * }
  * ```
  */
-/**
- * Chapter marker metadata (ID3v2 CHAP frames).
- * Describes a time range within an audio file.
- */
-export interface Chapter {
-  /** Unique element ID for the chapter */
-  id: string;
-  /** Start time in milliseconds */
-  startTimeMs: number;
-  /** End time in milliseconds */
-  endTimeMs: number;
-  /** Optional chapter title */
-  title?: string;
-}
-
 export interface ComplexPropertyValueMap {
   /** Cover art and embedded images */
   PICTURE: Picture;
