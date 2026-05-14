@@ -435,10 +435,27 @@ export class WasiFileHandle implements FileHandle {
 
   stripId3Tags(opts: { v1: boolean; v2: boolean }): void {
     this.checkNotDestroyed();
-    // _stripId3 is a write-time directive consumed by the C++ shim.
+    // _stripId3 is a write-time directive consumed by the C++ shim. OR-merge
+    // with any prior directive so successive calls accumulate (Embind applies
+    // strip immediately and naturally composes; WASI must mirror that).
+    const prior = this.tagData?._stripId3 as
+      | { v1?: boolean; v2?: boolean }
+      | undefined;
+    const stripV1 = (prior?.v1 ?? false) || opts.v1;
+    const stripV2 = (prior?.v2 ?? false) || opts.v2;
+    // Optimistically reflect the post-strip state in the local cache so that
+    // hasId3Tags() on the same handle matches Embind semantics without a
+    // round-trip through save+reload.
+    const current = this.tagData?.id3Tags as
+      | { v1?: boolean; v2?: boolean }
+      | undefined;
     this.tagData = {
       ...this.tagData,
-      _stripId3: { v1: opts.v1, v2: opts.v2 },
+      _stripId3: { v1: stripV1, v2: stripV2 },
+      id3Tags: {
+        v1: (current?.v1 ?? false) && !stripV1,
+        v2: (current?.v2 ?? false) && !stripV2,
+      },
     } as Record<string, unknown>;
   }
 

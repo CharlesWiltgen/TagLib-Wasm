@@ -55,10 +55,8 @@ tl_error_code apply_id3_strip_from_msgpack(
         if (mpack_reader_error(&reader) != mpack_ok) break;
         char key[64];
         if (klen >= sizeof(key)) {
-            mpack_skip_bytes(&reader, klen);
-            mpack_done_str(&reader);
-            mpack_discard(&reader);
-            continue;
+            mpack_reader_destroy(&reader);
+            return TL_ERROR_PARSE_FAILED;
         }
         mpack_read_bytes(&reader, key, klen);
         mpack_done_str(&reader);
@@ -80,10 +78,8 @@ tl_error_code apply_id3_strip_from_msgpack(
             if (mpack_reader_error(&reader) != mpack_ok) break;
             char ikey[8];
             if (ilen >= sizeof(ikey)) {
-                mpack_skip_bytes(&reader, ilen);
-                mpack_done_str(&reader);
-                mpack_discard(&reader);
-                continue;
+                mpack_reader_destroy(&reader);
+                return TL_ERROR_PARSE_FAILED;
             }
             mpack_read_bytes(&reader, ikey, ilen);
             mpack_done_str(&reader);

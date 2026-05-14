@@ -169,4 +169,74 @@ for (const backend of BACKENDS) {
       assertEquals(f.hasId3Tags(), { v1: false, v2: false });
     },
   );
+
+  Deno.test(
+    `[${backend}] FLAC: hasId3Tags reflects strip on the same handle (no reopen)`,
+    async () => {
+      const taglib = await TagLib.initialize({ forceWasmType: backend });
+      using f = await taglib.open(await loadFlacWithId3());
+      assertEquals(f.hasId3Tags(), { v1: true, v2: true });
+      f.stripId3Tags({ v1: true, v2: false });
+      assertEquals(f.hasId3Tags(), { v1: false, v2: true });
+      f.stripId3Tags({ v1: false, v2: true });
+      assertEquals(f.hasId3Tags(), { v1: false, v2: false });
+    },
+  );
+
+  Deno.test(
+    `[${backend}] FLAC: two partial strips before save accumulate`,
+    async () => {
+      const taglib = await TagLib.initialize({ forceWasmType: backend });
+      const f = await taglib.open(await loadFlacWithId3());
+      try {
+        f.stripId3Tags({ v1: true, v2: false });
+        f.stripId3Tags({ v1: false, v2: true });
+        f.save();
+        const out = f.getFileBuffer();
+        using reopened = await taglib.open(out);
+        assertEquals(reopened.hasId3Tags(), { v1: false, v2: false });
+      } finally {
+        f.dispose();
+      }
+    },
+  );
+
+  Deno.test(
+    `[${backend}] non-FLAC: stripId3Tags is a no-op and does not throw`,
+    async () => {
+      const taglib = await TagLib.initialize({ forceWasmType: backend });
+      const mp3Path = join("tests", "test-files", "mp3", "kiss-snippet.mp3");
+      const original = await Deno.readFile(mp3Path);
+      const f = await taglib.open(original);
+      try {
+        f.stripId3Tags();
+        f.save();
+        const out = f.getFileBuffer();
+        using reopened = await taglib.open(out);
+        // MP3's native ID3 tags must NOT be stripped by this API.
+        assertEquals(reopened.getFormat(), "MP3");
+      } finally {
+        f.dispose();
+      }
+    },
+  );
+
+  Deno.test(
+    `[${backend}] FLAC without ID3: stripId3Tags is a no-op and preserves Vorbis Comments`,
+    async () => {
+      const taglib = await TagLib.initialize({ forceWasmType: backend });
+      const f = await taglib.open(await loadPlainFlac());
+      try {
+        f.tag().setTitle("kept-after-noop-strip");
+        f.stripId3Tags();
+        f.save();
+        const out = f.getFileBuffer();
+        using reopened = await taglib.open(out);
+        assertEquals(reopened.hasId3Tags(), { v1: false, v2: false });
+        assertEquals(reopened.tag().title, "kept-after-noop-strip");
+      } finally {
+        f.dispose();
+      }
+    },
+  );
 }

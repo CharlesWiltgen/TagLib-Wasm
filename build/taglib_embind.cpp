@@ -1269,7 +1269,10 @@ public:
     }
 
     // FLAC ID3v1/v2 detection. Returns {v1:false,v2:false} for non-FLAC files
-    // (their ID3 tags, if any, are the native format).
+    // (their ID3 tags, if any, are the native format). Uses the in-memory tag
+    // pointer rather than FLAC::File::hasID3vNTag() so the result reflects a
+    // pending strip() on the same handle — hasID3vNTag checks the on-disk
+    // location which is not cleared until save() runs.
     val hasId3Tags() const {
         val obj = val::object();
         obj.set("v1", false);
@@ -1277,8 +1280,8 @@ public:
         if (!fileRef || !fileRef->file()) return obj;
         auto* flac = dynamic_cast<TagLib::FLAC::File*>(fileRef->file());
         if (!flac) return obj;
-        obj.set("v1", flac->hasID3v1Tag());
-        obj.set("v2", flac->hasID3v2Tag());
+        obj.set("v1", flac->ID3v1Tag() != nullptr);
+        obj.set("v2", flac->ID3v2Tag() != nullptr);
         return obj;
     }
 
@@ -1286,11 +1289,14 @@ public:
     // booleans. No-op on non-FLAC files. The change takes effect on save().
     void stripId3Tags(const val& opts) {
         if (!fileRef || !fileRef->file()) return;
+        if (opts.isNull() || opts.isUndefined()) return;
         auto* flac = dynamic_cast<TagLib::FLAC::File*>(fileRef->file());
         if (!flac) return;
         int mask = 0;
-        if (opts["v1"].as<bool>()) mask |= TagLib::FLAC::File::ID3v1;
-        if (opts["v2"].as<bool>()) mask |= TagLib::FLAC::File::ID3v2;
+        val v1 = opts["v1"];
+        val v2 = opts["v2"];
+        if (!v1.isUndefined() && v1.as<bool>()) mask |= TagLib::FLAC::File::ID3v1;
+        if (!v2.isUndefined() && v2.as<bool>()) mask |= TagLib::FLAC::File::ID3v2;
         if (mask) flac->strip(mask);
     }
 
