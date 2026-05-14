@@ -1268,6 +1268,32 @@ public:
         else if (auto* flac = dynamic_cast<TagLib::FLAC::File*>(f)) flac->setiXMLData(s);
     }
 
+    // FLAC ID3v1/v2 detection. Returns {v1:false,v2:false} for non-FLAC files
+    // (their ID3 tags, if any, are the native format).
+    val hasId3Tags() const {
+        val obj = val::object();
+        obj.set("v1", false);
+        obj.set("v2", false);
+        if (!fileRef || !fileRef->file()) return obj;
+        auto* flac = dynamic_cast<TagLib::FLAC::File*>(fileRef->file());
+        if (!flac) return obj;
+        obj.set("v1", flac->hasID3v1Tag());
+        obj.set("v2", flac->hasID3v2Tag());
+        return obj;
+    }
+
+    // Strip spurious ID3 tags from a FLAC file. Caller passes {v1, v2}
+    // booleans. No-op on non-FLAC files. The change takes effect on save().
+    void stripId3Tags(const val& opts) {
+        if (!fileRef || !fileRef->file()) return;
+        auto* flac = dynamic_cast<TagLib::FLAC::File*>(fileRef->file());
+        if (!flac) return;
+        int mask = 0;
+        if (opts["v1"].as<bool>()) mask |= TagLib::FLAC::File::ID3v1;
+        if (opts["v2"].as<bool>()) mask |= TagLib::FLAC::File::ID3v2;
+        if (mask) flac->strip(mask);
+    }
+
     // Get all ratings from the audio file
     // Returns array of {rating: number (0.0-1.0), email: string, counter: number}
     val getRatings() const {
@@ -1566,6 +1592,8 @@ EMSCRIPTEN_BINDINGS(taglib) {
         .function("setIxml", &FileHandle::setIxml)
         .function("getRatings", &FileHandle::getRatings)
         .function("setRatings", &FileHandle::setRatings)
+        .function("hasId3Tags", &FileHandle::hasId3Tags)
+        .function("stripId3Tags", &FileHandle::stripId3Tags)
         .function("destroy", &FileHandle::destroy);
     
     // TagWrapper class

@@ -141,6 +141,19 @@ export interface AudioFile {
   /** Set the primary rating (normalized 0.0-1.0). */
   setRating(rating: number, email?: string): void;
 
+  /**
+   * Detect spurious ID3v1/ID3v2 tags on a FLAC file. Returns
+   * `{ v1: false, v2: false }` for non-FLAC files (their ID3 tags, if any,
+   * are the native format and should not be stripped).
+   */
+  hasId3Tags(): { v1: boolean; v2: boolean };
+
+  /**
+   * Remove ID3v1 and/or ID3v2 tags from a FLAC file, preserving Vorbis
+   * Comments and audio. No-op on non-FLAC files. Defaults to stripping both.
+   */
+  stripId3Tags(opts?: { v1?: boolean; v2?: boolean }): void;
+
   /** Release all resources associated with this file. */
   dispose(): void;
 

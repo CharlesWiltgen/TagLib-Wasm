@@ -98,6 +98,8 @@ export interface FileHandle {
   setRatings(
     ratings: { rating: number; email?: string; counter?: number }[],
   ): void;
+  hasId3Tags(): { v1: boolean; v2: boolean };
+  stripId3Tags(opts: { v1: boolean; v2: boolean }): void;
   destroy(): void;
 }
 

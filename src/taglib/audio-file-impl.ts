@@ -284,4 +284,15 @@ export class AudioFileImpl extends BaseAudioFileImpl implements AudioFile {
   setRating(rating: number, email?: string): void {
     this.setRatings([{ rating, email, counter: 0 }]);
   }
+
+  hasId3Tags(): { v1: boolean; v2: boolean } {
+    return this.handle.hasId3Tags();
+  }
+
+  stripId3Tags(opts?: { v1?: boolean; v2?: boolean }): void {
+    this.handle.stripId3Tags({
+      v1: opts?.v1 ?? true,
+      v2: opts?.v2 ?? true,
+    });
+  }
 }

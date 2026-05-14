@@ -110,6 +110,17 @@ export function wrapEmbindHandle(raw: EmbindFileHandle): FileHandle {
         data ?? null,
       );
     },
+    hasId3Tags(): { v1: boolean; v2: boolean } {
+      const v = (raw as unknown as { hasId3Tags(): unknown }).hasId3Tags();
+      if (!v || typeof v !== "object") return { v1: false, v2: false };
+      const o = v as { v1?: unknown; v2?: unknown };
+      return { v1: o.v1 === true, v2: o.v2 === true };
+    },
+    stripId3Tags(opts: { v1: boolean; v2: boolean }) {
+      (raw as unknown as {
+        stripId3Tags(o: { v1: boolean; v2: boolean }): void;
+      }).stripId3Tags(opts);
+    },
     getAudioProperties(): AudioProperties | null {
       const pw = raw.getAudioProperties();
       if (!pw) return null;

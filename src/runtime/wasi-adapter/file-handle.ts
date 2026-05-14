@@ -425,6 +425,23 @@ export class WasiFileHandle implements FileHandle {
     this.tagData = { ...this.tagData, ixml: data } as Record<string, unknown>;
   }
 
+  hasId3Tags(): { v1: boolean; v2: boolean } {
+    this.checkNotDestroyed();
+    const t = this.tagData?.id3Tags as
+      | { v1?: boolean; v2?: boolean }
+      | undefined;
+    return { v1: t?.v1 ?? false, v2: t?.v2 ?? false };
+  }
+
+  stripId3Tags(opts: { v1: boolean; v2: boolean }): void {
+    this.checkNotDestroyed();
+    // _stripId3 is a write-time directive consumed by the C++ shim.
+    this.tagData = {
+      ...this.tagData,
+      _stripId3: { v1: opts.v1, v2: opts.v2 },
+    } as Record<string, unknown>;
+  }
+
   getRatings(): { rating: number; email: string; counter: number }[] {
     this.checkNotDestroyed();
     return (this.tagData?.ratings as

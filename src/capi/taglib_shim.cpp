@@ -16,6 +16,7 @@
 #include "taglib_lyrics.h"
 #include "taglib_chapters.h"
 #include "taglib_bwf.h"
+#include "taglib_id3_strip.h"
 #include "taglib_audio_props.h"
 #include "core/taglib_msgpack.h"
 #include "core/taglib_core.h"
@@ -192,6 +193,9 @@ static tl_error_code encode_file_to_msgpack(TagLib::File* file,
     uint32_t bwf_keys = count_bwf_keys(file);
     count += bwf_keys;  // "bextData" and/or "ixml" keys (WAV/FLAC)
 
+    uint32_t id3_strip_keys = count_id3_strip_keys(file);
+    count += id3_strip_keys;  // "id3Tags" key (FLAC with ID3 attached)
+
     ExtendedAudioInfo ext_info = {0, "", "", false, 0, 0, false, 0, nullptr};
     if (audio) {
         ext_info = get_extended_audio_info(file, audio);
@@ -265,6 +269,8 @@ static tl_error_code encode_file_to_msgpack(TagLib::File* file,
     }
 
     encode_bwf(&writer, file);  // emits exactly `bwf_keys` keys (self-guards)
+
+    encode_id3_strip(&writer, file);  // emits "id3Tags" if FLAC has any ID3
 
     mpack_finish_map(&writer);
 
@@ -565,6 +571,7 @@ static tl_error_code write_to_path(const char* path,
         apply_lyrics_from_msgpack(ref.file(), tags_msgpack, tags_msgpack_len);
         apply_chapters_from_msgpack(ref.file(), tags_msgpack, tags_msgpack_len);
         apply_bwf_from_msgpack(ref.file(), tags_msgpack, tags_msgpack_len);
+        apply_id3_strip_from_msgpack(ref.file(), tags_msgpack, tags_msgpack_len);
 
         if (!ref.save()) return TL_ERROR_IO_WRITE;
         return TL_SUCCESS;
@@ -608,6 +615,7 @@ static tl_error_code write_to_buffer(const uint8_t* buf, size_t len,
         apply_lyrics_from_msgpack(f, tags_msgpack, tags_msgpack_len);
         apply_chapters_from_msgpack(f, tags_msgpack, tags_msgpack_len);
         apply_bwf_from_msgpack(f, tags_msgpack, tags_msgpack_len);
+        apply_id3_strip_from_msgpack(f, tags_msgpack, tags_msgpack_len);
 
         if (!f->save()) return TL_ERROR_IO_WRITE;
 
