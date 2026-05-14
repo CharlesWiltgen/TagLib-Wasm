@@ -234,6 +234,28 @@ update_versions() {
     fi
 }
 
+# Function to wait for remote CI to pass on the current HEAD commit.
+# Required legs must succeed; flaky legs (Windows/macOS) are tolerated.
+# This blocks the release flow so we never tag a commit that hasn't validated.
+wait_for_remote_ci() {
+    local commit_sha
+    commit_sha=$(git rev-parse HEAD)
+
+    print_step "Waiting for remote CI to validate ${commit_sha:0:7}..."
+    print_warning "This typically takes 5–10 minutes; do not interrupt."
+
+    local script_dir
+    script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+    if ! bash "${script_dir}/wait-for-ci.sh" "$commit_sha"; then
+        print_error "Remote CI failed for ${commit_sha:0:7}"
+        print_warning "The version-bump commit is on main, but no tag was created."
+        print_warning "Fix the failures, push another commit, and re-run the release."
+        exit 1
+    fi
+    print_success "Remote CI passed — safe to tag"
+}
+
 # Function to create tag and release
 create_release() {
     local version=$1
@@ -255,22 +277,29 @@ create_release() {
         print_success "Version bump committed"
     fi
 
-    # Create tag
+    # Push commit FIRST so CI runs against the exact commit we're about to tag.
+    print_step "Pushing version bump to remote..."
+    git push origin main
+    print_success "Version bump pushed to remote"
+
+    # Block until remote CI passes on this commit. Never tag an unvalidated commit.
+    wait_for_remote_ci
+
+    # Create tag (only after CI has validated the commit)
     print_step "Creating tag $tag_name..."
     git tag -a "$tag_name" -m "Release version $version"
     print_success "Tag $tag_name created"
 
-    # Push changes and tag
-    print_step "Pushing to remote..."
-    git push origin main
+    # Push tag
+    print_step "Pushing tag to remote..."
     git push origin "$tag_name"
-    print_success "Changes and tag pushed to remote"
+    print_success "Tag pushed to remote"
 
     echo
     print_success "🎉 Release $tag_name has been created!"
     print_warning "The publish workflow will now run automatically."
     print_warning "Monitor the workflow at: https://github.com/CharlesWiltgen/TagLib-Wasm/actions"
-    
+
     # Create GitHub release if gh is available
     if command -v gh &> /dev/null; then
         print_step "Creating GitHub release..."
