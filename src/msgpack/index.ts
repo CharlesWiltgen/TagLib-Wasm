@@ -78,11 +78,3 @@ export { TAGLIB_MSGPACK_MARKERS } from "./types.ts";
 
 // Re-export utilities
 export { MessagePackUtils } from "./utils.ts";
-
-// Re-export processor
-export {
-  createMessagePackProcessor,
-  debugMessagePackProcessor,
-  defaultMessagePackProcessor,
-  performanceMessagePackProcessor,
-} from "./processor.ts";

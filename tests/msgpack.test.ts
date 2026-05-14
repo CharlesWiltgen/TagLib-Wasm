@@ -9,12 +9,10 @@ import { assertEquals, assertExists } from "@std/assert";
 import { describe, it } from "@std/testing/bdd";
 import {
   compareEncodingEfficiency,
-  createMessagePackProcessor,
   decodeAudioProperties,
   decodeMessagePackAuto,
   decodePicture,
   decodeTagData,
-  defaultMessagePackProcessor,
   encodeAudioProperties,
   encodePicture,
   encodeTagData,
@@ -245,32 +243,6 @@ describe("MessagePack", () => {
     );
     assertEquals(MessagePackUtils.isTagLibCompatible("string"), false);
     assertEquals(MessagePackUtils.isTagLibCompatible(null), false);
-  });
-
-  it("createMessagePackProcessor - custom processor creation", () => {
-    const processor = createMessagePackProcessor({
-      validateInput: true,
-      enableMetrics: false,
-      maxBufferSize: 1024 * 1024, // 1MB
-    });
-
-    const encoded = encodeTagData(sampleTagData);
-    const decoded = processor.decode(encoded);
-
-    assertEquals(typeof decoded, "object");
-    assertEquals((decoded as ExtendedTag).title, sampleTagData.title);
-
-    const reencoded = processor.encode(sampleTagData);
-    assertEquals(reencoded instanceof Uint8Array, true);
-    assertEquals(isValidMessagePack(reencoded), true);
-  });
-
-  it("defaultMessagePackProcessor - default processor functionality", () => {
-    const encoded = encodeTagData(sampleTagData);
-    const decoded = defaultMessagePackProcessor.decode(encoded);
-
-    assertEquals(typeof decoded, "object");
-    assertEquals((decoded as ExtendedTag).title, sampleTagData.title);
   });
 
   it("round-trip - encode then decode preserves data", () => {
