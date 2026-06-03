@@ -84,7 +84,7 @@ static const FieldMapping FIELD_MAP[] = {
     {"COMPOSER",             "composer",            FIELD_STRING},
     {"CONDUCTOR",            "conductor",           FIELD_STRING},
     {"COPYRIGHT",            "copyright",           FIELD_STRING},
-    {"DATE",                 "year",                FIELD_NUMERIC},
+    {"DATE",                 "date",                FIELD_STRING},
     {"DISCNUMBER",           "discNumber",          FIELD_NUMERIC},
     {"DISCTOTAL",            "totalDiscs",          FIELD_NUMERIC},
     {"ENCODEDBY",            "encodedBy",           FIELD_STRING},
@@ -196,6 +196,19 @@ static tl_error_code encode_file_to_msgpack(TagLib::File* file,
     uint32_t id3_strip_keys = count_id3_strip_keys(file);
     count += id3_strip_keys;  // "id3Tags" key (FLAC with ID3 attached)
 
+    // DATE is emitted as a full string under "date" (see FIELD_MAP). Emit a
+    // numeric "year" mirror too so Tag.year / the fast-read path keep working
+    // without re-parsing. Guarded on a parseable, non-zero leading year.
+    bool emit_year = false;
+    {
+        auto date_it = props.find("DATE");
+        if (date_it != props.end() && !date_it->second.isEmpty() &&
+            date_it->second.front().toInt() > 0) {
+            emit_year = true;
+            count++;
+        }
+    }
+
     ExtendedAudioInfo ext_info = {0, "", "", false, 0, 0, false, 0, nullptr};
     if (audio) {
         ext_info = get_extended_audio_info(file, audio);
@@ -235,6 +248,13 @@ static tl_error_code encode_file_to_msgpack(TagLib::File* file,
                 mpack_finish_array(&writer);
             }
         }
+    }
+
+    if (emit_year) {
+        auto date_it = props.find("DATE");
+        mpack_write_cstr(&writer, "year");
+        mpack_write_uint(&writer,
+                         static_cast<uint32_t>(date_it->second.front().toInt()));
     }
 
     if (audio) {
@@ -544,9 +564,10 @@ static void apply_propmap(TagLib::File* file, const TagLib::PropertyMap& propMap
     it = propMap.find("GENRE");
     if (it != propMap.end() && it->second.size() == 1)
         tag->setGenre(it->second.front());
-    it = propMap.find("DATE");
-    if (it != propMap.end() && !it->second.isEmpty())
-        tag->setYear(it->second.front().toInt());
+    // NOTE: DATE is intentionally NOT mirrored to tag->setYear() here.
+    // file->setProperties() above already wrote the full DATE string; calling
+    // setYear(front().toInt()) would truncate "1975-10-31" back to 1975 and
+    // overwrite it (taglib-bk7 / GitHub #23).
     it = propMap.find("TRACKNUMBER");
     if (it != propMap.end() && !it->second.isEmpty())
         tag->setTrack(it->second.front().toInt());

@@ -62,9 +62,13 @@ const CONTAINER_TO_FORMAT: Record<string, string> = {
 };
 
 const NUMERIC_FIELD_ALIASES: Record<string, string> = {
-  date: "year",
   trackNumber: "track",
 };
+
+function hasValue(v: unknown): boolean {
+  if (Array.isArray(v)) return v.length > 0;
+  return v !== undefined && v !== null && v !== "";
+}
 
 function firstString(v: unknown): string {
   if (Array.isArray(v)) return (v[0] as string) ?? "";
@@ -277,6 +281,10 @@ export class WasiFileHandle implements FileHandle {
 
     for (const [key, value] of Object.entries(data)) {
       if (AUDIO_KEYS.has(key) || INTERNAL_KEYS.has(key)) continue;
+      // `year` is a numeric mirror of the DATE property; when the full `date`
+      // string is present it carries DATE, so skip `year` to avoid both mapping
+      // to the same "DATE" wire key (taglib-bk7).
+      if (key === "year" && hasValue(data.date)) continue;
       if (value === undefined || value === null) continue;
       if (value === 0 || value === "") continue;
 
@@ -299,9 +307,15 @@ export class WasiFileHandle implements FileHandle {
     for (const [key, values] of Object.entries(props)) {
       const camelKey = fromTagLibKey(key);
       const storeKey = NUMERIC_FIELD_ALIASES[camelKey] ?? camelKey;
-      if (storeKey === "year" || storeKey === "track") {
+      if (storeKey === "track") {
         const parsed = Number.parseInt(values[0] ?? "", 10);
         if (!Number.isNaN(parsed)) mapped[storeKey] = parsed;
+      } else if (camelKey === "date") {
+        // DATE is stored as a full string; keep the numeric `year` mirror in
+        // sync so getTagData()/tag().year reflect the new date in-handle.
+        mapped.date = values;
+        const year = Number.parseInt(values[0] ?? "", 10);
+        if (!Number.isNaN(year)) mapped.year = year;
       } else {
         mapped[camelKey] = values;
       }
@@ -320,11 +334,18 @@ export class WasiFileHandle implements FileHandle {
     this.checkNotDestroyed();
     const mappedKey = fromTagLibKey(key);
     const storeKey = NUMERIC_FIELD_ALIASES[mappedKey] ?? mappedKey;
-    if (storeKey === "year" || storeKey === "track") {
+    if (storeKey === "track") {
       const parsed = Number.parseInt(value, 10);
       if (!Number.isNaN(parsed)) {
         this.tagData = { ...this.tagData, [storeKey]: parsed };
       }
+    } else if (mappedKey === "date") {
+      const year = Number.parseInt(value, 10);
+      this.tagData = {
+        ...this.tagData,
+        date: value,
+        ...(Number.isNaN(year) ? {} : { year }),
+      };
     } else {
       this.tagData = { ...this.tagData, [mappedKey]: value };
     }

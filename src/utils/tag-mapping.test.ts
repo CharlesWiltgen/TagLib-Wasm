@@ -17,8 +17,14 @@ describe(mapPropertiesToExtendedTag.name, () => {
       title: ["Hello"],
       artist: ["Artist"],
       year: 2025,
+      date: "2025",
       track: 3,
     });
+  });
+
+  it("should preserve a full ISO date string alongside the numeric year", () => {
+    const result = mapPropertiesToExtendedTag({ date: ["1975-10-31"] });
+    assertEquals(result, { year: 1975, date: "1975-10-31" });
   });
 
   it("should map extended string fields", () => {
@@ -84,12 +90,12 @@ describe(mapPropertiesToExtendedTag.name, () => {
     assertEquals(result, {});
   });
 
-  it("should return undefined for non-numeric year and track", () => {
+  it("should drop a non-numeric year/track but still preserve the date string", () => {
     const result = mapPropertiesToExtendedTag({
       date: ["not-a-number"],
       trackNumber: ["abc"],
     });
-    assertEquals(result, {});
+    assertEquals(result, { date: "not-a-number" });
   });
 });
 
@@ -109,6 +115,16 @@ describe(normalizeTagInput.name, () => {
     const result = normalizeTagInput({ year: 2025, track: 3 });
     assertEquals(result.date, ["2025"]);
     assertEquals(result.trackNumber, ["3"]);
+  });
+
+  it("should map a full date string to the date PropertyMap key", () => {
+    const result = normalizeTagInput({ date: "1975-10-31" });
+    assertEquals(result.date, ["1975-10-31"]);
+  });
+
+  it("should let date win over year when both are provided", () => {
+    const result = normalizeTagInput({ year: 2024, date: "1975-10-31" });
+    assertEquals(result.date, ["1975-10-31"]);
   });
 
   it("should map extended string fields to camelCase PropertyMap keys", () => {

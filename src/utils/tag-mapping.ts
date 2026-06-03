@@ -19,6 +19,7 @@ const BASIC_FIELDS = new Set([
   "comment",
   "genre",
   "year",
+  "date",
   "track",
 ]);
 
@@ -45,6 +46,10 @@ export function mapPropertiesToExtendedTag(props: PropertyMap): ExtendedTag {
     if (tagField === "year" || tagField === "track") {
       const num = parseNumeric(values[0]);
       if (num !== undefined) tag[tagField] = num;
+      // Preserve the full DATE string alongside the numeric year (taglib-bk7).
+      if (propKey === "date") {
+        tag.date = values.length === 1 ? values[0] : values;
+      }
     } else {
       tag[tagField] = values;
     }
@@ -97,6 +102,11 @@ export function normalizeTagInput(
   }
   if (input.year !== undefined) {
     props.date = [String(input.year)];
+  }
+  // `date` carries full precision and wins over the numeric `year` when both
+  // are set (taglib-bk7).
+  if (input.date !== undefined) {
+    props.date = Array.isArray(input.date) ? input.date : [input.date];
   }
   if (input.track !== undefined) {
     props.trackNumber = [String(input.track)];

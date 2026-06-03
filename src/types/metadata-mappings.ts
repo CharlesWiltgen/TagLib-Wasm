@@ -94,6 +94,14 @@ export const METADATA_MAPPINGS: Record<
     mp4: "©day",
     wav: "ICRD",
   },
+  // Full release date string — same underlying frames as `year`, but preserves
+  // day/month precision instead of collapsing to the integer year.
+  date: {
+    id3v2: { frame: "TDRC" },
+    vorbis: "DATE",
+    mp4: "©day",
+    wav: "ICRD",
+  },
   track: {
     id3v2: { frame: "TRCK" },
     vorbis: "TRACKNUMBER",

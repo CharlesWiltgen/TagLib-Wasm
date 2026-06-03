@@ -33,8 +33,17 @@ const MSGPACK_ENCODE_OPTIONS: EncoderOptions = {
 
 export function encodeTagData(tagData: ExtendedTag): Uint8Array {
   try {
+    // Both `date` (full ISO string) and `year` (numeric mirror) map to the same
+    // "DATE" wire key. When a date is present it is authoritative, so skip the
+    // numeric `year` to avoid clobbering the full string (taglib-bk7).
+    const dateVal = (tagData as Record<string, unknown>).date;
+    const hasDate = Array.isArray(dateVal)
+      ? dateVal.length > 0
+      : dateVal !== undefined && dateVal !== null && dateVal !== "";
+
     const remapped: Record<string, unknown> = {};
     for (const [key, value] of Object.entries(tagData)) {
+      if (key === "year" && hasDate) continue;
       if (PASSTHROUGH_KEYS.has(key)) {
         remapped[key] = value;
       } else {

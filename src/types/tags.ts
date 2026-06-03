@@ -73,6 +73,11 @@ export interface TagInput {
   readonly genre?: string | string[];
   /** Year */
   readonly year?: number;
+  /**
+   * Full release date (e.g. "1975-10-31" or "1975"). Maps to the same DATE tag
+   * as {@link year}; when both are provided, `date` wins (more precise).
+   */
+  readonly date?: string | string[];
   /** Track number */
   readonly track?: number;
 
@@ -135,6 +140,11 @@ export interface TagInput {
  * ```
  */
 export interface ExtendedTag extends Tag {
+  /**
+   * Full release date as stored in the DATE tag (e.g. "1975-10-31" or "1975").
+   * Preserves day/month precision that the numeric {@link Tag.year} cannot.
+   */
+  readonly date?: string | string[];
   /** AcoustID fingerprint (Chromaprint) */
   readonly acoustidFingerprint?: string[];
   /** AcoustID UUID */
