@@ -36,27 +36,6 @@ fi
 
 echo "Using compiler: $COMPILER"
 
-# Compile the memory pool test with the C API source files
-echo "Compiling memory pool unit tests..."
-$COMPILER \
-    "$SCRIPT_DIR/capi_memory_pool.test.cpp" \
-    "$SRC_DIR/core/taglib_memory.cpp" \
-    "$SRC_DIR/core/taglib_error.cpp" \
-    -I"$SRC_DIR" \
-    -I"$SRC_DIR/core" \
-    -std=c++17 \
-    -pthread \
-    -O2 \
-    -Wall \
-    -Wextra \
-    -Werror=return-type \
-    -o "$TEST_BUILD_DIR/capi_memory_pool_test"
-
-if [ ! -f "$TEST_BUILD_DIR/capi_memory_pool_test" ]; then
-    echo -e "${RED}❌ Failed to compile memory pool tests${NC}"
-    exit 1
-fi
-
 echo "Compiling LAME parser unit tests..."
 $COMPILER \
     "$SCRIPT_DIR/capi_lame_parser.test.cpp" \
@@ -81,53 +60,13 @@ echo ""
 echo -e "${YELLOW}🏃 Step 2: Running unit tests${NC}"
 echo ""
 
-# Run the tests
-if "$TEST_BUILD_DIR/capi_memory_pool_test"; then
-    if "$TEST_BUILD_DIR/capi_lame_parser_test"; then
-        echo -e "${GREEN}✅ LAME parser tests passed${NC}"
-    else
-        echo -e "${RED}❌ LAME parser tests failed${NC}"
-        exit 1
-    fi
+if "$TEST_BUILD_DIR/capi_lame_parser_test"; then
+    echo -e "${GREEN}✅ LAME parser tests passed${NC}"
     echo ""
     echo -e "${GREEN}✅ All C++ unit tests passed!${NC}"
-    
-    # Compile and run performance benchmarks
-    echo ""
-    echo -e "${YELLOW}🔥 Step 3: Compiling performance benchmarks${NC}"
-    
-    echo "Compiling performance benchmarks..."
-    $COMPILER \
-        "$SCRIPT_DIR/capi_performance.benchmark.cpp" \
-        "$SRC_DIR/core/taglib_memory.cpp" \
-        "$SRC_DIR/core/taglib_error.cpp" \
-        -I"$SRC_DIR" \
-        -I"$SRC_DIR/core" \
-        -std=c++17 \
-        -pthread \
-        -O2 \
-        -Wall \
-        -Wextra \
-        -Werror=return-type \
-        -o "$TEST_BUILD_DIR/capi_performance_benchmark"
-    
-    if [ ! -f "$TEST_BUILD_DIR/capi_performance_benchmark" ]; then
-        echo -e "${RED}❌ Failed to compile performance benchmarks${NC}"
-        exit 1
-    fi
-    
-    echo -e "${GREEN}✅ Performance benchmarks compiled successfully${NC}"
-    echo ""
-    echo -e "${YELLOW}⚡ Step 4: Running performance benchmarks${NC}"
-    echo ""
-    
-    "$TEST_BUILD_DIR/capi_performance_benchmark"
-    
-    echo ""
-    echo -e "${GREEN}✅ All tests and benchmarks completed successfully!${NC}"
     exit 0
 else
     echo ""
-    echo -e "${RED}❌ Some C++ unit tests failed!${NC}"
+    echo -e "${RED}❌ LAME parser tests failed!${NC}"
     exit 1
 fi

@@ -10,11 +10,6 @@ on:
     branches: [main]
   workflow_dispatch:
     inputs:
-      skip_emscripten:
-        description: "Skip Emscripten build"
-        required: false
-        default: false
-        type: boolean
       skip_wasi:
         description: "Skip WASI build"
         required: false
@@ -136,52 +131,6 @@ jobs:
             build/taglib-web.wasm
             build/taglib-wrapper.js
             build/taglib-wrapper.d.ts
-
-  build-emscripten:
-    name: Build (Emscripten C API)
-    runs-on: ubuntu-latest
-    if: ${{ !inputs.skip_emscripten }}
-    steps:
-      - uses: actions/checkout@v6
-        with:
-          submodules: recursive
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v6
-        with:
-          node-version: 24
-
-      - name: Install Emscripten
-        uses: mymindstorm/setup-emsdk@v14
-        with:
-          version: 5.0.6
-
-      - name: Cache Emscripten build
-        uses: actions/cache@v5
-        with:
-          path: |
-            build/emscripten
-          key: ${{ runner.os }}-emscripten-${{ hashFiles('lib/taglib/**/*.cpp', 'lib/taglib/**/*.h') }}
-          restore-keys: |
-            ${{ runner.os }}-emscripten-
-
-      - name: Build with Emscripten
-        run: |
-          chmod +x build/build-emscripten.sh
-          ./build/build-emscripten.sh
-
-      - name: Verify Emscripten artifacts
-        run: |
-          ls -lah dist/browser/
-          file dist/browser/taglib-emscripten.wasm
-          wc -c dist/browser/taglib-emscripten.wasm
-
-      - name: Upload Emscripten artifacts
-        uses: actions/upload-artifact@v7
-        with:
-          name: emscripten-build
-          path: |
-            dist/browser/
 
   build-wasi:
     name: Build (WASI)
@@ -466,18 +415,11 @@ jobs:
 
   size-report:
     name: Size Report
-    needs: [build-emscripten, build-wasi]
+    needs: [build-wasi]
     runs-on: ubuntu-latest
     if: always()
     steps:
       - uses: actions/checkout@v6
-
-      - name: Download Emscripten artifacts
-        if: needs.build-emscripten.result == 'success'
-        uses: actions/download-artifact@v8
-        with:
-          name: emscripten-build
-          path: emscripten-build
 
       - name: Download WASI artifacts
         if: needs.build-wasi.result == 'success'
@@ -492,16 +434,6 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "| Build | File | Size | Compressed (gzip) |" >> $GITHUB_STEP_SUMMARY
           echo "|-------|------|------|-------------------|" >> $GITHUB_STEP_SUMMARY
-
-          # Emscripten build
-          if [ -f emscripten-build/taglib-emscripten.wasm ]; then
-            EMCC_SIZE_H=$(ls -lh emscripten-build/taglib-emscripten.wasm | awk '{print $5}')
-            gzip -c emscripten-build/taglib-emscripten.wasm > /tmp/emcc.wasm.gz
-            EMCC_GZIP_H=$(ls -lh /tmp/emcc.wasm.gz | awk '{print $5}')
-            echo "| Emscripten | taglib-emscripten.wasm | $EMCC_SIZE_H | $EMCC_GZIP_H |" >> $GITHUB_STEP_SUMMARY
-          else
-            echo "| Emscripten | _(skipped)_ | - | - |" >> $GITHUB_STEP_SUMMARY
-          fi
 
           # WASI build
           if [ -f wasi-build/taglib-wasi.wasm ]; then
@@ -523,7 +455,6 @@ jobs:
     needs: [
       lint,
       build-embind,
-      build-emscripten,
       build-wasi,
       test,
       test-wasi,
@@ -557,9 +488,8 @@ jobs:
           done
 
           # Optional jobs (report but don't gate on skipped)
-          for job in build-emscripten build-wasi test-wasi size-report; do
+          for job in build-wasi test-wasi size-report; do
             case "$job" in
-              build-emscripten) result="${{ needs.build-emscripten.result }}" ;;
               build-wasi) result="${{ needs.build-wasi.result }}" ;;
               test-wasi) result="${{ needs.test-wasi.result }}" ;;
               size-report) result="${{ needs.size-report.result }}" ;;

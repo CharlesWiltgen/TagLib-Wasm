@@ -248,21 +248,16 @@ echo "━━━━━━━━━━━━━━━━━━━━━━━━�
 echo "📁 Creating directory structure"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
-mkdir -p "$PROJECT_ROOT/build/emscripten/taglib"
 mkdir -p "$PROJECT_ROOT/build/wasi/taglib"
-mkdir -p "$PROJECT_ROOT/dist/browser"
 mkdir -p "$PROJECT_ROOT/dist/wasi"
 
 echo "Directory structure created:"
 echo "  build/"
-echo "  ├── emscripten/     # Emscripten build directory"
-echo "  │   └── taglib/     # TagLib built with emcc"
 echo "  ├── wasi/           # WASI SDK build directory"
 echo "  │   └── taglib/     # TagLib built with wasi-sdk"
 echo "  └── wasi-sdk/       # WASI SDK installation"
 echo ""
 echo "  dist/"
-echo "  ├── browser/        # Emscripten output (browser/Node)"
 echo "  └── wasi/           # WASI output (Deno/Workers)"
 
 # Make build scripts executable
@@ -305,8 +300,8 @@ echo "━━━━━━━━━━━━━━━━━━━━━━━━�
 echo ""
 echo "Next steps:"
 echo ""
-echo "1. Build Emscripten:"
-echo -e "   ${CYAN}./build/build-emscripten.sh${NC}"
+echo "1. Build browser (Embind Wasm):"
+echo -e "   ${CYAN}./build/build-wasm.sh${NC}"
 echo ""
 echo "2. Build WASI:"
 echo -e "   ${CYAN}source ./build/wasi-env.sh${NC}"
