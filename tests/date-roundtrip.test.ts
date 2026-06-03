@@ -113,5 +113,32 @@ for (const { kind, available } of BACKENDS) {
         f2.dispose();
       }
     });
+
+    it("tag().setYear() overrides a previously-stored full date", async () => {
+      const src = await Deno.readFile(FIXTURE_PATH.mp3);
+
+      // Store a full ISO date first.
+      const f1 = await open(new Uint8Array(src));
+      f1.setProperties({ ...f1.properties(), date: [FULL_DATE] });
+      f1.save();
+      const withDate = new Uint8Array(f1.getFileBuffer());
+      f1.dispose();
+
+      // Then set the numeric year via the Tag API — it must win, not be
+      // shadowed by the stale full-date string (cross-backend parity).
+      const f2 = await open(withDate);
+      f2.tag().setYear(2024);
+      f2.save();
+      const edited = new Uint8Array(f2.getFileBuffer());
+      f2.dispose();
+
+      const f3 = await open(edited);
+      try {
+        assertEquals(f3.tag().year, 2024);
+        assertEquals(f3.properties().date, ["2024"]);
+      } finally {
+        f3.dispose();
+      }
+    });
   });
 }

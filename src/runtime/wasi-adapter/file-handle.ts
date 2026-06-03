@@ -159,7 +159,16 @@ export class WasiFileHandle implements FileHandle {
 
   setTagData(data: Partial<BasicTagData>): void {
     this.checkNotDestroyed();
-    this.tagData = { ...this.tagData, ...data } as Record<string, unknown>;
+    const merged = { ...this.tagData, ...data } as Record<string, unknown>;
+    // setYear() is authoritative for the DATE tag. Replace any full-precision
+    // `date` mirror so a stale string can't shadow the new year on save; a
+    // zero/negative year clears the date entirely (matches Emscripten's
+    // tag->setYear semantics — taglib-bk7).
+    if (data.year !== undefined) {
+      if (data.year > 0) merged.date = String(data.year);
+      else delete merged.date;
+    }
+    this.tagData = merged;
   }
 
   getAudioProperties(): AudioProperties | null {
