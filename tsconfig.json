@@ -7,7 +7,12 @@
     "moduleResolution": "bundler",
     "allowImportingTsExtensions": true,
     "emitDeclarationOnly": true,
-    "lib": ["ES2022", "DOM"],
+    // ESNext.Disposable provides Disposable/AsyncDisposable + Symbol.dispose for
+    // the `using` RAII code. "types": ["node"] is explicit because TypeScript 6.0
+    // changed the default to `[]` (no auto @types/node) — without it, tsc 6.0 can't
+    // resolve node: imports / the NodeJS namespace (taglib-yis).
+    "lib": ["ES2022", "DOM", "ESNext.Disposable"],
+    "types": ["node"],
     "outDir": "./dist",
     "rootDir": "./",
     "strict": true,
