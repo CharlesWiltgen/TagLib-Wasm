@@ -66,7 +66,7 @@ jobs:
       - name: Setup Deno
         uses: denoland/setup-deno@v2
         with:
-          deno-version: v2.x
+          deno-version: "2.8.0"
 
       - name: Install dependencies
         run: npm install
@@ -206,7 +206,7 @@ jobs:
 
       - uses: denoland/setup-deno@v2
         with:
-          deno-version: v2.x
+          deno-version: "2.8.0"
 
       - name: Download build artifacts
         uses: actions/download-artifact@v8
