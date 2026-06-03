@@ -5,8 +5,8 @@
 set -e
 
 # Configuration - Using latest stable version
-WASI_SDK_VERSION="31"
-WASI_SDK_VERSION_FULL="31.0"
+WASI_SDK_VERSION="33"
+WASI_SDK_VERSION_FULL="33.0"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 WASI_SDK_DIR="$PROJECT_ROOT/build/wasi-sdk"

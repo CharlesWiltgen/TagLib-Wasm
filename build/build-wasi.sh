@@ -256,13 +256,10 @@ for src in "${CAPI_SOURCES[@]}"; do
     CAPI_OBJECTS+=("$BUILD_DIR/$obj_name")
 done
 
-# Compile Wasm EH tag definition (LLVM 22+ requires external __cpp_exception tag)
-echo "Compiling Wasm EH tag definition"
-"$WASI_SDK_PATH/bin/clang" "$SRC_DIR/core/wasm_eh_tag.S" \
-    --target=wasm32-wasip1 \
-    --sysroot="$WASI_SDK_PATH/share/wasi-sysroot" \
-    -mexception-handling -c -o "$BUILD_DIR/wasm_eh_tag.obj"
-CAPI_OBJECTS+=("$BUILD_DIR/wasm_eh_tag.obj")
+# Note: the __cpp_exception tag is provided by WASI SDK 33's stock EH sysroot
+# (share/wasi-sysroot/lib/wasm32-wasip1/eh/libunwind.a). Earlier SDKs lacked it,
+# so we shipped a wasm_eh_tag.S shim; defining it now causes a duplicate-symbol
+# link error, so the shim is intentionally not compiled/linked (taglib-sgh).
 
 # Link everything together with Wasm EH support for TagLib
 "$WASI_SDK_PATH/bin/clang++" "${CAPI_OBJECTS[@]}" \

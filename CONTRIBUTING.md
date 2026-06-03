@@ -35,8 +35,7 @@ software together.
 
 3. **Install WASI SDK** (only needed if modifying the WASI backend)
    ```bash
-   bash build/setup-wasi-sdk.sh        # Downloads WASI SDK 31
-   bash build/build-eh-sysroot.sh      # Builds EH-enabled sysroot (one-time, ~5-10 min)
+   bash build/setup-wasi-sdk.sh        # Downloads WASI SDK 33 (stock sysroot ships C++ exceptions)
    ```
 
 4. **Build the project**
