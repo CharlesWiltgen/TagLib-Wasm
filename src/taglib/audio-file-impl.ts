@@ -9,7 +9,6 @@ import { FileOperationError, UnsupportedFormatError } from "../errors.ts";
 import { writeFileData } from "../utils/write.ts";
 import type { AudioFile } from "./audio-file-interface.ts";
 import { BaseAudioFileImpl } from "./audio-file-base.ts";
-import { resolve } from "@std/path";
 import { saveViaFreshHandle } from "./save-reconstruct.ts";
 
 let _nodeFs: { readFileSync(path: string): Uint8Array } | null | undefined;
@@ -124,13 +123,16 @@ export class AudioFileImpl extends BaseAudioFileImpl implements AudioFile {
       this.originalSource = undefined;
     } else if (
       this.module.isWasi && this.sourcePath &&
-      resolve(targetPath) !== resolve(this.sourcePath)
+      targetPath !== this.sourcePath
     ) {
       // taglib-cd0: WASI path-mode "save as". this.save() writes in-place to the
       // source path and getBuffer() is empty in path mode, so the else branch
       // would silently mutate the source and never produce targetPath. Rebuild
       // the full file from the source bytes and write it to the target instead.
       // The editing handle is a full load, so explicit clears must propagate.
+      // Exact-string compare (no @std/path resolve — that JSR import doesn't
+      // bundle for browser/npm): any difference safely routes here, and a
+      // same-file-via-different-string just reconstructs in place, still correct.
       await saveViaFreshHandle(
         this.module,
         this.handle,
