@@ -118,7 +118,11 @@ export abstract class BaseAudioFileImpl {
         return tag;
       },
       setDate: (value: string) => {
-        handle.setProperty("DATE", value);
+        if (value === "") {
+          handle.setTagData({ year: 0 }); // coherent clear: drops BOTH date and year
+        } else {
+          handle.setProperty("DATE", value);
+        }
         data = handle.getTagData(); // re-read so `year` reflects the change immediately
         return tag;
       },

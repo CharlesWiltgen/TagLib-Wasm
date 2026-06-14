@@ -154,5 +154,19 @@ for (const { kind, available } of BACKENDS) {
         f.dispose();
       }
     });
+
+    it('tag().setDate("") clears both date and year (mp3)', async () => {
+      const src = await Deno.readFile(FIXTURE_PATH.mp3);
+      const f = await open(new Uint8Array(src));
+      try {
+        const t = f.tag();
+        t.setDate(FULL_DATE);
+        t.setDate(""); // coherent clear: same underlying tag, both precisions go away
+        assertEquals(t.date, undefined, "date cleared");
+        assertEquals(t.year, 0, "year cleared");
+      } finally {
+        f.dispose();
+      }
+    });
   });
 }
