@@ -16,6 +16,66 @@ import type { AudioFile } from "./audio-file-interface.ts";
 import { BaseAudioFileImpl } from "./audio-file-base.ts";
 import { type EmbindFileHandle, wrapEmbindHandle } from "./embind-adapter.ts";
 
+/**
+ * Copy editable in-memory state from one handle onto another (e.g. a freshly
+ * reloaded full-file handle). Chapters/ratings/bext/ixml are copied
+ * conditionally so a source handle that never read them does not wipe the
+ * target's originals.
+ */
+function copyEditedState(target: FileHandle, source: FileHandle): void {
+  target.setTagData(source.getTagData());
+  target.setProperties(source.getProperties());
+  target.setPictures(source.getPictures());
+  const bext = source.getBextData();
+  if (bext !== undefined) target.setBextData(bext);
+  const ixml = source.getIxml();
+  if (ixml !== undefined) target.setIxml(ixml);
+  const chapters = source.getChapters();
+  if (chapters.length > 0) target.setChapters(chapters, "quicktime");
+  const ratings = source.getRatings();
+  if (ratings.length > 0) target.setRatings(ratings);
+}
+
+/**
+ * Reload the full file from `source` into a fresh handle, apply the editing
+ * handle's state, save, and write the result to `targetPath`. Used for the
+ * partial-load save and the WASI path-mode "save as" — both must produce a full
+ * file at the target without mutating the editing handle's source in place.
+ */
+async function saveViaFreshHandle(
+  module: TagLibModule,
+  editing: FileHandle,
+  source: string | Uint8Array | ArrayBuffer | File,
+  targetPath: string,
+): Promise<void> {
+  const rawFullHandle = module.createFileHandle();
+  const fullFileHandle = module.isWasi
+    ? rawFullHandle
+    : wrapEmbindHandle(rawFullHandle as unknown as EmbindFileHandle);
+  try {
+    {
+      // Scope the source bytes so they can be GC'd after the copy to the Wasm
+      // heap, reducing peak memory from 3x to 2x file size.
+      const data = await readFileData(source);
+      if (!fullFileHandle.loadFromBuffer(data)) {
+        throw new InvalidFormatError(
+          "Failed to load full audio file for saving",
+        );
+      }
+    }
+    copyEditedState(fullFileHandle, editing);
+    if (!fullFileHandle.save()) {
+      throw new FileOperationError(
+        "save",
+        "Failed to save changes to full file",
+      );
+    }
+    await writeFileData(targetPath, fullFileHandle.getBuffer());
+  } finally {
+    fullFileHandle.destroy();
+  }
+}
+
 let _nodeFs: { readFileSync(path: string): Uint8Array } | null | undefined;
 
 function sortChapters<T extends { startTimeMs: number }>(
@@ -115,57 +175,27 @@ export class AudioFileImpl extends BaseAudioFileImpl implements AudioFile {
     }
 
     if (this.isPartiallyLoaded && this.originalSource) {
-      const rawFullHandle = this.module.createFileHandle();
-      const fullFileHandle = this.module.isWasi
-        ? rawFullHandle
-        : wrapEmbindHandle(rawFullHandle as unknown as EmbindFileHandle);
-      try {
-        // Scope fullData so it can be GC'd after copy to Wasm heap,
-        // reducing peak memory from 3x to 2x file size.
-        const success = await (async () => {
-          const data = await readFileData(this.originalSource!);
-          return fullFileHandle.loadFromBuffer(data);
-        })();
-        if (!success) {
-          throw new InvalidFormatError(
-            "Failed to load full audio file for saving",
-          );
-        }
-
-        fullFileHandle.setTagData(this.handle.getTagData());
-
-        fullFileHandle.setProperties(this.handle.getProperties());
-        fullFileHandle.setPictures(this.handle.getPictures());
-        const bextBytes = this.handle.getBextData();
-        if (bextBytes !== undefined) fullFileHandle.setBextData(bextBytes);
-        const ixmlStr = this.handle.getIxml();
-        if (ixmlStr !== undefined) fullFileHandle.setIxml(ixmlStr);
-
-        // taglib-upg: carry chapters/ratings too. Conditional (like bext/ixml)
-        // so a partial handle that never read them does not wipe the originals
-        // already present in the freshly reloaded full handle.
-        const chapters = this.handle.getChapters();
-        if (chapters.length > 0) {
-          fullFileHandle.setChapters(chapters, "quicktime");
-        }
-        const ratings = this.handle.getRatings();
-        if (ratings.length > 0) fullFileHandle.setRatings(ratings);
-
-        if (!fullFileHandle.save()) {
-          throw new FileOperationError(
-            "save",
-            "Failed to save changes to full file",
-          );
-        }
-
-        const buffer = fullFileHandle.getBuffer();
-        await writeFileData(targetPath, buffer);
-      } finally {
-        fullFileHandle.destroy();
-      }
-
+      await saveViaFreshHandle(
+        this.module,
+        this.handle,
+        this.originalSource,
+        targetPath,
+      );
       this.isPartiallyLoaded = false;
       this.originalSource = undefined;
+    } else if (
+      this.module.isWasi && this.sourcePath && targetPath !== this.sourcePath
+    ) {
+      // taglib-cd0: WASI path-mode "save as". this.save() writes in-place to the
+      // source path and getBuffer() is empty in path mode, so the else branch
+      // would silently mutate the source and never produce targetPath. Rebuild
+      // the full file from the source bytes and write it to the target instead.
+      await saveViaFreshHandle(
+        this.module,
+        this.handle,
+        this.sourcePath,
+        targetPath,
+      );
     } else {
       if (!this.save()) {
         throw new FileOperationError(

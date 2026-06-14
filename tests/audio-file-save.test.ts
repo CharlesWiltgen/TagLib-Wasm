@@ -105,6 +105,43 @@ describe("AudioFileImpl.saveToFile()", () => {
     }
   });
 
+  // Regression: taglib-cd0 — on WASI, saveToFile(target) for a path-opened file
+  // wrote in-place to the SOURCE and ignored the target (silent data corruption).
+  it("[wasi] saveToFile(target) writes to target and leaves source intact (taglib-cd0)", async () => {
+    const wasi = await TagLib.initialize({ forceWasmType: "wasi" });
+    const original = await Deno.readFile(FIXTURE_PATH.mp3);
+    const srcPath = await Deno.makeTempFile({ suffix: ".mp3" });
+    const targetPath = await Deno.makeTempFile({ suffix: ".mp3" });
+    await Deno.writeFile(srcPath, original);
+    try {
+      const file = await wasi.open(srcPath); // WASI path-mode
+      file.tag().setTitle("CD0 Target Test");
+      await file.saveToFile(targetPath);
+      file.dispose();
+
+      const reopened = await wasi.open(await Deno.readFile(targetPath));
+      try {
+        assertEquals(
+          reopened.tag().title,
+          "CD0 Target Test",
+          "target missing edit",
+        );
+      } finally {
+        reopened.dispose();
+      }
+
+      const srcAfter = await Deno.readFile(srcPath);
+      assertEquals(srcAfter.length, original.length, "source size changed");
+      assert(
+        srcAfter.every((b, i) => b === original[i]),
+        "source file was mutated by saveToFile(target)",
+      );
+    } finally {
+      await Deno.remove(srcPath).catch(() => {});
+      await Deno.remove(targetPath).catch(() => {});
+    }
+  });
+
   it("should save fully-loaded file to disk with roundtrip verification", async () => {
     const file = await taglib.open(FIXTURE_PATH.flac);
 
