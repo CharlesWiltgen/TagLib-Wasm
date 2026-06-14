@@ -45,23 +45,6 @@ export const FIXTURE_PATH: Record<Format, string> = {
   webm: resolve(TEST_FILES_DIR, "matroska/kiss-snippet.webm"),
 };
 
-export const WASI_VIRTUAL_PATH: Record<Format, string> = {
-  mp3: "/test/mp3/kiss-snippet.mp3",
-  flac: "/test/flac/kiss-snippet.flac",
-  ogg: "/test/ogg/kiss-snippet.ogg",
-  m4a: "/test/mp4/kiss-snippet.m4a",
-  wav: "/test/wav/kiss-snippet.wav",
-  opus: "/test/opus/kiss-snippet.opus",
-  mp4: "/test/mp4/kiss-snippet.mp4",
-  oga: "/test/oga/kiss-snippet.oga",
-  wv: "/test/wv/kiss-snippet.wv",
-  tta: "/test/tta/kiss-snippet.tta",
-  wma: "/test/wma/kiss-snippet.wma",
-  mka: "/test/matroska/kiss-snippet.mka",
-  mkv: "/test/matroska/kiss-snippet.mkv",
-  webm: "/test/matroska/kiss-snippet.webm",
-};
-
 export const EXPECTED_KISS_TAGS = {
   title: "Kiss",
   artist: "Prince and The Revolution",

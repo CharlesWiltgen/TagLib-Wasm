@@ -95,20 +95,6 @@ export interface ComplexPropertyValueMap {
 export type ComplexPropertyKey = keyof ComplexPropertyValueMap;
 
 /**
- * Complex property metadata interface.
- */
-export interface ComplexPropertyMetadata {
-  key: string;
-  description: string;
-  type: "binary" | "object";
-  supportedFormats: readonly string[];
-  mappings: Record<
-    string,
-    string | { frame?: string; atom?: string; description?: string }
-  >;
-}
-
-/**
  * Rich metadata object for complex properties.
  * Contains descriptions, format support info, and underlying format mappings.
  *

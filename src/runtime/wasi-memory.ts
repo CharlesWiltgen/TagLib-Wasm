@@ -234,18 +234,3 @@ export class WasmMemoryError extends TagLibError {
     Object.setPrototypeOf(this, WasmMemoryError.prototype);
   }
 }
-
-/**
- * Refresh heap views after potential memory growth
- * Call this if you suspect the WASM module grew its memory
- */
-export function refreshHeapViews(
-  wasm: WasmExports,
-  currentViews: ReturnType<typeof heapViews>,
-): ReturnType<typeof heapViews> {
-  // Check if buffer changed (memory growth)
-  if (currentViews.u8.buffer !== wasm.memory.buffer) {
-    return heapViews(wasm.memory);
-  }
-  return currentViews;
-}
