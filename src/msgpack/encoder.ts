@@ -10,7 +10,12 @@ import type {
 } from "../types.ts";
 import { toTagLibKey } from "../constants/properties.ts";
 
-const PASSTHROUGH_KEYS = new Set([
+/**
+ * Structured (non-text-property) keys carried verbatim through the msgpack
+ * boundary. The reconstruct registry (`extra-state-registry.ts`) must cover the
+ * data fields here; `extra-state-registry.test.ts` enforces that cross-check.
+ */
+export const PASSTHROUGH_KEYS = new Set([
   "pictures",
   "ratings",
   "lyrics",

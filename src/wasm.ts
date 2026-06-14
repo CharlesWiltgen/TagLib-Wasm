@@ -19,6 +19,13 @@ export interface RawChapter {
   source?: string;
 }
 
+/** Raw unsynchronized-lyrics entry as carried across the backend boundary. */
+export interface RawLyrics {
+  text: string;
+  description: string;
+  language: string;
+}
+
 // Basic Emscripten module interface
 export interface EmscriptenModule {
   // Memory
@@ -98,6 +105,8 @@ export interface FileHandle {
   setRatings(
     ratings: { rating: number; email?: string; counter?: number }[],
   ): void;
+  getLyrics(): RawLyrics[];
+  setLyrics(lyrics: RawLyrics[]): void;
   hasId3Tags(): { v1: boolean; v2: boolean };
   stripId3Tags(opts: { v1: boolean; v2: boolean }): void;
   destroy(): void;

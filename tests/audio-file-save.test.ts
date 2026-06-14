@@ -142,6 +142,47 @@ describe("AudioFileImpl.saveToFile()", () => {
     }
   });
 
+  // NOTE: lyrics is now carried by the reconstruct registry (extra-state
+  // registry coverage test enforces it), but an end-to-end WASI roundtrip can't
+  // be asserted yet — the WASI read path collides the "LYRICS" property string
+  // with the structured "lyrics" array, corrupting read-back (pre-existing;
+  // tracked as taglib-gq9). Re-enable a lyrics survival test once that lands.
+
+  // A full-load (complete) source must propagate an explicit clear, unlike a
+  // partial source where an empty field may just be unread.
+  it("[wasi] save-as honors an explicit clear of chapters (complete source)", async () => {
+    const wasi = await TagLib.initialize({ forceWasmType: "wasi" });
+    const srcPath = await Deno.makeTempFile({ suffix: ".mp3" });
+    const withChapters = await Deno.makeTempFile({ suffix: ".mp3" });
+    const out = await Deno.makeTempFile({ suffix: ".mp3" });
+    await Deno.writeFile(srcPath, await Deno.readFile(FIXTURE_PATH.mp3));
+    try {
+      const seed = await wasi.open(srcPath);
+      seed.setChapters([{ startTimeMs: 0, title: "Ch1" }]);
+      await seed.saveToFile(withChapters);
+      seed.dispose();
+
+      const f = await wasi.open(withChapters);
+      assertEquals(f.getChapters().length, 1, "precondition: chapters present");
+      f.setChapters([]); // explicit clear
+      await f.saveToFile(out);
+      f.dispose();
+
+      const g = await wasi.open(await Deno.readFile(out));
+      const remaining = g.getChapters().length;
+      g.dispose();
+      assertEquals(
+        remaining,
+        0,
+        "explicit chapter clear not honored on save-as",
+      );
+    } finally {
+      await Deno.remove(srcPath).catch(() => {});
+      await Deno.remove(withChapters).catch(() => {});
+      await Deno.remove(out).catch(() => {});
+    }
+  });
+
   it("should save fully-loaded file to disk with roundtrip verification", async () => {
     const file = await taglib.open(FIXTURE_PATH.flac);
 

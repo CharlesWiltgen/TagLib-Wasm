@@ -15,25 +15,25 @@ import { writeFileData } from "../utils/write.ts";
 import type { AudioFile } from "./audio-file-interface.ts";
 import { BaseAudioFileImpl } from "./audio-file-base.ts";
 import { type EmbindFileHandle, wrapEmbindHandle } from "./embind-adapter.ts";
+import { copyExtraState } from "./extra-state-registry.ts";
+import { resolve } from "@std/path";
 
 /**
  * Copy editable in-memory state from one handle onto another (e.g. a freshly
- * reloaded full-file handle). Chapters/ratings/bext/ixml are copied
- * conditionally so a source handle that never read them does not wipe the
- * target's originals.
+ * reloaded full-file handle). Basic tags and the text PropertyMap are copied
+ * wholesale; all other metadata goes through the single {@link copyExtraState}
+ * registry so a field can't be silently forgotten. `sourceComplete` is true
+ * when `source` holds the full file (WASI save-as) so explicit clears
+ * propagate, false for partial loads so unread fields are not wiped.
  */
-function copyEditedState(target: FileHandle, source: FileHandle): void {
+function copyEditedState(
+  target: FileHandle,
+  source: FileHandle,
+  sourceComplete: boolean,
+): void {
   target.setTagData(source.getTagData());
   target.setProperties(source.getProperties());
-  target.setPictures(source.getPictures());
-  const bext = source.getBextData();
-  if (bext !== undefined) target.setBextData(bext);
-  const ixml = source.getIxml();
-  if (ixml !== undefined) target.setIxml(ixml);
-  const chapters = source.getChapters();
-  if (chapters.length > 0) target.setChapters(chapters, "quicktime");
-  const ratings = source.getRatings();
-  if (ratings.length > 0) target.setRatings(ratings);
+  copyExtraState(target, source, sourceComplete);
 }
 
 /**
@@ -47,6 +47,7 @@ async function saveViaFreshHandle(
   editing: FileHandle,
   source: string | Uint8Array | ArrayBuffer | File,
   targetPath: string,
+  sourceComplete: boolean,
 ): Promise<void> {
   const rawFullHandle = module.createFileHandle();
   const fullFileHandle = module.isWasi
@@ -63,7 +64,7 @@ async function saveViaFreshHandle(
         );
       }
     }
-    copyEditedState(fullFileHandle, editing);
+    copyEditedState(fullFileHandle, editing, sourceComplete);
     if (!fullFileHandle.save()) {
       throw new FileOperationError(
         "save",
@@ -175,26 +176,32 @@ export class AudioFileImpl extends BaseAudioFileImpl implements AudioFile {
     }
 
     if (this.isPartiallyLoaded && this.originalSource) {
+      // Partial source: the editing handle read only header+footer, so an empty
+      // extra field may just be unread — do not let it wipe the original.
       await saveViaFreshHandle(
         this.module,
         this.handle,
         this.originalSource,
         targetPath,
+        false,
       );
       this.isPartiallyLoaded = false;
       this.originalSource = undefined;
     } else if (
-      this.module.isWasi && this.sourcePath && targetPath !== this.sourcePath
+      this.module.isWasi && this.sourcePath &&
+      resolve(targetPath) !== resolve(this.sourcePath)
     ) {
       // taglib-cd0: WASI path-mode "save as". this.save() writes in-place to the
       // source path and getBuffer() is empty in path mode, so the else branch
       // would silently mutate the source and never produce targetPath. Rebuild
       // the full file from the source bytes and write it to the target instead.
+      // The editing handle is a full load, so explicit clears must propagate.
       await saveViaFreshHandle(
         this.module,
         this.handle,
         this.sourcePath,
         targetPath,
+        true,
       );
     } else {
       if (!this.save()) {

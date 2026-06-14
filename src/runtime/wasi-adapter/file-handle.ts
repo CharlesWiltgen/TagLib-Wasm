@@ -2,7 +2,12 @@
  * @fileoverview WASI-based FileHandle implementation
  */
 
-import type { FileHandle, RawChapter, RawPicture } from "../../wasm.ts";
+import type {
+  FileHandle,
+  RawChapter,
+  RawLyrics,
+  RawPicture,
+} from "../../wasm.ts";
 import type { BasicTagData } from "../../types/tags.ts";
 import type {
   AudioCodec,
@@ -514,6 +519,16 @@ export class WasiFileHandle implements FileHandle {
       ...this.tagData,
       ratings: normalizedRatings,
     } as Record<string, unknown>;
+  }
+
+  getLyrics(): RawLyrics[] {
+    this.checkNotDestroyed();
+    return (this.tagData?.lyrics as RawLyrics[] | undefined) ?? [];
+  }
+
+  setLyrics(lyrics: RawLyrics[]): void {
+    this.checkNotDestroyed();
+    this.tagData = { ...this.tagData, lyrics } as Record<string, unknown>;
   }
 
   destroy(): void {

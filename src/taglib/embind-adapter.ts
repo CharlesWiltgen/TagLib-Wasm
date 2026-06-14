@@ -6,7 +6,7 @@
  * overriding only getTagData, setTagData, and getAudioProperties.
  */
 
-import type { FileHandle } from "../wasm.ts";
+import type { FileHandle, RawLyrics } from "../wasm.ts";
 import type { BasicTagData } from "../types/tags.ts";
 import type {
   AudioCodec,
@@ -109,6 +109,29 @@ export function wrapEmbindHandle(raw: EmbindFileHandle): FileHandle {
       (raw as unknown as { setIxml(d: string | null): void }).setIxml(
         data ?? null,
       );
+    },
+    // Emscripten exposes USLT only through the PropertyMap "LYRICS" key (no
+    // dedicated Embind binding), so bridge get/setLyrics to get/setProperties.
+    // Text only — language/description are not surfaced by the PropertyMap.
+    getLyrics(): RawLyrics[] {
+      const props = (raw as unknown as {
+        getProperties(): Record<string, string[]>;
+      }).getProperties();
+      return (props["LYRICS"] ?? []).map((text) => ({
+        text,
+        description: "",
+        language: "",
+      }));
+    },
+    setLyrics(lyrics: RawLyrics[]) {
+      const handle = raw as unknown as {
+        getProperties(): Record<string, string[]>;
+        setProperties(p: Record<string, string[]>): void;
+      };
+      const props = handle.getProperties();
+      if (lyrics.length > 0) props["LYRICS"] = lyrics.map((l) => l.text);
+      else delete props["LYRICS"];
+      handle.setProperties(props);
     },
     hasId3Tags(): { v1: boolean; v2: boolean } {
       const v = (raw as unknown as { hasId3Tags(): unknown }).hasId3Tags();
