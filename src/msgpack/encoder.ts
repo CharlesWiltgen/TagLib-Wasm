@@ -36,6 +36,23 @@ const MSGPACK_ENCODE_OPTIONS: EncoderOptions = {
   extensionCodec: undefined,
 };
 
+/**
+ * Flatten the in-memory lyrics value to the plain text strings the "LYRICS"
+ * PropertyMap key accepts. Tolerates the three shapes `tagData.lyrics` can hold:
+ * a `RawLyrics[]` (from `setLyrics`), a `string[]` (from `setProperties`), or a
+ * bare `string` (from a fresh read of the "LYRICS" property).
+ */
+function lyricsTexts(value: unknown): string[] {
+  const entries = Array.isArray(value) ? value : [value];
+  return entries
+    .map((entry) =>
+      typeof entry === "string"
+        ? entry
+        : String((entry as { text?: unknown })?.text ?? "")
+    )
+    .filter((text) => text !== "");
+}
+
 export function encodeTagData(tagData: ExtendedTag): Uint8Array {
   try {
     // Both `date` (full ISO string) and `year` (numeric mirror) map to the same
@@ -49,6 +66,18 @@ export function encodeTagData(tagData: ExtendedTag): Uint8Array {
     const remapped: Record<string, unknown> = {};
     for (const [key, value] of Object.entries(tagData)) {
       if (key === "year" && hasDate) continue;
+      if (key === "lyrics") {
+        // TagLib has no LYRICS *complex* property, so unsynchronized lyrics
+        // persist only via the text "LYRICS" PropertyMap key (the ID3v2/MP4/Xiph
+        // frame factories turn it into USLT/©lyr/etc). Emit the text under the
+        // uppercase wire key so it actually writes — the lowercase passthrough
+        // key is dropped by the C API's property decoder. description/language
+        // are not representable via the PropertyMap on either backend
+        // (taglib-gq9).
+        const texts = lyricsTexts(value);
+        if (texts.length > 0) remapped["LYRICS"] = texts;
+        continue;
+      }
       if (PASSTHROUGH_KEYS.has(key)) {
         remapped[key] = value;
       } else {

@@ -3,6 +3,7 @@ import { assertInstanceOf } from "@std/assert/instance-of";
 import { beforeAll, describe, it } from "@std/testing/bdd";
 import { TagLib } from "../src/taglib.ts";
 import { FileOperationError } from "../src/errors.ts";
+import type { FileHandle, RawLyrics } from "../src/wasm.ts";
 import { FIXTURE_PATH } from "./shared-fixtures.ts";
 
 let taglib: TagLib;
@@ -142,11 +143,63 @@ describe("AudioFileImpl.saveToFile()", () => {
     }
   });
 
-  // NOTE: lyrics is now carried by the reconstruct registry (extra-state
-  // registry coverage test enforces it), but an end-to-end WASI roundtrip can't
-  // be asserted yet — the WASI read path collides the "LYRICS" property string
-  // with the structured "lyrics" array, corrupting read-back (pre-existing;
-  // tracked as taglib-gq9). Re-enable a lyrics survival test once that lands.
+  // Regression: taglib-gq9 — WASI silently dropped lyrics on write (TagLib has
+  // no LYRICS *complex* property; lyrics must ride the text "LYRICS" PropertyMap
+  // key, as Emscripten already does). They now round-trip text-only and
+  // IDENTICALLY on both backends; description/language are not representable via
+  // the PropertyMap API. getLyrics/setLyrics live on the handle, not the public
+  // AudioFile, so reach them via a cast.
+  it("lyrics round-trip text-only and identically across backends (taglib-gq9)", async () => {
+    const input: RawLyrics[] = [
+      { text: "Hello\nWorld", description: "Chorus", language: "eng" },
+    ];
+    const expected: RawLyrics[] = [
+      { text: "Hello\nWorld", description: "", language: "" },
+    ];
+    const got: Record<string, RawLyrics[]> = {};
+    for (const backend of ["wasi", "emscripten"] as const) {
+      const tl = await TagLib.initialize({ forceWasmType: backend });
+      const file = await tl.open(await Deno.readFile(FIXTURE_PATH.mp3));
+      (file as unknown as { handle: FileHandle }).handle.setLyrics(input);
+      file.save();
+      const buf = file.getFileBuffer();
+      file.dispose();
+
+      const reopened = await tl.open(buf);
+      got[backend] = (reopened as unknown as { handle: FileHandle }).handle
+        .getLyrics();
+      reopened.dispose();
+    }
+    assertEquals(got.wasi, expected);
+    assertEquals(got.emscripten, expected);
+  });
+
+  // The WASI save-as reconstruct (path-mode → fresh full handle) must also carry
+  // lyrics; the EXTRA_FIELDS registry copies them via get/setLyrics.
+  it("[wasi] lyrics survive a save-as reconstruct (taglib-gq9)", async () => {
+    const wasi = await TagLib.initialize({ forceWasmType: "wasi" });
+    const srcPath = await Deno.makeTempFile({ suffix: ".mp3" });
+    const out = await Deno.makeTempFile({ suffix: ".mp3" });
+    await Deno.writeFile(srcPath, await Deno.readFile(FIXTURE_PATH.mp3));
+    const expected: RawLyrics[] = [
+      { text: "Reconstructed", description: "", language: "" },
+    ];
+    try {
+      const file = await wasi.open(srcPath); // WASI path-mode
+      (file as unknown as { handle: FileHandle }).handle.setLyrics(expected);
+      await file.saveToFile(out); // save-as → reconstruct
+      file.dispose();
+
+      const reopened = await wasi.open(await Deno.readFile(out));
+      const got = (reopened as unknown as { handle: FileHandle }).handle
+        .getLyrics();
+      reopened.dispose();
+      assertEquals(got, expected);
+    } finally {
+      await Deno.remove(srcPath).catch(() => {});
+      await Deno.remove(out).catch(() => {});
+    }
+  });
 
   // A full-load (complete) source must propagate an explicit clear, unlike a
   // partial source where an empty field may just be unread.

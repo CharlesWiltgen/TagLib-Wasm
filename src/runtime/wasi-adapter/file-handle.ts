@@ -523,7 +523,22 @@ export class WasiFileHandle implements FileHandle {
 
   getLyrics(): RawLyrics[] {
     this.checkNotDestroyed();
-    return (this.tagData?.lyrics as RawLyrics[] | undefined) ?? [];
+    const value = this.tagData?.lyrics;
+    if (value === undefined || value === null) return [];
+    // A fresh read surfaces lyrics as the "LYRICS" text property (a string, or a
+    // string[] for multi-value); setLyrics stores a RawLyrics[]. Normalize all
+    // shapes — description/language are not persisted via the PropertyMap so
+    // they read back empty (taglib-gq9).
+    const entries = Array.isArray(value) ? value : [value];
+    return entries.map((entry) =>
+      typeof entry === "string"
+        ? { text: entry, description: "", language: "" }
+        : {
+          text: (entry as RawLyrics)?.text ?? "",
+          description: (entry as RawLyrics)?.description ?? "",
+          language: (entry as RawLyrics)?.language ?? "",
+        }
+    );
   }
 
   setLyrics(lyrics: RawLyrics[]): void {

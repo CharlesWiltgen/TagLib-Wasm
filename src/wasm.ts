@@ -21,8 +21,10 @@ export interface RawChapter {
 
 /**
  * Raw unsynchronized-lyrics entry as carried across the backend boundary.
- * WASI round-trips all three fields; the Emscripten bridge carries `text` only
- * (`description`/`language` are `""`) since it rides the PropertyMap LYRICS key.
+ * Both backends persist `text` only: lyrics ride the text "LYRICS" PropertyMap
+ * key (TagLib has no LYRICS *complex* property), so `description`/`language` are
+ * kept in-memory for the current handle but are NOT written to the file and read
+ * back as `""` (taglib-gq9). Full structured USLT is a possible future addition.
  */
 export interface RawLyrics {
   text: string;
