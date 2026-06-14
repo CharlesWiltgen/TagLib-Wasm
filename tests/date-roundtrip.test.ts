@@ -12,6 +12,7 @@ import { assertEquals } from "@std/assert";
 import { describe, it } from "@std/testing/bdd";
 import { TagLib } from "../src/taglib.ts";
 import { mergeTagUpdates } from "../src/utils/tag-mapping.ts";
+import { readTags } from "../src/simple/index.ts";
 import { FIXTURE_PATH } from "./shared-fixtures.ts";
 import { HAS_EMSCRIPTEN, HAS_WASI } from "./backend-adapter.ts";
 
@@ -167,6 +168,81 @@ for (const { kind, available } of BACKENDS) {
       } finally {
         f.dispose();
       }
+    });
+
+    for (const format of FORMATS) {
+      it(`tag().setDate survives save/reopen (${format})`, async () => {
+        const src = await Deno.readFile(FIXTURE_PATH[format]);
+        const f1 = await open(new Uint8Array(src));
+        f1.tag().setDate(FULL_DATE);
+        f1.save();
+        const out = new Uint8Array(f1.getFileBuffer());
+        f1.dispose();
+
+        const f2 = await open(out);
+        try {
+          assertEquals(
+            f2.tag().date,
+            FULL_DATE,
+            `${format}: date lost on roundtrip`,
+          );
+          assertEquals(
+            f2.tag().year,
+            EXPECTED_YEAR,
+            `${format}: year lost on roundtrip`,
+          );
+        } finally {
+          f2.dispose();
+        }
+      });
+    }
+
+    it("tag().setYear after setDate truncates date on roundtrip (mp3)", async () => {
+      const src = await Deno.readFile(FIXTURE_PATH.mp3);
+      const f1 = await open(new Uint8Array(src));
+      const t = f1.tag();
+      t.setDate(FULL_DATE);
+      t.setYear(EXPECTED_YEAR); // last-setter-wins: truncate to the year
+      f1.save();
+      const out = new Uint8Array(f1.getFileBuffer());
+      f1.dispose();
+
+      const f2 = await open(out);
+      try {
+        assertEquals(f2.tag().year, EXPECTED_YEAR);
+        assertEquals(
+          f2.tag().date,
+          String(EXPECTED_YEAR),
+          "date should truncate to year",
+        );
+      } finally {
+        f2.dispose();
+      }
+    });
+
+    it("tag().date agrees with Simple API readTags().date (mp3)", async () => {
+      const src = await Deno.readFile(FIXTURE_PATH.mp3);
+      const f1 = await open(new Uint8Array(src));
+      f1.tag().setDate(FULL_DATE);
+      f1.save();
+      const out = new Uint8Array(f1.getFileBuffer());
+      f1.dispose();
+
+      const f2 = await open(out);
+      try {
+        assertEquals(f2.tag().date, FULL_DATE);
+      } finally {
+        f2.dispose();
+      }
+      // readTags uses the default backend (typically WASI), not necessarily `kind`;
+      // both backends agree on this written value, so the cross-API check is valid.
+      // Normalize string | string[] from the Simple API before comparing.
+      const d = (await readTags(out)).date;
+      assertEquals(
+        Array.isArray(d) ? d[0] : d,
+        FULL_DATE,
+        "Simple/Full date mismatch",
+      );
     });
   });
 }
