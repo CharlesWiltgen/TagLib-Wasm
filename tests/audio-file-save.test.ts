@@ -183,6 +183,38 @@ describe("AudioFileImpl.saveToFile()", () => {
     }
   });
 
+  // Regression: the save-as reconstruct must preserve the user's MP4 chapter
+  // style (it derives it from RawChapter.source, stamped by setChapters) rather
+  // than silently downgrading nero/both to quicktime.
+  it("[wasi] save-as preserves MP4 chapters and their nero style", async () => {
+    const wasi = await TagLib.initialize({ forceWasmType: "wasi" });
+    const srcPath = await Deno.makeTempFile({ suffix: ".m4a" });
+    const out = await Deno.makeTempFile({ suffix: ".m4a" });
+    await Deno.writeFile(srcPath, await Deno.readFile(FIXTURE_PATH.m4a));
+    try {
+      const file = await wasi.open(srcPath); // WASI path-mode
+      file.setChapters([{ startTimeMs: 0, title: "Intro" }], {
+        mp4ChapterStyle: "nero",
+      });
+      await file.saveToFile(out); // save-as → reconstruct
+      file.dispose();
+
+      const g = await wasi.open(await Deno.readFile(out));
+      const chapters = g.getChapters();
+      g.dispose();
+      assertEquals(chapters.length, 1, "MP4 chapters lost on save-as");
+      assertEquals(chapters[0].title, "Intro");
+      assertEquals(
+        chapters[0].source,
+        "nero",
+        "nero style downgraded on save-as",
+      );
+    } finally {
+      await Deno.remove(srcPath).catch(() => {});
+      await Deno.remove(out).catch(() => {});
+    }
+  });
+
   it("should save fully-loaded file to disk with roundtrip verification", async () => {
     const file = await taglib.open(FIXTURE_PATH.flac);
 

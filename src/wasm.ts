@@ -19,7 +19,11 @@ export interface RawChapter {
   source?: string;
 }
 
-/** Raw unsynchronized-lyrics entry as carried across the backend boundary. */
+/**
+ * Raw unsynchronized-lyrics entry as carried across the backend boundary.
+ * WASI round-trips all three fields; the Emscripten bridge carries `text` only
+ * (`description`/`language` are `""`) since it rides the PropertyMap LYRICS key.
+ */
 export interface RawLyrics {
   text: string;
   description: string;

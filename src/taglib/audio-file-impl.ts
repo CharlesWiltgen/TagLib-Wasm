@@ -20,11 +20,14 @@ import { resolve } from "@std/path";
 
 /**
  * Copy editable in-memory state from one handle onto another (e.g. a freshly
- * reloaded full-file handle). Basic tags and the text PropertyMap are copied
- * wholesale; all other metadata goes through the single {@link copyExtraState}
- * registry so a field can't be silently forgotten. `sourceComplete` is true
- * when `source` holds the full file (WASI save-as) so explicit clears
- * propagate, false for partial loads so unread fields are not wiped.
+ * reloaded full-file handle). All structured metadata goes through the single
+ * {@link copyExtraState} registry so a field can't be silently forgotten.
+ * `sourceComplete` distinguishes a full-state source (WASI save-as) from a
+ * partial-load source: when complete, the text PropertyMap replaces wholesale
+ * and explicit clears propagate; when partial, properties are MERGED over the
+ * reloaded full handle so text frames (and Emscripten lyrics, which ride the
+ * PropertyMap) beyond the loaded header are not wiped, and empty structured
+ * fields are skipped rather than wiping originals.
  */
 function copyEditedState(
   target: FileHandle,
@@ -32,7 +35,11 @@ function copyEditedState(
   sourceComplete: boolean,
 ): void {
   target.setTagData(source.getTagData());
-  target.setProperties(source.getProperties());
+  target.setProperties(
+    sourceComplete
+      ? source.getProperties()
+      : { ...target.getProperties(), ...source.getProperties() },
+  );
   copyExtraState(target, source, sourceComplete);
 }
 
@@ -272,13 +279,18 @@ export class AudioFileImpl extends BaseAudioFileImpl implements AudioFile {
     }
     const sorted = sortChapters(chapters);
     const trackEndMs = this.audioProperties()?.durationMs;
+    const style = options?.mp4ChapterStyle ?? "quicktime";
+    // Stamp the target container so a later save-as reconstruct recovers the
+    // style from RawChapter.source (the registry derives it from there).
+    const source = fmt === "MP4" ? style : "id3";
     const raw: RawChapter[] = sorted.map((c, i) => ({
       id: c.id,
       startTimeMs: c.startTimeMs,
       endTimeMs: inferEndTimeMs(sorted, i, trackEndMs) ?? c.startTimeMs,
       title: c.title,
+      source,
     }));
-    this.handle.setChapters(raw, options?.mp4ChapterStyle ?? "quicktime");
+    this.handle.setChapters(raw, style);
   }
 
   getBext(): BroadcastAudioExtension | undefined {

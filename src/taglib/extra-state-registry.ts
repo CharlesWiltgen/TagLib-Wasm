@@ -22,7 +22,12 @@ type ExtraField = {
 };
 
 function chapterStyle(chapters: readonly RawChapter[]): string {
-  return chapters.some((c) => c.source === "nero") ? "nero" : "quicktime";
+  // `source` is stamped from the chosen MP4 style by AudioFileImpl.setChapters
+  // and read back from the container by getChapters, so it carries the style
+  // for both user-set and read chapters. "id3"/undefined → the (ignored for
+  // MP3) MP4 default.
+  const s = chapters[0]?.source;
+  return s === "nero" || s === "both" ? s : "quicktime";
 }
 
 export const EXTRA_FIELDS: readonly ExtraField[] = [
