@@ -119,6 +119,7 @@ tag.title;
 tag.artist;
 tag.album;
 tag.year;
+tag.date; // Full release date (e.g. "1975-10-31"), the lossless companion to `year`. Same underlying tag at higher precision.
 tag.track;
 tag.genre;
 
@@ -127,6 +128,7 @@ tag.setTitle("New");
 tag.setArtist("New");
 tag.setAlbum("New");
 tag.setYear(2024);
+tag.setDate("1975-10-31"); // `year` resyncs to the leading year. `setDate("")` clears both date and year.
 tag.setTrack(5);
 
 // Audio properties

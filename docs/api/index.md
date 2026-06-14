@@ -817,16 +817,18 @@ interface MutableTag {
   comment: string;
   genre: string;
   year: number;
+  date?: string; // Full release date (e.g. "1975-10-31"), the lossless companion to `year`. Same underlying tag at higher precision.
   track: number;
 
-  // Write methods
-  setTitle(value: string): void;
-  setArtist(value: string): void;
-  setAlbum(value: string): void;
-  setComment(value: string): void;
-  setGenre(value: string): void;
-  setYear(value: number): void;
-  setTrack(value: number): void;
+  // Write methods (chainable)
+  setTitle(value: string): MutableTag;
+  setArtist(value: string): MutableTag;
+  setAlbum(value: string): MutableTag;
+  setComment(value: string): MutableTag;
+  setGenre(value: string): MutableTag;
+  setYear(value: number): MutableTag;
+  setDate(value: string): MutableTag; // Set the full release date; `year` resyncs to the leading year. `setDate("")` clears both date and year.
+  setTrack(value: number): MutableTag;
 }
 ```
 
@@ -1056,9 +1058,10 @@ interface BroadcastAudioExtension {
 
 ##### setBext()
 
-Encode and write a `bext` chunk. Throws `UnsupportedFormatError` for non-WAV/FLAC
-files. `version` defaults to 2 when any loudness field is present; over-long
-string fields are truncated to their widths and loudness values are clamped.
+Encode and write a `bext` chunk. Throws `UnsupportedFormatError` for
+non-WAV/FLAC files. `version` defaults to 2 when any loudness field is present;
+over-long string fields are truncated to their widths and loudness values are
+clamped.
 
 ```typescript
 setBext(bext: BroadcastAudioExtension): void
