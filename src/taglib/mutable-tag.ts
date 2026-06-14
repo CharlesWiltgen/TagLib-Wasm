@@ -34,6 +34,8 @@ export interface MutableTag {
   readonly genre?: string;
   /** Year */
   readonly year?: number;
+  /** Full release date, e.g. "1975-10-31" or "1975". Lossless companion to {@link year}. */
+  readonly date?: string;
   /** Track number */
   readonly track?: number;
   /** Set the track title */
@@ -48,6 +50,11 @@ export interface MutableTag {
   setGenre(value: string): MutableTag;
   /** Set the release year */
   setYear(value: number): MutableTag;
+  /**
+   * Set the full release date at ISO precision (e.g. "1975-10-31"); `year` resyncs to the
+   * leading year. `setDate("")` clears the date AND year together.
+   */
+  setDate(value: string): MutableTag;
   /** Set the track number */
   setTrack(value: number): MutableTag;
 }

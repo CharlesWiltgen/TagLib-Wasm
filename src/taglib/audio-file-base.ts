@@ -79,6 +79,9 @@ export abstract class BaseAudioFileImpl {
       get track() {
         return data.track;
       },
+      get date() {
+        return handle.getProperty("DATE") || undefined; // "DATE" = toTagLibKey("date")
+      },
       setTitle: (value: string) => {
         handle.setTagData({ title: value });
         data = handle.getTagData();
@@ -112,6 +115,11 @@ export abstract class BaseAudioFileImpl {
       setTrack: (value: number) => {
         handle.setTagData({ track: value });
         data = handle.getTagData();
+        return tag;
+      },
+      setDate: (value: string) => {
+        handle.setProperty("DATE", value);
+        data = handle.getTagData(); // re-read so `year` reflects the change immediately
         return tag;
       },
     };

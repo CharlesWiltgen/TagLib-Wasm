@@ -140,5 +140,19 @@ for (const { kind, available } of BACKENDS) {
         f3.dispose();
       }
     });
+
+    it("tag().setDate writes the full date and resyncs year in-memory (mp3)", async () => {
+      const src = await Deno.readFile(FIXTURE_PATH.mp3);
+      const f = await open(new Uint8Array(src));
+      try {
+        const t = f.tag();
+        t.setDate(FULL_DATE);
+        // The SAME in-memory tag() object must reflect both surfaces.
+        assertEquals(t.date, FULL_DATE, "date getter");
+        assertEquals(t.year, EXPECTED_YEAR, "year resynced from date");
+      } finally {
+        f.dispose();
+      }
+    });
   });
 }
