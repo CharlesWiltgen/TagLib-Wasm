@@ -153,4 +153,40 @@ describe("Partial Loading", () => {
 
     file.dispose();
   });
+
+  // Regression: taglib-upg — the partial-load saveToFile branch dropped chapters
+  // and ratings. WASI path-opens never partial-load (they use path-mode), so this
+  // is exercised on Emscripten, where partial loading actually engages.
+  it("should preserve chapters and ratings set on a partially loaded file (taglib-upg)", async () => {
+    const taglib = await TagLib.initialize({ forceWasmType: "emscripten" });
+    // Isolated copy — never mutate the shared fixture.
+    const src = join(TEST_FILES_DIR, "mp3/_upg-src.mp3");
+    const out = join(TEST_FILES_DIR, "mp3/_upg-out.mp3");
+    await Deno.writeFile(
+      src,
+      await Deno.readFile(join(TEST_FILES_DIR, "mp3/kiss-snippet.mp3")),
+    );
+    try {
+      const file = await taglib.open(src, {
+        partial: true,
+        maxHeaderSize: 10 * 1024,
+        maxFooterSize: 5 * 1024,
+      });
+      file.setChapters([{ startTimeMs: 0, title: "Intro", id: "ch1" }]);
+      file.setRatings([{ rating: 0.8, email: "a@b.c", counter: 3 }]);
+      await file.saveToFile(out);
+      file.dispose();
+
+      const reopened = await taglib.open(await Deno.readFile(out));
+      try {
+        assertEquals(reopened.getChapters().length, 1, "chapters dropped");
+        assertEquals(reopened.getRatings().length, 1, "ratings dropped");
+      } finally {
+        reopened.dispose();
+      }
+    } finally {
+      await Deno.remove(src).catch(() => {});
+      await Deno.remove(out).catch(() => {});
+    }
+  });
 });

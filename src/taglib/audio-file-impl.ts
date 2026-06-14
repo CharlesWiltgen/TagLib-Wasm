@@ -141,6 +141,16 @@ export class AudioFileImpl extends BaseAudioFileImpl implements AudioFile {
         const ixmlStr = this.handle.getIxml();
         if (ixmlStr !== undefined) fullFileHandle.setIxml(ixmlStr);
 
+        // taglib-upg: carry chapters/ratings too. Conditional (like bext/ixml)
+        // so a partial handle that never read them does not wipe the originals
+        // already present in the freshly reloaded full handle.
+        const chapters = this.handle.getChapters();
+        if (chapters.length > 0) {
+          fullFileHandle.setChapters(chapters, "quicktime");
+        }
+        const ratings = this.handle.getRatings();
+        if (ratings.length > 0) fullFileHandle.setRatings(ratings);
+
         if (!fullFileHandle.save()) {
           throw new FileOperationError(
             "save",
