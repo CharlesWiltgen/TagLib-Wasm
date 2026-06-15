@@ -6,6 +6,7 @@ import { FileOperationError } from "../src/errors.ts";
 import type { FileHandle, RawLyrics } from "../src/wasm.ts";
 import type { UnsyncedLyrics } from "../src/constants/complex-properties.ts";
 import { mergeTagUpdates } from "../src/utils/tag-mapping.ts";
+import { clearTags } from "../src/simple/tag-operations.ts";
 import { FIXTURE_PATH } from "./shared-fixtures.ts";
 
 let taglib: TagLib;
@@ -240,6 +241,33 @@ describe("AudioFileImpl.saveToFile()", () => {
         title,
         "Edited Title",
         `${backend}: the tag edit must still apply`,
+      );
+    }
+  });
+
+  // Regression: taglib-7eh — clearTags() must remove lyrics. Because lyrics are
+  // owned by get/setLyrics() (and setProperties now preserves them, taglib-eyp),
+  // clearTags's setProperties({}) alone leaves them; it must clear them
+  // explicitly. Verified for lyrics written by EITHER backend.
+  it("clearTags() removes lyrics written by either backend (taglib-7eh)", async () => {
+    for (const backend of ["wasi", "emscripten"] as const) {
+      const tl = await TagLib.initialize({ forceWasmType: backend });
+      const seed = await tl.open(await Deno.readFile(FIXTURE_PATH.mp3));
+      seed.setLyrics([{ text: "remove me" }]);
+      seed.save();
+      const withLyrics = seed.getFileBuffer();
+      seed.dispose();
+
+      const cleared = await clearTags(withLyrics);
+
+      const reopened = await tl.open(cleared);
+      const lyrics = reopened.getLyrics();
+      reopened.dispose();
+
+      assertEquals(
+        lyrics,
+        [],
+        `${backend}: clearTags() must remove lyrics`,
       );
     }
   });

@@ -165,5 +165,11 @@ export async function clearTags(
   return withAudioFileSave(file, (audioFile) => {
     audioFile.setProperties({});
     audioFile.removePictures();
+    // Lyrics are owned by get/setLyrics() and are preserved across a text-only
+    // setProperties (taglib-eyp), so clear them explicitly (taglib-7eh). NOTE:
+    // clearTags is still incomplete for other structured fields and for text
+    // props on the WASI merge-setProperties path — full repair tracked in
+    // taglib-nc5.
+    audioFile.setLyrics([]);
   });
 }
