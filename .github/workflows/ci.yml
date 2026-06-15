@@ -68,6 +68,11 @@ jobs:
         with:
           node-version: 24
 
+      - name: Setup Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: "2.8.0"
+
       - name: Cache dependencies
         uses: actions/cache@v5
         with:
@@ -79,13 +84,16 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      # Bundle the TS entry points (esbuild, ~3s, no Emscripten/WASI toolchain).
-      # esbuild hard-fails on any unresolvable bare specifier in the browser
-      # entries, so this catches bundler-resolution regressions (e.g. a JSR
-      # import that isn't an npm dep) on every PR/push — without waiting for the
-      # multi-minute build-embind job. See taglib-uo1.
+      # Bundle the TS entry points with esbuild (~3s, no Emscripten/WASI). Use
+      # the Deno task (deno run scripts/build-js.mjs), NOT `npm run build:ts`:
+      # the npm script also runs `tsc`, which fails in a fresh checkout because
+      # dist/taglib-wrapper.js (a wasm-build artifact) is absent. esbuild
+      # externalizes that wrapper and hard-fails on any unresolvable bare
+      # specifier in the browser entries, so this still catches
+      # bundler-resolution regressions (e.g. a JSR import that isn't an npm dep)
+      # without the multi-minute build-embind job. See taglib-uo1.
       - name: Build TypeScript bundles
-        run: npm run build:ts
+        run: deno task build:ts
 
   test-capi-cpp:
     name: Test (C API C++ unit tests)
