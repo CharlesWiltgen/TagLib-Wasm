@@ -10,6 +10,16 @@ import { MetadataError, UnsupportedFormatError } from "../errors.ts";
 import type { MutableTag } from "./mutable-tag.ts";
 import type { TypedAudioFile } from "./audio-file-interface.ts";
 
+// Lyrics (ID3v2 USLT / Vorbis LYRICS) is a structured field surfaced through the
+// dedicated get/setLyrics() accessor, like pictures/ratings/chapters. It is
+// excluded from the text properties() map AND preserved across a text-only
+// setProperties, so get/setLyrics() is the single canonical owner and a
+// read-modify-write (applyTags) can never drop it. On Emscripten lyrics ride the
+// Embind PropertyMap; on WASI they live in tagData (already hidden via
+// INTERNAL_KEYS), so the WASI paths below are no-ops.
+const LYRICS_PROPERTY_KEY = "lyrics"; // camelCase
+const LYRICS_WIRE_KEY = toTagLibKey(LYRICS_PROPERTY_KEY); // "LYRICS"
+
 /**
  * Base implementation with core read/property operations.
  * Extended by AudioFileImpl to add save/picture/rating/extended methods.
@@ -138,13 +148,24 @@ export abstract class BaseAudioFileImpl {
   }
 
   properties(): PropertyMap {
-    return remapKeysFromTagLib(this.handle.getProperties()) as PropertyMap;
+    const remapped = remapKeysFromTagLib(this.handle.getProperties());
+    delete (remapped as Record<string, unknown>)[LYRICS_PROPERTY_KEY];
+    return remapped as PropertyMap;
   }
 
   setProperties(properties: PropertyMap): void {
     const translated: Record<string, string[]> = {};
     for (const [key, values] of Object.entries(properties)) {
       if (values !== undefined) translated[toTagLibKey(key)] = values;
+    }
+    // Lyrics is owned by get/setLyrics(), not the properties() surface; when a
+    // text-only setProperties (e.g. the applyTags read-modify-write) omits it,
+    // preserve the existing frame so the replace-style Emscripten setProperties
+    // can't drop it. WASI keeps lyrics in tagData, so its handle never returns
+    // this key and the branch is a no-op there (taglib-eyp).
+    if (!(LYRICS_WIRE_KEY in translated)) {
+      const existing = this.handle.getProperties()[LYRICS_WIRE_KEY];
+      if (existing !== undefined) translated[LYRICS_WIRE_KEY] = existing;
     }
     this.handle.setProperties(translated);
   }

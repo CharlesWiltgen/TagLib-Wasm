@@ -4,6 +4,8 @@ import { beforeAll, describe, it } from "@std/testing/bdd";
 import { TagLib } from "../src/taglib.ts";
 import { FileOperationError } from "../src/errors.ts";
 import type { FileHandle, RawLyrics } from "../src/wasm.ts";
+import type { UnsyncedLyrics } from "../src/constants/complex-properties.ts";
+import { mergeTagUpdates } from "../src/utils/tag-mapping.ts";
 import { FIXTURE_PATH } from "./shared-fixtures.ts";
 
 let taglib: TagLib;
@@ -172,6 +174,74 @@ describe("AudioFileImpl.saveToFile()", () => {
     }
     assertEquals(got.wasi, expected);
     assertEquals(got.emscripten, expected);
+  });
+
+  // Regression: taglib-eyp — lyrics are a structured field surfaced through the
+  // public get/setLyrics() accessor (like pictures/ratings/chapters), NOT the
+  // generic text properties() map. WASI hid the key; Emscripten leaked it. After
+  // the fix, properties() excludes lyrics on BOTH backends and get/setLyrics()
+  // is the single, identical retrieval path. (text-only per taglib-gq9).
+  it("exposes lyrics via public get/setLyrics() identically on both backends, hidden from properties() (taglib-eyp)", async () => {
+    const input: UnsyncedLyrics[] = [{ text: "Verse one" }];
+    const got: Record<string, UnsyncedLyrics[]> = {};
+    for (const backend of ["wasi", "emscripten"] as const) {
+      const tl = await TagLib.initialize({ forceWasmType: backend });
+      const file = await tl.open(await Deno.readFile(FIXTURE_PATH.mp3));
+      file.setLyrics(input); // public accessor — no handle cast
+      file.save();
+      const reopened = await tl.open(file.getFileBuffer());
+      file.dispose();
+
+      got[backend] = reopened.getLyrics();
+      assertEquals(
+        reopened.properties()["lyrics"],
+        undefined,
+        `${backend}: properties() must not expose lyrics`,
+      );
+      reopened.dispose();
+    }
+    // Retrievable the SAME WAY and with the SAME result on both backends.
+    assertEquals(got.wasi, [{ text: "Verse one" }]);
+    assertEquals(got.emscripten, got.wasi);
+  });
+
+  // Regression GUARD: taglib-eyp — applyTags/updateFile do a text-only
+  // read-modify-write (setProperties({ ...properties(), ...new })). Because
+  // properties() now hides lyrics, setProperties must PRESERVE the existing
+  // lyrics frame so the replace-style Emscripten setProperties can't drop it.
+  // Lyrics must survive a text-only edit on BOTH backends.
+  it("preserves lyrics across an applyTags-style text edit on both backends (taglib-eyp)", async () => {
+    const input: UnsyncedLyrics[] = [{ text: "Keep me" }];
+    for (const backend of ["wasi", "emscripten"] as const) {
+      const tl = await TagLib.initialize({ forceWasmType: backend });
+      const seed = await tl.open(await Deno.readFile(FIXTURE_PATH.mp3));
+      seed.setLyrics(input);
+      seed.save();
+      const withLyrics = seed.getFileBuffer();
+      seed.dispose();
+
+      const file = await tl.open(withLyrics);
+      mergeTagUpdates(file, { title: "Edited Title" }); // the read-modify-write
+      file.save();
+      const edited = file.getFileBuffer();
+      file.dispose();
+
+      const reopened = await tl.open(edited);
+      const lyrics = reopened.getLyrics();
+      const title = reopened.tag().title;
+      reopened.dispose();
+
+      assertEquals(
+        lyrics,
+        input,
+        `${backend}: lyrics must survive a text-only tag edit`,
+      );
+      assertEquals(
+        title,
+        "Edited Title",
+        `${backend}: the tag edit must still apply`,
+      );
+    }
   });
 
   // The WASI save-as reconstruct (path-mode → fresh full handle) must also carry

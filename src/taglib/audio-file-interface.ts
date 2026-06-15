@@ -5,7 +5,10 @@ import type {
   PropertyMap,
 } from "../types.ts";
 import type { TypedAudioProperties } from "../types/audio-formats.ts";
-import type { Rating } from "../constants/complex-properties.ts";
+import type {
+  Rating,
+  UnsyncedLyrics,
+} from "../constants/complex-properties.ts";
 import type { MutableTag } from "./mutable-tag.ts";
 import type { FormatPropertyKey } from "../types/format-property-keys.ts";
 
@@ -140,6 +143,15 @@ export interface AudioFile {
 
   /** Set the primary rating (normalized 0.0-1.0). */
   setRating(rating: number, email?: string): void;
+
+  /**
+   * Get unsynchronized lyrics (ID3v2 USLT / Vorbis LYRICS). Returned identically
+   * on both backends; `description`/`language` are not round-tripped (text-only).
+   */
+  getLyrics(): UnsyncedLyrics[];
+
+  /** Set unsynchronized lyrics (replaces all existing). Pass `[]` to clear. */
+  setLyrics(lyrics: UnsyncedLyrics[]): void;
 
   /**
    * Detect spurious ID3v1/ID3v2 tags on a FLAC file. Returns

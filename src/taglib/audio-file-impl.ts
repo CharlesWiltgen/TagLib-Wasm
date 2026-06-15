@@ -1,10 +1,18 @@
-import type { FileHandle, RawChapter, TagLibModule } from "../wasm.ts";
+import type {
+  FileHandle,
+  RawChapter,
+  RawLyrics,
+  TagLibModule,
+} from "../wasm.ts";
 import type { OpenOptions, Picture } from "../types.ts";
 import { PICTURE_TYPE_NAMES, PICTURE_TYPE_VALUES } from "../types.ts";
 import type { Chapter, SetChaptersOptions } from "../types/chapters.ts";
 import type { BroadcastAudioExtension } from "../types/bwf.ts";
 import * as bwf from "./audio-file-bwf.ts";
-import type { Rating } from "../constants/complex-properties.ts";
+import type {
+  Rating,
+  UnsyncedLyrics,
+} from "../constants/complex-properties.ts";
 import { FileOperationError, UnsupportedFormatError } from "../errors.ts";
 import { writeFileData } from "../utils/write.ts";
 import type { AudioFile } from "./audio-file-interface.ts";
@@ -262,6 +270,23 @@ export class AudioFileImpl extends BaseAudioFileImpl implements AudioFile {
       rating: r.rating,
       email: r.email ?? "",
       counter: r.counter ?? 0,
+    })));
+  }
+
+  getLyrics(): UnsyncedLyrics[] {
+    return this.handle.getLyrics().map((l: RawLyrics) => {
+      const out: UnsyncedLyrics = { text: l.text };
+      if (l.description) out.description = l.description;
+      if (l.language) out.language = l.language;
+      return out;
+    });
+  }
+
+  setLyrics(lyrics: UnsyncedLyrics[]): void {
+    this.handle.setLyrics(lyrics.map((l) => ({
+      text: l.text,
+      description: l.description ?? "",
+      language: l.language ?? "",
     })));
   }
 
