@@ -45,9 +45,10 @@ software together.
    bash build/build-wasi.sh # Rebuild WASI Wasm only
    ```
 
-5. **Run tests**
+5. **Run the pre-push gate**
    ```bash
-   deno task test           # Run ALL checks (format, lint, typecheck, tests)
+   deno task check:all      # format, lint, typecheck, tests, and build:ts bundle
+   deno task test           # tests only (fast inner loop)
    ```
 
 ## 📝 Development Guidelines
@@ -90,7 +91,10 @@ TagLib-Wasm/
 ### Running Tests
 
 ```bash
-# Run all checks (format, lint, typecheck, tests)
+# Pre-push gate: format, lint, typecheck, tests, and the build:ts bundle
+deno task check:all
+
+# Tests only (fast inner loop)
 deno task test
 
 # Watch mode
@@ -147,8 +151,11 @@ describe("Feature", () => {
 
 4. **Test your changes**
    ```bash
-   deno task test  # Runs format, lint, typecheck, and tests
+   deno task check:all  # format, lint, typecheck, tests, and build:ts bundle
    ```
+   > `deno task test` runs the tests only. Use `check:all` before pushing — it
+   > also runs `build:ts`, catching bundler-resolution breaks (e.g. a JSR import
+   > that isn't an npm dep) that pass tests but break the shippable bundle.
 
 5. **Commit your changes**
    - Follow [Conventional Commits](https://www.conventionalcommits.org/)

@@ -58,6 +58,35 @@ jobs:
       - name: Type check
         run: deno check ./src ./tests
 
+  bundle:
+    name: Bundle (fast)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+
+      - name: Cache dependencies
+        uses: actions/cache@v5
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-npm-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-npm-
+
+      - name: Install dependencies
+        run: npm install
+
+      # Bundle the TS entry points (esbuild, ~3s, no Emscripten/WASI toolchain).
+      # esbuild hard-fails on any unresolvable bare specifier in the browser
+      # entries, so this catches bundler-resolution regressions (e.g. a JSR
+      # import that isn't an npm dep) on every PR/push — without waiting for the
+      # multi-minute build-embind job. See taglib-uo1.
+      - name: Build TypeScript bundles
+        run: npm run build:ts
+
   test-capi-cpp:
     name: Test (C API C++ unit tests)
     runs-on: ubuntu-latest
@@ -454,6 +483,7 @@ jobs:
     name: Summary
     needs: [
       lint,
+      bundle,
       build-embind,
       build-wasi,
       test,
@@ -471,10 +501,11 @@ jobs:
 
           # Required jobs (must pass)
           FAILED=false
-          for job in lint build-embind test package-compat; do
+          for job in lint bundle build-embind test package-compat; do
             result="${{ needs.lint.result }}"
             case "$job" in
               lint) result="${{ needs.lint.result }}" ;;
+              bundle) result="${{ needs.bundle.result }}" ;;
               build-embind) result="${{ needs.build-embind.result }}" ;;
               test) result="${{ needs.test.result }}" ;;
               package-compat) result="${{ needs.package-compat.result }}" ;;
