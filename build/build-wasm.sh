@@ -24,11 +24,14 @@ cd "$CMAKE_BUILD_DIR"
 
 echo "📦 Configuring TagLib with Emscripten..."
 
-# Configure TagLib with CMake for Emscripten
+# Configure TagLib with CMake for Emscripten.
+# NOTE: -fwasm-exceptions must match the final emcc link below (and the WASI
+# build). Mixing Wasm EH with the legacy JS exception model across objects
+# breaks linkage, so TagLib and the shim must be compiled the same way.
 emcmake cmake "$TAGLIB_DIR" \
   -DCMAKE_WARN_DEPRECATED=OFF \
-  -DCMAKE_CXX_FLAGS="-Wno-character-conversion -frtti -sUSE_ZLIB=1" \
-  -DCMAKE_C_FLAGS="-sUSE_ZLIB=1" \
+  -DCMAKE_CXX_FLAGS="-Wno-character-conversion -frtti -sUSE_ZLIB=1 -fwasm-exceptions" \
+  -DCMAKE_C_FLAGS="-sUSE_ZLIB=1 -fwasm-exceptions" \
   -DCMAKE_BUILD_TYPE=Release \
   -DBUILD_SHARED_LIBS=OFF \
   -DBUILD_TESTING=OFF \
@@ -72,8 +75,7 @@ emcc "$BUILD_DIR/taglib_wasm.cpp" \
   -s SINGLE_FILE=0 \
   -s STACK_SIZE=1MB \
   -s ASSERTIONS=0 \
-  -s DISABLE_EXCEPTION_CATCHING=0 \
-  -fexceptions \
+  -fwasm-exceptions \
   -frtti \
   -lembind \
   -sUSE_ZLIB=1 \
