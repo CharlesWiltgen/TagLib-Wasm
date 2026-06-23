@@ -102,9 +102,9 @@ else
     
     cd "$HOME/emsdk"
     
-    # Install latest SDK
-    ./emsdk install latest
-    ./emsdk activate latest
+    # Install pinned SDK (must match CI: .github/workflows/ci.yml)
+    ./emsdk install 6.0.1
+    ./emsdk activate 6.0.1
     
     # Add to shell config
     SHELL_CONFIG=""
