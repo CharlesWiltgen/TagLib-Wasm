@@ -87,10 +87,10 @@ Requires modern browser with:
 
 Tested on:
 
-- Chrome 90+
-- Firefox 89+
-- Safari 14.1+
-- Edge 90+
+- Chrome 95+
+- Firefox 100+
+- Safari 15.2+
+- Edge 95+
 
 ## TypeScript Configuration
 

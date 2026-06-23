@@ -63,7 +63,7 @@ const audioData = await readFile("song.mp3");
 using file = taglib.openFile(audioData);
 ```
 
-### ✅ Browsers (Chrome 85+, Firefox 79+, Safari 14.1+)
+### ✅ Browsers (Chrome 95+, Firefox 100+, Safari 15.2+)
 
 - **Status**: Fully supported
 - **Installation**: Via CDN or bundler
