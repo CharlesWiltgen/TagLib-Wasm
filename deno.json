@@ -108,6 +108,7 @@
     "check": "deno check index.ts src/**/*.ts tests/**/*.ts",
     "check:all": "deno fmt --check && deno task lint && deno task check && deno task test && deno task build:ts",
     "knip": "npx --yes knip --no-progress --no-config-hints",
+    "docs:coverage": "deno run --allow-read --allow-run scripts/docs-coverage.ts",
     "version:patch": "deno run --allow-read --allow-write scripts/sync-version.ts patch",
     "version:minor": "deno run --allow-read --allow-write scripts/sync-version.ts minor",
     "version:major": "deno run --allow-read --allow-write scripts/sync-version.ts major",
