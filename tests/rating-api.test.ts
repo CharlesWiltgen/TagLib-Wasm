@@ -164,3 +164,34 @@ describe("RatingAPI", () => {
     file.dispose();
   });
 });
+
+// Parity: taglib-86z — the singular getRating/setRating convenience wrappers
+// were Emscripten-only. Verify they round-trip through save and land on the
+// IDENTICAL value on both backends (POPM is quantized 0-255, so the backends
+// must agree exactly rather than land in a loose range).
+describe("getRating/setRating cross-backend parity (taglib-86z)", () => {
+  it("setRating then getRating round-trips identically on both backends", async () => {
+    const results: Record<string, number | undefined> = {};
+    for (const backend of ["wasi", "emscripten"] as const) {
+      const tl = await TagLib.initialize({ forceWasmType: backend });
+      const seed = await tl.open(await Deno.readFile(TEST_FILES.mp3));
+      seed.setRating(0.8, "user@example.com");
+      seed.save();
+      const buf = seed.getFileBuffer();
+      seed.dispose();
+
+      const reopened = await tl.open(buf);
+      results[backend] = reopened.getRating();
+      reopened.dispose();
+    }
+    assertExists(
+      results.wasi,
+      "WASI getRating must return a value after a setRating round-trip",
+    );
+    assertEquals(
+      results.wasi,
+      results.emscripten,
+      "getRating must match across backends",
+    );
+  });
+});

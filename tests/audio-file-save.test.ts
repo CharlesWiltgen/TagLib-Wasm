@@ -473,3 +473,27 @@ describe("AudioFileImpl.saveToFile()", () => {
     }
   });
 });
+
+// Parity: taglib-0iq — the Emscripten full-load saveToFile path (open a full
+// buffer -> edit -> saveToFile(target)) had no dedicated test; only the
+// partial-load reconstruct and the WASI path-mode "save as" were covered.
+describe("AudioFileImpl.saveToFile() full-load (taglib-0iq)", () => {
+  it("[emscripten] writes a full-load edit to the target path", async () => {
+    const emsc = await TagLib.initialize({ forceWasmType: "emscripten" });
+    const out = await Deno.makeTempFile({ suffix: ".mp3" });
+    try {
+      // Plain buffer open (no { partial: true }) => full load.
+      const file = await emsc.open(await Deno.readFile(FIXTURE_PATH.mp3));
+      file.tag().setTitle("Full Load Save");
+      await file.saveToFile(out);
+      file.dispose();
+
+      const reopened = await emsc.open(await Deno.readFile(out));
+      const title = reopened.tag().title;
+      reopened.dispose();
+      assertEquals(title, "Full Load Save");
+    } finally {
+      await Deno.remove(out).catch(() => {});
+    }
+  });
+});

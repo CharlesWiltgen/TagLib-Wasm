@@ -477,3 +477,57 @@ describe("Web Utils", () => {
     assertEquals(converted.data, RED_PNG);
   });
 });
+
+// Regression/parity: taglib-1dr — setPictures (full replace) was only covered
+// via the public API on Emscripten (this file) and at the WasiFileHandle level
+// on WASI. Verify the public AudioFile.setPictures replaces and round-trips
+// through save on BOTH backends.
+describe("setPictures cross-backend parity (taglib-1dr)", () => {
+  for (const backend of ["wasi", "emscripten"] as const) {
+    it(`[${backend}] setPictures replaces and round-trips through save`, async () => {
+      const tl = await TagLib.initialize({ forceWasmType: backend });
+      const seed = await tl.open(await readFileData(TEST_FILES.flac));
+      seed.setPictures([TEST_PICTURES.frontCover, TEST_PICTURES.backCover]);
+      seed.save();
+      const two = seed.getFileBuffer();
+      seed.dispose();
+
+      const a = await tl.open(two);
+      const picsA = a.getPictures();
+      a.dispose();
+
+      // Replace the two pictures with a single one; the originals must be gone.
+      const file = await tl.open(two);
+      file.setPictures([TEST_PICTURES.backCover]);
+      file.save();
+      const one = file.getFileBuffer();
+      file.dispose();
+
+      const b = await tl.open(one);
+      const picsB = b.getPictures();
+      b.dispose();
+
+      assertEquals(
+        {
+          count2: picsA.length,
+          types2: picsA.map((p) => p.type),
+          frontData: picsA.find((p) => p.type === "FrontCover")?.data.length,
+          backData: picsA.find((p) => p.type === "BackCover")?.data.length,
+          count1: picsB.length,
+          type1: picsB[0]?.type,
+          data1: picsB[0]?.data.length,
+        },
+        {
+          count2: 2,
+          types2: ["FrontCover", "BackCover"],
+          frontData: RED_PNG.length,
+          backData: BLUE_JPEG.length,
+          count1: 1,
+          type1: "BackCover",
+          data1: BLUE_JPEG.length,
+        },
+        `${backend}: setPictures must replace and round-trip through save`,
+      );
+    });
+  }
+});
