@@ -10,6 +10,11 @@ JavaScript/TypeScript.
   - [applyTags()](#applytags)
   - [applyTagsToFile()](#updatetags)
   - [readProperties()](#readproperties)
+  - [clearTags()](#cleartags)
+  - [readFormat()](#readformat)
+  - [isValidAudioFile()](#isvalidaudiofile)
+  - [readMetadata()](#readmetadata)
+  - [getTagLib()](#gettaglib)
   - [Batch Processing](#batch-processing)
     - [readTagsBatch()](#readtagsbatch)
     - [readPropertiesBatch()](#readpropertiesbatch)
@@ -20,6 +25,7 @@ JavaScript/TypeScript.
   - [findDuplicates()](#findduplicates)
   - [exportFolderMetadata()](#exportfoldermetadata)
 - [Full API](#full-api)
+  - [createTagLib()](#createtaglib)
   - [TagLib Class](#taglib-class)
     - [taglib.edit()](#taglib-edit)
     - [taglib.copyWithTags()](#taglib-copywithtags)
@@ -223,6 +229,151 @@ console.log(`Lossless: ${props.isLossless}`);
 // MP4 container (.m4a) can contain AAC or ALAC
 // OGG container can contain Vorbis, Opus, FLAC, or Speex
 // MP3 and FLAC are both container and codec
+```
+
+### clearTags()
+
+Remove all metadata tags and embedded pictures from an audio file and return the
+stripped content.
+
+```typescript
+function clearTags(
+  file: string | Uint8Array | ArrayBuffer | File,
+): Promise<Uint8Array>;
+```
+
+#### Parameters
+
+- `file`: File path (string), audio data (Uint8Array/ArrayBuffer), or File
+  object
+
+#### Returns
+
+Promise resolving to the modified audio file as `Uint8Array`, with all tags and
+pictures removed.
+
+#### Example
+
+```typescript
+const stripped = await clearTags("song.mp3");
+await Deno.writeFile("song-clean.mp3", stripped);
+```
+
+### readFormat()
+
+Detect the audio format of a file.
+
+```typescript
+function readFormat(
+  file: string | Uint8Array | ArrayBuffer | File,
+): Promise<FileType | undefined>;
+```
+
+#### Parameters
+
+- `file`: File path (string), audio data (Uint8Array/ArrayBuffer), or File
+  object
+
+#### Returns
+
+Promise resolving to the detected `FileType` (e.g. `"MP3"`, `"FLAC"`, `"MP4"`),
+or `undefined` if the format cannot be determined.
+
+#### Example
+
+```typescript
+const format = await readFormat("song.mp3");
+if (format === "FLAC") {
+  // lossless-specific handling
+}
+```
+
+### isValidAudioFile()
+
+Check whether the input is an audio file TagLib can parse. Never throws —
+returns `false` on any error, so it is safe to call on untrusted input.
+
+```typescript
+function isValidAudioFile(
+  file: string | Uint8Array | ArrayBuffer | File,
+): Promise<boolean>;
+```
+
+#### Parameters
+
+- `file`: File path (string), audio data (Uint8Array/ArrayBuffer), or File
+  object
+
+#### Returns
+
+Promise resolving to `true` if the file is valid and recognized by TagLib,
+`false` otherwise.
+
+#### Example
+
+```typescript
+if (await isValidAudioFile(buffer)) {
+  const tags = await readTags(buffer);
+}
+```
+
+### readMetadata()
+
+Read complete metadata for a single file — tags, audio properties, cover-art
+presence, and audio dynamics — in one call. Single-file companion to
+[`readMetadataBatch()`](#readmetadatabatch).
+
+```typescript
+function readMetadata(
+  file: string | Uint8Array | ArrayBuffer | File,
+): Promise<FileMetadata>;
+```
+
+#### Parameters
+
+- `file`: File path (string), audio data (Uint8Array/ArrayBuffer), or File
+  object
+
+#### Returns
+
+Promise resolving to a `FileMetadata` object:
+
+```typescript
+interface FileMetadata {
+  tags: ExtendedTag; // all metadata, incl. pictures/ratings/lyrics/chapters
+  properties: AudioProperties | undefined;
+  hasCoverArt: boolean;
+  dynamics?: AudioDynamics; // ReplayGain / Apple Sound Check, when present
+}
+```
+
+#### Example
+
+```typescript
+const { tags, properties, hasCoverArt } = await readMetadata("song.mp3");
+console.log(tags.title?.[0], properties?.duration, hasCoverArt);
+```
+
+### getTagLib()
+
+Get the shared, lazily-initialized `TagLib` instance that the Simple API uses
+internally. Use this to drop down to the [Full API](#full-api) without managing
+your own instance. The instance is created on first call and cached.
+
+```typescript
+function getTagLib(): Promise<TagLib>;
+```
+
+#### Returns
+
+Promise resolving to the cached [`TagLib`](#taglib-class) instance.
+
+#### Example
+
+```typescript
+const taglib = await getTagLib();
+using file = await taglib.open("song.mp3");
+console.log(file.tag().title);
 ```
 
 ### Batch Processing
@@ -495,6 +646,26 @@ For complete documentation, see the
 ## Full API
 
 The Full API provides full control over audio metadata with advanced features.
+
+### createTagLib()
+
+Create a `TagLib` instance from a pre-loaded Wasm module. This is a low-level
+escape hatch for advanced loading scenarios (e.g. a custom-instantiated module
+or a `deno compile` binary that embeds the Wasm). Most callers should use
+[`TagLib.initialize()`](#taglib-initialize) instead, which loads the module for
+you.
+
+```typescript
+function createTagLib(module: WasmModule): Promise<TagLib>;
+```
+
+#### Parameters
+
+- `module`: An already-instantiated `WasmModule`
+
+#### Returns
+
+Promise resolving to a [`TagLib`](#taglib-class) instance wrapping the module.
 
 ### TagLib Class
 
