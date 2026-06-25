@@ -28,6 +28,7 @@ import { FileOperationError } from "../src/errors.ts";
 import type { Picture, PictureType } from "../src/types.ts";
 import { readFileData } from "../src/utils/file.ts";
 import { FIXTURE_PATH } from "./shared-fixtures.ts";
+import { TEST_PICTURES } from "./test-utils.ts";
 
 // Force Emscripten backend
 setBufferMode(true);
@@ -354,6 +355,89 @@ describe("readMetadata", () => {
       assertEquals(error instanceof Error, true);
     }
     assertEquals(threw, true);
+  });
+});
+
+// Regression: taglib-0co — readTags() returned only mapPropertiesToExtendedTag(),
+// so the structured ExtendedTag fields (pictures/ratings/lyrics/chapters/bext/
+// ixml) were declared but never populated; only the AudioFile.getX() methods
+// returned them. readTags must now expose the SAME data as those methods.
+describe("readTags structured fields (taglib-0co)", () => {
+  it("populates pictures/ratings/lyrics/chapters identically to the getX() methods", async () => {
+    const taglib = await getTagLib();
+    const seed = await taglib.open(await readFileData(FIXTURE_PATH.mp3));
+    seed.setRatings([{ rating: 0.8 }]);
+    seed.setLyrics([{ text: "first line\nsecond line" }]);
+    seed.setChapters([{ startTimeMs: 0, title: "Intro" }]);
+    seed.addPicture(TEST_PICTURES.frontCover);
+    seed.save();
+    const buf = seed.getFileBuffer();
+    seed.dispose();
+
+    const tag = await readTags(buf);
+
+    const reopened = await taglib.open(buf);
+    const viaMethods = {
+      pictures: reopened.getPictures(),
+      ratings: reopened.getRatings(),
+      lyrics: reopened.getLyrics(),
+      chapters: reopened.getChapters(),
+    };
+    reopened.dispose();
+
+    assertEquals(
+      {
+        pictures: tag.pictures,
+        ratings: tag.ratings,
+        lyrics: tag.lyrics,
+        chapters: tag.chapters,
+      },
+      viaMethods,
+    );
+  });
+
+  it("populates bext and iXML identically to the getX() methods on WAV", async () => {
+    const taglib = await getTagLib();
+    const seed = await taglib.open(await readFileData(FIXTURE_PATH.wav));
+    seed.setBextData(new Uint8Array(602).fill(7));
+    seed.setIxml("<BWFXML><TEST>1</TEST></BWFXML>");
+    seed.save();
+    const buf = seed.getFileBuffer();
+    seed.dispose();
+
+    const tag = await readTags(buf);
+
+    const reopened = await taglib.open(buf);
+    const viaMethods = {
+      bext: reopened.getBext(),
+      bextData: reopened.getBextData(),
+      ixml: reopened.getIxml(),
+    };
+    reopened.dispose();
+
+    assertEquals(
+      { bext: tag.bext, bextData: tag.bextData, ixml: tag.ixml },
+      viaMethods,
+    );
+  });
+
+  it("omits structured fields that are absent", async () => {
+    const stripped = await clearTags(await readFileData(FIXTURE_PATH.mp3));
+    const tag = await readTags(stripped);
+    assertEquals(
+      {
+        pictures: tag.pictures,
+        ratings: tag.ratings,
+        lyrics: tag.lyrics,
+        chapters: tag.chapters,
+      },
+      {
+        pictures: undefined,
+        ratings: undefined,
+        lyrics: undefined,
+        chapters: undefined,
+      },
+    );
   });
 });
 

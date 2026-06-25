@@ -219,14 +219,11 @@ export interface ExtendedTag extends Tag {
   readonly appleSoundCheck?: string[];
   /** Embedded pictures/artwork */
   readonly pictures?: import("./pictures.ts").Picture[];
-  /** Popularity/rating data */
-  readonly ratings?: Array<{ rating: number; email: string; counter: number }>;
-  /** Unsynchronized lyrics */
-  readonly lyrics?: Array<{
-    text: string;
-    description: string;
-    language: string;
-  }>;
+  /** Popularity/rating data. Same shape as {@link AudioFile.getRatings}. */
+  readonly ratings?: import("../constants/complex-properties.ts").Rating[];
+  /** Unsynchronized lyrics. Same shape as {@link AudioFile.getLyrics}. */
+  readonly lyrics?:
+    import("../constants/complex-properties.ts").UnsyncedLyrics[];
   /**
    * Chapter markers. Populated from ID3v2 CHAP frames (MP3), QuickTime chapter
    * tracks, or Nero `chpl` atoms (MP4). See {@link Chapter}.

@@ -37,6 +37,39 @@ function parseNumeric(value: string): number | undefined {
   return Number.isNaN(parsed) ? undefined : parsed;
 }
 
+/**
+ * Build a complete ExtendedTag from an open file: the text PropertyMap PLUS the
+ * structured fields that ride their own accessors (pictures, ratings, lyrics,
+ * chapters, bext/bextData, ixml). readTags and the batch readers share this so
+ * the structured ExtendedTag fields are actually populated, not just declared
+ * (taglib-0co). Each field is included only when present, mirroring how
+ * {@link mapPropertiesToExtendedTag} omits absent text properties.
+ */
+export function readExtendedTag(audioFile: AudioFile): ExtendedTag {
+  const tag = mapPropertiesToExtendedTag(audioFile.properties()) as Record<
+    string,
+    unknown
+  >;
+
+  const pictures = audioFile.getPictures();
+  if (pictures.length > 0) tag.pictures = pictures;
+  const ratings = audioFile.getRatings();
+  if (ratings.length > 0) tag.ratings = ratings;
+  const lyrics = audioFile.getLyrics();
+  if (lyrics.length > 0) tag.lyrics = lyrics;
+  const chapters = audioFile.getChapters();
+  if (chapters.length > 0) tag.chapters = chapters;
+
+  const bext = audioFile.getBext();
+  if (bext !== undefined) tag.bext = bext;
+  const bextData = audioFile.getBextData();
+  if (bextData !== undefined) tag.bextData = bextData;
+  const ixml = audioFile.getIxml();
+  if (ixml !== undefined) tag.ixml = ixml;
+
+  return tag as ExtendedTag;
+}
+
 export function mapPropertiesToExtendedTag(props: PropertyMap): ExtendedTag {
   const tag: Record<string, unknown> = {};
 

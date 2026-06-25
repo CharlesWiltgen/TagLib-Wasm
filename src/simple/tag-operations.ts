@@ -8,10 +8,7 @@ import type {
 } from "../types.ts";
 import { FileOperationError, MetadataError } from "../errors.ts";
 
-import {
-  mapPropertiesToExtendedTag,
-  mergeTagUpdates,
-} from "../utils/tag-mapping.ts";
+import { mergeTagUpdates, readExtendedTag } from "../utils/tag-mapping.ts";
 import { getTagLib } from "./config.ts";
 import {
   withAudioFile,
@@ -30,10 +27,7 @@ import {
 export async function readTags(
   file: AudioFileInput,
 ): Promise<ExtendedTag> {
-  return withAudioFile(
-    file,
-    (audioFile) => mapPropertiesToExtendedTag(audioFile.properties()),
-  );
+  return withAudioFile(file, (audioFile) => readExtendedTag(audioFile));
 }
 
 /**

@@ -3,7 +3,7 @@ import type { AudioDynamics } from "../folder-api/types.ts";
 import type { AudioFileInput, AudioProperties, ExtendedTag } from "../types.ts";
 import { isNamedAudioInput } from "../types/audio-formats.ts";
 import { InvalidFormatError } from "../errors.ts";
-import { mapPropertiesToExtendedTag } from "../utils/tag-mapping.ts";
+import { readExtendedTag } from "../utils/tag-mapping.ts";
 import { getTagLib } from "./config.ts";
 
 /** Configuration for batch processing operations. */
@@ -96,7 +96,7 @@ export async function readTagsBatch(
   return executeBatch(
     files,
     options,
-    (audioFile) => mapPropertiesToExtendedTag(audioFile.properties()),
+    (audioFile) => readExtendedTag(audioFile),
   );
 }
 
@@ -178,7 +178,7 @@ export async function readMetadata(
       );
     }
     return {
-      tags: mapPropertiesToExtendedTag(audioFile.properties()),
+      tags: readExtendedTag(audioFile),
       properties: audioFile.audioProperties(),
       hasCoverArt: audioFile.getPictures().length > 0,
       dynamics: extractDynamics(audioFile),
@@ -201,7 +201,7 @@ export async function readMetadataBatch(
   options: BatchOptions = {},
 ): Promise<BatchResult<FileMetadata>> {
   return executeBatch(files, options, (audioFile) => ({
-    tags: mapPropertiesToExtendedTag(audioFile.properties()),
+    tags: readExtendedTag(audioFile),
     properties: audioFile.audioProperties(),
     hasCoverArt: audioFile.getPictures().length > 0,
     dynamics: extractDynamics(audioFile),
