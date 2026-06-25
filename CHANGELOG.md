@@ -1,5 +1,120 @@
 # Changelog
 
+## 1.4.0
+
+### Features
+
+- Simple read API now returns structured metadata: `readTags()`,
+  `readTagsBatch()`, `readMetadata()`, and `readMetadataBatch()` populate the
+  `ExtendedTag` fields `pictures`, `ratings`, `lyrics`, `chapters`, `bext`,
+  `bextData`, and `ixml`. Previously these were declared on `ExtendedTag` but
+  only reachable through the `AudioFile.getX()` methods.
+
+### Fixes
+
+- `clearTags()` now reliably removes all metadata on both backends. It was
+  effectively a no-op on the WASI backend (the default in Deno/Node) and left
+  structured fields (ratings, chapters, `bext`, iXML) behind on Emscripten.
+- Partial-load save now propagates a text-property deletion instead of silently
+  restoring it from the full-file reload (Emscripten partial loads).
+- MP4 freeform items (`----:com.apple.iTunes:*`, including the Apple Sound Check
+  `iTunNORM` atom) now round-trip through save on the WASI backend; they were
+  previously dropped.
+
+### Types
+
+- `ExtendedTag.ratings` and `ExtendedTag.lyrics` now use the canonical `Rating[]`
+  and `UnsyncedLyrics[]` types so `readTags()` matches `getRatings()` /
+  `getLyrics()`. Their sub-fields (`email`/`counter`, `description`/`language`)
+  are now optional, reflecting what the library actually returns. These fields
+  were never populated before, so existing code is unaffected.
+
+### Toolchain
+
+- Emscripten backend upgraded to 6.0.1 and switched to Wasm exception handling,
+  which raises the minimum supported browser versions (see docs). The WASI
+  backend is unaffected.
+
+### Internal
+
+- Cross-backend parity audit: added `tests/PARITY-COVERAGE.md` (a per-method ×
+  backend coverage matrix), a mandatory parity-test convention, and both-backend
+  parity tests across the `AudioFile` surface.
+
+## 1.3.1
+
+### Features
+
+- Unsynchronized lyrics: public `AudioFile.getLyrics()` / `setLyrics()`. Lyrics
+  are now a structured field (like pictures/ratings/chapters) and are excluded
+  from the text `properties()` map on both backends.
+
+### Fixes
+
+- `clearTags()` removes lyrics on clear.
+
+### Internal
+
+- CI runs `build:ts` in a `check:all` task plus a fast bundle job to catch
+  bundler-resolution regressions that pass tests but break the shipped bundle.
+
+## 1.3.0
+
+### Features
+
+- `file.tag()` (MutableTag) gains a `date` getter and `setDate()`, preserving
+  full ISO date precision; `setDate("")` coherently clears both date and year.
+
+### Fixes
+
+- Lyrics persist on the WASI backend via the `LYRICS` text property.
+- WASI `saveToFile(target)` no longer mutates the source file.
+- Partial-load `saveToFile` carries chapters and ratings through the reconstruct.
+- MP4 chapter style and partial-property merge corrected from code review.
+- Drop a `@std/path` import so the browser/npm bundle builds.
+
+### Internal
+
+- Save reconstruct extracted into `save-reconstruct.ts` and driven from a shared
+  field-copy registry so a structured field can't be silently dropped on save.
+
+## 1.2.2
+
+### Fixes
+
+- `setYear()` is authoritative over a stored full date, and full ISO `DATE`
+  strings are preserved with cross-backend parity.
+- Release pipeline hardened against flaky legs and double publishes; Deno pinned
+  to 2.8.0.
+
+### Dependencies
+
+- WASI SDK upgraded to 33; the custom exception-handling sysroot was retired in
+  favor of the stock SDK 33 `eh/` multilib.
+- msgpack-c (`lib/msgpack`) bumped cpp-6.1.0 → cpp-8.0.0; esbuild 0.28 and
+  TypeScript 6.0.
+
+### Internal
+
+- Removed an orphan dual-build Emscripten C-API path.
+
+## 1.2.1
+
+### Features
+
+- FLAC: `AudioFile.hasId3Tags()` / `stripId3Tags()` to detect and remove
+  spurious ID3v1/ID3v2 tags while preserving Vorbis Comments and audio.
+
+### Fixes
+
+- Correct same-handle state after `stripId3Tags`, and harden mpack parsing.
+- Resolve a duplicate `Chapter` interface across the public API.
+
+### Internal
+
+- Adopt knip for opt-in dead-code detection (`deno task knip`); dead-code sweep.
+- ADR-0001 documenting the dual Wasm/JS boundary protocols.
+
 ## 1.2.0
 
 ### Features
