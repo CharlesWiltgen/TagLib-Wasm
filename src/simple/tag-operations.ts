@@ -3,6 +3,7 @@ import type {
   AudioProperties,
   ExtendedTag,
   FileType,
+  PropertyMap,
   TagInput,
 } from "../types.ts";
 import { FileOperationError, MetadataError } from "../errors.ts";
@@ -163,13 +164,24 @@ export async function clearTags(
   file: AudioFileInput,
 ): Promise<Uint8Array> {
   return withAudioFileSave(file, (audioFile) => {
-    audioFile.setProperties({});
+    // Clear every writable text property. An empty value list removes the key on
+    // both backends: Emscripten's setProperties replaces wholesale, and WASI now
+    // treats `[]` as a delete rather than a no-op merge (taglib-nc5). properties()
+    // already excludes audio/derived props, structured fields, and lyrics, so
+    // only user-set text metadata is touched.
+    const cleared: PropertyMap = {};
+    for (const key of Object.keys(audioFile.properties())) cleared[key] = [];
+    audioFile.setProperties(cleared);
+
+    // Structured fields each have a dedicated accessor and never ride the text
+    // PropertyMap. removePictures/setLyrics/setRatings are safe on any format;
+    // setChapters/setBextData/setIxml throw on formats that can't hold them, so
+    // only call those when the getter reports something to clear.
     audioFile.removePictures();
-    // Lyrics are owned by get/setLyrics() and are preserved across a text-only
-    // setProperties (taglib-eyp), so clear them explicitly (taglib-7eh). NOTE:
-    // clearTags is still incomplete for other structured fields and for text
-    // props on the WASI merge-setProperties path — full repair tracked in
-    // taglib-nc5.
     audioFile.setLyrics([]);
+    audioFile.setRatings([]);
+    if (audioFile.getChapters().length > 0) audioFile.setChapters([]);
+    if (audioFile.getBextData() !== undefined) audioFile.setBextData(null);
+    if (audioFile.getIxml() !== undefined) audioFile.setIxml(null);
   });
 }

@@ -8,6 +8,7 @@ import type { UnsyncedLyrics } from "../src/constants/complex-properties.ts";
 import { mergeTagUpdates } from "../src/utils/tag-mapping.ts";
 import { clearTags } from "../src/simple/tag-operations.ts";
 import { FIXTURE_PATH } from "./shared-fixtures.ts";
+import { TEST_PICTURES } from "./test-utils.ts";
 
 let taglib: TagLib;
 
@@ -268,6 +269,91 @@ describe("AudioFileImpl.saveToFile()", () => {
         lyrics,
         [],
         `${backend}: clearTags() must remove lyrics`,
+      );
+    }
+  });
+
+  // Regression: taglib-nc5 — clearTags() is documented to remove ALL metadata,
+  // but historically relied on setProperties({}), which is a wholesale REPLACE
+  // on Emscripten (left ratings/chapters) yet a MERGE on WASI (an empty map is a
+  // no-op, so it cleared essentially nothing). Seed every field FIRST, then
+  // assert a full strip on BOTH backends — the prior "clear all string fields"
+  // test passed only because the fixture had no values to begin with.
+  it("clearTags() strips text, numeric, and structured metadata on both backends (taglib-nc5)", async () => {
+    for (const backend of ["wasi", "emscripten"] as const) {
+      const tl = await TagLib.initialize({ forceWasmType: backend });
+      const seed = await tl.open(await Deno.readFile(FIXTURE_PATH.mp3));
+      seed.tag()
+        .setTitle("Title").setArtist("Artist").setAlbum("Album")
+        .setComment("Comment").setGenre("Genre").setYear(1999).setTrack(7);
+      seed.setProperty("ALBUMARTIST", "Various Artists");
+      seed.setLyrics([{ text: "lyric" }]);
+      seed.setRatings([{ rating: 0.8 }]);
+      seed.setChapters([{ startTimeMs: 0, title: "Intro" }]);
+      seed.addPicture(TEST_PICTURES.frontCover);
+      seed.save();
+      const seeded = seed.getFileBuffer();
+      seed.dispose();
+
+      const cleared = await clearTags(seeded);
+
+      const f = await tl.open(cleared);
+      const result = {
+        properties: f.properties(),
+        title: f.tag().title,
+        year: f.tag().year,
+        track: f.tag().track,
+        lyrics: f.getLyrics(),
+        ratings: f.getRatings(),
+        chapters: f.getChapters(),
+        pictures: f.getPictures(),
+      };
+      f.dispose();
+
+      assertEquals(
+        result,
+        {
+          properties: {},
+          title: "",
+          year: 0,
+          track: 0,
+          lyrics: [],
+          ratings: [],
+          chapters: [],
+          pictures: [],
+        },
+        `${backend}: clearTags() must strip every metadata field`,
+      );
+    }
+  });
+
+  // Regression: taglib-nc5 — the BWF structured chunks (bext + iXML) are not part
+  // of the text PropertyMap, so clearTags must clear them via their accessors.
+  it("clearTags() strips bext and iXML chunks on both backends (taglib-nc5)", async () => {
+    for (const backend of ["wasi", "emscripten"] as const) {
+      const tl = await TagLib.initialize({ forceWasmType: backend });
+      const seed = await tl.open(await Deno.readFile(FIXTURE_PATH.wav));
+      seed.setProperty("TITLE", "Title");
+      seed.setBextData(new Uint8Array(602).fill(7));
+      seed.setIxml("<BWFXML><TEST>1</TEST></BWFXML>");
+      seed.save();
+      const seeded = seed.getFileBuffer();
+      seed.dispose();
+
+      const cleared = await clearTags(seeded);
+
+      const f = await tl.open(cleared);
+      const result = {
+        title: f.tag().title,
+        bext: f.getBextData(),
+        ixml: f.getIxml(),
+      };
+      f.dispose();
+
+      assertEquals(
+        result,
+        { title: "", bext: undefined, ixml: undefined },
+        `${backend}: clearTags() must strip bext + iXML on WAV`,
       );
     }
   });

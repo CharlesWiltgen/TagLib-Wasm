@@ -27,6 +27,7 @@ import {
 
 const AUDIO_KEYS = new Set([
   "bitrate",
+  "bitrateMode",
   "bitsPerSample",
   "channels",
   "codec",
@@ -317,24 +318,31 @@ export class WasiFileHandle implements FileHandle {
 
   setProperties(props: Record<string, string[]>): void {
     this.checkNotDestroyed();
-    const mapped: Record<string, unknown> = {};
+    const next = { ...this.tagData } as Record<string, unknown>;
     for (const [key, values] of Object.entries(props)) {
       const camelKey = fromTagLibKey(key);
       const storeKey = NUMERIC_FIELD_ALIASES[camelKey] ?? camelKey;
-      if (storeKey === "track") {
+      if (values.length === 0) {
+        // An empty value list clears the property (TagLib PropertyMap
+        // semantics). This is what lets clearTags() actually remove a field
+        // under WASI's merge model, matching Emscripten's replace-style
+        // setProperties (taglib-nc5). DATE drops its numeric `year` mirror too.
+        delete next[storeKey];
+        if (camelKey === "date") delete next.year;
+      } else if (storeKey === "track") {
         const parsed = Number.parseInt(values[0] ?? "", 10);
-        if (!Number.isNaN(parsed)) mapped[storeKey] = parsed;
+        if (!Number.isNaN(parsed)) next[storeKey] = parsed;
       } else if (camelKey === "date") {
         // DATE is stored as a full string; keep the numeric `year` mirror in
         // sync so getTagData()/tag().year reflect the new date in-handle.
-        mapped.date = values;
+        next.date = values;
         const year = Number.parseInt(values[0] ?? "", 10);
-        if (!Number.isNaN(year)) mapped.year = year;
+        if (!Number.isNaN(year)) next.year = year;
       } else {
-        mapped[camelKey] = values;
+        next[camelKey] = values;
       }
     }
-    this.tagData = { ...this.tagData, ...mapped } as Record<string, unknown>;
+    this.tagData = next;
   }
 
   getProperty(key: string): string {
