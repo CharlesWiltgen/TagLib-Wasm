@@ -36,6 +36,16 @@ const ALLOWLIST = new Set<string>([
   "BITRATE_CONTROL_MODE_NAMES",
   "BITRATE_CONTROL_MODE_VALUES",
   "FormatMappings", // internal format/codec mapping table
+  // Advanced/internal generic plumbing rarely referenced by name in user docs:
+  "ComplexPropertyKey", // keyof helper for the complex-property generic map
+  "ComplexPropertyKeyMap", // mapped type backing COMPLEX_PROPERTY_KEY
+  "ComplexPropertyValueMap", // module-augmentation point for getComplexProperty
+  "FormatPropertyKey", // type-level per-format key narrowing
+  "PropertyValue", // conditional type resolving a key's value type
+  "TagFormat", // internal tag-system discriminator
+  "VariantMap", // Record<string, unknown> escape hatch
+  "isDenoCompiled", // internal runtime-detection guard
+  "isNamedAudioInput", // internal NamedAudioInput type guard
 ]);
 
 const KIND =

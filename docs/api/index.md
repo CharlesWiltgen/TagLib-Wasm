@@ -15,6 +15,7 @@ JavaScript/TypeScript.
   - [isValidAudioFile()](#isvalidaudiofile)
   - [readMetadata()](#readmetadata)
   - [getTagLib()](#gettaglib)
+  - [setBufferMode()](#setbuffermode)
   - [Batch Processing](#batch-processing)
     - [readTagsBatch()](#readtagsbatch)
     - [readPropertiesBatch()](#readpropertiesbatch)
@@ -26,6 +27,7 @@ JavaScript/TypeScript.
   - [exportFolderMetadata()](#exportfoldermetadata)
 - [Full API](#full-api)
   - [createTagLib()](#createtaglib)
+  - [loadTagLibModule()](#loadtaglibmodule)
   - [TagLib Class](#taglib-class)
     - [taglib.edit()](#taglib-edit)
     - [taglib.copyWithTags()](#taglib-copywithtags)
@@ -376,6 +378,22 @@ using file = await taglib.open("song.mp3");
 console.log(file.tag().title);
 ```
 
+### setBufferMode()
+
+Pin the backend used by the Simple API and reset its cached instance. By default
+the Simple API auto-detects the best backend; call `setBufferMode(true)` before
+any Simple API call to force the Emscripten (buffer) backend, or
+`setBufferMode(false)` to restore auto-detection.
+
+```typescript
+function setBufferMode(enabled: boolean): void;
+```
+
+#### Parameters
+
+- `enabled`: `true` to force the Emscripten backend; `false` to restore
+  auto-detection
+
 ### Batch Processing
 
 The Simple API includes high-performance batch processing functions for
@@ -666,6 +684,27 @@ function createTagLib(module: WasmModule): Promise<TagLib>;
 #### Returns
 
 Promise resolving to a [`TagLib`](#taglib-class) instance wrapping the module.
+
+### loadTagLibModule()
+
+Load and instantiate the raw Wasm module without wrapping it in a `TagLib`. A
+low-level loader for custom setups; most callers should use
+[`TagLib.initialize()`](#taglib-initialize), which loads the module and wraps it
+for you.
+
+```typescript
+function loadTagLibModule(options?: LoadTagLibOptions): Promise<TagLibModule>;
+```
+
+#### Parameters
+
+- `options` (optional): [`LoadTagLibOptions`](#loadtagliboptions) — Wasm binary,
+  URL, forced backend, etc.
+
+#### Returns
+
+Promise resolving to a `TagLibModule` (pass to [`createTagLib()`](#createtaglib)
+to get a `TagLib`).
 
 ### TagLib Class
 
@@ -1500,6 +1539,338 @@ interface TagLibModule {
   lengthBytesUTF8(str: string): number;
   // ... additional internal methods
 }
+```
+
+#### AudioFileInput
+
+Any audio source the library accepts: a path, raw bytes, a browser `File`, or a
+named buffer.
+
+```typescript
+type AudioFileInput =
+  | string
+  | Uint8Array
+  | ArrayBuffer
+  | File
+  | NamedAudioInput;
+```
+
+#### NamedAudioInput
+
+A buffer paired with a name, so batch results can be correlated back to their
+source.
+
+```typescript
+interface NamedAudioInput {
+  readonly name: string;
+  readonly data: Uint8Array | ArrayBuffer;
+}
+```
+
+#### TagInput
+
+Input shape for writing tags; every field accepts a single string or a
+`string[]`.
+
+```typescript
+interface TagInput {
+  // Basic fields
+  readonly title?: string | string[];
+  readonly artist?: string | string[];
+  readonly album?: string | string[];
+  readonly comment?: string | string[];
+  readonly genre?: string | string[];
+  readonly year?: number;
+  readonly date?: string | string[]; // wins over `year` when both set
+  readonly track?: number;
+
+  // Extended string fields (abbreviated)
+  readonly albumArtist?: string | string[];
+  readonly composer?: string | string[];
+  readonly copyright?: string | string[];
+  readonly isrc?: string | string[];
+  readonly musicbrainzTrackId?: string | string[];
+  readonly replayGainTrackGain?: string | string[];
+  readonly appleSoundCheck?: string | string[];
+  // ...plus sort fields and further MusicBrainz/AcoustID/ReplayGain IDs
+
+  // Extended numeric / boolean fields
+  readonly discNumber?: number;
+  readonly totalTracks?: number;
+  readonly totalDiscs?: number;
+  readonly bpm?: number;
+  readonly compilation?: boolean;
+}
+```
+
+#### PictureType
+
+Picture/artwork category, matching the ID3v2 APIC frame codes.
+
+```typescript
+type PictureType =
+  | "Other"
+  | "FileIcon"
+  | "OtherFileIcon"
+  | "FrontCover"
+  | "BackCover"
+  | "LeafletPage"
+  | "Media"
+  | "LeadArtist"
+  | "Artist"
+  | "Conductor"
+  | "Band"
+  | "Composer"
+  | "Lyricist"
+  | "RecordingLocation"
+  | "DuringRecording"
+  | "DuringPerformance"
+  | "MovieScreenCapture"
+  | "ColouredFish"
+  | "Illustration"
+  | "BandLogo"
+  | "PublisherLogo";
+```
+
+#### UnsyncedLyrics
+
+Lyrics text without timing information, as read/written via `getLyrics()` /
+`setLyrics()`.
+
+```typescript
+interface UnsyncedLyrics {
+  text: string; // full lyrics text
+  description?: string; // description or content type
+  language?: string; // ISO 639-2 code, e.g. "eng"
+}
+```
+
+#### AudioCodec
+
+The compression format of the audio stream (`AudioProperties.codec`).
+
+```typescript
+type AudioCodec =
+  | "AAC"
+  | "ALAC"
+  | "MP3"
+  | "FLAC"
+  | "Vorbis"
+  | "Opus"
+  | "Speex"
+  | "PCM"
+  | "IEEEFloat"
+  | "WAV"
+  | "WMA"
+  | "WMALossless"
+  | "APE"
+  | "DSD"
+  | "WavPack"
+  | "MPC"
+  | "TTA"
+  | "Shorten"
+  | "MOD"
+  | "S3M"
+  | "IT"
+  | "XM"
+  | "unknown";
+```
+
+#### ContainerFormat
+
+The container that stores the audio and metadata
+(`AudioProperties.containerFormat`). Distinct from the codec — e.g. an `MP4`
+container may hold `AAC` or `ALAC`.
+
+```typescript
+type ContainerFormat =
+  | "MP3"
+  | "MP4"
+  | "FLAC"
+  | "OGG"
+  | "WAV"
+  | "AIFF"
+  | "ASF"
+  | "APE"
+  | "DSF"
+  | "DSDIFF"
+  | "WavPack"
+  | "MPC"
+  | "TTA"
+  | "Shorten"
+  | "MOD"
+  | "S3M"
+  | "IT"
+  | "XM"
+  | "Matroska"
+  | "unknown";
+```
+
+#### BitrateControlMode
+
+How bitrate was managed during encoding (MP4/M4A specific). Not to be confused
+with `BitrateMode` (`"CBR" | "VBR" | "ABR"`, the MP3 field on
+`AudioProperties.bitrateMode`).
+
+```typescript
+type BitrateControlMode =
+  | "Constant" // fixed bitrate throughout
+  | "LongTermAverage" // average bitrate over time
+  | "VariableConstrained" // variable within limits
+  | "Variable"; // fully variable
+```
+
+#### TypedAudioProperties
+
+`AudioProperties` narrowed by file format, promoting format-specific optional
+fields to required after an `isFormat()` check (e.g. MP3 gains required
+`mpegVersion`/`mpegLayer`).
+
+```typescript
+type TypedAudioProperties<F extends FileType> = F extends "MP3"
+  ? AudioProperties & {
+    readonly mpegVersion: number;
+    readonly mpegLayer: number;
+  }
+  : F extends "MP4" | "ASF"
+    ? AudioProperties & { readonly isEncrypted: boolean }
+  : F extends "OPUS" ? AudioProperties & { readonly outputGainDb: number }
+  : AudioProperties;
+```
+
+#### TypedAudioFile
+
+An `AudioFile` narrowed to a specific format, so `getProperty`/`setProperty`
+only accept keys valid for that format's tag system. Obtained via
+`file.isFormat(format)`.
+
+```typescript
+interface TypedAudioFile<F extends FileType>
+  extends Omit<AudioFile, "getProperty" | "setProperty" | "audioProperties"> {
+  getFormat(): F;
+  audioProperties(): TypedAudioProperties<F> | undefined;
+  getProperty<K extends FormatPropertyKey<F>>(
+    key: K,
+  ): PropertyValue<K> | undefined;
+  setProperty<K extends FormatPropertyKey<F>>(
+    key: K,
+    value: PropertyValue<K>,
+  ): void;
+}
+```
+
+#### LoadTagLibOptions
+
+Options passed to `TagLib.initialize()` / `loadTagLibModule()` to control how
+the Wasm module loads.
+
+```typescript
+interface LoadTagLibOptions {
+  wasmBinary?: ArrayBuffer | Uint8Array; // pre-loaded Wasm binary
+  wasmUrl?: string; // custom Wasm URL/path
+  forceWasmType?: "wasi" | "emscripten"; // force a backend
+  disableOptimizations?: boolean; // default false
+}
+```
+
+#### TagLibErrorCode
+
+The `code` carried by every `TagLibError`, for programmatic error handling.
+
+```typescript
+type TagLibErrorCode =
+  | "INITIALIZATION"
+  | "INVALID_FORMAT"
+  | "UNSUPPORTED_FORMAT"
+  | "FILE_OPERATION"
+  | "METADATA"
+  | "MEMORY"
+  | "ENVIRONMENT"
+  | "WASM_MEMORY"
+  | "MODULE_LOAD"
+  | "WASI_HOST";
+```
+
+#### TagName
+
+Union of all valid camelCase tag property names (the values of the `Tags`
+constant). Returned by `getAllTagNames()` and guarded by `isValidTagName()`.
+
+```typescript
+type TagName = typeof Tags[keyof typeof Tags];
+// e.g. "title" | "artist" | "album" | "albumArtist" | "composer" | ...
+```
+
+#### PropertyMetadata
+
+Descriptive metadata for a single property, returned by `getPropertyMetadata()`.
+
+```typescript
+type PropertyMetadata = {
+  key: string;
+  description: string;
+  type: "string" | "number" | "boolean" | "array";
+  supportedFormats: readonly string[];
+  mappings: Record<
+    string,
+    string | { frame?: string; atom?: string; description?: string }
+  >;
+};
+```
+
+#### DuplicateGroup
+
+A set of files judged duplicates by `findDuplicates()`, grouped by the matched
+criteria.
+
+```typescript
+interface DuplicateGroup {
+  criteria: Record<string, string>;
+  files: AudioFileMetadata[];
+}
+```
+
+#### COMPLEX_PROPERTIES
+
+Introspection table describing each complex property (description, type,
+supported formats, and per-format frame/atom mappings). Use for documentation or
+format-aware logic.
+
+```typescript
+const COMPLEX_PROPERTIES = {
+  PICTURE: {
+    key: "PICTURE",
+    type: "binary",
+    supportedFormats: ["ID3v2", "MP4", "Vorbis", "FLAC"],
+    mappings: {
+      id3v2: { frame: "APIC" },
+      mp4: "covr",
+      vorbis: "METADATA_BLOCK_PICTURE",
+      flac: "PICTURE",
+    },
+  },
+  RATING: {/* POPM / RATING / ----:com.apple.iTunes:RATING */},
+  LYRICS: {/* USLT / LYRICS / ©lyr */},
+  CHAPTER: {/* CHAP (ID3v2 only) */},
+} as const;
+```
+
+#### COMPLEX_PROPERTY_KEY
+
+Plain string-keyed map for everyday `getComplexProperty()` /
+`setComplexProperty()` calls — avoids the `.key` ceremony of
+`COMPLEX_PROPERTIES`.
+
+```typescript
+const COMPLEX_PROPERTY_KEY = {
+  PICTURE: "PICTURE",
+  RATING: "RATING",
+  LYRICS: "LYRICS",
+  CHAPTER: "CHAPTER",
+} as const;
+
+// Usage:
+const ratings = file.getComplexProperty(COMPLEX_PROPERTY_KEY.RATING);
 ```
 
 ## Workers API

@@ -13,7 +13,8 @@ FLAC, OGG, WAV, etc.).
 
 ### Enhanced PROPERTIES Constant (Recommended)
 
-TagLib-Wasm provides a comprehensive `PROPERTIES` constant with rich metadata for all standard properties:
+TagLib-Wasm provides a comprehensive `PROPERTIES` constant with rich metadata
+for all standard properties:
 
 ```typescript
 import { PROPERTIES, PropertyKey } from "taglib-wasm/constants";
@@ -43,7 +44,8 @@ Object.values(PROPERTIES).forEach((prop) => {
 
 ### Legacy Tags Object
 
-The `Tags` object provides a simplified approach for common property names and remains fully supported:
+The `Tags` object provides a simplified approach for common property names and
+remains fully supported:
 
 ```typescript
 import { Tags } from "taglib-wasm";
@@ -63,6 +65,7 @@ console.log(Tags.TrackGain); // "REPLAYGAIN_TRACK_GAIN"
 
 ```typescript
 import {
+  getAllProperties,
   getAllPropertyKeys,
   getPropertiesByFormat,
   getPropertyMetadata,
@@ -80,12 +83,19 @@ console.log(metadata.description); // "MusicBrainz Track ID"
 // Get all available property keys
 const allKeys = getAllPropertyKeys(); // ["TITLE", "ARTIST", "ALBUM", ...]
 
+// Get every property paired with its metadata (key + PropertyMetadata tuples)
+const allProperties = getAllProperties();
+for (const [key, meta] of allProperties) {
+  console.log(key, meta.description);
+}
+
 // Get properties supported by a specific format
 const mp3Properties = getPropertiesByFormat("MP3");
 const flacProperties = getPropertiesByFormat("FLAC");
 ```
 
-See the [tag-constants.ts example](../../examples/common/tag-constants.ts) for a complete demonstration.
+See the [tag-constants.ts example](../../examples/common/tag-constants.ts) for a
+complete demonstration.
 
 ## Standard Property Names
 
