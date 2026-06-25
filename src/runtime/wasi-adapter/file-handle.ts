@@ -81,6 +81,21 @@ function firstString(v: unknown): string {
   return (v as string) || "";
 }
 
+/**
+ * Normalize an MP4 item key for the PropertyMap path. TagLib's MP4 PropertyMap
+ * keys a freeform `----:mean:NAME` atom by its bare NAME, uppercased (the usual
+ * key remap then maps known atoms like iTunNORM -> appleSoundCheck). WASI MP4
+ * items ride the PropertyMap, so the full iTunes atom key that Emscripten's
+ * dedicated Item API uses must be normalized or the value is silently dropped on
+ * save (taglib-1qn). Non-freeform keys pass through unchanged.
+ */
+function mp4ItemPropertyKey(key: string): string {
+  if (key.startsWith("----:")) {
+    return key.slice(key.lastIndexOf(":") + 1).toUpperCase();
+  }
+  return key;
+}
+
 export class WasiFileHandle implements FileHandle {
   private readonly wasi: WasiModule;
   private fileData: Uint8Array | null = null;
@@ -390,18 +405,18 @@ export class WasiFileHandle implements FileHandle {
 
   getMP4Item(key: string): string {
     this.checkNotDestroyed();
-    return this.getProperty(key);
+    return this.getProperty(mp4ItemPropertyKey(key));
   }
 
   setMP4Item(key: string, value: string): void {
     this.checkNotDestroyed();
-    this.setProperty(key, value);
+    this.setProperty(mp4ItemPropertyKey(key), value);
   }
 
   removeMP4Item(key: string): void {
     this.checkNotDestroyed();
     if (this.tagData) {
-      const mappedKey = fromTagLibKey(key);
+      const mappedKey = fromTagLibKey(mp4ItemPropertyKey(key));
       const storeKey = NUMERIC_FIELD_ALIASES[mappedKey] ?? mappedKey;
       delete this.tagData[storeKey];
     }

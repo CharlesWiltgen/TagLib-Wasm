@@ -71,9 +71,9 @@ on a real divergence) over separate per-backend tests.
 | `setBextData`      |  ✓   |     ✓      |   ✓    | bwf loops both                                                |
 | `getIxml`          |  ✓   |     ✓      |   ✓    | bwf loops both                                                |
 | `setIxml`          |  ✓   |     ✓      |   ✓    | bwf loops both                                                |
-| `getMP4Item`       | unit |   error    |   —    | wasi-adapter-unit + error-handling; no round-trip             |
-| `setMP4Item`       | unit |   error    |   —    | wasi-adapter-unit + error-handling; no round-trip             |
-| `removeMP4Item`    | unit |     ✗      |   —    | wasi-adapter-unit only                                        |
+| `getMP4Item`       |  ✓   |     ✓      |   ✓    | mp4-items loops both (freeform + iTunNORM round-trip)         |
+| `setMP4Item`       |  ✓   |     ✓      |   ✓    | mp4-items loops both                                          |
+| `removeMP4Item`    |  ✓   |     ✓      |   ✓    | mp4-items loops both                                          |
 | `hasId3Tags`       |  ✓   |     ✓      |   ✓    | strip-id3-flac loops both                                     |
 | `stripId3Tags`     |  ✓   |     ✓      |   ✓    | strip-id3-flac loops both                                     |
 | `dispose`          |  ✓   |     ✓      |   ✓    | ubiquitous (try/finally)                                      |
@@ -81,12 +81,13 @@ on a real divergence) over separate per-backend tests.
 
 ## Parity gaps (filed as sub-issues of taglib-7ek)
 
-1. **MP4 items — no functional round-trip on EITHER backend.**
-   `getMP4Item`/`setMP4Item`/`removeMP4Item` are only exercised at the
-   `WasiFileHandle` unit level (WASI) and on an error path (Emscripten). No test
-   opens a real M4A through the public API, sets an item, saves, reopens, and
-   verifies it — on either backend. Highest risk (the Apple Sound Check /
-   `iTunNORM` path rides MP4 items). → **taglib-1qn**
+1. ~~**MP4 items — no functional round-trip on EITHER backend.**~~ **RESOLVED
+   (taglib-1qn).** WASI dropped freeform `----:com.apple.iTunes:*` items on save
+   (it routed them through the PropertyMap under the full atom key, which TagLib
+   does not recognize). WASI now normalizes the iTunes atom key to the bare,
+   uppercased NAME that TagLib's MP4 PropertyMap uses, so freeform items
+   (including the Apple Sound Check `iTunNORM` atom) round-trip on both backends.
+   Covered by `tests/mp4-items.test.ts` (loops both backends).
 2. **`setPictures` cross-backend parity.** Emscripten is covered via the public
    API (picture-api); WASI only at the handle level (wasi-host). No paired test
    sets pictures via `AudioFile` on WASI and verifies a round-trip. → **taglib-1dr**
