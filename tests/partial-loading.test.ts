@@ -189,4 +189,66 @@ describe("Partial Loading", () => {
       await Deno.remove(out).catch(() => {});
     }
   });
+
+  // Regression: taglib-d14 — the partial-load reconstruct MERGES the editing
+  // handle's text PropertyMap over the full reload, so a property the user
+  // DELETED was silently re-added from the reload. The fix snapshots the header
+  // keys at load and subtracts user-deleted keys from the merge, so a deletion
+  // persists while untouched tags are still preserved. Emscripten-only (WASI
+  // path-opens are full loads).
+  it("propagates a text-property deletion on a partial load, preserving other tags (taglib-d14)", async () => {
+    const taglib = await TagLib.initialize({ forceWasmType: "emscripten" });
+    const src = join(TEST_FILES_DIR, "mp3/_d14-src.mp3");
+    const out = join(TEST_FILES_DIR, "mp3/_d14-out.mp3");
+    await Deno.writeFile(
+      src,
+      await Deno.readFile(join(TEST_FILES_DIR, "mp3/kiss-snippet.mp3")),
+    );
+    try {
+      // Seed exactly three text props on the full file (replace wipes the rest).
+      const seed = await taglib.open(src);
+      seed.setProperties({
+        title: ["Keep Title"],
+        artist: ["Keep Artist"],
+        albumArtist: ["Delete Me"],
+      });
+      seed.save();
+      await Deno.writeFile(src, seed.getFileBuffer());
+      seed.dispose();
+
+      // Partial-load, then delete only albumArtist via a replace that omits it.
+      const file = await taglib.open(src, {
+        partial: true,
+        maxHeaderSize: 10 * 1024,
+        maxFooterSize: 5 * 1024,
+      });
+      assertEquals(
+        file.properties().albumArtist,
+        ["Delete Me"],
+        "precondition: albumArtist present in partial header",
+      );
+      const props = file.properties();
+      delete props.albumArtist;
+      file.setProperties(props);
+      await file.saveToFile(out);
+      file.dispose();
+
+      const reopened = await taglib.open(await Deno.readFile(out));
+      const result = {
+        albumArtist: reopened.properties().albumArtist,
+        title: reopened.properties().title,
+        artist: reopened.properties().artist,
+      };
+      reopened.dispose();
+
+      assertEquals(result, {
+        albumArtist: undefined,
+        title: ["Keep Title"],
+        artist: ["Keep Artist"],
+      });
+    } finally {
+      await Deno.remove(src).catch(() => {});
+      await Deno.remove(out).catch(() => {});
+    }
+  });
 });

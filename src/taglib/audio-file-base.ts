@@ -20,6 +20,8 @@ import type { TypedAudioFile } from "./audio-file-interface.ts";
 const LYRICS_PROPERTY_KEY = "lyrics"; // camelCase
 const LYRICS_WIRE_KEY = toTagLibKey(LYRICS_PROPERTY_KEY); // "LYRICS"
 
+const EMPTY_KEY_SET: ReadonlySet<string> = new Set();
+
 /**
  * Base implementation with core read/property operations.
  * Extended by AudioFileImpl to add save/picture/rating/extended methods.
@@ -33,6 +35,8 @@ export abstract class BaseAudioFileImpl {
   protected originalSource?: string | Uint8Array | ArrayBuffer | File;
   protected isPartiallyLoaded: boolean = false;
   protected readonly partialLoadOptions?: OpenOptions;
+  /** Text-property wire keys in the partial header at load; undefined if full. */
+  protected readonly partialKeysAtLoad?: ReadonlySet<string>;
 
   constructor(
     protected readonly module: TagLibModule,
@@ -47,6 +51,26 @@ export abstract class BaseAudioFileImpl {
     this.originalSource = originalSource;
     this.isPartiallyLoaded = isPartiallyLoaded;
     this.partialLoadOptions = partialLoadOptions;
+    this.partialKeysAtLoad = isPartiallyLoaded
+      ? new Set(Object.keys(fileHandle.getProperties()))
+      : undefined;
+  }
+
+  /**
+   * Wire-key text properties present in the partial header at load but now
+   * absent — the user deleted them. The partial-load reconstruct subtracts these
+   * from its preserve-the-original merge so a deletion persists without wiping
+   * frames beyond the loaded header (taglib-d14). Lyrics are excluded (they ride
+   * their own reconstruct path); empty for a full load.
+   */
+  protected partialDeletedPropertyKeys(): ReadonlySet<string> {
+    if (!this.partialKeysAtLoad) return EMPTY_KEY_SET;
+    const current = new Set(Object.keys(this.handle.getProperties()));
+    const deleted = new Set<string>();
+    for (const key of this.partialKeysAtLoad) {
+      if (key !== LYRICS_WIRE_KEY && !current.has(key)) deleted.add(key);
+    }
+    return deleted;
   }
 
   protected get handle(): FileHandle {

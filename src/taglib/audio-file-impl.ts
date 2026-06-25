@@ -126,6 +126,7 @@ export class AudioFileImpl extends BaseAudioFileImpl implements AudioFile {
         this.originalSource,
         targetPath,
         false,
+        this.partialDeletedPropertyKeys(),
       );
       this.isPartiallyLoaded = false;
       this.originalSource = undefined;

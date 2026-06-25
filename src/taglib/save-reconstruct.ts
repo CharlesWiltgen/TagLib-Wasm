@@ -26,13 +26,17 @@ function copyEditedState(
   target: FileHandle,
   source: FileHandle,
   sourceComplete: boolean,
+  deletedKeys: ReadonlySet<string>,
 ): void {
   target.setTagData(source.getTagData());
-  target.setProperties(
-    sourceComplete
-      ? source.getProperties()
-      : { ...target.getProperties(), ...source.getProperties() },
-  );
+  const merged = sourceComplete
+    ? source.getProperties()
+    : { ...target.getProperties(), ...source.getProperties() };
+  // A partial source can't represent "deleted" as an absent key (absent may just
+  // mean unread), so the merge above re-adds it from the full reload. Subtract
+  // the keys the editing handle reports as explicitly deleted (taglib-d14).
+  for (const key of deletedKeys) delete merged[key];
+  target.setProperties(merged);
   copyExtraState(target, source, sourceComplete);
 }
 
@@ -46,6 +50,7 @@ export async function saveViaFreshHandle(
   source: string | Uint8Array | ArrayBuffer | File,
   targetPath: string,
   sourceComplete: boolean,
+  deletedKeys: ReadonlySet<string> = new Set(),
 ): Promise<void> {
   const rawFullHandle = module.createFileHandle();
   const fullFileHandle = module.isWasi
@@ -62,7 +67,7 @@ export async function saveViaFreshHandle(
         );
       }
     }
-    copyEditedState(fullFileHandle, editing, sourceComplete);
+    copyEditedState(fullFileHandle, editing, sourceComplete, deletedKeys);
     if (!fullFileHandle.save()) {
       throw new FileOperationError(
         "save",
