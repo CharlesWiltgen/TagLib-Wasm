@@ -8,6 +8,7 @@ directories.
 ```typescript
 import {
   type AudioFileMetadata,
+  type DuplicateGroup,
   exportFolderMetadata,
   findDuplicates,
   type FolderScanOptions,
@@ -71,7 +72,7 @@ Updates metadata for multiple files in batch.
 
 ```typescript
 function updateFolderTags(
-  updates: Array<{ path: string; tags: Partial<Tag> }>,
+  updates: Array<{ path: string; tags: Partial<TagInput> }>,
   options?: {
     continueOnError?: boolean;
   },
@@ -103,7 +104,7 @@ Finds duplicate audio files based on metadata criteria.
 function findDuplicates(
   folderPath: string,
   options?: FolderScanOptions,
-): Promise<Map<string, AudioFileMetadata[]>>;
+): Promise<DuplicateGroup[]>;
 ```
 
 **Parameters:**
@@ -112,14 +113,15 @@ function findDuplicates(
 - `options` - Optional configuration (includes all `FolderScanOptions` fields)
   - `criteria` - Tag fields to compare (default: `["artist", "title"]`)
 
-**Returns:** Map of duplicate groups keyed by composite metadata
+**Returns:** An array of `DuplicateGroup` objects, each
+`{ criteria: Record<string, string>; files: AudioFileMetadata[] }`
 
 **Example:**
 
 ```typescript
 const duplicates = await findDuplicates("/music");
-for (const [key, files] of duplicates) {
-  console.log(`Found ${files.length} copies of: ${key}`);
+for (const group of duplicates) {
+  console.log(`Found ${group.files.length} copies:`, group.criteria);
 }
 
 // Custom criteria
@@ -275,6 +277,21 @@ interface AudioDynamics {
 }
 ```
 
+### DuplicateGroup
+
+A set of files judged duplicates by `findDuplicates()`, grouped by the matched
+criteria.
+
+```typescript
+interface DuplicateGroup {
+  /** The tag values that these files share (e.g. { artist, title }) */
+  criteria: Record<string, string>;
+
+  /** The duplicate files in this group */
+  files: AudioFileMetadata[];
+}
+```
+
 ## Default Audio Extensions
 
 The following extensions are scanned by default:
@@ -367,7 +384,6 @@ The folder API requires filesystem access:
 
 ## See Also
 
-- [Folder Operations Guide](/guide/folder-operations.html) - Detailed usage
-  examples
+- [Folder Operations Guide](/guide/folder-operations) - Detailed usage examples
 - [Simple API](/api/#simple-api) - Individual file operations
-- [Performance Guide](/concepts/performance.html) - Optimization tips
+- [Performance Guide](/concepts/performance) - Optimization tips

@@ -48,10 +48,9 @@ const modified = await taglib.edit(audioData, (file) => {
 });
 ```
 
-::: tip Both modes work everywhere
-Filesystem platforms can also accept buffers. This is useful for processing
-in-memory data on Node.js/Deno/Bun without touching disk.
-:::
+::: tip Both modes work everywhere Filesystem platforms can also accept buffers.
+This is useful for processing in-memory data on Node.js/Deno/Bun without
+touching disk. :::
 
 ## Deno
 
@@ -72,8 +71,8 @@ Deno requires explicit permissions: `--allow-read` for reading files,
 
 ### Deno Compile
 
-TagLib-Wasm supports `deno compile` for building standalone executables.
-See [Deno Compile](./deno-compile.md) for details on embedding the Wasm binary.
+TagLib-Wasm supports `deno compile` for building standalone executables. See
+[Deno Compile](./deno-compile.md) for details on embedding the Wasm binary.
 
 ## Node.js
 
@@ -125,8 +124,8 @@ const tags = await readTags(audioData);
 const modified = await applyTags(audioData, { title: "New Title" });
 ```
 
-Use `applyTags` (not `applyTagsToFile`) since there's no file path to write back to.
-To let the user save the result:
+Use `applyTags` (not `applyTagsToFile`) since there's no file path to write back
+to. To let the user save the result:
 
 ```typescript
 const blob = new Blob([modified], { type: "audio/mpeg" });
@@ -138,9 +137,8 @@ a.click();
 URL.revokeObjectURL(url);
 ```
 
-::: tip Bundler required
-TagLib-Wasm uses ES modules. Use Vite, Webpack, Parcel, or another bundler
-that can resolve `taglib-wasm` and serve the `.wasm` file.
+::: tip Bundler required TagLib-Wasm uses ES modules. Use Vite, Webpack, Parcel,
+or another bundler that can resolve `taglib-wasm` and serve the `.wasm` file.
 :::
 
 ## Web Workers
@@ -172,7 +170,7 @@ self.addEventListener("connect", (e: MessageEvent) => {
         title: file.tag().title,
         artist: file.tag().artist,
         album: file.tag().album,
-        duration: file.audioProperties()?.length,
+        duration: file.audioProperties()?.duration,
       });
     } catch (err) {
       port.postMessage({ error: (err as Error).message });
@@ -237,7 +235,7 @@ export default {
     return Response.json({
       title: file.tag().title,
       artist: file.tag().artist,
-      duration: file.audioProperties()?.length,
+      duration: file.audioProperties()?.duration,
     });
   },
 };
@@ -275,7 +273,7 @@ ipcMain.handle("get-metadata", async (_event, filePath: string) => {
   return {
     title: file.tag().title,
     artist: file.tag().artist,
-    duration: file.audioProperties().length,
+    duration: file.audioProperties().duration,
   };
 });
 
@@ -295,8 +293,8 @@ const metadata = await window.api.getMetadata("/path/to/song.mp3");
 await window.api.applyTagsToFile("/path/to/song.mp3", { title: "New Title" });
 ```
 
-Keep TagLib-Wasm in the main process and expose it through IPC handlers.
-This avoids bundling Wasm into the renderer and keeps file access secure.
+Keep TagLib-Wasm in the main process and expose it through IPC handlers. This
+avoids bundling Wasm into the renderer and keeps file access secure.
 
 ## Cross-Platform Code
 

@@ -34,7 +34,7 @@ TagLib-Wasm is the **universal tagging library for TypeScript/JavaScript**
 - **Rich metadata** – Cover art, ratings, chapters (MP3 `CHAP`, MP4
   QuickTime/Nero), and broadcast metadata (BWF `bext`/iXML for WAV/FLAC)
 - **Zero dependencies** – Self-contained Wasm bundle
-- **Tested** – 265 tests across all formats
+- **Tested** – 293 tests across all formats
 - **Two API styles** – Use the "Simple" API (3 functions), or the full "Core"
   API for more advanced applications
 - **Batch folder operations** – Scan directories, process multiple files, find
@@ -90,14 +90,14 @@ file:
 ```typescript
 // 1. Prepare your build by copying the WASM file
 import { prepareWasmForEmbedding } from "@charlesw/taglib-wasm";
-await prepareWasmForEmbedding("./taglib.wasm");
+await prepareWasmForEmbedding("./taglib-web.wasm");
 
 // 2. In your application, use the helper for automatic handling
 import { initializeForDenoCompile } from "@charlesw/taglib-wasm";
 const taglib = await initializeForDenoCompile();
 
 // 3. Compile with the embedded WASM
-// deno compile --allow-read --include taglib.wasm myapp.ts
+// deno compile --allow-read --include taglib-web.wasm myapp.ts
 ```
 
 See the
@@ -109,7 +109,7 @@ For manual control:
 ```typescript
 // Load embedded WASM in compiled binaries
 const wasmBinary = await Deno.readFile(
-  new URL("./taglib.wasm", import.meta.url),
+  new URL("./taglib-web.wasm", import.meta.url),
 );
 const taglib = await TagLib.initialize({ wasmBinary });
 ```
@@ -218,7 +218,7 @@ for (const file of result.items) {
 const duplicates = await findDuplicates("/path/to/music", {
   criteria: ["artist", "title"],
 });
-console.log(`Found ${duplicates.size} groups of duplicates`);
+console.log(`Found ${duplicates.length} groups of duplicates`);
 ```
 
 ### Working with Cover Art
@@ -492,8 +492,8 @@ for details on our code of conduct and the process for submitting pull requests.
 This project uses dual licensing:
 
 - **TypeScript/JavaScript code** – MIT License (see [LICENSE](LICENSE))
-- **WebAssembly binary (taglib.wasm)** – LGPL-2.1-or-later (inherited from
-  TagLib)
+- **WebAssembly binaries (taglib-web.wasm, taglib-wasi.wasm)** – LGPL-2.1-or-later
+  (inherited from TagLib)
 
 The TagLib library is dual-licensed under LGPL/MPL. When compiled to
 WebAssembly, the resulting binary must comply with LGPL requirements. This

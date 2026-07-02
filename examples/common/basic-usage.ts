@@ -20,13 +20,7 @@ async function demonstrateBasicUsage() {
   try {
     // Step 1: Initialize TagLib-Wasm
     console.log("🚀 Initializing TagLib-Wasm...");
-    const taglib = await TagLib.initialize({
-      debug: false, // Set to true for debug output
-      memory: {
-        initial: 16 * 1024 * 1024, // 16MB
-        maximum: 64 * 1024 * 1024, // 64MB
-      },
-    });
+    const taglib = await TagLib.initialize();
     console.log("✅ TagLib initialized successfully\n");
 
     // Step 2: Load an audio file
@@ -48,7 +42,7 @@ async function demonstrateBasicUsage() {
     // Step 4: Read audio properties
     console.log("\n🎧 Audio Properties:");
     const props = file.audioProperties();
-    console.log(`  Duration: ${props.length} seconds`);
+    console.log(`  Duration: ${props.duration} seconds`);
     console.log(`  Bitrate: ${props.bitrate} kbps`);
     console.log(`  Sample Rate: ${props.sampleRate} Hz`);
     console.log(`  Channels: ${props.channels}`);
@@ -137,7 +131,7 @@ async function demonstrateBatchProcessing() {
 
           console.log(`✅ ${filePath}:`);
           console.log(`   Format: ${format || "Unknown"}`);
-          console.log(`   Duration: ${props.length}s`);
+          console.log(`   Duration: ${props.duration}s`);
           console.log(`   Bitrate: ${props.bitrate} kbps`);
           console.log(`   Title: "${tags.title || "(none)"}"`);
 

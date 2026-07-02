@@ -21,14 +21,14 @@ Errors related to unsupported or invalid file formats.
 ```typescript
 // Unsupported format
 try {
-  using file = taglib.openFile(pdfBuffer); // PDF is not an audio file
+  using file = await taglib.open(pdfBuffer); // PDF is not an audio file
 } catch (error) {
   // Error: Unsupported format or corrupted file
 }
 
 // Corrupted file
 try {
-  using file = taglib.openFile(corruptedMp3);
+  using file = await taglib.open(corruptedMp3);
 } catch (error) {
   // Error: Failed to parse file
 }
@@ -39,18 +39,9 @@ try {
 Errors related to WebAssembly memory allocation.
 
 ```typescript
-// Insufficient memory
-try {
-  const taglib = await TagLib.initialize({
-    memory: { initial: 1024 }, // Only 1KB - too small!
-  });
-} catch (error) {
-  // Error: Failed to allocate memory
-}
-
 // Out of memory during processing
 try {
-  using file = taglib.openFile(veryLargeFile); // 500MB file
+  using file = await taglib.open(veryLargeFile); // 500MB file
 } catch (error) {
   // Error: Cannot allocate memory
 }
@@ -61,7 +52,7 @@ try {
 Errors when working with invalid files.
 
 ```typescript
-using file = taglib.openFile(buffer);
+using file = await taglib.open(buffer);
 if (!file.isValid()) {
   throw new Error("File validation failed");
 }
@@ -173,12 +164,7 @@ async function initializeWithRetry(maxAttempts = 3) {
 
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     try {
-      const taglib = await TagLib.initialize({
-        memory: {
-          initial: 16 * 1024 * 1024,
-          maximum: 256 * 1024 * 1024,
-        },
-      });
+      const taglib = await TagLib.initialize();
       return taglib;
     } catch (error) {
       lastError = error;
@@ -202,7 +188,7 @@ async function initializeWithRetry(maxAttempts = 3) {
 ```typescript
 async function processFileWithCleanup(buffer: Uint8Array) {
   const taglib = await TagLib.initialize();
-  using file = taglib.openFile(buffer);
+  using file = await taglib.open(buffer);
 
   // Validate
   if (!file.isValid()) {
@@ -216,7 +202,7 @@ async function processFileWithCleanup(buffer: Uint8Array) {
   }
 
   // Modify
-  file.setTitle("New Title");
+  file.tag().setTitle("New Title");
 
   // Save
   if (!file.save()) {
@@ -224,7 +210,7 @@ async function processFileWithCleanup(buffer: Uint8Array) {
   }
 
   // Return modified buffer
-  return file.toBuffer();
+  return file.getFileBuffer();
   // file is automatically disposed when scope exits, even on throw
 }
 ```
@@ -252,7 +238,7 @@ class BatchProcessor {
 
   private async processFile(filename: string, buffer: Uint8Array) {
     try {
-      using file = this.taglib.openFile(buffer);
+      using file = await this.taglib.open(buffer);
 
       if (!file.isValid()) {
         return {
@@ -318,16 +304,10 @@ async function processLargeFile(filePath: string) {
   const stats = await Deno.stat(filePath);
   const fileSizeMB = stats.size / (1024 * 1024);
 
-  // Adjust memory based on file size
-  const memoryConfig = {
-    initial: Math.max(32, fileSizeMB * 2) * 1024 * 1024,
-    maximum: Math.max(256, fileSizeMB * 4) * 1024 * 1024,
-  };
-
   try {
-    const taglib = await TagLib.initialize({ memory: memoryConfig });
+    const taglib = await TagLib.initialize();
     const buffer = await Deno.readFile(filePath);
-    using file = taglib.openFile(buffer);
+    using file = await taglib.open(buffer);
 
     // Process...
   } catch (error) {
@@ -494,7 +474,7 @@ async function safeReadMetadata(buffer: Uint8Array): Promise<SafeMetadata> {
 
   try {
     const taglib = await TagLib.initialize();
-    using file = taglib.openFile(buffer);
+    using file = await taglib.open(buffer);
 
     if (!file.isValid()) {
       return { ...defaults, error: "Invalid file" };
@@ -522,15 +502,7 @@ async function safeReadMetadata(buffer: Uint8Array): Promise<SafeMetadata> {
 
 ## Debugging Tips
 
-### 1. Enable Debug Mode
-
-```typescript
-const taglib = await TagLib.initialize({
-  debug: true, // Enables console output
-});
-```
-
-### 2. Detailed Error Logging
+### 1. Detailed Error Logging
 
 ```typescript
 function logError(context: string, error: any, additionalInfo?: any) {
@@ -544,16 +516,16 @@ function logError(context: string, error: any, additionalInfo?: any) {
 
 // Usage
 try {
-  using file = taglib.openFile(buffer);
+  using file = await taglib.open(buffer);
 } catch (error) {
-  logError("openFile", error, {
+  logError("open", error, {
     bufferSize: buffer.length,
     firstBytes: Array.from(buffer.slice(0, 4)),
   });
 }
 ```
 
-### 3. Memory Usage Monitoring
+### 2. Memory Usage Monitoring
 
 ```typescript
 class MemoryMonitor {
@@ -577,7 +549,7 @@ class MemoryMonitor {
     const beforeMemory = this.getMemoryUsage();
 
     {
-      using file = this.taglib.openFile(buffer);
+      using file = await this.taglib.open(buffer);
       // Process...
       this.filesProcessed++;
     }
@@ -597,7 +569,7 @@ class MemoryMonitor {
 }
 ```
 
-### 4. File Format Validation
+### 3. File Format Validation
 
 ```typescript
 function validateAudioBuffer(buffer: Uint8Array): string | null {
@@ -676,7 +648,7 @@ import {
 **TagLibInitializationError**
 
 - Thrown when the Wasm module fails to initialize
-- Properties: `code`, `context`
+- Properties: `code`, `message`, `details`
 
 **InvalidFormatError**
 
@@ -701,12 +673,12 @@ import {
 **MemoryError**
 
 - Thrown when Wasm memory allocation fails
-- Properties: `code`, `requestedSize`, `availableSize`
+- Properties: `code`, `message`, `details`
 
 **EnvironmentError**
 
 - Thrown when runtime environment is incompatible
-- Properties: `code`, `environment`, `requirement`
+- Properties: `code`, `environment`, `reason`, `requiredFeature`
 
 ### Using Type Guards
 

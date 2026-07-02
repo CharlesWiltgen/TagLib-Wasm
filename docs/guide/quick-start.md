@@ -135,10 +135,11 @@ file.setProperty("replayGainTrackPeak", "0.987654");
 
 #### Enhanced PROPERTIES Constant (Recommended)
 
-For the best type safety and rich metadata access, use the `PROPERTIES` constant:
+For the best type safety and rich metadata access, use the `PROPERTIES`
+constant:
 
 ```typescript
-import { PROPERTIES } from "taglib-wasm/constants";
+import { PROPERTIES } from "taglib-wasm";
 
 // Access property metadata
 const titleProp = PROPERTIES.TITLE;
@@ -266,8 +267,8 @@ try {
 
 ## Next Steps
 
-- Explore [Tag Name Constants](/api/tag-constants) for format-agnostic
-  metadata handling
+- Explore [Tag Name Constants](/api/tag-constants) for format-agnostic metadata
+  handling
 - Learn about [Runtime Compatibility](/concepts/runtime-compatibility) for your
   platform
 - Check the [API Reference](/api/) for all available methods

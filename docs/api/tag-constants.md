@@ -17,18 +17,18 @@ TagLib-Wasm provides a comprehensive `PROPERTIES` constant with rich metadata
 for all standard properties:
 
 ```typescript
-import { PROPERTIES, PropertyKey } from "taglib-wasm/constants";
+import { PROPERTIES, PropertyKey } from "taglib-wasm";
 
-// Access property metadata
-const titleProp = PROPERTIES.TITLE;
+// Access property metadata (keys are camelCase; `.key` is the ALL_CAPS wire name)
+const titleProp = PROPERTIES.title;
 console.log(titleProp.description); // "The title of the track"
 console.log(titleProp.type); // "string"
 console.log(titleProp.supportedFormats); // ["ID3v2", "MP4", "Vorbis", "WAV"]
 console.log(titleProp.mappings.id3v2.frame); // "TIT2"
 
 // Use for type-safe property access
-const title = file.getProperty(PROPERTIES.TITLE.key);
-const artist = file.getProperty(PROPERTIES.ARTIST.key);
+const title = file.getProperty(PROPERTIES.title.key);
+const artist = file.getProperty(PROPERTIES.artist.key);
 
 // Iterate through all known properties with metadata
 Object.values(PROPERTIES).forEach((prop) => {
@@ -51,14 +51,14 @@ remains fully supported:
 import { Tags } from "taglib-wasm";
 
 // Use constants instead of strings
-const title = properties[Tags.Title]?.[0]; // Instead of properties["TITLE"]
-const artist = properties[Tags.Artist]?.[0]; // Instead of properties["ARTIST"]
-const bpm = properties[Tags.Bpm]?.[0]; // Instead of properties["BPM"]
+const title = properties[Tags.Title]?.[0]; // Instead of properties["title"]
+const artist = properties[Tags.Artist]?.[0]; // Instead of properties["artist"]
+const bpm = properties[Tags.Bpm]?.[0]; // Instead of properties["bpm"]
 
-// Constants map to the standard property names
-console.log(Tags.Title); // "TITLE"
-console.log(Tags.AlbumArtist); // "ALBUMARTIST"
-console.log(Tags.TrackGain); // "REPLAYGAIN_TRACK_GAIN"
+// Constants map to the camelCase property names
+console.log(Tags.Title); // "title"
+console.log(Tags.AlbumArtist); // "albumArtist"
+console.log(Tags.TrackGain); // "replayGainTrackGain"
 ```
 
 ### Utility Functions
@@ -70,18 +70,18 @@ import {
   getPropertiesByFormat,
   getPropertyMetadata,
   isValidProperty,
-} from "taglib-wasm/constants";
+} from "taglib-wasm";
 
-// Check if a property is valid
-isValidProperty("ACOUSTID_ID"); // true
+// Check if a property is valid (keys are camelCase)
+isValidProperty("acoustidId"); // true
 isValidProperty("INVALID_KEY"); // false
 
 // Get metadata about a property
-const metadata = getPropertyMetadata("MUSICBRAINZ_TRACKID");
+const metadata = getPropertyMetadata("musicbrainzTrackId");
 console.log(metadata.description); // "MusicBrainz Track ID"
 
 // Get all available property keys
-const allKeys = getAllPropertyKeys(); // ["TITLE", "ARTIST", "ALBUM", ...]
+const allKeys = getAllPropertyKeys(); // ["title", "artist", "album", ...]
 
 // Get every property paired with its metadata (key + PropertyMetadata tuples)
 const allProperties = getAllProperties();
@@ -89,9 +89,9 @@ for (const [key, meta] of allProperties) {
   console.log(key, meta.description);
 }
 
-// Get properties supported by a specific format
-const mp3Properties = getPropertiesByFormat("MP3");
-const flacProperties = getPropertiesByFormat("FLAC");
+// Get properties supported by a specific format (tag-format names)
+const id3v2Properties = getPropertiesByFormat("ID3v2");
+const vorbisProperties = getPropertiesByFormat("Vorbis");
 ```
 
 See the [tag-constants.ts example](../../examples/common/tag-constants.ts) for a
@@ -325,46 +325,45 @@ WAV files use INFO chunks with specific FourCC codes:
 ### Reading Tags (TypeScript)
 
 ```typescript
-import { TagLib } from "taglib-wasm";
-import { PROPERTIES, Tags } from "taglib-wasm/constants";
+import { PROPERTIES, TagLib, Tags } from "taglib-wasm";
 
 const taglib = await TagLib.initialize();
-using file = taglib.openFile(audioBuffer);
+using file = await taglib.open(audioBuffer);
 
 // Using PROPERTIES constant (recommended - provides rich metadata)
 const properties = file.properties();
-const title = file.getProperty(PROPERTIES.TITLE.key);
-const artist = file.getProperty(PROPERTIES.ARTIST.key);
-const musicBrainzId = file.getProperty(PROPERTIES.MUSICBRAINZ_TRACKID.key);
+const title = file.getProperty(PROPERTIES.title.key);
+const artist = file.getProperty(PROPERTIES.artist.key);
+const musicBrainzId = file.getProperty(PROPERTIES.musicbrainzTrackId.key);
 
 // Using legacy Tags constants (still supported)
 const title2 = properties[Tags.Title]?.[0];
 const artist2 = properties[Tags.Artist]?.[0];
 const album = properties[Tags.Album]?.[0];
 
-// Or using string property names directly
-const title3 = properties["TITLE"]?.[0];
-const artist3 = properties["ARTIST"]?.[0];
+// Or using camelCase string property names directly
+const title3 = properties["title"]?.[0];
+const artist3 = properties["artist"]?.[0];
 ```
 
 ### Writing Tags (TypeScript)
 
 ```typescript
 // Using PROPERTIES constant (recommended)
-file.setProperty(PROPERTIES.TITLE.key, "My Song Title");
-file.setProperty(PROPERTIES.ARTIST.key, "Artist Name");
-file.setProperty(PROPERTIES.ALBUMARTIST.key, "Album Artist");
+file.setProperty(PROPERTIES.title.key, "My Song Title");
+file.setProperty(PROPERTIES.artist.key, "Artist Name");
+file.setProperty(PROPERTIES.albumArtist.key, "Album Artist");
 file.setProperty(
-  PROPERTIES.MUSICBRAINZ_TRACKID.key,
+  PROPERTIES.musicbrainzTrackId.key,
   "123e4567-e89b-12d3-a456-426614174000",
 );
 
 // Or set multiple properties at once
 file.setProperties({
-  [PROPERTIES.TITLE.key]: ["My Song Title"],
-  [PROPERTIES.ARTIST.key]: ["Artist Name"],
-  [PROPERTIES.ALBUMARTIST.key]: ["Album Artist"],
-  [PROPERTIES.MUSICBRAINZ_TRACKID.key]: [
+  [PROPERTIES.title.key]: ["My Song Title"],
+  [PROPERTIES.artist.key]: ["Artist Name"],
+  [PROPERTIES.albumArtist.key]: ["Album Artist"],
+  [PROPERTIES.musicbrainzTrackId.key]: [
     "123e4567-e89b-12d3-a456-426614174000",
   ],
 });
@@ -379,7 +378,7 @@ file.setProperties({
 
 // Save changes
 file.save();
-const outputBuffer = file.toBuffer();
+const outputBuffer = file.getFileBuffer();
 ```
 
 ### Cross-Format Compatibility
@@ -389,8 +388,8 @@ format-specific mappings:
 
 ```typescript
 // This works the same for MP3, MP4, FLAC, OGG, and WAV files
-file.tag.properties.set("TITLE", "Universal Title");
-file.tag.properties.set("COMPOSER", "Universal Composer");
+file.setProperty("title", "Universal Title");
+file.setProperty("composer", "Universal Composer");
 
 // TagLib converts these to:
 // - MP3: TIT2 and TCOM frames
@@ -407,7 +406,6 @@ Not all formats support all properties. When a property is not supported:
 
 - Reading returns an empty value
 - Writing is ignored or stored in format-specific extension mechanisms
-- Use `file.tag.properties.unsupportedData()` to see what couldn't be mapped
 
 ### Multiple Values
 
@@ -428,7 +426,7 @@ Some formats support multiple values for a single property:
 
 Some properties require special handling:
 
-- `PICTURE`: Embedded album art (use `complexProperties()`)
+- `PICTURE`: Embedded album art (use `getPictures()` / `setPictures()`)
 - `LYRICS`: May include synchronized lyrics in some formats
 - `PERFORMER:<instrument>`: Instrument-specific performer credits
 

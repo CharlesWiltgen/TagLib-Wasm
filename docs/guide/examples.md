@@ -96,23 +96,23 @@ The `basic-usage.ts` example shows fundamental operations:
 import { TagLib } from "taglib-wasm";
 
 // Initialize the library
-const taglib = await TagLib.load();
+const taglib = await TagLib.initialize();
 
 // Read an audio file
-using audioFile = taglib.openFile(audioBuffer);
+using file = await taglib.open(audioBuffer);
 
 // Read tags
-const tag = audioFile.getTag();
-console.log(`Title: ${tag.title()}`);
-console.log(`Artist: ${tag.artist()}`);
+const tag = file.tag();
+console.log(`Title: ${tag.title}`);
+console.log(`Artist: ${tag.artist}`);
 
 // Modify tags
 tag.setTitle("New Title");
 tag.setArtist("New Artist");
 
 // Save changes
-audioFile.save();
-const modifiedBuffer = audioFile.getFileBuffer();
+file.save();
+const modifiedBuffer = file.getFileBuffer();
 ```
 
 ### Simple API

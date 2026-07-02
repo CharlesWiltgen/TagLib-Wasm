@@ -10,9 +10,9 @@ The PropertyMap API provides a unified interface for reading and writing
 extended metadata:
 
 ```typescript
-// Read all properties
+// Read all properties (keys are camelCase)
 const properties = file.properties();
-console.log(properties); // { ALBUMARTIST: ["Various Artists"], BPM: ["120"], ... }
+console.log(properties); // { albumArtist: ["Various Artists"], bpm: ["120"], ... }
 
 // Get a specific property
 const acoustidId = file.getProperty("ACOUSTID_ID");
@@ -30,20 +30,21 @@ file.setProperties({
 
 ### Using the PROPERTIES Constant for Type-Safe Access
 
-The library provides a comprehensive `PROPERTIES` constant with metadata for all known properties:
+The library provides a comprehensive `PROPERTIES` constant with metadata for all
+known properties:
 
 ```typescript
-import { PROPERTIES, PropertyKey } from "taglib-wasm/constants";
+import { PROPERTIES, PropertyKey } from "taglib-wasm";
 
-// Access property metadata
-const titleProp = PROPERTIES.TITLE;
+// Access property metadata (keys are camelCase; `.key` is the ALL_CAPS wire name)
+const titleProp = PROPERTIES.title;
 console.log(titleProp.description); // "The title of the track"
 console.log(titleProp.type); // "string"
 console.log(titleProp.supportedFormats); // ["ID3v2", "MP4", "Vorbis", "WAV"]
 
 // Use for type-safe property access
-const title = file.getProperty(PROPERTIES.TITLE.key);
-const trackNumber = file.getProperty(PROPERTIES.TRACK_NUMBER.key);
+const title = file.getProperty(PROPERTIES.title.key);
+const trackNumber = file.getProperty(PROPERTIES.trackNumber.key);
 
 // Iterate through all known properties
 Object.values(PROPERTIES).forEach((prop) => {
@@ -56,10 +57,11 @@ Object.values(PROPERTIES).forEach((prop) => {
 
 ## 📝 Important Notes
 
-- Property keys are always uppercase (e.g., "ALBUMARTIST",
-  "REPLAYGAIN_TRACK_GAIN")
+- Property keys use camelCase (e.g., "albumArtist", "replayGainTrackGain");
+  `getProperty`/`setProperty`/`setProperties` also accept the ALL_CAPS TagLib
+  wire names (e.g., "ALBUMARTIST")
 - Property values in `setProperties()` must be arrays of strings
-- The `PROPERTIES` constant from `taglib-wasm/constants` provides:
+- The `PROPERTIES` constant from `taglib-wasm` provides:
   - Type-safe property keys
   - Rich metadata including descriptions and supported formats
   - Format-specific mappings (ID3v2 frames, Vorbis comments, MP4 atoms)
@@ -105,15 +107,15 @@ Object.values(PROPERTIES).forEach((prop) => {
 import { TagLib } from "taglib-wasm";
 
 const taglib = await TagLib.initialize();
-using file = taglib.openFile(audioBuffer);
+using file = await taglib.open(audioBuffer);
 
 // Set AcoustID data (works for ANY format)
-file.setAcoustidFingerprint("AQADtMmybfGO8NCNEESLnzHyXNOHeHnG...");
-file.setAcoustidId("e7359e88-f1f7-41ed-b9f6-16e58e906997");
+file.setProperty("acoustidFingerprint", "AQADtMmybfGO8NCNEESLnzHyXNOHeHnG...");
+file.setProperty("acoustidId", "e7359e88-f1f7-41ed-b9f6-16e58e906997");
 
 // Read AcoustID data (works for ANY format)
-const fingerprint = file.getAcoustidFingerprint();
-const acoustidId = file.getAcoustidId();
+const fingerprint = file.getProperty("acoustidFingerprint");
+const acoustidId = file.getProperty("acoustidId");
 
 console.log("AcoustID:", acoustidId);
 console.log("Fingerprint:", fingerprint);
@@ -123,9 +125,12 @@ console.log("Fingerprint:", fingerprint);
 
 ```typescript
 // Set MusicBrainz identifiers
-file.setMusicBrainzTrackId("f4d1b6b8-8c1e-4d9a-9f2a-1234567890ab");
-file.setMusicBrainzReleaseId("a1b2c3d4-e5f6-7890-abcd-ef1234567890");
-file.setMusicBrainzArtistId("12345678-90ab-cdef-1234-567890abcdef");
+file.setProperty("musicbrainzTrackId", "f4d1b6b8-8c1e-4d9a-9f2a-1234567890ab");
+file.setProperty(
+  "musicbrainzReleaseId",
+  "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+);
+file.setProperty("musicbrainzArtistId", "12345678-90ab-cdef-1234-567890abcdef");
 
 // These are automatically stored in the correct format-specific location
 ```
@@ -133,26 +138,26 @@ file.setMusicBrainzArtistId("12345678-90ab-cdef-1234-567890abcdef");
 ### Bulk Extended Metadata
 
 ```typescript
-// Set multiple fields at once
-file.setExtendedTag({
-  // Basic fields
-  title: "Song Title",
-  artist: "Artist Name",
-  album: "Album Name",
-
-  // Advanced fields
-  acoustidFingerprint: "AQADtMmybfGO8NCNEESLnzHyXNOHeHnG...",
-  acoustidId: "e7359e88-f1f7-41ed-b9f6-16e58e906997",
-  musicbrainzTrackId: "f4d1b6b8-8c1e-4d9a-9f2a-1234567890ab",
-  albumArtist: "Album Artist",
-  composer: "Composer Name",
-  bpm: 120,
-  compilation: true,
+// Set many extended fields at once (values are string arrays)
+file.setProperties({
+  acoustidFingerprint: ["AQADtMmybfGO8NCNEESLnzHyXNOHeHnG..."],
+  acoustidId: ["e7359e88-f1f7-41ed-b9f6-16e58e906997"],
+  musicbrainzTrackId: ["f4d1b6b8-8c1e-4d9a-9f2a-1234567890ab"],
+  albumArtist: ["Album Artist"],
+  composer: ["Composer Name"],
+  bpm: ["120"],
+  compilation: ["1"],
 });
 
-// Read all extended metadata
-const extendedTags = file.extendedTag();
-console.log("All metadata:", extendedTags);
+// Basic fields use the tag() setters
+const tag = file.tag();
+tag.setTitle("Song Title");
+tag.setArtist("Artist Name");
+tag.setAlbum("Album Name");
+
+// Read all metadata back (camelCase keys)
+const allProperties = file.properties();
+console.log("All metadata:", allProperties);
 ```
 
 ## 🔧 Implementation Details

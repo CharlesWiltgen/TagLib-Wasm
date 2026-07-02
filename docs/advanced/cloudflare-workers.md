@@ -55,7 +55,7 @@ async function handleMetadata(request: Request): Promise<Response> {
       title: tag.title,
       artist: tag.artist,
       album: tag.album,
-      duration: props?.length,
+      duration: props?.duration,
     });
   } catch (error) {
     return Response.json(
@@ -136,7 +136,7 @@ async function handleBatch(request: Request): Promise<Response> {
         name: file.name,
         title: tag.title,
         artist: tag.artist,
-        duration: props?.length,
+        duration: props?.duration,
       };
     } catch (error) {
       return { name: file.name, error: (error as Error).message };

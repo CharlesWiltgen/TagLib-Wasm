@@ -44,23 +44,19 @@ import { TagLib } from "https://esm.sh/taglib-wasm"; // ✅
 **Solutions**:
 
 ```typescript
-// 1. Check memory configuration
+// 1. Check initialization
 try {
-  const taglib = await TagLib.initialize({
-    memory: {
-      initial: 16 * 1024 * 1024, // Start with 16MB
-    },
-  });
+  const taglib = await TagLib.initialize();
 } catch (error) {
   console.error("Initialization failed:", error);
 }
 
-// 2. Retry with different settings
+// 2. Retry with a different backend
 async function initWithRetry() {
   const configs = [
-    { memory: { initial: 16 * 1024 * 1024 } },
-    { memory: { initial: 8 * 1024 * 1024 } },
-    {}, // Default config
+    {}, // Auto-detect (default)
+    { forceWasmType: "wasi" as const },
+    { forceWasmType: "emscripten" as const },
   ];
 
   for (const config of configs) {
@@ -119,7 +115,7 @@ function detectFormat(buffer: Uint8Array): string {
 
 // 3. Handle corrupt files
 try {
-  using file = taglib.openFile(buffer);
+  using file = await taglib.open(buffer);
   if (!file.isValid()) {
     throw new Error("File is corrupt or invalid");
   }
@@ -193,12 +189,9 @@ sudo npm install taglib-wasm --unsafe-perm
 }
 ```
 
-```typescript
-// For module augmentation
-declare module "taglib-wasm" {
-  export * from "taglib-wasm/types";
-}
-```
+All types ship with the package — `TagLib`, `AudioFile`, `Tag`, and related
+types are exported from the main `"taglib-wasm"` entry point, so no separate
+type import or module augmentation is needed.
 
 ## Runtime Errors
 
@@ -209,13 +202,8 @@ declare module "taglib-wasm" {
 **Solutions**:
 
 ```typescript
-// 1. Increase memory limits
-const taglib = await TagLib.initialize({
-  memory: {
-    initial: 64 * 1024 * 1024, // 64MB
-    maximum: 512 * 1024 * 1024, // 512MB
-  },
-});
+// 1. Initialize once and reuse the instance across files
+const taglib = await TagLib.initialize();
 
 // 2. Process files sequentially
 async function processLargeFiles(files: string[]) {
@@ -252,7 +240,7 @@ function checkMemory() {
 ```typescript
 // 1. Ensure proper cleanup with `using`
 {
-  using file = taglib.openFile(buffer);
+  using file = await taglib.open(buffer);
   // Operations...
   file.save();
 }
@@ -314,7 +302,7 @@ function sanitizeString(str: string): string {
 }
 
 // Usage
-file.setTitle(sanitizeString(userInput));
+file.tag().setTitle(sanitizeString(userInput));
 
 // 2. Handle different encodings
 function decodeString(bytes: Uint8Array, encoding = "utf-8"): string {
@@ -348,7 +336,7 @@ function decodeString(bytes: Uint8Array, encoding = "utf-8"): string {
 
 ```typescript
 // 1. Check ID3 version
-using file = taglib.openFile(mp3Buffer);
+using file = await taglib.open(mp3Buffer);
 
 // Force ID3v2.4 for better compatibility
 // (TagLib handles this internally)
@@ -360,15 +348,15 @@ if (file.getFormat() === "MP3") {
 }
 
 // 3. Clean up malformed tags
-function cleanMP3Tags(buffer: Uint8Array): Uint8Array {
+async function cleanMP3Tags(buffer: Uint8Array): Promise<Uint8Array> {
   // This is handled internally by TagLib
   const taglib = await TagLib.initialize();
-  using file = taglib.openFile(buffer);
+  using file = await taglib.open(buffer);
 
   if (file.isValid()) {
     // Re-save to clean up
     file.save();
-    return file.toBuffer();
+    return file.getFileBuffer();
   }
 
   return buffer;
@@ -383,21 +371,20 @@ function cleanMP3Tags(buffer: Uint8Array): Uint8Array {
 
 ```typescript
 // Use standard atom names
-using file = taglib.openFile(m4aBuffer);
+using file = await taglib.open(m4aBuffer);
 
 // These map to iTunes-compatible atoms
-file.setTitle("Title"); // ©nam
-file.setArtist("Artist"); // ©ART
-file.setAlbum("Album"); // ©alb
-file.setComment("Comment"); // ©cmt
-file.setGenre("Genre"); // ©gen
+const tag = file.tag();
+tag.setTitle("Title"); // ©nam
+tag.setArtist("Artist"); // ©ART
+tag.setAlbum("Album"); // ©alb
+tag.setComment("Comment"); // ©cmt
+tag.setGenre("Genre"); // ©gen
 
-// For custom atoms
-file.setExtendedTag({
-  albumArtist: "Album Artist", // aART
-  composer: "Composer", // ©wrt
-  compilation: true, // cpil
-});
+// For extended fields, use setProperty()
+file.setProperty("ALBUMARTIST", "Album Artist"); // aART
+file.setProperty("COMPOSER", "Composer"); // ©wrt
+file.setProperty("COMPILATION", "1"); // cpil
 ```
 
 ### FLAC Vorbis Comment Issues
@@ -408,18 +395,18 @@ file.setExtendedTag({
 
 ```typescript
 // FLAC uses Vorbis comments
-using file = taglib.openFile(flacBuffer);
+using file = await taglib.open(flacBuffer);
 
 // Standard fields work automatically
-file.setTitle("Title");
+file.tag().setTitle("Title");
 
 // For multiple values (FLAC supports this)
 // taglib-wasm currently uses the first value
 
 // Preserve existing comments
-const existing = file.tag();
-file.setTitle(newTitle || existing.title);
-file.setArtist(newArtist || existing.artist);
+const tag = file.tag();
+tag.setTitle(newTitle || tag.title);
+tag.setArtist(newArtist || tag.artist);
 ```
 
 ## Memory Problems
@@ -433,7 +420,7 @@ file.setArtist(newArtist || existing.artist);
 ```typescript
 // 1. Use `using` for automatic cleanup
 {
-  using file = taglib.openFile(buffer);
+  using file = await taglib.open(buffer);
   const tags = file.tag();
   // file is automatically disposed when it goes out of scope
 }
@@ -528,7 +515,8 @@ if (readPerm.state !== "granted") {
 
 **Problem**: `require('taglib-wasm')` fails with ERR_REQUIRE_ESM.
 
-TagLib-Wasm is an ESM-only package (`"type": "module"`). CommonJS files must use dynamic import:
+TagLib-Wasm is an ESM-only package (`"type": "module"`). CommonJS files must use
+dynamic import:
 
 ```javascript
 // ❌ This will NOT work in CommonJS
@@ -607,14 +595,11 @@ export default {
       });
     }
 
-    // Use minimal memory
-    const taglib = await TagLib.initialize({
-      memory: { initial: 8 * 1024 * 1024 }, // 8MB max
-    });
+    const taglib = await TagLib.initialize();
 
     // Process with automatic cleanup
     const buffer = new Uint8Array(await request.arrayBuffer());
-    using file = taglib.openFile(buffer);
+    using file = await taglib.open(buffer);
     const tags = file.tag();
 
     return Response.json(tags);
@@ -627,16 +612,14 @@ export default {
 ### Enable Debug Logging
 
 ```typescript
-// 1. Initialize with debug mode
-const taglib = await TagLib.initialize({
-  debug: true,
-});
+// 1. Initialize TagLib
+const taglib = await TagLib.initialize();
 
-// 2. Add custom logging
-const originalOpen = taglib.openFile.bind(taglib);
-taglib.openFile = (buffer: Uint8Array) => {
+// 2. Add custom logging by wrapping open()
+const originalOpen = taglib.open.bind(taglib);
+taglib.open = async (buffer: Uint8Array) => {
   console.log(`Opening file, size: ${buffer.length}`);
-  const file = originalOpen(buffer);
+  const file = await originalOpen(buffer);
   console.log(`File valid: ${file.isValid()}, format: ${file.getFormat()}`);
   return file;
 };
@@ -650,36 +633,6 @@ function traceMethod(obj: any, method: string) {
     console.log(`${method} returned:`, result);
     return result;
   };
-}
-```
-
-### Inspect Wasm Memory
-
-```typescript
-// Get memory view
-const module = taglib.getModule();
-const memory = module.HEAPU8;
-
-// Check memory usage
-console.log(`Wasm memory size: ${memory.length / 1024 / 1024}MB`);
-
-// Find string in memory
-function findString(str: string): number[] {
-  const bytes = new TextEncoder().encode(str);
-  const positions = [];
-
-  for (let i = 0; i < memory.length - bytes.length; i++) {
-    let match = true;
-    for (let j = 0; j < bytes.length; j++) {
-      if (memory[i + j] !== bytes[j]) {
-        match = false;
-        break;
-      }
-    }
-    if (match) positions.push(i);
-  }
-
-  return positions;
 }
 ```
 
@@ -711,7 +664,7 @@ async function validateAudioFile(path: string) {
 
     // Open with taglib
     const taglib = await TagLib.initialize();
-    using file = taglib.openFile(buffer);
+    using file = await taglib.open(buffer);
 
     report.valid = file.isValid();
     report.format = file.getFormat();
@@ -744,8 +697,8 @@ now, the universal build ensures maximum compatibility.
 ### Q: Why doesn't save() write to disk?
 
 **A**: TagLib-Wasm operates entirely in memory for security and compatibility.
-Use `file.toBuffer()` and write the result to disk using your platform's file
-API.
+Use `file.getFileBuffer()` and write the result to disk using your platform's
+file API.
 
 ### Q: How do I handle non-ASCII characters?
 
@@ -754,9 +707,10 @@ encoded:
 
 ```typescript
 // Correct UTF-8 handling
-file.setTitle("日本語タイトル"); // Japanese
-file.setArtist("Künstler"); // German
-file.setAlbum("Álbum en Español"); // Spanish
+const tag = file.tag();
+tag.setTitle("日本語タイトル"); // Japanese
+tag.setArtist("Künstler"); // German
+tag.setAlbum("Álbum en Español"); // Spanish
 ```
 
 ### Q: Can I process files larger than available memory?

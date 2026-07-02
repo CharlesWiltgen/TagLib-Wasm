@@ -8,7 +8,7 @@ JavaScript/TypeScript.
 - [Simple API](#simple-api)
   - [readTags()](#readtags)
   - [applyTags()](#applytags)
-  - [applyTagsToFile()](#updatetags)
+  - [applyTagsToFile()](#applytagstofile)
   - [readProperties()](#readproperties)
   - [clearTags()](#cleartags)
   - [readFormat()](#readformat)
@@ -50,7 +50,7 @@ Read metadata tags from an audio file.
 ```typescript
 function readTags(
   input: string | Uint8Array | ArrayBuffer | File,
-): Promise<Tag>;
+): Promise<ExtendedTag>;
 ```
 
 #### Parameters
@@ -60,7 +60,8 @@ function readTags(
 
 #### Returns
 
-Promise resolving to a `Tag` object:
+Promise resolving to an `ExtendedTag` object (the basic `Tag` fields shown below
+plus extended metadata):
 
 ```typescript
 interface Tag {
@@ -101,8 +102,7 @@ Apply metadata tags to an audio file and return the modified buffer.
 ```typescript
 function applyTags(
   input: string | Uint8Array | ArrayBuffer | File,
-  tags: Partial<Tags>,
-  options?: number,
+  tags: Partial<TagInput>,
 ): Promise<Uint8Array>;
 ```
 
@@ -111,8 +111,7 @@ function applyTags(
 - `input`: File path (string), audio data (Uint8Array/ArrayBuffer), or File
   object
 - `tags`: Object containing tags to apply (partial update supported, type
-  `Partial<Tag>`)
-- `options`: Write options (optional, for go-taglib compatibility)
+  `Partial<TagInput>`)
 
 #### Returns
 
@@ -146,8 +145,7 @@ Update metadata tags in an audio file and save changes to disk.
 ```typescript
 function applyTagsToFile(
   file: string,
-  tags: Partial<Tags>,
-  options?: number,
+  tags: Partial<TagInput>,
 ): Promise<void>;
 ```
 
@@ -155,8 +153,7 @@ function applyTagsToFile(
 
 - `file`: File path as a string (required for disk operations)
 - `tags`: Object containing tags to update (partial update supported, type
-  `Partial<Tag>`)
-- `options`: Write options (optional, for go-taglib compatibility)
+  `Partial<TagInput>`)
 
 #### Returns
 
@@ -604,7 +601,7 @@ Update metadata for multiple files in batch.
 
 ```typescript
 function updateFolderTags(
-  updates: Array<{ path: string; tags: Partial<Tag> }>,
+  updates: Array<{ path: string; tags: Partial<TagInput> }>,
   options?: { continueOnError?: boolean },
 ): Promise<FolderUpdateResult>;
 ```
@@ -629,15 +626,15 @@ Find duplicate audio files based on metadata criteria.
 function findDuplicates(
   folderPath: string,
   options?: FolderScanOptions,
-): Promise<Map<string, AudioFileMetadata[]>>;
+): Promise<DuplicateGroup[]>;
 ```
 
 #### Example
 
 ```typescript
 const duplicates = await findDuplicates("/music");
-for (const [key, files] of duplicates) {
-  console.log(`Found ${files.length} copies of: ${key}`);
+for (const group of duplicates) {
+  console.log(`Found ${group.files.length} copies:`, group.criteria);
 }
 
 // Custom criteria
@@ -658,8 +655,7 @@ function exportFolderMetadata(
 ): Promise<void>;
 ```
 
-For complete documentation, see the
-[Folder API Reference](/api/folder-api.html).
+For complete documentation, see the [Folder API Reference](/api/folder-api).
 
 ## Full API
 
@@ -807,7 +803,7 @@ Update tags in a file and save changes to disk in one operation. This is a
 convenience method that opens, modifies, saves, and closes the file.
 
 ```typescript
-updateFile(path: string, tags: Partial<Tag>): Promise<void>
+updateFile(path: string, tags: Partial<TagInput>): Promise<void>
 ```
 
 ##### Parameters
@@ -878,7 +874,7 @@ await taglib.edit("song.mp3", (file) => {
 const audioData = await fetch("song.mp3").then((r) => r.arrayBuffer());
 const modified = await taglib.edit(new Uint8Array(audioData), (file) => {
   file.tag().setTitle("Updated Title");
-  file.setProperties({ ALBUMARTIST: "Various Artists" });
+  file.setProperties({ albumArtist: ["Various Artists"] });
 });
 await Deno.writeFile("song-modified.mp3", modified);
 
@@ -899,14 +895,14 @@ Create a copy of a file with updated tags. Reads the source file, applies the
 specified tags, and saves to a new destination path.
 
 ```typescript
-copyWithTags(sourcePath: string, destPath: string, tags: Partial<Tag>): Promise<void>
+copyWithTags(sourcePath: string, destPath: string, tags: Partial<TagInput>): Promise<void>
 ```
 
 ##### Parameters
 
 - `sourcePath`: Path to the source audio file
 - `destPath`: Path where the copy will be saved
-- `tags`: Tags to set on the copy (type `Partial<Tag>`)
+- `tags`: Tags to set on the copy (type `Partial<TagInput>`)
 
 ##### Example
 
@@ -1096,20 +1092,20 @@ setProperty(key: string, value: string): void
 ##### Example
 
 ```typescript
-// Get all properties
+// Get all properties (keys are camelCase)
 const props = file.properties();
-console.log(props.ALBUMARTIST);
+console.log(props.albumArtist);
 
-// Set properties
+// Set properties (values are string arrays)
 file.setProperties({
-  ALBUMARTIST: "Various Artists",
-  COMPOSER: "Composer Name",
-  BPM: "120",
+  albumArtist: ["Various Artists"],
+  composer: ["Composer Name"],
+  bpm: ["120"],
 });
 
-// Single property access
-const albumArtist = file.getProperty("ALBUMARTIST");
-file.setProperty("ALBUMARTIST", "New Album Artist");
+// Single property access (getProperty/setProperty also accept ALL_CAPS keys)
+const albumArtist = file.getProperty("albumArtist");
+file.setProperty("albumArtist", "New Album Artist");
 ```
 
 #### Picture/Cover Art Methods
@@ -1393,30 +1389,32 @@ if (file.isMP4()) {
 
 #### AcoustID Integration
 
-```typescript
-// Fingerprint methods
-setAcoustIdFingerprint(fingerprint: string): void
-getAcoustIdFingerprint(): string | undefined
+AcoustID data is read and written through `getProperty()` / `setProperty()`:
 
-// ID methods
-setAcoustIdId(id: string): void
-getAcoustIdId(): string | undefined
+```typescript
+// Fingerprint
+file.setProperty("acoustidFingerprint", fingerprint);
+file.getProperty("acoustidFingerprint"); // string | undefined
+
+// ID
+file.setProperty("acoustidId", id);
+file.getProperty("acoustidId"); // string | undefined
 ```
 
 #### MusicBrainz Integration
 
 ```typescript
 // Track ID
-setMusicBrainzTrackId(id: string): void
-getMusicBrainzTrackId(): string | undefined
+file.setProperty("musicbrainzTrackId", id);
+file.getProperty("musicbrainzTrackId"); // string | undefined
 
 // Release ID
-setMusicBrainzReleaseId(id: string): void
-getMusicBrainzReleaseId(): string | undefined
+file.setProperty("musicbrainzReleaseId", id);
+file.getProperty("musicbrainzReleaseId"); // string | undefined
 
 // Artist ID
-setMusicBrainzArtistId(id: string): void
-getMusicBrainzArtistId(): string | undefined
+file.setProperty("musicbrainzArtistId", id);
+file.getProperty("musicbrainzArtistId"); // string | undefined
 ```
 
 #### Volume Normalization
@@ -1425,23 +1423,23 @@ getMusicBrainzArtistId(): string | undefined
 
 ```typescript
 // Track gain/peak
-setReplayGainTrackGain(gain: string): void
-getReplayGainTrackGain(): string | undefined
-setReplayGainTrackPeak(peak: string): void
-getReplayGainTrackPeak(): string | undefined
+file.setProperty("replayGainTrackGain", gain);
+file.getProperty("replayGainTrackGain"); // string | undefined
+file.setProperty("replayGainTrackPeak", peak);
+file.getProperty("replayGainTrackPeak"); // string | undefined
 
 // Album gain/peak
-setReplayGainAlbumGain(gain: string): void
-getReplayGainAlbumGain(): string | undefined
-setReplayGainAlbumPeak(peak: string): void
-getReplayGainAlbumPeak(): string | undefined
+file.setProperty("replayGainAlbumGain", gain);
+file.getProperty("replayGainAlbumGain"); // string | undefined
+file.setProperty("replayGainAlbumPeak", peak);
+file.getProperty("replayGainAlbumPeak"); // string | undefined
 ```
 
 ##### Apple Sound Check
 
 ```typescript
-setAppleSoundCheck(iTunNORM: string): void
-getAppleSoundCheck(): string | undefined
+file.setProperty("appleSoundCheck", iTunNORM);
+file.getProperty("appleSoundCheck"); // string | undefined
 ```
 
 #### File Operations
@@ -1481,8 +1479,8 @@ changes.
 
 ```typescript
 using file = await taglib.open("song.mp3");
-file.setTitle("New Title");
-file.setArtist("New Artist");
+file.tag().setTitle("New Title");
+file.tag().setArtist("New Artist");
 await file.saveToFile("song-updated.mp3");
 ```
 
@@ -1857,9 +1855,9 @@ const COMPLEX_PROPERTIES = {
 
 #### COMPLEX_PROPERTY_KEY
 
-Plain string-keyed map for everyday `getComplexProperty()` /
-`setComplexProperty()` calls — avoids the `.key` ceremony of
-`COMPLEX_PROPERTIES`.
+Plain string-keyed map of the complex-property names — a companion to
+`COMPLEX_PROPERTIES` that avoids the `.key` ceremony. Complex properties are
+read and written through their dedicated `AudioFile` methods.
 
 ```typescript
 const COMPLEX_PROPERTY_KEY = {
@@ -1869,8 +1867,11 @@ const COMPLEX_PROPERTY_KEY = {
   CHAPTER: "CHAPTER",
 } as const;
 
-// Usage:
-const ratings = file.getComplexProperty(COMPLEX_PROPERTY_KEY.RATING);
+// Complex properties use dedicated methods:
+const ratings = file.getRatings(); // Rating[]
+const pictures = file.getPictures(); // Picture[]
+const lyrics = file.getLyrics(); // UnsyncedLyrics[]
+const chapters = file.getChapters(); // Chapter[]
 ```
 
 ## Workers API
@@ -2070,8 +2071,8 @@ file.setProperties({
 ```typescript
 import { getAllTagNames, isValidTagName } from "taglib-wasm";
 
-// Check if a tag name is valid
-isValidTagName("TITLE"); // true
+// Check if a tag name is valid (names are camelCase)
+isValidTagName("title"); // true
 isValidTagName("INVALID_TAG"); // false
 
 // Get all available tag names
@@ -2085,8 +2086,8 @@ The `Tags` object provides constants for all standard tag names:
 
 - **Basic Tags**: `Title`, `Artist`, `Album`, `Date`, `Genre`, `Comment`,
   `TrackNumber`
-- **Extended Tags**: `AlbumArtist`, `Composer`, `Bpm`, `Copyright`, `Performer`
-- **MusicBrainz**: `MusicBrainzArtistId`, `MusicBrainzAlbumId`,
+- **Extended Tags**: `AlbumArtist`, `Composer`, `Bpm`, `Copyright`, `Conductor`
+- **MusicBrainz**: `MusicBrainzArtistId`, `MusicBrainzReleaseId`,
   `MusicBrainzTrackId`
 - **ReplayGain**: `TrackGain`, `TrackPeak`, `AlbumGain`, `AlbumPeak`
 - **Sorting**: `TitleSort`, `ArtistSort`, `AlbumSort`, `AlbumArtistSort`
@@ -2175,15 +2176,18 @@ async function processAudioFile(filePath: string) {
 
   // Add extended metadata using properties
   file.setProperties({
-    ALBUMARTIST: "Various Artists",
-    COMPOSER: "Composer Name",
-    BPM: "120",
-    REPLAYGAIN_TRACK_GAIN: "-6.5 dB",
+    albumArtist: ["Various Artists"],
+    composer: ["Composer Name"],
+    bpm: ["120"],
+    replayGainTrackGain: ["-6.5 dB"],
   });
 
   // Add identifiers
-  file.setAcoustIdFingerprint("AQADtMmybfGO8NCN...");
-  file.setMusicBrainzTrackId("f4d1b6b8-8c1e-4d9a-9f2a-1234567890ab");
+  file.setProperty("acoustidFingerprint", "AQADtMmybfGO8NCN...");
+  file.setProperty(
+    "musicbrainzTrackId",
+    "f4d1b6b8-8c1e-4d9a-9f2a-1234567890ab",
+  );
 
   // Save changes to a new file
   const outputPath = filePath.replace(/\.(\w+)$/, "-modified.$1");

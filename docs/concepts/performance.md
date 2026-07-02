@@ -7,7 +7,8 @@ TagLib-Wasm.
 
 ### Use Batch Processing (10-20x Faster)
 
-The single most impactful optimization is using batch processing for multiple files:
+The single most impactful optimization is using batch processing for multiple
+files:
 
 ```typescript
 // ❌ SLOW: Sequential processing (~90 seconds for 19 files)
@@ -67,7 +68,7 @@ async function processAlbum(albumFiles: string[]) {
 
   return metadata.items.map(({ data }) => ({
     title: data.tags.title?.[0],
-    duration: data.properties?.length,
+    duration: data.properties?.duration,
     hasCoverArt: data.hasCoverArt,
   }));
 }
@@ -104,35 +105,12 @@ async function processManyFiles(files: string[]) {
 
 ### Memory Configuration
 
-Choose the right memory configuration based on your use case:
+`taglib-wasm` manages Wasm memory automatically — the module grows its heap as
+needed, so there are no memory knobs to tune. Initialize once and reuse the
+instance:
 
 ```typescript
-// Small files (< 10MB) - Default configuration
 const taglib = await TagLib.initialize();
-
-// Medium files (10-50MB)
-const taglib = await TagLib.initialize({
-  memory: {
-    initial: 32 * 1024 * 1024, // 32MB
-    maximum: 128 * 1024 * 1024, // 128MB
-  },
-});
-
-// Large files (> 50MB)
-const taglib = await TagLib.initialize({
-  memory: {
-    initial: 64 * 1024 * 1024, // 64MB
-    maximum: 256 * 1024 * 1024, // 256MB
-  },
-});
-
-// Memory-constrained environments (e.g., Cloudflare Workers)
-const taglib = await TagLib.initialize({
-  memory: {
-    initial: 8 * 1024 * 1024, // 8MB
-    maximum: 8 * 1024 * 1024, // Fixed size
-  },
-});
 ```
 
 ### Memory Usage Patterns
@@ -176,12 +154,7 @@ class TagLibPool {
     }
 
     if (!this.initPromise) {
-      this.initPromise = TagLib.initialize({
-        memory: {
-          initial: 32 * 1024 * 1024,
-          maximum: 256 * 1024 * 1024,
-        },
-      });
+      this.initPromise = TagLib.initialize();
     }
 
     this.instance = await this.initPromise;
@@ -195,7 +168,7 @@ const pool = new TagLibPool();
 // Usage
 async function processFile(buffer: Uint8Array) {
   const taglib = await pool.getInstance();
-  using file = taglib.openFile(buffer);
+  using file = await taglib.open(buffer);
   // Process...
 }
 ```
@@ -370,24 +343,25 @@ try {
 ```typescript
 // ❌ Inefficient: Multiple operations
 {
-  using file1 = taglib.openFile(buffer);
-  file1.setTitle("Title");
+  using file1 = await taglib.open(buffer);
+  file1.tag().setTitle("Title");
 }
 {
-  using file2 = taglib.openFile(buffer);
-  file2.setArtist("Artist");
+  using file2 = await taglib.open(buffer);
+  file2.tag().setArtist("Artist");
 }
 {
-  using file3 = taglib.openFile(buffer);
-  file3.setAlbum("Album");
+  using file3 = await taglib.open(buffer);
+  file3.tag().setAlbum("Album");
 }
 
 // ✅ Efficient: Single operation
 {
-  using file = taglib.openFile(buffer);
-  file.setTitle("Title");
-  file.setArtist("Artist");
-  file.setAlbum("Album");
+  using file = await taglib.open(buffer);
+  const tag = file.tag();
+  tag.setTitle("Title");
+  tag.setArtist("Artist");
+  tag.setAlbum("Album");
 }
 ```
 
@@ -431,7 +405,7 @@ class LazyAudioFile {
 
 // Usage
 {
-  using lazy = new LazyAudioFile(taglib.openFile(buffer));
+  using lazy = new LazyAudioFile(await taglib.open(buffer));
   console.log(lazy.tags.title);
 }
 ```
@@ -454,17 +428,17 @@ class SmartTagger {
     let hasChanges = false;
 
     if (updates.title && updates.title !== this.original.title) {
-      this.file.setTitle(updates.title);
+      this.file.tag().setTitle(updates.title);
       hasChanges = true;
     }
 
     if (updates.artist && updates.artist !== this.original.artist) {
-      this.file.setArtist(updates.artist);
+      this.file.tag().setArtist(updates.artist);
       hasChanges = true;
     }
 
     if (updates.album && updates.album !== this.original.album) {
-      this.file.setAlbum(updates.album);
+      this.file.tag().setAlbum(updates.album);
       hasChanges = true;
     }
 
@@ -482,7 +456,9 @@ class SmartTagger {
 
 ### Using Simple API Batch Functions (Recommended)
 
-The Simple API provides optimized batch processing functions that automatically handle concurrency and resource management, delivering **10-20x performance improvements** over sequential processing:
+The Simple API provides optimized batch processing functions that automatically
+handle concurrency and resource management, delivering **10-20x performance
+improvements** over sequential processing:
 
 ```typescript
 import {
@@ -605,7 +581,7 @@ async function processAlbum(albumPath: string) {
     albumData.tracks.push({
       file: path.basename(filePath),
       ...data.tags,
-      duration: data.properties?.length,
+      duration: data.properties?.duration,
       bitrate: data.properties?.bitrate,
       hasCoverArt: data.hasCoverArt,
     });
@@ -633,7 +609,7 @@ async function processSequentially(files: string[]) {
 
   for (const filePath of files) {
     const buffer = await Deno.readFile(filePath);
-    using file = taglib.openFile(buffer);
+    using file = await taglib.open(buffer);
 
     const result = {
       path: filePath,
@@ -658,12 +634,7 @@ Best for CPU-bound operations with sufficient memory:
 
 ```typescript
 async function processInParallel(files: string[], concurrency = 4) {
-  const taglib = await TagLib.initialize({
-    memory: {
-      initial: 64 * 1024 * 1024,
-      maximum: 512 * 1024 * 1024, // Larger for parallel processing
-    },
-  });
+  const taglib = await TagLib.initialize();
 
   // Process in chunks
   const chunks = [];
@@ -676,7 +647,7 @@ async function processInParallel(files: string[], concurrency = 4) {
     const chunkResults = await Promise.all(
       chunk.map(async (filePath) => {
         const buffer = await Deno.readFile(filePath);
-        using file = taglib.openFile(buffer);
+        using file = await taglib.open(buffer);
 
         return {
           path: filePath,
@@ -704,7 +675,7 @@ async function* streamProcess(files: string[]) {
   for (const filePath of files) {
     try {
       const buffer = await Deno.readFile(filePath);
-      using file = taglib.openFile(buffer);
+      using file = await taglib.open(buffer);
 
       yield {
         path: filePath,
@@ -748,7 +719,7 @@ self.onmessage = async (e) => {
   const { cmd, buffer } = e.data;
   if (cmd === "process") {
     const taglib = await TagLib.initialize();
-    using file = taglib.openFile(buffer);
+    using file = await taglib.open(buffer);
     const tags = file.tag();
     self.postMessage({ tags });
   }
@@ -836,12 +807,7 @@ async function getCachedTagLib(): Promise<TagLib> {
 export default {
   async fetch(request: Request): Promise<Response> {
     // Initialize once per request
-    const taglib = await TagLib.initialize({
-      memory: {
-        initial: 8 * 1024 * 1024, // 8MB limit
-        maximum: 8 * 1024 * 1024, // Fixed size
-      },
-    });
+    const taglib = await TagLib.initialize();
 
     // Stream response for large files
     const { readable, writable } = new TransformStream();
@@ -851,7 +817,7 @@ export default {
     (async () => {
       try {
         const buffer = new Uint8Array(await request.arrayBuffer());
-        using file = taglib.openFile(buffer);
+        using file = await taglib.open(buffer);
 
         const metadata = {
           tags: file.tag(),
@@ -944,20 +910,20 @@ const taglib = await TagLib.initialize();
 for (const file of testFiles) {
   const buffer = await Deno.readFile(file);
 
-  await monitor.measure("open", () => {
-    using f = taglib.openFile(buffer);
+  await monitor.measure("open", async () => {
+    using f = await taglib.open(buffer);
     return Promise.resolve();
   });
 
-  await monitor.measure("read_tags", () => {
-    using f = taglib.openFile(buffer);
+  await monitor.measure("read_tags", async () => {
+    using f = await taglib.open(buffer);
     const tags = f.tag();
     return Promise.resolve(tags);
   });
 
-  await monitor.measure("write_tags", () => {
-    using f = taglib.openFile(buffer);
-    f.setTitle("New Title");
+  await monitor.measure("write_tags", async () => {
+    using f = await taglib.open(buffer);
+    f.tag().setTitle("New Title");
     f.save();
     return Promise.resolve();
   });
@@ -1023,7 +989,7 @@ const buffer = await Deno.readFile("large-file.flac");
 profiler.sample("After file read");
 
 {
-  using file = taglib.openFile(buffer);
+  using file = await taglib.open(buffer);
   profiler.sample("After file open");
 
   const tags = file.tag();
@@ -1078,7 +1044,7 @@ async function analyzeAlbum(albumPath: string) {
   const analysis = {
     totalTracks: results.items.length,
     totalDuration: results.items.reduce(
-      (sum, r) => sum + (r.data.properties?.length || 0),
+      (sum, r) => sum + (r.data.properties?.duration || 0),
       0,
     ),
     missingCoverArt: results.items.filter((r) => !r.data.hasCoverArt).length,

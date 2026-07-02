@@ -60,7 +60,7 @@ import {
 // Read
 const tags = await readTags("song.mp3"); // { title?: string[], artist?: string[], ... }
 const props = await readProperties("song.mp3"); // { duration, bitrate, sampleRate, channels, codec, isLossless }
-const cover = await readCoverArt("song.mp3"); // Uint8Array | null
+const cover = await readCoverArt("song.mp3"); // Uint8Array | undefined
 
 // Write
 await applyTagsToFile("song.mp3", { title: "New" }); // Writes to disk
@@ -156,8 +156,8 @@ await taglib.updateFile("song.mp3", { title: "New", artist: "New" }); // Shortha
 // PropertyMap (advanced metadata)
 import { PROPERTIES } from "taglib-wasm"; // Type-safe property keys
 const allProps = audioFile.properties(); // { albumArtist: ["..."], bpm: ["120"], ... }
-audioFile.getProperty(PROPERTIES.MUSICBRAINZ_TRACKID.key);
-audioFile.setProperty(PROPERTIES.REPLAYGAIN_TRACK_GAIN.key, "-3.5 dB");
+audioFile.getProperty(PROPERTIES.musicbrainzTrackId.key);
+audioFile.setProperty(PROPERTIES.replayGainTrackGain.key, "-3.5 dB");
 audioFile.setProperties({ albumArtist: ["VA"], composer: ["Bach"] });
 
 // Ratings (normalized 0.0-1.0)
@@ -168,14 +168,21 @@ audioFile.setRating(0.8, "user@example.com");
 // Chapters (MP3 ID3v2 CHAP; MP4 QuickTime track / Nero chpl)
 audioFile.getChapters(); // Chapter[]: { startTimeMs, endTimeMs?, title?, id?, source? }
 audioFile.setChapters([{ startTimeMs: 0, title: "Intro" }]); // replaces all
-audioFile.setChapters([{ startTimeMs: 0, title: "Intro" }], { mp4ChapterStyle: "both" });
+audioFile.setChapters([{ startTimeMs: 0, title: "Intro" }], {
+  mp4ChapterStyle: "both",
+});
 audioFile.setChapters([]); // clears all chapters
 
 // Opus: audioProperties() also exposes outputGainDb (OpusHead gain, RFC 7845)
 
 // BWF bext + iXML (WAV/FLAC only); throws UnsupportedFormatError otherwise
 audioFile.getBext(); // BroadcastAudioExtension | undefined (parsed EBU 3285 chunk)
-audioFile.setBext({ description: "Take 1", version: 2, loudnessValueDb: -16, /* ... */ });
+audioFile.setBext({
+  description: "Take 1",
+  version: 2,
+  loudnessValueDb: -16,
+  /* ... */
+});
 audioFile.getBextData(); // raw bext bytes | undefined; setBextData(null) removes
 audioFile.getIxml(); // raw iXML string | undefined; setIxml(null) removes
 // Also: import { bwf } from "taglib-wasm"; bwf.decodeBext(rawBytes) / bwf.encodeBext(obj)
@@ -393,15 +400,16 @@ cd TagLib-Wasm
 ### Build & Test
 
 ```bash
-deno task test              # ALL checks (format, lint, typecheck, tests)
+deno task test              # Run the test suite (fast inner loop)
+deno task check:all         # Full pre-push gate: fmt, lint, typecheck, tests, build:ts
 deno task build             # Build TypeScript + Emscripten Wasm
-bash build/build-wasi.sh    # Rebuild WASI Wasm (requires WASI SDK 31)
+bash build/build-wasi.sh    # Rebuild WASI Wasm (requires WASI SDK 33)
 ```
 
 ### Architecture
 
 Two Wasm backends: **Emscripten** (browsers) and **WASI** (Deno/Node.js).
-Auto-selected at runtime. Both wrap TagLib 2.2 C++ via a C boundary layer.
+Auto-selected at runtime. Both wrap TagLib 2.3 C++ via a C boundary layer.
 
 Key files: `build/taglib_embind.cpp` (Emscripten), `src/capi/taglib_shim.cpp` (WASI),
 `src/capi/core/taglib_boundary.c` (C boundary), `src/taglib.ts` (core TS API).
@@ -411,6 +419,7 @@ Dependencies are git submodules: `lib/taglib`, `lib/mpack`, `lib/msgpack`.
 See `CONTRIBUTING.md` for full contributor guide.
 
 <!-- BEGIN BEADS INTEGRATION v:1 profile:minimal hash:ca08a54f -->
+
 ## Beads Issue Tracker
 
 This project uses **bd (beads)** for issue tracking. Run `bd prime` to see full workflow context and commands.
@@ -445,4 +454,5 @@ bd close <id>         # Complete work
    git commit -m "..."
    git push
    ```
+
 <!-- END BEADS INTEGRATION -->

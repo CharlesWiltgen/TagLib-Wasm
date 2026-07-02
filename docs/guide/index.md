@@ -41,8 +41,8 @@ await applyTagsToFile("song.mp3", { title: "New Title" });
 
 ```typescript
 const taglib = await TagLib.initialize();
-using file = taglib.openFile(audioData);
-file.setTitle("New Title");
+using file = await taglib.open(audioData);
+file.tag().setTitle("New Title");
 file.save();
 ```
 

@@ -22,7 +22,7 @@ import { TagLib } from "npm:taglib-wasm";
 
 const taglib = await TagLib.initialize();
 const audioData = await Deno.readFile("song.mp3");
-using file = taglib.openFile(audioData);
+using file = await taglib.open(audioData);
 ```
 
 ### ✅ Bun 1.0+
@@ -41,7 +41,7 @@ import { TagLib } from "taglib-wasm";
 
 const taglib = await TagLib.initialize();
 const audioData = await Bun.file("song.mp3").arrayBuffer();
-using file = taglib.openFile(new Uint8Array(audioData));
+using file = await taglib.open(new Uint8Array(audioData));
 ```
 
 ### ✅ Node.js 22.6.0+
@@ -60,7 +60,7 @@ import { readFile } from "fs/promises";
 
 const taglib = await TagLib.initialize();
 const audioData = await readFile("song.mp3");
-using file = taglib.openFile(audioData);
+using file = await taglib.open(audioData);
 ```
 
 ### ✅ Browsers (Chrome 95+, Firefox 100+, Safari 15.2+)
@@ -82,12 +82,12 @@ const taglib = await TagLib.initialize();
 const fileInput = document.querySelector('input[type="file"]');
 const file = fileInput.files[0];
 const audioData = new Uint8Array(await file.arrayBuffer());
-using tagFile = taglib.openFile(audioData);
+using tagFile = await taglib.open(audioData);
 
 // From fetch
 const response = await fetch("song.mp3");
 const audioData = new Uint8Array(await response.arrayBuffer());
-using tagFile = taglib.openFile(audioData);
+using tagFile = await taglib.open(audioData);
 ```
 
 ### ✅ Cloudflare Workers
@@ -108,7 +108,7 @@ export default {
   async fetch(request: Request): Promise<Response> {
     const taglib = await TagLib.initialize();
     const audioData = new Uint8Array(await request.arrayBuffer());
-    using file = taglib.openFile(audioData);
+    using file = await taglib.open(audioData);
 
     // Process metadata...
 
@@ -267,7 +267,7 @@ npm test
 - No file system access
 - Request/response size limited to 100MB
 
-## 🎯 Deno Compiled Binaries
+## 🎯 Deno Compiled Binaries {#deno-compiled-binaries}
 
 TagLib-Wasm includes special support for creating offline-capable Deno compiled
 binaries:
@@ -352,19 +352,13 @@ async function loadAudioFile(path: string): Promise<Uint8Array> {
 
 ### Configuration
 
-Use runtime-appropriate configuration:
+Initialization takes no runtime-specific tuning — the same
+`await TagLib.initialize()` call works across every runtime, and `taglib-wasm`
+manages Wasm memory automatically. To force a specific Wasm backend in the rare
+case you need to (`"wasi"` or `"emscripten"`), pass `forceWasmType`.
 
 ```typescript
-const config = {
-  memory: {
-    // Adjust based on runtime capabilities
-    initial: typeof Bun !== "undefined" ? 32 * 1024 * 1024 : 16 * 1024 * 1024,
-    maximum: 256 * 1024 * 1024,
-  },
-  debug: process.env.NODE_ENV === "development",
-};
-
-const taglib = await TagLib.initialize(config);
+const taglib = await TagLib.initialize();
 ```
 
 ## 📚 Additional Resources
