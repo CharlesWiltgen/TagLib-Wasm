@@ -1,5 +1,24 @@
 # Changelog
 
+## 1.4.1
+
+### Fixes
+
+- Emscripten backend: re-add `wasmBinary` (and `locateFile`) to the linker's
+  `INCOMING_MODULE_JS_API`. Emscripten 6.0.2 drops `wasmBinary` from the default
+  set, so under release builds (`ASSERTIONS=0`) an explicitly provided Wasm
+  binary was silently ignored — affecting the `wasmBinary` option and
+  Deno-compiled/embedded loading. No public API change.
+
+### Internal
+
+- Bump the Emscripten toolchain pin from 6.0.1 to 6.0.2 (developer setup and
+  CI). The Emscripten backend now uses `GROWABLE_ARRAYBUFFERS` (resizable-buffer
+  memory growth), auto-enabled in 6.0.2 with `ALLOW_MEMORY_GROWTH`.
+- Add a regression test guarding against a provided `wasmBinary` being silently
+  dropped by a future toolchain or flag change.
+- Document the remaining public exports; docs-coverage backlog is now zero.
+
 ## 1.4.0
 
 ### Features
