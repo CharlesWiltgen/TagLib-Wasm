@@ -23,7 +23,7 @@ bun add taglib-wasm
 ```html [Browser]
 <!-- Use a bundler like Vite, Webpack, or Parcel -->
 <script type="module">
-  import { TagLib } from "taglib-wasm";
+import { TagLib } from "taglib-wasm";
 </script>
 ```
 
