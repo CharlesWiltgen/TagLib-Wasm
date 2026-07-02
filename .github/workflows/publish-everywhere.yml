@@ -252,6 +252,36 @@ jobs:
           echo "published=false" >> "$GITHUB_OUTPUT"
           exit 1
 
+  # Post-publish gate: pull the ACTUAL published JSR package and instantiate both
+  # backends. This is the only check that can catch Deno's publish-time wasm
+  # unfurl (deno publish rewrites the wasm's import names AFTER the build guard
+  # runs) — it would have caught the 1.4.1/1.4.2 regressions. The "./"-aliased
+  # import objects (fix-deno-compat.js, wasi-host-loader.ts) make this pass.
+  verify-jsr:
+    name: Verify published JSR package
+    needs: [prepare-and-build, publish-jsr]
+    if: needs.prepare-and-build.outputs.should-publish == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: "2.9.1"
+      - name: Instantiate both backends from the published JSR package
+        env:
+          VERSION: ${{ needs.prepare-and-build.outputs.version }}
+        run: |
+          printf 'import { TagLib } from "jsr:@charlesw/taglib-wasm@%s";\nawait TagLib.initialize({ forceWasmType: "wasi" });\nawait TagLib.initialize({ forceWasmType: "emscripten" });\nconsole.log("both backends instantiate");\n' "$VERSION" > verify.ts
+          for attempt in 1 2 3 4 5 6; do
+            echo "verify attempt $attempt (jsr @$VERSION)..."
+            if deno run --reload --no-lock --minimum-dependency-age=0 --allow-read --allow-env --allow-net verify.ts; then
+              echo "✅ published JSR @$VERSION instantiates on Deno (both backends)"
+              exit 0
+            fi
+            sleep 20
+          done
+          echo "::error::published JSR @$VERSION failed to instantiate on Deno — the wasm may be corrupted"
+          exit 1
+
   publish-npm:
     name: Publish to NPM
     needs: [prepare-and-build, publish-jsr] # Now depends on JSR success

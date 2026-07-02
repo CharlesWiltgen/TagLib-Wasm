@@ -153,6 +153,9 @@ jobs:
       - name: Emscripten smoke test (must instantiate on Deno)
         run: deno run --allow-read --allow-env scripts/smoke-emscripten.ts
 
+      - name: WASI smoke test (must instantiate on Deno)
+        run: deno run --allow-read --allow-env scripts/smoke-wasi.ts
+
       - name: Copy WASM files to dist
         run: |
           mkdir -p dist

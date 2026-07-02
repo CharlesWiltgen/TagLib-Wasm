@@ -69,7 +69,21 @@ if (matches && matches.length > 0) {
   );
 }
 
-// Fix 5 removed - findWasmBinary already handled by environment checks
+// Fix 5: Tolerate Deno's wasm import-specifier "unfurling" (deno publish
+// >= 2.8.2, PR denoland/deno#34549) which rewrites the wasm's minified import
+// module name (e.g. "a" -> "./a") while leaving the glue's import object. Provide
+// both names. Harmless off-JSR; required on JSR/Deno. Idempotent. See jsr#1466.
+const importObjPattern = /var imports=\{([A-Za-z_$][\w$]*):wasmImports\}/;
+const importObjMatch = content.match(importObjPattern);
+if (importObjMatch) {
+  const key = importObjMatch[1];
+  content = content.replace(
+    importObjPattern,
+    `var imports={${key}:wasmImports,"./${key}":wasmImports}`,
+  );
+  modified = true;
+  console.log(`    ✓ Aliased wasm import module for JSR unfurl (${key})`);
+}
 
 if (modified) {
   writeFileSync(wrapperPath, content);

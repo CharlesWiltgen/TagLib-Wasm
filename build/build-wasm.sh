@@ -122,19 +122,19 @@ mv "$OUTPUT_DIR/taglib-wrapper.wasm" "$OUTPUT_DIR/taglib-web.wasm"
 sed -i.bak 's/taglib-wrapper\.wasm/taglib-web.wasm/g' "$OUTPUT_DIR/taglib-wrapper.js"
 rm "$OUTPUT_DIR/taglib-wrapper.js.bak"
 
-# ── Consistency guard (do NOT remove) ─────────────────────────────────────
-# The glue instantiates the wasm with an import object keyed by the wasm's
-# (minified) import MODULE name. If a skewed wasm-opt minified the wasm
-# differently than the glue expects, the names desync (e.g. wasm "./a" vs glue
-# "a") and the module fails to instantiate on the consumer — while local tests
-# that skip the Emscripten backend on load-failure stay green. Fail the build
-# loudly rather than ship a broken artifact. (Root cause of the 1.4.1 Deno
-# regression.)
+# ── Build-time consistency guard (do NOT remove) ──────────────────────────
+# Validates that the freshly-built wasm's (minified) import MODULE name matches
+# the glue's import-object key, so a build-time skew (e.g. a stray wasm-opt) that
+# desyncs them can't ship. NOTE: this cannot catch Deno's *publish-time* wasm
+# unfurl (deno publish >= 2.8.2 rewrites the published wasm's import names) — that
+# is handled by the "./"-aliased import objects (fix-deno-compat.js,
+# wasi-host-loader.ts) plus the post-publish smoke test in publish-everywhere.yml.
 WASM_DIS="${BINARYEN_ROOT:+$BINARYEN_ROOT/bin/wasm-dis}"
 [ -x "$WASM_DIS" ] || WASM_DIS="wasm-dis"
 WASM_IMPORT_MODULE="$("$WASM_DIS" "$OUTPUT_DIR/taglib-web.wasm" 2>/dev/null \
   | grep -m1 -oE '\(import "[^"]+"' | sed 's/(import "//; s/"$//')"
-GLUE_IMPORT_KEY="$(grep -oE 'imports=\{[A-Za-z_]+:wasmImports\}' "$OUTPUT_DIR/taglib-wrapper.js" \
+# Match the first import-object key (glue may now alias it as {a:...,"./a":...}).
+GLUE_IMPORT_KEY="$(grep -oE 'var imports=\{[A-Za-z_]+:wasmImports' "$OUTPUT_DIR/taglib-wrapper.js" \
   | grep -m1 -oE '\{[A-Za-z_]+:' | tr -d '{:')"
 if [ -z "$WASM_IMPORT_MODULE" ] || [ -z "$GLUE_IMPORT_KEY" ]; then
   echo "❌ Build guard: could not extract import module names" \

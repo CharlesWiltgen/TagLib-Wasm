@@ -71,9 +71,15 @@ export async function loadWasiHost(
 
   const wasiImports = createWasiImports(memoryProxy, hostConfig);
 
+  // The "./"-prefixed aliases tolerate Deno's wasm import-specifier unfurling
+  // (`deno publish` >= 2.8.2 rewrites the wasm's import module names to relative
+  // specifiers, e.g. "wasi_snapshot_preview1" -> "./wasi_snapshot_preview1").
+  // Harmless off-JSR; required for the JSR-published wasm. See jsr-io/jsr#1466.
   const importObject = {
     wasi_snapshot_preview1: wasiImports,
+    "./wasi_snapshot_preview1": wasiImports,
     env: {},
+    "./env": {},
   };
 
   const instance = await WebAssembly.instantiate(wasmModule, importObject);
