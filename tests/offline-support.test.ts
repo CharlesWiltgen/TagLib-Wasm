@@ -78,6 +78,26 @@ describe("OfflineSupport", () => {
   });
 
   it({
+    // Regression guard for the Emscripten INCOMING_MODULE_JS_API allow-list.
+    // Invalid Wasm magic bytes make instantiation reject ONLY if the glue honors
+    // the provided wasmBinary. If a toolchain/flag regression drops wasmBinary from
+    // INCOMING_MODULE_JS_API (as Emscripten 6.0.2 does by default), the loader
+    // silently falls back to the on-disk .wasm and resolves successfully — flipping
+    // this expected rejection into a failure. See build/build-wasm.sh.
+    name: "loadTagLibModule honors provided wasmBinary (not silently dropped)",
+    ignore: !emscriptenAvailable,
+    fn: async () => {
+      const invalidWasm = new Uint8Array([0x00, 0x00, 0x00, 0x00]);
+      await assertRejects(() =>
+        loadTagLibModule({
+          wasmBinary: invalidWasm,
+          forceWasmType: "emscripten",
+        })
+      );
+    },
+  });
+
+  it({
     name: "TagLib.initialize with wasmBinary",
     ignore: !emscriptenAvailable,
     fn: async () => {

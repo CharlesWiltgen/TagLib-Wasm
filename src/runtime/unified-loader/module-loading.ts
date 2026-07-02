@@ -120,6 +120,8 @@ async function loadEmscriptenModule(
       }
     }
 
+    // Keys set on moduleConfig must also be listed in INCOMING_MODULE_JS_API
+    // (build/build-wasm.sh), or Emscripten 6.0.2+ silently ignores them (ASSERTIONS=0).
     const moduleConfig: Record<string, unknown> = {};
     if (options.wasmBinary) {
       moduleConfig.wasmBinary = options.wasmBinary;

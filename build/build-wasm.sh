@@ -54,7 +54,12 @@ cp "$BUILD_DIR/taglib_embind.cpp" "$BUILD_DIR/taglib_wasm.cpp"
 
 echo "🔗 Compiling Wasm module with Embind..."
 
-# Compile the Wasm module with Embind
+# Compile the Wasm module with Embind.
+# NOTE: Emscripten 6.0.2 dropped wasmBinary from the default INCOMING_MODULE_JS_API.
+# The runtime loaders (src/runtime/module-loader.ts, module-loader-browser.ts,
+# unified-loader/module-loading.ts) pass moduleConfig.wasmBinary and locateFile into
+# createTagLibModule(), so both must be re-listed below or the provided bytes are
+# silently ignored (ASSERTIONS=0 means no debug warning).
 emcc "$BUILD_DIR/taglib_wasm.cpp" \
   "$PROJECT_ROOT/src/capi/formats/taglib_lame.cpp" \
   -I"$PROJECT_ROOT/src/capi/formats" \
@@ -70,6 +75,7 @@ emcc "$BUILD_DIR/taglib_wasm.cpp" \
   -s MAXIMUM_MEMORY=4GB \
   -s EXPORTED_RUNTIME_METHODS='["getValue", "setValue", "UTF8ToString", "stringToUTF8", "lengthBytesUTF8"]' \
   -s NO_FILESYSTEM=1 \
+  -s INCOMING_MODULE_JS_API=wasmBinary,locateFile \
   -s ENVIRONMENT='web,worker,node' \
   -s EXPORT_ES6=1 \
   -s SINGLE_FILE=0 \
