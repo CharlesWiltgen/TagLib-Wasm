@@ -97,6 +97,7 @@
     "build": "deno task build:ts && deno task build:wasm",
     "build:ts": "deno run -A scripts/build-js.mjs",
     "build:wasm": "cd build && bash build-wasm.sh",
+    "smoke:emscripten": "deno run --allow-read --allow-env scripts/smoke-emscripten.ts",
     "test": "deno test --allow-read --allow-write --allow-env tests/",
     "test:watch": "deno test --allow-read --allow-write --allow-env --watch tests/",
     "test:systematic": "deno test --allow-read tests/test-systematic.ts",

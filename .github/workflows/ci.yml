@@ -146,6 +146,13 @@ jobs:
       - name: Build WebAssembly
         run: npm run build:wasm
 
+      # Hard gate: the Emscripten wasm must actually instantiate on Deno. The
+      # unit suite skips the Emscripten backend on load-failure (so a broken
+      # wasm stays green); this fails the build instead. Catches wasm/glue
+      # import-module mismatches (the 1.4.1 "./a" regression) before publish.
+      - name: Emscripten smoke test (must instantiate on Deno)
+        run: deno run --allow-read --allow-env scripts/smoke-emscripten.ts
+
       - name: Copy WASM files to dist
         run: |
           mkdir -p dist

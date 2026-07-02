@@ -10,6 +10,28 @@ if ! command -v emcc &> /dev/null; then
   exit 1
 fi
 
+# Pin Binaryen to Emscripten's own vendored wasm-opt. emcc otherwise falls back
+# to `shutil.which('wasm-opt')` on PATH (the version check is a warning, not an
+# error), so a stray/unpinned wasm-opt (e.g. from `npm install -g wasm-opt`)
+# can minify the wasm's import module names inconsistently with the generated
+# glue — shipping a wasm that imports "./a" while the glue provides {a:...},
+# which fails to instantiate. This was the root cause of the 1.4.1 Deno
+# regression (taglib-*). The consistency guard below enforces it.
+BINARYEN_ROOT="$(em-config BINARYEN_ROOT 2>/dev/null || true)"
+if [ -z "$BINARYEN_ROOT" ] || [ ! -x "$BINARYEN_ROOT/bin/wasm-opt" ]; then
+  # Fallback: derive from emcc's location (emsdk layout is
+  # .../upstream/emscripten/emcc with binaryen at .../upstream/bin).
+  EMCC_REAL="$(readlink -f "$(command -v emcc)" 2>/dev/null || command -v emcc)"
+  CAND="$(dirname "$(dirname "$EMCC_REAL")")"
+  [ -x "$CAND/bin/wasm-opt" ] && BINARYEN_ROOT="$CAND"
+fi
+if [ -n "$BINARYEN_ROOT" ] && [ -x "$BINARYEN_ROOT/bin/wasm-opt" ]; then
+  export BINARYEN_ROOT
+  echo "🧩 Pinned BINARYEN_ROOT=$BINARYEN_ROOT ($("$BINARYEN_ROOT/bin/wasm-opt" --version 2>/dev/null))"
+else
+  echo "⚠️  Could not pin BINARYEN_ROOT; the consistency guard below is the backstop."
+fi
+
 # Build directory
 BUILD_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_ROOT="$(dirname "$BUILD_DIR")"
@@ -99,6 +121,34 @@ mv "$OUTPUT_DIR/taglib-wrapper.wasm" "$OUTPUT_DIR/taglib-web.wasm"
 # Update the JS file to reference taglib-web.wasm instead of taglib-wrapper.wasm
 sed -i.bak 's/taglib-wrapper\.wasm/taglib-web.wasm/g' "$OUTPUT_DIR/taglib-wrapper.js"
 rm "$OUTPUT_DIR/taglib-wrapper.js.bak"
+
+# ── Consistency guard (do NOT remove) ─────────────────────────────────────
+# The glue instantiates the wasm with an import object keyed by the wasm's
+# (minified) import MODULE name. If a skewed wasm-opt minified the wasm
+# differently than the glue expects, the names desync (e.g. wasm "./a" vs glue
+# "a") and the module fails to instantiate on the consumer — while local tests
+# that skip the Emscripten backend on load-failure stay green. Fail the build
+# loudly rather than ship a broken artifact. (Root cause of the 1.4.1 Deno
+# regression.)
+WASM_DIS="${BINARYEN_ROOT:+$BINARYEN_ROOT/bin/wasm-dis}"
+[ -x "$WASM_DIS" ] || WASM_DIS="wasm-dis"
+WASM_IMPORT_MODULE="$("$WASM_DIS" "$OUTPUT_DIR/taglib-web.wasm" 2>/dev/null \
+  | grep -m1 -oE '\(import "[^"]+"' | sed 's/(import "//; s/"$//')"
+GLUE_IMPORT_KEY="$(grep -oE 'imports=\{[A-Za-z_]+:wasmImports\}' "$OUTPUT_DIR/taglib-wrapper.js" \
+  | grep -m1 -oE '\{[A-Za-z_]+:' | tr -d '{:')"
+if [ -z "$WASM_IMPORT_MODULE" ] || [ -z "$GLUE_IMPORT_KEY" ]; then
+  echo "❌ Build guard: could not extract import module names" \
+       "(wasm='$WASM_IMPORT_MODULE' glue='$GLUE_IMPORT_KEY')"
+  exit 1
+fi
+if [ "$WASM_IMPORT_MODULE" != "$GLUE_IMPORT_KEY" ]; then
+  echo "❌ Build guard FAILED: wasm import module '$WASM_IMPORT_MODULE'" \
+       "!= glue import key '$GLUE_IMPORT_KEY'"
+  echo "   A skewed wasm-opt minified the wasm inconsistently with the glue;" \
+       "the module would not instantiate. Aborting."
+  exit 1
+fi
+echo "✅ Build guard: wasm/glue import module consistent ('$WASM_IMPORT_MODULE')"
 
 echo "✅ TagLib-Wasm build complete!"
 echo "📁 Output files:"
