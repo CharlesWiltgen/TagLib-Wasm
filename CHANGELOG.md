@@ -1,5 +1,26 @@
 # Changelog
 
+## 1.4.3
+
+### Fixes
+
+- Fix `TagLib.initialize()` failing on **Deno / JSR** for both the Emscripten and
+  the default WASI backend. `deno publish` (Deno ≥ 2.8.2, denoland/deno#34549)
+  rewrites the import module names inside the published wasm to relative
+  specifiers (`a` → `./a`, `wasi_snapshot_preview1` → `./wasi_snapshot_preview1`),
+  which no longer match the glue's import object, throwing
+  `WebAssembly.instantiate(): Import #0 "./a": module is not an object or function`.
+  The runtime now provides its wasm imports under both the bare and `./`-prefixed
+  names, so the JSR-published wasm instantiates correctly. The wasm bytes are
+  unchanged. **npm was unaffected; 1.4.1 and 1.4.2 are broken on Deno/JSR — use
+  1.4.3.**
+
+### Internal
+
+- Add a post-publish CI gate that instantiates the actual published JSR package
+  (both backends) — the only check that can catch this publish-time corruption,
+  since the build-time guard runs before `deno publish` rewrites the wasm.
+
 ## 1.4.2
 
 ### Fixes
