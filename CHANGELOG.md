@@ -1,5 +1,26 @@
 # Changelog
 
+## 1.4.2
+
+### Fixes
+
+- Fix the Emscripten backend failing to instantiate on Deno (regression in
+  1.4.1). The published wasm imported module `./a` while its glue provided
+  `{a: …}` — a wasm/glue mismatch caused by a stray `wasm-opt` (Binaryen) on the
+  CI runner minifying the wasm's import module names inconsistently with the
+  glue. `TagLib.initialize()` threw
+  `WebAssembly.instantiate(): Import #0 "./a": module is not an object or function`
+  on Deno. **1.4.1 is broken on Deno — use 1.4.2.**
+
+### Internal
+
+- Pin `BINARYEN_ROOT` to Emscripten's own vendored `wasm-opt` in the build so a
+  stray PATH `wasm-opt` cannot desync the wasm from the glue.
+- Add a build guard that fails the build if the wasm's import module name does
+  not match the glue's import-object key, plus a hard Deno instantiation smoke
+  test in CI (the unit suite only skips the Emscripten backend on load-failure,
+  so a broken wasm previously stayed green).
+
 ## 1.4.1
 
 ### Fixes
