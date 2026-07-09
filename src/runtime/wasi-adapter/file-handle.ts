@@ -586,7 +586,9 @@ export class WasiFileHandle implements FileHandle {
     frames = frames.filter((f) => !stagedIds.has(f.id));
     for (const [sid, bodies] of Object.entries(staged)) {
       if (filter && sid !== filter) continue;
-      for (const data of bodies) frames.push({ id: sid, data });
+      // Copy: callers must not be able to mutate staged state by mutating
+      // the returned array (Embind's getId3v2Frames already returns copies).
+      for (const data of bodies) frames.push({ id: sid, data: data.slice() });
     }
     return frames;
   }
