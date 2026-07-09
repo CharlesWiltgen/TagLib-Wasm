@@ -41,6 +41,7 @@ await applyTagsToFile("song.mp3", { title: "New Title", artist: "New Artist" });
 - **Ratings?** → Full API: `audioFile.getRating()`, `audioFile.setRating(0.8)`
 - **Chapters?** → Full API: `audioFile.getChapters()`, `audioFile.setChapters([...])` (MP3 + MP4)
 - **Broadcast metadata (BWF `bext`/iXML)?** → Full API: `audioFile.getBext()` / `setBext(...)` / `getIxml()` / `setIxml(...)` (WAV + FLAC)
+- **Raw/vendor ID3v2 frames (RGAD, NCON, custom TXXX, …)?** → Full API: `audioFile.getId3v2Frames(id)` / `setId3v2Frames(id, data)` / `removeId3v2Frames(id)` (MP3 only)
 
 ## Simple API Reference
 
@@ -186,6 +187,18 @@ audioFile.setBext({
 audioFile.getBextData(); // raw bext bytes | undefined; setBextData(null) removes
 audioFile.getIxml(); // raw iXML string | undefined; setIxml(null) removes
 // Also: import { bwf } from "taglib-wasm"; bwf.decodeBext(rawBytes) / bwf.encodeBext(obj)
+
+// Raw ID3v2 frames (escape hatch, MP3 only): { id, data, flags? }[]
+audioFile.getId3v2Frames("TXXX"); // every frame with this ID
+audioFile.setId3v2Frames("RGAD", [rgadBody]); // replaces ALL frames with this ID
+audioFile.removeId3v2Frames("NCON"); // = setId3v2Frames("NCON", [])
+// data excludes the 10-byte frame header; bytes round-trip verbatim for
+// frames TagLib doesn't model. For modeled IDs (TIT2, APIC, ...): a typed
+// getter sees a raw write only after save+reload, and a later save may
+// re-normalize the bytes. flags is reserved for forward compat and is never
+// populated on read (TagLib blanks header flags at render). On Emscripten, a
+// raw write to an ID3v1-mapped ID (TIT2/TPE1/TALB/COMM/TCON/TDRC/TRCK)
+// suspends ID3v1<->ID3v2 duplicate-sync on save() until that frame is removed.
 ```
 
 ### RatingUtils

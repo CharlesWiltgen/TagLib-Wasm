@@ -319,6 +319,34 @@ removes the chunk. iXML is passed through verbatim as a string
 measurements, distinct from ReplayGain tags. `bwf.decodeBext` / `bwf.encodeBext`
 are also exported for working with raw `bext` bytes directly.
 
+### Raw ID3v2 Frames (Escape Hatch)
+
+```typescript
+import { TagLib } from "taglib-wasm";
+
+const taglib = await TagLib.initialize();
+using file = await taglib.open("song.mp3");
+
+// Escape hatch: read/write raw ID3v2 frame bytes by ID (MP3 only)
+const frames = file.getId3v2Frames("TXXX"); // [{ id, data, flags? }]
+file.setId3v2Frames("RGAD", [rgadBody]); // replaces ALL RGAD frames
+file.removeId3v2Frames("NCON"); // removes every NCON frame
+file.save();
+```
+
+`data` is the frame body without the 10-byte header; the caller owns the body
+encoding. Bytes round-trip verbatim for frames TagLib does not model. For
+TagLib-modeled IDs (`TIT2`, `APIC`, …): typed getters see a raw write only
+after save+reload; bytes may be normalized by later saves after that reload;
+and raw reads reflect persisted state plus pending raw writes — not pending
+typed edits (backend-dependent). Frames with compression/encryption flags are
+not supported for write (writes emit zero flags). `flags` exists on the
+returned frames for forward compatibility, but reads never populate it today —
+TagLib always blanks header flags when re-rendering a frame. On the Emscripten
+backend, a raw write to an ID3v1-mapped frame ID (`TIT2`, `TPE1`, `TALB`,
+`COMM`, `TCON`, `TDRC`, `TRCK`) suspends the usual ID3v1↔ID3v2 duplicate-sync
+on `save()` until that raw frame is removed.
+
 ### Container Format and Codec Detection
 
 ```typescript

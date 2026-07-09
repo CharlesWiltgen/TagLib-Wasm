@@ -1313,6 +1313,59 @@ file.setIxml("<BWFXML>…</BWFXML>");
 file.save();
 ```
 
+#### Raw ID3v2 Frame Methods (MP3 only)
+
+Escape hatch for reading/writing raw ID3v2 frame bodies by frame ID — for
+vendor or unmodeled frames (`RGAD`, `NCON`, `SYTC`, custom `TXXX`, …) that
+have no dedicated `AudioFile` method.
+
+##### getId3v2Frames()
+
+Get every frame with the given ID (or, with no argument, every frame in the
+tag).
+
+```typescript
+getId3v2Frames(id?: string): Id3v2Frame[]
+```
+
+##### setId3v2Frames()
+
+Replace ALL frames carrying `id` with the given bodies. An empty array
+removes them all.
+
+```typescript
+setId3v2Frames(id: string, data: Uint8Array[]): void
+```
+
+##### removeId3v2Frames()
+
+Remove every frame with this ID. Equivalent to `setId3v2Frames(id, [])`.
+
+```typescript
+removeId3v2Frames(id: string): void
+```
+
+`data` is the frame body without the 10-byte header — the caller owns the
+body encoding. Bytes round-trip verbatim for frames TagLib does not model.
+For TagLib-modeled IDs (`TIT2`, `APIC`, …): typed getters see a raw write
+only after save+reload; bytes may be normalized by later saves after that
+reload; and raw reads reflect persisted state plus pending raw writes — not
+pending typed edits (backend-dependent). Frames with compression/encryption
+flags are not supported for write (writes emit zero flags). `Id3v2Frame.flags`
+exists for forward compatibility, but reads never populate it today — TagLib
+always blanks header flags when re-rendering a frame. On the Emscripten
+backend, a raw write to an ID3v1-mapped frame ID (`TIT2`, `TPE1`, `TALB`,
+`COMM`, `TCON`, `TDRC`, `TRCK`) suspends the usual ID3v1↔ID3v2 duplicate-sync
+on `save()` until that raw frame is removed.
+
+```typescript
+const file = await taglib.open("song.mp3");
+const frames = file.getId3v2Frames("TXXX");
+file.setId3v2Frames("RGAD", [rgadBody]);
+file.removeId3v2Frames("NCON");
+file.save();
+```
+
 #### MP4-Specific Methods
 
 ##### isMP4()
@@ -1640,6 +1693,19 @@ interface UnsyncedLyrics {
   text: string; // full lyrics text
   description?: string; // description or content type
   language?: string; // ISO 639-2 code, e.g. "eng"
+}
+```
+
+#### Id3v2Frame
+
+A raw ID3v2 frame, as read/written via `getId3v2Frames()` / `setId3v2Frames()`
+/ `removeId3v2Frames()`.
+
+```typescript
+interface Id3v2Frame {
+  id: string; // 4-character frame ID, e.g. "TXXX", "RGAD"
+  data: Uint8Array; // frame body, without the 10-byte frame header
+  flags?: number; // reserved for forward compatibility; never populated today
 }
 ```
 
