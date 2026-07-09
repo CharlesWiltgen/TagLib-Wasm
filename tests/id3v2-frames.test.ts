@@ -244,6 +244,23 @@ for (const backend of BACKENDS) {
     }
   });
 
+  // M5: WASI's staged-frame read used to return the staged Uint8Array by
+  // reference, so mutating a returned frame's data corrupted internal staged
+  // state for later reads/saves. Embind already returns fresh copies.
+  Deno.test(`[${backend}] mutating a returned staged frame does not corrupt staged state`, async () => {
+    const { file } = await openMp3(backend);
+    try {
+      const body = new Uint8Array([1, 2, 3]);
+      file.setId3v2Frames("NCON", [body]);
+      const first = file.getId3v2Frames("NCON");
+      first[0].data[0] = 0xff; // mutate the returned copy
+      const second = file.getId3v2Frames("NCON");
+      assertEquals([...second[0].data], [1, 2, 3]);
+    } finally {
+      file.dispose();
+    }
+  });
+
   Deno.test(`[${backend}] removeId3v2Frames deletes all instances of the ID`, async () => {
     const { taglib, file } = await openMp3(backend);
     let out: Uint8Array;
@@ -390,6 +407,36 @@ for (const backend of BACKENDS) {
     const reopened = await taglib.open(out);
     try {
       assertEquals(reopened.tag().title, "Raw Title");
+    } finally {
+      reopened.dispose();
+    }
+  });
+
+  // I3: "raw and typed writes compose last-write-wins" is FALSE for
+  // raw-then-typed on the same ID. tag.title = "..." calls
+  // ID3v2::Tag::setTextFrame(), which does front()->setText() on the existing
+  // frame object — a no-op on the raw UnknownFrame — so the typed write is
+  // silently discarded and the raw bytes persist through save+reload. See the
+  // 2026-07-09 implementation-phase amendment in
+  // docs/superpowers/specs/2026-07-09-raw-id3v2-frames-design.md.
+  Deno.test(`[${backend}] raw-then-typed write to the same ID: raw wins (I3 spec amendment)`, async () => {
+    const { taglib, file } = await openMp3(backend);
+    const body = new Uint8Array([
+      0x03,
+      ...new TextEncoder().encode("Raw Wins"),
+    ]);
+    let out: Uint8Array;
+    try {
+      file.setId3v2Frames("TIT2", [body]);
+      file.tag().setTitle("Typed Loses");
+      file.save();
+      out = file.getFileBuffer();
+    } finally {
+      file.dispose();
+    }
+    const reopened = await taglib.open(out);
+    try {
+      assertEquals(reopened.tag().title, "Raw Wins");
     } finally {
       reopened.dispose();
     }
@@ -676,26 +723,33 @@ Deno.test(
 
 // Backend-divergence pin for spec Semantics caveat 3: raw reads of a
 // modeled ID after a pending typed edit differ by backend (ADR-001 class).
+// Decode a TIT2 body's text portion (skip the 1-byte text-encoding marker).
+// The fixture's persisted title and the pending edit below are both plain
+// ASCII, so a Latin1/UTF-8 decode is unambiguous either way.
+function decodeTit2Text(body: Uint8Array): string {
+  return new TextDecoder().decode(body.subarray(1));
+}
+
 Deno.test("read-freshness for modeled IDs is pinned per backend (spec caveat 3)", async () => {
-  const results: Record<string, number> = {};
+  const results: Record<string, string> = {};
   for (const backend of BACKENDS) {
     const taglib = await TagLib.initialize({ forceWasmType: backend });
     const file = await taglib.open(await Deno.readFile(MP3_FIXTURE));
     try {
       file.tag().setTitle("Pending Edit");
       // No save. Embind mutates live C++ state; WASI stages into tagData.
-      results[backend] = file.getId3v2Frames("TIT2").length;
+      const frames = file.getId3v2Frames("TIT2");
+      assertEquals(frames.length, 1);
+      results[backend] = decodeTit2Text(frames[0].data);
     } finally {
       file.dispose();
     }
   }
-  // Embind: live tag already carries TIT2. WASI: lazy read sees the
-  // fixture's persisted state (whatever TIT2 frames it shipped with).
-  assertEquals(results["emscripten"], 1);
-  // Pin WASI to the fixture's persisted TIT2 count. kiss-snippet.mp3 ships
-  // with a title, so this is also expected to be 1 — the DIVERGENCE this
-  // pins is the CONTENT (pending vs persisted bytes), which the TIT2
-  // round-trip test above already distinguishes. If the fixture has no
-  // TIT2, pin 0 here.
-  assertEquals(results["wasi"], 1);
+  // Embind: live tag already carries the pending mutation.
+  assertEquals(results["emscripten"], "Pending Edit");
+  // WASI: lazy read sees the fixture's persisted title, not the staged
+  // (unsaved) typed edit — this is the actual read/write divergence spec
+  // caveat 3 describes; a frame-count comparison alone can't distinguish it
+  // from "both backends return 1 frame for unrelated reasons."
+  assertEquals(results["wasi"], "Kiss");
 });
