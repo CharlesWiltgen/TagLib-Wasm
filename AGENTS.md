@@ -195,10 +195,13 @@ audioFile.removeId3v2Frames("NCON"); // = setId3v2Frames("NCON", [])
 // data excludes the 10-byte frame header; bytes round-trip verbatim for
 // frames TagLib doesn't model. For modeled IDs (TIT2, APIC, ...): a typed
 // getter sees a raw write only after save+reload, and a later save may
-// re-normalize the bytes. flags is reserved for forward compat and is never
-// populated on read (TagLib blanks header flags at render). On Emscripten, a
-// raw write to an ID3v1-mapped ID (TIT2/TPE1/TALB/COMM/TCON/TDRC/TRCK)
-// suspends ID3v1<->ID3v2 duplicate-sync on save() until that frame is removed.
+// re-normalize the bytes. A typed write to the same ID as an existing raw
+// write is silently ignored until that raw frame is removed or the file is
+// saved+reloaded (raw always wins within a save). flags is reserved for
+// forward compat and is never populated on read (TagLib blanks header flags
+// at render). On both backends, a raw write to an ID3v1-mapped ID
+// (TIT2/TPE1/TALB/COMM/TCON/TDRC/TRCK) suspends ID3v1<->ID3v2 duplicate-sync
+// on save() until that frame is removed.
 ```
 
 ### RatingUtils

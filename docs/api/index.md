@@ -1350,13 +1350,15 @@ body encoding. Bytes round-trip verbatim for frames TagLib does not model.
 For TagLib-modeled IDs (`TIT2`, `APIC`, …): typed getters see a raw write
 only after save+reload; bytes may be normalized by later saves after that
 reload; and raw reads reflect persisted state plus pending raw writes — not
-pending typed edits (backend-dependent). Frames with compression/encryption
-flags are not supported for write (writes emit zero flags). `Id3v2Frame.flags`
-exists for forward compatibility, but reads never populate it today — TagLib
-always blanks header flags when re-rendering a frame. On the Emscripten
-backend, a raw write to an ID3v1-mapped frame ID (`TIT2`, `TPE1`, `TALB`,
-`COMM`, `TCON`, `TDRC`, `TRCK`) suspends the usual ID3v1↔ID3v2 duplicate-sync
-on `save()` until that raw frame is removed.
+pending typed edits (backend-dependent). A typed write to the same ID as an
+existing raw write is silently ignored until that raw frame is removed or the
+file is saved and reloaded — raw writes always win within a save. Frames with
+compression/encryption flags are not supported for write (writes emit zero
+flags). `Id3v2Frame.flags` exists for forward compatibility, but reads never
+populate it today — TagLib always blanks header flags when re-rendering a
+frame. On both backends, a raw write to an ID3v1-mapped frame ID (`TIT2`,
+`TPE1`, `TALB`, `COMM`, `TCON`, `TDRC`, `TRCK`) suspends the usual ID3v1↔ID3v2
+duplicate-sync on `save()` until that raw frame is removed.
 
 ```typescript
 const file = await taglib.open("song.mp3");
