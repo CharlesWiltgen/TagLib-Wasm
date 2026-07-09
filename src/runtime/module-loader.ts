@@ -94,6 +94,16 @@ export async function loadTagLibModule(
       debug: false,
     });
   } catch (error) {
+    // An explicit backend choice must fail loudly: silently serving the other
+    // backend masks backend-specific bugs (taglib-3o4). Auto mode keeps the
+    // fallback for resilience.
+    if (options?.forceWasmType === "wasi") {
+      throw new TagLibInitializationError(
+        `WASI backend failed to load: ${errorMessage(error)}. ` +
+          `forceWasmType is "wasi", so the Emscripten fallback was not attempted`,
+        { cause: error, forceWasmType: "wasi" },
+      );
+    }
     console.warn(
       `[TagLib] Unified loader failed, falling back to buffer mode: ${
         errorMessage(error)

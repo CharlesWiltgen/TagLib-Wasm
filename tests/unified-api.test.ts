@@ -5,13 +5,15 @@
  * compatibility while adding WASI optimizations for server environments.
  */
 
-import { assert, assertEquals, assertExists } from "@std/assert";
+import { assert, assertEquals, assertExists, assertRejects } from "@std/assert";
 import { describe, it } from "@std/testing/bdd";
+import { TagLibInitializationError } from "../src/errors/classes.ts";
 import { detectRuntime } from "../src/runtime/detector.ts";
 import {
   getRecommendedConfig,
   isWasiAvailable,
   loadUnifiedTagLibModule,
+  ModuleLoadError,
 } from "../src/runtime/unified-loader/index.ts";
 import { loadTagLibModule, TagLib } from "../index.ts";
 
@@ -126,24 +128,37 @@ describe("Unified loader", () => {
     }
   });
 
-  it("handles graceful fallback on error", async () => {
-    try {
-      const module = await loadUnifiedTagLibModule({
-        forceWasmType: "wasi",
-        wasmUrl: "/nonexistent/path.wasm",
-      });
-
-      assertExists(module);
-      assertEquals(module.isEmscripten, true);
-
-      console.log("Graceful fallback to Emscripten works");
-    } catch (error) {
-      console.warn(`Error handling test skipped due to error: ${error}`);
-    }
+  it("rejects a failing load when WASI is forced (no silent Emscripten fallback)", async () => {
+    // Auto mode may fall back gracefully; an explicit forceWasmType "wasi"
+    // must fail loudly instead of serving the other backend (taglib-3o4).
+    await assertRejects(
+      () =>
+        loadUnifiedTagLibModule({
+          forceWasmType: "wasi",
+          wasmUrl: "/nonexistent/path.wasm",
+        }),
+      ModuleLoadError,
+      "WASI",
+    );
   });
 });
 
 describe("Main API", () => {
+  it("rejects instead of falling back to Emscripten when forceWasmType 'wasi' fails (taglib-3o4)", async () => {
+    // A nonexistent wasm path makes the WASI host fail. Without the guard,
+    // the loader silently returned an Emscripten module here, masking
+    // WASI-only failures (this hid a data-loss bug in the taglib-b67 review).
+    await assertRejects(
+      () =>
+        loadTagLibModule({
+          forceWasmType: "wasi",
+          wasmUrl: "/nonexistent/taglib-wasi.wasm",
+        }),
+      TagLibInitializationError,
+      "WASI",
+    );
+  });
+
   it("maintains backward compatibility with auto-selection", async () => {
     try {
       const module = await loadTagLibModule();

@@ -73,6 +73,16 @@ async function loadWasiModuleWithFallback(
     });
     return { module: wasiModule, actualWasmType: "wasi" };
   } catch (hostError) {
+    // An explicit WASI choice must fail loudly: silently serving Emscripten
+    // masks backend-specific bugs (taglib-3o4). Auto mode keeps the fallback.
+    if (options.forceWasmType === "wasi") {
+      throw new ModuleLoadError(
+        `WASI backend failed to load: ${errorMessage(hostError)}. ` +
+          `forceWasmType is "wasi", so the Emscripten fallback was not attempted`,
+        "wasi",
+        hostError,
+      );
+    }
     if (runtime.environment === "node-wasi" && !supportsExnref()) {
       const g = globalThis as Record<string, unknown>;
       const nodeVersion = ((g.process as any)?.versions?.node ?? "") as string;
