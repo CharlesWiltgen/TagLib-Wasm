@@ -11,9 +11,14 @@ import {
   type WasmExports,
   WasmMemoryError,
 } from "../wasi-memory.ts";
-import { InvalidFormatError } from "../../errors/classes.ts";
+import {
+  InvalidFormatError,
+  UnsupportedFormatError,
+} from "../../errors/classes.ts";
 import { encodeTagData } from "../../msgpack/encoder.ts";
+import { decodeMessagePack } from "../../msgpack/decoder.ts";
 import type { ExtendedTag } from "../../types.ts";
+import type { RawId3v2Frame } from "../../wasm.ts";
 
 const TL_ERROR_UNSUPPORTED_FORMAT = -2;
 const TL_ERROR_PARSE_FAILED = -6;
@@ -92,6 +97,58 @@ export function readTagsFromWasmPath(
   const result = new Uint8Array(u8.slice(resultPtr, resultPtr + outSize));
   wasi.free(resultPtr);
   return result;
+}
+
+export function readId3v2FramesFromWasm(
+  wasi: WasiModule,
+  source: Uint8Array | string,
+  id?: string,
+): RawId3v2Frame[] {
+  using arena = new WasmArena(wasi as WasmExports);
+
+  const idAlloc = id ? arena.allocString(id) : null;
+  const outSizePtr = arena.allocUint32();
+
+  let resultPtr: number;
+  if (typeof source === "string") {
+    const pathAlloc = arena.allocString(source);
+    resultPtr = wasi.tl_read_id3v2_frames(
+      pathAlloc.ptr,
+      0,
+      0,
+      idAlloc?.ptr ?? 0,
+      outSizePtr.ptr,
+    );
+  } else {
+    const inputBuf = arena.allocBuffer(source);
+    resultPtr = wasi.tl_read_id3v2_frames(
+      0,
+      inputBuf.ptr,
+      inputBuf.size,
+      idAlloc?.ptr ?? 0,
+      outSizePtr.ptr,
+    );
+  }
+
+  if (resultPtr === 0) {
+    const errorCode = wasi.tl_get_last_error_code();
+    if (errorCode === TL_ERROR_UNSUPPORTED_FORMAT) {
+      throw new UnsupportedFormatError("non-MP3", ["MP3"], {
+        operation: "readId3v2Frames",
+      });
+    }
+    throw new WasmMemoryError(
+      `error code ${errorCode}`,
+      "read ID3v2 frames",
+      errorCode,
+    );
+  }
+
+  const outSize = outSizePtr.readUint32();
+  const u8 = new Uint8Array(wasi.memory.buffer);
+  const bytes = new Uint8Array(u8.slice(resultPtr, resultPtr + outSize));
+  wasi.free(resultPtr);
+  return decodeMessagePack<RawId3v2Frame[]>(bytes);
 }
 
 export function writeTagsToWasmPath(

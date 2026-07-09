@@ -73,6 +73,39 @@ uint8_t* tl_read_tags_ex(const char* path, const uint8_t* buf, size_t len,
     return result;
 }
 
+// Raw ID3v2 frame read (MP3 only). Returns msgpack [{id, data, flags}].
+uint8_t* tl_read_id3v2_frames(const char* path, const uint8_t* buf,
+                              size_t len, const char* id,
+                              size_t* out_size) {
+    tl_clear_error();
+
+    if (!out_size) {
+        tl_set_error(TL_ERROR_INVALID_INPUT, "out_size cannot be NULL");
+        return NULL;
+    }
+    *out_size = 0;
+
+    uint8_t* result = NULL;
+    tl_error_code status =
+        taglib_read_id3v2_frames_shim(path, buf, len, id, &result, out_size);
+
+    if (status != TL_SUCCESS) {
+        const char* error_msg = "Failed to read ID3v2 frames";
+        if (status == TL_ERROR_UNSUPPORTED_FORMAT) {
+            error_msg = "Raw ID3v2 frames are only supported for MP3 files";
+        } else if (status == TL_ERROR_IO_READ) {
+            error_msg = "Failed to open file for reading ID3v2 frames";
+        } else if (status == TL_ERROR_PARSE_FAILED) {
+            error_msg = "Failed to parse audio file for ID3v2 frames";
+        }
+        tl_set_error(status, error_msg);
+        *out_size = 0;
+        return NULL;
+    }
+
+    return result;
+}
+
 // Write tags implementation
 int tl_write_tags(const char* path, const uint8_t* buf, size_t len,
                   const uint8_t* tags_data, size_t tags_size,

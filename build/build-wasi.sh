@@ -201,6 +201,7 @@ CAPI_SOURCES=(
     "$SRC_DIR/taglib_chapters.cpp"        # C++ chapter encode/decode via ID3v2 CHAP frames
     "$SRC_DIR/taglib_bwf.cpp"             # C++ BWF bext/iXML passthrough for WAV+FLAC
     "$SRC_DIR/taglib_id3_strip.cpp"       # C++ FLAC ID3v1/v2 strip detection + directive
+    "$SRC_DIR/taglib_id3v2_frames.cpp"    # C++ raw ID3v2 frame read/apply (taglib-b67)
     "$SRC_DIR/taglib_audio_props.cpp"     # C++ extended audio properties via dynamic_cast
     "$SRC_DIR/formats/taglib_lame.cpp"    # C++ LAME extension parser - exception-free
     "$SRC_DIR/core/taglib_error.cpp"      # C++ with pure C internals - compiled with Wasm EH
@@ -227,6 +228,7 @@ for src in "${CAPI_SOURCES[@]}"; do
          [[ "$(basename "$src")" == "taglib_chapters.cpp" ]] || \
          [[ "$(basename "$src")" == "taglib_bwf.cpp" ]] || \
          [[ "$(basename "$src")" == "taglib_id3_strip.cpp" ]] || \
+         [[ "$(basename "$src")" == "taglib_id3v2_frames.cpp" ]] || \
          [[ "$(basename "$src")" == "taglib_audio_props.cpp" ]] || \
          [[ "$(basename "$src")" == "taglib_lame.cpp" ]]; then
         echo "Compiling C++ with TagLib headers + Wasm EH: $src"
@@ -272,6 +274,7 @@ done
     -o "$DIST_DIR/taglib-wasi.wasm" \
     -Wl,--export=tl_read_tags \
     -Wl,--export=tl_read_tags_ex \
+    -Wl,--export=tl_read_id3v2_frames \
     -Wl,--export=tl_write_tags \
     -Wl,--export=tl_free \
     -Wl,--export=tl_malloc \
@@ -348,6 +351,7 @@ cat > "$DIST_DIR/taglib-wasi.json" << EOF
   "exports": [
     "tl_read_tags",
     "tl_read_tags_ex",
+    "tl_read_id3v2_frames",
     "tl_write_tags",
     "tl_free",
     "tl_malloc",

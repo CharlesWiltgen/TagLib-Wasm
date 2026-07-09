@@ -32,6 +32,16 @@ export interface RawLyrics {
   language: string;
 }
 
+/** Raw ID3v2 frame: body bytes without the 10-byte header. @see taglib-b67 */
+export interface RawId3v2Frame {
+  /** 4-character frame ID, e.g. "TIT2", "TXXX", "RGAD" */
+  id: string;
+  /** Frame body bytes (no header) */
+  data: Uint8Array;
+  /** Frame header flags (v2.4 bytes 8-9), when present on read */
+  flags?: number;
+}
+
 // Basic Emscripten module interface
 export interface EmscriptenModule {
   // Memory

@@ -32,6 +32,13 @@ export interface WasiModule {
     len: number,
     outSizePtr: number,
   ): number;
+  tl_read_id3v2_frames(
+    pathPtr: number,
+    bufPtr: number,
+    len: number,
+    idPtr: number,
+    outSizePtr: number,
+  ): number;
   tl_write_tags(
     pathPtr: number,
     bufPtr: number,

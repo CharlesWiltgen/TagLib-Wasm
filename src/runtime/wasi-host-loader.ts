@@ -152,6 +152,14 @@ function createWasiModuleFromInstance(
         l: number,
         o: number,
       ) => number)(pathPtr, bufPtr, len, outSizePtr),
+    tl_read_id3v2_frames: (pathPtr, bufPtr, len, idPtr, outSizePtr) =>
+      (exports.tl_read_id3v2_frames as (
+        p: number,
+        b: number,
+        l: number,
+        i: number,
+        o: number,
+      ) => number)(pathPtr, bufPtr, len, idPtr, outSizePtr),
     tl_write_tags: (pathPtr, bufPtr, len, tagsPtr, tagsSz, outPtr, outSzPtr) =>
       (exports.tl_write_tags as (
         p: number,
