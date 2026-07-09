@@ -18,6 +18,7 @@ import { toTagLibKey } from "../constants/properties.ts";
 export const PASSTHROUGH_KEYS = new Set([
   "pictures",
   "ratings",
+  "id3v2Frames",
   "lyrics",
   "chapters",
   "_mp4ChapterStyle",

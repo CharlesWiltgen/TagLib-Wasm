@@ -6,6 +6,7 @@ import type {
 } from "../types.ts";
 import type { TypedAudioProperties } from "../types/audio-formats.ts";
 import type {
+  Id3v2Frame,
   Rating,
   UnsyncedLyrics,
 } from "../constants/complex-properties.ts";
@@ -143,6 +144,24 @@ export interface AudioFile {
 
   /** Set the primary rating (normalized 0.0-1.0). */
   setRating(rating: number, email?: string): void;
+
+  /**
+   * Raw ID3v2 frame bodies by frame ID (MP3 only) — the escape hatch for
+   * vendor/unmodeled frames (RGAD, NCON, SYTC, custom TXXX...). Reads reflect
+   * persisted file state plus staged raw-frame changes; pending typed edits
+   * may not be visible until save (backend-dependent for modeled IDs).
+   */
+  getId3v2Frames(id?: string): Id3v2Frame[];
+
+  /**
+   * Replace ALL frames carrying `id` with the given bodies (per-ID list
+   * replace; empty array removes them all). Bytes round-trip verbatim for
+   * IDs TagLib does not model. MP3 only.
+   */
+  setId3v2Frames(id: string, data: Uint8Array[]): void;
+
+  /** Remove every frame with this ID. Equivalent to setId3v2Frames(id, []). */
+  removeId3v2Frames(id: string): void;
 
   /**
    * Get unsynchronized lyrics (ID3v2 USLT / Vorbis LYRICS). Returned identically

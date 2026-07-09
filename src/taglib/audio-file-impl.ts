@@ -10,9 +10,16 @@ import type { Chapter, SetChaptersOptions } from "../types/chapters.ts";
 import type { BroadcastAudioExtension } from "../types/bwf.ts";
 import * as bwf from "./audio-file-bwf.ts";
 import type {
+  Id3v2Frame,
   Rating,
   UnsyncedLyrics,
 } from "../constants/complex-properties.ts";
+import {
+  assertFrameBodies,
+  assertFrameId,
+  assertMp3,
+  toPublicFrame,
+} from "./id3v2-frames.ts";
 import { FileOperationError, UnsupportedFormatError } from "../errors.ts";
 import { writeFileData } from "../utils/write.ts";
 import type { AudioFile } from "./audio-file-interface.ts";
@@ -298,6 +305,25 @@ export class AudioFileImpl extends BaseAudioFileImpl implements AudioFile {
 
   setRating(rating: number, email?: string): void {
     this.setRatings([{ rating, email, counter: 0 }]);
+  }
+
+  getId3v2Frames(id?: string): Id3v2Frame[] {
+    assertMp3(this.getFormat());
+    if (id !== undefined) assertFrameId(id, "read");
+    return this.handle.getId3v2Frames(id ?? "").map(toPublicFrame);
+  }
+
+  setId3v2Frames(id: string, data: Uint8Array[]): void {
+    assertMp3(this.getFormat());
+    assertFrameId(id, "write");
+    assertFrameBodies(id, data);
+    this.handle.setId3v2Frames(id, data);
+  }
+
+  removeId3v2Frames(id: string): void {
+    assertMp3(this.getFormat());
+    assertFrameId(id, "write");
+    this.handle.removeId3v2Frames(id);
   }
 
   hasId3Tags(): { v1: boolean; v2: boolean } {

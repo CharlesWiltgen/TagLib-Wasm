@@ -123,6 +123,17 @@ export interface FileHandle {
   ): void;
   getLyrics(): RawLyrics[];
   setLyrics(lyrics: RawLyrics[]): void;
+  /** Raw ID3v2 frames; id "" = all frames (MP3 only). */
+  getId3v2Frames(id: string): RawId3v2Frame[];
+  /** Replace ALL frames with this ID (per-ID list replace). */
+  setId3v2Frames(id: string, data: Uint8Array[]): void;
+  /** Remove all frames with this ID. */
+  removeId3v2Frames(id: string): void;
+  /**
+   * WASI only: staged (unsaved) per-ID raw-frame replacements, for
+   * save-reconstruct copying. Absent on Embind (writes apply immediately).
+   */
+  getStagedId3v2Frames?(): Record<string, Uint8Array[]> | undefined;
   hasId3Tags(): { v1: boolean; v2: boolean };
   stripId3Tags(opts: { v1: boolean; v2: boolean }): void;
   destroy(): void;

@@ -200,6 +200,7 @@ export type {
   ComplexPropertyKey,
   ComplexPropertyKeyMap,
   ComplexPropertyValueMap,
+  Id3v2Frame,
   Rating,
   UnsyncedLyrics,
   VariantMap,

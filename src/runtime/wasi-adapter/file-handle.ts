@@ -5,6 +5,7 @@
 import type {
   FileHandle,
   RawChapter,
+  RawId3v2Frame,
   RawLyrics,
   RawPicture,
 } from "../../wasm.ts";
@@ -19,6 +20,7 @@ import { WasmerExecutionError } from "../wasmer-sdk-loader/types.ts";
 import { decodeTagData } from "../../msgpack/decoder.ts";
 import { fromTagLibKey, toTagLibKey } from "../../constants/properties.ts";
 import {
+  readId3v2FramesFromWasm,
   readTagsFromWasm,
   readTagsFromWasmPath,
   writeTagsToWasm,
@@ -567,6 +569,46 @@ export class WasiFileHandle implements FileHandle {
   setLyrics(lyrics: RawLyrics[]): void {
     this.checkNotDestroyed();
     this.tagData = { ...this.tagData, lyrics } as Record<string, unknown>;
+  }
+
+  getId3v2Frames(id: string): RawId3v2Frame[] {
+    this.checkNotDestroyed();
+    const filter = id === "" ? undefined : id;
+    const source = this.filePath ?? this.fileData;
+    let frames: RawId3v2Frame[] = [];
+    if (source) {
+      frames = readId3v2FramesFromWasm(this.wasi, source, filter);
+    }
+    const staged = this.getStagedId3v2Frames();
+    if (!staged) return frames;
+    // Staged per-ID replacements win over (possibly stale) file state.
+    const stagedIds = new Set(Object.keys(staged));
+    frames = frames.filter((f) => !stagedIds.has(f.id));
+    for (const [sid, bodies] of Object.entries(staged)) {
+      if (filter && sid !== filter) continue;
+      for (const data of bodies) frames.push({ id: sid, data });
+    }
+    return frames;
+  }
+
+  setId3v2Frames(id: string, data: Uint8Array[]): void {
+    this.checkNotDestroyed();
+    const staged = { ...(this.getStagedId3v2Frames() ?? {}) };
+    staged[id] = data.map((d) => new Uint8Array(d));
+    this.tagData = {
+      ...this.tagData,
+      id3v2Frames: staged,
+    } as Record<string, unknown>;
+  }
+
+  removeId3v2Frames(id: string): void {
+    this.setId3v2Frames(id, []);
+  }
+
+  getStagedId3v2Frames(): Record<string, Uint8Array[]> | undefined {
+    return this.tagData?.id3v2Frames as
+      | Record<string, Uint8Array[]>
+      | undefined;
   }
 
   destroy(): void {

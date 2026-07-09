@@ -13,11 +13,16 @@ import {
   readId3v2FramesFromWasm,
   writeTagsToWasm,
 } from "../src/runtime/wasi-adapter/wasm-io.ts";
-import { UnsupportedFormatError } from "../src/errors/classes.ts";
+import {
+  MetadataError,
+  UnsupportedFormatError,
+} from "../src/errors/classes.ts";
 import type { ExtendedTag } from "../src/types/tags.ts";
 import type { RawId3v2Frame } from "../src/wasm.ts";
 import { WasmArena, type WasmExports } from "../src/runtime/wasi-memory.ts";
 import type { WasiModule } from "../src/runtime/wasmer-sdk-loader/types.ts";
+import { TagLib } from "../src/taglib.ts";
+import type { Id3v2Frame } from "../index.ts";
 
 const MP3_FIXTURE = "tests/test-files/mp3/kiss-snippet.mp3";
 const FLAC_FIXTURE = "tests/test-files/flac/kiss-snippet.flac";
@@ -191,3 +196,125 @@ describe("apply_id3v2_frames_from_msgpack (write contract)", () => {
     assertEquals([...ncon[0].data], [9, 9, 9]);
   });
 });
+
+// Extended to ["wasi", "emscripten"] when the Embind backend lands (Task 4).
+const BACKENDS = ["wasi"] as const;
+
+async function openMp3(backend: typeof BACKENDS[number]) {
+  const taglib = await TagLib.initialize({ forceWasmType: backend });
+  return {
+    taglib,
+    file: await taglib.open(await Deno.readFile(MP3_FIXTURE)),
+  };
+}
+
+for (const backend of BACKENDS) {
+  Deno.test(`[${backend}] set/save/reopen round-trips vendor frames byte-identically`, async () => {
+    const { taglib, file } = await openMp3(backend);
+    const body = new Uint8Array([0x10, 0x20, 0x30]);
+    let out: Uint8Array;
+    try {
+      file.setId3v2Frames("RGAD", [body]);
+      file.save();
+      out = file.getFileBuffer();
+    } finally {
+      file.dispose();
+    }
+    const reopened = await taglib.open(out);
+    try {
+      const frames: Id3v2Frame[] = reopened.getId3v2Frames("RGAD");
+      assertEquals(frames.length, 1);
+      assertEquals([...frames[0].data], [...body]);
+    } finally {
+      reopened.dispose();
+    }
+  });
+
+  Deno.test(`[${backend}] get after set reflects pending (unsaved) raw writes`, async () => {
+    const { file } = await openMp3(backend);
+    try {
+      const body = new Uint8Array([7, 7]);
+      file.setId3v2Frames("NCON", [body]);
+      const frames = file.getId3v2Frames("NCON");
+      assertEquals(frames.length, 1);
+      assertEquals([...frames[0].data], [...body]);
+    } finally {
+      file.dispose();
+    }
+  });
+
+  Deno.test(`[${backend}] removeId3v2Frames deletes all instances of the ID`, async () => {
+    const { taglib, file } = await openMp3(backend);
+    let out: Uint8Array;
+    try {
+      file.setId3v2Frames("PRIV", [
+        new Uint8Array([1]),
+        new Uint8Array([2]),
+      ]);
+      file.save();
+      out = file.getFileBuffer();
+    } finally {
+      file.dispose();
+    }
+    const reopened = await taglib.open(out);
+    let out2: Uint8Array;
+    try {
+      assertEquals(reopened.getId3v2Frames("PRIV").length, 2);
+      reopened.removeId3v2Frames("PRIV");
+      assertEquals(reopened.getId3v2Frames("PRIV"), []);
+      reopened.save();
+      out2 = reopened.getFileBuffer();
+    } finally {
+      reopened.dispose();
+    }
+    const final = await taglib.open(out2);
+    try {
+      assertEquals(final.getId3v2Frames("PRIV"), []);
+    } finally {
+      final.dispose();
+    }
+  });
+
+  Deno.test(`[${backend}] getId3v2Frames() without ID lists standard frames too`, async () => {
+    const { file } = await openMp3(backend);
+    try {
+      file.tag().setTitle("List Test");
+      file.save();
+      const all = file.getId3v2Frames();
+      assert(all.some((f) => f.id === "TIT2"));
+    } finally {
+      file.dispose();
+    }
+  });
+
+  Deno.test(`[${backend}] invalid frame IDs and empty bodies throw typed errors`, async () => {
+    const { file } = await openMp3(backend);
+    try {
+      assertThrows(
+        () => file.setId3v2Frames("bad!", [new Uint8Array([1])]),
+        MetadataError,
+      );
+      assertThrows(() => file.getId3v2Frames("toolong"), MetadataError);
+      assertThrows(
+        () => file.setId3v2Frames("PRIV", [new Uint8Array(0)]),
+        MetadataError,
+      );
+    } finally {
+      file.dispose();
+    }
+  });
+
+  Deno.test(`[${backend}] non-MP3 files throw UnsupportedFormatError`, async () => {
+    const taglib = await TagLib.initialize({ forceWasmType: backend });
+    const file = await taglib.open(await Deno.readFile(FLAC_FIXTURE));
+    try {
+      assertThrows(() => file.getId3v2Frames(), UnsupportedFormatError);
+      assertThrows(
+        () => file.setId3v2Frames("RGAD", [new Uint8Array([1])]),
+        UnsupportedFormatError,
+      );
+    } finally {
+      file.dispose();
+    }
+  });
+}

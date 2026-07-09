@@ -235,6 +235,8 @@ export interface ExtendedTag extends Tag {
   readonly bextData?: Uint8Array;
   /** Raw iXML chunk as a string. WAV and FLAC only. */
   readonly ixml?: string;
+  /** Staged raw ID3v2 frame replacements: frame ID → list of body byte arrays. */
+  id3v2Frames?: Record<string, Uint8Array[]>;
 }
 
 /**

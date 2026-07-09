@@ -75,6 +75,18 @@ export const EXTRA_FIELDS: readonly ExtraField[] = [
       else if (complete) target.setIxml(null);
     },
   },
+  {
+    name: "id3v2Frames",
+    copy(target, source) {
+      // Staged-only by design: copying the full raw view would clobber typed
+      // edits on the fresh handle and drag cover-art bytes along (see spec).
+      const staged = source.getStagedId3v2Frames?.();
+      if (!staged) return;
+      for (const [id, bodies] of Object.entries(staged)) {
+        target.setId3v2Frames(id, bodies);
+      }
+    },
+  },
 ];
 
 /** Copy every registered extra-state field from `source` onto `target`. */

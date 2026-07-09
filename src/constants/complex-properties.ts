@@ -40,6 +40,22 @@ export interface Rating {
 }
 
 /**
+ * A raw ID3v2 frame (escape hatch for vendor and unsupported frames).
+ *
+ * `data` is the frame BODY only (no 10-byte header); the caller owns the
+ * body encoding. Reads of TagLib-modeled IDs (TIT2, APIC, ...) return
+ * TagLib's canonical rendering; see the raw-frames docs for caveats.
+ */
+export interface Id3v2Frame {
+  /** 4-character frame ID matching [A-Z0-9]{4}, e.g. "TXXX", "RGAD" */
+  id: string;
+  /** Frame body bytes (without the 10-byte frame header) */
+  data: Uint8Array;
+  /** Frame header flags as read from the file; absent when zero. Read-only. */
+  flags?: number;
+}
+
+/**
  * Unsynchronized lyrics text.
  * For lyrics without timing information.
  */

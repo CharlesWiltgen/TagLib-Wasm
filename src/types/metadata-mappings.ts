@@ -54,6 +54,7 @@ export const METADATA_MAPPINGS: Record<
     | "bext"
     | "bextData"
     | "ixml"
+    | "id3v2Frames"
   >,
   FieldMapping
 > = {
