@@ -1568,6 +1568,7 @@ public:
         if (!fileRef || !fileRef->file()) return frames;
         auto* mpegFile = dynamic_cast<TagLib::MPEG::File*>(fileRef->file());
         if (!mpegFile || !mpegFile->hasID3v2Tag()) return frames;
+        if (!idFilter.empty() && idFilter.size() != 4) return frames;
 
         for (const auto& frame : mpegFile->ID3v2Tag()->frameList()) {
             TagLib::ByteVector id = frame->frameID();

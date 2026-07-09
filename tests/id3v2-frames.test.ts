@@ -197,7 +197,7 @@ describe("apply_id3v2_frames_from_msgpack (write contract)", () => {
   });
 });
 
-// Extended to ["wasi", "emscripten"] when the Embind backend lands (Task 4).
+// Both backends: the parity matrix for the raw ID3v2 frame API.
 const BACKENDS = ["wasi", "emscripten"] as const;
 
 async function openMp3(backend: typeof BACKENDS[number]) {
