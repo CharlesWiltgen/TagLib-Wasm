@@ -51,7 +51,11 @@ export interface Id3v2Frame {
   id: string;
   /** Frame body bytes (without the 10-byte frame header) */
   data: Uint8Array;
-  /** Frame header flags as read from the file; absent when zero. Read-only. */
+  /**
+   * Frame header flags. Reserved for forward compatibility: currently never
+   * populated — TagLib blanks frame header flags when rendering, so they
+   * cannot be observed or preserved. Read-only.
+   */
   flags?: number;
 }
 
