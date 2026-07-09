@@ -636,6 +636,44 @@ Deno.test("[wasi] staged raw frames survive save-as reconstruct (extra-state reg
   }
 });
 
+// C2: same registry survival scenario as above, but on Emscripten with an
+// explicitly partial-loaded source. Before the fix, wrapEmbindHandle had no
+// getStagedId3v2Frames, so the "id3v2Frames" EXTRA_FIELDS entry silently
+// no-op'd on saveViaFreshHandle's partial-load reconstruct path, dropping
+// the raw write.
+Deno.test(
+  "[emscripten] staged raw frames survive a partial-load save-as reconstruct (C2)",
+  async () => {
+    const taglib = await TagLib.initialize({ forceWasmType: "emscripten" });
+    const dir = await Deno.makeTempDir();
+    try {
+      const dst = `${dir}/dst.mp3`;
+      const body = new Uint8Array([0x61, 0x62]);
+      const file = await taglib.open(MP3_FIXTURE, {
+        partial: true,
+        maxHeaderSize: 4096,
+        maxFooterSize: 1024,
+      });
+      try {
+        file.setId3v2Frames("RGAD", [body]);
+        await file.saveToFile(dst); // save-as → saveViaFreshHandle reconstruct
+      } finally {
+        file.dispose();
+      }
+      const reopened = await taglib.open(dst);
+      try {
+        const frames = reopened.getId3v2Frames("RGAD");
+        assertEquals(frames.length, 1);
+        assertEquals([...frames[0].data], [...body]);
+      } finally {
+        reopened.dispose();
+      }
+    } finally {
+      await Deno.remove(dir, { recursive: true });
+    }
+  },
+);
+
 // Backend-divergence pin for spec Semantics caveat 3: raw reads of a
 // modeled ID after a pending typed edit differ by backend (ADR-001 class).
 Deno.test("read-freshness for modeled IDs is pinned per backend (spec caveat 3)", async () => {

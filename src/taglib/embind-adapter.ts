@@ -66,6 +66,15 @@ export interface EmbindFileHandle {
 
 /** @internal Wrap an Embind FileHandle with a Proxy for the data-oriented interface. */
 export function wrapEmbindHandle(raw: EmbindFileHandle): FileHandle {
+  // taglib-b67 (C2): Embind applies raw frame writes immediately (no staging
+  // buffer of its own), so getStagedId3v2Frames was undefined here — the
+  // shared "id3v2Frames" extra-state-registry entry (which copies staged
+  // writes across a save-as reconstruct) silently no-op'd on this backend.
+  // Track writes in this closure so the registry entry works identically on
+  // both backends; the underlying Embind handle still applies each write
+  // immediately, this just mirrors that write into `stagedId3v2Frames`.
+  const stagedId3v2Frames: Record<string, Uint8Array[]> = {};
+
   const overrides: Record<string, unknown> = {
     getTagData(): BasicTagData {
       const tw = raw.getTag();
@@ -132,6 +141,22 @@ export function wrapEmbindHandle(raw: EmbindFileHandle): FileHandle {
       if (lyrics.length > 0) props["LYRICS"] = lyrics.map((l) => l.text);
       else delete props["LYRICS"];
       handle.setProperties(props);
+    },
+    setId3v2Frames(id: string, data: Uint8Array[]) {
+      stagedId3v2Frames[id] = data.map((d) => new Uint8Array(d));
+      (raw as unknown as {
+        setId3v2Frames(id: string, data: Uint8Array[]): void;
+      }).setId3v2Frames(id, data);
+    },
+    removeId3v2Frames(id: string) {
+      stagedId3v2Frames[id] = [];
+      (raw as unknown as { removeId3v2Frames(id: string): void })
+        .removeId3v2Frames(id);
+    },
+    getStagedId3v2Frames(): Record<string, Uint8Array[]> | undefined {
+      return Object.keys(stagedId3v2Frames).length > 0
+        ? { ...stagedId3v2Frames }
+        : undefined;
     },
     hasId3Tags(): { v1: boolean; v2: boolean } {
       const v = (raw as unknown as { hasId3Tags(): unknown }).hasId3Tags();
