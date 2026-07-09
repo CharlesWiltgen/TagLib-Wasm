@@ -30,10 +30,11 @@ tl_error_code read_id3v2_frames_to_msgpack(
     auto* mpeg = dynamic_cast<TagLib::MPEG::File*>(file);
     if (!mpeg) return TL_ERROR_UNSUPPORTED_FORMAT;
 
-    const bool has_filter = id_filter && id_filter[0] != '\0';
+    const size_t filter_len = id_filter ? strlen(id_filter) : 0;
+    const bool has_filter = filter_len > 0;
 
     std::vector<TagLib::ID3v2::Frame*> matched;
-    if (mpeg->hasID3v2Tag()) {
+    if (mpeg->hasID3v2Tag() && (!has_filter || filter_len == 4)) {
         for (const auto& frame : mpeg->ID3v2Tag()->frameList()) {
             if (has_filter) {
                 TagLib::ByteVector id = frame->frameID();

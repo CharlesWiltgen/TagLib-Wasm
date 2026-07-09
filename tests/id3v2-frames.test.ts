@@ -67,4 +67,16 @@ describe("readId3v2FramesFromWasm (wasm-io boundary)", () => {
       UnsupportedFormatError,
     );
   });
+
+  it("a filter shorter than 4 chars matches nothing (no over-read)", async () => {
+    using wasi = await loadWasiHost({});
+    const buffer = await Deno.readFile(MP3_FIXTURE);
+    const tagged = writeTagsToWasm(
+      wasi,
+      buffer,
+      { title: "T" } as unknown as ExtendedTag,
+    );
+    assert(tagged);
+    assertEquals(readId3v2FramesFromWasm(wasi, tagged, "TP"), []);
+  });
 });
