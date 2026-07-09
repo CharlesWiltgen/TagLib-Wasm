@@ -39,6 +39,8 @@
 #include <shortenproperties.h>
 #include <matroskafile.h>
 #include <id3v2tag.h>
+#include <id3v2synchdata.h>
+#include <unknownframe.h>
 #include <attachedpictureframe.h>
 #include <popularimeterframe.h>
 #include <chapterframe.h>
@@ -1558,6 +1560,72 @@ public:
         }
     }
 
+    // Raw ID3v2 frames (taglib-b67, MP3 only). data = frame BODY bytes.
+    // idFilter "" = all frames. Writes construct UnknownFrame (byte-identity;
+    // deliberately NOT FrameFactory — see the taglib-b67 design spec).
+    val getId3v2Frames(const std::string& idFilter) const {
+        val frames = val::array();
+        if (!fileRef || !fileRef->file()) return frames;
+        auto* mpegFile = dynamic_cast<TagLib::MPEG::File*>(fileRef->file());
+        if (!mpegFile || !mpegFile->hasID3v2Tag()) return frames;
+
+        for (const auto& frame : mpegFile->ID3v2Tag()->frameList()) {
+            TagLib::ByteVector id = frame->frameID();
+            if (!idFilter.empty() &&
+                (id.size() != 4 ||
+                 std::memcmp(id.data(), idFilter.data(), 4) != 0)) {
+                continue;
+            }
+            TagLib::ByteVector rendered = frame->render();
+            TagLib::ByteVector body = rendered.mid(frame->headerSize());
+
+            unsigned int flags = 0;
+            if (rendered.size() >= 10) {
+                flags = (static_cast<unsigned char>(rendered[8]) << 8) |
+                        static_cast<unsigned char>(rendered[9]);
+            }
+
+            val obj = val::object();
+            obj.set("id", std::string(id.data(), id.size()));
+            obj.set("data", byteVectorToUint8Array(body));
+            obj.set("flags", flags);
+            frames.call<void>("push", obj);
+        }
+        return frames;
+    }
+
+    void setId3v2Frames(const std::string& id, const val& bodies) {
+        if (!fileRef || !fileRef->file() || id.size() != 4) return;
+        auto* mpegFile = dynamic_cast<TagLib::MPEG::File*>(fileRef->file());
+        if (!mpegFile) return;
+
+        TagLib::ByteVector idBv(id.data(), 4);
+        int length = bodies.isArray() ? bodies["length"].as<int>() : 0;
+
+        if (length == 0) {
+            if (mpegFile->hasID3v2Tag()) {
+                mpegFile->ID3v2Tag()->removeFrames(idBv);
+            }
+            return;
+        }
+
+        TagLib::ID3v2::Tag* tag = mpegFile->ID3v2Tag(true);
+        tag->removeFrames(idBv);
+        for (int i = 0; i < length; i++) {
+            TagLib::ByteVector body = uint8ArrayToByteVector(bodies[i]);
+            TagLib::ByteVector full;
+            full.append(idBv);
+            full.append(TagLib::ID3v2::SynchData::fromUInt(body.size()));
+            full.append(TagLib::ByteVector("\0\0", 2));  // zero flags (v1)
+            full.append(body);
+            tag->addFrame(new TagLib::ID3v2::UnknownFrame(full));
+        }
+    }
+
+    void removeId3v2Frames(const std::string& id) {
+        setId3v2Frames(id, val::array());
+    }
+
     // Explicitly destroy all resources
     void destroy() {
         // Reset unique_ptrs to release memory immediately
@@ -1598,6 +1666,9 @@ EMSCRIPTEN_BINDINGS(taglib) {
         .function("setIxml", &FileHandle::setIxml)
         .function("getRatings", &FileHandle::getRatings)
         .function("setRatings", &FileHandle::setRatings)
+        .function("getId3v2Frames", &FileHandle::getId3v2Frames)
+        .function("setId3v2Frames", &FileHandle::setId3v2Frames)
+        .function("removeId3v2Frames", &FileHandle::removeId3v2Frames)
         .function("hasId3Tags", &FileHandle::hasId3Tags)
         .function("stripId3Tags", &FileHandle::stripId3Tags)
         .function("destroy", &FileHandle::destroy);

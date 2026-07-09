@@ -198,7 +198,7 @@ describe("apply_id3v2_frames_from_msgpack (write contract)", () => {
 });
 
 // Extended to ["wasi", "emscripten"] when the Embind backend lands (Task 4).
-const BACKENDS = ["wasi"] as const;
+const BACKENDS = ["wasi", "emscripten"] as const;
 
 async function openMp3(backend: typeof BACKENDS[number]) {
   const taglib = await TagLib.initialize({ forceWasmType: backend });
