@@ -50,6 +50,7 @@
 #include "../src/capi/formats/taglib_lame.h"
 #include <memory>
 #include <string>
+#include <set>
 #include <vector>
 
 using namespace emscripten;
@@ -542,22 +543,34 @@ private:
     TagLib::offset_t position_;
 };
 
+// taglib-b67: MPEG::File::save()'s default Duplicate mode synchronizes
+// ID3v1<->ID3v2 through TagLib::Tag's typed getters/setters (title(),
+// artist(), ...), not through raw frame bytes. Each of these getters reads
+// exactly one ID3v2 frame ID (see id3v2tag.cpp title()/artist()/album()/
+// comment()/genre()/year()/track()). If a raw UnknownFrame is written to one
+// of these IDs, the typed getter can't decode it and reads back "" — and if
+// the paired ID3v1 field is also empty, the sync calls setTitle("") (etc.),
+// which ID3v2::Tag::setTextFrame() treats as "delete this frame" instead of
+// leaving the raw bytes alone. A raw write to any OTHER frame ID (PRIV,
+// RGAD, SYTC, ...) is invisible to Tag's typed interface and can never
+// trigger this, so only these IDs need the DoNotDuplicate escape hatch.
+static const std::set<std::string> ID3V1_MAPPED_FRAME_IDS = {
+    "TIT2", "TPE1", "TALB", "COMM", "TCON", "TDRC", "TRCK",
+};
+
 // Helper class to manage stream lifetime
 class FileHandle {
 private:
     std::unique_ptr<VectorStream> stream;
     std::unique_ptr<TagLib::FileRef> fileRef;
     std::unique_ptr<TagLib::File> file;
-    // taglib-b67: set once setId3v2Frames() writes a raw frame. MPEG::File::
-    // save()'s default Duplicate mode synchronizes ID3v1<->ID3v2 through the
-    // typed Tag::title()/setTitle() interface; for a frame ID with a typed
-    // counterpart (e.g. TIT2/title), a raw UnknownFrame reads back as "" via
-    // that interface, so the sync can call setTitle("") and silently delete
-    // the raw frame (ID3v2::Tag::setTextFrame drops the frame on an empty
-    // value). Saving with DoNotDuplicate once this handle has raw frames
-    // avoids that clobber; it only changes the ID3v1/ID3v2 sync behavior for
-    // handles that used the raw-frame API, not saves in general.
-    bool hasRawId3v2Frames = false;
+    // taglib-b67: frame IDs (from ID3V1_MAPPED_FRAME_IDS) currently holding a
+    // raw-written (UnknownFrame) value on this handle. Non-empty => save()
+    // must skip MPEG::File's default Duplicate sync (see comment above) to
+    // avoid it clobbering these frames; cleared per-ID once no raw frame
+    // remains under that ID, so unrelated raw writes (PRIV, RGAD, ...) and
+    // fully-removed raw writes don't disable normal ID3v1/ID3v2 sync.
+    std::set<std::string> rawMappedFrameIds;
 
 public:
     FileHandle() = default;
@@ -625,7 +638,7 @@ public:
     
     bool save() {
         if (!fileRef) return false;
-        if (hasRawId3v2Frames) {
+        if (!rawMappedFrameIds.empty()) {
             auto* mpegFile = dynamic_cast<TagLib::MPEG::File*>(fileRef->file());
             if (mpegFile) {
                 return mpegFile->save(TagLib::MPEG::File::AllTags,
@@ -1627,10 +1640,13 @@ public:
             if (mpegFile->hasID3v2Tag()) {
                 mpegFile->ID3v2Tag()->removeFrames(idBv);
             }
+            rawMappedFrameIds.erase(id);
             return;
         }
 
-        hasRawId3v2Frames = true;
+        if (ID3V1_MAPPED_FRAME_IDS.count(id)) {
+            rawMappedFrameIds.insert(id);
+        }
         TagLib::ID3v2::Tag* tag = mpegFile->ID3v2Tag(true);
         tag->removeFrames(idBv);
         for (int i = 0; i < length; i++) {

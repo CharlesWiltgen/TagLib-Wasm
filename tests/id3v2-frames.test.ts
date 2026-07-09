@@ -395,6 +395,63 @@ for (const backend of BACKENDS) {
     }
   });
 
+  Deno.test(`[${backend}] unrelated raw write does not disable ID3v1 title sync`, async () => {
+    const { taglib, file } = await openMp3(backend);
+    let out: Uint8Array;
+    try {
+      file.tag().setTitle("Sync Check");
+      file.setId3v2Frames("PRIV", [new Uint8Array([1, 2, 3])]);
+      file.save();
+      out = file.getFileBuffer();
+    } finally {
+      file.dispose();
+    }
+    const reopened = await taglib.open(out);
+    let v1Only: Uint8Array;
+    try {
+      reopened.stripId3Tags({ v1: false, v2: true });
+      reopened.save();
+      v1Only = reopened.getFileBuffer();
+    } finally {
+      reopened.dispose();
+    }
+    const v1File = await taglib.open(v1Only);
+    try {
+      assertEquals(v1File.tag().title, "Sync Check");
+    } finally {
+      v1File.dispose();
+    }
+  });
+
+  Deno.test(`[${backend}] removing all raw mapped frames restores ID3v1 sync`, async () => {
+    const { taglib, file } = await openMp3(backend);
+    let out: Uint8Array;
+    try {
+      file.setId3v2Frames("TIT2", [new Uint8Array([0x03, 0x58])]);
+      file.removeId3v2Frames("TIT2");
+      file.tag().setTitle("Restored Sync");
+      file.save();
+      out = file.getFileBuffer();
+    } finally {
+      file.dispose();
+    }
+    const reopened = await taglib.open(out);
+    let v1Only: Uint8Array;
+    try {
+      reopened.stripId3Tags({ v1: false, v2: true });
+      reopened.save();
+      v1Only = reopened.getFileBuffer();
+    } finally {
+      reopened.dispose();
+    }
+    const v1File = await taglib.open(v1Only);
+    try {
+      assertEquals(v1File.tag().title, "Restored Sync");
+    } finally {
+      v1File.dispose();
+    }
+  });
+
   Deno.test(`[${backend}] v2.3-sourced unknown frame survives load (implementation-phase pin)`, async () => {
     const taglib = await TagLib.initialize({ forceWasmType: backend });
     // Strip any existing tag first: use a tagless fixture as the audio body.
