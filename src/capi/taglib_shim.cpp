@@ -17,6 +17,7 @@
 #include "taglib_chapters.h"
 #include "taglib_bwf.h"
 #include "taglib_id3_strip.h"
+#include "taglib_id3v2_frames.h"
 #include "taglib_audio_props.h"
 #include "core/taglib_msgpack.h"
 #include "core/taglib_core.h"
@@ -593,6 +594,7 @@ static tl_error_code write_to_path(const char* path,
         apply_chapters_from_msgpack(ref.file(), tags_msgpack, tags_msgpack_len);
         apply_bwf_from_msgpack(ref.file(), tags_msgpack, tags_msgpack_len);
         apply_id3_strip_from_msgpack(ref.file(), tags_msgpack, tags_msgpack_len);
+        apply_id3v2_frames_from_msgpack(ref.file(), tags_msgpack, tags_msgpack_len);
 
         if (!ref.save()) return TL_ERROR_IO_WRITE;
         return TL_SUCCESS;
@@ -637,6 +639,7 @@ static tl_error_code write_to_buffer(const uint8_t* buf, size_t len,
         apply_chapters_from_msgpack(f, tags_msgpack, tags_msgpack_len);
         apply_bwf_from_msgpack(f, tags_msgpack, tags_msgpack_len);
         apply_id3_strip_from_msgpack(f, tags_msgpack, tags_msgpack_len);
+        apply_id3v2_frames_from_msgpack(f, tags_msgpack, tags_msgpack_len);
 
         if (!f->save()) return TL_ERROR_IO_WRITE;
 
