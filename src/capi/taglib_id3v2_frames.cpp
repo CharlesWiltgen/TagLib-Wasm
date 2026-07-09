@@ -99,6 +99,65 @@ static void apply_frame_set(TagLib::MPEG::File* mpeg, const char id[4],
     }
 }
 
+// Reads one `{frameId: [bin, ...]}` map entry and applies it (MP3 only; for
+// non-MP3 files the entry is still fully parsed so the reader stays in sync,
+// but application is skipped, matching the silent-skip idiom of other
+// modules). Returns TL_ERROR_PARSE_FAILED on malformed input; the caller is
+// responsible for destroying the reader and propagating the failure.
+static tl_error_code parse_one_frame_entry(mpack_reader_t* reader,
+                                            TagLib::MPEG::File* mpeg)
+{
+    uint32_t idlen = mpack_expect_str(reader);
+    if (mpack_reader_error(reader) != mpack_ok) return TL_SUCCESS;
+    char frame_id[5];
+    if (idlen != 4) return TL_ERROR_PARSE_FAILED;
+    mpack_read_bytes(reader, frame_id, 4);
+    mpack_done_str(reader);
+    frame_id[4] = '\0';
+
+    uint32_t body_count = mpack_expect_array(reader);
+    std::vector<TagLib::ByteVector> bodies;
+    bodies.reserve(body_count);
+    for (uint32_t k = 0; k < body_count; k++) {
+        uint32_t blen = mpack_expect_bin(reader);
+        if (mpack_reader_error(reader) != mpack_ok) break;
+        std::vector<char> body(blen);
+        if (blen > 0) mpack_read_bytes(reader, body.data(), blen);
+        mpack_done_bin(reader);
+        bodies.emplace_back(body.data(), static_cast<unsigned int>(blen));
+    }
+    mpack_done_array(reader);
+
+    if (mpeg) apply_frame_set(mpeg, frame_id, bodies);
+    return TL_SUCCESS;
+}
+
+// Parses the id3v2Frames value (a `{frameId: [bin, ...]}` map) and applies
+// each per-ID frame set to file. Non-MP3 files: still parses every entry
+// below to keep the reader in sync, but skips application, matching the
+// silent-skip idiom of other modules. Returns TL_ERROR_PARSE_FAILED on
+// malformed input; the caller is responsible for destroying the reader.
+static tl_error_code apply_id3v2_frames_map(mpack_reader_t* reader,
+                                             TagLib::File* file)
+{
+    auto* mpeg = dynamic_cast<TagLib::MPEG::File*>(file);
+    mpack_tag_t tag = mpack_peek_tag(reader);
+    if (tag.type != mpack_type_map) {
+        mpack_discard(reader);
+        return TL_SUCCESS;
+    }
+
+    uint32_t id_count = mpack_expect_map(reader);
+    for (uint32_t j = 0; j < id_count; j++) {
+        if (parse_one_frame_entry(reader, mpeg) != TL_SUCCESS) {
+            return TL_ERROR_PARSE_FAILED;
+        }
+        if (mpack_reader_error(reader) != mpack_ok) break;
+    }
+    mpack_done_map(reader);
+    return TL_SUCCESS;
+}
+
 tl_error_code apply_id3v2_frames_from_msgpack(
     TagLib::File* file, const uint8_t* data, size_t len)
 {
@@ -129,46 +188,10 @@ tl_error_code apply_id3v2_frames_from_msgpack(
             continue;
         }
         found = true;
-
-        auto* mpeg = dynamic_cast<TagLib::MPEG::File*>(file);
-        mpack_tag_t tag = mpack_peek_tag(&reader);
-        if (tag.type != mpack_type_map) {
-            mpack_discard(&reader);
-            continue;
+        if (apply_id3v2_frames_map(&reader, file) != TL_SUCCESS) {
+            mpack_reader_destroy(&reader);
+            return TL_ERROR_PARSE_FAILED;
         }
-
-        uint32_t id_count = mpack_expect_map(&reader);
-        for (uint32_t j = 0; j < id_count; j++) {
-            uint32_t idlen = mpack_expect_str(&reader);
-            if (mpack_reader_error(&reader) != mpack_ok) break;
-            char frame_id[5];
-            if (idlen != 4) {
-                mpack_reader_destroy(&reader);
-                return TL_ERROR_PARSE_FAILED;
-            }
-            mpack_read_bytes(&reader, frame_id, 4);
-            mpack_done_str(&reader);
-            frame_id[4] = '\0';
-
-            uint32_t body_count = mpack_expect_array(&reader);
-            std::vector<TagLib::ByteVector> bodies;
-            bodies.reserve(body_count);
-            for (uint32_t k = 0; k < body_count; k++) {
-                uint32_t blen = mpack_expect_bin(&reader);
-                if (mpack_reader_error(&reader) != mpack_ok) break;
-                std::vector<char> body(blen);
-                if (blen > 0) mpack_read_bytes(&reader, body.data(), blen);
-                mpack_done_bin(&reader);
-                bodies.emplace_back(body.data(),
-                                    static_cast<unsigned int>(blen));
-            }
-            mpack_done_array(&reader);
-
-            // Non-MP3 files: parse (to keep the reader in sync) but skip
-            // application, matching the silent-skip idiom of other modules.
-            if (mpeg) apply_frame_set(mpeg, frame_id, bodies);
-        }
-        mpack_done_map(&reader);
     }
 
     mpack_done_map(&reader);
