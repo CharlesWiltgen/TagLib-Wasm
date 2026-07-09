@@ -13,7 +13,25 @@
 
 #include <cstring>
 #include <memory>
+#include <set>
+#include <string>
 #include <vector>
+
+// taglib-b67: MPEG::File::save()'s default Duplicate mode synchronizes
+// ID3v1<->ID3v2 through TagLib::Tag's typed getters/setters (title(),
+// artist(), ...), not through raw frame bytes. Each of these getters reads
+// exactly one ID3v2 frame ID (see id3v2tag.cpp title()/artist()/album()/
+// comment()/genre()/year()/track()). If a raw UnknownFrame is written to one
+// of these IDs, the typed getter can't decode it and reads back "" — and if
+// the paired ID3v1 field is also empty, the sync calls setTitle("") (etc.),
+// which ID3v2::Tag::setTextFrame() treats as "delete this frame" instead of
+// leaving the raw bytes alone. A raw write to any OTHER frame ID (PRIV,
+// RGAD, SYTC, ...) is invisible to Tag's typed interface and can never
+// trigger this, so only these IDs need the DoNotDuplicate escape hatch.
+// Twin of ID3V1_MAPPED_FRAME_IDS in build/taglib_embind.cpp — keep in sync.
+static const std::set<std::string> ID3V1_MAPPED_FRAME_IDS = {
+    "TIT2", "TPE1", "TALB", "COMM", "TCON", "TDRC", "TRCK",
+};
 
 // v2.4 frame header layout: bytes 0-3 ID, 4-7 syncsafe size, 8-9 flags.
 static uint16_t frame_flags(const TagLib::ByteVector& rendered) {
@@ -80,12 +98,17 @@ tl_error_code read_id3v2_frames_to_msgpack(
 }
 
 static void apply_frame_set(TagLib::MPEG::File* mpeg, const char id[4],
-                            const std::vector<TagLib::ByteVector>& bodies)
+                            const std::vector<TagLib::ByteVector>& bodies,
+                            bool* out_needs_no_duplicate)
 {
     TagLib::ByteVector idBv(id, 4);
     if (bodies.empty()) {
         if (mpeg->hasID3v2Tag()) mpeg->ID3v2Tag()->removeFrames(idBv);
         return;
+    }
+    if (out_needs_no_duplicate &&
+        ID3V1_MAPPED_FRAME_IDS.count(std::string(id, 4))) {
+        *out_needs_no_duplicate = true;
     }
     TagLib::ID3v2::Tag* tag = mpeg->ID3v2Tag(true);
     tag->removeFrames(idBv);
@@ -105,7 +128,8 @@ static void apply_frame_set(TagLib::MPEG::File* mpeg, const char id[4],
 // modules). Returns TL_ERROR_PARSE_FAILED on malformed input; the caller is
 // responsible for destroying the reader and propagating the failure.
 static tl_error_code parse_one_frame_entry(mpack_reader_t* reader,
-                                            TagLib::MPEG::File* mpeg)
+                                            TagLib::MPEG::File* mpeg,
+                                            bool* out_needs_no_duplicate)
 {
     uint32_t idlen = mpack_expect_str(reader);
     if (mpack_reader_error(reader) != mpack_ok) return TL_SUCCESS;
@@ -128,7 +152,7 @@ static tl_error_code parse_one_frame_entry(mpack_reader_t* reader,
     }
     mpack_done_array(reader);
 
-    if (mpeg) apply_frame_set(mpeg, frame_id, bodies);
+    if (mpeg) apply_frame_set(mpeg, frame_id, bodies, out_needs_no_duplicate);
     return TL_SUCCESS;
 }
 
@@ -138,7 +162,8 @@ static tl_error_code parse_one_frame_entry(mpack_reader_t* reader,
 // silent-skip idiom of other modules. Returns TL_ERROR_PARSE_FAILED on
 // malformed input; the caller is responsible for destroying the reader.
 static tl_error_code apply_id3v2_frames_map(mpack_reader_t* reader,
-                                             TagLib::File* file)
+                                             TagLib::File* file,
+                                             bool* out_needs_no_duplicate)
 {
     auto* mpeg = dynamic_cast<TagLib::MPEG::File*>(file);
     mpack_tag_t tag = mpack_peek_tag(reader);
@@ -149,7 +174,8 @@ static tl_error_code apply_id3v2_frames_map(mpack_reader_t* reader,
 
     uint32_t id_count = mpack_expect_map(reader);
     for (uint32_t j = 0; j < id_count; j++) {
-        if (parse_one_frame_entry(reader, mpeg) != TL_SUCCESS) {
+        if (parse_one_frame_entry(reader, mpeg, out_needs_no_duplicate) !=
+            TL_SUCCESS) {
             return TL_ERROR_PARSE_FAILED;
         }
         if (mpack_reader_error(reader) != mpack_ok) break;
@@ -159,8 +185,10 @@ static tl_error_code apply_id3v2_frames_map(mpack_reader_t* reader,
 }
 
 tl_error_code apply_id3v2_frames_from_msgpack(
-    TagLib::File* file, const uint8_t* data, size_t len)
+    TagLib::File* file, const uint8_t* data, size_t len,
+    bool* out_needs_no_duplicate)
 {
+    if (out_needs_no_duplicate) *out_needs_no_duplicate = false;
     mpack_reader_t reader;
     mpack_reader_init_data(&reader, reinterpret_cast<const char*>(data), len);
 
@@ -188,7 +216,8 @@ tl_error_code apply_id3v2_frames_from_msgpack(
             continue;
         }
         found = true;
-        if (apply_id3v2_frames_map(&reader, file) != TL_SUCCESS) {
+        if (apply_id3v2_frames_map(&reader, file, out_needs_no_duplicate) !=
+            TL_SUCCESS) {
             mpack_reader_destroy(&reader);
             return TL_ERROR_PARSE_FAILED;
         }

@@ -594,9 +594,24 @@ static tl_error_code write_to_path(const char* path,
         apply_chapters_from_msgpack(ref.file(), tags_msgpack, tags_msgpack_len);
         apply_bwf_from_msgpack(ref.file(), tags_msgpack, tags_msgpack_len);
         apply_id3_strip_from_msgpack(ref.file(), tags_msgpack, tags_msgpack_len);
-        apply_id3v2_frames_from_msgpack(ref.file(), tags_msgpack, tags_msgpack_len);
+        // Raw id3v2Frames apply runs after propmap/strip so a raw write always
+        // wins over a same-save typed write to the same ID (see I3 spec note).
+        bool needs_no_duplicate = false;
+        apply_id3v2_frames_from_msgpack(ref.file(), tags_msgpack,
+                                         tags_msgpack_len, &needs_no_duplicate);
 
-        if (!ref.save()) return TL_ERROR_IO_WRITE;
+        // taglib-b67 (C1): a raw write to an ID3v1-mapped frame ID must skip
+        // MPEG::File's default Duplicate sync, which would otherwise clobber
+        // it via the typed ID3v1<->ID3v2 field mirroring (see
+        // ID3V1_MAPPED_FRAME_IDS in taglib_id3v2_frames.cpp).
+        auto* mpeg = needs_no_duplicate
+            ? dynamic_cast<TagLib::MPEG::File*>(ref.file())
+            : nullptr;
+        const bool saved = mpeg
+            ? mpeg->save(TagLib::MPEG::File::AllTags, TagLib::File::StripOthers,
+                        TagLib::ID3v2::v4, TagLib::File::DoNotDuplicate)
+            : ref.save();
+        if (!saved) return TL_ERROR_IO_WRITE;
         return TL_SUCCESS;
     } catch (...) {
         return TL_ERROR_PARSE_FAILED;
@@ -639,9 +654,21 @@ static tl_error_code write_to_buffer(const uint8_t* buf, size_t len,
         apply_chapters_from_msgpack(f, tags_msgpack, tags_msgpack_len);
         apply_bwf_from_msgpack(f, tags_msgpack, tags_msgpack_len);
         apply_id3_strip_from_msgpack(f, tags_msgpack, tags_msgpack_len);
-        apply_id3v2_frames_from_msgpack(f, tags_msgpack, tags_msgpack_len);
+        // Raw id3v2Frames apply runs after propmap/strip so a raw write always
+        // wins over a same-save typed write to the same ID (see I3 spec note).
+        bool needs_no_duplicate = false;
+        apply_id3v2_frames_from_msgpack(f, tags_msgpack, tags_msgpack_len,
+                                         &needs_no_duplicate);
 
-        if (!f->save()) return TL_ERROR_IO_WRITE;
+        // taglib-b67 (C1): see write_to_path for why this bypasses the
+        // default Duplicate save mode.
+        auto* mpeg = needs_no_duplicate ? dynamic_cast<TagLib::MPEG::File*>(f)
+                                        : nullptr;
+        const bool saved = mpeg
+            ? mpeg->save(TagLib::MPEG::File::AllTags, TagLib::File::StripOthers,
+                        TagLib::ID3v2::v4, TagLib::File::DoNotDuplicate)
+            : f->save();
+        if (!saved) return TL_ERROR_IO_WRITE;
 
         const TagLib::ByteVector* result = stream.data();
         *out_size = result->size();

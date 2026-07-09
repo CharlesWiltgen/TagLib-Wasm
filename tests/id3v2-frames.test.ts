@@ -395,6 +395,39 @@ for (const backend of BACKENDS) {
     }
   });
 
+  Deno.test(`[${backend}] raw COMM write survives save when the typed comment is empty (C1)`, async () => {
+    const { taglib, file } = await openMp3(backend);
+    // kiss-snippet.mp3 ships with comment == "" (no COMM frame), the exact
+    // condition that let MPEG::File's default Duplicate sync clobber a raw
+    // write via ID3v1<->ID3v2 comment mirroring before the C1 fix.
+    // Body must be a syntactically valid COMM payload (encoding + 3-byte
+    // language + description + \0 + text) — TagLib's frame factory
+    // reconstructs a CommentsFrame from these bytes on reopen, so an
+    // arbitrary/malformed body would legitimately reparse differently.
+    const body = new Uint8Array([
+      0x00,
+      ...new TextEncoder().encode("eng"),
+      0x00,
+      ...new TextEncoder().encode("Raw Comment"),
+    ]);
+    let out: Uint8Array;
+    try {
+      file.setId3v2Frames("COMM", [body]);
+      file.save();
+      out = file.getFileBuffer();
+    } finally {
+      file.dispose();
+    }
+    const reopened = await taglib.open(out);
+    try {
+      const frames = reopened.getId3v2Frames("COMM");
+      assertEquals(frames.length, 1);
+      assertEquals([...frames[0].data], [...body]);
+    } finally {
+      reopened.dispose();
+    }
+  });
+
   Deno.test(`[${backend}] unrelated raw write does not disable ID3v1 title sync`, async () => {
     const { taglib, file } = await openMp3(backend);
     let out: Uint8Array;
