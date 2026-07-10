@@ -41,8 +41,9 @@ import { checkNodeVersion } from "./detector.ts";
  * // Force WASI mode (Deno/Node.js only)
  * const module = await loadTagLibModule({ forceWasmType: "wasi" });
  *
- * // With custom WASM binary
- * const wasmData = await fetch("taglib.wasm").then(r => r.arrayBuffer());
+ * // With custom WASM binary (selects the Emscripten backend; the bytes
+ * // must be its artifact, taglib-web.wasm)
+ * const wasmData = await fetch("taglib-web.wasm").then(r => r.arrayBuffer());
  * const module = await loadTagLibModule({ wasmBinary: wasmData });
  * ```
  *
@@ -59,6 +60,15 @@ export async function loadTagLibModule(
   const versionError = checkNodeVersion(nodeVersion);
   if (versionError) {
     throw new EnvironmentError("Node.js", versionError, "WASI support");
+  }
+
+  if (options?.forceWasmType === "wasi" && options?.wasmBinary) {
+    throw new TagLibInitializationError(
+      "wasmBinary is not supported by the WASI backend: it loads from a " +
+        "filesystem path or URL. Use wasmUrl, or omit forceWasmType to " +
+        "use the Emscripten backend",
+      { forceWasmType: "wasi" },
+    );
   }
 
   if (

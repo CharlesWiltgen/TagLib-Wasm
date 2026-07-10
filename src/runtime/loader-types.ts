@@ -9,8 +9,11 @@
  */
 export interface LoadTagLibOptions {
   /**
-   * Optional pre-loaded WASM binary data.
-   * If provided, this will be used instead of fetching from network.
+   * Optional pre-loaded Wasm binary data (Emscripten backend only).
+   * If provided, it is used instead of fetching from network, and auto mode
+   * selects the Emscripten backend deterministically. Combining with
+   * `forceWasmType: "wasi"` throws — the WASI backend loads from a
+   * filesystem path or URL; use `wasmUrl` for that backend.
    */
   wasmBinary?: ArrayBuffer | Uint8Array;
 

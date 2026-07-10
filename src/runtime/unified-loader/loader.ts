@@ -2,12 +2,22 @@ import { detectRuntime, type RuntimeDetectionResult } from "../detector.ts";
 import type { WasiModule } from "../wasmer-sdk-loader/types.ts";
 import type { TagLibModule } from "../../wasm.ts";
 import type { UnifiedLoaderOptions, UnifiedTagLibModule } from "./types.ts";
+import { ModuleLoadError } from "./types.ts";
 import { selectWasmType } from "./module-selection.ts";
 import { loadModule } from "./module-loading.ts";
 
 export async function loadUnifiedTagLibModule(
   options: UnifiedLoaderOptions = {},
 ): Promise<UnifiedTagLibModule> {
+  if (options.forceWasmType === "wasi" && options.wasmBinary) {
+    throw new ModuleLoadError(
+      "wasmBinary is not supported by the WASI backend: it loads from a " +
+        "filesystem path or URL. Use wasmUrl, or omit forceWasmType to " +
+        "select the Emscripten backend",
+      "wasi",
+    );
+  }
+
   const startTime = performance.now();
   const runtime = detectRuntime();
 

@@ -30,7 +30,10 @@ export interface UnifiedLoaderOptions {
   forceWasmType?: "wasi" | "emscripten";
   /** Disable optimizations for debugging */
   disableOptimizations?: boolean;
-  /** Custom WASM binary path or data */
+  /**
+   * Pre-loaded Wasm binary (Emscripten backend only; auto mode selects
+   * Emscripten when set, and forcing "wasi" with it throws — use wasmUrl).
+   */
   wasmBinary?: ArrayBuffer | Uint8Array;
   /** Custom WASM URL */
   wasmUrl?: string;

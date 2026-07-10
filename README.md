@@ -114,6 +114,10 @@ const wasmBinary = await Deno.readFile(
 const taglib = await TagLib.initialize({ wasmBinary });
 ```
 
+Supplying `wasmBinary` selects the Emscripten backend (the bytes above are
+`taglib-web.wasm`, its artifact). The WASI backend loads from a filesystem
+path or URL instead — use `wasmUrl` with it.
+
 ## Quick Start
 
 > **Import paths:** Deno uses `@charlesw/taglib-wasm`, npm uses `taglib-wasm`.

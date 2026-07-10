@@ -128,6 +128,31 @@ describe("Unified loader", () => {
     }
   });
 
+  it("selects Emscripten deterministically when wasmBinary is supplied in auto mode (taglib-pbz)", async () => {
+    // The README offline pattern: bytes in, no forceWasmType. The WASI host
+    // cannot consume bytes, so selection must route to Emscripten — not pick
+    // WASI and silently ignore the caller's binary.
+    const wasmBinary = await Deno.readFile(
+      new URL("../build/taglib-web.wasm", import.meta.url),
+    );
+    const module = await loadUnifiedTagLibModule({ wasmBinary });
+    assertEquals(module.isEmscripten, true);
+    assertEquals(module.isWasi, false);
+    assertExists(module.createFileHandle);
+  });
+
+  it("rejects wasmBinary combined with forceWasmType 'wasi' (taglib-pbz)", async () => {
+    await assertRejects(
+      () =>
+        loadUnifiedTagLibModule({
+          forceWasmType: "wasi",
+          wasmBinary: new Uint8Array([1, 2, 3]),
+        }),
+      ModuleLoadError,
+      "wasmBinary",
+    );
+  });
+
   it("rejects a failing load when WASI is forced (no silent Emscripten fallback)", async () => {
     // Auto mode may fall back gracefully; an explicit forceWasmType "wasi"
     // must fail loudly instead of serving the other backend (taglib-3o4).
@@ -156,6 +181,18 @@ describe("Main API", () => {
         }),
       TagLibInitializationError,
       "WASI",
+    );
+  });
+
+  it("rejects wasmBinary + forceWasmType 'wasi' at the public API (taglib-pbz)", async () => {
+    await assertRejects(
+      () =>
+        loadTagLibModule({
+          forceWasmType: "wasi",
+          wasmBinary: new Uint8Array([1, 2, 3]),
+        }),
+      TagLibInitializationError,
+      "wasmBinary",
     );
   });
 

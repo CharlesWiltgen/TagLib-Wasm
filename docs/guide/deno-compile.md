@@ -174,6 +174,11 @@ async function initializeTagLib(): Promise<TagLib> {
 const taglib = await initializeTagLib();
 ```
 
+> **Note:** supplying `wasmBinary` selects the Emscripten backend, which is
+> why these strategies embed `taglib-web.wasm`. The WASI backend loads from a
+> filesystem path or URL (`wasmUrl`); combining `wasmBinary` with
+> `forceWasmType: "wasi"` throws.
+
 ## Complete Production Example
 
 Here's a production-ready implementation with error handling:

@@ -9,6 +9,13 @@ export function selectWasmType(
     return options.forceWasmType;
   }
 
+  // wasmBinary is Emscripten-only: the WASI host loads from a path/URL and
+  // would silently ignore supplied bytes (taglib-pbz). Route deterministically
+  // so the documented offline pattern never depends on fallback accidents.
+  if (options.wasmBinary) {
+    return "emscripten";
+  }
+
   if (options.disableOptimizations) {
     return "emscripten";
   }
