@@ -733,8 +733,9 @@ static async initialize(options?: {
 // Default initialization (auto-detects best backend)
 const taglib = await TagLib.initialize();
 
-// With pre-loaded WASM binary (for offline usage)
-const wasmBinary = await fetch("taglib.wasm").then((r) => r.arrayBuffer());
+// With pre-loaded WASM binary (for offline usage; selects the Emscripten
+// backend, so fetch its artifact, taglib-web.wasm)
+const wasmBinary = await fetch("taglib-web.wasm").then((r) => r.arrayBuffer());
 const taglib = await TagLib.initialize({ wasmBinary });
 
 // With custom WASM URL
@@ -1315,9 +1316,9 @@ file.save();
 
 #### Raw ID3v2 Frame Methods (MP3 only)
 
-Escape hatch for reading/writing raw ID3v2 frame bodies by frame ID — for
-vendor or unmodeled frames (`RGAD`, `NCON`, `SYTC`, custom `TXXX`, …) that
-have no dedicated `AudioFile` method.
+Escape hatch for reading/writing raw ID3v2 frame bodies by frame ID — for vendor
+or unmodeled frames (`RGAD`, `NCON`, `SYTC`, custom `TXXX`, …) that have no
+dedicated `AudioFile` method.
 
 ##### getId3v2Frames()
 
@@ -1330,8 +1331,8 @@ getId3v2Frames(id?: string): Id3v2Frame[]
 
 ##### setId3v2Frames()
 
-Replace ALL frames carrying `id` with the given bodies. An empty array
-removes them all.
+Replace ALL frames carrying `id` with the given bodies. An empty array removes
+them all.
 
 ```typescript
 setId3v2Frames(id: string, data: Uint8Array[]): void
@@ -1345,19 +1346,19 @@ Remove every frame with this ID. Equivalent to `setId3v2Frames(id, [])`.
 removeId3v2Frames(id: string): void
 ```
 
-`data` is the frame body without the 10-byte header — the caller owns the
-body encoding. Bytes round-trip verbatim for frames TagLib does not model.
-For TagLib-modeled IDs (`TIT2`, `APIC`, …): typed getters see a raw write
-only after save+reload; bytes may be normalized by later saves after that
-reload; and raw reads reflect persisted state plus pending raw writes — not
-pending typed edits (backend-dependent). A typed write to the same ID as an
-existing raw write is silently ignored until that raw frame is removed or the
-file is saved and reloaded — raw writes always win within a save. Frames with
+`data` is the frame body without the 10-byte header — the caller owns the body
+encoding. Bytes round-trip verbatim for frames TagLib does not model. For
+TagLib-modeled IDs (`TIT2`, `APIC`, …): typed getters see a raw write only after
+save+reload; bytes may be normalized by later saves after that reload; and raw
+reads reflect persisted state plus pending raw writes — not pending typed edits
+(backend-dependent). A typed write to the same ID as an existing raw write is
+silently ignored until that raw frame is removed or the file is saved and
+reloaded — raw writes always win within a save. Frames with
 compression/encryption flags are not supported for write (writes emit zero
 flags). `Id3v2Frame.flags` exists for forward compatibility, but reads never
-populate it today — TagLib always blanks header flags when re-rendering a
-frame. On both backends, a raw write to an ID3v1-mapped frame ID (`TIT2`,
-`TPE1`, `TALB`, `COMM`, `TCON`, `TDRC`, `TRCK`) suspends the usual ID3v1↔ID3v2
+populate it today — TagLib always blanks header flags when re-rendering a frame.
+On both backends, a raw write to an ID3v1-mapped frame ID (`TIT2`, `TPE1`,
+`TALB`, `COMM`, `TCON`, `TDRC`, `TRCK`) suspends the usual ID3v1↔ID3v2
 duplicate-sync on `save()` until that raw frame is removed.
 
 ```typescript
@@ -1700,8 +1701,8 @@ interface UnsyncedLyrics {
 
 #### Id3v2Frame
 
-A raw ID3v2 frame, as read/written via `getId3v2Frames()` / `setId3v2Frames()`
-/ `removeId3v2Frames()`.
+A raw ID3v2 frame, as read/written via `getId3v2Frames()` / `setId3v2Frames()` /
+`removeId3v2Frames()`.
 
 ```typescript
 interface Id3v2Frame {
@@ -1838,6 +1839,12 @@ interface LoadTagLibOptions {
   disableOptimizations?: boolean; // default false
 }
 ```
+
+`wasmBinary` is Emscripten-only: supplying it selects the Emscripten backend in
+auto mode, and combining it with `forceWasmType: "wasi"` throws — the WASI
+backend loads from a filesystem path or URL, so use `wasmUrl` with it. When a
+`forceWasmType` choice fails to load, initialization throws rather than silently
+serving the other backend.
 
 #### TagLibErrorCode
 
