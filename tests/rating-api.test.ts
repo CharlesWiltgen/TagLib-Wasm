@@ -6,6 +6,7 @@
 import { describe, it } from "@std/testing/bdd";
 import { assertEquals, assertExists } from "@std/assert";
 import { TagLib } from "../src/taglib.ts";
+import { RatingUtils } from "../src/utils/rating.ts";
 import type { Rating } from "../src/constants/complex-properties.ts";
 
 // Test file paths
@@ -70,6 +71,10 @@ describe("RatingAPI", () => {
     assertEquals(typeof rating, "number");
     // POPM mapping: 0.6 -> 128 (3 stars) -> 0.6
     assertEquals(rating >= 0.55 && rating <= 0.65, true);
+
+    // Branded return: the documented getRating -> RatingUtils pairing must
+    // typecheck without a manual normalized() wrap (docs preflight 2026-07-16)
+    assertEquals(RatingUtils.toStars(rating), 3);
 
     file.dispose();
   });

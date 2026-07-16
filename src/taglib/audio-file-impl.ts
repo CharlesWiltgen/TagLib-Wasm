@@ -27,6 +27,7 @@ import {
 } from "../errors.ts";
 import { writeFileData } from "../utils/write.ts";
 import { getNodeFsSync } from "../utils/node-fs.ts";
+import { normalized, type NormalizedRating } from "../utils/rating.ts";
 import { isDeno } from "../runtime/detector.ts";
 import type { AudioFile } from "./audio-file-interface.ts";
 import { BaseAudioFileImpl } from "./audio-file-base.ts";
@@ -316,9 +317,9 @@ export class AudioFileImpl extends BaseAudioFileImpl implements AudioFile {
     })));
   }
 
-  getRating(): number | undefined {
+  getRating(): NormalizedRating | undefined {
     const ratings = this.getRatings();
-    return ratings.length > 0 ? ratings[0].rating : undefined;
+    return ratings.length > 0 ? normalized(ratings[0].rating) : undefined;
   }
 
   setRating(rating: number, email?: string): void {

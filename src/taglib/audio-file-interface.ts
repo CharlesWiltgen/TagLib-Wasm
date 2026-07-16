@@ -12,6 +12,7 @@ import type {
 } from "../constants/complex-properties.ts";
 import type { MutableTag } from "./mutable-tag.ts";
 import type { FormatPropertyKey } from "../types/format-property-keys.ts";
+import type { NormalizedRating } from "../utils/rating.ts";
 
 /**
  * Represents an audio file with metadata and audio properties.
@@ -143,8 +144,8 @@ export interface AudioFile {
   /** Set ratings in the audio file (replaces all existing). */
   setRatings(ratings: Rating[]): void;
 
-  /** Get the primary rating (first one found), or undefined. */
-  getRating(): number | undefined;
+  /** Get the primary rating (first one found, normalized 0.0-1.0), or undefined. */
+  getRating(): NormalizedRating | undefined;
 
   /** Set the primary rating (normalized 0.0-1.0). */
   setRating(rating: number, email?: string): void;
