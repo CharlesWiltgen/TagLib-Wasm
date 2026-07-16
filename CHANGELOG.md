@@ -1,5 +1,30 @@
 # Changelog
 
+## 1.5.2
+
+### Fixes
+
+- **Emscripten backend: resizable-heap posture rolled back.** The toolchain is
+  now pinned to Emscripten 6.0.3, whose `GROWABLE_ARRAYBUFFERS` default was
+  reverted to off upstream after Web API compatibility issues — and which also
+  fixed an upstream `UTF8ToString` bug on resizable heaps. Builds since 1.4.1
+  had the resizable heap auto-enabled (6.0.2 default with
+  `ALLOW_MEMORY_GROWTH`), putting both issues in the string-decoding hot path
+  once the wasm heap grew. Memory growth returns to copy-on-grow (the
+  pre-1.4.1 behavior); the WASI backend is unaffected. A regression test now
+  forces heap growth past the initial 16MB and round-trips multibyte tags on
+  both backends.
+
+### Internal
+
+- CI: `bun-version` pinned to 1.3.14 in the Package Compatibility job —
+  `latest` resolved tags via a GitHub API call from the runner on every run,
+  which intermittently returned 503.
+- Repository history was rewritten to remove editor settings and an internal
+  planning document; all commit SHAs changed. Existing clones and forks must
+  be re-cloned (published npm/JSR packages and GitHub Releases are
+  unaffected).
+
 ## 1.5.1
 
 ### Fixes
