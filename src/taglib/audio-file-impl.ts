@@ -97,6 +97,9 @@ export class AudioFileImpl extends BaseAudioFileImpl implements AudioFile {
     }
 
     this.cachedAudioProperties = null;
+    // taglib-a6c: drop the path-mode cache — save() rewrites the file on
+    // disk, so a pre-save snapshot would be served as stale post-save data
+    this.pathModeBuffer = null;
     return this.handle.save();
   }
 
@@ -117,6 +120,7 @@ export class AudioFileImpl extends BaseAudioFileImpl implements AudioFile {
           "read",
           `Cannot return file data: ${errorMessage(error)}`,
           this.sourcePath,
+          { cause: error },
         );
       }
     }
@@ -181,6 +185,9 @@ export class AudioFileImpl extends BaseAudioFileImpl implements AudioFile {
         await writeFileData(targetPath, buffer);
       }
     }
+    // taglib-a6c: the saveViaFreshHandle branches may have rewritten the
+    // source on disk; a pre-save snapshot must not survive any save path
+    this.pathModeBuffer = null;
   }
 
   getPictures(): Picture[] {

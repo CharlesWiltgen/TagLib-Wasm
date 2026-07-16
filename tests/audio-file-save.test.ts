@@ -83,22 +83,62 @@ describe("AudioFileImpl.getFileBuffer()", () => {
     for (const backend of ["wasi", "emscripten"] as const) {
       const tl = await TagLib.initialize({ forceWasmType: backend });
       const srcPath = await Deno.makeTempFile({ suffix: ".mp3" });
-      await Deno.writeFile(srcPath, original);
-      const file = await tl.open(srcPath);
       try {
-        await Deno.remove(srcPath); // source vanishes after open
-        if (backend === "wasi") {
-          assertThrows(
-            () => file.getFileBuffer(),
-            FileOperationError,
-            srcPath,
-          );
-        } else {
-          const buf = file.getFileBuffer();
-          assert(buf.length > 0, "emscripten must serve in-memory bytes");
+        await Deno.writeFile(srcPath, original);
+        const file = await tl.open(srcPath);
+        try {
+          await Deno.remove(srcPath); // source vanishes after open
+          if (backend === "wasi") {
+            assertThrows(
+              () => file.getFileBuffer(),
+              FileOperationError,
+              srcPath,
+            );
+          } else {
+            const buf = file.getFileBuffer();
+            assert(buf.length > 0, "emscripten must serve in-memory bytes");
+          }
+        } finally {
+          file.dispose();
         }
       } finally {
-        file.dispose();
+        await Deno.remove(srcPath).catch(() => {});
+      }
+    }
+  });
+
+  // Regression: taglib-a6c — pathModeBuffer cached pre-save bytes forever, so
+  // calling getFileBuffer() before save() made every post-save call return the
+  // STALE pre-save file on WASI path-mode. Consumers writing that buffer back
+  // to disk silently reverted their just-saved edits. Emscripten serves live
+  // in-memory bytes; both backends must reflect the edit after save().
+  it("returns post-save bytes when getFileBuffer() was called before save() (taglib-a6c)", async () => {
+    const original = await Deno.readFile(FIXTURE_PATH.mp3);
+    for (const backend of ["wasi", "emscripten"] as const) {
+      const tl = await TagLib.initialize({ forceWasmType: backend });
+      const srcPath = await Deno.makeTempFile({ suffix: ".mp3" });
+      try {
+        await Deno.writeFile(srcPath, original);
+        const file = await tl.open(srcPath);
+        try {
+          file.getFileBuffer(); // primes the path-mode cache pre-save
+          file.tag().setTitle("A6C Fresh Title");
+          file.save();
+          const after = new Uint8Array(file.getFileBuffer());
+          const reopened = await tl.open(after);
+          try {
+            assertEquals(
+              reopened.tag().title,
+              "A6C Fresh Title",
+              `${backend}: post-save getFileBuffer() returned stale bytes`,
+            );
+          } finally {
+            reopened.dispose();
+          }
+        } finally {
+          file.dispose();
+        }
+      } finally {
         await Deno.remove(srcPath).catch(() => {});
       }
     }
