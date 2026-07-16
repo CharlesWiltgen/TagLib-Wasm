@@ -51,6 +51,15 @@ function browserRedirectPlugin() {
     export function _resetPlatformIO() {}
   `;
 
+  // node:fs never exists in browsers; stubbing also keeps the legacy
+  // new Function("return require(...)") fallback source out of browser
+  // bundles, which strict-CSP consumers (e.g. MV3 extensions) reject.
+  const nodeFsStub = `
+    export function getNodeFsSync() {
+      return null;
+    }
+  `;
+
   return {
     name: "browser-redirect",
     setup(build) {
@@ -83,6 +92,21 @@ function browserRedirectPlugin() {
       build.onLoad(
         { filter: /platform-io-browser-stub/, namespace: "browser-stub" },
         () => ({ contents: platformIOStub, loader: "ts" }),
+      );
+
+      build.onResolve({ filter: /node-fs\.ts$/ }, (args) => {
+        if (args.importer) {
+          return {
+            path: "node-fs-browser-stub",
+            namespace: "browser-stub",
+          };
+        }
+        return undefined;
+      });
+
+      build.onLoad(
+        { filter: /node-fs-browser-stub/, namespace: "browser-stub" },
+        () => ({ contents: nodeFsStub, loader: "ts" }),
       );
     },
   };
