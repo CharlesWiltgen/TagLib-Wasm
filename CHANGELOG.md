@@ -1,5 +1,57 @@
 # Changelog
 
+## 1.5.1
+
+### Fixes
+
+- **Windows: all drives now preopen on Node.js and Electron** (#24). The
+  loader's drive detection used `new Function("return require('node:fs')")()`,
+  which evaluates in the global scope where `require` never exists in standard
+  module files (ESM _or_ CJS) — so only `C:\` was registered as a WASI preopen
+  and files on other drives failed with error `-4`. node:fs is now acquired via
+  `process.getBuiltinModule("node:fs")` (Node ≥ 20.16 / Electron ≥ 32), with
+  the legacy hack kept only for global-`require` contexts.
+- **`getFileBuffer()` no longer silently returns wrong data** — two data-loss
+  vectors closed. On WASI path-mode it returned an **empty** buffer when the
+  disk read-back failed (e.g. source moved/deleted), and a **stale pre-save**
+  buffer when it had been called before `save()`/`saveToFile()`; consumers
+  writing the returned buffer back to disk would truncate or revert their
+  files. Read failures now throw `FileOperationError` (with the source path),
+  and the path-mode cache is invalidated on every save path.
+- `getRating()` now returns the branded `NormalizedRating` type, so the
+  documented `RatingUtils` pairing (`toStars(file.getRating()!)`) type-checks.
+  Type-level only — the value is still a plain number at runtime, and the
+  branded type remains assignable to `number`.
+
+### Internal
+
+- Browser bundles (`index.browser.js`, `simple.browser.js`) no longer contain
+  `new Function` source — strict-CSP consumers (e.g. MV3 extensions) reject it.
+- Deno detection deduplicated behind a shared `isDeno()`.
+- Docs: `getFileBuffer()`'s throw contract documented (API reference,
+  troubleshooting, AGENTS.md); nine stale code examples fixed via a
+  type-checked docs preflight.
+
+## 1.5.0
+
+### Features
+
+- **Raw ID3v2 frame API** (MP3): `getId3v2Frames(id?)`, `setId3v2Frames(id,
+  bodies)`, `removeId3v2Frames(id)` — an escape hatch for vendor/rare frames
+  (RGAD, NCON, custom TXXX, …) with byte round-trip fidelity and cross-backend
+  parity.
+
+### Fixes
+
+- `wasmBinary` is deterministic: Emscripten-only, and never silently ignored
+  when another backend is selected.
+- `forceWasmType: "wasi"` fails loudly when the WASI backend cannot load
+  instead of silently falling back to Emscripten.
+- Raw ID3v2 frame correctness: MPEG `save()` no longer clobbers raw-written
+  typed-ID frames; the ID3v1 duplicate-sync gate is scoped to raw-written
+  mapped frame IDs and mirrored into the WASI save path; staged frame bodies
+  are copied on WASI reads.
+
 ## 1.4.3
 
 ### Fixes
