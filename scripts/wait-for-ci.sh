@@ -69,7 +69,31 @@ if [ -z "$RUN_ID" ]; then
 fi
 
 echo "Inspecting per-job results for run ${RUN_ID}..."
-JOBS_JSON=$(gh run view "$RUN_ID" --json jobs)
+# The jobs endpoint 503s intermittently; an API read error must never be
+# conflated with a CI failure. Retry, then fall back to the run-level
+# conclusion: success implies every leg passed (strictly stronger than the
+# per-leg gate); anything else fails closed since flaky legs can't be
+# classified without the job list.
+JOBS_JSON=""
+for attempt in 1 2 3 4 5; do
+    if JOBS_JSON=$(gh run view "$RUN_ID" --json jobs 2>/dev/null); then
+        break
+    fi
+    JOBS_JSON=""
+    echo "  ⚠ jobs API unavailable (attempt ${attempt}/5), retrying in ${INTERVAL}s..."
+    sleep "$INTERVAL"
+done
+
+if [ -z "$JOBS_JSON" ]; then
+    CONCLUSION=$(gh run view "$RUN_ID" --json conclusion -q .conclusion 2>/dev/null || echo "unknown")
+    if [ "$CONCLUSION" = "success" ]; then
+        echo "⚠ Per-job inspection unavailable; run-level conclusion is success."
+        echo "✅ All CI jobs passed for ${COMMIT_SHA} (run-level fallback)"
+        exit 0
+    fi
+    echo "❌ Jobs API unavailable and run-level conclusion is '${CONCLUSION}' — failing closed."
+    exit 1
+fi
 
 FAILED_REQUIRED=()
 FAILED_FLAKY=()
