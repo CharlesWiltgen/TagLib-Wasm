@@ -72,6 +72,37 @@ describe("AudioFileImpl.getFileBuffer()", () => {
       file.dispose();
     }
   });
+
+  // Regression: taglib-0sv — WASI path-mode swallowed disk-read failures
+  // (ENOENT after the source vanished) into an EMPTY buffer, which docs tell
+  // consumers to write back to disk — truncating their file. Read failures
+  // must throw; Emscripten holds the bytes in memory, so deletion of the
+  // source is irrelevant there. Same scenario on both backends (parity).
+  it("surfaces disk-read failures instead of returning an empty buffer (taglib-0sv)", async () => {
+    const original = await Deno.readFile(FIXTURE_PATH.mp3);
+    for (const backend of ["wasi", "emscripten"] as const) {
+      const tl = await TagLib.initialize({ forceWasmType: backend });
+      const srcPath = await Deno.makeTempFile({ suffix: ".mp3" });
+      await Deno.writeFile(srcPath, original);
+      const file = await tl.open(srcPath);
+      try {
+        await Deno.remove(srcPath); // source vanishes after open
+        if (backend === "wasi") {
+          assertThrows(
+            () => file.getFileBuffer(),
+            FileOperationError,
+            srcPath,
+          );
+        } else {
+          const buf = file.getFileBuffer();
+          assert(buf.length > 0, "emscripten must serve in-memory bytes");
+        }
+      } finally {
+        file.dispose();
+        await Deno.remove(srcPath).catch(() => {});
+      }
+    }
+  });
 });
 
 describe("AudioFileImpl.saveToFile()", () => {

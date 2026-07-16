@@ -69,7 +69,11 @@ export interface AudioFile {
   /** Save all changes to the in-memory buffer. */
   save(): boolean;
 
-  /** Get the current file data as a buffer, including any modifications. */
+  /**
+   * Get the current file data as a buffer, including any modifications.
+   * @throws {FileOperationError} If the data lives on disk (WASI path mode)
+   * and cannot be read back — never returns an empty buffer on failure.
+   */
   getFileBuffer(): Uint8Array;
 
   /**

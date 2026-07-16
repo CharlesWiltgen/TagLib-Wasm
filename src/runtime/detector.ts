@@ -83,7 +83,8 @@ function isNode(): boolean {
     (g.process as any).versions?.node !== undefined;
 }
 
-function isDeno(): boolean {
+/** Shared Deno-runtime check — do not hand-roll `typeof Deno` tests (taglib-rfr). */
+export function isDeno(): boolean {
   return g.Deno !== undefined;
 }
 

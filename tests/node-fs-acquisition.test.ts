@@ -14,9 +14,12 @@ import {
   assertEquals,
   assertStrictEquals,
   assertStringIncludes,
+  assertThrows,
 } from "@std/assert";
 import { getNodeFsSync } from "../src/utils/node-fs.ts";
 import { getPreopens } from "../src/runtime/unified-loader/module-loading.ts";
+import { readFileSync } from "../src/taglib/audio-file-impl.ts";
+import { FileOperationError } from "../src/errors.ts";
 
 const g = globalThis as Record<string, unknown>;
 
@@ -189,5 +192,31 @@ describe("getPreopens", () => {
     }
     assertEquals(warnings.length, 1);
     assertStringIncludes(warnings[0], "drive detection unavailable");
+  });
+});
+
+describe("readFileSync", () => {
+  it("reads file bytes through an acquired node:fs in a module context", () => {
+    const expectedBytes = new Uint8Array([1, 2, 3]);
+    const fakeFs = {
+      statSync(): void {},
+      readFileSync: () => expectedBytes,
+    };
+    withFakeNodeRuntime(fakeWindowsProcess(fakeFs), () => {
+      assertEquals(readFileSync("/music/song.mp3"), expectedBytes);
+    });
+  });
+
+  // Regression: taglib-0sv — an unavailable node:fs silently produced an
+  // empty buffer instead of an error, feeding the getFileBuffer() data-loss
+  // vector. It must throw with the path in the message.
+  it("throws FileOperationError with the path when node:fs is unavailable (taglib-0sv)", () => {
+    withFakeNodeRuntime({ platform: "win32" }, () => {
+      assertThrows(
+        () => readFileSync("/music/song.mp3"),
+        FileOperationError,
+        "/music/song.mp3",
+      );
+    });
   });
 });

@@ -20,14 +20,17 @@ import {
   assertMp3,
   toPublicFrame,
 } from "./id3v2-frames.ts";
-import { FileOperationError, UnsupportedFormatError } from "../errors.ts";
+import {
+  errorMessage,
+  FileOperationError,
+  UnsupportedFormatError,
+} from "../errors.ts";
 import { writeFileData } from "../utils/write.ts";
-import { getNodeFsSync, type NodeFsLike } from "../utils/node-fs.ts";
+import { getNodeFsSync } from "../utils/node-fs.ts";
+import { isDeno } from "../runtime/detector.ts";
 import type { AudioFile } from "./audio-file-interface.ts";
 import { BaseAudioFileImpl } from "./audio-file-base.ts";
 import { saveViaFreshHandle } from "./save-reconstruct.ts";
-
-let _nodeFs: NodeFsLike | null | undefined;
 
 function sortChapters<T extends { startTimeMs: number }>(
   list: readonly T[],
@@ -46,14 +49,16 @@ function inferEndTimeMs(
   return next ? next.startTimeMs : trackEndMs;
 }
 
-function readFileSync(path: string): Uint8Array {
-  if (typeof Deno !== "undefined") return Deno.readFileSync(path);
-  if (_nodeFs === undefined) {
-    // Cached at module level; getNodeFsSync works in ESM and CJS (GH #24)
-    _nodeFs = getNodeFsSync();
-  }
-  if (_nodeFs) return new Uint8Array(_nodeFs.readFileSync(path));
-  return new Uint8Array(0);
+/** @internal Exported for unit tests (tests/node-fs-acquisition.test.ts). */
+export function readFileSync(path: string): Uint8Array {
+  if (isDeno()) return Deno.readFileSync(path);
+  const fs = getNodeFsSync();
+  if (fs) return new Uint8Array(fs.readFileSync(path));
+  throw new FileOperationError(
+    "read",
+    "node:fs is unavailable in this runtime: cannot read file data from disk",
+    path,
+  );
 }
 
 /**
@@ -101,14 +106,24 @@ export class AudioFileImpl extends BaseAudioFileImpl implements AudioFile {
     // Path-mode WASI: file data lives on disk, not in memory.
     if (this.pathModeBuffer) return this.pathModeBuffer;
     if (this.sourcePath) {
+      // taglib-0sv: never swallow read failures into an empty buffer —
+      // consumers write the result back to disk, truncating their file.
       try {
         this.pathModeBuffer = readFileSync(this.sourcePath);
         return this.pathModeBuffer;
-      } catch {
-        return new Uint8Array(0);
+      } catch (error) {
+        if (error instanceof FileOperationError) throw error;
+        throw new FileOperationError(
+          "read",
+          `Cannot return file data: ${errorMessage(error)}`,
+          this.sourcePath,
+        );
       }
     }
-    return new Uint8Array(0);
+    throw new FileOperationError(
+      "read",
+      "No file data available: in-memory buffer is empty and no source path is set",
+    );
   }
 
   async saveToFile(path?: string): Promise<void> {
