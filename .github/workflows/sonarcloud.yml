@@ -25,7 +25,7 @@ jobs:
       - name: Setup Emscripten
         uses: mymindstorm/setup-emsdk@v14
         with:
-          version: 6.0.2
+          version: 6.0.3
 
       - name: Build Wasm
         run: deno task build:wasm
