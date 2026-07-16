@@ -5,6 +5,7 @@ import type { LoadModuleResult, UnifiedLoaderOptions } from "./types.ts";
 import { ModuleLoadError } from "./types.ts";
 import { errorMessage } from "../../errors/classes.ts";
 import { fileUrlToPath } from "../../utils/path.ts";
+import { getNodeFsSync } from "../../utils/node-fs.ts";
 
 function isWindows(): boolean {
   return typeof Deno !== "undefined"
@@ -17,19 +18,27 @@ function isWindows(): boolean {
     : false;
 }
 
-function getPreopens(): Record<string, string> {
+/** @internal Exported for unit tests (tests/node-fs-acquisition.test.ts). */
+export function getPreopens(): Record<string, string> {
   if (!isWindows()) return { "/": "/" };
+  // Acquire fs ONCE, outside the loop: the per-drive catch must only swallow
+  // stat failures, or a broken fs acquisition silently skips every drive (GH #24)
+  const statSync = typeof Deno !== "undefined"
+    ? Deno.statSync
+    : getNodeFsSync()?.statSync;
+  if (!statSync) {
+    console.warn(
+      "[taglib-wasm] Windows drive detection unavailable: node:fs could not " +
+        "be loaded. Only C:\\ is registered as a WASI preopen.",
+    );
+    return { "/C": "C:\\" };
+  }
   // Map each drive letter to a virtual path so WASI can access any drive
   const preopens: Record<string, string> = {};
   for (const letter of "CDEFGHIJKLMNOPQRSTUVWXYZAB") {
     const root = `${letter}:\\`;
     try {
-      if (typeof Deno !== "undefined") {
-        Deno.statSync(root);
-      } else {
-        const fs = new Function("return require('node:fs')")();
-        fs.statSync(root);
-      }
+      statSync(root);
       preopens[`/${letter}`] = root;
     } catch {
       // Drive doesn't exist

@@ -22,11 +22,12 @@ import {
 } from "./id3v2-frames.ts";
 import { FileOperationError, UnsupportedFormatError } from "../errors.ts";
 import { writeFileData } from "../utils/write.ts";
+import { getNodeFsSync, type NodeFsLike } from "../utils/node-fs.ts";
 import type { AudioFile } from "./audio-file-interface.ts";
 import { BaseAudioFileImpl } from "./audio-file-base.ts";
 import { saveViaFreshHandle } from "./save-reconstruct.ts";
 
-let _nodeFs: { readFileSync(path: string): Uint8Array } | null | undefined;
+let _nodeFs: NodeFsLike | null | undefined;
 
 function sortChapters<T extends { startTimeMs: number }>(
   list: readonly T[],
@@ -48,13 +49,8 @@ function inferEndTimeMs(
 function readFileSync(path: string): Uint8Array {
   if (typeof Deno !== "undefined") return Deno.readFileSync(path);
   if (_nodeFs === undefined) {
-    try {
-      // Dynamic import cached at module level. Uses Function constructor
-      // to hide from bundlers that would try to resolve "node:fs".
-      _nodeFs = new Function("return require('node:fs')")();
-    } catch {
-      _nodeFs = null;
-    }
+    // Cached at module level; getNodeFsSync works in ESM and CJS (GH #24)
+    _nodeFs = getNodeFsSync();
   }
   if (_nodeFs) return new Uint8Array(_nodeFs.readFileSync(path));
   return new Uint8Array(0);
