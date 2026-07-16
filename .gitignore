@@ -40,9 +40,7 @@ cov_profile/
 .worktrees/
 
 # IDE
-.vscode/*
-!.vscode/settings.json
-!.vscode/extensions.json
+.vscode/
 .vscode-test
 .claude/
 .githooks/
