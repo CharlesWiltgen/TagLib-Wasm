@@ -66,11 +66,13 @@ async function processAlbum(albumFiles: string[]) {
     concurrency: 8, // Process 8 tracks simultaneously
   });
 
-  return metadata.items.map(({ data }) => ({
-    title: data.tags.title?.[0],
-    duration: data.properties?.duration,
-    hasCoverArt: data.hasCoverArt,
-  }));
+  return metadata.items
+    .filter((item) => item.status === "ok")
+    .map(({ data }) => ({
+      title: data.tags.title?.[0],
+      duration: data.properties?.duration,
+      hasCoverArt: data.hasCoverArt,
+    }));
 }
 ```
 
@@ -544,7 +546,7 @@ For processing complete albums, use batch operations for maximum performance:
 ```typescript
 import { readMetadataBatch } from "taglib-wasm/simple";
 import { readdir } from "fs/promises";
-import { join } from "path";
+import { basename, join } from "path";
 
 async function processAlbum(albumPath: string) {
   // Get all audio files
@@ -565,10 +567,12 @@ async function processAlbum(albumPath: string) {
     totalDuration: 0,
     averageBitrate: 0,
     hasCompleteCoverArt: true,
-    tracks: [],
+    tracks: [] as Record<string, unknown>[],
   };
 
-  for (const { path: filePath, data } of result.items) {
+  for (const item of result.items) {
+    if (item.status !== "ok") continue; // narrow the ok/error union
+    const { path: filePath, data } = item;
     if (data.properties) {
       albumData.totalDuration += data.properties.duration || 0;
       albumData.averageBitrate += data.properties.bitrate || 0;
@@ -579,7 +583,7 @@ async function processAlbum(albumPath: string) {
     }
 
     albumData.tracks.push({
-      file: path.basename(filePath),
+      file: basename(filePath),
       ...data.tags,
       duration: data.properties?.duration,
       bitrate: data.properties?.bitrate,
@@ -1040,16 +1044,17 @@ async function analyzeAlbum(albumPath: string) {
     concurrency: 8,
   });
 
-  // Extract insights
+  // Extract insights (narrow the ok/error union first)
+  const okItems = results.items.filter((r) => r.status === "ok");
   const analysis = {
     totalTracks: results.items.length,
-    totalDuration: results.items.reduce(
+    totalDuration: okItems.reduce(
       (sum, r) => sum + (r.data.properties?.duration || 0),
       0,
     ),
-    missingCoverArt: results.items.filter((r) => !r.data.hasCoverArt).length,
+    missingCoverArt: okItems.filter((r) => !r.data.hasCoverArt).length,
     needsNormalization:
-      results.items.filter((r) => !r.data.dynamics?.replayGainTrackGain)
+      okItems.filter((r) => !r.data.dynamics?.replayGainTrackGain)
         .length,
   };
 

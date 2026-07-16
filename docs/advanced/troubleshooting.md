@@ -698,7 +698,13 @@ now, the universal build ensures maximum compatibility.
 
 **A**: TagLib-Wasm operates entirely in memory for security and compatibility.
 Use `file.getFileBuffer()` and write the result to disk using your platform's
-file API.
+file API. (Files opened from a path on the WASI backend are the exception:
+there `save()` writes directly to the source path.)
+
+Note that `getFileBuffer()` throws `FileOperationError` if the data lives on
+disk (WASI path mode) and cannot be read back — it never returns an empty
+buffer on failure. If you catch that error after calling `save()`, the save
+itself has already been written to disk; only the read-back failed.
 
 ### Q: How do I handle non-ASCII characters?
 

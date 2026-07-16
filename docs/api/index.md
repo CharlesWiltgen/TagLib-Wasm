@@ -1551,6 +1551,15 @@ getFileBuffer(): Uint8Array
 
 Returns the complete audio file with any modifications.
 
+###### Throws
+
+- `FileOperationError`: If the file was opened from a path on the WASI backend
+  (path mode) and the data cannot be read back from disk — for example, the
+  source file was moved or deleted after opening. The buffer is never silently
+  empty on failure. Note that when combined with `save()`, the save has already
+  written to disk before this read-back — a caught error does not mean the file
+  is untouched.
+
 ##### dispose()
 
 Clean up resources and free memory.

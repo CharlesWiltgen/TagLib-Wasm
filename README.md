@@ -210,8 +210,9 @@ console.log(
   } files`,
 );
 
-// Process results
+// Process results (narrow the ok/error union first)
 for (const file of result.items) {
+  if (file.status !== "ok") continue;
   console.log(
     `${file.path}: ${file.tags.artist?.[0]} - ${file.tags.title?.[0]}`,
   );
@@ -333,6 +334,7 @@ using file = await taglib.open("song.mp3");
 
 // Escape hatch: read/write raw ID3v2 frame bytes by ID (MP3 only)
 const frames = file.getId3v2Frames("TXXX"); // [{ id, data, flags? }]
+const rgadBody = new Uint8Array([/* raw frame body bytes */]);
 file.setId3v2Frames("RGAD", [rgadBody]); // replaces ALL RGAD frames
 file.removeId3v2Frames("NCON"); // removes every NCON frame
 file.save();

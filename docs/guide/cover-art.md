@@ -44,6 +44,7 @@ Special utilities for web applications:
 
 ```typescript
 import { pictureToDataURL, setCoverArtFromCanvas } from "taglib-wasm/web";
+import { readPictures } from "taglib-wasm/simple";
 
 // Display cover art in browser
 const pictures = await readPictures("song.mp3");

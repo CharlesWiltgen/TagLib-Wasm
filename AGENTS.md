@@ -5,9 +5,9 @@ Works in Deno, Node.js, Bun, browsers, and Cloudflare Workers.
 
 ## Install
 
-```typescript
-npm install taglib-wasm           // Node.js / Bun
-import ... from "jsr:@charlesw/taglib-wasm"  // Deno (preferred)
+```text
+npm install taglib-wasm           # Node.js / Bun
+import ... from "jsr:@charlesw/taglib-wasm"  # Deno (preferred)
 ```
 
 ## Quick Start
@@ -132,8 +132,9 @@ tag.setYear(2024);
 tag.setDate("1975-10-31"); // `year` resyncs to the leading year. `setDate("")` clears both date and year.
 tag.setTrack(5);
 
-// Audio properties
+// Audio properties (can be undefined — guard before dereferencing)
 const props = audioFile.audioProperties();
+if (!props) throw new Error("No audio properties");
 props.duration;
 props.bitrate;
 props.sampleRate;
@@ -146,7 +147,7 @@ props.bitrateMode; // "CBR" | "VBR" | "ABR" | undefined (MP3 only)
 
 // Save
 audioFile.save(); // Returns boolean
-const buffer = audioFile.getFileBuffer(); // Get modified data
+const buffer = audioFile.getFileBuffer(); // Get modified data (throws FileOperationError if WASI path-mode read-back fails — never returns empty on failure)
 
 // Convenience methods (open + edit + save + dispose in one call)
 await taglib.edit("song.mp3", (file) => {
@@ -178,18 +179,16 @@ audioFile.setChapters([]); // clears all chapters
 
 // BWF bext + iXML (WAV/FLAC only); throws UnsupportedFormatError otherwise
 audioFile.getBext(); // BroadcastAudioExtension | undefined (parsed EBU 3285 chunk)
-audioFile.setBext({
-  description: "Take 1",
-  version: 2,
-  loudnessValueDb: -16,
-  /* ... */
-});
+// setBext takes a complete BroadcastAudioExtension — read-modify-write:
+const bext = audioFile.getBext();
+if (bext) audioFile.setBext({ ...bext, description: "Take 1" });
 audioFile.getBextData(); // raw bext bytes | undefined; setBextData(null) removes
 audioFile.getIxml(); // raw iXML string | undefined; setIxml(null) removes
 // Also: import { bwf } from "taglib-wasm"; bwf.decodeBext(rawBytes) / bwf.encodeBext(obj)
 
 // Raw ID3v2 frames (escape hatch, MP3 only): { id, data, flags? }[]
 audioFile.getId3v2Frames("TXXX"); // every frame with this ID
+const rgadBody = new Uint8Array([/* raw frame body bytes */]);
 audioFile.setId3v2Frames("RGAD", [rgadBody]); // replaces ALL frames with this ID
 audioFile.removeId3v2Frames("NCON"); // = setId3v2Frames("NCON", [])
 // data excludes the 10-byte frame header; bytes round-trip verbatim for

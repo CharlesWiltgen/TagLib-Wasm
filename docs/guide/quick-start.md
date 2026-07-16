@@ -142,23 +142,23 @@ constant:
 import { PROPERTIES } from "taglib-wasm";
 
 // Access property metadata
-const titleProp = PROPERTIES.TITLE;
+const titleProp = PROPERTIES.title;
 console.log(titleProp.description); // "The title of the track"
 console.log(titleProp.supportedFormats); // ["ID3v2", "MP4", "Vorbis", "WAV"]
 
 // Read properties with type safety
-const title = file.getProperty(PROPERTIES.TITLE.key);
-const albumArtist = file.getProperty(PROPERTIES.ALBUMARTIST.key);
+const title = file.getProperty(PROPERTIES.title.key);
+const albumArtist = file.getProperty(PROPERTIES.albumArtist.key);
 
 // Write properties
-file.setProperty(PROPERTIES.TITLE.key, "My Song");
-file.setProperty(PROPERTIES.BPM.key, "120");
+file.setProperty(PROPERTIES.title.key, "My Song");
+file.setProperty(PROPERTIES.bpm.key, "120");
 
 // Set multiple properties
 file.setProperties({
-  [PROPERTIES.TITLE.key]: ["My Song"],
-  [PROPERTIES.ALBUMARTIST.key]: ["Various Artists"],
-  [PROPERTIES.BPM.key]: ["120"],
+  [PROPERTIES.title.key]: ["My Song"],
+  [PROPERTIES.albumArtist.key]: ["Various Artists"],
+  [PROPERTIES.bpm.key]: ["120"],
 });
 ```
 

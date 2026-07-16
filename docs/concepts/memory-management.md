@@ -82,12 +82,14 @@ const audioFiles = await Promise.all(
 
 ### 3. Monitor Memory Usage
 
+The Wasm heap is internal, so monitor at the runtime level instead:
+
 ```typescript
-// Check Wasm heap usage (if available)
-if (taglib.module.HEAP8) {
-  const heapMB = taglib.module.HEAP8.byteLength / 1024 / 1024;
-  console.log(`Wasm heap: ${heapMB.toFixed(1)}MB`);
-}
+// Node.js / Bun
+const { heapUsed, rss } = process.memoryUsage();
+console.log(`Heap: ${(heapUsed / 1024 / 1024).toFixed(1)}MB`);
+
+// Deno: Deno.memoryUsage() returns the same shape
 ```
 
 ## Memory Limits
@@ -176,11 +178,15 @@ async function processMusicLibrary(files: string[]) {
       console.log(`${file}: ${tags.artist} - ${tags.title}`);
     }));
 
-    // Optional: Log memory usage after each batch
-    if (taglib.module.HEAP8) {
-      const heapMB = taglib.module.HEAP8.byteLength / 1024 / 1024;
-      console.log(`Batch ${i / batchSize + 1}: Heap ${heapMB.toFixed(1)}MB`);
-    }
+    console.log(
+      `Batch ${i / batchSize + 1} of ${
+        Math.ceil(files.length / batchSize)
+      } complete`,
+    );
   }
 }
 ```
+
+> **Note**: The Wasm heap is internal — there is no public API for inspecting
+> it. Rely on `using` (or `dispose()`) per file, as above, to keep memory flat;
+> the runtime reclaims Wasm memory as handles are disposed.

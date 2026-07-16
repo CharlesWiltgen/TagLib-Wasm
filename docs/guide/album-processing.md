@@ -110,7 +110,9 @@ async function analyzeAlbum(albumPath: string): Promise<AlbumAnalysis> {
   let totalBitrate = 0;
   const formats = new Set<string>();
 
-  for (const { path, data } of result.items) {
+  for (const item of result.items) {
+    if (item.status !== "ok") continue; // narrow the ok/error union
+    const { path, data } = item;
     // Extract album-level data from first track
     if (albumData.albumName === "" && data.tags.album?.[0]) {
       albumData.albumName = data.tags.album[0];
