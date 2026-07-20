@@ -1,19 +1,11 @@
 import { assertEquals } from "@std/assert";
-import { afterEach, describe, it } from "@std/testing/bdd";
+import { describe, it } from "@std/testing/bdd";
 import {
-  _clearRuntimeOverride,
-  _forceRuntime,
-  _getDetectionResult,
   canLoadWasmType,
   detectRuntime,
   getEnvironmentDescription,
   supportsExnref,
 } from "../src/runtime/detector.ts";
-import type { RuntimeDetectionResult } from "../src/runtime/detector.ts";
-
-afterEach(() => {
-  _clearRuntimeOverride();
-});
 
 describe("detectRuntime", () => {
   it("should detect deno-wasi in Deno environment", () => {
@@ -91,41 +83,5 @@ describe("supportsExnref", () => {
 
   it("should return true in Deno (supports exnref natively)", () => {
     assertEquals(supportsExnref(), true);
-  });
-});
-
-describe("_forceRuntime / _getDetectionResult", () => {
-  it("should override detection result", () => {
-    const override: RuntimeDetectionResult = {
-      environment: "browser",
-      wasmType: "emscripten",
-      supportsFilesystem: false,
-      supportsStreaming: true,
-      performanceTier: 2,
-    };
-
-    _forceRuntime(override);
-    const result = _getDetectionResult();
-    assertEquals(result.environment, "browser");
-    assertEquals(result.wasmType, "emscripten");
-  });
-
-  it("should return real detection after clearing", () => {
-    _forceRuntime({
-      environment: "cloudflare",
-      wasmType: "emscripten",
-      supportsFilesystem: false,
-      supportsStreaming: false,
-      performanceTier: 3,
-    });
-
-    _clearRuntimeOverride();
-    const result = _getDetectionResult();
-    assertEquals(result.environment, "deno-wasi");
-  });
-
-  it("should return real detection when no override set", () => {
-    const result = _getDetectionResult();
-    assertEquals(result.environment, "deno-wasi");
   });
 });

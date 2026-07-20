@@ -219,19 +219,3 @@ export function canLoadWasmType(wasmType: WasmBinaryType): boolean {
   }
   return true;
 }
-
-/** @internal */
-export function _forceRuntime(result: RuntimeDetectionResult): void {
-  (globalThis as any).__taglib_wasm_runtime_override = result;
-}
-
-/** @internal */
-export function _clearRuntimeOverride(): void {
-  delete (globalThis as any).__taglib_wasm_runtime_override;
-}
-
-/** @internal */
-export function _getDetectionResult(): RuntimeDetectionResult {
-  const override = (globalThis as any).__taglib_wasm_runtime_override;
-  return override || detectRuntime();
-}
