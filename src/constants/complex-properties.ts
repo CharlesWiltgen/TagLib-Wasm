@@ -3,18 +3,22 @@
  * These are properties that contain multiple fields and cannot be
  * represented as simple string values.
  *
+ * These constants describe the shape of each complex property. Values are read
+ * and written through dedicated typed accessors, not a generic property call.
+ *
  * @example
  * ```typescript
- * import { COMPLEX_PROPERTIES, COMPLEX_PROPERTY_KEY, Rating } from 'taglib-wasm';
+ * import type { Rating } from 'taglib-wasm';
  *
- * // Type-safe property access
- * const ratings = file.getComplexProperty(COMPLEX_PROPERTY_KEY.RATING);
+ * // Read via the typed accessor
+ * const ratings = file.getRatings();
  * console.log(ratings[0].rating); // 0.0-1.0 normalized
  *
  * // Set a rating
- * file.setComplexProperty(COMPLEX_PROPERTY_KEY.RATING, [
- *   { rating: 0.8, email: "user@example.com" }
- * ]);
+ * file.setRating(0.8, "user@example.com");
+ *
+ * // Or replace the full list
+ * file.setRatings([{ rating: 0.8, email: "user@example.com" }]);
  * ```
  */
 
@@ -80,13 +84,15 @@ export type VariantMap = Record<string, unknown>;
 
 /**
  * Type map linking complex property keys to their value types.
- * Enables type-safe generic methods for getComplexProperty/setComplexProperty.
+ *
+ * This is a descriptive type map, not the accessor surface — each complex
+ * property is reached through its own typed method:
  *
  * @example
  * ```typescript
- * // TypeScript knows the return type based on key
- * const ratings = file.getComplexProperty("RATING"); // Rating[]
- * const pictures = file.getComplexProperty("PICTURE"); // Picture[]
+ * const ratings = file.getRatings(); // Rating[]
+ * const pictures = file.getPictures(); // Picture[]
+ * const chapters = file.getChapters(); // Chapter[]
  * ```
  *
  * Consumers can extend via module augmentation:
@@ -179,8 +185,8 @@ export type ComplexPropertyKeyMap = {
  *
  * @example
  * ```typescript
- * // Instead of: file.getComplexProperty(COMPLEX_PROPERTIES.RATING.key)
- * file.getComplexProperty(COMPLEX_PROPERTY_KEY.RATING);
+ * // Instead of: COMPLEX_PROPERTIES.RATING.key
+ * COMPLEX_PROPERTY_KEY.RATING; // "RATING"
  * ```
  */
 export const COMPLEX_PROPERTY_KEY: ComplexPropertyKeyMap = {

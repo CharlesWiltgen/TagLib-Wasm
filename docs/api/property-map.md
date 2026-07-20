@@ -198,29 +198,6 @@ propertyMap["ACOUSTID_FINGERPRINT"] = TagLib::StringList(fingerprint);
 file->setProperties(propertyMap);
 ```
 
-## 🚧 Current Implementation Status
-
-### ✅ Completed
-
-- **Type Definitions**: Complete `ExtendedTag` interface
-- **Mapping Configuration**: Full `METADATA_MAPPINGS` for all formats
-- **API Design**: Format-agnostic method signatures
-- **Documentation**: Complete usage examples and reference
-
-### 🚧 In Progress
-
-- **C++ PropertyMap Integration**: Requires additional C++ wrapper functions
-- **Format-Specific Writers**: Need C++ functions for advanced field writing
-- **Format-Specific Readers**: Need C++ functions for advanced field reading
-
-### 📋 Next Steps
-
-1. **Extend C++ Wrapper**: Add PropertyMap access functions
-2. **Implement Field Writers**: Format-specific writing logic
-3. **Implement Field Readers**: Format-specific reading logic
-4. **Add Wasm Exports**: Export new C++ functions to JavaScript
-5. **Complete TypeScript Integration**: Wire up API methods to C++ calls
-
 ## 🎯 Benefits
 
 ### For Developers
