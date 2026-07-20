@@ -30,11 +30,11 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Check wasm binaries track lib/taglib
+      - name: Check wasm binaries track their sources
         env:
           BASE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
         run: |
-          set -euo pipefail
+          set -uo pipefail
           # Empty/zero BASE_SHA means a new branch or force-push with no usable
           # base — nothing to diff against, so skip rather than fail open loudly.
           if [ -z "$BASE_SHA" ] || [ "$BASE_SHA" = "0000000000000000000000000000000000000000" ]; then
@@ -42,21 +42,68 @@ jobs:
             exit 0
           fi
           CHANGED=$(git diff --name-only "$BASE_SHA"..HEAD)
-          if ! grep -qx 'lib/taglib' <<<"$CHANGED"; then
-            echo "lib/taglib unchanged; nothing to check."
-            exit 0
-          fi
-          echo "lib/taglib moved in this range; both wasm binaries must be rebuilt."
-          MISSING=""
-          for w in build/taglib-web.wasm build/taglib-wasi.wasm; do
-            grep -qx "$w" <<<"$CHANGED" || MISSING="$MISSING $w"
-          done
-          if [ -n "$MISSING" ]; then
-            echo "::error::lib/taglib changed but these were not rebuilt:$MISSING"
-            echo "Run 'deno task build:wasm' (builds both backends) and commit the result."
+
+          # Shell glob patterns, not regex: `case` avoids grep dialect
+          # differences entirely. In a case pattern `*` spans `/`, so
+          # 'src/capi/*' covers nested paths, while the bare 'lib/taglib'
+          # matches the submodule gitlink exactly and never lib/taglib-*.
+          changed_has() {
+            local target="$1" f
+            while IFS= read -r f; do
+              [ "$f" = "$target" ] && return 0
+            done <<<"$CHANGED"
+            return 1
+          }
+
+          FAIL=0
+          # check_backend <label> <binary> <input glob>...
+          #
+          # Input sets are exactly what each script compiles, verified against
+          # the scripts: build-wasi.sh builds all of src/capi (SRC_DIR) plus
+          # lib/mpack; build-wasm.sh builds only build/taglib_embind.cpp and
+          # src/capi/formats/taglib_lame.cpp. Emscripten deliberately does NOT
+          # list all of src/capi — the WASI shim is not linked into it, and
+          # requiring a web rebuild for WASI-only edits would fire on ~6% of
+          # commits and train people to ignore this gate.
+          #
+          # The build scripts themselves are deliberately excluded: edits to
+          # them often change emcc flags, glue JS, or guard logic without
+          # changing wasm bytes, so demanding a rebuild produces false alarms.
+          check_backend() {
+            local name="$1" binary="$2"; shift 2
+            local patterns=("$@") f pat hits=""
+            while IFS= read -r f; do
+              [ -z "$f" ] && continue
+              for pat in "${patterns[@]}"; do
+                case "$f" in
+                  $pat) hits="${hits}    ${f}"$'\n'; break ;;
+                esac
+              done
+            done <<<"$CHANGED"
+            if [ -z "$hits" ]; then
+              echo "  $name: inputs unchanged"
+              return
+            fi
+            if changed_has "$binary"; then
+              echo "  $name: inputs changed, $binary rebuilt"
+              return
+            fi
+            echo "::error::$name inputs changed but $binary was not rebuilt."
+            echo "  Changed inputs:"
+            printf '%s' "$hits"
+            FAIL=1
+          }
+
+          check_backend "WASI" build/taglib-wasi.wasm \
+            'lib/taglib' 'lib/mpack' 'src/capi/*'
+          check_backend "Emscripten" build/taglib-web.wasm \
+            'lib/taglib' 'build/taglib_embind.cpp' 'src/capi/formats/*'
+
+          if [ "$FAIL" -ne 0 ]; then
+            echo "Rebuild with 'deno task build:wasm' (both backends) or the"
+            echo "per-backend task, then commit the updated binary."
             exit 1
           fi
-          echo "Both wasm binaries were rebuilt alongside lib/taglib."
 
   lint:
     name: Lint & Format
@@ -354,6 +401,22 @@ jobs:
         with:
           name: wasi-build
           path: dist/wasi
+
+      - name: Test the freshly built binary, not the committed one
+        # The loader reads build/taglib-wasi.wasm (src/runtime/wasi-host-loader.ts,
+        # src/runtime/unified-loader/module-loading.ts). Without this copy the job
+        # downloaded the artifact and then tested the committed binary anyway,
+        # so what build-wasi compiled was never executed — only size-reported.
+        #
+        # The committed binary still gets exercised: the main `test` job runs the
+        # full suite, which defaults to the WASI backend. So `test` covers what
+        # ships and this job covers what current source produces.
+        run: |
+          set -euo pipefail
+          test -f dist/wasi/taglib-wasi.wasm
+          cp dist/wasi/taglib-wasi.wasm build/taglib-wasi.wasm
+          echo "Now testing freshly built WASI binary:"
+          ls -l build/taglib-wasi.wasm
 
       - name: Run WASI tests
         run: |

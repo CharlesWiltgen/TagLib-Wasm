@@ -1,5 +1,27 @@
 # Changelog
 
+## Unreleased
+
+### Internal
+
+- **`wasm-freshness` now tracks C++ sources, not just the submodule.** As first
+  shipped it triggered only on `lib/taglib`, but both binaries also compile
+  from `src/capi/` — so editing the WASI shim without rebuilding still shipped
+  a binary built from older C++ than the source beside it. Input sets are now
+  per-backend and match what each script actually compiles: WASI gets
+  `lib/taglib`, `lib/mpack`, `src/capi/*`; Emscripten gets `lib/taglib`,
+  `build/taglib_embind.cpp`, `src/capi/formats/*` (it links only
+  `taglib_lame.cpp` from `src/capi`, not the WASI shim). Replayed over the last
+  80 commits: zero false positives. The earlier over-broad set would have
+  failed 8 of them.
+- **`test-wasi` now tests the binary it built.** The job downloaded the fresh
+  WASI artifact into `dist/wasi/` but the loader reads `build/taglib-wasi.wasm`
+  (`src/runtime/wasi-host-loader.ts:50`), so it tested the committed binary and
+  the fresh build was only size-reported. It now copies the artifact into
+  `build/` first. The committed binary is still covered by the main `test` job,
+  which defaults to the WASI backend — so `test` covers what ships and
+  `test-wasi` covers what current source produces.
+
 ## 1.5.3
 
 ### Changes
