@@ -432,6 +432,84 @@ Key files: `build/taglib_embind.cpp` (Emscripten), `src/capi/taglib_shim.cpp` (W
 
 Dependencies are git submodules: `lib/taglib`, `lib/mpack`, `lib/msgpack`.
 
+### The dual-backend state model (read before adding a feature)
+
+The two backends do not merely differ in packaging — they use **different state
+models**, and that difference is the single largest source of subtle bugs in
+this project. Every parity bug found so far is an instance of it.
+
+**Emscripten is imperative.** JavaScript holds a live handle to a C++ object.
+A write crosses into C++ immediately, and a subsequent read reflects it:
+
+```ts
+// src/taglib/embind-adapter.ts:91-99
+setTagData(data) {
+  const tw = raw.getTag();      // live C++ TagWrapper
+  if (data.title !== undefined) tw.setTitle(data.title);  // applied now
+}
+```
+
+**WASI is declarative.** C++ hands JavaScript a MessagePack *snapshot*. Writes
+mutate a JS-side cache; nothing reaches C++ until `save()` ships the whole
+snapshot back and C++ rebuilds the file from it:
+
+```ts
+// src/runtime/wasi-adapter/file-handle.ts:184-194
+setTagData(data) {
+  const merged = { ...this.tagData, ...data };  // JS object, line 105
+  this.tagData = merged;                        // nothing crossed to C++
+}
+// ...and only at save() (:161):
+writeTagsToWasm(this.wasi, this.fileData, this.tagData);
+```
+
+**The consequence.** "Write, then ask" can legitimately give different answers
+per backend. Emscripten reports the live object; WASI reports whatever the
+cache or the file says. Neither is wrong — they are different models — but code
+written against one silently misbehaves on the other.
+
+#### Where the abstraction leaks
+
+- **Immediate vs. deferred reads.** The recurring trap. `taglib-y91`:
+  `hasID3v1Tag()` checked a C++ location on Emscripten and a cache field on
+  WASI — same name, different semantics. TagLib 2.3.1 introduced a fresh
+  instance upstream: FLAC's `hasBEXTData()`/`hasiXMLData()` changed from
+  reporting in-memory payload to on-disk block presence, so a read between
+  `setBext()` and `save()` now answers differently.
+- **Asymmetric write paths.** WASI's `apply_propmap`
+  (`src/capi/taglib_shim.cpp:548-560`) calls `setProperties()` *and then*
+  writes `TITLE`/`ARTIST`/`ALBUM` again through `file->tag()`. The Embind path
+  writes only through the tag. On files carrying two tag types, a double-write
+  through a `TagUnion` can reach tags the other backend never touches.
+- **Write-time directives riding the tag snapshot.** WASI has no side channel,
+  so control flags travel as `_`-prefixed pseudo-tags: `_mp4ChapterStyle`
+  (`file-handle.ts:458` → `taglib_chapters.cpp:254`) and `_stripId3`
+  (`file-handle.ts:506-519` → `taglib_id3_strip.cpp:66`). They are filtered
+  from real tag data by allowlists (`src/msgpack/encoder.ts:24`,
+  `file-handle.ts:54`). Emscripten needs no equivalent. See `taglib-7gs`.
+- **Optimistic cache updates.** Because WASI cannot ask C++ mid-session, some
+  writes update the cache to predict what C++ will do. When the prediction is
+  wrong, the backends diverge until save/reopen.
+- **Staging to imitate the other model.** It runs both directions —
+  `embind-adapter.ts:74-76` keeps a `stagedId3v2Frames` mirror so the
+  imperative side can present deferred-style semantics.
+
+#### Rules when adding or changing an `AudioFile` method
+
+1. Implement it on **both** backends, or make it fail loudly on the one that
+   lacks it. Silent no-ops are how `taglib-nc5` happened.
+2. Add a parity test that runs the **same scenario** on both backends —
+   `forEachBackend()` / `BackendAdapter` (`tests/backend-adapter.ts:435`), or
+   a loop over `TagLib.initialize({ forceWasmType })`. A test with no
+   `forceWasmType` exercises WASI only on Deno, which is *not* parity coverage.
+3. Prefer one seed-then-assert scenario looped over both backends, so the test
+   can actually fail on divergence.
+4. Decide explicitly whether a read reflects **staged** or **saved** state, and
+   make both backends agree. Most parity bugs are an unexamined answer here.
+5. Update `tests/PARITY-COVERAGE.md`, the per-method × backend matrix.
+
+See `.claude/rules/testing-patterns.md` for the testing requirement itself.
+
 See `CONTRIBUTING.md` for full contributor guide.
 
 <!-- BEGIN BEADS INTEGRATION v:1 profile:minimal hash:ca08a54f -->
