@@ -196,7 +196,7 @@ export function getEnvironmentDescription(env: RuntimeEnvironment): string {
     case "node-wasi":
       return "Node.js with WASI (high performance)";
     case "bun-wasi":
-      return "Bun with WASI (via node:fs)";
+      return "Bun with WASI (Bun-native file I/O)";
     case "browser":
       return "Browser with Emscripten (web compatibility)";
     case "worker":
