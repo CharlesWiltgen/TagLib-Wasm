@@ -44,7 +44,7 @@ const audioData = await Bun.file("song.mp3").arrayBuffer();
 using file = await taglib.open(new Uint8Array(audioData));
 ```
 
-### ✅ Node.js 22.6.0+
+### ✅ Node.js 24+
 
 - **Status**: Fully supported
 - **Installation**: `npm install taglib-wasm`
@@ -248,7 +248,7 @@ npm test
 
 #### Node.js
 
-- Requires Node.js 22.6.0 or higher
+- Requires Node.js 24.0.0 or higher (the Active LTS line)
 - Node.js 24 LTS: add `--experimental-wasm-exnref` for optimal WASI performance
   (auto-falls back to Emscripten with a warning if omitted)
 - Node.js 25+: WASI works natively, no flag needed

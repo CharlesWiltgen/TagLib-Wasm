@@ -48,8 +48,8 @@ TagLib-Wasm is the **universal tagging library for TypeScript/JavaScript**
 npm install taglib-wasm
 ```
 
-> **Note:** Requires Node.js v22.6.0 or higher for WASI and WebAssembly
-> exception handling support. To consume the package as TypeScript source
+> **Note:** Requires Node.js v24 or higher (the Active LTS line) for WASI and
+> WebAssembly exception handling support. To consume the package as TypeScript source
 > (e.g., via `tsx`), see the
 > [installation guide](https://charleswiltgen.github.io/TagLib-Wasm/guide/installation.html).
 

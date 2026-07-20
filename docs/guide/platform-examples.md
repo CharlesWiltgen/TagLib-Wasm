@@ -83,13 +83,12 @@ const tags = await readTags("song.mp3");
 await applyTagsToFile("song.mp3", { title: "New Title", artist: "New Artist" });
 ```
 
-**Requirements:** Node.js v22.6.0 or higher.
+**Requirements:** Node.js v24 or higher (the Active LTS line).
 
-| Node.js version | TypeScript support                          |
-| --------------- | ------------------------------------------- |
-| 23.6+           | Native (`node script.ts`)                   |
-| 22.6+           | `node --experimental-strip-types script.ts` |
-| Older           | `npx tsx script.ts`                         |
+| Node.js version  | TypeScript support        |
+| ---------------- | ------------------------- |
+| 24+ (supported)  | Native (`node script.ts`) |
+| Older (untested) | `npx tsx script.ts`       |
 
 ## Bun
 

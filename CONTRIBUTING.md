@@ -13,7 +13,7 @@ software together.
 ### Prerequisites
 
 - **Deno 2.x** - Primary development runtime
-- **Node.js 22.6+** - For npm compatibility testing
+- **Node.js 24+** - For npm compatibility testing (Active LTS; matches the CI matrix)
 - **Emscripten SDK** - For building the Emscripten Wasm backend
 - **WASI SDK 33** - For building the WASI Wasm backend (optional for TS-only changes)
 - **Git** - With submodule support

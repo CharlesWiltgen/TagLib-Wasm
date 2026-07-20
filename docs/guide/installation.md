@@ -31,7 +31,7 @@ import { TagLib } from "taglib-wasm";
 
 ### Node.js Requirements
 
-**Requirements:** Node.js v22.6.0 or higher
+**Requirements:** Node.js v24.0.0 or higher (the Active LTS line)
 
 TagLib-Wasm works out of the box on Node.js — the library automatically falls
 back to the Emscripten backend if WASI isn't available. For optimal WASI
@@ -43,8 +43,8 @@ Deno and Bun work without any flags.
 #### TypeScript Usage
 
 ```bash
-# Option 1: Node's experimental TypeScript support (v22.6.0+)
-node --experimental-wasm-exnref --experimental-strip-types your-script.ts
+# Option 1: Node's built-in TypeScript support (native since v23.6)
+node --experimental-wasm-exnref your-script.ts
 
 # Option 2: TypeScript loader (recommended)
 npm install --save-dev tsx
