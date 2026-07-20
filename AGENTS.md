@@ -424,7 +424,7 @@ bash build/build-wasi.sh    # Rebuild WASI Wasm (requires WASI SDK 33)
 ### Architecture
 
 Two Wasm backends: **Emscripten** (browsers) and **WASI** (Deno/Node.js).
-Auto-selected at runtime. Both wrap TagLib 2.3 C++ via a C boundary layer.
+Auto-selected at runtime. Both wrap TagLib 2.3.1 C++ via a C boundary layer.
 
 Key files: `build/taglib_embind.cpp` (Emscripten), `src/capi/taglib_shim.cpp` (WASI),
 `src/capi/core/taglib_boundary.c` (C boundary), `src/taglib.ts` (core TS API).

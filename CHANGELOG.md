@@ -1,5 +1,32 @@
 # Changelog
 
+## Unreleased
+
+### Changes
+
+- **Upgraded the bundled TagLib to 2.3.1** (from 2.3). Both Wasm backends were
+  rebuilt. Upstream is a bug-fix release, and several fixes land on formats
+  taglib-wasm exposes:
+  - **Matroska** (MKA/MKV/WebM): fixed a crash when the seek head is invalid or
+    missing, added element-length checks, support for unknown-size elements,
+    and skipping of invalid elements. These are malformed-input paths, where a
+    C++ crash traps the whole Wasm instance.
+  - **MP4**: avoids excessive sample allocation with an invalid `stsc` for
+    QuickTime chapters; fixed `MP4::Chapter` destructor and assignment
+    operator; `cnID` widened to 64-bit for large Apple Music catalog IDs;
+    support for NI STEM atoms with 64-bit length; raised the top-level atom
+    limit.
+  - **XM**: fixed the save path to skip sample data after sample headers,
+    correcting tracker files written with samples.
+  - **ID3v2**: fixed the data-length-indicator check for compressed frames.
+- **FLAC `bext`/iXML presence now reflects on-disk state.** Upstream changed
+  `FLAC::File::hasiXMLData()`/`hasBEXTData()` to track whether the APPLICATION
+  block exists in the file rather than whether an in-memory payload is set,
+  matching the model `RIFF::WAV::File` already used. Reading `bext`/iXML back
+  from a FLAC file after `setBext()`/`setIxml()` but _before_ `save()` now
+  reports absent; reopening after save is unaffected, as is WAV. This removes a
+  FLAC-vs-WAV divergence rather than introducing one.
+
 ## 1.5.2
 
 ### Fixes
