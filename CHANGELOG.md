@@ -35,6 +35,12 @@
   shadowed the committed, freshly built binary in `build/`. Published packages
   ship no `build/` and are unaffected — resolution falls through to `dist/` as
   before. The search order is now a named constant with a regression test.
+- The npm `build` script now cleans `dist/` first, so local builds match the
+  clean-checkout guarantee CI gets instead of relying on every writer to
+  overwrite its own stale output. `dist/wasi/` is deliberately preserved — it
+  is written by `build/build-wasi.sh` (not part of `npm run build`), and the
+  release gate byte-compares it against the committed `build/taglib-wasi.wasm`;
+  deleting it would silently downgrade that check to an existence test.
 - `tests/offline-support.test.ts` reads the Emscripten binary from `build/`
   rather than `dist/`. Its whole Emscripten suite was gated on a file in a
   gitignored directory, so 10 test steps had been skipping silently in this
