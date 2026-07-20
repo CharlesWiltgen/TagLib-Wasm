@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+### Changed
+
+- **Minimum Node.js is now 24.** `engines.node` moves from `>=22.6.0` to
+  `>=24.0.0`, matching the Active LTS line. The old floor was an untested
+  claim rather than verified support: CI has only ever run Node 24
+  (`ci.yml:118,157,207` — Node 22 appears nowhere in the matrix), and the
+  codebase relies on `using`/`Symbol.dispose` whose behavior on 22 was never
+  exercised. Node 22 entered maintenance in October 2025. `@types/node` moves
+  to `^24.13.3` so the types describe the supported floor rather than a newer
+  one — pinning types ahead of `engines` would let the compiler accept APIs
+  that throw for users on the declared minimum. Docs, README and CONTRIBUTING
+  are synced to the new floor.
+
 ### Internal
 
 - **`wasm-freshness` now tracks C++ sources, not just the submodule.** As first
