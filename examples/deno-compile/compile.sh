@@ -18,7 +18,7 @@ if [ "$1" = "--embed" ]; then
         --no-check \
         --allow-read \
         --allow-env \
-        --include ../../build/taglib.wasm \
+        --include ../../build/taglib-web.wasm \
         --output taglib-tool-embedded \
         app.ts
     

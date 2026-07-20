@@ -7,7 +7,7 @@
  * It creates a single file that can be imported in your project.
  */
 
-const WASM_PATH = "./build/taglib.wasm";
+const WASM_PATH = "./build/taglib-web.wasm";
 const OUTPUT_PATH = "./taglib-wasm-embedded.ts";
 
 console.log("📦 Generating embedded WASM module...\n");

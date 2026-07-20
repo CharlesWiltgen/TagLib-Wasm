@@ -30,7 +30,7 @@ async function initializeTagLib(): Promise<TagLib> {
   if (isCompiled) {
     try {
       // In compiled binaries, the included WASM is at a relative path
-      const wasmPath = new URL("../../build/taglib.wasm", import.meta.url);
+      const wasmPath = new URL("../../build/taglib-web.wasm", import.meta.url);
       const wasmBinary = await Deno.readFile(wasmPath);
       console.log("📦 Using embedded WASM from compiled binary");
       return await TagLib.initialize({ wasmBinary });
@@ -57,7 +57,7 @@ async function initializeTagLib(): Promise<TagLib> {
 
   // Strategy 3: Try local file (development)
   try {
-    const wasmBinary = await Deno.readFile("../../build/taglib.wasm");
+    const wasmBinary = await Deno.readFile("../../build/taglib-web.wasm");
     console.log("📁 Using local WASM file");
     return await TagLib.initialize({ wasmBinary });
   } catch {
