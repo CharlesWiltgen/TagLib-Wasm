@@ -94,10 +94,20 @@ export const Tags = {
 export type TagName = typeof Tags[keyof typeof Tags];
 
 /**
+ * Valid tag names, built once at module load.
+ *
+ * `isValidTagName` is a public export with no internal callers, so we do not
+ * control how often it runs — a consumer validating a large tag map calls it
+ * in a loop. Computing `Object.values(Tags)` inside the function allocated a
+ * fresh ~60-element array on every call, which costs more than the scan.
+ */
+const VALID_TAG_NAMES: ReadonlySet<string> = new Set(Object.values(Tags));
+
+/**
  * Type guard to check if a string is a valid tag name.
  */
 export function isValidTagName(name: string): name is TagName {
-  return Object.values(Tags).includes(name as TagName);
+  return VALID_TAG_NAMES.has(name);
 }
 
 /**
