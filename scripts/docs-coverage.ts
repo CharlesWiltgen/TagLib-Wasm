@@ -137,6 +137,16 @@ async function main(): Promise<void> {
     Deno.exit(1);
   }
   console.log("✅ Every public export is referenced in the docs.");
+  // State the blind spot on the success path. This is a name-mention check:
+  // it cannot tell whether the surrounding prose is true. Two real cases it
+  // passed while wrong (both fixed in c041af0d): property-map.md described a
+  // shipped feature as "In Progress", and complex-properties.ts JSDoc told
+  // users to call file.getComplexProperty(), a method that does not exist.
+  // Without this line, "Docs coverage ✅" reads as "docs verified".
+  console.log(
+    "ℹ️  Reference check only: verifies each export is mentioned somewhere, " +
+      "NOT that the surrounding documentation is accurate or current.",
+  );
 }
 
 if (import.meta.main) await main();
