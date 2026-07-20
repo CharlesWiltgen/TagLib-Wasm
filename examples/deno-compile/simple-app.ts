@@ -72,7 +72,7 @@ async function main() {
     console.log("Initializing TagLib from CDN...");
     const taglib = await TagLib.initialize({
       wasmUrl:
-        "https://cdn.jsdelivr.net/npm/taglib-wasm@latest/dist/taglib.wasm",
+        "https://cdn.jsdelivr.net/npm/taglib-wasm@latest/dist/taglib-web.wasm",
     });
     console.log("✅ TagLib initialized successfully!\n");
 

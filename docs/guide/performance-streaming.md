@@ -9,7 +9,8 @@ When you initialize TagLib-Wasm with a URL:
 
 ```typescript
 const taglib = await TagLib.initialize({
-  wasmUrl: "https://cdn.jsdelivr.net/npm/taglib-wasm@latest/dist/taglib.wasm",
+  wasmUrl:
+    "https://cdn.jsdelivr.net/npm/taglib-wasm@latest/dist/taglib-web.wasm",
 });
 ```
 
@@ -51,7 +52,8 @@ This ensures compatibility across all environments.
 ```typescript
 // Recommended: Load from CDN with streaming
 const taglib = await TagLib.initialize({
-  wasmUrl: "https://cdn.jsdelivr.net/npm/taglib-wasm@latest/dist/taglib.wasm",
+  wasmUrl:
+    "https://cdn.jsdelivr.net/npm/taglib-wasm@latest/dist/taglib-web.wasm",
 });
 
 // Also good: Use your own CDN
@@ -75,7 +77,8 @@ Cache-Control: public, max-age=31536000
 ```typescript
 console.time("TagLib initialization");
 const taglib = await TagLib.initialize({
-  wasmUrl: "https://cdn.jsdelivr.net/npm/taglib-wasm@latest/dist/taglib.wasm",
+  wasmUrl:
+    "https://cdn.jsdelivr.net/npm/taglib-wasm@latest/dist/taglib-web.wasm",
 });
 console.timeEnd("TagLib initialization");
 // Typical: 200-400ms with streaming, 400-800ms without

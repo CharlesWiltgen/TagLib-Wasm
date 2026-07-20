@@ -15,7 +15,7 @@ import { type ExtendedTag, readTags, TagLib } from "../../index.ts";
 // Configuration from environment
 const USE_EMBEDDED = Deno.env.get("USE_EMBEDDED_WASM") === "true";
 const WASM_URL = Deno.env.get("WASM_URL") ||
-  "https://cdn.jsdelivr.net/npm/taglib-wasm@latest/dist/taglib.wasm";
+  "https://cdn.jsdelivr.net/npm/taglib-wasm@latest/dist/taglib-web.wasm";
 
 /**
  * Initialize TagLib with appropriate WASM loading strategy

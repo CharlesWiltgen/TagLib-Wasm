@@ -55,7 +55,8 @@ For online-only tools, use a CDN URL:
 import { TagLib } from "@charlesw/taglib-wasm";
 
 const taglib = await TagLib.initialize({
-  wasmUrl: "https://cdn.jsdelivr.net/npm/taglib-wasm@latest/dist/taglib.wasm",
+  wasmUrl:
+    "https://cdn.jsdelivr.net/npm/taglib-wasm@latest/dist/taglib-web.wasm",
 });
 
 using file = await taglib.open("audio.mp3");
@@ -166,7 +167,8 @@ async function initializeTagLib(): Promise<TagLib> {
 
   // Development or fallback
   return await TagLib.initialize({
-    wasmUrl: "https://cdn.jsdelivr.net/npm/taglib-wasm@latest/dist/taglib.wasm",
+    wasmUrl:
+      "https://cdn.jsdelivr.net/npm/taglib-wasm@latest/dist/taglib-web.wasm",
   });
 }
 
@@ -277,7 +279,7 @@ Support runtime configuration:
 
 ```typescript
 const WASM_URL = Deno.env.get("TAGLIB_WASM_URL") ||
-  "https://cdn.jsdelivr.net/npm/taglib-wasm@latest/dist/taglib.wasm";
+  "https://cdn.jsdelivr.net/npm/taglib-wasm@latest/dist/taglib-web.wasm";
 ```
 
 ## Comparison Table

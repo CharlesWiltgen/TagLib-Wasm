@@ -174,7 +174,8 @@ const taglib = await TagLib.initialize({ wasmData });
 
 // Option 2: Load from a URL
 const taglib = await TagLib.initialize({
-  wasmUrl: "https://cdn.jsdelivr.net/npm/taglib-wasm@latest/dist/taglib.wasm",
+  wasmUrl:
+    "https://cdn.jsdelivr.net/npm/taglib-wasm@latest/dist/taglib-web.wasm",
 });
 ```
 

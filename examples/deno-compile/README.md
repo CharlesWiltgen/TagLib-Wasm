@@ -44,7 +44,8 @@ import { readTags, TagLib } from "../../index.ts";
 
 // Initialize with CDN URL (uses streaming compilation)
 const taglib = await TagLib.initialize({
-  wasmUrl: "https://cdn.jsdelivr.net/npm/taglib-wasm@latest/dist/taglib.wasm",
+  wasmUrl:
+    "https://cdn.jsdelivr.net/npm/taglib-wasm@latest/dist/taglib-web.wasm",
 });
 
 // Read tags from a file
