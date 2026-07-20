@@ -29,6 +29,26 @@
 
 ### Internal
 
+- **`build:wasm` now builds both Wasm backends.** It previously ran only the
+  Emscripten build, so `build/taglib-wasi.wasm` — the committed, published WASI
+  binary — changed only when someone remembered to run `build/build-wasi.sh` by
+  hand. Bumping `lib/taglib` and running the documented build command would
+  ship Emscripten built from the new TagLib and WASI from the old one, with CI
+  green: CI builds the WASI binary fresh but the loader reads the committed one
+  (`src/runtime/wasi-host-loader.ts:50`), and publish only checks that the file
+  exists. Split into `build:wasm:emscripten` / `build:wasm:wasi`, with
+  `build:wasm` running both; CI jobs that provision only one SDK now name the
+  specific variant.
+- **New `wasm-freshness` CI job** fails if a commit moves the `lib/taglib`
+  gitlink without rebuilding both wasm binaries.
+- **The release gate now actually verifies the WASI binary.** `release.sh` and
+  `release-safe.sh` compared `build/taglib-wasi.wasm` against
+  `dist/wasi/taglib-wasi.wasm`, which could never fail — `build-wasi.sh` writes
+  both paths from the same run — and fell back to an exists-and-over-100KB
+  warning when `dist/wasi/` was absent. Both now use the same
+  `git diff --quiet` staleness check already applied to the Emscripten binary,
+  which works because `deno task build` rebuilds both backends and same-machine
+  rebuilds are byte-identical.
 - `prepareWasmForEmbedding()` now searches `build/` before `dist/`. `dist/` is
   gitignored and refreshed only by the npm chain (`build:copy-wasm`/
   `postbuild`), so in a working checkout a months-old copy there silently
@@ -37,10 +57,9 @@
   before. The search order is now a named constant with a regression test.
 - The npm `build` script now cleans `dist/` first, so local builds match the
   clean-checkout guarantee CI gets instead of relying on every writer to
-  overwrite its own stale output. `dist/wasi/` is deliberately preserved — it
-  is written by `build/build-wasi.sh` (not part of `npm run build`), and the
-  release gate byte-compares it against the committed `build/taglib-wasi.wasm`;
-  deleting it would silently downgrade that check to an existence test.
+  overwrite its own stale output. `dist/wasi/` is deliberately preserved: it is
+  written by `build/build-wasi.sh`, which `npm run build` does not invoke, so
+  the packaging chain has no business deleting another build's output.
 - `tests/offline-support.test.ts` reads the Emscripten binary from `build/`
   rather than `dist/`. Its whole Emscripten suite was gated on a file in a
   gitignored directory, so 10 test steps had been skipping silently in this

@@ -15,7 +15,7 @@ software together.
 - **Deno 2.x** - Primary development runtime
 - **Node.js 22.6+** - For npm compatibility testing
 - **Emscripten SDK** - For building the Emscripten Wasm backend
-- **WASI SDK 31** - For building the WASI Wasm backend (optional for TS-only changes)
+- **WASI SDK 33** - For building the WASI Wasm backend (optional for TS-only changes)
 - **Git** - With submodule support
 
 ### Development Setup
@@ -40,10 +40,16 @@ software together.
 
 4. **Build the project**
    ```bash
-   deno task build          # Build TypeScript + Emscripten Wasm
-   deno task build:wasm     # Rebuild Emscripten Wasm only
-   bash build/build-wasi.sh # Rebuild WASI Wasm only
+   deno task build                 # Build TypeScript + both Wasm backends
+   deno task build:wasm            # Rebuild both Wasm backends
+   deno task build:wasm:emscripten # Rebuild Emscripten Wasm only
+   deno task build:wasm:wasi       # Rebuild WASI Wasm only
    ```
+
+   > After changing `lib/taglib` or `src/capi/`, rebuild **both** backends and
+   > commit both binaries. They are committed artifacts, and shipping one built
+   > from a different TagLib than the other is a silent cross-backend skew. CI's
+   > `wasm-freshness` job fails a commit that moves `lib/taglib` without them.
 
 5. **Run the pre-push gate**
    ```bash
@@ -203,10 +209,10 @@ chore: update TagLib to v2.1.1
 
 The project has two Wasm backends:
 
-| Backend    | Script                     | Used by           | C++ entry point            |
-| ---------- | -------------------------- | ----------------- | -------------------------- |
-| Emscripten | `deno task build:wasm`     | Browsers, Workers | `build/taglib_embind.cpp`  |
-| WASI       | `bash build/build-wasi.sh` | Deno, Node.js     | `src/capi/taglib_shim.cpp` |
+| Backend    | Script                            | Used by           | C++ entry point            |
+| ---------- | --------------------------------- | ----------------- | -------------------------- |
+| Emscripten | `deno task build:wasm:emscripten` | Browsers, Workers | `build/taglib_embind.cpp`  |
+| WASI       | `deno task build:wasm:wasi`       | Deno, Node.js     | `src/capi/taglib_shim.cpp` |
 
 After C++ changes, rebuild the affected backend and test thoroughly.
 

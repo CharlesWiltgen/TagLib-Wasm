@@ -17,6 +17,47 @@ on:
         type: boolean
 
 jobs:
+  # Guard against shipping a WASI backend built from a different TagLib than
+  # the Emscripten one (taglib-mpw). Nothing else catches this: CI builds the
+  # WASI binary fresh but tests the committed one, and publish only checks that
+  # the committed file exists. If a commit moves the lib/taglib gitlink, both
+  # wasm binaries must move with it.
+  wasm-freshness:
+    name: Wasm / submodule sync
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Check wasm binaries track lib/taglib
+        env:
+          BASE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          set -euo pipefail
+          # Empty/zero BASE_SHA means a new branch or force-push with no usable
+          # base — nothing to diff against, so skip rather than fail open loudly.
+          if [ -z "$BASE_SHA" ] || [ "$BASE_SHA" = "0000000000000000000000000000000000000000" ]; then
+            echo "No usable base ref; skipping."
+            exit 0
+          fi
+          CHANGED=$(git diff --name-only "$BASE_SHA"..HEAD)
+          if ! grep -qx 'lib/taglib' <<<"$CHANGED"; then
+            echo "lib/taglib unchanged; nothing to check."
+            exit 0
+          fi
+          echo "lib/taglib moved in this range; both wasm binaries must be rebuilt."
+          MISSING=""
+          for w in build/taglib-web.wasm build/taglib-wasi.wasm; do
+            grep -qx "$w" <<<"$CHANGED" || MISSING="$MISSING $w"
+          done
+          if [ -n "$MISSING" ]; then
+            echo "::error::lib/taglib changed but these were not rebuilt:$MISSING"
+            echo "Run 'deno task build:wasm' (builds both backends) and commit the result."
+            exit 1
+          fi
+          echo "Both wasm binaries were rebuilt alongside lib/taglib."
+
   lint:
     name: Lint & Format
     runs-on: ubuntu-latest
@@ -144,7 +185,9 @@ jobs:
           version: 6.0.3
 
       - name: Build WebAssembly
-        run: npm run build:wasm
+        # Emscripten-only by design: this job installs emsdk but not the WASI
+        # SDK. The WASI backend is built by the separate build-wasi job.
+        run: npm run build:wasm:emscripten
 
       # Hard gate: the Emscripten wasm must actually instantiate on Deno. The
       # unit suite skips the Emscripten backend on load-failure (so a broken
@@ -502,6 +545,7 @@ jobs:
   summary:
     name: Summary
     needs: [
+      wasm-freshness,
       lint,
       bundle,
       build-embind,
@@ -521,9 +565,10 @@ jobs:
 
           # Required jobs (must pass)
           FAILED=false
-          for job in lint bundle build-embind test package-compat; do
+          for job in wasm-freshness lint bundle build-embind test package-compat; do
             result="${{ needs.lint.result }}"
             case "$job" in
+              wasm-freshness) result="${{ needs.wasm-freshness.result }}" ;;
               lint) result="${{ needs.lint.result }}" ;;
               bundle) result="${{ needs.bundle.result }}" ;;
               build-embind) result="${{ needs.build-embind.result }}" ;;

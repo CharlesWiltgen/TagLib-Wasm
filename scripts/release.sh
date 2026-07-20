@@ -59,9 +59,13 @@ if [ ! -f build/taglib-wasi.wasm ]; then
   echo "❌ build/taglib-wasi.wasm is missing! Run: bash build/build-wasi.sh"
   exit 1
 fi
-if [ -f dist/wasi/taglib-wasi.wasm ] && ! cmp -s build/taglib-wasi.wasm dist/wasi/taglib-wasi.wasm; then
-  echo "❌ build/taglib-wasi.wasm doesn't match dist/wasi/taglib-wasi.wasm!"
-  echo "   Run: cp dist/wasi/taglib-wasi.wasm build/ && git add build/taglib-wasi.wasm"
+# `deno task build` rebuilds both backends, so a stale committed WASI binary
+# shows up as a dirty working tree — same check as the Emscripten one above.
+# (The old cmp against dist/wasi/ could never fail: build-wasi.sh writes both
+# paths from the same run. See taglib-mpw.)
+if ! git diff --quiet -- build/taglib-wasi.wasm; then
+  echo "❌ build/taglib-wasi.wasm is stale! The build produced a different binary."
+  echo "   Run: git add build/taglib-wasi.wasm && git commit --amend --no-edit"
   exit 1
 fi
 echo "✅ WASM binaries verified"

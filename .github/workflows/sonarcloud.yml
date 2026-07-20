@@ -28,7 +28,8 @@ jobs:
           version: 6.0.3
 
       - name: Build Wasm
-        run: deno task build:wasm
+        # Emscripten-only: this job installs emsdk but not the WASI SDK.
+        run: deno task build:wasm:emscripten
 
       - name: Run tests with coverage
         run: deno test --allow-read --allow-write --allow-env --coverage=coverage tests/
