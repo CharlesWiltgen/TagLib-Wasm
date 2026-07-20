@@ -10,13 +10,14 @@ import {
   initializeForDenoCompile,
   isDenoCompiled,
   prepareWasmForEmbedding,
+  WASM_EMBED_SEARCH_PATHS,
 } from "../src/deno-compile.ts";
 import { join } from "@std/path";
 
 // Check if Emscripten build is available and functional
 let emscriptenAvailable = false;
 try {
-  const wasmPath = new URL("../dist/taglib-web.wasm", import.meta.url);
+  const wasmPath = new URL("../build/taglib-web.wasm", import.meta.url);
   const wasmBinary = await Deno.readFile(wasmPath);
   const module = await loadTagLibModule({
     wasmBinary,
@@ -36,7 +37,7 @@ describe("OfflineSupport", () => {
     name: "loadTagLibModule with wasmBinary option",
     ignore: !emscriptenAvailable,
     fn: async () => {
-      const wasmPath = new URL("../dist/taglib-web.wasm", import.meta.url);
+      const wasmPath = new URL("../build/taglib-web.wasm", import.meta.url);
       const wasmBinary = await Deno.readFile(wasmPath);
       const module = await loadTagLibModule({
         wasmBinary,
@@ -59,7 +60,7 @@ describe("OfflineSupport", () => {
     name: "loadTagLibModule with custom wasmUrl",
     ignore: !emscriptenAvailable,
     fn: async () => {
-      const wasmUrl = new URL("../dist/taglib-web.wasm", import.meta.url).href;
+      const wasmUrl = new URL("../build/taglib-web.wasm", import.meta.url).href;
       const module = await loadTagLibModule({
         wasmUrl,
         forceWasmType: "emscripten",
@@ -101,7 +102,7 @@ describe("OfflineSupport", () => {
     name: "TagLib.initialize with wasmBinary",
     ignore: !emscriptenAvailable,
     fn: async () => {
-      const wasmPath = new URL("../dist/taglib-web.wasm", import.meta.url);
+      const wasmPath = new URL("../build/taglib-web.wasm", import.meta.url);
       const wasmBinary = await Deno.readFile(wasmPath);
       const taglib = await TagLib.initialize({
         wasmBinary,
@@ -121,7 +122,7 @@ describe("OfflineSupport", () => {
     name: "TagLib.initialize with custom wasmUrl",
     ignore: !emscriptenAvailable,
     fn: async () => {
-      const wasmUrl = new URL("../dist/taglib-web.wasm", import.meta.url).href;
+      const wasmUrl = new URL("../build/taglib-web.wasm", import.meta.url).href;
       const taglib = await TagLib.initialize({ wasmUrl });
       assertExists(taglib);
       const testFile = await Deno.readFile(
@@ -145,6 +146,20 @@ describe("OfflineSupport", () => {
     const file = await taglib.open(testFile);
     assertExists(file.tag());
     file.dispose();
+  });
+
+  it("prepareWasmForEmbedding prefers build/ over gitignored dist/", () => {
+    // In a repo checkout both exist, but only build/ is committed — dist/ is
+    // gitignored scratch refreshed solely by the npm chain, so a months-old
+    // copy there must not shadow a freshly built binary. Published packages
+    // have no build/, so resolution falls through to dist/ unchanged.
+    const buildIndex = WASM_EMBED_SEARCH_PATHS.findIndex((p) =>
+      p.includes("build/")
+    );
+    const distIndex = WASM_EMBED_SEARCH_PATHS.findIndex((p) =>
+      p.startsWith("../dist/")
+    );
+    assertEquals(buildIndex >= 0 && buildIndex < distIndex, true);
   });
 
   it("prepareWasmForEmbedding creates WASM file", async () => {

@@ -27,6 +27,19 @@
   reports absent; reopening after save is unaffected, as is WAV. This removes a
   FLAC-vs-WAV divergence rather than introducing one.
 
+### Internal
+
+- `prepareWasmForEmbedding()` now searches `build/` before `dist/`. `dist/` is
+  gitignored and refreshed only by the npm chain (`build:copy-wasm`/
+  `postbuild`), so in a working checkout a months-old copy there silently
+  shadowed the committed, freshly built binary in `build/`. Published packages
+  ship no `build/` and are unaffected — resolution falls through to `dist/` as
+  before. The search order is now a named constant with a regression test.
+- `tests/offline-support.test.ts` reads the Emscripten binary from `build/`
+  rather than `dist/`. Its whole Emscripten suite was gated on a file in a
+  gitignored directory, so 10 test steps had been skipping silently in this
+  repo since the stale copy was written, and would skip on any fresh clone.
+
 ## 1.5.2
 
 ### Fixes

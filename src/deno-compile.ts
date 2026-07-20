@@ -14,6 +14,23 @@ import { fileUrlToPath } from "./utils/path.ts";
 export { isDenoCompiled } from "./runtime/deno-detect.ts";
 
 /**
+ * Where {@link prepareWasmForEmbedding} looks for the Emscripten binary, in
+ * order, resolved relative to this module.
+ *
+ * `build/` comes first deliberately: it holds the committed, authoritative
+ * artifact, while `dist/` is gitignored scratch that only the npm chain
+ * (`build:copy-wasm`/`postbuild`) refreshes. A stale `dist/` in a working
+ * checkout would otherwise silently shadow a freshly built binary. Published
+ * packages ship no `build/` (it is absent from package.json's `files`), so
+ * resolution there falls through to `dist/` exactly as before.
+ */
+export const WASM_EMBED_SEARCH_PATHS: readonly string[] = [
+  "../build/taglib-web.wasm",
+  "../dist/taglib-web.wasm",
+  "./node_modules/taglib-wasm/dist/taglib-web.wasm",
+];
+
+/**
  * Initialize TagLib with automatic handling for Deno compiled binaries.
  *
  * In compiled binaries, this function attempts to load embedded WASM from a
@@ -88,15 +105,9 @@ export async function prepareWasmForEmbedding(
   outputPath = "./taglib-web.wasm",
 ): Promise<void> {
   try {
-    // Try to find the WASM file in common locations
-    const possiblePaths = [
-      new URL("../dist/taglib-web.wasm", import.meta.url),
-      new URL("../build/taglib-web.wasm", import.meta.url),
-      new URL(
-        "./node_modules/taglib-wasm/dist/taglib-web.wasm",
-        import.meta.url,
-      ),
-    ];
+    const possiblePaths = WASM_EMBED_SEARCH_PATHS.map((p) =>
+      new URL(p, import.meta.url)
+    );
 
     let wasmData: Uint8Array | null = null;
     let sourcePath: string | null = null;
