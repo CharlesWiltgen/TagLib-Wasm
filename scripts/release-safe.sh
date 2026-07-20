@@ -167,6 +167,22 @@ run_preflight_checks() {
     fi
     print_success "JSR publish check passed"
 
+    # The npm checks below lint the packed npm tarball, so dist/ must hold a
+    # complete package first. `deno task build` above does not produce one:
+    # its build:ts is scripts/build-js.mjs, which emits .js only — the .d.ts
+    # files come from tsc, which lives in the npm build:ts. Without this step
+    # the checks lint whatever stale dist/ happened to be lying around (and
+    # fail outright once it is cleaned). The wasm is copied rather than
+    # rebuilt; `deno task build` already produced fresh binaries.
+    print_step "Building npm package artifacts..."
+    if ! (npm run build:clean && npm run build:copy-wasm && npm run build:ts \
+        && npm run postbuild) > /dev/null 2>&1; then
+        print_error "npm package build failed"
+        print_warning "Run 'npm run build' to see details"
+        exit 1
+    fi
+    print_success "npm package artifacts built"
+
     # publint (verify package.json)
     print_step "Running publint..."
     if ! npx publint > /dev/null 2>&1; then

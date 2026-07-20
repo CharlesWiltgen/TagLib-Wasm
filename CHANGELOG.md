@@ -41,6 +41,12 @@
   specific variant.
 - **New `wasm-freshness` CI job** fails if a commit moves the `lib/taglib`
   gitlink without rebuilding both wasm binaries.
+- **The release preflight now builds the npm package before linting it.**
+  `publint`, `arethetypeswrong`, and `npm pack --dry-run` lint the packed
+  tarball, but the release script only ran `deno task build`, whose `build:ts`
+  emits `.js` only — the `.d.ts` files come from `tsc` in the npm `build:ts`.
+  Those checks were therefore validating whatever stale `dist/` happened to be
+  present locally, and reported missing types once `dist/` was cleaned.
 - **The release gate now actually verifies the WASI binary.** `release.sh` and
   `release-safe.sh` compared `build/taglib-wasi.wasm` against
   `dist/wasi/taglib-wasi.wasm`, which could never fail — `build-wasi.sh` writes
