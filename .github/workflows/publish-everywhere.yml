@@ -36,7 +36,7 @@ jobs:
       version: ${{ steps.version.outputs.version }}
       should-publish: ${{ steps.check.outputs.should-publish }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Init submodules with retry
         run: |
@@ -58,7 +58,7 @@ jobs:
         # safety net for workflow_dispatch / direct release-edit paths.
         run: bash scripts/wait-for-ci.sh "${{ github.sha }}" 180 15
 
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@v7
         with:
           node-version: "24"
           cache: "npm"
@@ -72,7 +72,7 @@ jobs:
         run: npm install
 
       - name: Install Emscripten
-        uses: mymindstorm/setup-emsdk@v14
+        uses: mymindstorm/setup-emsdk@v16
         with:
           version: 6.0.3
 
@@ -202,7 +202,7 @@ jobs:
     outputs:
       published: ${{ steps.publish.outputs.published }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - uses: denoland/setup-deno@v2
         with:
@@ -290,7 +290,7 @@ jobs:
     outputs:
       published: ${{ steps.publish.outputs.published }}
     steps:
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@v7
         with:
           node-version: "24"
           registry-url: "https://registry.npmjs.org"
@@ -393,7 +393,7 @@ jobs:
     outputs:
       published: ${{ steps.publish.outputs.published }}
     steps:
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@v7
         with:
           node-version: "24"
           registry-url: "https://npm.pkg.github.com"
@@ -493,7 +493,7 @@ jobs:
       contents: write # Required to create tags
       issues: write # Required to create issues
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
