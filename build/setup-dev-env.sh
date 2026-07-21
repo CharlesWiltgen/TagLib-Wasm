@@ -135,7 +135,9 @@ echo "🔧 Setting up WASI SDK"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
 WASI_SDK_DIR="$PROJECT_ROOT/build/wasi-sdk"
-WASI_VERSION="30.0"
+# Must match CI (.github/workflows/ci.yml). SDK 33 is the first with the stock
+# eh/ multilib sysroot that FileRef's exceptions/RTTI need — 30 won't build the shim.
+WASI_VERSION="33.0"
 
 # Determine WASI SDK download URL based on OS and architecture
 WASI_SDK_NAME=""
