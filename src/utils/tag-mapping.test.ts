@@ -19,6 +19,10 @@ describe(mapPropertiesToExtendedTag.name, () => {
       year: 2025,
       date: "2025",
       track: 3,
+      // The raw string rides alongside the narrowed number, exactly as `date`
+      // does beside `year` — without it a readTags() -> applyTags() round-trip
+      // rewrites "3/12" as "3" (taglib-qpl).
+      trackNumber: "3",
     });
   });
 
@@ -90,12 +94,14 @@ describe(mapPropertiesToExtendedTag.name, () => {
     assertEquals(result, {});
   });
 
-  it("should drop a non-numeric year/track but still preserve the date string", () => {
+  it("should drop non-numeric year/track but preserve both raw strings", () => {
     const result = mapPropertiesToExtendedTag({
       date: ["not-a-number"],
       trackNumber: ["abc"],
     });
-    assertEquals(result, { date: "not-a-number" });
+    // Numeric mirrors are dropped when they do not parse; the raw strings are
+    // still the authoritative values and must survive.
+    assertEquals(result, { date: "not-a-number", trackNumber: "abc" });
   });
 });
 
