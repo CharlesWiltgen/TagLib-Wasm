@@ -264,6 +264,103 @@ describe("read-modify-write preserves an untouched raw track total", () => {
   }
 });
 
+describe("readTags() preserves the raw track string", () => {
+  // Fixing only the wire boundary left this path lossy: readTags() kept just
+  // the numeric `track`, so applyTags(readTags()) — the copy-tags-between-
+  // formats flow in AGENTS.md — wrote back a bare "3" and destroyed the total.
+  it("survives a readTags() -> applyTags() round-trip [flac]", async () => {
+    const path = await tempCopy("flac");
+    try {
+      await seedProperties("emscripten", path, { trackNumber: ["3/12"] });
+
+      const tags = await readTags(path);
+      assertEquals(tags.trackNumber, "3/12", "raw string must be exposed");
+      assertEquals(tags.track, 3, "numeric mirror still narrows");
+
+      await Deno.writeFile(path, await applyTags(path, tags));
+
+      for (const reader of BACKENDS) {
+        assertEquals(
+          await readProperty(reader, path, "trackNumber"),
+          ["3/12"],
+          `${reader} sees a truncated total after a readTags round-trip`,
+        );
+      }
+    } finally {
+      await Deno.remove(path).catch(() => {});
+    }
+  });
+
+  it("prefers an explicit raw trackNumber over a numeric track [flac]", async () => {
+    const path = await tempCopy("flac");
+    try {
+      await Deno.writeFile(
+        path,
+        await applyTags(path, { track: 9, trackNumber: "3/12" }),
+      );
+      assertEquals(await readProperty("emscripten", path, "trackNumber"), [
+        "3/12",
+      ]);
+    } finally {
+      await Deno.remove(path).catch(() => {});
+    }
+  });
+});
+
+describe("the numeric track mirror never outlives its raw string", () => {
+  // Both cases used to leave a stale `track` behind on WASI only.
+  it("clearing via setProperty removes the value on both backends [flac]", async () => {
+    for (const backend of BACKENDS) {
+      const path = await tempCopy("flac");
+      try {
+        await seedProperties("emscripten", path, { trackNumber: ["9"] });
+        const file = await taglibs[backend].open(path);
+        try {
+          file.setProperty("trackNumber", "");
+          assertEquals(
+            file.properties().trackNumber,
+            undefined,
+            `${backend} still reports a cleared track in-handle`,
+          );
+          file.save();
+          await Deno.writeFile(path, file.getFileBuffer());
+        } finally {
+          file.dispose();
+        }
+        assertEquals(
+          await readProperty("emscripten", path, "trackNumber"),
+          undefined,
+          `${backend} wrote the stale number back to disk`,
+        );
+      } finally {
+        await Deno.remove(path).catch(() => {});
+      }
+    }
+  });
+
+  it("an unparseable setProperty value drops the mirror on both backends [flac]", async () => {
+    for (const backend of BACKENDS) {
+      const path = await tempCopy("flac");
+      try {
+        await seedProperties("emscripten", path, { trackNumber: ["5"] });
+        const file = await taglibs[backend].open(path);
+        try {
+          file.setProperty("trackNumber", "unknown");
+          assertEquals(
+            file.tag().track,
+            0,
+            `${backend} reports a stale numeric track`,
+          );
+        } finally {
+          file.dispose();
+        }
+      } finally {
+        await Deno.remove(path).catch(() => {});
+      }
+    }
+  });
+});
+
 describe("typed surfaces still narrow to numbers", () => {
   // Guard against over-correcting: the RAW string belongs to properties(),
   // but tag().track and readTags() promise numbers and must keep delivering

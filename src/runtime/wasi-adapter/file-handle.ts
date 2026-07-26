@@ -408,12 +408,18 @@ export class WasiFileHandle implements FileHandle {
     this.checkNotDestroyed();
     const mappedKey = fromTagLibKey(key);
     if (mappedKey === RAW_TRACK_KEY) {
-      const narrowed = narrowTrack(value);
-      this.tagData = {
-        ...this.tagData,
-        [RAW_TRACK_KEY]: value,
-        ...(narrowed === undefined ? {} : { [NUMERIC_TRACK_KEY]: narrowed }),
-      };
+      // The numeric mirror must never outlive the raw string it mirrors: an
+      // empty value is a clear, and an unparseable one has no valid mirror.
+      // Leaving a stale `track` behind made a delete a silent no-op (WASI wrote
+      // the old number back) and let tag().track contradict both the file and
+      // the other backend. setProperties does the same below.
+      const next = { ...this.tagData } as Record<string, unknown>;
+      const narrowed = value === "" ? undefined : narrowTrack(value);
+      if (value === "") delete next[RAW_TRACK_KEY];
+      else next[RAW_TRACK_KEY] = value;
+      if (narrowed === undefined) delete next[NUMERIC_TRACK_KEY];
+      else next[NUMERIC_TRACK_KEY] = narrowed;
+      this.tagData = next;
     } else if (mappedKey === "date") {
       const year = Number.parseInt(value, 10);
       this.tagData = {
@@ -454,9 +460,10 @@ export class WasiFileHandle implements FileHandle {
   removeMP4Item(key: string): void {
     this.checkNotDestroyed();
     if (this.tagData) {
+      // MP4 atom keys ("trkn", "----:com.apple.iTunes:NAME") never map to the
+      // camel `trackNumber`, so no numeric-mirror cleanup is reachable here.
       const mappedKey = fromTagLibKey(mp4ItemPropertyKey(key));
       delete this.tagData[mappedKey];
-      if (mappedKey === RAW_TRACK_KEY) delete this.tagData[NUMERIC_TRACK_KEY];
     }
   }
 

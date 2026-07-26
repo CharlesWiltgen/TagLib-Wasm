@@ -80,6 +80,12 @@ export interface TagInput {
   readonly date?: string | string[];
   /** Track number */
   readonly track?: number;
+  /**
+   * Raw track field (e.g. "03" or "3/12"). Maps to the same TRACKNUMBER tag as
+   * {@link track}; when both are provided, `trackNumber` wins (it preserves
+   * zero-padding and the "/total" suffix that a number cannot).
+   */
+  readonly trackNumber?: string | string[];
 
   // Extended string fields
   readonly appleSoundCheck?: string | string[];
@@ -145,6 +151,13 @@ export interface ExtendedTag extends Tag {
    * Preserves day/month precision that the numeric {@link Tag.year} cannot.
    */
   readonly date?: string | string[];
+  /**
+   * Raw track field as stored in TRACKNUMBER (e.g. "03" or "3/12"). Preserves
+   * the zero-padding and the "/total" suffix that the numeric
+   * {@link Tag.track} cannot, so a readTags() -> applyTags() round-trip does
+   * not silently drop them (taglib-qpl).
+   */
+  readonly trackNumber?: string | string[];
   /** AcoustID fingerprint (Chromaprint) */
   readonly acoustidFingerprint?: string[];
   /** AcoustID UUID */

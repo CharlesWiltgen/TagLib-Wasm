@@ -109,6 +109,14 @@ export const METADATA_MAPPINGS: Record<
     mp4: "trkn",
     wav: "ITRK",
   },
+  // Raw track string — same underlying frames as `track`, but preserves
+  // zero-padding and the "/total" suffix instead of collapsing to an integer.
+  trackNumber: {
+    id3v2: { frame: "TRCK" },
+    vorbis: "TRACKNUMBER",
+    mp4: "trkn",
+    wav: "ITRK",
+  },
 
   // Advanced fields requiring format-specific handling
   acoustidFingerprint: {

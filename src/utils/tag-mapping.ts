@@ -21,6 +21,7 @@ const BASIC_FIELDS = new Set([
   "year",
   "date",
   "track",
+  "trackNumber",
 ]);
 
 const NUMERIC_FIELDS = new Set([
@@ -83,6 +84,14 @@ export function mapPropertiesToExtendedTag(props: PropertyMap): ExtendedTag {
       if (propKey === "date") {
         tag.date = values.length === 1 ? values[0] : values;
       }
+      // Same for TRACKNUMBER: the numeric `track` cannot represent "3/12" or
+      // "03", so without the raw string a readTags() -> applyTags() round-trip
+      // (the documented copy-tags-between-formats flow) writes back a bare "3"
+      // and destroys the total. taglib-qpl fixed the wire boundary; this is the
+      // same loss one layer up.
+      if (propKey === "trackNumber") {
+        tag.trackNumber = values.length === 1 ? values[0] : values;
+      }
     } else {
       tag[tagField] = values;
     }
@@ -143,6 +152,14 @@ export function normalizeTagInput(
   }
   if (input.track !== undefined) {
     props.trackNumber = [String(input.track)];
+  }
+  // `trackNumber` carries the raw string ("03", "3/12") and wins over the
+  // numeric `track` when both are set, exactly as `date` wins over `year`.
+  // Explicit rather than relying on the generic loop below running later.
+  if (input.trackNumber !== undefined) {
+    props.trackNumber = Array.isArray(input.trackNumber)
+      ? input.trackNumber
+      : [input.trackNumber];
   }
 
   for (const [field, val] of Object.entries(input)) {
