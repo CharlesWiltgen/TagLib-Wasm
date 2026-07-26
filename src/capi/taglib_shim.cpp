@@ -623,7 +623,17 @@ static std::vector<std::string> read_mp4_item_names(const uint8_t* data, size_t 
         uint32_t klen = mpack_expect_str(&reader);
         if (mpack_reader_error(&reader) != mpack_ok) break;
         char key[64];
-        if (klen >= sizeof(key)) break;
+        if (klen >= sizeof(key)) {
+            // A key too long to be ours: SKIP it and keep scanning. Breaking out
+            // here abandoned the rest of the map, so one long user property key
+            // encoded before "_mp4ItemNames" silently reverted the atom-casing
+            // fix with no error (taglib-bnhl review).
+            mpack_skip_bytes(&reader, klen);
+            mpack_done_str(&reader);
+            if (mpack_reader_error(&reader) != mpack_ok) break;
+            mpack_discard(&reader);
+            continue;
+        }
         mpack_read_bytes(&reader, key, klen);
         mpack_done_str(&reader);
         if (mpack_reader_error(&reader) != mpack_ok) break;

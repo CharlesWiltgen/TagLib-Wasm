@@ -462,10 +462,10 @@ describe("setTrack() preserves an existing track total (taglib-eq3)", () => {
     });
   }
 
-  // setTrack(0) is a CLEAR, not a renumbering: it must not stage "0/12". This
-  // asserted the in-handle state as well as the file, because a first version of
-  // the fix staged "0/12" and the save path happened to drop it — the file
-  // looked right while properties() did not.
+  // setTrack(0) is a CLEAR, not a renumbering: it must not stage "0/12". Asserts
+  // the in-handle state AND the saved file, because a first version of the fix
+  // staged "0/12" while the save path happened to drop it — the file looked right
+  // and properties() did not, so either half alone misses a direction.
   for (const backend of BACKENDS) {
     it(`setTrack(0) clears the field rather than zeroing the pair [${backend}]`, async () => {
       const path = await tempCopy("mp3");
@@ -480,8 +480,23 @@ describe("setTrack() preserves an existing track total (taglib-eq3)", () => {
             `${backend} staged a zeroed pair instead of clearing`,
           );
           assertEquals(file.tag().track, 0);
+          file.save();
+          await Deno.writeFile(path, file.getFileBuffer());
         } finally {
           file.dispose();
+        }
+
+        // And the on-disk half: the WASI merge can resurrect "0/<total>" on an
+        // int-pair format, which the in-handle assertion above cannot see.
+        const reopened = await taglibs[backend].open(path);
+        try {
+          assertEquals(
+            (reopened.properties() as Record<string, string[]>).trackNumber,
+            undefined,
+            `${backend}: a cleared track came back from disk`,
+          );
+        } finally {
+          reopened.dispose();
         }
       } finally {
         await Deno.remove(path).catch(() => {});

@@ -14,6 +14,8 @@ import {
 import { MetadataError, UnsupportedFormatError } from "../errors.ts";
 import type { MutableTag } from "./mutable-tag.ts";
 import type { TypedAudioFile } from "./audio-file-interface.ts";
+import { MP4_ITEM_NAMES_KEY } from "./mp4-item-names.ts";
+import { buildMutableTag } from "./mutable-tag-impl.ts";
 
 // Lyrics (ID3v2 USLT / Vorbis LYRICS) is a structured field surfaced through the
 // dedicated get/setLyrics() accessor, like pictures/ratings/chapters. It is
@@ -26,16 +28,6 @@ const LYRICS_PROPERTY_KEY = "lyrics"; // camelCase
 const LYRICS_WIRE_KEY = toTagLibKey(LYRICS_PROPERTY_KEY); // "LYRICS"
 
 const EMPTY_KEY_SET: ReadonlySet<string> = new Set();
-
-/**
- * Reserved property-map key carrying exact MP4 atom names to the C++ write path.
- * Never a real property — both backends pull it out before building the
- * PropertyMap (taglib-bnhl).
- */
-const MP4_ITEM_NAMES_KEY = "_mp4ItemNames";
-
-/** Wire key for the raw track field, whose value may be "n" or "n/total". */
-const RAW_TRACK_WIRE_KEY = toTagLibKey("trackNumber"); // "TRACKNUMBER"
 
 /**
  * Base implementation with core read/property operations.
@@ -104,99 +96,7 @@ export abstract class BaseAudioFileImpl {
   }
 
   tag(): MutableTag {
-    const handle = this.handle;
-    let data = handle.getTagData();
-    const tag: MutableTag = {
-      get title() {
-        return data.title;
-      },
-      get artist() {
-        return data.artist;
-      },
-      get album() {
-        return data.album;
-      },
-      get comment() {
-        return data.comment;
-      },
-      get genre() {
-        return data.genre;
-      },
-      get year() {
-        return data.year;
-      },
-      get track() {
-        return data.track;
-      },
-      get date() {
-        return handle.getProperty("DATE") || undefined; // "DATE" = toTagLibKey("date")
-      },
-      setTitle: (value: string) => {
-        handle.setTagData({ title: value });
-        data = handle.getTagData();
-        return tag;
-      },
-      setArtist: (value: string) => {
-        handle.setTagData({ artist: value });
-        data = handle.getTagData();
-        return tag;
-      },
-      setAlbum: (value: string) => {
-        handle.setTagData({ album: value });
-        data = handle.getTagData();
-        return tag;
-      },
-      setComment: (value: string) => {
-        handle.setTagData({ comment: value });
-        data = handle.getTagData();
-        return tag;
-      },
-      setGenre: (value: string) => {
-        handle.setTagData({ genre: value });
-        data = handle.getTagData();
-        return tag;
-      },
-      setYear: (value: number) => {
-        handle.setTagData({ year: value });
-        data = handle.getTagData();
-        return tag;
-      },
-      setTrack: (value: number) => {
-        // ID3v2::Tag::setTrack replaces the whole TRCK frame, so setting the
-        // number over a "3/12" destroyed the total on Emscripten while WASI
-        // preserved it via its separate totalTracks field (taglib-eq3). When a
-        // total is present, write the pair through the property surface instead.
-        // WASI never reaches this branch for an int-pair format: it splits the
-        // pair on read, so its trackNumber holds no "/" and its own merge
-        // re-attaches the total on save.
-        // A non-positive value is a clear, not a renumbering, so it must reach
-        // setTagData rather than staging "0/12".
-        const existing = value > 0
-          ? handle.getProperty(RAW_TRACK_WIRE_KEY)
-          : "";
-        const slash = existing.indexOf("/");
-        if (slash !== -1) {
-          handle.setProperty(
-            RAW_TRACK_WIRE_KEY,
-            `${value}${existing.slice(slash)}`,
-          );
-        } else {
-          handle.setTagData({ track: value });
-        }
-        data = handle.getTagData();
-        return tag;
-      },
-      setDate: (value: string) => {
-        if (value === "") {
-          handle.setTagData({ year: 0 }); // coherent clear: drops BOTH date and year
-        } else {
-          handle.setProperty("DATE", value);
-        }
-        data = handle.getTagData(); // re-read so `year` reflects the change immediately
-        return tag;
-      },
-    };
-    return tag;
+    return buildMutableTag(this.handle);
   }
 
   audioProperties(): AudioProperties | undefined {
@@ -237,6 +137,10 @@ export abstract class BaseAudioFileImpl {
   getProperty(key: string): string | undefined {
     const value = this.handle.getProperty(toTagLibKey(key));
     if (value !== "") return value;
+    // MP4 only: this is the sole format whose PropertyMap key can differ from our
+    // wire key, and materializing the whole map on every miss would otherwise
+    // turn N absent-property probes into N full map builds.
+    if (!this.isMP4()) return undefined;
     // A direct wire-key lookup can miss when the format keys the field
     // differently: MP4 reports the `Acoustid Fingerprint` atom as
     // "ACOUSTID FINGERPRINT" (space) while our wire key — correct for Vorbis —
@@ -249,7 +153,21 @@ export abstract class BaseAudioFileImpl {
   }
 
   setProperty(key: string, value: string): void {
-    this.handle.setProperty(toTagLibKey(key), value);
+    const wireKey = toTagLibKey(key);
+    // Same atom-name channel setProperties uses: without it, a property backed by
+    // a mixed-case MP4 freeform atom is written under TagLib's upper-cased name
+    // on BOTH backends (taglib-bnhl). setProperty has no property-map to carry
+    // the reserved key, so it goes through the dedicated handle call.
+    const atomNames = mp4FreeformAtomNames([wireKey]);
+    if (atomNames.length > 0 && this.isMP4()) {
+      this.handle.setProperties({
+        ...this.handle.getProperties(),
+        [wireKey]: [value],
+        [MP4_ITEM_NAMES_KEY]: atomNames,
+      });
+      return;
+    }
+    this.handle.setProperty(wireKey, value);
   }
 
   isMP4(): boolean {

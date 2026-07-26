@@ -44,6 +44,14 @@ export function parseLeadingInt(raw: string): number | undefined {
   return Number.isNaN(parsed) ? undefined : parsed;
 }
 
+/**
+ * The two pairs by name. Exported so callers need no unchecked cast over a
+ * lookup that can return undefined — renaming a field in MIRROR_FIELDS then
+ * fails at build time here instead of throwing at the first read.
+ */
+export const DATE_MIRROR: MirrorField = MIRROR_FIELDS[0]!;
+export const TRACK_MIRROR: MirrorField = MIRROR_FIELDS[1]!;
+
 /** The pair whose raw key is `key`, if any. */
 export function mirrorForRawKey(key: string): MirrorField | undefined {
   return MIRROR_FIELDS.find((f) => f.raw === key);

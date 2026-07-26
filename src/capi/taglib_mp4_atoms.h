@@ -7,6 +7,7 @@
 #include <tpropertymap.h>
 #include <tstringlist.h>
 
+#include <cstring>
 #include <string>
 #include <vector>
 
@@ -27,11 +28,10 @@
 // name afterwards. That works for every atom — including vendor atoms nobody
 // has heard of — because the file itself is the source of truth.
 //
-// Two names cannot be recovered this way and must be supplied by the caller:
-//   * an atom being CREATED, where nothing on disk carries the spelling. The
-//     caller knows it (setMP4Item takes the full atom name; a typed property
-//     like appleSoundCheck has its atom name in the PROPERTIES table), so the
-//     caller passes it in as an extra name.
+// One case cannot be recovered this way and must be supplied by the caller: an
+// atom being CREATED, where nothing on disk carries the spelling. The caller
+// knows it (setMP4Item takes the full atom name; a typed property has its atom
+// name in the PROPERTIES table), so it is passed in as an extra name.
 //
 // ORDERING IS LOAD-BEARING: capture BEFORE file->setProperties(), restore AFTER
 // it, because setProperties both creates the twin and erases items whose keys
@@ -60,18 +60,12 @@ inline std::vector<std::string> capture_mp4_freeform_names(TagLib::File* file)
 }
 
 /*!
- * Fold an atom name to a separator- and case-insensitive form, so a mangled
- * twin can be recognised as the same atom as its canonical spelling.
+ * Fold an atom name to a separator- and case-insensitive form.
  *
- * An exact "same name, upper-cased" comparison is not enough: TagLib builds the
- * twin from the PROPERTY KEY it was handed, and our keys do not always differ
- * from the atom name by case alone. "Acoustid Fingerprint" is keyed
- * ACOUSTID_FINGERPRINT — space versus underscore — so the twin is
- * "...:ACOUSTID_FINGERPRINT", which no re-casing of the original name produces.
- * Folding away `_`, space and case matches all observed forms
- * (iTunNORM/ITUNNORM, replaygain_track_gain/REPLAYGAIN_TRACK_GAIN,
- * "Acoustid Fingerprint"/ACOUSTID_FINGERPRINT) without having to teach C++ our
- * key-naming conventions.
+ * Used only as a FALLBACK, because TagLib builds the twin from the PROPERTY KEY
+ * it was handed and our keys do not always differ from the atom name by case
+ * alone: "Acoustid Fingerprint" is keyed ACOUSTID_FINGERPRINT — space versus
+ * underscore — so no re-casing of the original name produces that twin.
  */
 inline std::string mp4_fold_atom_name(const std::string& name)
 {
@@ -84,16 +78,39 @@ inline std::string mp4_fold_atom_name(const std::string& name)
     return folded;
 }
 
+/*! The same atom name with its bare NAME upper-cased: the twin TagLib produces
+ *  whenever the property key differs from the atom name by case alone. */
+inline std::string mp4_uppercased_twin(const std::string& name)
+{
+    const size_t prefix_len = strlen(MP4_FREEFORM_PREFIX);
+    if (name.compare(0, prefix_len, MP4_FREEFORM_PREFIX) != 0) return name;
+    std::string twin = name;
+    for (size_t i = prefix_len; i < twin.size(); i++) {
+        if (twin[i] >= 'a' && twin[i] <= 'z') twin[i] -= 32;
+    }
+    return twin;
+}
+
 /*!
  * Move each mangled twin atom back onto its canonical name. Call AFTER
  * file->setProperties(). \a names should be the capture from before the write
  * plus any name the caller is creating.
  *
- * When a file already carries BOTH spellings (an earlier save wrote a twin
- * alongside the original), the twin's value wins — it is the one setProperties
- * just wrote, so it reflects any edit — and the twin atom is removed. That
- * collapses a previously duplicated atom back to one correctly-named atom
- * without losing the current value.
+ * Deliberately conservative, because a fold match alone MERGES atoms that are
+ * genuinely different. "My_Atom" and "MyAtom" both fold to MYATOM, and an
+ * earlier version renamed whichever the item map yielded first, deleting one
+ * atom and leaving the survivor holding the other's value — losing the value
+ * that had just been written. So:
+ *
+ *   1. Prefer the EXACT upper-cased twin. That is deterministic and cannot be
+ *      confused with a different atom, and it covers both creation
+ *      (replaygain_track_gain <- REPLAYGAIN_TRACK_GAIN) and collapsing a
+ *      duplicate pair an older release left behind (iTunNORM + ITUNNORM).
+ *   2. Otherwise, only when the canonical name is ABSENT, accept a fold match —
+ *      and only when there is exactly ONE candidate. Two candidates means the
+ *      PropertyMap genuinely cannot tell the atoms apart, so guessing would
+ *      destroy one; leave the mangled name in place instead. Wrong casing is
+ *      recoverable, a deleted value is not.
  */
 inline void restore_mp4_freeform_names(TagLib::File* file,
                                        const std::vector<std::string>& names)
@@ -107,27 +124,32 @@ inline void restore_mp4_freeform_names(TagLib::File* file,
     for (const auto& name : names) {
         if (name.compare(0, prefix_len, MP4_FREEFORM_PREFIX) != 0) continue;
         const TagLib::String target(name, TagLib::String::UTF8);
-        const std::string folded = mp4_fold_atom_name(name);
 
-        // Collect every differently-spelled atom that folds to this one. Copy
-        // the names out first: removing items while iterating itemMap() would
-        // invalidate the iteration.
-        std::vector<TagLib::String> twins;
-        bool has_value = false;
-        TagLib::MP4::Item value;
-        for (const auto& [itemName, item] : tag->itemMap()) {
-            if (itemName == target) continue;
-            const std::string n = itemName.to8Bit(true);
-            if (n.compare(0, prefix_len, MP4_FREEFORM_PREFIX) != 0) continue;
-            if (mp4_fold_atom_name(n) != folded) continue;
-            twins.push_back(itemName);
-            value = item;
-            has_value = true;
+        TagLib::String source;
+        bool found = false;
+
+        const TagLib::String exactTwin(mp4_uppercased_twin(name),
+                                       TagLib::String::UTF8);
+        if (exactTwin != target && tag->itemMap().contains(exactTwin)) {
+            source = exactTwin;
+            found = true;
+        } else if (!tag->itemMap().contains(target)) {
+            const std::string folded = mp4_fold_atom_name(name);
+            int matches = 0;
+            for (const auto& [itemName, item] : tag->itemMap()) {
+                const std::string n = itemName.to8Bit(true);
+                if (n.compare(0, prefix_len, MP4_FREEFORM_PREFIX) != 0) continue;
+                if (mp4_fold_atom_name(n) != folded) continue;
+                matches++;
+                source = itemName;
+            }
+            found = (matches == 1);
         }
-        if (!has_value) continue;
+        if (!found) continue;
 
-        for (const auto& twin : twins) tag->removeItem(twin);
-        tag->setItem(target, value);
+        const TagLib::MP4::Item item = tag->itemMap()[source];
+        tag->removeItem(source);
+        tag->setItem(target, item);
     }
 }
 

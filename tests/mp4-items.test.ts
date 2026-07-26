@@ -252,13 +252,13 @@ for (const backend of BACKENDS) {
       const buf = file.getFileBuffer();
       file.dispose();
 
-      const counts = countAtomNames(buf, [atom, atom.toUpperCase()]);
+      // Assert the WHOLE record, not just the canonical count: checking only
+      // counts[atom] cannot fail if a future change re-introduces the
+      // upper-cased twin alongside it, which is taglib-bnhl's headline symptom.
       assertEquals(
-        counts[atom],
-        1,
-        `${backend}: "${atom}" not written verbatim (counts: ${
-          JSON.stringify(counts)
-        })`,
+        countAtomNames(buf, [atom, atom.toUpperCase()]),
+        { [atom]: 1, [atom.toUpperCase()]: 0 },
+        `${backend}: "${atom}" not written verbatim`,
       );
     });
   }
@@ -287,13 +287,10 @@ for (const backend of BACKENDS) {
       const buf = file.getFileBuffer();
       file.dispose();
 
-      const counts = countAtomNames(buf, [atom, atom.toUpperCase()]);
       assertEquals(
-        counts[atom],
-        1,
-        `${backend}: ${property} wrote the wrong atom name (counts: ${
-          JSON.stringify(counts)
-        })`,
+        countAtomNames(buf, [atom, atom.toUpperCase()]),
+        { [atom]: 1, [atom.toUpperCase()]: 0 },
+        `${backend}: ${property} wrote the wrong atom name`,
       );
 
       // Correct casing must not cost the round-trip.
@@ -404,3 +401,115 @@ for (const backend of BACKENDS) {
     });
   }
 }
+
+/**
+ * Regressions from the taglib-bnhl code review. Each of these shipped broken and
+ * was caught only by probing a path the tests did not reach.
+ */
+for (const backend of BACKENDS) {
+  Deno.test(`[${backend}] saveToFile preserves freeform atom casing (reconstruct path)`, async () => {
+    // The casing fix lived in the C++ write path; the saveToFile reconstruct
+    // rebuilds the property map at the FileHandle layer, below the site that
+    // supplies atom names, so casing silently reverted for save-as only.
+    const tl = await TagLib.initialize({ forceWasmType: backend });
+    const src = await Deno.makeTempFile({ suffix: ".m4a" });
+    const dst = await Deno.makeTempFile({ suffix: ".m4a" });
+    try {
+      await Deno.writeFile(src, await Deno.readFile(FIXTURE_PATH.m4a));
+      const file = await tl.open(src);
+      file.setProperties({ replayGainTrackGain: ["-3.00 dB"] });
+      await file.saveToFile(dst);
+      file.dispose();
+
+      assertEquals(
+        countAtomNames(await Deno.readFile(dst), [
+          "replaygain_track_gain",
+          "REPLAYGAIN_TRACK_GAIN",
+        ]),
+        { replaygain_track_gain: 1, REPLAYGAIN_TRACK_GAIN: 0 },
+        `${backend}: saveToFile reverted the atom casing`,
+      );
+    } finally {
+      await Deno.remove(src).catch(() => {});
+      await Deno.remove(dst).catch(() => {});
+    }
+  });
+
+  Deno.test(`[${backend}] setProperty (singular) writes the canonical atom name`, async () => {
+    // The atom-name channel was wired into setProperties only.
+    const tl = await TagLib.initialize({ forceWasmType: backend });
+    const file = await tl.open(await Deno.readFile(FIXTURE_PATH.m4a));
+    file.setProperty("replayGainTrackGain", "-3.00 dB");
+    file.save();
+    const buf = file.getFileBuffer();
+    file.dispose();
+
+    assertEquals(
+      countAtomNames(buf, ["replaygain_track_gain", "REPLAYGAIN_TRACK_GAIN"]),
+      { replaygain_track_gain: 1, REPLAYGAIN_TRACK_GAIN: 0 },
+      `${backend}: setProperty wrote the upper-cased atom`,
+    );
+  });
+
+  Deno.test(`[${backend}] two atoms that fold alike both survive with their own values`, async () => {
+    // The twin match folded away case AND separators, so "My_Atom" and "MyAtom"
+    // looked like one atom: one was deleted and the survivor kept the other's
+    // value, losing the value just written. Wrong casing is recoverable; a
+    // deleted value is not.
+    const tl = await TagLib.initialize({ forceWasmType: backend });
+    const first = await tl.open(await Deno.readFile(FIXTURE_PATH.m4a));
+    first.setMP4Item("----:com.apple.iTunes:My_Atom", "AAA");
+    first.save();
+    const withFirst = first.getFileBuffer();
+    first.dispose();
+
+    const second = await tl.open(withFirst);
+    second.setMP4Item("----:com.apple.iTunes:MyAtom", "BBB");
+    second.save();
+    const buf = second.getFileBuffer();
+    second.dispose();
+
+    const reopened = await tl.open(buf);
+    try {
+      assertEquals(
+        reopened.getMP4Item("----:com.apple.iTunes:My_Atom"),
+        "AAA",
+        `${backend}: the pre-existing atom lost its value`,
+      );
+      assertEquals(
+        reopened.getMP4Item("----:com.apple.iTunes:MyAtom"),
+        "BBB",
+        `${backend}: the newly written value was lost`,
+      );
+    } finally {
+      reopened.dispose();
+    }
+  });
+}
+
+Deno.test("[wasi] removeMP4Item('trkn') does not resurrect the atom as 0/total", async () => {
+  // trkn carries number AND total, so clearing the number while leaving
+  // totalTracks let merge_intpair_properties re-create the atom as "0/12" —
+  // a removal that silently corrupted the value instead.
+  const tl = await TagLib.initialize({ forceWasmType: "wasi" });
+  const seed = await tl.open(await Deno.readFile(FIXTURE_PATH.m4a));
+  seed.setProperties({ trackNumber: ["3"], totalTracks: ["12"] });
+  seed.save();
+  const withTotal = seed.getFileBuffer();
+  seed.dispose();
+
+  const file = await tl.open(withTotal);
+  file.removeMP4Item("trkn");
+  file.save();
+  const buf = file.getFileBuffer();
+  file.dispose();
+
+  const reopened = await tl.open(buf);
+  try {
+    const props = reopened.properties() as Record<string, string[]>;
+    assertEquals(props.trackNumber, undefined, "atom resurrected");
+    assertEquals(props.totalTracks, undefined, "total outlived its atom");
+  } finally {
+    reopened.dispose();
+  }
+});
