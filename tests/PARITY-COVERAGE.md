@@ -43,10 +43,10 @@ on a real divergence) over separate per-backend tests.
 | `isFormat`          |  ✓   |     ✓      |   ✓    | format-narrowing `[wasi]`/`[emscripten]`                                     |
 | `isValid`           |  ✓   |     ✓      |   —    | wasi-host (wasi) + taglib.test (emscripten); unpaired                        |
 | `isMP4`             | unit |     ✗      |   —    | wasi-adapter-unit only                                                       |
-| `properties`        |  ✓   |     ✓      |   ✓    | cross-backend-parity, tag-roundtrip-property                                 |
+| `properties`        |  ✓   |     ✓      |   ✓    | cross-backend-parity, tag-roundtrip-property, property-raw-values (qpl)      |
 | `getProperty`       |  ✓   |     ✓      |   ✓    | format-narrowing (typed); string-overload single-backend each                |
 | `setProperty`       |  ✓   |     ✓      |   ✓    | wasi-adapter-unit + extended-metadata                                        |
-| `setProperties`     |  ✓   |     ✓      |   ✓    | audio-file-save loops both (REPLACE vs MERGE semantics)                      |
+| `setProperties`     |  ✓   |     ✓      |   ✓    | audio-file-save loops both (REPLACE vs MERGE); property-raw-values (qpl)     |
 | `audioProperties`   |  ✓   |     ✓      |   ✓    | audio-properties (`forEachBackend`)                                          |
 | `tag()` read        |  ✓   |     ✓      |   ✓    | basic-tags (`forEachBackend`)                                                |
 | `tag()` write       |  ✓   |     ✓      |   ✓    | basic-tags, BackendAdapter.writeTags                                         |
@@ -104,3 +104,25 @@ on a real divergence) over separate per-backend tests.
 
 Minor/unpaired (tracked here, not filed): `isValid` (covered both, unpaired);
 `isMP4` (WASI unit only); `getProperty` string-overload (single-backend each).
+
+## Known remaining divergence: the int-pair split (MP3/MP4)
+
+`properties()` presents a `TRACKNUMBER` of `"3/12"` differently per backend, by
+design rather than by defect:
+
+| Backend    | `trackNumber` | `totalTracks` |
+| ---------- | ------------- | ------------- |
+| WASI       | `["3"]`       | `["12"]`      |
+| Emscripten | `["3/12"]`    | absent        |
+
+The C shim splits the pair on read and merges it back on write for MPEG and MP4
+(`split_intpair_properties` / `merge_intpair_properties` in
+`src/capi/taglib_shim.cpp`), which Emscripten's Embind path does not do. It is
+**lossless** — both backends write identical bytes and the total survives — but
+it is a real presentation difference. Pinned by `property-raw-values.test.ts`
+("splits 3/12 on WASI and keeps it raw on Emscripten, losslessly"), so changing
+either half requires updating that test deliberately. Tracked as `taglib-asg`.
+
+Every OTHER format (FLAC/Ogg/WAV) now returns the raw string verbatim on both
+backends — see `taglib-qpl`, which fixed the lossy `toInt()` narrowing at the
+WASI msgpack boundary.
