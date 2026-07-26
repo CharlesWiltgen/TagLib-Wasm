@@ -210,6 +210,13 @@ static tl_error_code encode_file_to_msgpack(TagLib::File* file,
     uint32_t id3_strip_keys = count_id3_strip_keys(file);
     count += id3_strip_keys;  // "id3Tags" key (FLAC with ID3 attached)
 
+    // Freeform MP4 atoms are emitted under "_mp4Items" with their EXACT names.
+    // The PropertyMap view of them is lossy — upper-cased, and blind to any mean
+    // other than com.apple.iTunes — so a caller asking for an atom by name has
+    // nothing to match against without this (taglib-wkyi).
+    const Mp4FreeformMap mp4_freeform = collect_mp4_freeform_items(file);
+    if (!mp4_freeform.empty()) count++;  // "_mp4Items" key + array
+
     // DATE and TRACKNUMBER cross the wire as their raw strings ("1975-10-31",
     // "3/12"). Each also gets a numeric mirror so Tag.year / tag().track and the
     // fast-read path keep getting a number without re-parsing; the leading
@@ -282,6 +289,23 @@ static tl_error_code encode_file_to_msgpack(TagLib::File* file,
         if (!mirror.emit) continue;
         mpack_write_cstr(&writer, mirror.out_key);
         mpack_write_uint(&writer, static_cast<uint32_t>(mirror.value));
+    }
+
+    if (!mp4_freeform.empty()) {
+        mpack_write_cstr(&writer, "_mp4Items");
+        mpack_start_array(&writer, static_cast<uint32_t>(mp4_freeform.size()));
+        for (const auto& [name, values] : mp4_freeform) {
+            mpack_start_map(&writer, 2);
+            mpack_write_cstr(&writer, "name");
+            mpack_write_str(&writer, name.c_str(),
+                            static_cast<uint32_t>(name.size()));
+            mpack_write_cstr(&writer, "values");
+            mpack_start_array(&writer, static_cast<uint32_t>(values.size()));
+            for (const auto& v : values) write_mpack_string(&writer, v);
+            mpack_finish_array(&writer);
+            mpack_finish_map(&writer);
+        }
+        mpack_finish_array(&writer);
     }
 
     if (audio) {
@@ -467,6 +491,16 @@ static tl_error_code decode_msgpack_to_propmap(
         mpack_tag_t tag = mpack_peek_tag(&reader);
         if (mpack_reader_error(&reader) != mpack_ok) break;
 
+        // Reserved "_" keys are write-time directives with their own readers
+        // (_mp4Items, _stripId3, _mp4ChapterStyle), never text properties. Skip
+        // them before type dispatch: _mp4Items is an array of MAPS, and the
+        // array branch below expects strings, so letting it through failed the
+        // whole decode and every save with it.
+        if (key[0] == '_') {
+            mpack_discard(&reader);
+            continue;
+        }
+
         if (tag.type == mpack_type_array) {
             uint32_t arr_count = mpack_expect_array(&reader);
             if (mpack_reader_error(&reader) != mpack_ok) break;
@@ -602,21 +636,20 @@ static void apply_propmap(TagLib::File* file, const TagLib::PropertyMap& propMap
 }
 
 /*!
- * Exact MP4 atom names the JS layer is creating this save, sent under the
- * reserved "_mp4ItemNames" key (setMP4Item's argument, or the canonical atom
- * name from the PROPERTIES table for a typed property). A name that is not yet
- * on disk cannot be captured from the file, so the caller has to supply it —
- * see taglib_mp4_atoms.h (taglib-bnhl).
+ * Freeform MP4 atom EDITS from the JS layer, sent under the reserved
+ * "_mp4Items" key as an array of {name, values}. An entry with an empty value
+ * list removes the atom. Exact names, any mean — the whole point is that this
+ * channel can express what the PropertyMap cannot (taglib-bnhl, taglib-wkyi).
  */
-static std::vector<std::string> read_mp4_item_names(const uint8_t* data, size_t len)
+static Mp4FreeformMap read_mp4_freeform_edits(const uint8_t* data, size_t len)
 {
-    std::vector<std::string> names;
+    Mp4FreeformMap edits;
     mpack_reader_t reader;
     mpack_reader_init_data(&reader, reinterpret_cast<const char*>(data), len);
     uint32_t map_count = mpack_expect_map(&reader);
     if (mpack_reader_error(&reader) != mpack_ok) {
         mpack_reader_destroy(&reader);
-        return names;
+        return edits;
     }
 
     for (uint32_t i = 0; i < map_count; i++) {
@@ -624,10 +657,8 @@ static std::vector<std::string> read_mp4_item_names(const uint8_t* data, size_t 
         if (mpack_reader_error(&reader) != mpack_ok) break;
         char key[64];
         if (klen >= sizeof(key)) {
-            // A key too long to be ours: SKIP it and keep scanning. Breaking out
-            // here abandoned the rest of the map, so one long user property key
-            // encoded before "_mp4ItemNames" silently reverted the atom-casing
-            // fix with no error (taglib-bnhl review).
+            // Too long to be ours: skip it and keep scanning. Abandoning the map
+            // here would silently drop every edit that follows.
             mpack_skip_bytes(&reader, klen);
             mpack_done_str(&reader);
             if (mpack_reader_error(&reader) != mpack_ok) break;
@@ -639,7 +670,7 @@ static std::vector<std::string> read_mp4_item_names(const uint8_t* data, size_t 
         if (mpack_reader_error(&reader) != mpack_ok) break;
         key[klen] = '\0';
 
-        if (strcmp(key, "_mp4ItemNames") != 0) {
+        if (strcmp(key, "_mp4Items") != 0) {
             mpack_discard(&reader);
             continue;
         }
@@ -647,22 +678,64 @@ static std::vector<std::string> read_mp4_item_names(const uint8_t* data, size_t 
         uint32_t count = mpack_expect_array(&reader);
         if (mpack_reader_error(&reader) != mpack_ok) break;
         for (uint32_t j = 0; j < count; j++) {
-            uint32_t nlen = mpack_expect_str(&reader);
+            uint32_t fields = mpack_expect_map(&reader);
             if (mpack_reader_error(&reader) != mpack_ok) break;
-            if (nlen > 512) { mpack_skip_bytes(&reader, nlen); mpack_done_str(&reader); continue; }
-            char nbuf[513];
-            mpack_read_bytes(&reader, nbuf, nlen);
-            mpack_done_str(&reader);
-            if (mpack_reader_error(&reader) != mpack_ok) break;
-            nbuf[nlen] = '\0';
-            names.push_back(std::string(nbuf));
+            std::string name;
+            TagLib::StringList values;
+            for (uint32_t f = 0; f < fields; f++) {
+                uint32_t flen = mpack_expect_str(&reader);
+                if (mpack_reader_error(&reader) != mpack_ok) break;
+                char fkey[16];
+                if (flen >= sizeof(fkey)) {
+                    mpack_skip_bytes(&reader, flen);
+                    mpack_done_str(&reader);
+                    mpack_discard(&reader);
+                    continue;
+                }
+                mpack_read_bytes(&reader, fkey, flen);
+                mpack_done_str(&reader);
+                if (mpack_reader_error(&reader) != mpack_ok) break;
+                fkey[flen] = '\0';
+
+                if (strcmp(fkey, "name") == 0) {
+                    uint32_t nlen = mpack_expect_str(&reader);
+                    if (mpack_reader_error(&reader) != mpack_ok) break;
+                    if (nlen > 512) { mpack_skip_bytes(&reader, nlen); mpack_done_str(&reader); continue; }
+                    char nbuf[513];
+                    mpack_read_bytes(&reader, nbuf, nlen);
+                    mpack_done_str(&reader);
+                    if (mpack_reader_error(&reader) != mpack_ok) break;
+                    nbuf[nlen] = '\0';
+                    name = nbuf;
+                } else if (strcmp(fkey, "values") == 0) {
+                    uint32_t vcount = mpack_expect_array(&reader);
+                    if (mpack_reader_error(&reader) != mpack_ok) break;
+                    for (uint32_t v = 0; v < vcount; v++) {
+                        uint32_t vlen = mpack_expect_str(&reader);
+                        if (mpack_reader_error(&reader) != mpack_ok) break;
+                        if (vlen > MAX_STRING_VALUE_LEN) { mpack_skip_bytes(&reader, vlen); mpack_done_str(&reader); continue; }
+                        char* heap = static_cast<char*>(malloc(vlen + 1));
+                        if (!heap) { mpack_skip_bytes(&reader, vlen); mpack_done_str(&reader); continue; }
+                        mpack_read_bytes(&reader, heap, vlen);
+                        mpack_done_str(&reader);
+                        heap[vlen] = '\0';
+                        values.append(TagLib::String(heap, TagLib::String::UTF8));
+                        free(heap);
+                    }
+                    mpack_done_array(&reader);
+                } else {
+                    mpack_discard(&reader);
+                }
+            }
+            mpack_done_map(&reader);
+            if (!name.empty()) edits[name] = values;
         }
         mpack_done_array(&reader);
         break;
     }
 
     mpack_reader_destroy(&reader);
-    return names;
+    return edits;
 }
 
 static tl_error_code write_to_path(const char* path,
@@ -678,15 +751,16 @@ static tl_error_code write_to_path(const char* path,
         if (uses_intpair_format(ref.file())) {
             merge_intpair_properties(propMap);
         }
-        // Snapshot the real freeform atom names off the file BEFORE the
-        // PropertyMap write mangles their casing, add the names JS is creating,
-        // and repair afterwards (taglib-bnhl).
-        auto mp4_names = capture_mp4_freeform_names(ref.file());
-        for (auto& n : read_mp4_item_names(tags_msgpack, tags_msgpack_len)) {
-            mp4_names.push_back(std::move(n));
-        }
+        // Freeform atoms bypass the PropertyMap entirely: collect what the file
+        // has, merge JS's edits, strip the keys they would round-trip through so
+        // no mangled twin can be created, then write them by exact name after
+        // setProperties (taglib-bnhl, taglib-wkyi).
+        auto mp4_items = collect_mp4_freeform_items(ref.file());
+        merge_mp4_freeform_edits(
+            mp4_items, read_mp4_freeform_edits(tags_msgpack, tags_msgpack_len));
+        strip_mp4_freeform_properties(mp4_items, propMap);
         apply_propmap(ref.file(), propMap);
-        restore_mp4_freeform_names(ref.file(), mp4_names);
+        apply_mp4_freeform_items(ref.file(), mp4_items);
         apply_pictures_from_msgpack(ref.file(), tags_msgpack, tags_msgpack_len);
         apply_ratings_from_msgpack(ref.file(), tags_msgpack, tags_msgpack_len);
         apply_lyrics_from_msgpack(ref.file(), tags_msgpack, tags_msgpack_len);
@@ -746,13 +820,13 @@ static tl_error_code write_to_buffer(const uint8_t* buf, size_t len,
         if (uses_intpair_format(f)) {
             merge_intpair_properties(propMap);
         }
-        // See write_to_path: capture before, restore after (taglib-bnhl).
-        auto mp4_names = capture_mp4_freeform_names(f);
-        for (auto& n : read_mp4_item_names(tags_msgpack, tags_msgpack_len)) {
-            mp4_names.push_back(std::move(n));
-        }
+        // See write_to_path: collect + strip before, apply after.
+        auto mp4_items = collect_mp4_freeform_items(f);
+        merge_mp4_freeform_edits(
+            mp4_items, read_mp4_freeform_edits(tags_msgpack, tags_msgpack_len));
+        strip_mp4_freeform_properties(mp4_items, propMap);
         apply_propmap(f, propMap);
-        restore_mp4_freeform_names(f, mp4_names);
+        apply_mp4_freeform_items(f, mp4_items);
         apply_pictures_from_msgpack(f, tags_msgpack, tags_msgpack_len);
         apply_ratings_from_msgpack(f, tags_msgpack, tags_msgpack_len);
         apply_lyrics_from_msgpack(f, tags_msgpack, tags_msgpack_len);

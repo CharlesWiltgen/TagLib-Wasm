@@ -513,3 +513,119 @@ Deno.test("[wasi] removeMP4Item('trkn') does not resurrect the atom as 0/total",
     reopened.dispose();
   }
 });
+
+/**
+ * Freeform atoms bypass the PropertyMap entirely (taglib-wkyi).
+ *
+ * The PropertyMap destroys three properties of a freeform atom: its casing, its
+ * identity (setProperties duplicates it), and its NAMESPACE — a non-Apple `mean`
+ * was re-emitted under `----:com.apple.iTunes:`, so the caller's atom vanished
+ * and a wrong-namespace twin appeared. Repairing names after the write could not
+ * fix the namespace at all, because the mean is gone before the write happens.
+ */
+const MEANS = [
+  "----:com.apple.iTunes:iTunNORM", // Apple mean, mixed case
+  "----:com.apple.iTunes:lowercase", // Apple mean, no upper-case at all
+  "----:com.acme.tool:MyTag", // NON-Apple mean — unrepresentable as a property
+  "----:org.example.tool:Nested_Name", // non-Apple mean, underscores + case
+  // NOT covered: a name containing a colon. A freeform key is exactly
+  // "----:mean:name", so an extra colon is not a shape TagLib can store — both
+  // backends refuse it identically, which is correct rather than a divergence.
+];
+
+for (const backend of BACKENDS) {
+  for (const atom of MEANS) {
+    Deno.test(`[${backend}] freeform atom "${atom}" round-trips by exact name (taglib-wkyi)`, async () => {
+      const tl = await TagLib.initialize({ forceWasmType: backend });
+      const file = await tl.open(await Deno.readFile(FIXTURE_PATH.m4a));
+      file.setMP4Item(atom, "probe-value");
+      file.save();
+      const buf = file.getFileBuffer();
+      file.dispose();
+
+      // The mean and the name must both be in the bytes, verbatim.
+      const mean = atom.slice(
+        "----:".length,
+        atom.indexOf(":", "----:".length),
+      );
+      const bare = atom.slice(atom.lastIndexOf(":") + 1);
+      const counts = countAtomNames(buf, [mean, bare, bare.toUpperCase()]);
+      assertEquals(counts[mean], 1, `${backend}: mean "${mean}" not preserved`);
+      assertEquals(counts[bare], 1, `${backend}: name "${bare}" not preserved`);
+      if (bare !== bare.toUpperCase()) {
+        assertEquals(
+          counts[bare.toUpperCase()],
+          0,
+          `${backend}: an upper-cased twin was written`,
+        );
+      }
+
+      // And it must be readable back by the same exact name.
+      const reopened = await tl.open(buf);
+      try {
+        assertEquals(reopened.getMP4Item(atom), "probe-value");
+      } finally {
+        reopened.dispose();
+      }
+    });
+
+    Deno.test(`[${backend}] removing freeform atom "${atom}" persists (taglib-wkyi)`, async () => {
+      const tl = await TagLib.initialize({ forceWasmType: backend });
+      const seed = await tl.open(await Deno.readFile(FIXTURE_PATH.m4a));
+      seed.setMP4Item(atom, "to-remove");
+      seed.save();
+      const withAtom = seed.getFileBuffer();
+      seed.dispose();
+      const check = await tl.open(withAtom);
+      assertEquals(check.getMP4Item(atom), "to-remove", "seed did not land");
+      check.dispose();
+
+      const file = await tl.open(withAtom);
+      file.removeMP4Item(atom);
+      file.save();
+      const buf = file.getFileBuffer();
+      file.dispose();
+
+      const reopened = await tl.open(buf);
+      try {
+        assertEquals(
+          reopened.getMP4Item(atom),
+          undefined,
+          `${backend}: removal did not persist`,
+        );
+      } finally {
+        reopened.dispose();
+      }
+    });
+  }
+
+  Deno.test(`[${backend}] an unrelated edit leaves every freeform atom untouched (taglib-wkyi)`, async () => {
+    // The collect-and-apply design must preserve atoms it was told nothing
+    // about, including means the property surface cannot even see.
+    const tl = await TagLib.initialize({ forceWasmType: backend });
+    const seed = await tl.open(await Deno.readFile(FIXTURE_PATH.m4a));
+    for (const atom of MEANS) seed.setMP4Item(atom, `v-${atom}`);
+    seed.save();
+    const seeded = seed.getFileBuffer();
+    seed.dispose();
+
+    const file = await tl.open(seeded);
+    file.tag().setTitle("an unrelated edit");
+    file.save();
+    const buf = file.getFileBuffer();
+    file.dispose();
+
+    const reopened = await tl.open(buf);
+    try {
+      for (const atom of MEANS) {
+        assertEquals(
+          reopened.getMP4Item(atom),
+          `v-${atom}`,
+          `${backend}: "${atom}" did not survive an unrelated edit`,
+        );
+      }
+    } finally {
+      reopened.dispose();
+    }
+  });
+}

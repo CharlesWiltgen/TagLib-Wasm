@@ -11,7 +11,7 @@ import { writeFileData } from "../utils/write.ts";
 import { type EmbindFileHandle, wrapEmbindHandle } from "./embind-adapter.ts";
 import { copyExtraState } from "./extra-state-registry.ts";
 import { mp4FreeformAtomNames } from "../constants/properties.ts";
-import { MP4_ITEM_NAMES_KEY } from "./mp4-item-names.ts";
+import { MP4_ITEMS_KEY } from "./mp4-item-names.ts";
 
 /**
  * Copy editable in-memory state from one handle onto another (e.g. a freshly
@@ -38,13 +38,20 @@ function copyEditedState(
   // mean unread), so the merge above re-adds it from the full reload. Subtract
   // the keys the editing handle reports as explicitly deleted (taglib-d14).
   for (const key of deletedKeys) delete merged[key];
-  // Atom names are a write-time directive derived at each write site, not state
-  // carried on the handle, so getProperties() above cannot supply them. Recompute
-  // here or the reconstruct writes MP4 freeform atoms under TagLib's upper-cased
-  // name — the casing fix would hold for save() and silently revert for
+  // Freeform atom edits are a write-time directive assembled at each write site,
+  // not state carried on the handle, so getProperties() above cannot supply them.
+  // Rebuild here or the reconstruct routes freeform atoms back through the
+  // PropertyMap: casing would hold for save() and silently revert for
   // saveToFile() (taglib-bnhl).
-  const atomNames = mp4FreeformAtomNames(Object.keys(merged));
-  if (atomNames.length > 0) merged[MP4_ITEM_NAMES_KEY] = atomNames;
+  const edits = Object.keys(merged).flatMap((wireKey) =>
+    mp4FreeformAtomNames([wireKey]).map((name) => ({
+      name,
+      values: merged[wireKey] ?? [],
+    }))
+  );
+  if (edits.length > 0) {
+    (merged as Record<string, unknown>)[MP4_ITEMS_KEY] = edits;
+  }
   target.setProperties(merged);
   copyExtraState(target, source, sourceComplete);
 }

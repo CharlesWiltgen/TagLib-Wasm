@@ -712,20 +712,30 @@ public:
         val keys = val::global("Object").call<val>("keys", properties);
         int length = keys["length"].as<int>();
         
-        // Exact atom names JS is creating this save (taglib-bnhl). Reserved key,
-        // never a property: a brand-new atom's casing cannot be captured from
-        // the file, so the caller supplies it.
-        std::vector<std::string> mp4Names;
+        // Freeform atom edits from JS (taglib-bnhl, taglib-wkyi). Reserved key,
+        // never a property: the PropertyMap cannot represent an exact atom name.
+        Mp4FreeformMap mp4Edits;
 
         for (int i = 0; i < length; i++) {
             std::string key = keys[i].as<std::string>();
             val values = properties[key];
 
-            if (key == "_mp4ItemNames") {
+            if (key == "_mp4Items") {
                 if (values.isArray()) {
                     int n = values["length"].as<int>();
                     for (int j = 0; j < n; j++) {
-                        mp4Names.push_back(values[j].as<std::string>());
+                        val entry = values[j];
+                        std::string name = entry["name"].as<std::string>();
+                        TagLib::StringList list;
+                        val vals = entry["values"];
+                        if (vals.isArray()) {
+                            int vn = vals["length"].as<int>();
+                            for (int v = 0; v < vn; v++) {
+                                list.append(TagLib::String(vals[v].as<std::string>(),
+                                                           TagLib::String::UTF8));
+                            }
+                        }
+                        mp4Edits[name] = list;
                     }
                 }
                 continue;
@@ -743,13 +753,14 @@ public:
             }
         }
 
-        // Snapshot the real freeform atom names off the file BEFORE the
-        // PropertyMap write mangles their casing, add the ones JS is creating,
-        // and repair afterwards (taglib-bnhl).
-        auto captured = capture_mp4_freeform_names(fileRef->file());
-        for (auto& n : mp4Names) captured.push_back(std::move(n));
+        // Freeform atoms bypass the PropertyMap: collect, merge JS edits, strip
+        // the keys they would round-trip through, then write by exact name after
+        // setProperties (taglib-bnhl, taglib-wkyi).
+        auto mp4Items = collect_mp4_freeform_items(fileRef->file());
+        merge_mp4_freeform_edits(mp4Items, mp4Edits);
+        strip_mp4_freeform_properties(mp4Items, propMap);
         fileRef->file()->setProperties(propMap);
-        restore_mp4_freeform_names(fileRef->file(), captured);
+        apply_mp4_freeform_items(fileRef->file(), mp4Items);
     }
     
     std::string getProperty(const std::string& key) const {
@@ -773,10 +784,11 @@ public:
         values.append(TagLib::String(value, TagLib::String::UTF8));
         properties[TagLib::String(key, TagLib::String::UTF8)] = values;
 
-        // See setProperties: capture before, restore after (taglib-bnhl).
-        auto captured = capture_mp4_freeform_names(fileRef->file());
+        // See setProperties: collect + strip before, apply after.
+        auto mp4Items = collect_mp4_freeform_items(fileRef->file());
+        strip_mp4_freeform_properties(mp4Items, properties);
         fileRef->file()->setProperties(properties);
-        restore_mp4_freeform_names(fileRef->file(), captured);
+        apply_mp4_freeform_items(fileRef->file(), mp4Items);
     }
     
     // MP4-specific methods

@@ -14,7 +14,7 @@ import {
 import { MetadataError, UnsupportedFormatError } from "../errors.ts";
 import type { MutableTag } from "./mutable-tag.ts";
 import type { TypedAudioFile } from "./audio-file-interface.ts";
-import { MP4_ITEM_NAMES_KEY } from "./mp4-item-names.ts";
+import { freeformEditsFor, MP4_ITEMS_KEY } from "./mp4-item-names.ts";
 import { buildMutableTag } from "./mutable-tag-impl.ts";
 
 // Lyrics (ID3v2 USLT / Vorbis LYRICS) is a structured field surfaced through the
@@ -126,11 +126,13 @@ export abstract class BaseAudioFileImpl {
       const existing = this.handle.getProperties()[LYRICS_WIRE_KEY];
       if (existing !== undefined) translated[LYRICS_WIRE_KEY] = existing;
     }
-    // Properties backed by a mixed-case MP4 freeform atom lose their casing in
-    // TagLib's PropertyMap. C++ repairs it, but for an atom not yet on disk it
-    // needs the name, and the PROPERTIES table is where we keep it (taglib-bnhl).
-    const atomNames = mp4FreeformAtomNames(Object.keys(translated));
-    if (atomNames.length > 0) translated[MP4_ITEM_NAMES_KEY] = atomNames;
+    // Properties backed by an MP4 freeform atom cannot travel through the
+    // PropertyMap without losing their atom name, so they ride the edits channel
+    // with the canonical name from the PROPERTIES table (taglib-bnhl).
+    const edits = this.isMP4() ? freeformEditsFor(translated) : [];
+    if (edits.length > 0) {
+      (translated as Record<string, unknown>)[MP4_ITEMS_KEY] = edits;
+    }
     this.handle.setProperties(translated);
   }
 
@@ -154,17 +156,13 @@ export abstract class BaseAudioFileImpl {
 
   setProperty(key: string, value: string): void {
     const wireKey = toTagLibKey(key);
-    // Same atom-name channel setProperties uses: without it, a property backed by
-    // a mixed-case MP4 freeform atom is written under TagLib's upper-cased name
-    // on BOTH backends (taglib-bnhl). setProperty has no property-map to carry
-    // the reserved key, so it goes through the dedicated handle call.
-    const atomNames = mp4FreeformAtomNames([wireKey]);
-    if (atomNames.length > 0 && this.isMP4()) {
-      this.handle.setProperties({
-        ...this.handle.getProperties(),
-        [wireKey]: [value],
-        [MP4_ITEM_NAMES_KEY]: atomNames,
-      });
+    // setProperty has no property map to carry the edits channel, so a
+    // freeform-backed property is routed through setProperties, which does
+    // (taglib-bnhl).
+    if (this.isMP4() && mp4FreeformAtomNames([wireKey]).length > 0) {
+      this.setProperties(
+        { ...this.properties(), [key]: [value] } as PropertyMap,
+      );
       return;
     }
     this.handle.setProperty(wireKey, value);
@@ -206,6 +204,10 @@ export abstract class BaseAudioFileImpl {
       this.handle.setProperty(wireKey, value);
       return;
     }
+    // Freeform atoms keep their exact name — including a non-Apple mean, which
+    // the PropertyMap silently relocates into com.apple.iTunes. Each backend's
+    // handle knows how: Embind uses the Item API directly, WASI stages an
+    // exact-name edit (taglib-wkyi).
     this.handle.setMP4Item(key, value);
   }
 
