@@ -94,6 +94,32 @@ for (const meta of Object.values(PROPERTIES)) {
   }
 }
 
+// Standard (non-freeform) MP4 atom name -> TagLib wire key, e.g.
+// "trkn" -> "TRACKNUMBER", "©nam" -> "TITLE". WASI routes MP4 items through the
+// PropertyMap, so without this a plain atom name has no wire key to resolve to
+// and the item operation silently targets nothing (taglib-0piv).
+const _mp4AtomToWireKey: Record<string, string> = {};
+for (const meta of Object.values(PROPERTIES)) {
+  const { key, mappings } = meta as {
+    key: string;
+    mappings?: { mp4?: unknown };
+  };
+  const atom = mappings?.mp4;
+  if (typeof atom !== "string" || atom.startsWith("----:")) continue;
+  // First mapping wins: several properties can name the same atom (`date` and
+  // `year` both map to "©day"), and the canonical PropertyMap key is the one
+  // registered first in PROPERTIES.
+  if (_mp4AtomToWireKey[atom] === undefined) _mp4AtomToWireKey[atom] = key;
+}
+
+/**
+ * TagLib wire key for a standard MP4 atom name, or `undefined` for a freeform
+ * atom or one we do not model.
+ */
+export function mp4AtomWireKey(atom: string): string | undefined {
+  return _mp4AtomToWireKey[atom];
+}
+
 /**
  * Exact MP4 atom names for the given TagLib wire keys, for keys backed by a
  * mixed-case freeform atom. Empty when none apply, which is the common case.

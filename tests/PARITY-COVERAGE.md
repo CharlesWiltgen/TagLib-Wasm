@@ -71,9 +71,9 @@ on a real divergence) over separate per-backend tests.
 | `setBextData`       |  ✓   |     ✓      |   ✓    | bwf loops both                                                                   |
 | `getIxml`           |  ✓   |     ✓      |   ✓    | bwf loops both                                                                   |
 | `setIxml`           |  ✓   |     ✓      |   ✓    | bwf loops both                                                                   |
-| `getMP4Item`        |  ✓   |     ✓      |   ✓    | mp4-items loops both (freeform + iTunNORM round-trip)                            |
+| `getMP4Item`        |  ✓   |     ✓      |   ✓    | mp4-items loops both (freeform + iTunNORM); trkn/disk gap on EM: taglib-uj2b     |
 | `setMP4Item`        |  ✓   |     ✓      |   ✓    | mp4-items loops both; arbitrary atom names asserted on file bytes (bnhl)         |
-| `removeMP4Item`     |  ✓   |     ✓      |   ✓    | mp4-items loops both                                                             |
+| `removeMP4Item`     |  ✓   |     ✓      |   ✓    | mp4-items loops both: freeform + standard atoms (0piv)                           |
 | `hasId3Tags`        |  ✓   |     ✓      |   ✓    | strip-id3-flac loops both                                                        |
 | `stripId3Tags`      |  ✓   |     ✓      |   ✓    | strip-id3-flac loops both                                                        |
 | `dispose`           |  ✓   |     ✓      |   ✓    | ubiquitous (try/finally)                                                         |

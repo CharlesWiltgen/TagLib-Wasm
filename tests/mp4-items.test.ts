@@ -303,3 +303,63 @@ for (const backend of BACKENDS) {
     });
   }
 }
+
+/**
+ * Standard (non-freeform) atoms (taglib-0piv).
+ *
+ * `mp4ItemPropertyKey` only understood `----:`-prefixed names; a plain atom like
+ * "trkn" or "©nam" fell through unchanged, so WASI looked for tagData["trkn"]
+ * while the value actually lives under `trackNumber`. removeMP4Item was
+ * therefore a silent no-op on WASI for every standard atom, while Emscripten's
+ * Item API removed them correctly.
+ *
+ * Seeded through the typed property rather than setMP4Item, so the seed is known
+ * to have written the atom — an earlier version of this check seeded with
+ * setMP4Item, which silently wrote nothing, making "removed" vacuously true.
+ */
+const STANDARD_ATOMS: Array<[atom: string, property: string, value: string]> = [
+  ["trkn", "trackNumber", "7"],
+  ["disk", "discNumber", "2"],
+  ["©nam", "title", "Seeded Title"],
+  ["©gen", "genre", "Funk"],
+];
+
+for (const backend of BACKENDS) {
+  for (const [atom, property, value] of STANDARD_ATOMS) {
+    Deno.test(`[${backend}] removeMP4Item("${atom}") removes the atom (taglib-0piv)`, async () => {
+      const tl = await TagLib.initialize({ forceWasmType: backend });
+
+      const seed = await tl.open(await Deno.readFile(FIXTURE_PATH.m4a));
+      seed.setProperties({ [property]: [value] });
+      seed.save();
+      const withAtom = seed.getFileBuffer();
+      seed.dispose();
+      const check = await tl.open(withAtom);
+      assertEquals(
+        (check.properties() as Record<string, string[]>)[property],
+        [value],
+        `${backend}: seed did not write ${atom}`,
+      );
+      check.dispose();
+
+      const file = await tl.open(withAtom);
+      file.removeMP4Item(atom);
+      file.save();
+      const buf = file.getFileBuffer();
+      file.dispose();
+
+      const reopened = await tl.open(buf);
+      assertEquals(
+        (reopened.properties() as Record<string, string[]>)[property],
+        undefined,
+        `${backend}: removeMP4Item("${atom}") did not remove it`,
+      );
+      if (property === "trackNumber") {
+        // The numeric mirror must go with the raw value, or tag().track would
+        // keep reporting a removed track (taglib-qpl mirror invariant).
+        assertEquals(reopened.tag().track, 0);
+      }
+      reopened.dispose();
+    });
+  }
+}

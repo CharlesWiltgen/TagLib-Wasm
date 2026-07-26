@@ -18,7 +18,11 @@ import type {
 import type { WasiModule } from "../wasmer-sdk-loader/types.ts";
 import { WasmerExecutionError } from "../wasmer-sdk-loader/types.ts";
 import { decodeTagData } from "../../msgpack/decoder.ts";
-import { fromTagLibKey, toTagLibKey } from "../../constants/properties.ts";
+import {
+  fromTagLibKey,
+  mp4AtomWireKey,
+  toTagLibKey,
+} from "../../constants/properties.ts";
 import {
   readId3v2FramesFromWasm,
   readTagsFromWasm,
@@ -108,7 +112,11 @@ function mp4ItemPropertyKey(key: string): string {
   if (key.startsWith("----:")) {
     return key.slice(key.lastIndexOf(":") + 1).toUpperCase();
   }
-  return key;
+  // A STANDARD atom ("trkn", "©nam") is not a PropertyMap key either — TagLib
+  // keys it by the corresponding property. Without this, WASI looked up
+  // tagData["trkn"] while the value lives under `trackNumber`, so every item
+  // operation on a standard atom silently targeted nothing (taglib-0piv).
+  return mp4AtomWireKey(key) ?? key;
 }
 
 export class WasiFileHandle implements FileHandle {
@@ -484,10 +492,12 @@ export class WasiFileHandle implements FileHandle {
   removeMP4Item(key: string): void {
     this.checkNotDestroyed();
     if (this.tagData) {
-      // MP4 atom keys ("trkn", "----:com.apple.iTunes:NAME") never map to the
-      // camel `trackNumber`, so no numeric-mirror cleanup is reachable here.
+      // "trkn" now resolves to TRACKNUMBER, so the numeric mirror IS reachable
+      // here and must go with the raw value — otherwise tag().track keeps
+      // reporting a removed track (taglib-qpl mirror invariant).
       const mappedKey = fromTagLibKey(mp4ItemPropertyKey(key));
       delete this.tagData[mappedKey];
+      if (mappedKey === RAW_TRACK_KEY) delete this.tagData[NUMERIC_TRACK_KEY];
     }
   }
 
