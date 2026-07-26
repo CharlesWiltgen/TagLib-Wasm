@@ -48,6 +48,7 @@
 #include <mp4chapter.h>
 #include <xiphcomment.h>
 #include "../src/capi/formats/taglib_lame.h"
+#include "../src/capi/taglib_mp4_atoms.h"
 #include <memory>
 #include <string>
 #include <set>
@@ -726,8 +727,14 @@ public:
                 propMap[TagLib::String(key, TagLib::String::UTF8)] = stringList;
             }
         }
-        
+
+        // Apple freeform atoms must bypass the PropertyMap to keep their exact
+        // casing: extract before setProperties so it cannot write the
+        // upper-cased twin, apply after so its erase pass cannot drop the atom
+        // (taglib-bnhl).
+        auto mp4Atoms = extract_mp4_canonical_atoms(fileRef->file(), propMap);
         fileRef->file()->setProperties(propMap);
+        apply_mp4_canonical_atoms(fileRef->file(), mp4Atoms);
     }
     
     std::string getProperty(const std::string& key) const {
@@ -750,7 +757,11 @@ public:
         TagLib::StringList values;
         values.append(TagLib::String(value, TagLib::String::UTF8));
         properties[TagLib::String(key, TagLib::String::UTF8)] = values;
+
+        // See setProperties: same bracketing, same reason (taglib-bnhl).
+        auto mp4Atoms = extract_mp4_canonical_atoms(fileRef->file(), properties);
         fileRef->file()->setProperties(properties);
+        apply_mp4_canonical_atoms(fileRef->file(), mp4Atoms);
     }
     
     // MP4-specific methods

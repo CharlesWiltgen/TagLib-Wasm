@@ -19,6 +19,7 @@
 #include "taglib_id3_strip.h"
 #include "taglib_id3v2_frames.h"
 #include "taglib_audio_props.h"
+#include "taglib_mp4_atoms.h"
 #include "core/taglib_msgpack.h"
 #include "core/taglib_core.h"
 
@@ -618,7 +619,12 @@ static tl_error_code write_to_path(const char* path,
         if (uses_intpair_format(ref.file())) {
             merge_intpair_properties(propMap);
         }
+        // Must bracket apply_propmap: extract first so setProperties can't write
+        // the upper-cased twin, apply after so its erase pass can't drop the
+        // atom (taglib-bnhl).
+        auto mp4_atoms = extract_mp4_canonical_atoms(ref.file(), propMap);
         apply_propmap(ref.file(), propMap);
+        apply_mp4_canonical_atoms(ref.file(), mp4_atoms);
         apply_pictures_from_msgpack(ref.file(), tags_msgpack, tags_msgpack_len);
         apply_ratings_from_msgpack(ref.file(), tags_msgpack, tags_msgpack_len);
         apply_lyrics_from_msgpack(ref.file(), tags_msgpack, tags_msgpack_len);
@@ -678,7 +684,10 @@ static tl_error_code write_to_buffer(const uint8_t* buf, size_t len,
         if (uses_intpair_format(f)) {
             merge_intpair_properties(propMap);
         }
+        // See write_to_path: extract before, apply after (taglib-bnhl).
+        auto mp4_atoms = extract_mp4_canonical_atoms(f, propMap);
         apply_propmap(f, propMap);
+        apply_mp4_canonical_atoms(f, mp4_atoms);
         apply_pictures_from_msgpack(f, tags_msgpack, tags_msgpack_len);
         apply_ratings_from_msgpack(f, tags_msgpack, tags_msgpack_len);
         apply_lyrics_from_msgpack(f, tags_msgpack, tags_msgpack_len);
