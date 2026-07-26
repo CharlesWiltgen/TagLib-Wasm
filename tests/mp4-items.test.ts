@@ -84,7 +84,7 @@ for (const backend of BACKENDS) {
 }
 
 /**
- * Atom-NAME casing (taglib-bnhl).
+ * Atom-NAME fidelity (taglib-bnhl).
  *
  * TagLib::PropertyMap uppercases every key, so a freeform atom written through
  * it comes out as `----:com.apple.iTunes:ITUNNORM` rather than Apple's
@@ -223,6 +223,83 @@ for (const backend of BACKENDS) {
         { [atom]: 1, [upper]: 0 },
         `${backend}: an unrelated edit duplicated ${atom} under a new casing`,
       );
+    });
+  }
+}
+
+/**
+ * General atom-name preservation (taglib-bnhl part a).
+ *
+ * The fix is not a list of known atoms: C++ snapshots the real freeform names
+ * off the file before the PropertyMap write and repairs the mangled twins after,
+ * so ANY atom name survives — including vendor atoms the library has never heard
+ * of. These cases are the ones that were provably broken before that landed.
+ */
+const ARBITRARY_ATOMS = [
+  "iTunes_CDDB_1", // real-world mixed case
+  "MusicBrainz Track Id", // Title Case with spaces
+  "lowercase", // no upper-case character at all
+  "MiXeD_Vendor Atom", // nothing in any table could know this one
+];
+
+for (const backend of BACKENDS) {
+  for (const atom of ARBITRARY_ATOMS) {
+    Deno.test(`[${backend}] setMP4Item preserves the atom name "${atom}" (taglib-bnhl)`, async () => {
+      const tl = await TagLib.initialize({ forceWasmType: backend });
+      const file = await tl.open(await Deno.readFile(FIXTURE_PATH.m4a));
+      file.setMP4Item(`----:com.apple.iTunes:${atom}`, "probe-value");
+      file.save();
+      const buf = file.getFileBuffer();
+      file.dispose();
+
+      const counts = countAtomNames(buf, [atom, atom.toUpperCase()]);
+      assertEquals(
+        counts[atom],
+        1,
+        `${backend}: "${atom}" not written verbatim (counts: ${
+          JSON.stringify(counts)
+        })`,
+      );
+    });
+  }
+}
+
+/**
+ * Typed properties whose MP4 atom is a mixed-case freeform atom. These were
+ * written upper-cased on BOTH backends, which matters most for ReplayGain:
+ * `replaygain_track_gain` is the ecosystem's spelling, so an upper-cased atom is
+ * invisible to other players.
+ */
+const TYPED_FREEFORM: Array<[property: string, atom: string]> = [
+  ["replayGainTrackGain", "replaygain_track_gain"],
+  ["replayGainAlbumGain", "replaygain_album_gain"],
+  ["acoustidFingerprint", "Acoustid Fingerprint"],
+  ["acoustidId", "Acoustid Id"],
+];
+
+for (const backend of BACKENDS) {
+  for (const [property, atom] of TYPED_FREEFORM) {
+    Deno.test(`[${backend}] ${property} writes the atom "${atom}" (taglib-bnhl)`, async () => {
+      const tl = await TagLib.initialize({ forceWasmType: backend });
+      const file = await tl.open(await Deno.readFile(FIXTURE_PATH.m4a));
+      file.setProperties({ [property]: ["probe-value"] });
+      file.save();
+      const buf = file.getFileBuffer();
+      file.dispose();
+
+      const counts = countAtomNames(buf, [atom, atom.toUpperCase()]);
+      assertEquals(
+        counts[atom],
+        1,
+        `${backend}: ${property} wrote the wrong atom name (counts: ${
+          JSON.stringify(counts)
+        })`,
+      );
+
+      // Correct casing must not cost the round-trip.
+      const reopened = await tl.open(buf);
+      assertEquals(reopened.getProperty(property), "probe-value");
+      reopened.dispose();
     });
   }
 }

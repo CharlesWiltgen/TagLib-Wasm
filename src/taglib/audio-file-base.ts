@@ -5,7 +5,11 @@ import type {
   OpenOptions,
   PropertyMap,
 } from "../types.ts";
-import { remapKeysFromTagLib, toTagLibKey } from "../constants/properties.ts";
+import {
+  mp4FreeformAtomNames,
+  remapKeysFromTagLib,
+  toTagLibKey,
+} from "../constants/properties.ts";
 import { MetadataError, UnsupportedFormatError } from "../errors.ts";
 import type { MutableTag } from "./mutable-tag.ts";
 import type { TypedAudioFile } from "./audio-file-interface.ts";
@@ -21,6 +25,13 @@ const LYRICS_PROPERTY_KEY = "lyrics"; // camelCase
 const LYRICS_WIRE_KEY = toTagLibKey(LYRICS_PROPERTY_KEY); // "LYRICS"
 
 const EMPTY_KEY_SET: ReadonlySet<string> = new Set();
+
+/**
+ * Reserved property-map key carrying exact MP4 atom names to the C++ write path.
+ * Never a real property — both backends pull it out before building the
+ * PropertyMap (taglib-bnhl).
+ */
+const MP4_ITEM_NAMES_KEY = "_mp4ItemNames";
 
 /**
  * Base implementation with core read/property operations.
@@ -191,12 +202,26 @@ export abstract class BaseAudioFileImpl {
       const existing = this.handle.getProperties()[LYRICS_WIRE_KEY];
       if (existing !== undefined) translated[LYRICS_WIRE_KEY] = existing;
     }
+    // Properties backed by a mixed-case MP4 freeform atom lose their casing in
+    // TagLib's PropertyMap. C++ repairs it, but for an atom not yet on disk it
+    // needs the name, and the PROPERTIES table is where we keep it (taglib-bnhl).
+    const atomNames = mp4FreeformAtomNames(Object.keys(translated));
+    if (atomNames.length > 0) translated[MP4_ITEM_NAMES_KEY] = atomNames;
     this.handle.setProperties(translated);
   }
 
   getProperty(key: string): string | undefined {
     const value = this.handle.getProperty(toTagLibKey(key));
-    return value === "" ? undefined : value;
+    if (value !== "") return value;
+    // A direct wire-key lookup can miss when the format keys the field
+    // differently: MP4 reports the `Acoustid Fingerprint` atom as
+    // "ACOUSTID FINGERPRINT" (space) while our wire key — correct for Vorbis —
+    // is ACOUSTID_FINGERPRINT (underscore). properties() goes through the full
+    // key remap, which resolves both, so fall back to it on a miss (taglib-bnhl).
+    // Empty means absent here too, matching the direct path: a cleared property
+    // can still be present as [""].
+    const remapped = (this.properties() as Record<string, string[]>)[key]?.[0];
+    return remapped === "" ? undefined : remapped;
   }
 
   setProperty(key: string, value: string): void {

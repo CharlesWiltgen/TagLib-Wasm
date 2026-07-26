@@ -54,6 +54,8 @@ const INTERNAL_KEYS = new Set([
   "_mp4ChapterStyle",
   "bextData",
   "ixml",
+  // Exact MP4 atom names for the write path, not a readable property.
+  "_mp4ItemNames",
 ]);
 
 const CONTAINER_TO_FORMAT: Record<string, string> = {
@@ -366,6 +368,13 @@ export class WasiFileHandle implements FileHandle {
     for (const [key, values] of Object.entries(props)) {
       const camelKey = fromTagLibKey(key);
       const storeKey = camelKey;
+      if (camelKey === "_mp4ItemNames") {
+        // Accumulate: a setMP4Item earlier in this handle's life may already
+        // have registered a name that this call does not mention.
+        const existing = (next._mp4ItemNames as string[] | undefined) ?? [];
+        next._mp4ItemNames = [...new Set([...existing, ...values])];
+        continue;
+      }
       if (values.length === 0) {
         // An empty value list clears the property (TagLib PropertyMap
         // semantics). This is what lets clearTags() actually remove a field
@@ -455,6 +464,21 @@ export class WasiFileHandle implements FileHandle {
   setMP4Item(key: string, value: string): void {
     this.checkNotDestroyed();
     this.setProperty(mp4ItemPropertyKey(key), value);
+    // The property slot above is keyed by the UPPERCASED bare name, which is
+    // what TagLib's PropertyMap will hand back. Register the caller's exact
+    // spelling so the C++ write path can restore it (taglib-bnhl).
+    if (key.startsWith("----:")) this.registerMp4ItemName(key);
+  }
+
+  /** Record an exact atom name to be repaired after the PropertyMap write. */
+  private registerMp4ItemName(name: string): void {
+    const existing = (this.tagData?._mp4ItemNames as string[] | undefined) ??
+      [];
+    if (existing.includes(name)) return;
+    this.tagData = {
+      ...this.tagData,
+      _mp4ItemNames: [...existing, name],
+    } as Record<string, unknown>;
   }
 
   removeMP4Item(key: string): void {

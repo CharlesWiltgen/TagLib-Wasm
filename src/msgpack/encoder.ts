@@ -26,6 +26,8 @@ export const PASSTHROUGH_KEYS = new Set([
   "ixml",
   "id3Tags",
   "_stripId3",
+  // Exact MP4 atom names — must reach C++ verbatim, not via toTagLibKey.
+  "_mp4ItemNames",
 ]);
 
 const MSGPACK_ENCODE_OPTIONS: EncoderOptions = {

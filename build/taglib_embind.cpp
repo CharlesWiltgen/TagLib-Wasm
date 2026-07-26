@@ -712,10 +712,25 @@ public:
         val keys = val::global("Object").call<val>("keys", properties);
         int length = keys["length"].as<int>();
         
+        // Exact atom names JS is creating this save (taglib-bnhl). Reserved key,
+        // never a property: a brand-new atom's casing cannot be captured from
+        // the file, so the caller supplies it.
+        std::vector<std::string> mp4Names;
+
         for (int i = 0; i < length; i++) {
             std::string key = keys[i].as<std::string>();
             val values = properties[key];
-            
+
+            if (key == "_mp4ItemNames") {
+                if (values.isArray()) {
+                    int n = values["length"].as<int>();
+                    for (int j = 0; j < n; j++) {
+                        mp4Names.push_back(values[j].as<std::string>());
+                    }
+                }
+                continue;
+            }
+
             if (values.isArray()) {
                 TagLib::StringList stringList;
                 int valueCount = values["length"].as<int>();
@@ -728,13 +743,13 @@ public:
             }
         }
 
-        // Apple freeform atoms must bypass the PropertyMap to keep their exact
-        // casing: extract before setProperties so it cannot write the
-        // upper-cased twin, apply after so its erase pass cannot drop the atom
-        // (taglib-bnhl).
-        auto mp4Atoms = extract_mp4_canonical_atoms(fileRef->file(), propMap);
+        // Snapshot the real freeform atom names off the file BEFORE the
+        // PropertyMap write mangles their casing, add the ones JS is creating,
+        // and repair afterwards (taglib-bnhl).
+        auto captured = capture_mp4_freeform_names(fileRef->file());
+        for (auto& n : mp4Names) captured.push_back(std::move(n));
         fileRef->file()->setProperties(propMap);
-        apply_mp4_canonical_atoms(fileRef->file(), mp4Atoms);
+        restore_mp4_freeform_names(fileRef->file(), captured);
     }
     
     std::string getProperty(const std::string& key) const {
@@ -758,10 +773,10 @@ public:
         values.append(TagLib::String(value, TagLib::String::UTF8));
         properties[TagLib::String(key, TagLib::String::UTF8)] = values;
 
-        // See setProperties: same bracketing, same reason (taglib-bnhl).
-        auto mp4Atoms = extract_mp4_canonical_atoms(fileRef->file(), properties);
+        // See setProperties: capture before, restore after (taglib-bnhl).
+        auto captured = capture_mp4_freeform_names(fileRef->file());
         fileRef->file()->setProperties(properties);
-        apply_mp4_canonical_atoms(fileRef->file(), mp4Atoms);
+        restore_mp4_freeform_names(fileRef->file(), captured);
     }
     
     // MP4-specific methods

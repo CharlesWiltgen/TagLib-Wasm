@@ -606,6 +606,60 @@ static void apply_propmap(TagLib::File* file, const TagLib::PropertyMap& propMap
     // setProperties() just stored correctly as a bare "3".
 }
 
+/*!
+ * Exact MP4 atom names the JS layer is creating this save, sent under the
+ * reserved "_mp4ItemNames" key (setMP4Item's argument, or the canonical atom
+ * name from the PROPERTIES table for a typed property). A name that is not yet
+ * on disk cannot be captured from the file, so the caller has to supply it —
+ * see taglib_mp4_atoms.h (taglib-bnhl).
+ */
+static std::vector<std::string> read_mp4_item_names(const uint8_t* data, size_t len)
+{
+    std::vector<std::string> names;
+    mpack_reader_t reader;
+    mpack_reader_init_data(&reader, reinterpret_cast<const char*>(data), len);
+    uint32_t map_count = mpack_expect_map(&reader);
+    if (mpack_reader_error(&reader) != mpack_ok) {
+        mpack_reader_destroy(&reader);
+        return names;
+    }
+
+    for (uint32_t i = 0; i < map_count; i++) {
+        uint32_t klen = mpack_expect_str(&reader);
+        if (mpack_reader_error(&reader) != mpack_ok) break;
+        char key[64];
+        if (klen >= sizeof(key)) break;
+        mpack_read_bytes(&reader, key, klen);
+        mpack_done_str(&reader);
+        if (mpack_reader_error(&reader) != mpack_ok) break;
+        key[klen] = '\0';
+
+        if (strcmp(key, "_mp4ItemNames") != 0) {
+            mpack_discard(&reader);
+            continue;
+        }
+
+        uint32_t count = mpack_expect_array(&reader);
+        if (mpack_reader_error(&reader) != mpack_ok) break;
+        for (uint32_t j = 0; j < count; j++) {
+            uint32_t nlen = mpack_expect_str(&reader);
+            if (mpack_reader_error(&reader) != mpack_ok) break;
+            if (nlen > 512) { mpack_skip_bytes(&reader, nlen); mpack_done_str(&reader); continue; }
+            char nbuf[513];
+            mpack_read_bytes(&reader, nbuf, nlen);
+            mpack_done_str(&reader);
+            if (mpack_reader_error(&reader) != mpack_ok) break;
+            nbuf[nlen] = '\0';
+            names.push_back(std::string(nbuf));
+        }
+        mpack_done_array(&reader);
+        break;
+    }
+
+    mpack_reader_destroy(&reader);
+    return names;
+}
+
 static tl_error_code write_to_path(const char* path,
                                    const uint8_t* tags_msgpack, size_t tags_msgpack_len) {
     try {
@@ -619,12 +673,15 @@ static tl_error_code write_to_path(const char* path,
         if (uses_intpair_format(ref.file())) {
             merge_intpair_properties(propMap);
         }
-        // Must bracket apply_propmap: extract first so setProperties can't write
-        // the upper-cased twin, apply after so its erase pass can't drop the
-        // atom (taglib-bnhl).
-        auto mp4_atoms = extract_mp4_canonical_atoms(ref.file(), propMap);
+        // Snapshot the real freeform atom names off the file BEFORE the
+        // PropertyMap write mangles their casing, add the names JS is creating,
+        // and repair afterwards (taglib-bnhl).
+        auto mp4_names = capture_mp4_freeform_names(ref.file());
+        for (auto& n : read_mp4_item_names(tags_msgpack, tags_msgpack_len)) {
+            mp4_names.push_back(std::move(n));
+        }
         apply_propmap(ref.file(), propMap);
-        apply_mp4_canonical_atoms(ref.file(), mp4_atoms);
+        restore_mp4_freeform_names(ref.file(), mp4_names);
         apply_pictures_from_msgpack(ref.file(), tags_msgpack, tags_msgpack_len);
         apply_ratings_from_msgpack(ref.file(), tags_msgpack, tags_msgpack_len);
         apply_lyrics_from_msgpack(ref.file(), tags_msgpack, tags_msgpack_len);
@@ -684,10 +741,13 @@ static tl_error_code write_to_buffer(const uint8_t* buf, size_t len,
         if (uses_intpair_format(f)) {
             merge_intpair_properties(propMap);
         }
-        // See write_to_path: extract before, apply after (taglib-bnhl).
-        auto mp4_atoms = extract_mp4_canonical_atoms(f, propMap);
+        // See write_to_path: capture before, restore after (taglib-bnhl).
+        auto mp4_names = capture_mp4_freeform_names(f);
+        for (auto& n : read_mp4_item_names(tags_msgpack, tags_msgpack_len)) {
+            mp4_names.push_back(std::move(n));
+        }
         apply_propmap(f, propMap);
-        apply_mp4_canonical_atoms(f, mp4_atoms);
+        restore_mp4_freeform_names(f, mp4_names);
         apply_pictures_from_msgpack(f, tags_msgpack, tags_msgpack_len);
         apply_ratings_from_msgpack(f, tags_msgpack, tags_msgpack_len);
         apply_lyrics_from_msgpack(f, tags_msgpack, tags_msgpack_len);

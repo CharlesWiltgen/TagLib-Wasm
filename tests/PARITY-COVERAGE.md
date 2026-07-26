@@ -44,7 +44,7 @@ on a real divergence) over separate per-backend tests.
 | `isValid`           |  ✓   |     ✓      |   —    | wasi-host (wasi) + taglib.test (emscripten); unpaired                            |
 | `isMP4`             | unit |     ✗      |   —    | wasi-adapter-unit only                                                           |
 | `properties`        |  ✓   |     ✓      |   ✓    | cross-backend-parity, tag-roundtrip-property, property-raw-values (qpl)          |
-| `getProperty`       |  ✓   |     ✓      |   ✓    | format-narrowing (typed); string-overload single-backend each                    |
+| `getProperty`       |  ✓   |     ✓      |   ✓    | format-narrowing (typed); remap fallback for MP4 atom keys (bnhl)                |
 | `setProperty`       |  ✓   |     ✓      |   ✓    | wasi-adapter-unit + extended-metadata                                            |
 | `setProperties`     |  ✓   |     ✓      |   ✓    | audio-file-save (REPLACE vs MERGE); property-raw-values (qpl); mp4 casing (bnhl) |
 | `audioProperties`   |  ✓   |     ✓      |   ✓    | audio-properties (`forEachBackend`)                                              |
@@ -72,7 +72,7 @@ on a real divergence) over separate per-backend tests.
 | `getIxml`           |  ✓   |     ✓      |   ✓    | bwf loops both                                                                   |
 | `setIxml`           |  ✓   |     ✓      |   ✓    | bwf loops both                                                                   |
 | `getMP4Item`        |  ✓   |     ✓      |   ✓    | mp4-items loops both (freeform + iTunNORM round-trip)                            |
-| `setMP4Item`        |  ✓   |     ✓      |   ✓    | mp4-items loops both; atom-name casing asserted on file bytes (bnhl)             |
+| `setMP4Item`        |  ✓   |     ✓      |   ✓    | mp4-items loops both; arbitrary atom names asserted on file bytes (bnhl)         |
 | `removeMP4Item`     |  ✓   |     ✓      |   ✓    | mp4-items loops both                                                             |
 | `hasId3Tags`        |  ✓   |     ✓      |   ✓    | strip-id3-flac loops both                                                        |
 | `stripId3Tags`      |  ✓   |     ✓      |   ✓    | strip-id3-flac loops both                                                        |
