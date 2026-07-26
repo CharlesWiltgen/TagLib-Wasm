@@ -18,37 +18,42 @@ import { beforeAll, describe, it } from "@std/testing/bdd";
 import { TagLib } from "../src/taglib.ts";
 import { applyTags, readTags } from "../src/simple/tag-operations.ts";
 import { FIXTURE_PATH } from "./shared-fixtures.ts";
+import type { AudioFile } from "../src/taglib/audio-file-interface.ts";
 
 const BACKENDS = ["wasi", "emscripten"] as const;
 type Backend = (typeof BACKENDS)[number];
 
 /**
- * Formats whose native track field is a free-form TEXT field, so a
- * zero-padded or "n/total" value is representable on disk:
- * ID3v2 TRCK, Vorbis TRACKNUMBER, RIFF INFO ITRK.
+ * Formats grouped by how the shim treats their track field. The distinction is
+ * NOT "text versus binary on disk" — ID3v2 TRCK is a text frame — but whether
+ * `split_intpair_properties` / `merge_intpair_properties` reinterpret an
+ * "n/total" value, which is what decides the expected `properties()` shape.
  */
-const TEXT_TRACK_FORMATS = ["mp3", "flac", "ogg", "wav"] as const;
+
+/** Zero-padding survives verbatim, and so does "n/total": no int-pair handling. */
+const PLAIN_TRACK_FORMATS = ["flac", "ogg", "wav"] as const;
 
 /**
- * MP4 `trkn` is a pair of binary integers, so "03" is genuinely
- * unrepresentable — both backends must normalize, and that is correct.
+ * The shim splits "n/total" into trackNumber + totalTracks on read and merges it
+ * back on write. Zero-padding without a "/" is untouched, so these formats
+ * appear in both the padded cases and the split cases below.
+ */
+const INT_PAIR_FORMATS = ["mp3", "m4a"] as const;
+
+/** Every format whose track field is a string on disk, so padding can survive. */
+const PADDABLE_TRACK_FORMATS = ["mp3", "flac", "ogg", "wav"] as const;
+
+/**
+ * MP4 `trkn` is a pair of binary integers, so even "03" is unrepresentable —
+ * both backends must normalize it, and that is correct rather than a defect.
  */
 const INT_PAIR_FORMAT = "m4a";
 
 /**
- * Zero-padded values, legal in a TRCK / TRACKNUMBER / ITRK field and carrying
- * no "/" — so no format's int-pair handling reinterprets them.
+ * Zero-padded values carrying no "/", so no format's int-pair handling
+ * reinterprets them and every paddable format must round-trip them verbatim.
  */
 const RAW_TRACK_VALUES = ["03", "003"] as const;
-
-/**
- * Formats whose track field is a binary int pair on disk (MP4 `trkn`) or is
- * conventionally written as "n/total" (ID3v2 TRCK). The C shim deliberately
- * splits "3/12" into trackNumber + totalTracks on read and merges it back on
- * write (`split_intpair_properties` / `merge_intpair_properties`), so these
- * formats present the pair as two fields rather than one raw string.
- */
-const INT_PAIR_FORMATS = ["mp3", "m4a"] as const;
 
 const taglibs = {} as Record<Backend, TagLib>;
 
@@ -101,7 +106,7 @@ async function readProperty(
 describe("properties() raw-string fidelity (taglib-qpl)", () => {
   // "3/12" has no int-pair reinterpretation on these formats, so the raw
   // string must survive verbatim — this is the data-loss case from taglib-qpl.
-  for (const format of ["flac", "ogg", "wav"] as const) {
+  for (const format of PLAIN_TRACK_FORMATS) {
     it(`round-trips trackNumber "3/12" verbatim on both backends [${format}]`, async () => {
       for (const backend of BACKENDS) {
         const path = await tempCopy(format);
@@ -122,7 +127,7 @@ describe("properties() raw-string fidelity (taglib-qpl)", () => {
   }
 
   for (const value of RAW_TRACK_VALUES) {
-    for (const format of TEXT_TRACK_FORMATS) {
+    for (const format of PADDABLE_TRACK_FORMATS) {
       it(
         `round-trips trackNumber ${
           JSON.stringify(value)
@@ -241,7 +246,7 @@ describe("properties() raw-string fidelity (taglib-qpl)", () => {
 describe("read-modify-write preserves an untouched raw track total", () => {
   // The data-loss case: TRACKNUMBER="3/12" on a format with no int-pair split.
   // Editing ONLY the title must not rewrite the track field at all.
-  for (const format of ["flac", "ogg", "wav"] as const) {
+  for (const format of PLAIN_TRACK_FORMATS) {
     it(`keeps "3/12" across a title-only applyTags [${format}]`, async () => {
       const path = await tempCopy(format);
       try {
@@ -482,5 +487,70 @@ describe("setTrack() preserves an existing track total (taglib-eq3)", () => {
         await Deno.remove(path).catch(() => {});
       }
     });
+  }
+});
+
+describe("the date/year mirror obeys the same rules as trackNumber/track", () => {
+  // taglib-iyfr: the raw/mirror rule was hand-written at seven sites, and the
+  // copies drifted — only the trackNumber/track copy had been fixed, so BOTH
+  // taglib-qpl defects were still live for date/year on WASI. Generalizing the
+  // rule fixed them; these pin the two pairs to one behaviour.
+  const PAIRS: Array<
+    [
+      raw: string,
+      numericOf: (f: AudioFile) => number | undefined,
+    ]
+  > = [
+    ["date", (f) => f.tag().year],
+    ["trackNumber", (f) => f.tag().track],
+  ];
+
+  for (const backend of BACKENDS) {
+    for (const [raw, readNumeric] of PAIRS) {
+      it(`drops the numeric mirror when ${raw} becomes unparseable [${backend}]`, async () => {
+        const path = await tempCopy("flac");
+        try {
+          await seedProperties("emscripten", path, { [raw]: ["1975"] });
+          const file = await taglibs[backend].open(path);
+          try {
+            file.setProperty(raw, "unknown");
+            assertEquals(
+              readNumeric(file),
+              0,
+              `${backend}: stale numeric mirror for ${raw}`,
+            );
+          } finally {
+            file.dispose();
+          }
+        } finally {
+          await Deno.remove(path).catch(() => {});
+        }
+      });
+
+      it(`clears both halves when ${raw} is set to "" [${backend}]`, async () => {
+        const path = await tempCopy("flac");
+        try {
+          await seedProperties("emscripten", path, { [raw]: ["1975"] });
+          const file = await taglibs[backend].open(path);
+          try {
+            file.setProperty(raw, "");
+            assertEquals(
+              (file.properties() as Record<string, string[]>)[raw],
+              undefined,
+              `${backend}: ${raw} not cleared`,
+            );
+            assertEquals(
+              readNumeric(file),
+              0,
+              `${backend}: mirror not cleared`,
+            );
+          } finally {
+            file.dispose();
+          }
+        } finally {
+          await Deno.remove(path).catch(() => {});
+        }
+      });
+    }
   }
 });

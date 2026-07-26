@@ -1,6 +1,9 @@
 import type { AudioFile } from "../taglib/audio-file-interface.ts";
 import type { ExtendedTag, PropertyMap, TagInput } from "../types.ts";
 import { fromTagLibKey } from "../constants/properties.ts";
+// One definition of the narrowing convention, shared with the WASI handle so
+// the handle and readTags() cannot disagree about what "3/12" narrows to.
+import { parseLeadingInt as parseNumeric } from "./mirror-fields.ts";
 
 const BASIC_PROPERTY_KEYS: Record<string, string> = {
   title: "title",
@@ -32,11 +35,6 @@ const NUMERIC_FIELDS = new Set([
   "totalDiscs",
   "bpm",
 ]);
-
-function parseNumeric(value: string): number | undefined {
-  const parsed = Number.parseInt(value, 10);
-  return Number.isNaN(parsed) ? undefined : parsed;
-}
 
 /**
  * Build a complete ExtendedTag from an open file: the text PropertyMap PLUS the

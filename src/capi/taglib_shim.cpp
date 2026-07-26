@@ -210,31 +210,34 @@ static tl_error_code encode_file_to_msgpack(TagLib::File* file,
     uint32_t id3_strip_keys = count_id3_strip_keys(file);
     count += id3_strip_keys;  // "id3Tags" key (FLAC with ID3 attached)
 
-    // DATE is emitted as a full string under "date" (see FIELD_MAP). Emit a
-    // numeric "year" mirror too so Tag.year / the fast-read path keep working
-    // without re-parsing. Guarded on a parseable, non-zero leading year.
-    bool emit_year = false;
-    {
-        auto date_it = props.find("DATE");
-        if (date_it != props.end() && !date_it->second.isEmpty() &&
-            date_it->second.front().toInt() > 0) {
-            emit_year = true;
-            count++;
-        }
-    }
-
-    // TRACKNUMBER is emitted as its raw string under "trackNumber". Emit a
-    // numeric "track" mirror too so tag().track / decodeFastTagData() keep
-    // getting a number without re-parsing — the leading integer of "3/12" is
-    // 3, which is exactly what the tag() surface promises (taglib-qpl).
-    bool emit_track = false;
-    {
-        auto track_it = props.find("TRACKNUMBER");
-        if (track_it != props.end() && !track_it->second.isEmpty() &&
-            track_it->second.front().toInt() > 0) {
-            emit_track = true;
-            count++;
-        }
+    // DATE and TRACKNUMBER cross the wire as their raw strings ("1975-10-31",
+    // "3/12"). Each also gets a numeric mirror so Tag.year / tag().track and the
+    // fast-read path keep getting a number without re-parsing; the leading
+    // integer is exactly what those surfaces promise. Guarded on a parseable,
+    // non-zero value.
+    //
+    // Resolved ONCE here and reused when writing below: looking the keys up
+    // again in the write phase both repeated the map traversal and let the two
+    // phases drift, which would desync mpack_start_map(count) from the keys
+    // actually written and corrupt the stream (taglib-iyfr).
+    struct NumericMirror {
+        const char* prop_key;   // uppercase PropertyMap key holding the raw value
+        const char* out_key;    // camelCase mirror key on the wire
+        int value;              // narrowed value, only valid when emit is true
+        bool emit;
+    };
+    NumericMirror mirrors[] = {
+        {"DATE", "year", 0, false},
+        {"TRACKNUMBER", "track", 0, false},
+    };
+    for (auto& mirror : mirrors) {
+        auto it = props.find(mirror.prop_key);
+        if (it == props.end() || it->second.isEmpty()) continue;
+        const int narrowed = it->second.front().toInt();
+        if (narrowed <= 0) continue;
+        mirror.value = narrowed;
+        mirror.emit = true;
+        count++;
     }
 
     ExtendedAudioInfo ext_info = {0, "", "", false, 0, 0, false, 0, nullptr};
@@ -275,18 +278,10 @@ static tl_error_code encode_file_to_msgpack(TagLib::File* file,
         }
     }
 
-    if (emit_year) {
-        auto date_it = props.find("DATE");
-        mpack_write_cstr(&writer, "year");
-        mpack_write_uint(&writer,
-                         static_cast<uint32_t>(date_it->second.front().toInt()));
-    }
-
-    if (emit_track) {
-        auto track_it = props.find("TRACKNUMBER");
-        mpack_write_cstr(&writer, "track");
-        mpack_write_uint(&writer,
-                         static_cast<uint32_t>(track_it->second.front().toInt()));
+    for (const auto& mirror : mirrors) {
+        if (!mirror.emit) continue;
+        mpack_write_cstr(&writer, mirror.out_key);
+        mpack_write_uint(&writer, static_cast<uint32_t>(mirror.value));
     }
 
     if (audio) {

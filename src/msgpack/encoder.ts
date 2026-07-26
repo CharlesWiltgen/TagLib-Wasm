@@ -9,6 +9,7 @@ import type {
   PropertyMap,
 } from "../types.ts";
 import { toTagLibKey } from "../constants/properties.ts";
+import { isShadowedNumericMirror } from "../utils/mirror-fields.ts";
 
 /**
  * Structured (non-text-property) keys carried verbatim through the msgpack
@@ -58,26 +59,15 @@ function lyricsTexts(value: unknown): string[] {
 
 export function encodeTagData(tagData: ExtendedTag): Uint8Array {
   try {
-    // Both `date` (full ISO string) and `year` (numeric mirror) map to the same
-    // "DATE" wire key. When a date is present it is authoritative, so skip the
-    // numeric `year` to avoid clobbering the full string (taglib-bk7).
-    const dateVal = (tagData as Record<string, unknown>).date;
-    const hasDate = Array.isArray(dateVal)
-      ? dateVal.length > 0
-      : dateVal !== undefined && dateVal !== null && dateVal !== "";
-
-    // Identically, `trackNumber` (raw string) and `track` (numeric mirror) both
-    // map to "TRACKNUMBER". The raw string is authoritative — letting the int
-    // win here is what rewrote "03"/"3/12" as "3" on save (taglib-qpl).
-    const trackVal = (tagData as Record<string, unknown>).trackNumber;
-    const hasRawTrack = Array.isArray(trackVal)
-      ? trackVal.length > 0
-      : trackVal !== undefined && trackVal !== null && trackVal !== "";
+    // A raw field and its numeric mirror (`date`/`year`, `trackNumber`/`track`)
+    // translate to ONE wire key, so emitting both collides and the int would win
+    // — that is what rewrote "1975-10-31" as "1975" and "3/12" as "3" on save
+    // (taglib-bk7, taglib-qpl). The raw string carries more, so it wins.
+    const data = tagData as Record<string, unknown>;
 
     const remapped: Record<string, unknown> = {};
     for (const [key, value] of Object.entries(tagData)) {
-      if (key === "year" && hasDate) continue;
-      if (key === "track" && hasRawTrack) continue;
+      if (isShadowedNumericMirror(data, key)) continue;
       if (key === "lyrics") {
         // TagLib has no LYRICS *complex* property, so unsynchronized lyrics
         // persist only via the text "LYRICS" PropertyMap key (the ID3v2/MP4/Xiph
