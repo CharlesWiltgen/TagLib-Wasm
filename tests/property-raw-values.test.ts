@@ -417,3 +417,70 @@ describe("typed surfaces still narrow to numbers", () => {
     }
   });
 });
+
+describe("setTrack() preserves an existing track total (taglib-eq3)", () => {
+  // ID3v2::Tag::setTrack replaces the whole TRCK frame, so Emscripten wrote a
+  // bare "7" over a "3/12" and destroyed the total, while WASI preserved it via
+  // its separate totalTracks field. Asserted on the RAW TRCK frame bytes so the
+  // check is identical on both backends despite their different PropertyMap
+  // presentation of an int pair.
+  for (const backend of BACKENDS) {
+    it(`keeps the total when setting only the number [${backend}]`, async () => {
+      const path = await tempCopy("mp3");
+      try {
+        await seedProperties("emscripten", path, { trackNumber: ["3/12"] });
+
+        const file = await taglibs[backend].open(path);
+        try {
+          file.tag().setTrack(7);
+          file.save();
+          await Deno.writeFile(path, file.getFileBuffer());
+        } finally {
+          file.dispose();
+        }
+
+        const reopened = await taglibs[backend].open(path);
+        try {
+          const frames = reopened.getId3v2Frames("TRCK");
+          assertEquals(frames.length, 1, "expected exactly one TRCK frame");
+          // Text frame body: 1 encoding byte, then the value.
+          const raw = new TextDecoder().decode(frames[0]!.data.slice(1))
+            .replace(/\0+$/, "");
+          assertEquals(raw, "7/12", `${backend} dropped the track total`);
+          assertEquals(reopened.tag().track, 7);
+        } finally {
+          reopened.dispose();
+        }
+      } finally {
+        await Deno.remove(path).catch(() => {});
+      }
+    });
+  }
+
+  // setTrack(0) is a CLEAR, not a renumbering: it must not stage "0/12". This
+  // asserted the in-handle state as well as the file, because a first version of
+  // the fix staged "0/12" and the save path happened to drop it — the file
+  // looked right while properties() did not.
+  for (const backend of BACKENDS) {
+    it(`setTrack(0) clears the field rather than zeroing the pair [${backend}]`, async () => {
+      const path = await tempCopy("mp3");
+      try {
+        await seedProperties("emscripten", path, { trackNumber: ["3/12"] });
+        const file = await taglibs[backend].open(path);
+        try {
+          file.tag().setTrack(0);
+          assertEquals(
+            file.properties().trackNumber,
+            undefined,
+            `${backend} staged a zeroed pair instead of clearing`,
+          );
+          assertEquals(file.tag().track, 0);
+        } finally {
+          file.dispose();
+        }
+      } finally {
+        await Deno.remove(path).catch(() => {});
+      }
+    });
+  }
+});

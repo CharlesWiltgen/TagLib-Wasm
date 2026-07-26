@@ -49,7 +49,7 @@ on a real divergence) over separate per-backend tests.
 | `setProperties`     |  ✓   |     ✓      |   ✓    | audio-file-save (REPLACE vs MERGE); property-raw-values (qpl); mp4 casing (bnhl) |
 | `audioProperties`   |  ✓   |     ✓      |   ✓    | audio-properties (`forEachBackend`)                                              |
 | `tag()` read        |  ✓   |     ✓      |   ✓    | basic-tags (`forEachBackend`)                                                    |
-| `tag()` write       |  ✓   |     ✓      |   ✓    | basic-tags, BackendAdapter.writeTags                                             |
+| `tag()` write       |  ✓   |     ✓      |   ✓    | basic-tags, BackendAdapter.writeTags; setTrack keeps the total (eq3)             |
 | `save`              |  ✓   |     ✓      |   ✓    | audio-file-save, all `forEachBackend` suites                                     |
 | `getFileBuffer`     |  ✓   |     ✓      |   ✓    | audio-file-save loops both; 0sv read-failure throws (WASI) vs in-memory (EM)     |
 | `saveToFile`        |  ✓   |     ✓      |   —    | backend-specific paths: EM full-load (0iq) + EM partial + WASI save-as           |

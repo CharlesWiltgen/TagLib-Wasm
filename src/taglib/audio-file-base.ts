@@ -33,6 +33,9 @@ const EMPTY_KEY_SET: ReadonlySet<string> = new Set();
  */
 const MP4_ITEM_NAMES_KEY = "_mp4ItemNames";
 
+/** Wire key for the raw track field, whose value may be "n" or "n/total". */
+const RAW_TRACK_WIRE_KEY = toTagLibKey("trackNumber"); // "TRACKNUMBER"
+
 /**
  * Base implementation with core read/property operations.
  * Extended by AudioFileImpl to add save/picture/rating/extended methods.
@@ -158,7 +161,27 @@ export abstract class BaseAudioFileImpl {
         return tag;
       },
       setTrack: (value: number) => {
-        handle.setTagData({ track: value });
+        // ID3v2::Tag::setTrack replaces the whole TRCK frame, so setting the
+        // number over a "3/12" destroyed the total on Emscripten while WASI
+        // preserved it via its separate totalTracks field (taglib-eq3). When a
+        // total is present, write the pair through the property surface instead.
+        // WASI never reaches this branch for an int-pair format: it splits the
+        // pair on read, so its trackNumber holds no "/" and its own merge
+        // re-attaches the total on save.
+        // A non-positive value is a clear, not a renumbering, so it must reach
+        // setTagData rather than staging "0/12".
+        const existing = value > 0
+          ? handle.getProperty(RAW_TRACK_WIRE_KEY)
+          : "";
+        const slash = existing.indexOf("/");
+        if (slash !== -1) {
+          handle.setProperty(
+            RAW_TRACK_WIRE_KEY,
+            `${value}${existing.slice(slash)}`,
+          );
+        } else {
+          handle.setTagData({ track: value });
+        }
         data = handle.getTagData();
         return tag;
       },
