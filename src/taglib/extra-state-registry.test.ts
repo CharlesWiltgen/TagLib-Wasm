@@ -3,7 +3,7 @@ import { EXTRA_FIELDS } from "./extra-state-registry.ts";
 import { PASSTHROUGH_KEYS } from "../msgpack/encoder.ts";
 
 // Control/meta keys in PASSTHROUGH_KEYS that are NOT standalone editable
-// metadata: save directives (_stripId3, _mp4Items), a chapter-save hint
+// metadata: save directives (_stripId3, _mp4ItemNames), a chapter-save hint
 // carried with chapters (_mp4ChapterStyle), and read-only info (id3Tags).
 // Everything else is reconstructable state the registry must carry.
 const CONTROL_KEYS = new Set([
@@ -14,7 +14,7 @@ const CONTROL_KEYS = new Set([
   // from the PROPERTIES table, not state carried on the handle — so it needs no
   // EXTRA_FIELDS entry. The reconstruct in save-reconstruct.ts recomputes it,
   // which is what stops saveToFile() silently reverting atom casing.
-  "_mp4Items",
+  "_mp4ItemNames",
 ]);
 
 Deno.test("extra-state registry covers every passthrough data field", () => {

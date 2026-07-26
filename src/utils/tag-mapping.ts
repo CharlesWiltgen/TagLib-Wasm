@@ -139,7 +139,58 @@ export function mergeTagUpdates(
 ): void {
   const currentProps = file.properties();
   const newProps = normalizeTagInput(tags);
+  reconcilePairFields(currentProps, newProps, tags);
   file.setProperties({ ...currentProps, ...newProps });
+}
+
+/**
+ * Reconcile the two ways a track/disc pair can be expressed, against the value
+ * the file already has. Only this function has all three inputs — the current
+ * properties, the normalized update, and the caller's original intent — which is
+ * why neither `normalizeTagInput` (a pure transform, blind to the file) nor the
+ * `tag()` surface (blind to the update) can do it.
+ *
+ * Two rules, both learned from getting them wrong:
+ *
+ *  - Setting only the NUMBER preserves an existing total. `tag().setTrack(5)` on
+ *    a "3/12" yields "5/12", and `applyTags({track: 5})` used to yield "5" — the
+ *    same intent producing different files.
+ *  - A new raw pair supersedes any existing separate total. Spreading
+ *    `currentProps` first meant a stale `totalTracks` of 5 could survive next to
+ *    a new "3/12" and contradict it.
+ */
+function reconcilePairFields(
+  currentProps: PropertyMap,
+  newProps: Record<string, string[] | undefined>,
+  input: Partial<TagInput>,
+): void {
+  const pairs = [
+    ["trackNumber", "totalTracks", "track"],
+    ["discNumber", "totalDiscs", "discNumber"],
+  ] as const;
+
+  for (const [rawKey, totalKey, numericKey] of pairs) {
+    const incoming = newProps[rawKey]?.[0];
+
+    if (incoming?.includes("/")) {
+      // The incoming pair is authoritative, so the separate total must be
+      // REMOVED, not merely omitted: under WASI's merge model an absent key means
+      // "unchanged", so dropping it would leave the file's stale total in place to
+      // contradict the new pair. An empty list is the explicit clear.
+      newProps[totalKey] = [];
+      continue;
+    }
+
+    // Only the bare number was given, so inherit the total the file already has.
+    const numericOnly = input[numericKey] !== undefined &&
+      input[rawKey as keyof TagInput] === undefined;
+    if (!numericOnly || incoming === undefined) continue;
+    const existing = currentProps[rawKey]?.[0];
+    const slash = existing?.indexOf("/") ?? -1;
+    if (existing !== undefined && slash !== -1) {
+      newProps[rawKey] = [`${incoming}${existing.slice(slash)}`];
+    }
+  }
 }
 
 export function normalizeTagInput(

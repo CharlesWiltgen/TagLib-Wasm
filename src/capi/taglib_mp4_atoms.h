@@ -8,127 +8,148 @@
 #include <tstringlist.h>
 
 #include <cstring>
-#include <map>
 #include <string>
 #include <vector>
 
-// MP4 freeform atoms bypass the PropertyMap entirely (taglib-bnhl, taglib-wkyi).
+// MP4 freeform atom-name fidelity (taglib-bnhl).
 //
-// TagLib::PropertyMap is a case-normalising key space: it uppercases EVERY key
-// on insert and lookup (toolkit/tpropertymap.cpp), and ItemFactory rebuilds a
-// freeform atom as its single hard-coded prefix "----:com.apple.iTunes:" plus
-// that key. So routing a freeform atom through the PropertyMap destroys three
-// things, in increasing order of severity:
+// TagLib::PropertyMap uppercases EVERY key on insert and lookup
+// (toolkit/tpropertymap.cpp), so a freeform atom read as
+// "----:com.apple.iTunes:iTunNORM" arrives as the key "ITUNNORM". Writing back,
+// ItemFactory::nameForPropertyKey rebuilds "----:com.apple.iTunes:" + key and
+// emits the upper-cased twin, while MP4::Tag::setProperties leaves the original
+// item in place (its erase pass is skipped whenever the incoming map still
+// contains the key). Net effect: wrong casing on creation, and a duplicate atom
+// on every save of a file that already had one.
 //
-//   1. its casing        — iTunNORM becomes ITUNNORM
-//   2. its identity      — MP4::Tag::setProperties leaves the original item in
-//                          place and adds the upper-cased one, duplicating it
-//   3. its NAMESPACE     — "----:com.acme.tool:MyTag" is re-emitted as
-//                          "----:com.apple.iTunes:MYTAG", so the value lands
-//                          under a vendor prefix the caller never asked for
+// The fix does NOT enumerate known atoms. It preserves the name that already
+// exists: snapshot the exact freeform names straight off the file before the
+// PropertyMap write, then move each upper-cased twin back onto its original
+// name afterwards. That works for every atom — including vendor atoms nobody
+// has heard of — because the file itself is the source of truth.
 //
-// An earlier approach repaired names AFTER the write. It could not fix (3) at
-// all, because the mean is gone before the write happens, and its twin-matching
-// had to guess which mangled name belonged to which atom — a guess that merged
-// two genuinely different atoms and lost a value.
+// One case cannot be recovered this way and must be supplied by the caller: an
+// atom being CREATED, where nothing on disk carries the spelling. The caller
+// knows it (setMP4Item takes the full atom name; a typed property has its atom
+// name in the PROPERTIES table), so it is passed in as an extra name.
 //
-// So the twin is never created. Every freeform key is REMOVED from the property
-// map before setProperties runs, and freeform atoms are written afterwards with
-// MP4::Tag::setItem(), which stores the exact name. There is nothing to repair,
-// nothing to match, and no name the mechanism cannot represent.
-//
-// ORDERING IS LOAD-BEARING: collect and strip BEFORE file->setProperties(),
-// apply AFTER it, because setProperties erases items whose keys are absent from
-// the incoming map — which, after stripping, is all of them.
+// ORDERING IS LOAD-BEARING: capture BEFORE file->setProperties(), restore AFTER
+// it, because setProperties both creates the twin and erases items whose keys
+// are absent from the incoming map.
 
-inline const char* MP4_FREEFORM_MARKER = "----";
-inline const char* MP4_APPLE_PREFIX = "----:com.apple.iTunes:";
+inline const char* MP4_FREEFORM_PREFIX = "----:com.apple.iTunes:";
 
-/** Name -> values for one freeform atom. An empty value list means "remove". */
-using Mp4FreeformMap = std::map<std::string, TagLib::StringList>;
-
-inline bool mp4_is_freeform(const std::string& name)
-{
-    return name.compare(0, strlen(MP4_FREEFORM_MARKER), MP4_FREEFORM_MARKER) == 0;
-}
-
-/**
- * The PropertyMap key TagLib derives from a freeform atom: the bare NAME
- * upper-cased, for Apple-mean atoms only. Empty for any other mean, which
- * TagLib does not surface as a property at all.
+/*!
+ * Exact names of every com.apple.iTunes freeform atom currently on \a file.
+ * Empty for non-MP4 files.
  */
-inline std::string mp4_derived_property_key(const std::string& name)
+inline std::vector<std::string> capture_mp4_freeform_names(TagLib::File* file)
 {
-    const size_t prefix_len = strlen(MP4_APPLE_PREFIX);
-    if (name.compare(0, prefix_len, MP4_APPLE_PREFIX) != 0) return std::string();
-    std::string key = name.substr(prefix_len);
-    for (char& c : key) {
-        if (c >= 'a' && c <= 'z') c = static_cast<char>(c - 32);
-    }
-    return key;
-}
-
-/** Every freeform atom currently on \a file, by exact name. */
-inline Mp4FreeformMap collect_mp4_freeform_items(TagLib::File* file)
-{
-    Mp4FreeformMap items;
+    std::vector<std::string> names;
     auto* mp4 = dynamic_cast<TagLib::MP4::File*>(file);
-    if (!mp4 || !mp4->tag()) return items;
+    if (!mp4 || !mp4->tag()) return names;
 
+    const size_t prefix_len = strlen(MP4_FREEFORM_PREFIX);
     for (const auto& [name, item] : mp4->tag()->itemMap()) {
-        const std::string n = name.to8Bit(true);
-        if (!mp4_is_freeform(n)) continue;
-        items[n] = item.toStringList();
+        std::string n = name.to8Bit(true);
+        if (n.compare(0, prefix_len, MP4_FREEFORM_PREFIX) == 0) {
+            names.push_back(n);
+        }
     }
-    return items;
+    return names;
 }
 
-/**
- * Merge caller edits over the collected set. An entry with no values is KEPT as
- * an explicit removal marker rather than dropped, because both later steps need
- * to see it: strip must remove its property key so setProperties cannot
- * re-create the atom from the still-present key, and apply must call
- * removeItem(). Dropping the marker instead made removeMP4Item a no-op — the
- * atom came straight back through the PropertyMap.
+/*!
+ * Fold an atom name to a separator- and case-insensitive form.
+ *
+ * Used only as a FALLBACK, because TagLib builds the twin from the PROPERTY KEY
+ * it was handed and our keys do not always differ from the atom name by case
+ * alone: "Acoustid Fingerprint" is keyed ACOUSTID_FINGERPRINT — space versus
+ * underscore — so no re-casing of the original name produces that twin.
  */
-inline void merge_mp4_freeform_edits(Mp4FreeformMap& items,
-                                     const Mp4FreeformMap& edits)
+inline std::string mp4_fold_atom_name(const std::string& name)
 {
-    for (const auto& [name, values] : edits) {
-        items[name] = values;
+    std::string folded;
+    folded.reserve(name.size());
+    for (char c : name) {
+        if (c == '_' || c == ' ') continue;
+        folded.push_back((c >= 'a' && c <= 'z') ? static_cast<char>(c - 32) : c);
     }
+    return folded;
 }
 
-/**
- * Strip every property key that a freeform atom would round-trip through, so
- * setProperties can neither create an upper-cased twin nor rewrite the atom
- * under the wrong mean. Call BEFORE file->setProperties().
- */
-inline void strip_mp4_freeform_properties(const Mp4FreeformMap& items,
-                                          TagLib::PropertyMap& propMap)
+/*! The same atom name with its bare NAME upper-cased: the twin TagLib produces
+ *  whenever the property key differs from the atom name by case alone. */
+inline std::string mp4_uppercased_twin(const std::string& name)
 {
-    for (const auto& [name, values] : items) {
-        const std::string key = mp4_derived_property_key(name);
-        if (!key.empty()) propMap.erase(TagLib::String(key, TagLib::String::UTF8));
+    const size_t prefix_len = strlen(MP4_FREEFORM_PREFIX);
+    if (name.compare(0, prefix_len, MP4_FREEFORM_PREFIX) != 0) return name;
+    std::string twin = name;
+    for (size_t i = prefix_len; i < twin.size(); i++) {
+        if (twin[i] >= 'a' && twin[i] <= 'z') twin[i] -= 32;
     }
+    return twin;
 }
 
-/**
- * Write every freeform atom under its exact name. Call AFTER
- * file->setProperties(), which will have erased them along with everything else
- * absent from the stripped map.
+/*!
+ * Move each mangled twin atom back onto its canonical name. Call AFTER
+ * file->setProperties(). \a names should be the capture from before the write
+ * plus any name the caller is creating.
+ *
+ * Deliberately conservative, because a fold match alone MERGES atoms that are
+ * genuinely different. "My_Atom" and "MyAtom" both fold to MYATOM, and an
+ * earlier version renamed whichever the item map yielded first, deleting one
+ * atom and leaving the survivor holding the other's value — losing the value
+ * that had just been written. So:
+ *
+ *   1. Prefer the EXACT upper-cased twin. That is deterministic and cannot be
+ *      confused with a different atom, and it covers both creation
+ *      (replaygain_track_gain <- REPLAYGAIN_TRACK_GAIN) and collapsing a
+ *      duplicate pair an older release left behind (iTunNORM + ITUNNORM).
+ *   2. Otherwise, only when the canonical name is ABSENT, accept a fold match —
+ *      and only when there is exactly ONE candidate. Two candidates means the
+ *      PropertyMap genuinely cannot tell the atoms apart, so guessing would
+ *      destroy one; leave the mangled name in place instead. Wrong casing is
+ *      recoverable, a deleted value is not.
  */
-inline void apply_mp4_freeform_items(TagLib::File* file,
-                                     const Mp4FreeformMap& items)
+inline void restore_mp4_freeform_names(TagLib::File* file,
+                                       const std::vector<std::string>& names)
 {
+    if (names.empty()) return;
     auto* mp4 = dynamic_cast<TagLib::MP4::File*>(file);
     if (!mp4 || !mp4->tag()) return;
     auto* tag = mp4->tag();
 
-    for (const auto& [name, values] : items) {
-        const TagLib::String key(name, TagLib::String::UTF8);
-        if (values.isEmpty()) tag->removeItem(key);
-        else tag->setItem(key, TagLib::MP4::Item(values));
+    const size_t prefix_len = strlen(MP4_FREEFORM_PREFIX);
+    for (const auto& name : names) {
+        if (name.compare(0, prefix_len, MP4_FREEFORM_PREFIX) != 0) continue;
+        const TagLib::String target(name, TagLib::String::UTF8);
+
+        TagLib::String source;
+        bool found = false;
+
+        const TagLib::String exactTwin(mp4_uppercased_twin(name),
+                                       TagLib::String::UTF8);
+        if (exactTwin != target && tag->itemMap().contains(exactTwin)) {
+            source = exactTwin;
+            found = true;
+        } else if (!tag->itemMap().contains(target)) {
+            const std::string folded = mp4_fold_atom_name(name);
+            int matches = 0;
+            for (const auto& [itemName, item] : tag->itemMap()) {
+                const std::string n = itemName.to8Bit(true);
+                if (n.compare(0, prefix_len, MP4_FREEFORM_PREFIX) != 0) continue;
+                if (mp4_fold_atom_name(n) != folded) continue;
+                matches++;
+                source = itemName;
+            }
+            found = (matches == 1);
+        }
+        if (!found) continue;
+
+        const TagLib::MP4::Item item = tag->itemMap()[source];
+        tag->removeItem(source);
+        tag->setItem(target, item);
     }
 }
 

@@ -579,3 +579,95 @@ describe("the date/year mirror obeys the same rules as trackNumber/track", () =>
     }
   }
 });
+
+describe("track and disc totals land in the standard on-disk field", () => {
+  // Every totals test in the suite used FLAC, which stores TRACKTOTAL as its own
+  // Vorbis field — so nothing covered the formats where the total belongs INSIDE
+  // the number field (ID3v2 TRCK/TPOS, MP4 trkn/disk). A caller supplying
+  // separate track + totalTracks must still end up with the combined form there,
+  // or ordinary players show no total.
+  for (const format of ["mp3", "m4a"] as const) {
+    it(`stores a separate track/disc total in the combined field [${format}]`, async () => {
+      const path = await tempCopy(format);
+      try {
+        await Deno.writeFile(
+          path,
+          await applyTags(path, {
+            track: 3,
+            totalTracks: 12,
+            discNumber: 1,
+            totalDiscs: 2,
+          }),
+        );
+
+        for (const reader of BACKENDS) {
+          const file = await taglibs[reader].open(path);
+          try {
+            const props = file.properties() as Record<string, string[]>;
+            assertEquals(
+              props.trackNumber,
+              ["3/12"],
+              `${reader}: the track total is not in the combined field`,
+            );
+            assertEquals(
+              props.discNumber,
+              ["1/2"],
+              `${reader}: the disc total is not in the combined field`,
+            );
+            // And not ALSO stashed in a separate tag.
+            assertEquals(props.totalTracks, undefined);
+            assertEquals(props.totalDiscs, undefined);
+          } finally {
+            file.dispose();
+          }
+        }
+      } finally {
+        await Deno.remove(path).catch(() => {});
+      }
+    });
+  }
+
+  it("applyTags({track}) preserves an existing total, like tag().setTrack() [mp3]", async () => {
+    // The two write surfaces expressed the same intent and produced different
+    // files: setTrack(5) kept "5/12" while applyTags({track:5}) wrote "5".
+    const path = await tempCopy("mp3");
+    try {
+      await seedProperties("emscripten", path, { trackNumber: ["3/12"] });
+      await Deno.writeFile(path, await applyTags(path, { track: 5 }));
+      assertEquals(
+        await readProperty("emscripten", path, "trackNumber"),
+        ["5/12"],
+        "applyTags dropped the total that setTrack preserves",
+      );
+    } finally {
+      await Deno.remove(path).catch(() => {});
+    }
+  });
+
+  it("a new raw pair does not leave a contradicting stale total [flac]", async () => {
+    // mergeTagUpdates spreads the file's current properties first, so a total
+    // that the incoming pair supersedes could survive and disagree with it.
+    const path = await tempCopy("flac");
+    try {
+      await seedProperties("wasi", path, {
+        trackNumber: ["1"],
+        totalTracks: ["5"],
+      });
+      await Deno.writeFile(
+        path,
+        await applyTags(path, { trackNumber: "3/12", totalTracks: 12 }),
+      );
+      const props = await readProperty("wasi", path, "trackNumber");
+      assertEquals(props, ["3/12"]);
+      assertEquals(
+        await readProperty("wasi", path, "totalTracks"),
+        undefined,
+        "a stale total survived alongside the new pair",
+      );
+      const tags = await readTags(path);
+      assertEquals(tags.totalTracks, 12, "readTags reported the stale total");
+    } finally {
+      await Deno.remove(path).catch(() => {});
+    }
+  });
+});

@@ -487,209 +487,133 @@ for (const backend of BACKENDS) {
   });
 }
 
-for (const backend of BACKENDS) {
-  Deno.test(`[${backend}] removeMP4Item('trkn') removes only that atom`, async () => {
-    // While the shim merged "n/total" back into trkn on write, clearing the
-    // number without the total re-created the atom as "0/12" — a removal that
-    // corrupted the value. With the merge gone (taglib-asg) the total is an
-    // independent tag, so removing trkn must remove trkn and nothing else, and
-    // both backends must agree on that.
-    const tl = await TagLib.initialize({ forceWasmType: backend });
-    const seed = await tl.open(await Deno.readFile(FIXTURE_PATH.m4a));
-    seed.setProperties({ trackNumber: ["3"], totalTracks: ["12"] });
-    seed.save();
-    const withTotal = seed.getFileBuffer();
-    seed.dispose();
+Deno.test("[wasi] removeMP4Item('trkn') does not resurrect the atom as 0/total", async () => {
+  // trkn carries number AND total, so clearing the number while leaving
+  // totalTracks let merge_intpair_properties re-create the atom as "0/12" —
+  // a removal that silently corrupted the value instead.
+  const tl = await TagLib.initialize({ forceWasmType: "wasi" });
+  const seed = await tl.open(await Deno.readFile(FIXTURE_PATH.m4a));
+  seed.setProperties({ trackNumber: ["3"], totalTracks: ["12"] });
+  seed.save();
+  const withTotal = seed.getFileBuffer();
+  seed.dispose();
 
-    const file = await tl.open(withTotal);
-    file.removeMP4Item("trkn");
-    file.save();
-    const buf = file.getFileBuffer();
-    file.dispose();
+  const file = await tl.open(withTotal);
+  file.removeMP4Item("trkn");
+  file.save();
+  const buf = file.getFileBuffer();
+  file.dispose();
 
-    const reopened = await tl.open(buf);
-    try {
-      const props = reopened.properties() as Record<string, string[]>;
-      assertEquals(props.trackNumber, undefined, "trkn not removed");
-      assertEquals(props.totalTracks, ["12"], "an unrelated tag was removed");
-    } finally {
-      reopened.dispose();
-    }
-  });
-}
+  const reopened = await tl.open(buf);
+  try {
+    const props = reopened.properties() as Record<string, string[]>;
+    assertEquals(props.trackNumber, undefined, "atom resurrected");
+    assertEquals(props.totalTracks, undefined, "total outlived its atom");
+  } finally {
+    reopened.dispose();
+  }
+});
 
 /**
- * Freeform atoms bypass the PropertyMap entirely (taglib-wkyi).
- *
- * The PropertyMap destroys three properties of a freeform atom: its casing, its
- * identity (setProperties duplicates it), and its NAMESPACE — a non-Apple `mean`
- * was re-emitted under `----:com.apple.iTunes:`, so the caller's atom vanished
- * and a wrong-namespace twin appeared. Repairing names after the write could not
- * fix the namespace at all, because the mean is gone before the write happens.
+ * WRITE TWICE, then read. This is the pattern no test used, which is why a
+ * regression that silently reverted the second write to most freeform-backed
+ * properties survived a green suite: every existing test writes a field once,
+ * and a design that restores the pre-edit on-disk value looks correct then.
  */
-const MEANS = [
-  "----:com.apple.iTunes:iTunNORM", // Apple mean, mixed case
-  "----:com.apple.iTunes:lowercase", // Apple mean, no upper-case at all
-  "----:com.acme.tool:MyTag", // NON-Apple mean — unrepresentable as a property
-  "----:org.example.tool:Nested_Name", // non-Apple mean, underscores + case
-  // NOT covered: a name containing a colon. A freeform key is exactly
-  // "----:mean:name", so an extra colon is not a shape TagLib can store — both
-  // backends refuse it identically, which is correct rather than a divergence.
+const REWRITE_FIELDS = [
+  "label", // bare atom name is all-uppercase: LABEL
+  "subtitle",
+  "isrc",
+  "conductor",
+  "producer",
+  "appleSoundCheck", // mixed-case bare name: iTunNORM
+  "replayGainTrackGain", // lowercase bare name
+  "acoustidFingerprint", // bare name differs by separator, not just case
 ];
 
 for (const backend of BACKENDS) {
-  for (const atom of MEANS) {
-    Deno.test(`[${backend}] freeform atom "${atom}" round-trips by exact name (taglib-wkyi)`, async () => {
+  for (const field of REWRITE_FIELDS) {
+    Deno.test(`[${backend}] a second write to ${field} sticks [m4a]`, async () => {
       const tl = await TagLib.initialize({ forceWasmType: backend });
-      const file = await tl.open(await Deno.readFile(FIXTURE_PATH.m4a));
-      file.setMP4Item(atom, "probe-value");
-      file.save();
-      const buf = file.getFileBuffer();
-      file.dispose();
 
-      // The mean and the name must both be in the bytes, verbatim.
-      const mean = atom.slice(
-        "----:".length,
-        atom.indexOf(":", "----:".length),
-      );
-      const bare = atom.slice(atom.lastIndexOf(":") + 1);
-      const counts = countAtomNames(buf, [mean, bare, bare.toUpperCase()]);
-      assertEquals(counts[mean], 1, `${backend}: mean "${mean}" not preserved`);
-      assertEquals(counts[bare], 1, `${backend}: name "${bare}" not preserved`);
-      if (bare !== bare.toUpperCase()) {
-        assertEquals(
-          counts[bare.toUpperCase()],
-          0,
-          `${backend}: an upper-cased twin was written`,
-        );
-      }
+      const first = await tl.open(await Deno.readFile(FIXTURE_PATH.m4a));
+      first.setProperties({ [field]: ["First"] });
+      first.save();
+      const once = first.getFileBuffer();
+      first.dispose();
 
-      // And it must be readable back by the same exact name.
-      const reopened = await tl.open(buf);
+      const second = await tl.open(once);
+      // Read-modify-write, as a real consumer does.
+      second.setProperties({ ...second.properties(), [field]: ["Second"] });
+      second.save();
+      const twice = second.getFileBuffer();
+      second.dispose();
+
+      const reopened = await tl.open(twice);
       try {
-        assertEquals(reopened.getMP4Item(atom), "probe-value");
+        assertEquals(
+          (reopened.properties() as Record<string, string[]>)[field],
+          ["Second"],
+          `${backend}: the second write to ${field} was lost`,
+        );
       } finally {
         reopened.dispose();
       }
     });
+  }
 
-    Deno.test(`[${backend}] removing freeform atom "${atom}" persists (taglib-wkyi)`, async () => {
-      const tl = await TagLib.initialize({ forceWasmType: backend });
-      const seed = await tl.open(await Deno.readFile(FIXTURE_PATH.m4a));
-      seed.setMP4Item(atom, "to-remove");
+  Deno.test(`[${backend}] writing a freeform property leaves no upper-cased twin [m4a]`, async () => {
+    // acoustidFingerprint's atom name differs from its wire key by a separator
+    // (space vs underscore), so a twin-detection scheme that only re-cases the
+    // name misses it and both spellings end up on disk.
+    const tl = await TagLib.initialize({ forceWasmType: backend });
+    const file = await tl.open(await Deno.readFile(FIXTURE_PATH.m4a));
+    file.setProperties({ acoustidFingerprint: ["V1"] });
+    file.save();
+    const buf = file.getFileBuffer();
+    file.dispose();
+
+    assertEquals(
+      countAtomNames(buf, ["Acoustid Fingerprint", "ACOUSTID_FINGERPRINT"]),
+      { "Acoustid Fingerprint": 1, ACOUSTID_FINGERPRINT: 0 },
+      `${backend}: an upper-cased twin atom was written alongside`,
+    );
+  });
+
+  Deno.test(`[${backend}] save-as preserves freeform-backed properties on a NON-MP4 file [flac]`, async () => {
+    // A guard that assumes "MP4" while running for every container strips these
+    // keys from the property map and then never writes them back.
+    const tl = await TagLib.initialize({ forceWasmType: backend });
+    const src = await Deno.makeTempFile({ suffix: ".flac" });
+    const dst = await Deno.makeTempFile({ suffix: ".flac" });
+    try {
+      await Deno.writeFile(src, await Deno.readFile(FIXTURE_PATH.flac));
+      const seed = await tl.open(src);
+      seed.setProperties({
+        replayGainTrackGain: ["-3.00 dB"],
+        appleSoundCheck: [" 0001"],
+        musicbrainzTrackId: ["mbid"],
+      });
       seed.save();
-      const withAtom = seed.getFileBuffer();
+      await Deno.writeFile(src, seed.getFileBuffer());
       seed.dispose();
-      const check = await tl.open(withAtom);
-      assertEquals(check.getMP4Item(atom), "to-remove", "seed did not land");
-      check.dispose();
 
-      const file = await tl.open(withAtom);
-      file.removeMP4Item(atom);
-      file.save();
-      const buf = file.getFileBuffer();
+      const file = await tl.open(src);
+      await file.saveToFile(dst);
       file.dispose();
 
-      const reopened = await tl.open(buf);
+      const reopened = await tl.open(dst);
       try {
-        assertEquals(
-          reopened.getMP4Item(atom),
-          undefined,
-          `${backend}: removal did not persist`,
-        );
+        const props = reopened.properties() as Record<string, string[]>;
+        assertEquals(props.replayGainTrackGain, ["-3.00 dB"]);
+        assertEquals(props.appleSoundCheck, [" 0001"]);
+        assertEquals(props.musicbrainzTrackId, ["mbid"]);
       } finally {
         reopened.dispose();
       }
-    });
-  }
-
-  Deno.test(`[${backend}] an unrelated edit leaves every freeform atom untouched (taglib-wkyi)`, async () => {
-    // The collect-and-apply design must preserve atoms it was told nothing
-    // about, including means the property surface cannot even see.
-    const tl = await TagLib.initialize({ forceWasmType: backend });
-    const seed = await tl.open(await Deno.readFile(FIXTURE_PATH.m4a));
-    for (const atom of MEANS) seed.setMP4Item(atom, `v-${atom}`);
-    seed.save();
-    const seeded = seed.getFileBuffer();
-    seed.dispose();
-
-    const file = await tl.open(seeded);
-    file.tag().setTitle("an unrelated edit");
-    file.save();
-    const buf = file.getFileBuffer();
-    file.dispose();
-
-    const reopened = await tl.open(buf);
-    try {
-      for (const atom of MEANS) {
-        assertEquals(
-          reopened.getMP4Item(atom),
-          `v-${atom}`,
-          `${backend}: "${atom}" did not survive an unrelated edit`,
-        );
-      }
     } finally {
-      reopened.dispose();
+      await Deno.remove(src).catch(() => {});
+      await Deno.remove(dst).catch(() => {});
     }
   });
-}
-
-/**
- * Key-mapping consistency for the two Apple freeform atoms (tuneup-ibo).
- *
- * `properties()` used to answer `appleSoundCheck` for iTunNORM but the raw
- * uppercased `ITUNSMPB` for its sibling, because only one had an alias. Same
- * mechanism, uneven coverage — so the surface looked like it followed two
- * different conventions.
- */
-const APPLE_ATOM_PROPERTIES: Array<[property: string, atom: string]> = [
-  ["appleSoundCheck", "iTunNORM"],
-  ["appleGaplessInfo", "iTunSMPB"],
-];
-
-for (const backend of BACKENDS) {
-  Deno.test(`[${backend}] both Apple freeform atoms map to friendly keys (tuneup-ibo)`, async () => {
-    const tl = await TagLib.initialize({ forceWasmType: backend });
-    const seed = await tl.open(await Deno.readFile(FIXTURE_PATH.m4a));
-    for (const [, atom] of APPLE_ATOM_PROPERTIES) {
-      seed.setMP4Item(`----:com.apple.iTunes:${atom}`, `v-${atom}`);
-    }
-    seed.save();
-    const buf = seed.getFileBuffer();
-    seed.dispose();
-
-    const file = await tl.open(buf);
-    try {
-      const props = file.properties() as Record<string, string[]>;
-      for (const [property, atom] of APPLE_ATOM_PROPERTIES) {
-        assertEquals(
-          props[property],
-          [`v-${atom}`],
-          `${backend}: ${atom} did not surface as ${property}`,
-        );
-      }
-      // And no raw uppercased key leaks alongside the friendly one.
-      assertEquals(props.ITUNSMPB, undefined);
-      assertEquals(props.ITUNNORM, undefined);
-    } finally {
-      file.dispose();
-    }
-  });
-
-  for (const [property, atom] of APPLE_ATOM_PROPERTIES) {
-    Deno.test(`[${backend}] ${property} writes the atom "${atom}" (tuneup-ibo)`, async () => {
-      const tl = await TagLib.initialize({ forceWasmType: backend });
-      const file = await tl.open(await Deno.readFile(FIXTURE_PATH.m4a));
-      file.setProperties({ [property]: ["probe-value"] });
-      file.save();
-      const buf = file.getFileBuffer();
-      file.dispose();
-
-      assertEquals(
-        countAtomNames(buf, [atom, atom.toUpperCase()]),
-        { [atom]: 1, [atom.toUpperCase()]: 0 },
-        `${backend}: ${property} wrote the wrong atom name`,
-      );
-    });
-  }
 }

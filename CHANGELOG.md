@@ -28,10 +28,6 @@
   form. Six further properties were affected on both backends:
   `replayGain{Track,Album}{Gain,Peak}` (the ecosystem spells these lowercase) and
   `acoustid{Fingerprint,Id}`.
-- **MP4 freeform atoms keep their vendor `mean`.** An atom such as
-  `----:com.acme.tool:MyTag` was re-emitted as `----:com.apple.iTunes:MYTAG` on
-  WASI, so the caller's atom disappeared and a wrong-namespace one took its place.
-  Freeform atoms now bypass TagLib's PropertyMap entirely in both directions.
 - **`removeMP4Item()` works for standard atoms on WASI.** `trkn`, `disk`, `©nam`
   and every other non-freeform atom name resolved to nothing, so removal was a
   silent no-op while Emscripten removed them correctly.
@@ -53,6 +49,14 @@
   `appleSoundCheck` for `iTunNORM` but the raw `ITUNSMPB` for its sibling; both
   now use friendly names.
 
+### Known limitations
+
+- **MP4 freeform atoms whose `mean` is not `com.apple.iTunes`** are still
+  rewritten into the Apple namespace with an upper-cased name on the WASI
+  backend, so a `----:com.acme.tool:MyTag` does not survive a save there.
+  Emscripten handles them correctly. Reach such atoms by exact name with
+  `getMP4Item()` / `setMP4Item()` on Emscripten; tracked as `taglib-wkyi`.
+
 ### Changed
 
 - **A combined `"n/total"` track or disc field is no longer split on the
@@ -65,11 +69,6 @@
   "3/12"`, `track: 3` and `totalTracks: 12`. If you read `totalTracks` from
   `properties()` on an MP3 or MP4 with a combined field, read it from `readTags()`
   instead, or parse the suffix.
-- **`clearTags()` does not remove an MP4 freeform atom whose `mean` is not
-  `com.apple.iTunes`.** Such atoms are not visible as properties, so they are no
-  longer reachable by a property-level clear. This matches what Emscripten has
-  always done; WASI only appeared to clear them because it had relocated them into
-  the Apple namespace. Remove them by exact name with `removeMP4Item()`.
 
 - **Minimum Node.js is now 24.** `engines.node` moves from `>=22.6.0` to
   `>=24.0.0`, matching the Active LTS line. The old floor was an untested

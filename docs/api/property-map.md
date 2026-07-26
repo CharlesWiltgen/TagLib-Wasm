@@ -80,12 +80,13 @@ Object.values(PROPERTIES).forEach((prop) => {
   `totalTracks`. The typed surfaces do the narrowing instead — `readTags()`
   answers `trackNumber: "3/12"`, `track: 3` and `totalTracks: 12`, and
   `tag().track` answers `3`. Both backends behave identically here.
-- **MP4 freeform atom names are exact.** Atoms keep their casing and their
-  `mean`, so `iTunNORM` is not written as `ITUNNORM` and
-  `----:com.acme.tool:MyTag` is not relocated into `com.apple.iTunes`. Note the
-  consequence: an atom whose `mean` is not `com.apple.iTunes` is not visible as a
-  property at all, so `clearTags()` does not remove it — reach it by exact name
-  with `getMP4Item()` / `removeMP4Item()`.
+- **MP4 freeform atom casing is preserved.** Apple's atoms are written as
+  `iTunNORM` and `iTunSMPB` rather than upper-cased, so other tools recognise
+  them, and a save does not leave a duplicate under a second spelling.
+- **Known limitation:** a freeform atom whose `mean` is not
+  `com.apple.iTunes` (e.g. `----:com.acme.tool:MyTag`) is rewritten into the
+  Apple namespace with an upper-cased name on the WASI backend. Emscripten
+  handles it correctly. See `taglib-wkyi`.
 - See [Tag Constants](./tag-constants.md) for the complete PROPERTIES reference
 
 ## 📋 Format-Specific Storage Reference

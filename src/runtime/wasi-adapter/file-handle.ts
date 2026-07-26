@@ -68,8 +68,8 @@ const INTERNAL_KEYS = new Set([
   "_mp4ChapterStyle",
   "bextData",
   "ixml",
-  // Freeform MP4 atom edits for the write path, not a readable property.
-  "_mp4Items",
+  // Exact MP4 atom names for the write path, not a readable property.
+  "_mp4ItemNames",
 ]);
 
 const CONTAINER_TO_FORMAT: Record<string, string> = {
@@ -348,21 +348,11 @@ export class WasiFileHandle implements FileHandle {
     const next = { ...this.tagData } as Record<string, unknown>;
     for (const [key, values] of Object.entries(props)) {
       const camelKey = fromTagLibKey(key);
-      if (camelKey === "_mp4Items") {
-        // Accumulate by atom name: an earlier setMP4Item on this handle may have
-        // staged an edit this call does not mention. Later edits win.
-        const incoming = values as unknown as {
-          name: string;
-          values: string[];
-        }[];
-        const staged = new Map<string, { name: string; values: string[] }>(
-          ((next._mp4Items as
-            | { name: string; values: string[] }[]
-            | undefined) ??
-            []).map((e) => [e.name, e]),
-        );
-        for (const edit of incoming) staged.set(edit.name, edit);
-        next._mp4Items = [...staged.values()];
+      if (camelKey === "_mp4ItemNames") {
+        // Accumulate: a setMP4Item earlier in this handle's life may already
+        // have registered a name that this call does not mention.
+        const existing = (next._mp4ItemNames as string[] | undefined) ?? [];
+        next._mp4ItemNames = [...new Set([...existing, ...values])];
         continue;
       }
       const mirror = mirrorForRawKey(camelKey);
@@ -425,52 +415,31 @@ export class WasiFileHandle implements FileHandle {
 
   getMP4Item(key: string): string {
     this.checkNotDestroyed();
-    // Freeform atoms are read from the exact-name channel, not the PropertyMap:
-    // the map view upper-cases the name and cannot represent a non-Apple mean at
-    // all, so `----:com.acme.tool:MyTag` had no key to look up (taglib-wkyi).
-    if (key.startsWith("----")) {
-      const items = this.tagData?._mp4Items as
-        | { name: string; values: string[] }[]
-        | undefined;
-      const match = items?.find((entry) => entry.name === key);
-      return match?.values[0] ?? "";
-    }
     return this.getProperty(mp4ItemPropertyKey(key));
   }
 
   setMP4Item(key: string, value: string): void {
     this.checkNotDestroyed();
-    // Freeform atoms live in the exact-name channel, matching getMP4Item — the
-    // PropertyMap slot cannot hold the name (taglib-wkyi).
-    if (key.startsWith("----")) {
-      this.stageFreeformEdit(key, [value]);
-      return;
-    }
     this.setProperty(mp4ItemPropertyKey(key), value);
+    // The property slot above is keyed by the UPPERCASED bare name, which is
+    // what TagLib's PropertyMap will hand back. Register the caller's exact
+    // spelling so the C++ write path can restore it (taglib-bnhl).
+    if (key.startsWith("----:")) this.registerMp4ItemName(key);
   }
 
-  /** Stage one freeform atom edit; an empty value list marks a removal. */
-  private stageFreeformEdit(name: string, values: string[]): void {
-    const existing = (this.tagData?._mp4Items as
-      | { name: string; values: string[] }[]
-      | undefined) ?? [];
-    const staged = existing.filter((entry) => entry.name !== name);
-    staged.push({ name, values });
-    this.tagData = { ...this.tagData, _mp4Items: staged } as Record<
-      string,
-      unknown
-    >;
+  /** Record an exact atom name to be repaired after the PropertyMap write. */
+  private registerMp4ItemName(name: string): void {
+    const existing = (this.tagData?._mp4ItemNames as string[] | undefined) ??
+      [];
+    if (existing.includes(name)) return;
+    this.tagData = {
+      ...this.tagData,
+      _mp4ItemNames: [...existing, name],
+    } as Record<string, unknown>;
   }
 
   removeMP4Item(key: string): void {
     this.checkNotDestroyed();
-    if (key.startsWith("----")) {
-      // Empty values are the removal marker the C++ side acts on; it must reach
-      // the write path rather than just vanishing from the staged set, or
-      // setProperties re-creates the atom from its still-present property key.
-      this.stageFreeformEdit(key, []);
-      return;
-    }
     if (this.tagData) {
       // "trkn" now resolves to TRACKNUMBER, so the numeric mirror IS reachable
       // here and must go with the raw value — otherwise tag().track keeps
