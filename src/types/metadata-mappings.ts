@@ -272,4 +272,10 @@ export const METADATA_MAPPINGS: Record<
     vorbis: "ITUNNORM", // Some tools store it in Vorbis comments too
     mp4: "----:com.apple.iTunes:iTunNORM",
   },
+  // Same underlying frames pattern as appleSoundCheck, for the sibling atom.
+  appleGaplessInfo: {
+    id3v2: { frame: "TXXX", description: "iTunSMPB" },
+    vorbis: "ITUNSMPB",
+    mp4: "----:com.apple.iTunes:iTunSMPB",
+  },
 };

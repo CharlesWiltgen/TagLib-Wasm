@@ -629,3 +629,63 @@ for (const backend of BACKENDS) {
     }
   });
 }
+
+/**
+ * Key-mapping consistency for the two Apple freeform atoms (tuneup-ibo).
+ *
+ * `properties()` used to answer `appleSoundCheck` for iTunNORM but the raw
+ * uppercased `ITUNSMPB` for its sibling, because only one had an alias. Same
+ * mechanism, uneven coverage — so the surface looked like it followed two
+ * different conventions.
+ */
+const APPLE_ATOM_PROPERTIES: Array<[property: string, atom: string]> = [
+  ["appleSoundCheck", "iTunNORM"],
+  ["appleGaplessInfo", "iTunSMPB"],
+];
+
+for (const backend of BACKENDS) {
+  Deno.test(`[${backend}] both Apple freeform atoms map to friendly keys (tuneup-ibo)`, async () => {
+    const tl = await TagLib.initialize({ forceWasmType: backend });
+    const seed = await tl.open(await Deno.readFile(FIXTURE_PATH.m4a));
+    for (const [, atom] of APPLE_ATOM_PROPERTIES) {
+      seed.setMP4Item(`----:com.apple.iTunes:${atom}`, `v-${atom}`);
+    }
+    seed.save();
+    const buf = seed.getFileBuffer();
+    seed.dispose();
+
+    const file = await tl.open(buf);
+    try {
+      const props = file.properties() as Record<string, string[]>;
+      for (const [property, atom] of APPLE_ATOM_PROPERTIES) {
+        assertEquals(
+          props[property],
+          [`v-${atom}`],
+          `${backend}: ${atom} did not surface as ${property}`,
+        );
+      }
+      // And no raw uppercased key leaks alongside the friendly one.
+      assertEquals(props.ITUNSMPB, undefined);
+      assertEquals(props.ITUNNORM, undefined);
+    } finally {
+      file.dispose();
+    }
+  });
+
+  for (const [property, atom] of APPLE_ATOM_PROPERTIES) {
+    Deno.test(`[${backend}] ${property} writes the atom "${atom}" (tuneup-ibo)`, async () => {
+      const tl = await TagLib.initialize({ forceWasmType: backend });
+      const file = await tl.open(await Deno.readFile(FIXTURE_PATH.m4a));
+      file.setProperties({ [property]: ["probe-value"] });
+      file.save();
+      const buf = file.getFileBuffer();
+      file.dispose();
+
+      assertEquals(
+        countAtomNames(buf, [atom, atom.toUpperCase()]),
+        { [atom]: 1, [atom.toUpperCase()]: 0 },
+        `${backend}: ${property} wrote the wrong atom name`,
+      );
+    });
+  }
+}

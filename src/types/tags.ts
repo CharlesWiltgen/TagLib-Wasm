@@ -89,6 +89,7 @@ export interface TagInput {
 
   // Extended string fields
   readonly appleSoundCheck?: string | string[];
+  readonly appleGaplessInfo?: string | string[];
   readonly albumArtist?: string | string[];
   readonly composer?: string | string[];
   readonly conductor?: string | string[];
@@ -230,6 +231,8 @@ export interface ExtendedTag extends Tag {
   // Apple Sound Check
   /** Apple Sound Check normalization data (iTunNORM) */
   readonly appleSoundCheck?: string[];
+  /** Apple gapless playback data: encoder delay and padding (iTunSMPB) */
+  readonly appleGaplessInfo?: string[];
   /** Embedded pictures/artwork */
   readonly pictures?: import("./pictures.ts").Picture[];
   /** Popularity/rating data. Same shape as {@link AudioFile.getRatings}. */

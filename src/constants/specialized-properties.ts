@@ -131,4 +131,24 @@ export const SPECIALIZED_PROPERTIES = {
       mp4: "----:com.apple.iTunes:iTunNORM",
     },
   },
+  /**
+   * Apple gapless-playback data (encoder delay, padding, original sample count).
+   *
+   * Exists so the two Apple freeform atoms are presented consistently: without
+   * it, `properties()` answered `appleSoundCheck` for iTunNORM but the raw
+   * uppercased `ITUNSMPB` for its sibling, because only one had an alias. The
+   * name mirrors `appleSoundCheck` — vendor-prefixed, feature-named rather than
+   * atom-named (tuneup-ibo).
+   */
+  appleGaplessInfo: {
+    key: "ITUNSMPB",
+    description: "Apple gapless playback data (encoder delay and padding)",
+    type: "string" as const,
+    supportedFormats: ["ID3v2", "MP4", "Vorbis"] as const,
+    mappings: {
+      id3v2: { frame: "TXXX", description: "iTunSMPB" },
+      vorbis: "ITUNSMPB",
+      mp4: "----:com.apple.iTunes:iTunSMPB",
+    },
+  },
 } as const;
