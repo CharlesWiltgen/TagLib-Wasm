@@ -118,8 +118,13 @@ design rather than by defect:
 The C shim splits the pair on read and merges it back on write for MPEG and MP4
 (`split_intpair_properties` / `merge_intpair_properties` in
 `src/capi/taglib_shim.cpp`), which Emscripten's Embind path does not do. It is
-**lossless** — both backends write identical bytes and the total survives — but
-it is a real presentation difference. Pinned by `property-raw-values.test.ts`
+**lossless** — the total survives and either backend reads back the value the
+other wrote — but
+it is a real presentation difference. Note the files are NOT byte-identical: a
+"3/12" written by each backend produces the same length but differing bytes, so
+only the logical round-trip is verified. (An earlier revision of this document
+claimed byte-identity; that was asserted without being measured, and measurement
+disproved it.) Pinned by `property-raw-values.test.ts`
 ("splits 3/12 on WASI and keeps it raw on Emscripten, losslessly"), so changing
 either half requires updating that test deliberately. Tracked as `taglib-asg`.
 
