@@ -59,10 +59,17 @@
 #include <cstring>
 #include <cstdlib>
 
+// The PropertyMap surface is the RAW text surface: every text property crosses
+// the wire as the string TagLib holds, so "03" and "3/12" survive intact
+// (taglib-qpl). Numeric narrowing belongs to the typed surfaces and happens in
+// JS — `mapPropertiesToExtendedTag` (src/utils/tag-mapping.ts) for readTags(),
+// and the `track`/`year` mirrors below for tag(). There is deliberately NO
+// numeric field type here: encoding a track as an int discards the original
+// string irrecoverably, and on formats with no int-pair split (FLAC/Ogg/WAV)
+// that silently destroyed the total on a read-modify-write.
 enum FieldType : uint8_t {
     FIELD_STRING  = 0,
-    FIELD_NUMERIC = 1,
-    FIELD_BOOLEAN = 2,
+    FIELD_BOOLEAN = 1,
 };
 
 struct FieldMapping {
@@ -79,15 +86,15 @@ static const FieldMapping FIELD_MAP[] = {
     {"ALBUMSORT",            "albumSort",            FIELD_STRING},
     {"ARTIST",               "artist",              FIELD_STRING},
     {"ARTISTSORT",           "artistSort",           FIELD_STRING},
-    {"BPM",                  "bpm",                 FIELD_NUMERIC},
+    {"BPM",                  "bpm",                 FIELD_STRING},
     {"COMMENT",              "comment",             FIELD_STRING},
     {"COMPILATION",          "compilation",          FIELD_BOOLEAN},
     {"COMPOSER",             "composer",            FIELD_STRING},
     {"CONDUCTOR",            "conductor",           FIELD_STRING},
     {"COPYRIGHT",            "copyright",           FIELD_STRING},
     {"DATE",                 "date",                FIELD_STRING},
-    {"DISCNUMBER",           "discNumber",          FIELD_NUMERIC},
-    {"DISCTOTAL",            "totalDiscs",          FIELD_NUMERIC},
+    {"DISCNUMBER",           "discNumber",          FIELD_STRING},
+    {"DISCTOTAL",            "totalDiscs",          FIELD_STRING},
     {"ENCODEDBY",            "encodedBy",           FIELD_STRING},
     {"GENRE",                "genre",               FIELD_STRING},
     {"ISRC",                 "isrc",                FIELD_STRING},
@@ -102,8 +109,13 @@ static const FieldMapping FIELD_MAP[] = {
     {"REPLAYGAIN_TRACK_PEAK", "replayGainTrackPeak",     FIELD_STRING},
     {"TITLE",                "title",               FIELD_STRING},
     {"TITLESORT",            "titleSort",            FIELD_STRING},
-    {"TRACKNUMBER",          "track",               FIELD_NUMERIC},
-    {"TRACKTOTAL",           "totalTracks",         FIELD_NUMERIC},
+    // camel is "trackNumber", NOT "track": "track" is the numeric tag()-surface
+    // mirror emitted separately below, and keeping the names distinct is what
+    // lets the raw string and the narrowed int coexist (same shape as
+    // DATE/"date" + "year"). It also makes map_camel_to_prop("track") return
+    // null, so the mirror is correctly ignored on the write path.
+    {"TRACKNUMBER",          "trackNumber",         FIELD_STRING},
+    {"TRACKTOTAL",           "totalTracks",         FIELD_STRING},
 };
 
 static const size_t FIELD_MAP_SIZE = sizeof(FIELD_MAP) / sizeof(FIELD_MAP[0]);
@@ -210,6 +222,20 @@ static tl_error_code encode_file_to_msgpack(TagLib::File* file,
         }
     }
 
+    // TRACKNUMBER is emitted as its raw string under "trackNumber". Emit a
+    // numeric "track" mirror too so tag().track / decodeFastTagData() keep
+    // getting a number without re-parsing — the leading integer of "3/12" is
+    // 3, which is exactly what the tag() surface promises (taglib-qpl).
+    bool emit_track = false;
+    {
+        auto track_it = props.find("TRACKNUMBER");
+        if (track_it != props.end() && !track_it->second.isEmpty() &&
+            track_it->second.front().toInt() > 0) {
+            emit_track = true;
+            count++;
+        }
+    }
+
     ExtendedAudioInfo ext_info = {0, "", "", false, 0, 0, false, 0, nullptr};
     if (audio) {
         ext_info = get_extended_audio_info(file, audio);
@@ -231,10 +257,7 @@ static tl_error_code encode_file_to_msgpack(TagLib::File* file,
 
         mpack_write_cstr(&writer, outKey);
 
-        if (mapping && mapping->type == FIELD_NUMERIC) {
-            int val = it->second.front().toInt();
-            mpack_write_uint(&writer, static_cast<uint32_t>(val));
-        } else if (mapping && mapping->type == FIELD_BOOLEAN) {
+        if (mapping && mapping->type == FIELD_BOOLEAN) {
             TagLib::String raw = it->second.front();
             mpack_write_bool(&writer, raw == "1" || raw == "true");
         } else {
@@ -256,6 +279,13 @@ static tl_error_code encode_file_to_msgpack(TagLib::File* file,
         mpack_write_cstr(&writer, "year");
         mpack_write_uint(&writer,
                          static_cast<uint32_t>(date_it->second.front().toInt()));
+    }
+
+    if (emit_track) {
+        auto track_it = props.find("TRACKNUMBER");
+        mpack_write_cstr(&writer, "track");
+        mpack_write_uint(&writer,
+                         static_cast<uint32_t>(track_it->second.front().toInt()));
     }
 
     if (audio) {
@@ -569,9 +599,10 @@ static void apply_propmap(TagLib::File* file, const TagLib::PropertyMap& propMap
     // file->setProperties() above already wrote the full DATE string; calling
     // setYear(front().toInt()) would truncate "1975-10-31" back to 1975 and
     // overwrite it (taglib-bk7 / GitHub #23).
-    it = propMap.find("TRACKNUMBER");
-    if (it != propMap.end() && !it->second.isEmpty())
-        tag->setTrack(it->second.front().toInt());
+    //
+    // TRACKNUMBER is omitted for exactly the same reason (taglib-qpl):
+    // setTrack(front().toInt()) would rewrite a "3/12" or "03" that
+    // setProperties() just stored correctly as a bare "3".
 }
 
 static tl_error_code write_to_path(const char* path,

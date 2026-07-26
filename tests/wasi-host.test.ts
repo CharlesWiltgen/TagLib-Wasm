@@ -234,8 +234,11 @@ describe(
         assertEquals(readBack.title, "Roundtrip Test");
         assertEquals(readBack.albumArtist, "Various Artists");
         assertEquals(readBack.composer, "Test Composer");
-        assertEquals(readBack.discNumber, 2);
-        assertEquals(readBack.bpm, 128);
+        // Raw wire values are strings since taglib-qpl — the msgpack boundary
+        // carries the property text verbatim so "03"/"3/12" survive, and the
+        // numeric narrowing happens above it in mapPropertiesToExtendedTag.
+        assertEquals(readBack.discNumber, "2");
+        assertEquals(readBack.bpm, "128");
         assertEquals(readBack.acoustidFingerprint, "AQADtNQYhYkYRcg");
         assertEquals(readBack.musicbrainzTrackId, "abc-123-def");
         assertEquals(readBack.replayGainTrackGain, "-6.54 dB");

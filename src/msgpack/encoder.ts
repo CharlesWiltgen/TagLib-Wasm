@@ -64,9 +64,18 @@ export function encodeTagData(tagData: ExtendedTag): Uint8Array {
       ? dateVal.length > 0
       : dateVal !== undefined && dateVal !== null && dateVal !== "";
 
+    // Identically, `trackNumber` (raw string) and `track` (numeric mirror) both
+    // map to "TRACKNUMBER". The raw string is authoritative — letting the int
+    // win here is what rewrote "03"/"3/12" as "3" on save (taglib-qpl).
+    const trackVal = (tagData as Record<string, unknown>).trackNumber;
+    const hasRawTrack = Array.isArray(trackVal)
+      ? trackVal.length > 0
+      : trackVal !== undefined && trackVal !== null && trackVal !== "";
+
     const remapped: Record<string, unknown> = {};
     for (const [key, value] of Object.entries(tagData)) {
       if (key === "year" && hasDate) continue;
+      if (key === "track" && hasRawTrack) continue;
       if (key === "lyrics") {
         // TagLib has no LYRICS *complex* property, so unsynchronized lyrics
         // persist only via the text "LYRICS" PropertyMap key (the ID3v2/MP4/Xiph

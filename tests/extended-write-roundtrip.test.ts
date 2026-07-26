@@ -4,6 +4,15 @@
  * Verifies that albumArtist, composer, discNumber, bpm, MusicBrainz IDs,
  * ReplayGain, AcoustID, and other extended fields survive a write-read
  * roundtrip through the WASI C++ shim.
+ *
+ * NOTE: `readTagsViaPath` reads the RAW msgpack wire data, not the typed
+ * `readTags()` API. Since taglib-qpl every text property crosses that wire as
+ * the string TagLib holds — including the former FIELD_NUMERIC keys
+ * (trackNumber, totalTracks, discNumber, totalDiscs, bpm) — so "03" and "3/12"
+ * survive instead of collapsing to 3. Numeric narrowing happens above this
+ * layer, in `mapPropertiesToExtendedTag`, so `readTags().bpm` is still 128 while
+ * the wire says "128". Expectations here are therefore strings by design; the
+ * typed surface is asserted in `property-raw-values.test.ts`.
  */
 
 import { assertEquals } from "@std/assert";
@@ -77,7 +86,7 @@ describe(
         "test.flac",
         { discNumber: 2 },
       );
-      assertEquals(result.discNumber, 2);
+      assertEquals(result.discNumber, "2");
     });
 
     it("should roundtrip bpm", async () => {
@@ -86,7 +95,7 @@ describe(
         "test.flac",
         { bpm: 128 },
       );
-      assertEquals(result.bpm, 128);
+      assertEquals(result.bpm, "128");
     });
 
     it("should roundtrip all extended fields together", async () => {
@@ -111,8 +120,8 @@ describe(
       assertEquals(result.album, "Test Album");
       assertEquals(result.albumArtist, "Various Artists");
       assertEquals(result.composer, "Bach");
-      assertEquals(result.discNumber, 3);
-      assertEquals(result.bpm, 140);
+      assertEquals(result.discNumber, "3");
+      assertEquals(result.bpm, "140");
     });
 
     it("should roundtrip MusicBrainz track ID", async () => {
@@ -184,8 +193,8 @@ describe(
 
         assertEquals(result.albumArtist, "Cross-Format Artist");
         assertEquals(result.composer, "Cross-Format Composer");
-        assertEquals(result.discNumber, 1);
-        assertEquals(result.bpm, 96);
+        assertEquals(result.discNumber, "1");
+        assertEquals(result.bpm, "96");
       });
     }
 
@@ -294,8 +303,8 @@ describe(
         "test.flac",
         { totalTracks: 12, totalDiscs: 2 },
       );
-      assertEquals(result.totalTracks, 12);
-      assertEquals(result.totalDiscs, 2);
+      assertEquals(result.totalTracks, "12");
+      assertEquals(result.totalDiscs, "2");
     });
 
     for (
@@ -363,11 +372,11 @@ describe(
       assertEquals(result.composer, tags.composer);
       assertEquals(result.conductor, tags.conductor);
       assertEquals(result.copyright, tags.copyright);
-      assertEquals(result.discNumber, tags.discNumber);
-      assertEquals(result.totalDiscs, tags.totalDiscs);
+      assertEquals(result.discNumber, String(tags.discNumber));
+      assertEquals(result.totalDiscs, String(tags.totalDiscs));
       assertEquals(result.track, tags.track);
-      assertEquals(result.totalTracks, tags.totalTracks);
-      assertEquals(result.bpm, tags.bpm);
+      assertEquals(result.totalTracks, String(tags.totalTracks));
+      assertEquals(result.bpm, String(tags.bpm));
       assertEquals(result.isrc, tags.isrc);
       assertEquals(result.titleSort, tags.titleSort);
       assertEquals(result.artistSort, tags.artistSort);

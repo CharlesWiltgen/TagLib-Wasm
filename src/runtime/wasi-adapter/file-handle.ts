@@ -69,9 +69,20 @@ const CONTAINER_TO_FORMAT: Record<string, string> = {
   Matroska: "MATROSKA",
 };
 
-const NUMERIC_FIELD_ALIASES: Record<string, string> = {
-  trackNumber: "track",
-};
+/**
+ * `trackNumber` holds the RAW string ("03", "3/12") and is the single source of
+ * truth for the PropertyMap surface; `track` is its narrowed numeric mirror for
+ * `tag().track`. They are kept in sync here so a write through either surface is
+ * visible on the other, exactly as `date`/`year` are (taglib-qpl).
+ */
+const RAW_TRACK_KEY = "trackNumber";
+const NUMERIC_TRACK_KEY = "track";
+
+/** Leading integer of a raw track string, or undefined if unparseable. */
+function narrowTrack(raw: string): number | undefined {
+  const parsed = Number.parseInt(raw, 10);
+  return Number.isNaN(parsed) ? undefined : parsed;
+}
 
 function hasValue(v: unknown): boolean {
   if (Array.isArray(v)) return v.length > 0;
@@ -176,7 +187,10 @@ export class WasiFileHandle implements FileHandle {
       comment: firstString(d.comment),
       genre: firstString(d.genre),
       year: (d.year as number) || 0,
-      track: (d.track as number) || 0,
+      // Prefer the numeric mirror; fall back to narrowing the raw string so a
+      // handle that only ever saw `trackNumber` still reports a number.
+      track: (d.track as number) ||
+        narrowTrack(firstString(d[RAW_TRACK_KEY])) || 0,
     };
   }
 
@@ -190,6 +204,13 @@ export class WasiFileHandle implements FileHandle {
     if (data.year !== undefined) {
       if (data.year > 0) merged.date = String(data.year);
       else delete merged.date;
+    }
+    // Likewise setTrack() is authoritative for TRACKNUMBER: replace the raw
+    // string mirror so a stale "3/12" can't shadow the new number on save, and
+    // so properties() reflects the write immediately (taglib-qpl).
+    if (data.track !== undefined) {
+      if (data.track > 0) merged[RAW_TRACK_KEY] = [String(data.track)];
+      else delete merged[RAW_TRACK_KEY];
     }
     this.tagData = merged;
   }
@@ -317,6 +338,12 @@ export class WasiFileHandle implements FileHandle {
       // string is present it carries DATE, so skip `year` to avoid both mapping
       // to the same "DATE" wire key (taglib-bk7).
       if (key === "year" && hasValue(data.date)) continue;
+      // Same guard for the numeric `track` mirror: when the raw `trackNumber`
+      // string is present it carries TRACKNUMBER, and emitting both would have
+      // them collide on the same wire key (taglib-qpl).
+      if (
+        key === NUMERIC_TRACK_KEY && hasValue(data[RAW_TRACK_KEY])
+      ) continue;
       if (value === undefined || value === null) continue;
       if (value === 0 || value === "") continue;
 
@@ -338,17 +365,23 @@ export class WasiFileHandle implements FileHandle {
     const next = { ...this.tagData } as Record<string, unknown>;
     for (const [key, values] of Object.entries(props)) {
       const camelKey = fromTagLibKey(key);
-      const storeKey = NUMERIC_FIELD_ALIASES[camelKey] ?? camelKey;
+      const storeKey = camelKey;
       if (values.length === 0) {
         // An empty value list clears the property (TagLib PropertyMap
         // semantics). This is what lets clearTags() actually remove a field
         // under WASI's merge model, matching Emscripten's replace-style
-        // setProperties (taglib-nc5). DATE drops its numeric `year` mirror too.
+        // setProperties (taglib-nc5). DATE and TRACKNUMBER drop their numeric
+        // mirrors too.
         delete next[storeKey];
         if (camelKey === "date") delete next.year;
-      } else if (storeKey === "track") {
-        const parsed = Number.parseInt(values[0] ?? "", 10);
-        if (!Number.isNaN(parsed)) next[storeKey] = parsed;
+        if (camelKey === RAW_TRACK_KEY) delete next[NUMERIC_TRACK_KEY];
+      } else if (camelKey === RAW_TRACK_KEY) {
+        // Store the raw string verbatim and re-derive the numeric mirror, so
+        // "3/12" survives on properties() while tag().track still reads 3.
+        next[RAW_TRACK_KEY] = values;
+        const narrowed = narrowTrack(values[0] ?? "");
+        if (narrowed === undefined) delete next[NUMERIC_TRACK_KEY];
+        else next[NUMERIC_TRACK_KEY] = narrowed;
       } else if (camelKey === "date") {
         // DATE is stored as a full string; keep the numeric `year` mirror in
         // sync so getTagData()/tag().year reflect the new date in-handle.
@@ -365,19 +398,22 @@ export class WasiFileHandle implements FileHandle {
   getProperty(key: string): string {
     this.checkNotDestroyed();
     const mappedKey = fromTagLibKey(key);
-    const storeKey = NUMERIC_FIELD_ALIASES[mappedKey] ?? mappedKey;
-    return this.tagData?.[storeKey]?.toString() ?? "";
+    const stored = this.tagData?.[mappedKey];
+    return Array.isArray(stored)
+      ? (stored[0]?.toString() ?? "")
+      : (stored?.toString() ?? "");
   }
 
   setProperty(key: string, value: string): void {
     this.checkNotDestroyed();
     const mappedKey = fromTagLibKey(key);
-    const storeKey = NUMERIC_FIELD_ALIASES[mappedKey] ?? mappedKey;
-    if (storeKey === "track") {
-      const parsed = Number.parseInt(value, 10);
-      if (!Number.isNaN(parsed)) {
-        this.tagData = { ...this.tagData, [storeKey]: parsed };
-      }
+    if (mappedKey === RAW_TRACK_KEY) {
+      const narrowed = narrowTrack(value);
+      this.tagData = {
+        ...this.tagData,
+        [RAW_TRACK_KEY]: value,
+        ...(narrowed === undefined ? {} : { [NUMERIC_TRACK_KEY]: narrowed }),
+      };
     } else if (mappedKey === "date") {
       const year = Number.parseInt(value, 10);
       this.tagData = {
@@ -419,8 +455,8 @@ export class WasiFileHandle implements FileHandle {
     this.checkNotDestroyed();
     if (this.tagData) {
       const mappedKey = fromTagLibKey(mp4ItemPropertyKey(key));
-      const storeKey = NUMERIC_FIELD_ALIASES[mappedKey] ?? mappedKey;
-      delete this.tagData[storeKey];
+      delete this.tagData[mappedKey];
+      if (mappedKey === RAW_TRACK_KEY) delete this.tagData[NUMERIC_TRACK_KEY];
     }
   }
 
