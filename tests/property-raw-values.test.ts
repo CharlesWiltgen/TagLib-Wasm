@@ -167,32 +167,42 @@ describe("properties() raw-string fidelity (taglib-qpl)", () => {
     }
   }
 
-  // The int-pair split is a PRESENTATION difference between the backends, not
-  // data loss: WASI reports the pair as trackNumber + totalTracks, Emscripten
-  // reports the raw "3/12", and both write identical bytes back. Pinned here so
-  // the divergence is a documented contract rather than a silent surprise, and
-  // so a future change to either half has to update this test deliberately.
+  // Formerly a PINNED DIVERGENCE: the shim split "3/12" into
+  // trackNumber + totalTracks for MPEG/MP4 while Emscripten reported the raw
+  // string, so the same file read differently per backend — and once the raw
+  // string became a public typed field, the same input produced different FILES.
+  // The shim no longer transforms the PropertyMap at all, so the raw string is
+  // canonical everywhere and the backends agree by construction (taglib-asg).
   for (const format of INT_PAIR_FORMATS) {
-    it(`splits "3/12" on WASI and keeps it raw on Emscripten, losslessly [${format}]`, async () => {
+    it(`reports "3/12" raw and identically on both backends [${format}]`, async () => {
       for (const backend of BACKENDS) {
         const path = await tempCopy(format);
         try {
           await seedProperties(backend, path, { trackNumber: ["3/12"] });
-
-          const wasiFile = await taglibs.wasi.open(path);
-          try {
-            const props = wasiFile.properties() as Record<string, string[]>;
-            assertEquals(props.trackNumber, ["3"]);
-            assertEquals(props.totalTracks, ["12"], "total must survive");
-          } finally {
-            wasiFile.dispose();
+          for (const reader of BACKENDS) {
+            const file = await taglibs[reader].open(path);
+            try {
+              const props = file.properties() as Record<string, string[]>;
+              assertEquals(
+                props.trackNumber,
+                ["3/12"],
+                `${reader} did not report the raw pair`,
+              );
+              assertEquals(
+                props.totalTracks,
+                undefined,
+                `${reader} still splits the pair into a separate total`,
+              );
+            } finally {
+              file.dispose();
+            }
           }
-
-          assertEquals(
-            await readProperty("emscripten", path, "trackNumber"),
-            ["3/12"],
-            "Emscripten reports the unsplit on-disk string",
-          );
+          // The total stays reachable on the TYPED surface, where narrowing is
+          // additive and cannot destroy the raw value.
+          const tags = await readTags(path);
+          assertEquals(tags.trackNumber, "3/12");
+          assertEquals(tags.track, 3);
+          assertEquals(tags.totalTracks, 12);
         } finally {
           await Deno.remove(path).catch(() => {});
         }

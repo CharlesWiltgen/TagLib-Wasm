@@ -487,32 +487,36 @@ for (const backend of BACKENDS) {
   });
 }
 
-Deno.test("[wasi] removeMP4Item('trkn') does not resurrect the atom as 0/total", async () => {
-  // trkn carries number AND total, so clearing the number while leaving
-  // totalTracks let merge_intpair_properties re-create the atom as "0/12" —
-  // a removal that silently corrupted the value instead.
-  const tl = await TagLib.initialize({ forceWasmType: "wasi" });
-  const seed = await tl.open(await Deno.readFile(FIXTURE_PATH.m4a));
-  seed.setProperties({ trackNumber: ["3"], totalTracks: ["12"] });
-  seed.save();
-  const withTotal = seed.getFileBuffer();
-  seed.dispose();
+for (const backend of BACKENDS) {
+  Deno.test(`[${backend}] removeMP4Item('trkn') removes only that atom`, async () => {
+    // While the shim merged "n/total" back into trkn on write, clearing the
+    // number without the total re-created the atom as "0/12" — a removal that
+    // corrupted the value. With the merge gone (taglib-asg) the total is an
+    // independent tag, so removing trkn must remove trkn and nothing else, and
+    // both backends must agree on that.
+    const tl = await TagLib.initialize({ forceWasmType: backend });
+    const seed = await tl.open(await Deno.readFile(FIXTURE_PATH.m4a));
+    seed.setProperties({ trackNumber: ["3"], totalTracks: ["12"] });
+    seed.save();
+    const withTotal = seed.getFileBuffer();
+    seed.dispose();
 
-  const file = await tl.open(withTotal);
-  file.removeMP4Item("trkn");
-  file.save();
-  const buf = file.getFileBuffer();
-  file.dispose();
+    const file = await tl.open(withTotal);
+    file.removeMP4Item("trkn");
+    file.save();
+    const buf = file.getFileBuffer();
+    file.dispose();
 
-  const reopened = await tl.open(buf);
-  try {
-    const props = reopened.properties() as Record<string, string[]>;
-    assertEquals(props.trackNumber, undefined, "atom resurrected");
-    assertEquals(props.totalTracks, undefined, "total outlived its atom");
-  } finally {
-    reopened.dispose();
-  }
-});
+    const reopened = await tl.open(buf);
+    try {
+      const props = reopened.properties() as Record<string, string[]>;
+      assertEquals(props.trackNumber, undefined, "trkn not removed");
+      assertEquals(props.totalTracks, ["12"], "an unrelated tag was removed");
+    } finally {
+      reopened.dispose();
+    }
+  });
+}
 
 /**
  * Freeform atoms bypass the PropertyMap entirely (taglib-wkyi).

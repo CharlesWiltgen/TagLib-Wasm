@@ -105,29 +105,22 @@ on a real divergence) over separate per-backend tests.
 Minor/unpaired (tracked here, not filed): `isValid` (covered both, unpaired);
 `isMP4` (WASI unit only); `getProperty` string-overload (single-backend each).
 
-## Known remaining divergence: the int-pair split (MP3/MP4)
+## Resolved divergence: the int-pair split (MP3/MP4)
 
-`properties()` presents a `TRACKNUMBER` of `"3/12"` differently per backend, by
-design rather than by defect:
+`properties()` used to present a `TRACKNUMBER` of `"3/12"` differently per
+backend — WASI split it into `trackNumber` + `totalTracks` for MPEG/MP4, while
+Emscripten reported the raw string. It was lossless but real, and once the raw
+string became a public typed field it meant the same input produced different
+FILES depending on which backend loaded it (`taglib-febo`).
 
-| Backend    | `trackNumber` | `totalTracks` |
-| ---------- | ------------- | ------------- |
-| WASI       | `["3"]`       | `["12"]`      |
-| Emscripten | `["3/12"]`    | absent        |
+Resolved by making the raw string canonical everywhere (`taglib-asg`): the C shim
+no longer transforms the PropertyMap in either direction, so both backends defer
+to TagLib and agree by construction rather than by two transformations being kept
+in sync. Narrowing a pair into number + total now happens only on the TYPED
+surface (`mapPropertiesToExtendedTag`), where it is additive and cannot destroy
+the raw value — so `readTags().totalTracks` still answers 12 for a `"3/12"`, and
+`normalizeTagInput` suppresses the derived total on write so a round-trip cannot
+store it twice.
 
-The C shim splits the pair on read and merges it back on write for MPEG and MP4
-(`split_intpair_properties` / `merge_intpair_properties` in
-`src/capi/taglib_shim.cpp`), which Emscripten's Embind path does not do. It is
-**lossless** — the total survives and either backend reads back the value the
-other wrote — but
-it is a real presentation difference. Note the files are NOT byte-identical: a
-"3/12" written by each backend produces the same length but differing bytes, so
-only the logical round-trip is verified. (An earlier revision of this document
-claimed byte-identity; that was asserted without being measured, and measurement
-disproved it.) Pinned by `property-raw-values.test.ts`
-("splits 3/12 on WASI and keeps it raw on Emscripten, losslessly"), so changing
-either half requires updating that test deliberately. Tracked as `taglib-asg`.
-
-Every OTHER format (FLAC/Ogg/WAV) now returns the raw string verbatim on both
-backends — see `taglib-qpl`, which fixed the lossy `toInt()` narrowing at the
-WASI msgpack boundary.
+Pinned by `property-raw-values.test.ts` ("reports 3/12 raw and identically on
+both backends").

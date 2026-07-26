@@ -86,17 +86,6 @@ const CONTAINER_TO_FORMAT: Record<string, string> = {
 };
 
 /**
- * Raw key -> the companion key holding the "total" half of an int-pair atom.
- * MP4 `trkn`/`disk` and ID3v2 TRCK/TPOS store number and total in ONE field, so
- * clearing the number without the total lets the C shim's merge re-create the
- * field as "0/<total>".
- */
-const INT_PAIR_TOTALS: Record<string, string> = {
-  trackNumber: "totalTracks",
-  discNumber: "totalDiscs",
-};
-
-/**
  * Normalize an MP4 item key for the PropertyMap path. TagLib's MP4 PropertyMap
  * keys a freeform `----:mean:NAME` atom by its bare NAME, uppercased (the usual
  * key remap then maps known atoms like iTunNORM -> appleSoundCheck). WASI MP4
@@ -489,15 +478,7 @@ export class WasiFileHandle implements FileHandle {
       const mappedKey = fromTagLibKey(mp4ItemPropertyKey(key));
       delete this.tagData[mappedKey];
       const mirror = mirrorForRawKey(mappedKey);
-      if (mirror !== undefined) {
-        delete this.tagData[mirror.numeric];
-        // An int-pair atom carries BOTH halves ("trkn" is number+total), so the
-        // total must go too. Leaving it let merge_intpair_properties re-create
-        // the atom as "0/<total>" on save, turning a removal into a corrupted
-        // value (taglib-0piv follow-up).
-        const total = INT_PAIR_TOTALS[mirror.raw];
-        if (total !== undefined) delete this.tagData[total];
-      }
+      if (mirror !== undefined) delete this.tagData[mirror.numeric];
     }
   }
 

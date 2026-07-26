@@ -95,6 +95,25 @@ export function mapPropertiesToExtendedTag(props: PropertyMap): ExtendedTag {
     }
   }
 
+  // A pair written as "n/total" in ONE field is narrowed into number + total on
+  // the typed surface only. The shim no longer splits it on the PropertyMap
+  // (taglib-asg: the two backends disagreed, and the raw string is canonical
+  // now), but `totalTracks`/`totalDiscs` remain useful, and deriving them here is
+  // additive — `properties().trackNumber` keeps the raw "3/12".
+  for (
+    const [propKey, totalField] of [
+      ["trackNumber", "totalTracks"],
+      ["discNumber", "totalDiscs"],
+    ] as const
+  ) {
+    if (tag[totalField] !== undefined) continue;
+    const raw = props[propKey]?.[0];
+    const slash = raw?.indexOf("/") ?? -1;
+    if (raw === undefined || slash === -1) continue;
+    const total = parseNumeric(raw.slice(slash + 1));
+    if (total !== undefined) tag[totalField] = total;
+  }
+
   for (const [key, values] of Object.entries(props)) {
     if (BASIC_PROPERTY_KEYS[key]) continue;
     if (!values || values.length === 0) continue;
@@ -172,6 +191,19 @@ export function normalizeTagInput(
     } else if (Array.isArray(val)) {
       props[field] = val;
     }
+  }
+
+  // A raw "n/total" already carries the total, so do NOT also emit the derived
+  // `totalTracks`/`totalDiscs`: that would store the total twice (in the pair AND
+  // in a separate tag) on a readTags() -> applyTags() round-trip, since the typed
+  // read derives them. Raw wins, as it does for date-over-year (taglib-asg).
+  for (
+    const [rawField, totalField] of [
+      ["trackNumber", "totalTracks"],
+      ["discNumber", "totalDiscs"],
+    ] as const
+  ) {
+    if (props[rawField]?.[0]?.includes("/")) delete props[totalField];
   }
 
   return props as PropertyMap;
