@@ -363,3 +363,44 @@ for (const backend of BACKENDS) {
     });
   }
 }
+
+/**
+ * Item TYPE selection (taglib-uj2b).
+ *
+ * Emscripten's setMP4Item guessed the MP4 item type from the value string: a
+ * value that parsed as an integer became an Int item. But the ATOM NAME
+ * determines the type, not the value's spelling — `trkn`/`disk` are IntPair
+ * atoms, so an Int item is the wrong shape and never renders, and a text atom
+ * whose value happens to be all digits was filed as an Int.
+ */
+const TYPED_ATOM_CASES: Array<[atom: string, value: string, why: string]> = [
+  ["trkn", "7", "IntPair atom, integer value"],
+  ["disk", "2", "IntPair atom, integer value"],
+  ["©nam", "Text Title", "Text atom, text value"],
+  ["©nam", "2024", "Text atom whose value is all digits"],
+  ["©gen", "Funk", "Text atom"],
+];
+
+for (const backend of BACKENDS) {
+  for (const [atom, value, why] of TYPED_ATOM_CASES) {
+    Deno.test(`[${backend}] setMP4Item round-trips ${atom}="${value}" — ${why} (taglib-uj2b)`, async () => {
+      const tl = await TagLib.initialize({ forceWasmType: backend });
+      const file = await tl.open(await Deno.readFile(FIXTURE_PATH.m4a));
+      file.setMP4Item(atom, value);
+      file.save();
+      const buf = file.getFileBuffer();
+      file.dispose();
+
+      const reopened = await tl.open(buf);
+      try {
+        assertEquals(
+          reopened.getMP4Item(atom),
+          value,
+          `${backend}: ${atom} did not survive as "${value}"`,
+        );
+      } finally {
+        reopened.dispose();
+      }
+    });
+  }
+}

@@ -6,6 +6,7 @@ import type {
   PropertyMap,
 } from "../types.ts";
 import {
+  mp4AtomWireKey,
   mp4FreeformAtomNames,
   remapKeysFromTagLib,
   toTagLibKey,
@@ -259,13 +260,33 @@ export abstract class BaseAudioFileImpl {
     if (!this.isMP4()) {
       throw new UnsupportedFormatError(this.getFormat(), ["MP4", "M4A"]);
     }
-    const value = this.handle.getMP4Item(key);
+    // Symmetric with setMP4Item: standard atoms are read through the property
+    // surface, which renders every item type. The Embind item reader handles
+    // Int/StringList/Bool/Byte but not IntPair, so `trkn`/`disk` read back as
+    // empty (taglib-uj2b).
+    const wireKey = mp4AtomWireKey(key);
+    const value = wireKey !== undefined
+      ? this.handle.getProperty(wireKey)
+      : this.handle.getMP4Item(key);
     return value === "" ? undefined : value;
   }
 
   setMP4Item(key: string, value: string): void {
     if (!this.isMP4()) {
       throw new UnsupportedFormatError(this.getFormat(), ["MP4", "M4A"]);
+    }
+    // A STANDARD atom's item type is fixed by its NAME, not by how its value
+    // looks: `trkn`/`disk` are int PAIRS and `©nam` is text. Only TagLib's own
+    // item factory knows that mapping, so route standard atoms through the
+    // property surface and let it choose. Guessing from the value string wrote
+    // an Int item for an IntPair atom (silently dropped) and filed a text atom
+    // whose value was all digits as an Int (taglib-uj2b). The dedicated item API
+    // stays for FREEFORM atoms, where the exact name matters and the type is
+    // always text.
+    const wireKey = mp4AtomWireKey(key);
+    if (wireKey !== undefined) {
+      this.handle.setProperty(wireKey, value);
+      return;
     }
     this.handle.setMP4Item(key, value);
   }
