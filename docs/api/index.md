@@ -1491,11 +1491,19 @@ file.setProperty("replayGainAlbumPeak", peak);
 file.getProperty("replayGainAlbumPeak"); // string | undefined
 ```
 
-##### Apple Sound Check
+##### Apple Sound Check and gapless playback
+
+Both are freeform MP4 atoms, written with Apple's exact casing (`iTunNORM` /
+`iTunSMPB`) rather than an upper-cased variant, so other tools recognise them.
 
 ```typescript
+// Volume normalization (iTunNORM)
 file.setProperty("appleSoundCheck", iTunNORM);
 file.getProperty("appleSoundCheck"); // string | undefined
+
+// Gapless playback: encoder delay and padding (iTunSMPB)
+file.setProperty("appleGaplessInfo", iTunSMPB);
+file.getProperty("appleGaplessInfo"); // string | undefined
 ```
 
 #### File Operations
@@ -1646,6 +1654,9 @@ interface TagInput {
   readonly year?: number;
   readonly date?: string | string[]; // wins over `year` when both set
   readonly track?: number;
+  // Raw track field ("03", "3/12"); wins over `track` when both set, because it
+  // preserves padding and the "/total" suffix a number cannot represent
+  readonly trackNumber?: string | string[];
 
   // Extended string fields (abbreviated)
   readonly albumArtist?: string | string[];
@@ -1654,7 +1665,8 @@ interface TagInput {
   readonly isrc?: string | string[];
   readonly musicbrainzTrackId?: string | string[];
   readonly replayGainTrackGain?: string | string[];
-  readonly appleSoundCheck?: string | string[];
+  readonly appleSoundCheck?: string | string[]; // iTunNORM
+  readonly appleGaplessInfo?: string | string[]; // iTunSMPB
   // ...plus sort fields and further MusicBrainz/AcoustID/ReplayGain IDs
 
   // Extended numeric / boolean fields

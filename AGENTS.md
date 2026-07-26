@@ -98,7 +98,11 @@ interface Tag {
 //   musicbrainzTrackId, musicbrainzReleaseId, musicbrainzArtistId, musicbrainzReleaseGroupId: string[]
 //   acoustidFingerprint, acoustidId: string[]
 //   replayGainTrackGain, replayGainTrackPeak: string[]
-//   replayGainAlbumGain, replayGainAlbumPeak, appleSoundCheck: string[]
+//   replayGainAlbumGain, replayGainAlbumPeak: string[]
+//   appleSoundCheck (iTunNORM), appleGaplessInfo (iTunSMPB): string[]
+//   trackNumber: string | string[]  — RAW track field ("03", "3/12"); wins over
+//     the numeric `track` on write, and is what makes readTags -> applyTags
+//     round-trip without destroying a "/total" suffix
 //   discNumber, totalTracks, totalDiscs, bpm: number
 //   compilation: boolean
 //   pictures: Picture[]; ratings, lyrics, chapters: array types

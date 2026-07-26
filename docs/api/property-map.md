@@ -70,6 +70,22 @@ Object.values(PROPERTIES).forEach((prop) => {
   - `getAllPropertyKeys()` - Get all available property keys
   - `getPropertiesByFormat(format)` - Get properties supported by a format
 - For MP4-specific metadata, use the `setMP4Item()` method
+- **Values are returned verbatim.** `properties()` is the raw text surface, so a
+  `trackNumber` of `"03"` or `"3/12"` comes back exactly as stored rather than
+  normalised to `"3"`. Zero-padding, a `"n/total"` pair and any other formatting
+  the file uses are preserved, which is what lets a read-modify-write leave
+  untouched fields byte-identical.
+- **A combined pair is not split.** For a `trackNumber` of `"3/12"`,
+  `properties()` reports the pair and does **not** synthesise a separate
+  `totalTracks`. The typed surfaces do the narrowing instead — `readTags()`
+  answers `trackNumber: "3/12"`, `track: 3` and `totalTracks: 12`, and
+  `tag().track` answers `3`. Both backends behave identically here.
+- **MP4 freeform atom names are exact.** Atoms keep their casing and their
+  `mean`, so `iTunNORM` is not written as `ITUNNORM` and
+  `----:com.acme.tool:MyTag` is not relocated into `com.apple.iTunes`. Note the
+  consequence: an atom whose `mean` is not `com.apple.iTunes` is not visible as a
+  property at all, so `clearTags()` does not remove it — reach it by exact name
+  with `getMP4Item()` / `removeMP4Item()`.
 - See [Tag Constants](./tag-constants.md) for the complete PROPERTIES reference
 
 ## 📋 Format-Specific Storage Reference
@@ -98,6 +114,18 @@ Object.values(PROPERTIES).forEach((prop) => {
 | **Composer**     | `TCOM`      | `COMPOSER`        | `©wrt`          |
 | **BPM**          | `TBPM`      | `BPM`             | `tmpo`          |
 | **Compilation**  | `TCMP`      | `COMPILATION`     | `cpil`          |
+
+### Apple Fields
+
+Both are freeform atoms on MP4, written with Apple's exact casing.
+
+| Field                | MP3 (ID3v2)                | FLAC/OGG (Vorbis) | MP4/M4A (Atoms)                  |
+| -------------------- | -------------------------- | ----------------- | -------------------------------- |
+| **appleSoundCheck**  | `TXXX` frame: `"iTunNORM"` | `ITUNNORM`        | `----:com.apple.iTunes:iTunNORM` |
+| **appleGaplessInfo** | `TXXX` frame: `"iTunSMPB"` | `ITUNSMPB`        | `----:com.apple.iTunes:iTunSMPB` |
+
+`appleSoundCheck` carries Sound Check volume-normalization data;
+`appleGaplessInfo` carries gapless-playback data (encoder delay and padding).
 
 ## 🚀 Usage Examples
 

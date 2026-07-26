@@ -2,7 +2,74 @@
 
 ## Unreleased
 
+### Fixed
+
+- **Raw tag values are no longer coerced to integers (data loss).** On the WASI
+  backend, `TRACKNUMBER`, `TRACKTOTAL`, `DISCNUMBER`, `DISCTOTAL` and `BPM` were
+  narrowed through `toInt()` when crossing the Wasm boundary, so `properties()`
+  answered `"3"` for an on-disk `"03"` — and `"3"` for `"3/12"`, **destroying the
+  track total**. On FLAC, Ogg and WAV a title-only edit was enough to lose it,
+  because nothing else carried the total. A BPM of `"120.5"` lost its precision
+  the same way. The property surface now carries the string TagLib holds, and
+  numeric narrowing happens only on the typed surfaces (`tag().track`,
+  `readTags()`), which still answer numbers.
+- **`readTags()` -> `applyTags()` no longer destroys a track total.** The typed
+  layer kept only the numeric `track`, so the documented copy-tags-between-formats
+  flow wrote back a bare `"3"`. `ExtendedTag`/`TagInput` gained `trackNumber` (see
+  Added) and it wins over `track` when both are set.
+- **`tag().setTrack()` no longer destroys an existing track total.** Setting the
+  number on a file whose `TRCK` was `"3/12"` wrote `"7"` under Emscripten, because
+  `ID3v2::Tag::setTrack` replaces the whole frame. It now writes `"7/12"` when a
+  total is present. `setTrack(0)` still clears the field.
+- **MP4 freeform atoms keep their exact names.** Saving an M4A wrote Apple's
+  atoms upper-cased — `ITUNNORM` instead of `iTunNORM` — so a file that already
+  had one ended up with both spellings, and a file that did not got only the
+  upper-cased name. ExifTool and other readers do not recognise the upper-cased
+  form. Six further properties were affected on both backends:
+  `replayGain{Track,Album}{Gain,Peak}` (the ecosystem spells these lowercase) and
+  `acoustid{Fingerprint,Id}`.
+- **MP4 freeform atoms keep their vendor `mean`.** An atom such as
+  `----:com.acme.tool:MyTag` was re-emitted as `----:com.apple.iTunes:MYTAG` on
+  WASI, so the caller's atom disappeared and a wrong-namespace one took its place.
+  Freeform atoms now bypass TagLib's PropertyMap entirely in both directions.
+- **`removeMP4Item()` works for standard atoms on WASI.** `trkn`, `disk`, `©nam`
+  and every other non-freeform atom name resolved to nothing, so removal was a
+  silent no-op while Emscripten removed them correctly.
+- **`setMP4Item()` can write `trkn` and `disk` on Emscripten.** The item type was
+  guessed from the value string, so an integer value became an `Int` item where
+  those atoms need an int PAIR, and the write silently did nothing. A text atom
+  whose value happened to be all digits was mis-typed the same way.
+- **`date`/`year` now obey the same rules as `trackNumber`/`track`.** On WASI,
+  `setProperty("date", "unknown")` left a stale `year`, and
+  `setProperty("date", "")` did not clear the field at all.
+
+### Added
+
+- **`trackNumber` on `ExtendedTag` and `TagInput`.** The raw track field as
+  stored — `"03"`, `"3/12"` — alongside the numeric `track`, mirroring how `date`
+  sits alongside `year`. When both are provided on write, `trackNumber` wins.
+- **`appleGaplessInfo` property** for the `iTunSMPB` atom (gapless playback:
+  encoder delay and padding). `properties()` previously answered the friendly
+  `appleSoundCheck` for `iTunNORM` but the raw `ITUNSMPB` for its sibling; both
+  now use friendly names.
+
 ### Changed
+
+- **A combined `"n/total"` track or disc field is no longer split on the
+  PropertyMap surface.** The WASI backend used to rewrite a `TRACKNUMBER` of
+  `"3/12"` into `trackNumber` + `totalTracks` for MP3 and MP4 while Emscripten
+  reported the raw string, so the same file read differently per backend and — once
+  `trackNumber` became a typed field — the same input produced different files.
+  `properties()` now reports the pair verbatim on every format and both backends.
+  The typed surface is unaffected: `readTags()` still answers `trackNumber:
+  "3/12"`, `track: 3` and `totalTracks: 12`. If you read `totalTracks` from
+  `properties()` on an MP3 or MP4 with a combined field, read it from `readTags()`
+  instead, or parse the suffix.
+- **`clearTags()` does not remove an MP4 freeform atom whose `mean` is not
+  `com.apple.iTunes`.** Such atoms are not visible as properties, so they are no
+  longer reachable by a property-level clear. This matches what Emscripten has
+  always done; WASI only appeared to clear them because it had relocated them into
+  the Apple namespace. Remove them by exact name with `removeMP4Item()`.
 
 - **Minimum Node.js is now 24.** `engines.node` moves from `>=22.6.0` to
   `>=24.0.0`, matching the Active LTS line. The old floor was an untested

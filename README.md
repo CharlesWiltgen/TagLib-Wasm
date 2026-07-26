@@ -33,8 +33,11 @@ TagLib-Wasm is the **universal tagging library for TypeScript/JavaScript**
   possible
 - **Rich metadata** – Cover art, ratings, chapters (MP3 `CHAP`, MP4
   QuickTime/Nero), and broadcast metadata (BWF `bext`/iXML for WAV/FLAC)
+- **Value fidelity** – Tag values round-trip verbatim: a `"3/12"` track or a
+  zero-padded `"03"` is preserved, and MP4 freeform atoms keep their exact
+  casing and vendor `mean`, so other tools still recognise them
 - **Zero dependencies** – Self-contained Wasm bundle
-- **Tested** – 293 tests across all formats
+- **Tested** – 448 tests across all formats, with cross-backend parity coverage
 - **Two API styles** – Use the "Simple" API (3 functions), or the full "Core"
   API for more advanced applications
 - **Batch folder operations** – Scan directories, process multiple files, find
