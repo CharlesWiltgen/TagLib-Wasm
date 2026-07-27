@@ -66,6 +66,16 @@ diverge in ways that have already caused real bugs:
    optimistic local-cache update, multi-call composition, and post-save
    persistence behavior. See `taglib-7gs` for a deeper analysis.
 
+   **A third channel has since appeared, as predicted: `_mp4ItemNames`**
+   (added in `v1.6.1`, `taglib-5ibr`). It differs from the first two in a way
+   worth noting — it carries data in **both** directions rather than being a
+   write-time directive. Foreign-`mean` MP4 atom names ride it out of C++ so
+   `getMP4Item()` can resolve a name TagLib's PropertyMap cannot represent, and
+   back in so a staged overwrite keeps the slot current. It is also filtered
+   out of `properties()` on the way through, so the public surface never sees
+   it. That is three ad-hoc channels on a boundary with no protocol for them,
+   which is the cost this ADR predicted rather than a departure from it.
+
 4. **Doubled feature implementation cost.** A single feature (`taglib-y91`)
    touched 8 files because the feature must exist twice: once as Embind binding
    (read-state + write-state methods on the C++ class), once as the WASI triple
