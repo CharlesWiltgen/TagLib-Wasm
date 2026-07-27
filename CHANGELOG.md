@@ -4,6 +4,25 @@
 
 ### Fixed
 
+- **A freeform MP4 atom keeps its own namespace.** On the WASI backend an atom
+  whose `mean` is not `com.apple.iTunes` was relocated into Apple's namespace and
+  upper-cased, so `----:com.acme.tool:MyTag` became `----:com.apple.iTunes:MYTAG`
+  — the caller's atom gone and a wrong one in its place. WASI routes MP4 items
+  through TagLib's PropertyMap, which knows only one freeform namespace; the
+  exact name the caller supplied is now reinstated after the write.
+- **An empty property value no longer deletes its frame (data loss).** A property
+  whose text projects to nothing — a numeric-only ID3v2 `TCON`, which
+  `ID3v2::Tag::genre()` renders as `""` — was destroyed by a WASI save that
+  changed nothing. An empty value was treated as an absence at four separate
+  points, the last of which mirrored it as `setGenre("")`, and TagLib defines
+  that as removing the frame. `undefined` still means absent, and
+  `setProperty(key, "")` still clears.
+- **A described `COMM` frame no longer attracts a duplicate.** An MP3 whose only
+  comment frame carries a description (the usual iTunes `iTunNORM` shape) and
+  which also has an ID3v1 comment gained a second, bare `COMM` on save. The
+  property map has to carry the ID3v1 value — withholding it clears ID3v1 — so
+  the spurious frame is withdrawn afterwards instead, and only when it provably
+  holds that merged value. A comment the caller sets is untouched.
 - **Opening a file no longer corrupts the Wasm heap (crash).** On the Emscripten
   backend, any file TagLib could not open on its first attempt took a fallback
   branch that handed a `TagLib::File` to `FileRef` while a `unique_ptr` still
@@ -68,16 +87,6 @@
 
   If you enumerate `properties()` on MP3s, expect keys that did not previously
   appear for files carrying both tag versions.
-
-### Known limitations
-
-- **An MP3 whose ID3v2 tag's only `COMM` frame carries a description** (the
-  usual iTunes shape) and which also has an ID3v1 comment gains a second, bare
-  `COMM` frame holding the ID3v1 text when saved on the WASI backend. Cosmetic
-  and non-accumulating — the described frame is never touched and the count is
-  stable across saves. Suppressing the merge was tried and reverted because it
-  destroyed the ID3v1 comment instead; the correct fix belongs on the write side
-  and is tracked as `taglib-o3sl`.
 
 ### Internal
 
