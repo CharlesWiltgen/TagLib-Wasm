@@ -42,6 +42,8 @@
       ".github/",
       ".vscode/",
       ".ai/",
+      ".ast-grep/",
+      "sgconfig.yml",
       "node_modules/",
       "dist/*",
       "!dist/taglib-wrapper.js",

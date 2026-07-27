@@ -7,6 +7,11 @@ valid:
   - fileRef = std::make_unique<TagLib::FileRef>(stream.get());
   # .get() into a non-owning consumer is unrelated to this rule.
   - detected.reset(new TagLib::MPEG::File(stream.get()));
+  # The IOStream overload in declaration form, and under other spellings of the
+  # same name — each must stay exempt or check:all fails on correct code.
+  - TagLib::FileRef ok(stream.get());
+  - auto r = std::make_unique<TagLib::FileRef>(ioStream.get());
+  - auto r = std::make_unique<TagLib::FileRef>(byteStream.get());
 invalid:
   # The taglib-f5hp double-free, verbatim from taglib_embind.cpp:627 at 64244626^.
   - fileRef = std::make_unique<TagLib::FileRef>(file.get());
@@ -16,3 +21,7 @@ invalid:
   # Unqualified and raw-new spellings of the same ownership mistake.
   - auto ref = std::make_unique<FileRef>(file.get());
   - auto *ref = new TagLib::FileRef(file.get());
+  # Stack declaration — the most idiomatic spelling, and a different AST node
+  # from the call form, so it went unflagged until it got its own pattern.
+  - TagLib::FileRef ref(file.get());
+  - FileRef ref(detected.get());

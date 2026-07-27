@@ -142,7 +142,13 @@ on a real divergence) over separate per-backend tests.
    the incoming map and the open file.
 
    Writing an empty value _on purpose_, distinct from delete, remains
-   unsupported and still needs a sentinel that is not `""` — see ADR-006.
+   unsupported: it needs a delete sentinel that is not `""` (`null`, or a
+   dedicated remove API) applied to all ~25 string fields at once, because a
+   caller's `""` and a `""` read back from a file are identical bytes in the
+   same argument. One consequence is already visible: writing `""` to a field
+   whose stored value _already_ projects to empty is a no-op rather than a
+   delete, on both backends. Use `setProperties({ key: [] })`, `clearTags()` or
+   `removeId3v2Frames()` there.
 
 Minor/unpaired (tracked here, not filed): `isValid` (covered both, unpaired);
 `isMP4` (WASI unit only); `getProperty` string-overload (single-backend each).

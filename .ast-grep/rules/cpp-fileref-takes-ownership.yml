@@ -37,8 +37,21 @@ rule:
     - pattern: std::make_unique<FileRef>($P.get())
     - pattern: new TagLib::FileRef($P.get())
     - pattern: new FileRef($P.get())
+    # An explicit temporary: `x = TagLib::FileRef(file.get())`.
     - pattern: TagLib::FileRef($P.get())
+    # A stack declaration: `TagLib::FileRef ref(file.get());`. This is a
+    # DIFFERENT node kind from the call above and matches none of the patterns
+    # before it, so it needs its own — it is also the most idiomatic spelling.
+    - pattern: TagLib::FileRef $N($P.get())
+    - pattern: FileRef $N($P.get())
 constraints:
   P:
+    # ast-grep matches syntax and has no types, so the IOStream overload — which
+    # explicitly does NOT take ownership — can only be told apart by name. This
+    # cuts both ways and neither side is fixable here: a unique_ptr<File> named
+    # `stream` would be wrongly exempted, and an IOStream named something this
+    # pattern misses raises an ERROR that fails check:all on correct code. The
+    # pattern is deliberately generous, since a false error is louder and
+    # cheaper to diagnose than a missed double-free is to debug.
     not:
-      regex: ^stream$
+      regex: (?i)stream

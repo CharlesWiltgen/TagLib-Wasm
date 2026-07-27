@@ -1,5 +1,17 @@
 id: cpp-fileref-takes-ownership
 snapshots:
+  FileRef ref(detected.get());:
+    labels:
+    - source: FileRef ref(detected.get());
+      style: primary
+      start: 0
+      end: 28
+  TagLib::FileRef ref(file.get());:
+    labels:
+    - source: TagLib::FileRef ref(file.get());
+      style: primary
+      start: 0
+      end: 32
   auto *ref = new TagLib::FileRef(file.get());:
     labels:
     - source: new TagLib::FileRef(file.get())

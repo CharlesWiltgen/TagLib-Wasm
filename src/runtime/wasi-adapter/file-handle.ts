@@ -60,6 +60,18 @@ const AUDIO_KEYS = new Set([
   "sampleRate",
 ]);
 
+const INTERNAL_KEYS = new Set([
+  "pictures",
+  "ratings",
+  "lyrics",
+  "chapters",
+  "_mp4ChapterStyle",
+  "bextData",
+  "ixml",
+  // Exact MP4 atom names for the write path, not a readable property.
+  "_mp4ItemNames",
+]);
+
 /**
  * A frame that exists holding an empty string is not the same state as no frame
  * at all, and the read snapshot must say so — otherwise the save cannot carry
@@ -85,18 +97,6 @@ function preserveEmptyValues(
   }
   return data;
 }
-
-const INTERNAL_KEYS = new Set([
-  "pictures",
-  "ratings",
-  "lyrics",
-  "chapters",
-  "_mp4ChapterStyle",
-  "bextData",
-  "ixml",
-  // Exact MP4 atom names for the write path, not a readable property.
-  "_mp4ItemNames",
-]);
 
 const CONTAINER_TO_FORMAT: Record<string, string> = {
   MP3: "MP3",

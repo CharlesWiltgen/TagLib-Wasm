@@ -31,8 +31,16 @@
   cannot name is one it cannot remove.
 
   Writing an empty value **on purpose**, distinct from deleting the field, is
-  still unsupported — `""` continues to mean delete on every field, format and
-  backend.
+  still unsupported: `""` means delete. The one exception, which predates this
+  change and is now consistent across both backends, is a field whose stored
+  value _already_ projects to empty — writing `""` there is a no-op rather than
+  a delete, because the two are indistinguishable at the API boundary. Use
+  `setProperties({ key: [] })`, `clearTags()` or `removeId3v2Frames()` to remove
+  such a field.
+
+  Formats differ in whether they can store an empty value at all, and both
+  backends agree per format: MP3, MP4 and WAV round-trip it; FLAC and Ogg drop
+  it, because a Xiph comment has no representation for an empty field.
 
 ## 1.6.1
 
