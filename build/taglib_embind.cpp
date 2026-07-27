@@ -758,7 +758,11 @@ public:
         // and repair afterwards (taglib-bnhl).
         auto captured = capture_mp4_freeform_names(fileRef->file());
         for (auto& n : mp4Names) captured.push_back(std::move(n));
+        // See apply_propmap() in src/capi/taglib_shim.cpp: an MPEG PropertyMap
+        // write erases ID3v1-only fields the map never described (taglib-nft5).
+        auto id3v1 = taglib_wasm::capture_id3v1_only_fields(fileRef->file(), propMap);
         fileRef->file()->setProperties(propMap);
+        taglib_wasm::restore_id3v1_only_fields(fileRef->file(), id3v1);
         restore_mp4_freeform_names(fileRef->file(), captured);
     }
     
@@ -783,9 +787,11 @@ public:
         values.append(TagLib::String(value, TagLib::String::UTF8));
         properties[TagLib::String(key, TagLib::String::UTF8)] = values;
 
-        // See setProperties: capture before, restore after (taglib-bnhl).
+        // See setProperties: capture before, restore after (taglib-bnhl, nft5).
         auto captured = capture_mp4_freeform_names(fileRef->file());
+        auto id3v1 = taglib_wasm::capture_id3v1_only_fields(fileRef->file(), properties);
         fileRef->file()->setProperties(properties);
+        taglib_wasm::restore_id3v1_only_fields(fileRef->file(), id3v1);
         restore_mp4_freeform_names(fileRef->file(), captured);
     }
     

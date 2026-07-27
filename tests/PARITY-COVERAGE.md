@@ -102,14 +102,19 @@ on a real divergence) over separate per-backend tests.
    No bug — `setRating`→`getRating` round-trips to the identical value on both
    backends. Covered by `rating-api.test.ts` (loops both backends).
 
-5. **ID3v1-only track/year is not promoted into ID3v2 on WASI** (taglib-nft5).
-   An MP3 whose ID3v2 has no `TRCK` but whose ID3v1 has one gains `TRCK` on
-   Emscripten and does not on WASI. Not caused by taglib-9m0w — it reproduces
-   with no hidden frame involved. WASI's declarative save routes the snapshot
-   through `MPEG::File::setProperties()`, which rewrites the ID3v1 tag too
-   (`mpegfile.cpp:191-192`), zeroing the track before TagLib's Duplicate pass
-   can copy it. Both backends agree on the READ. Pinned per-backend in the
-   taglib-9m0w guard test until the intended semantics are decided.
+5. ~~**ID3v1-only track/year is not promoted into ID3v2 on WASI.**~~ **RESOLVED
+   (taglib-nft5).** The framing was wrong: WASI was not failing to promote, it
+   was ERASING. Its declarative save routes the snapshot through
+   `MPEG::File::setProperties()`, which rewrites the ID3v1 tag too
+   (`mpegfile.cpp:191-192`), and the generic `Tag::setProperties()` zeroes every
+   field the map omits. The map only ever describes ID3v2 — `TagUnion::properties()`
+   returns the first non-empty tag's map without merging — so an ID3v1-only value
+   was destroyed by a save that never meant to touch it (measured: track 5 → 0).
+   The fix preserves ID3v1-only fields across the write, distinguishing them from
+   deliberate deletions by whether ID3v2 carries the field at all. Promotion then
+   follows on its own, because TagLib's own save-time `Tag::duplicate` fills the
+   empty ID3v2 field once ID3v1 still has the value — so both backends now agree
+   in all four read/write combinations.
 
 Minor/unpaired (tracked here, not filed): `isValid` (covered both, unpaired);
 `isMP4` (WASI unit only); `getProperty` string-overload (single-backend each).

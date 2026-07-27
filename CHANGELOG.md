@@ -22,6 +22,22 @@
   tag at all. taglib-wasm now performs the ID3v1 sync itself, skipping only the
   two guards that destroy, so both directions of the sync still happen. Non-MPEG
   containers (FLAC, AIFF, WAV) were never affected.
+- **Writing properties to an MP3 no longer erases ID3v1-only fields (data
+  loss).** A field held in a file's ID3v1 tag but not its ID3v2 tag was wiped by
+  any property write — on WASI that meant every save, since its save path is a
+  property write. Measured: an ID3v1 track of `5` became `0` on a save that
+  changed nothing.
+
+  `MPEG::File::setProperties()` also rewrites the ID3v1 tag, and the generic
+  `Tag::setProperties()` zeroes every field the incoming map omits. That map is
+  built from `properties()`, which reports ID3v2 alone — `TagUnion::properties()`
+  returns the first non-empty tag's map and never merges ID3v1 — so an ID3v1-only
+  value was absent through no intent of the caller and was destroyed. Such fields
+  are now preserved across the write; a field that ID3v2 _does_ carry still
+  clears normally, so deleting a tag still works. As a consequence the two
+  backends now agree on ID3v1 handling in every case: TagLib's own save-time
+  duplication fills an empty ID3v2 field from ID3v1 once the value survives, so
+  an ID3v1-only track is promoted into ID3v2 on both.
 - **Raw tag values are no longer coerced to integers (data loss).** On the WASI
   backend, `TRACKNUMBER`, `TRACKTOTAL`, `DISCNUMBER`, `DISCTOTAL` and `BPM` were
   narrowed through `toInt()` when crossing the Wasm boundary, so `properties()`

@@ -588,7 +588,13 @@ static tl_error_code decode_msgpack_to_propmap(
 }
 
 static void apply_propmap(TagLib::File* file, const TagLib::PropertyMap& propMap) {
+    // An MPEG PropertyMap write also rewrites the ID3v1 tag, zeroing every field
+    // the map is silent about — and the map only ever describes ID3v2, so an
+    // ID3v1-only value is destroyed by a save that never meant to touch it
+    // (taglib-nft5). Capture those before the write, put them back after.
+    auto id3v1 = taglib_wasm::capture_id3v1_only_fields(file, propMap);
     file->setProperties(propMap);
+    taglib_wasm::restore_id3v1_only_fields(file, id3v1);
 
     TagLib::Tag* tag = file->tag();
     if (!tag) return;

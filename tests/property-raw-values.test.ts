@@ -739,17 +739,13 @@ describe("an MPEG save keeps a TRCK/TDRC that narrows to 0 (taglib-9m0w)", () =>
       // and protecting a hidden TDRC on the same file must not cost it. A frame
       // that is genuinely ABSENT still has to be filled in from ID3v1.
       //
-      // Only Emscripten can demonstrate that, and the difference predates this
-      // fix: WASI's declarative save writes the JS snapshot through
+      // Both backends now agree here. They did not before taglib-nft5: WASI's
+      // declarative save writes the JS snapshot through
       // MPEG::File::setProperties(), which rewrites the ID3v1 tag too
-      // (mpegfile.cpp:191-192), so a snapshot carrying no TRACKNUMBER zeroes
-      // the very track the fill-in would have copied. Reproduces with no hidden
-      // frame anywhere — tracked as taglib-nft5, pinned here rather than
-      // asserted uniformly so this guard cannot quietly pass by doing nothing.
-      const filledIn: Record<Backend, string[] | undefined> = {
-        emscripten: ["5"],
-        wasi: undefined,
-      };
+      // (mpegfile.cpp:191-192), and the generic Tag::setProperties() zeroes every
+      // field the map omits. The map only ever describes ID3v2, so ID3v1's track
+      // was ERASED — and the fill-in then had nothing left to copy. Preserving
+      // the ID3v1-only value across that write restores both halves at once.
       const path = await tempCopy("mp3");
       try {
         // Clear every frame, then seed only the hidden TDRC — no TRCK.
@@ -784,8 +780,18 @@ describe("an MPEG save keeps a TRCK/TDRC that narrows to 0 (taglib-9m0w)", () =>
 
         assertEquals(
           await readProperty("emscripten", path, "trackNumber"),
-          filledIn[backend],
-          `${backend} changed the ID3v1 -> ID3v2 track fill-in`,
+          ["5"],
+          `${backend} dropped the ID3v1 -> ID3v2 track fill-in`,
+        );
+
+        // And the ID3v1 tag still holds its own copy: the write must PRESERVE
+        // the value, not move it. Reading it back by hand because properties()
+        // never surfaces ID3v1 (TagUnion returns ID3v2's map wholesale).
+        const saved = await Deno.readFile(path);
+        assertEquals(
+          saved[saved.length - 2],
+          5,
+          `${backend} erased the ID3v1 track byte`,
         );
         assertEquals(
           await readProperty("emscripten", path, "date"),
