@@ -137,6 +137,17 @@
 
 ### Internal
 
+- **The Deno compatibility patcher fails loudly instead of half-patching.**
+  `fix-deno-compat.js` applies five regex patches to Emscripten's generated
+  glue, but each was optional and one shared `modified` flag was set if any of
+  them matched — so it could apply one of five, print success and exit 0. That
+  combination is worse than applying none: the instantiation patch inserts
+  references to `ENVIRONMENT_IS_DENO`, which the detection patch is what
+  defines, so the result threw `ReferenceError: ENVIRONMENT_IS_DENO is not
+  defined` before doing anything. Each patch is now required, a miss names the
+  patch and leaves the file untouched, and the patterns tolerate the comments
+  and quoted keys an unminified (`-g2`) build emits — so a debuggable module
+  with a Wasm name section can now actually be built and run under Deno.
 - **`wasm-freshness` now tracks C++ sources, not just the submodule.** As first
   shipped it triggered only on `lib/taglib`, but both binaries also compile
   from `src/capi/` — so editing the WASI shim without rebuilding still shipped
