@@ -212,6 +212,11 @@ static tl_error_code encode_file_to_msgpack(TagLib::File* file,
     }
     if (audio) count += 5;
 
+    // Foreign-mean freeform atoms ride the snapshot under their full atom
+    // names — the PropertyMap cannot carry them at all (taglib-5ibr).
+    const auto foreign_items = collect_mp4_foreign_items(file);
+    count += static_cast<uint32_t>(foreign_items.size());
+
     uint32_t pic_count = count_pictures(file);
     if (pic_count > 0) count++;  // "pictures" key + array
 
@@ -295,6 +300,19 @@ static tl_error_code encode_file_to_msgpack(TagLib::File* file,
                 }
                 mpack_finish_array(&writer);
             }
+        }
+    }
+
+    for (const auto& [name, values] : foreign_items) {
+        mpack_write_cstr(&writer, name.c_str());
+        if (values.size() == 1) {
+            write_mpack_string(&writer, values.front());
+        } else {
+            mpack_start_array(&writer, static_cast<uint32_t>(values.size()));
+            for (const auto& s : values) {
+                write_mpack_string(&writer, s);
+            }
+            mpack_finish_array(&writer);
         }
     }
 
@@ -430,6 +448,11 @@ static const char* SKIP_KEYS[] = {
 static const size_t SKIP_KEYS_SIZE = sizeof(SKIP_KEYS) / sizeof(SKIP_KEYS[0]);
 
 static bool should_skip(const char* key) {
+    // A full `----:mean:name` key is the foreign-atom read channel
+    // (taglib-5ibr). The atom already lives in the file's own bytes; pushing
+    // the key through the PropertyMap would re-file it in Apple's namespace
+    // under a mangled name. Never a property, whatever its case.
+    if (strncmp(key, "----:", 5) == 0) return true;
     int left = 0, right = static_cast<int>(SKIP_KEYS_SIZE) - 1;
     while (left <= right) {
         int mid = left + (right - left) / 2;

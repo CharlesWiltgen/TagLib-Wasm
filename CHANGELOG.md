@@ -4,16 +4,19 @@
 
 ### Fixed
 
-- **A freeform MP4 atom keeps its own namespace.** On the WASI backend an atom
-  whose `mean` is not `com.apple.iTunes` was relocated into Apple's namespace and
-  upper-cased, so `----:com.acme.tool:MyTag` became `----:com.apple.iTunes:MYTAG`
-  — the caller's atom gone and a wrong one in its place. WASI routes MP4 items
-  through TagLib's PropertyMap, which knows only one freeform namespace; the
-  exact name the caller supplied is now reinstated after the write. The atom
-  still cannot be READ BACK through `getMP4Item()` on WASI — the read path
-  resolves names through that same PropertyMap — so it is correct on disk and
-  visible to other tools, but not yet to this library's own WASI reader
-  (`taglib-5ibr`). Emscripten reads it correctly.
+- **A freeform MP4 atom keeps its own namespace, and reads back.** On the WASI
+  backend an atom whose `mean` is not `com.apple.iTunes` was relocated into
+  Apple's namespace and upper-cased, so `----:com.acme.tool:MyTag` became
+  `----:com.apple.iTunes:MYTAG` — the caller's atom gone and a wrong one in its
+  place. WASI routes MP4 items through TagLib's PropertyMap, which knows only
+  one freeform namespace; the exact name the caller supplied is now reinstated
+  after the write. Reading had the same gap in the other direction: WASI
+  resolved every `----:` key through that same PropertyMap, which never carries
+  a foreign `mean`, so `getMP4Item()` answered `undefined` for an atom the
+  library had itself just written — or one any other tool wrote (`taglib-5ibr`).
+  Foreign-`mean` atoms now travel in the WASI snapshot under their full atom
+  names and `getMP4Item()` resolves them first. Emscripten always read them
+  correctly.
 - **A described `COMM` frame no longer attracts a duplicate.** An MP3 whose only
   comment frame carries a description (the usual iTunes `iTunNORM` shape) and
   which also has an ID3v1 comment gained a second, bare `COMM` on save. The

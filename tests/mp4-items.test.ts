@@ -654,3 +654,46 @@ for (const backend of BACKENDS) {
     );
   });
 }
+
+// taglib-5ibr: the write fix above keeps the atom's bytes correct, but WASI
+// resolved every ----: read through the PropertyMap, which never carries a
+// foreign mean — so the library could not read back an atom it had itself just
+// written, nor one any other tool wrote. The wkyi test passes on the raw bytes
+// while the read is broken, so this one must assert the ROUND TRIP.
+for (const backend of BACKENDS) {
+  Deno.test(`[${backend}] a foreign freeform atom reads back after a save (taglib-5ibr)`, async () => {
+    const tl = await TagLib.initialize({ forceWasmType: backend });
+    const file = await tl.open(await Deno.readFile(FIXTURE_PATH.m4a));
+    file.setMP4Item("----:com.acme.tool:MyTag", "acme-value");
+    file.save();
+    const sameHandle = file.getMP4Item("----:com.acme.tool:MyTag");
+    const buf = file.getFileBuffer();
+    file.dispose();
+
+    assertEquals(
+      sameHandle,
+      "acme-value",
+      `${backend} lost the atom on its own handle across a save`,
+    );
+
+    const reopened = await tl.open(buf);
+    try {
+      assertEquals(
+        reopened.getMP4Item("----:com.acme.tool:MyTag"),
+        "acme-value",
+        `${backend} cannot read back the atom it wrote`,
+      );
+      // The atom rides a dedicated channel, not the property surface: TagLib's
+      // PropertyMap never carries a foreign mean, so Emscripten's properties()
+      // does not show it and WASI's must not either.
+      const props = reopened.properties() as Record<string, string[]>;
+      assertEquals(
+        props["----:com.acme.tool:MyTag"],
+        undefined,
+        `${backend} leaked the foreign atom into properties()`,
+      );
+    } finally {
+      reopened.dispose();
+    }
+  });
+}

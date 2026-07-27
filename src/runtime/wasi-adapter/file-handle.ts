@@ -321,6 +321,10 @@ export class WasiFileHandle implements FileHandle {
 
     for (const [key, value] of Object.entries(data)) {
       if (AUDIO_KEYS.has(key) || INTERNAL_KEYS.has(key)) continue;
+      // The foreign-atom read channel (taglib-5ibr): full `----:mean:name`
+      // keys are getMP4Item's, not properties — TagLib's PropertyMap never
+      // carries a foreign mean, so Emscripten's properties() has no such key.
+      if (key.startsWith("----:")) continue;
       // `year` is a numeric mirror of the DATE property; when the full `date`
       // string is present it carries DATE, so skip `year` to avoid both mapping
       // to the same "DATE" wire key (taglib-bk7).
@@ -415,6 +419,19 @@ export class WasiFileHandle implements FileHandle {
 
   getMP4Item(key: string): string {
     this.checkNotDestroyed();
+    // A foreign-mean freeform atom never reaches the PropertyMap; the shim
+    // ships it in the snapshot under its FULL atom name instead, and
+    // setMP4Item keeps that slot current for staged writes (taglib-5ibr).
+    // Checked first: the bare-name property slot can name a DIFFERENT atom
+    // (TagLib files "MYTAG" under Apple's namespace).
+    if (key.startsWith("----:")) {
+      const foreign = this.tagData?.[key];
+      if (foreign !== undefined) {
+        return Array.isArray(foreign)
+          ? (foreign[0]?.toString() ?? "")
+          : String(foreign);
+      }
+    }
     return this.getProperty(mp4ItemPropertyKey(key));
   }
 
@@ -424,7 +441,16 @@ export class WasiFileHandle implements FileHandle {
     // The property slot above is keyed by the UPPERCASED bare name, which is
     // what TagLib's PropertyMap will hand back. Register the caller's exact
     // spelling so the C++ write path can restore it (taglib-bnhl).
-    if (key.startsWith("----:")) this.registerMp4ItemName(key);
+    if (key.startsWith("----:")) {
+      this.registerMp4ItemName(key);
+      // A snapshot from a file that already held this atom serves reads under
+      // the full name; without this a staged overwrite would read back stale
+      // (taglib-5ibr). The key never reaches the propMap — the C++ decoder
+      // drops `----:` keys.
+      if (this.tagData?.[key] !== undefined) {
+        this.tagData = { ...this.tagData, [key]: value };
+      }
+    }
   }
 
   /** Record an exact atom name to be repaired after the PropertyMap write. */

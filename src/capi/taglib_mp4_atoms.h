@@ -60,6 +60,51 @@ inline std::vector<std::string> capture_mp4_freeform_names(TagLib::File* file)
 }
 
 /*!
+ * Freeform atoms whose mean is NOT com.apple.iTunes, keyed by their FULL
+ * `----:mean:name` atom name, values rendered as strings. TagLib's PropertyMap
+ * knows exactly one freeform namespace, so these atoms cannot ride it at all —
+ * the WASI snapshot ships them out-of-band under their full names, which the
+ * JS read path resolves before the PropertyMap key (taglib-5ibr). The string
+ * coercion mirrors the Embind item reader: Int/Bool/Byte/StringList; any other
+ * type is unrepresentable there too and is skipped.
+ */
+inline std::vector<std::pair<std::string, TagLib::StringList>>
+collect_mp4_foreign_items(TagLib::File* file)
+{
+    std::vector<std::pair<std::string, TagLib::StringList>> items;
+    auto* mp4 = dynamic_cast<TagLib::MP4::File*>(file);
+    if (!mp4 || !mp4->tag()) return items;
+
+    const size_t prefix_len = strlen(MP4_FREEFORM_PREFIX);
+    for (const auto& [name, item] : mp4->tag()->itemMap()) {
+        std::string n = name.to8Bit(true);
+        if (n.compare(0, 5, "----:") != 0) continue;
+        if (n.compare(0, prefix_len, MP4_FREEFORM_PREFIX) == 0) continue;
+        TagLib::StringList values;
+        switch (item.type()) {
+            case TagLib::MP4::Item::Type::StringList:
+                values = item.toStringList();
+                break;
+            case TagLib::MP4::Item::Type::Int:
+                values.append(TagLib::String::number(item.toInt()));
+                break;
+            case TagLib::MP4::Item::Type::Bool:
+                values.append(TagLib::String(item.toBool() ? "true" : "false"));
+                break;
+            case TagLib::MP4::Item::Type::Byte:
+                values.append(TagLib::String::number(item.toByte()));
+                break;
+            default:
+                continue;
+        }
+        if (!values.isEmpty()) {
+            items.emplace_back(std::move(n), std::move(values));
+        }
+    }
+    return items;
+}
+
+/*!
  * Fold an atom name to a separator- and case-insensitive form.
  *
  * Used only as a FALLBACK, because TagLib builds the twin from the PROPERTY KEY
