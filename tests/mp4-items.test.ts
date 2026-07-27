@@ -617,3 +617,40 @@ for (const backend of BACKENDS) {
     }
   });
 }
+
+// taglib-wkyi: WASI routes MP4 items through TagLib's PropertyMap, which knows
+// exactly one freeform namespace — ItemFactory::nameForPropertyKey rebuilds every
+// freeform key as `----:com.apple.iTunes:<NAME>`, upper-cased. So an atom with a
+// foreign mean came back in Apple's namespace under a different name and the
+// caller's atom was gone. The exact name the caller supplied crosses the boundary
+// and is reinstated afterwards.
+//
+// Asserted on the raw bytes because the atom NAME is what the defect mangled; a
+// reader that normalises names would hide exactly that.
+for (const backend of BACKENDS) {
+  Deno.test(`[${backend}] a foreign freeform mean survives a save (taglib-wkyi)`, async () => {
+    const tl = await TagLib.initialize({ forceWasmType: backend });
+    const file = await tl.open(await Deno.readFile(FIXTURE_PATH.m4a));
+    file.setMP4Item("----:com.acme.tool:MyTag", "v");
+    file.save();
+    const buf = file.getFileBuffer();
+    file.dispose();
+
+    const text = new TextDecoder("latin1").decode(buf);
+    assertEquals(
+      (text.match(/com\.acme\.tool/g) ?? []).length,
+      1,
+      `${backend} moved the atom out of its own namespace`,
+    );
+    assertEquals(
+      (text.match(/MyTag/g) ?? []).length,
+      1,
+      `${backend} did not keep the atom name verbatim`,
+    );
+    assertEquals(
+      (text.match(/MYTAG/g) ?? []).length,
+      0,
+      `${backend} left an upper-cased twin behind`,
+    );
+  });
+}

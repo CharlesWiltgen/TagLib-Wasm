@@ -92,6 +92,28 @@ inline std::string mp4_uppercased_twin(const std::string& name)
 }
 
 /*!
+ * The atom TagLib rebuilds for a freeform name that went through the
+ * PropertyMap: the bare NAME upper-cased, in TagLib's single hard-coded
+ * freeform namespace. ItemFactory::nameForPropertyKey knows only
+ * `----:com.apple.iTunes:`, so a `----:com.acme.tool:MyTag` comes back as
+ * `----:com.apple.iTunes:MYTAG` — the mean is gone and cannot be recovered from
+ * the item itself, only from the name the caller supplied (taglib-wkyi).
+ */
+inline std::string mp4_propertymap_roundtrip_name(const std::string& name)
+{
+    const size_t colon = name.rfind(':');
+    if (name.compare(0, 5, "----:") != 0 || colon == std::string::npos) {
+        return name;
+    }
+    std::string rebuilt = MP4_FREEFORM_PREFIX;
+    for (size_t i = colon + 1; i < name.size(); i++) {
+        const char c = name[i];
+        rebuilt.push_back((c >= 'a' && c <= 'z') ? static_cast<char>(c - 32) : c);
+    }
+    return rebuilt;
+}
+
+/*!
  * Move each mangled twin atom back onto its canonical name. Call AFTER
  * file->setProperties(). \a names should be the capture from before the write
  * plus any name the caller is creating.
@@ -122,18 +144,29 @@ inline void restore_mp4_freeform_names(TagLib::File* file,
 
     const size_t prefix_len = strlen(MP4_FREEFORM_PREFIX);
     for (const auto& name : names) {
-        if (name.compare(0, prefix_len, MP4_FREEFORM_PREFIX) != 0) continue;
+        // Every freeform atom needs repair, not just Apple-namespaced ones: a
+        // foreign mean is collapsed into Apple's namespace on the way through
+        // the PropertyMap, so the caller's atom vanishes entirely (taglib-wkyi).
+        if (name.compare(0, 5, "----:") != 0) continue;
         const TagLib::String target(name, TagLib::String::UTF8);
 
         TagLib::String source;
         bool found = false;
 
-        const TagLib::String exactTwin(mp4_uppercased_twin(name),
+        // The round-trip form covers both cases: for an Apple-namespaced atom it
+        // is the upper-cased twin, and for a foreign mean it is additionally
+        // re-based into Apple's namespace.
+        const TagLib::String exactTwin(mp4_propertymap_roundtrip_name(name),
                                        TagLib::String::UTF8);
         if (exactTwin != target && tag->itemMap().contains(exactTwin)) {
             source = exactTwin;
             found = true;
-        } else if (!tag->itemMap().contains(target)) {
+        } else if (!tag->itemMap().contains(target) &&
+                   name.compare(0, prefix_len, MP4_FREEFORM_PREFIX) == 0) {
+            // Only when the target is genuinely missing, and only within
+            // Apple's namespace: a foreign mean has exactly one candidate (the
+            // round-trip form above), and matching it by folded name alone
+            // could steal an unrelated atom.
             const std::string folded = mp4_fold_atom_name(name);
             int matches = 0;
             for (const auto& [itemName, item] : tag->itemMap()) {
