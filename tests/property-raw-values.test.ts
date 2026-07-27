@@ -580,6 +580,246 @@ describe("the date/year mirror obeys the same rules as trackNumber/track", () =>
   }
 });
 
+describe("an MPEG save keeps a TRCK/TDRC that narrows to 0 (taglib-9m0w)", () => {
+  // DATA LOSS, both backends. MPEG::File::read() ends with ID3v1Tag(true)
+  // (mpegfile.cpp:511-512), so ID3v1Tag() is never null and the v1 -> v2 half of
+  // MPEG::File::save()'s Duplicate pass (mpegfile.cpp:221-222) runs on EVERY
+  // save, even for a file carrying no ID3v1 tag at all. That pass is
+  // Tag::duplicate(v1, v2, overwrite=false), whose guard is
+  //
+  //     if(target->track() == 0) target->setTrack(source->track());
+  //
+  // and ID3v2::Tag::track() narrows the frame text with String::toInt(). A vinyl
+  // "A1" therefore reads 0 — indistinguishable from an ABSENT frame — so the
+  // empty ID3v1 source makes this setTrack(0), which id3v2tag.cpp:309-315
+  // defines as removeFrames("TRCK"). An ordinary open + save deleted the value
+  // with no error and no signal on read. year/TDRC dies by the same chain via
+  // setYear(0).
+  //
+  // The trigger is exactly "the frame is present but the typed getter reads 0",
+  // so these cases are the boundary. Values narrowing to a positive int were
+  // never affected and are pinned below so the fix cannot over-correct.
+  const NARROWS_TO_ZERO: Array<
+    [frameId: string, property: string, value: string]
+  > = [
+    // Vinyl side/track numbering, which rippers emit — the reported case.
+    ["TRCK", "trackNumber", "A1"],
+    ["TRCK", "trackNumber", "B2"],
+    ["TRCK", "trackNumber", "Side A"],
+    ["TRCK", "trackNumber", "0"],
+    ["TDRC", "date", "unknown"],
+    ["TDRC", "date", "n/a"],
+  ];
+
+  /** ID3v2 text-frame body: one encoding byte (UTF-8) then the value. */
+  function textFrameBody(value: string): Uint8Array {
+    const encoded = new TextEncoder().encode(value);
+    const body = new Uint8Array(encoded.length + 1);
+    body[0] = 0x03;
+    body.set(encoded, 1);
+    return body;
+  }
+
+  /**
+   * Seed a frame that the defect destroys, WITHOUT going through the property
+   * write path — a raw write to an ID3v1-mapped ID trips the taglib-b67
+   * DoNotDuplicate hatch, so it is the one route that survives the defect. That
+   * keeps the no-op-save assertions below independent of the write path, which
+   * this defect breaks too and which is asserted separately.
+   */
+  async function seedRawFrame(
+    path: string,
+    frameId: string,
+    value: string,
+  ): Promise<void> {
+    const file = await taglibs.emscripten.open(path);
+    try {
+      file.setId3v2Frames(frameId, [textFrameBody(value)]);
+      file.save();
+      await Deno.writeFile(path, file.getFileBuffer());
+    } finally {
+      file.dispose();
+    }
+  }
+
+  for (const backend of BACKENDS) {
+    for (const [frameId, property, value] of NARROWS_TO_ZERO) {
+      it(
+        `keeps ${frameId} ${
+          JSON.stringify(value)
+        } across a no-op open+save [${backend}]`,
+        async () => {
+          const path = await tempCopy("mp3");
+          try {
+            await seedRawFrame(path, frameId, value);
+            assertEquals(
+              await readProperty("emscripten", path, property),
+              [value],
+              "seed did not land — the rest of this test would be vacuous",
+            );
+
+            // The reported scenario: open and save, changing nothing at all.
+            const file = await taglibs[backend].open(path);
+            try {
+              file.save();
+              await Deno.writeFile(path, file.getFileBuffer());
+            } finally {
+              file.dispose();
+            }
+
+            for (const reader of BACKENDS) {
+              assertEquals(
+                await readProperty(reader, path, property),
+                [value],
+                `${backend} deleted ${frameId} on a save that changed nothing`,
+              );
+            }
+          } finally {
+            await Deno.remove(path).catch(() => {});
+          }
+        },
+      );
+
+      it(
+        `can write ${frameId} ${
+          JSON.stringify(value)
+        } through setProperties [${backend}]`,
+        async () => {
+          // The same duplication pass runs after a property write, so the value
+          // could not be written at all — not just not preserved.
+          const path = await tempCopy("mp3");
+          try {
+            await seedProperties(backend, path, { [property]: [value] });
+            assertEquals(
+              await readProperty("emscripten", path, property),
+              [value],
+              `${backend} could not write ${frameId}=${value}`,
+            );
+          } finally {
+            await Deno.remove(path).catch(() => {});
+          }
+        },
+      );
+    }
+  }
+
+  // Guards against over-correcting. The fix replaces the destructive Duplicate
+  // pass with an equivalent one, so BOTH directions of the ID3v1 <-> ID3v2 sync
+  // must still happen.
+  for (const backend of BACKENDS) {
+    it(`still writes the ID3v1 tag alongside a preserved TRCK [${backend}]`, async () => {
+      const path = await tempCopy("mp3");
+      try {
+        await seedRawFrame(path, "TRCK", "A1");
+        const file = await taglibs[backend].open(path);
+        try {
+          file.save();
+          await Deno.writeFile(path, file.getFileBuffer());
+        } finally {
+          file.dispose();
+        }
+
+        // v2 -> v1: MPEG::File::save() creates and populates an ID3v1 tag on
+        // every save, and skipping duplication outright would silently stop it.
+        const bytes = await Deno.readFile(path);
+        assertEquals(
+          new TextDecoder().decode(
+            bytes.slice(bytes.length - 128, bytes.length - 125),
+          ),
+          "TAG",
+          `${backend} stopped writing the ID3v1 tag`,
+        );
+      } finally {
+        await Deno.remove(path).catch(() => {});
+      }
+    });
+
+    it(`still fills an absent TRCK from the ID3v1 tag [${backend}]`, async () => {
+      // v1 -> v2: the half that carries the defect still has a legitimate job,
+      // and protecting a hidden TDRC on the same file must not cost it. A frame
+      // that is genuinely ABSENT still has to be filled in from ID3v1.
+      //
+      // Only Emscripten can demonstrate that, and the difference predates this
+      // fix: WASI's declarative save writes the JS snapshot through
+      // MPEG::File::setProperties(), which rewrites the ID3v1 tag too
+      // (mpegfile.cpp:191-192), so a snapshot carrying no TRACKNUMBER zeroes
+      // the very track the fill-in would have copied. Reproduces with no hidden
+      // frame anywhere — tracked as taglib-nft5, pinned here rather than
+      // asserted uniformly so this guard cannot quietly pass by doing nothing.
+      const filledIn: Record<Backend, string[] | undefined> = {
+        emscripten: ["5"],
+        wasi: undefined,
+      };
+      const path = await tempCopy("mp3");
+      try {
+        // Clear every frame, then seed only the hidden TDRC — no TRCK.
+        await seedProperties("emscripten", path, { title: ["Kiss"] });
+        await seedRawFrame(path, "TDRC", "unknown");
+        assertEquals(
+          await readProperty("emscripten", path, "trackNumber"),
+          undefined,
+          "fixture still carries a TRCK, so the fill-in cannot be observed",
+        );
+
+        // Patch the ID3v1.1 track byte in place (offset 125 is 0, 126 is track).
+        const seeded = await Deno.readFile(path);
+        assertEquals(
+          new TextDecoder().decode(
+            seeded.slice(seeded.length - 128, seeded.length - 125),
+          ),
+          "TAG",
+          "expected an ID3v1 tag to patch",
+        );
+        seeded[seeded.length - 3] = 0x00;
+        seeded[seeded.length - 2] = 5;
+        await Deno.writeFile(path, seeded);
+
+        const file = await taglibs[backend].open(path);
+        try {
+          file.save();
+          await Deno.writeFile(path, file.getFileBuffer());
+        } finally {
+          file.dispose();
+        }
+
+        assertEquals(
+          await readProperty("emscripten", path, "trackNumber"),
+          filledIn[backend],
+          `${backend} changed the ID3v1 -> ID3v2 track fill-in`,
+        );
+        assertEquals(
+          await readProperty("emscripten", path, "date"),
+          ["unknown"],
+          `${backend} destroyed the hidden TDRC`,
+        );
+      } finally {
+        await Deno.remove(path).catch(() => {});
+      }
+    });
+
+    it(`still narrows a normal date and track [${backend}]`, async () => {
+      const path = await tempCopy("mp3");
+      try {
+        await seedProperties(backend, path, {
+          date: ["1986-03-25"],
+          trackNumber: ["3/12"],
+        });
+        const file = await taglibs[backend].open(path);
+        try {
+          assertEquals(file.properties().date, ["1986-03-25"]);
+          assertEquals(file.properties().trackNumber, ["3/12"]);
+          assertEquals(file.tag().year, 1986);
+          assertEquals(file.tag().track, 3);
+        } finally {
+          file.dispose();
+        }
+      } finally {
+        await Deno.remove(path).catch(() => {});
+      }
+    });
+  }
+});
+
 describe("track and disc totals land in the standard on-disk field", () => {
   // Every totals test in the suite used FLAC, which stores TRACKTOTAL as its own
   // Vorbis field — so nothing covered the formats where the total belongs INSIDE

@@ -49,6 +49,7 @@
 #include <xiphcomment.h>
 #include "../src/capi/formats/taglib_lame.h"
 #include "../src/capi/taglib_mp4_atoms.h"
+#include "../src/capi/taglib_id3_duplicate.h"
 #include <memory>
 #include <string>
 #include <set>
@@ -639,16 +640,25 @@ public:
     
     bool save() {
         if (!fileRef) return false;
-        if (!rawMappedFrameIds.empty()) {
-            auto* mpegFile = dynamic_cast<TagLib::MPEG::File*>(fileRef->file());
-            if (mpegFile) {
-                return mpegFile->save(TagLib::MPEG::File::AllTags,
-                                       TagLib::File::StripOthers,
-                                       TagLib::ID3v2::v4,
-                                       TagLib::File::DoNotDuplicate);
-            }
+        auto* mpegFile = dynamic_cast<TagLib::MPEG::File*>(fileRef->file());
+        if (!mpegFile) return fileRef->save();
+
+        // Two separate reasons to suppress MPEG::File's default Duplicate sync,
+        // handled in this order because they are not interchangeable — see
+        // save_preserving_id3() in src/capi/taglib_shim.cpp, the WASI twin.
+        bool skipTagLibDuplicate = !rawMappedFrameIds.empty();  // taglib-b67
+        if (!skipTagLibDuplicate &&
+            taglib_wasm::id3_duplicate_would_destroy(mpegFile)) {
+            // taglib-9m0w: run the sync losslessly rather than skip it.
+            taglib_wasm::duplicate_id3_tags_losslessly(mpegFile);
+            skipTagLibDuplicate = true;
         }
-        return fileRef->save();
+        if (!skipTagLibDuplicate) return fileRef->save();
+
+        return mpegFile->save(TagLib::MPEG::File::AllTags,
+                              TagLib::File::StripOthers,
+                              TagLib::ID3v2::v4,
+                              TagLib::File::DoNotDuplicate);
     }
     
     TagWrapper getTag() {

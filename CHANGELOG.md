@@ -4,6 +4,24 @@
 
 ### Fixed
 
+- **Saving an MP3 no longer deletes a non-numeric track or date (data loss).**
+  Opening an MP3 and saving it — changing nothing at all — silently dropped a
+  `TRCK` or `TDRC` frame whose value does not begin with a nonzero integer. A
+  vinyl track number of `"A1"`, a `"Side A"`, a literal `"0"`, or a date of
+  `"unknown"` all vanished; `"03"`, `"3/12"`, `"7"` and `"1986-03-25"` were never
+  affected. `properties()` reported the value correctly right up until the save,
+  so nothing signalled the loss, and it applied to every MP3 save on both
+  backends — any read-modify-write of an unrelated field took the value with it.
+  Writing such a value was equally impossible.
+
+  `ID3v2::Tag::track()` narrows the frame text with `toInt()`, so `"A1"` reads
+  back `0` — indistinguishable from an absent frame. `MPEG::File::save()`'s
+  ID3v1 duplication pass acts on that `0` and calls `setTrack(0)`, which TagLib
+  defines as _remove the frame_. And because `MPEG::File::read()` always creates
+  an ID3v1 tag object, that pass ran on every save even for files with no ID3v1
+  tag at all. taglib-wasm now performs the ID3v1 sync itself, skipping only the
+  two guards that destroy, so both directions of the sync still happen. Non-MPEG
+  containers (FLAC, AIFF, WAV) were never affected.
 - **Raw tag values are no longer coerced to integers (data loss).** On the WASI
   backend, `TRACKNUMBER`, `TRACKTOTAL`, `DISCNUMBER`, `DISCTOTAL` and `BPM` were
   narrowed through `toInt()` when crossing the Wasm boundary, so `properties()`

@@ -20,6 +20,7 @@
 #include "taglib_id3v2_frames.h"
 #include "taglib_audio_props.h"
 #include "taglib_mp4_atoms.h"
+#include "taglib_id3_duplicate.h"
 #include "core/taglib_msgpack.h"
 #include "core/taglib_core.h"
 
@@ -680,6 +681,36 @@ static std::vector<std::string> read_mp4_item_names(const uint8_t* data, size_t 
     return names;
 }
 
+/*!
+ * Save `file`, keeping MPEG's ID3v1<->ID3v2 sync from destroying tag data.
+ *
+ * Two distinct cases need the DoNotDuplicate save mode, and they are NOT
+ * interchangeable:
+ *
+ *  - taglib-b67 (`raw_frames_written`): a raw write to an ID3v1-mapped frame ID
+ *    must skip the sync ENTIRELY. An UnknownFrame is unreadable to Tag's typed
+ *    getters, so any sync — including the lossless one below — reads "" and
+ *    clobbers the raw bytes.
+ *  - taglib-9m0w: a TRCK/TDRC that merely narrows to 0 ("A1", "unknown") is
+ *    deleted by TagLib's pass, so we run an equivalent pass ourselves first and
+ *    then suppress TagLib's. Skipping it outright would be wrong here — the sync
+ *    still has a job in both directions.
+ */
+static bool save_preserving_id3(TagLib::File* file, bool raw_frames_written) {
+    auto* mpeg = dynamic_cast<TagLib::MPEG::File*>(file);
+    if (!mpeg) return file->save();
+
+    bool skip_taglib_duplicate = raw_frames_written;
+    if (!skip_taglib_duplicate && taglib_wasm::id3_duplicate_would_destroy(mpeg)) {
+        taglib_wasm::duplicate_id3_tags_losslessly(mpeg);
+        skip_taglib_duplicate = true;
+    }
+    if (!skip_taglib_duplicate) return file->save();
+
+    return mpeg->save(TagLib::MPEG::File::AllTags, TagLib::File::StripOthers,
+                      TagLib::ID3v2::v4, TagLib::File::DoNotDuplicate);
+}
+
 static tl_error_code write_to_path(const char* path,
                                    const uint8_t* tags_msgpack, size_t tags_msgpack_len) {
     try {
@@ -714,18 +745,9 @@ static tl_error_code write_to_path(const char* path,
         apply_id3v2_frames_from_msgpack(ref.file(), tags_msgpack,
                                          tags_msgpack_len, &needs_no_duplicate);
 
-        // taglib-b67 (C1): a raw write to an ID3v1-mapped frame ID must skip
-        // MPEG::File's default Duplicate sync, which would otherwise clobber
-        // it via the typed ID3v1<->ID3v2 field mirroring (see
-        // ID3V1_MAPPED_FRAME_IDS in taglib_id3v2_frames.cpp).
-        auto* mpeg = needs_no_duplicate
-            ? dynamic_cast<TagLib::MPEG::File*>(ref.file())
-            : nullptr;
-        const bool saved = mpeg
-            ? mpeg->save(TagLib::MPEG::File::AllTags, TagLib::File::StripOthers,
-                        TagLib::ID3v2::v4, TagLib::File::DoNotDuplicate)
-            : ref.save();
-        if (!saved) return TL_ERROR_IO_WRITE;
+        if (!save_preserving_id3(ref.file(), needs_no_duplicate)) {
+            return TL_ERROR_IO_WRITE;
+        }
         return TL_SUCCESS;
     } catch (...) {
         return TL_ERROR_PARSE_FAILED;
@@ -780,15 +802,7 @@ static tl_error_code write_to_buffer(const uint8_t* buf, size_t len,
         apply_id3v2_frames_from_msgpack(f, tags_msgpack, tags_msgpack_len,
                                          &needs_no_duplicate);
 
-        // taglib-b67 (C1): see write_to_path for why this bypasses the
-        // default Duplicate save mode.
-        auto* mpeg = needs_no_duplicate ? dynamic_cast<TagLib::MPEG::File*>(f)
-                                        : nullptr;
-        const bool saved = mpeg
-            ? mpeg->save(TagLib::MPEG::File::AllTags, TagLib::File::StripOthers,
-                        TagLib::ID3v2::v4, TagLib::File::DoNotDuplicate)
-            : f->save();
-        if (!saved) return TL_ERROR_IO_WRITE;
+        if (!save_preserving_id3(f, needs_no_duplicate)) return TL_ERROR_IO_WRITE;
 
         const TagLib::ByteVector* result = stream.data();
         *out_size = result->size();
