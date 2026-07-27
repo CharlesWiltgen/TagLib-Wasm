@@ -718,18 +718,16 @@ describe("an MPEG save keeps a TRCK/TDRC that narrows to 0 (taglib-9m0w)", () =>
   // backends disagree about how to present a numeric genre -- Emscripten reports
   // [""], WASI reports nothing -- and the loss under test is the frame itself.
   //
-  // WASI still loses it, by a DIFFERENT and pre-existing route: an empty-valued
-  // property is dropped at the msgpack boundary, so GENRE never reaches the
-  // snapshot, and setProperties() removes every frame the incoming map does not
-  // represent. That is taglib-yc1x, it predates this work, and its fix is
-  // entangled with taglib-nft5's "absent vs deleted" problem. Pinned per-backend
-  // rather than asserted uniformly so this guard cannot pass by doing nothing.
-  const TCON_FRAMES_AFTER_SAVE: Record<Backend, number> = {
-    emscripten: 1,
-    wasi: 0,
-  };
-
-  for (const backend of BACKENDS) {
+  // Emscripten ONLY, deliberately. WASI still loses this frame by a different and
+  // pre-existing route (taglib-yc1x): an empty-valued property is dropped at the
+  // msgpack boundary, so GENRE never reaches the snapshot and setProperties()
+  // removes every frame the incoming map does not represent.
+  //
+  // A [wasi] instance pinned to the defective count USED to sit here. It could
+  // not fail — 0 is the data loss — so it was a ratchet holding the bug in place
+  // while reading as two-backend coverage. Better to cover one backend honestly
+  // than two dishonestly; this comes back when taglib-yc1x is fixed.
+  for (const backend of ["emscripten"] as const) {
     it(`keeps a numeric TCON across a no-op open+save [${backend}]`, async () => {
       const path = await tempCopy("mp3");
       try {
@@ -757,8 +755,8 @@ describe("an MPEG save keeps a TRCK/TDRC that narrows to 0 (taglib-9m0w)", () =>
         try {
           assertEquals(
             reopened.getId3v2Frames("TCON").length,
-            TCON_FRAMES_AFTER_SAVE[backend],
-            `${backend} changed how a numeric TCON survives a no-op save`,
+            1,
+            `${backend} deleted TCON on a save that changed nothing`,
           );
         } finally {
           reopened.dispose();

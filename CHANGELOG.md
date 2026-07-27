@@ -115,6 +115,13 @@
 
 ### Known limitations
 
+- **An MP3 whose ID3v2 tag's only `COMM` frame carries a description** (the
+  usual iTunes shape) and which also has an ID3v1 comment gains a second, bare
+  `COMM` frame holding the ID3v1 text when saved on the WASI backend. Cosmetic
+  and non-accumulating — the described frame is never touched and the count is
+  stable across saves. Suppressing the merge was tried and reverted because it
+  destroyed the ID3v1 comment instead; the correct fix belongs on the write side
+  and is tracked as `taglib-o3sl`.
 - **MP4 freeform atoms whose `mean` is not `com.apple.iTunes`** are still
   rewritten into the Apple namespace with an upper-cased name on the WASI
   backend, so a `----:com.acme.tool:MyTag` does not survive a save there.

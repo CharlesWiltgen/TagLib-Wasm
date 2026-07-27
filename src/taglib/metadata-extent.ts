@@ -149,16 +149,17 @@ function oggMetadataEnd(
 }
 
 /**
- * True for an MPEG audio frame header, using the SAME validity test as
- * MPEG::Header (mpegheader.cpp:271-295): eleven sync bits, a non-reserved
- * version and layer, and — crucially — a bitrate index that is neither free (0)
- * nor invalid (15) and a sample-rate index that is not reserved (3).
+ * True for a syntactically valid MPEG audio frame header: eleven sync bits, a
+ * non-reserved version and layer, a bitrate index that is neither free (0) nor
+ * invalid (15), and a sample-rate index that is not reserved (3).
  *
- * Matching TagLib exactly is the point, not thoroughness for its own sake.
- * MPEG::File::findID3v2 uses this test to decide whether to STOP looking for an
- * ID3v2 tag; if byte 0 is not a valid frame it keeps scanning forward. A laxer
- * test here would conclude "no ID3v2 tag" for a file that has one further in,
- * and authorise a splice straight through it.
+ * This is NARROWER than MPEG::Header's own test, which additionally verifies
+ * that the NEXT frame is consistent (checkLength, mpegheader.cpp:330-357) — and
+ * MPEG::File::findID3v2 uses that stricter test to decide whether to stop
+ * scanning for an ID3v2 tag (mpegfile.cpp:530). So a header TagLib rejects on
+ * next-frame grounds is accepted here, and this concludes "no ID3v2 tag" for a
+ * file that has one further in. That residual wrong-`true` is tracked as
+ * taglib-rfwe; closing it needs frame-length arithmetic this does not do.
  */
 function isMpegFrameSync(bytes: Uint8Array, at = 0): boolean {
   if (bytes.length < at + 4) return false;
@@ -182,6 +183,18 @@ function containerEnd(
   at: number,
   limit: number,
 ): number | undefined | null {
+  // `startsWith` answers false both when the magic differs and when the buffer
+  // is too short to hold it. Reporting the second as null ("nothing here") let
+  // an ID3v2 tag ending within a few bytes of the window vouch for a container
+  // nobody looked at — the very hole this chaining was added to close.
+  //
+  // Whether running out of buffer means "nothing follows" or "cannot see"
+  // depends on what the buffer IS. Callers pass min(limit, fileSize), so a
+  // buffer shorter than `limit` is the whole file and the tag really is the end
+  // of it; a buffer at least `limit` long is a window, and anything past its
+  // end lies outside what we are vouching for.
+  if (at >= bytes.length) return bytes.length < limit ? null : undefined;
+  if (at + 8 > bytes.length) return undefined;
   if (startsWith(bytes, "fLaC", at)) return flacEnd(bytes, limit, at);
   if (startsWith(bytes, "ftyp", at + 4)) return mp4MoovEnd(bytes, limit, at);
   if (startsWith(bytes, "OggS", at)) return oggMetadataEnd(bytes, limit, at);
@@ -253,6 +266,8 @@ export function trailerFitsInFooter(
 ): boolean {
   // The APE footer is the last 32 bytes of the tag, which sits either at the
   // very end or just before an ID3v1 block.
+  // Refuse to vouch for bytes not supplied, mirroring the header side's guard.
+  if (tail.length < Math.min(footerSize, 32)) return false;
   for (const offsetFromEnd of [32, 32 + 128]) {
     const at = tail.length - offsetFromEnd;
     if (at < 0 || !startsWith(tail, "APETAGEX", at)) continue;
@@ -260,7 +275,11 @@ export function trailerFitsInFooter(
     // footer and all items but not the optional 32-byte header.
     const size = (tail[at + 12]! | (tail[at + 13]! << 8) |
       (tail[at + 14]! << 16) | (tail[at + 15]! << 24)) >>> 0;
-    if (size + 32 > footerSize) return false;
+    // At the second position the tag is followed by a 128-byte ID3v1 block, so
+    // it ends that much earlier and needs that much more of the window. Omitting
+    // this left a 96-byte band where an APE tag was spliced and read as audio.
+    const trailing = offsetFromEnd === 32 ? 0 : 128;
+    if (size + 32 + trailing > footerSize) return false;
   }
   return true;
 }

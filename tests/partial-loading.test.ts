@@ -332,8 +332,16 @@ describe("Partial Loading", () => {
           `fixture must exceed the partial-load threshold, got ${size}`,
         );
 
+        // A path input on WASI returns from taglib-class.ts:99-127 BEFORE
+        // partial loading is considered, so opening by path here compared a
+        // full read against a full read and could not fail. A File input takes
+        // the same loadAudioData branch on both backends, so it actually
+        // exercises the gate under test.
+        const source = backend === "wasi"
+          ? new File([await Deno.readFile(path)], "oversized.mp3")
+          : path;
         const readWith = async (options?: { partial: boolean }) => {
-          const f = await taglib.open(path, options);
+          const f = await taglib.open(source, options);
           try {
             return JSON.stringify(f.properties());
           } finally {

@@ -157,14 +157,8 @@ inline void merge_id3v1_only_properties(TagLib::File* file,
     if (!mpeg) return;
     TagLib::ID3v1::Tag* v1 = mpeg->ID3v1Tag();
     if (!v1 || v1->isEmpty()) return;
-    TagLib::ID3v2::Tag* v2 = mpeg->ID3v2Tag();
 
-    // ID3v1::Tag::parse strips whitespace from title/artist/album/year but
-    // assigns the comment RAW, so a blank space-padded block yields 30 spaces.
-    // Untrimmed, that reports a comment where the file has none, and callers
-    // testing `if (tags.comment)` see a truthy value.
-    auto fill = [&props](const char* key, const TagLib::String& raw) {
-        const TagLib::String value = raw.stripWhiteSpace();
+    auto fill = [&props](const char* key, const TagLib::String& value) {
         if (value.isEmpty()) return;
         auto it = props.find(key);
         if (it != props.end() && !it->second.isEmpty()) return;
@@ -174,19 +168,17 @@ inline void merge_id3v1_only_properties(TagLib::File* file,
     fill("TITLE", v1->title());
     fill("ARTIST", v1->artist());
     fill("ALBUM", v1->album());
-    // COMMENT is the one key whose ID3v2 form can be SUFFIXED: CommentsFrame
-    // keys a described frame as "COMMENT:<DESC>" (commentsframe.cpp:113-122), so
-    // a file whose only comments are described — iTunNORM, ripper tags — has no
-    // bare "COMMENT" key and would look commentless here. Tag::duplicate does
-    // not make that mistake: its guard is ID3v2::Tag::comment(), which falls
-    // back to the first COMM frame whatever its description
-    // (id3v2tag.cpp:164-178). Match the frame, not the key, or every write
-    // injects a second COMM carrying the ID3v1 text.
-    if (v2 == nullptr || v2->frameList("COMM").isEmpty()) {
-        fill("COMMENT", v1->comment());
-    }
-    // ID3v1 stores genre as a byte index; 255 means unset and ID3v1::Tag::genre()
-    // already renders that as an empty string, which `fill` skips.
+    // COMMENT is deliberately merged the same way as every other key, even
+    // though CommentsFrame keys a DESCRIBED frame as "COMMENT:<DESC>" so a file
+    // whose only COMM carries a description reads as commentless here and gains
+    // a second, bare COMM on write. Suppressing the merge when any COMM exists
+    // was tried (8cb65a0f) and REVERTED: withholding the value from the map
+    // makes MPEG::File::setProperties clear ID3v1's comment, which
+    // duplicate_id3_tags_losslessly then backfills from the described frame —
+    // so a no-op save DESTROYED the ID3v1 comment. The duplicate frame is
+    // cosmetic and does not accumulate; the cure was data loss. A correct fix
+    // belongs on the write side and is tracked as taglib-o3sl.
+    fill("COMMENT", v1->comment());
     fill("GENRE", v1->genre());
     if (v1->year() != 0) fill("DATE", TagLib::String::number(v1->year()));
     if (v1->track() != 0) {

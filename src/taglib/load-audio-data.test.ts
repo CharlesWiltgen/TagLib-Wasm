@@ -69,9 +69,11 @@ describe("loadAudioData", () => {
       const size = 100;
       const headerSize = 20;
       const footerSize = 10;
-      // Tag ends at byte 15, inside the 20-byte header window, so splicing is
-      // sound and partial loading engages.
-      const content = id3File(size, 5);
+      // Tag ends at byte 11, leaving room in the 20-byte header window to check
+      // what follows it. A tag ending within 8 bytes of the window end cannot be
+      // vouched for — the container behind it would be unreadable — so it falls
+      // back to a full read instead; that is a slower answer, never a wrong one.
+      const content = id3File(size, 1);
       const file = new File([content], "large.mp3");
 
       const result = await loadAudioData(file, {

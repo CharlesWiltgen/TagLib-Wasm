@@ -1,6 +1,9 @@
 import { assertEquals } from "@std/assert";
 import { describe, it } from "@std/testing/bdd";
-import { metadataFitsInHeader } from "./metadata-extent.ts";
+import {
+  metadataFitsInHeader,
+  trailerFitsInFooter,
+} from "./metadata-extent.ts";
 
 /** ID3v2 header: "ID3", version, flags, then the size as four syncsafe bytes. */
 function id3v2(declaredSize: number, flags = 0): Uint8Array {
@@ -85,10 +88,13 @@ describe("metadataFitsInHeader", () => {
 
   it("counts the ID3v2 footer against the window", () => {
     // Footer flag (0x10) adds 10 bytes beyond the declared size, which is
-    // exactly enough to push this tag over.
-    const exact = LIMIT - 10;
-    assertEquals(metadataFitsInHeader(id3v2Tag(exact), LIMIT), true);
-    assertEquals(metadataFitsInHeader(id3v2Tag(exact, 0x10), LIMIT), false);
+    // exactly enough to push this tag over. Sized so the no-footer case ends
+    // just INSIDE the window rather than exactly filling it: a tag that fills
+    // the window leaves no room to check what follows it, and is correctly
+    // rejected on those grounds instead — which is a different rule.
+    const almost = LIMIT - 15;
+    assertEquals(metadataFitsInHeader(id3v2Tag(almost), LIMIT), true);
+    assertEquals(metadataFitsInHeader(id3v2Tag(almost, 0x10), LIMIT), false);
   });
 
   it("walks FLAC metadata blocks to the last one", () => {
@@ -151,11 +157,14 @@ describe("metadataFitsInHeader", () => {
   });
 
   it("rejects a bare frame sync that is not an MPEG header", () => {
-    // 0xFF followed by an invalid version/layer is not a frame sync, and must
-    // not be mistaken for a tagless MP3.
+    // Sync bits PRESENT and bitrate/sample-rate valid, so only the version and
+    // layer test can reject this. The previous fixture (0xFF 0x00 0x00) was
+    // caught independently by three guards, so it exercised the sync-bit check
+    // rather than the one it names.
     const notMp3 = new Uint8Array(64);
     notMp3[0] = 0xFF;
-    notMp3[1] = 0x00;
+    notMp3[1] = 0xF8; // sync bits set, version 3, layer index 0 = reserved
+    notMp3[2] = 0x90; // valid bitrate and sample-rate indices
     assertEquals(metadataFitsInHeader(notMp3, LIMIT), false);
   });
 
@@ -205,6 +214,27 @@ describe("metadataFitsInHeader", () => {
     assertEquals(metadataFitsInHeader(id3v2(100_000), 1_000_000), false);
   });
 
+  it("does not vouch for a container it lacks the bytes to look at", () => {
+    // A WINDOW-length buffer whose ID3v2 tag ends a few bytes short of the
+    // limit: the container behind it cannot be inspected, so the tag's own
+    // extent must not stand in for it. A tag ending exactly AT the limit is the
+    // same case. (A buffer shorter than the limit is a whole small file, where
+    // the tag really is the end — covered by the tests above.)
+    // The buffer is EXACTLY the window, so the bytes after the tag are the ones
+    // partial loading would splice away. At these gaps the container magic
+    // cannot be read, which previously answered "nothing there" and let the
+    // tag's own extent stand in for a FLAC chain nobody looked at.
+    for (const gap of [0, 1, 2, 3]) {
+      const window = new Uint8Array(LIMIT);
+      window.set(id3v2Tag(LIMIT - gap - 10), 0);
+      assertEquals(
+        metadataFitsInHeader(window, LIMIT),
+        false,
+        `a tag ending ${gap} bytes before the limit vouched for what follows`,
+      );
+    }
+  });
+
   it("rejects a format whose metadata extent it cannot determine", () => {
     // Unknown container: partial loading is unsafe because nothing here proves
     // the metadata is intact, so the safe answer is a full read.
@@ -222,5 +252,51 @@ describe("metadataFitsInHeader", () => {
     const zeroSized = new Uint8Array(16);
     zeroSized.set(new TextEncoder().encode("ftyp"), 4);
     assertEquals(metadataFitsInHeader(zeroSized, LIMIT), false);
+  });
+});
+
+describe("trailerFitsInFooter", () => {
+  /** A file tail whose last bytes are an APE footer declaring `size`. */
+  function apeTail(size: number, followedById3v1: boolean): Uint8Array {
+    const tail = new Uint8Array(4096);
+    const at = tail.length - 32 - (followedById3v1 ? 128 : 0);
+    tail.set(new TextEncoder().encode("APETAGEX"), at);
+    tail[at + 12] = size & 0xFF;
+    tail[at + 13] = (size >>> 8) & 0xFF;
+    tail[at + 14] = (size >>> 16) & 0xFF;
+    tail[at + 15] = (size >>> 24) & 0xFF;
+    if (followedById3v1) {
+      tail.set(new TextEncoder().encode("TAG"), tail.length - 128);
+    }
+    return tail;
+  }
+
+  const FOOTER = 131072;
+
+  it("accepts an APE tag that fits the footer window", () => {
+    assertEquals(trailerFitsInFooter(apeTail(41_000, false), FOOTER), true);
+  });
+
+  it("rejects an APE tag larger than the footer window", () => {
+    // Measured: a 410 KB APE tag lost EVERY tag value, because the splice
+    // makes TagLib compute the tag start inside the header window's audio.
+    assertEquals(trailerFitsInFooter(apeTail(410_000, false), FOOTER), false);
+  });
+
+  it("counts the ID3v1 block sitting after an APE tag", () => {
+    // When ID3v1 follows, the APE body ends 128 bytes earlier and needs that
+    // much more of the window. Omitting it left a 96-byte band in which a tag
+    // was spliced and then parsed out of audio.
+    const size = FOOTER - 100; // fits under +32, does NOT fit under +128
+    assertEquals(trailerFitsInFooter(apeTail(size, false), FOOTER), true);
+    assertEquals(trailerFitsInFooter(apeTail(size, true), FOOTER), false);
+  });
+
+  it("accepts a tail with no APE trailer at all", () => {
+    assertEquals(trailerFitsInFooter(new Uint8Array(4096), FOOTER), true);
+  });
+
+  it("refuses to vouch for a tail shorter than the footer it is asked about", () => {
+    assertEquals(trailerFitsInFooter(new Uint8Array(8), FOOTER), false);
   });
 });
