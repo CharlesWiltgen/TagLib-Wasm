@@ -514,6 +514,33 @@ written against one silently misbehaves on the other.
 
 See `.claude/rules/testing-patterns.md` for the testing requirement itself.
 
+#### Regression tests must be observed failing
+
+Two traps from the 1.6.1 cycle, each of which produced tests that could never
+fail:
+
+1. **A test written after its fix, verified only by "it is green".** That
+   proves the test agrees with current behavior, not that it detects the
+   defect. The worst case certified data loss for a full review round: a guard
+   asserted a COMM frame *count* that the broken path also satisfied while it
+   destroyed the frame's payload. A regression test must be **observed
+   failing** against the defect — write it first, or mutation-verify it
+   afterwards by reverting the fix. Corollary: assert what the defect actually
+   destroys, not a proxy for it.
+2. **A parity instance that cannot fail.** Tests here loop over
+   `["wasi", "emscripten"]`. When a defect is one-backend, the other backend's
+   instance is a *baseline* asserting cross-backend agreement, not a guard —
+   yet both render identically as `ok`, so the suite reads as double the
+   coverage it has. Label a baseline instance as such (a comment suffices),
+   and never pin an expectation to a known-broken value: a test asserting the
+   defect can only fail once somebody fixes the bug.
+
+Mechanical note: tests load the prebuilt `build/*.wasm`, so reverting C++
+source proves nothing without a rebuild. Mutation-verifying C++ means either
+rebuilding (~5 min per backend) or swapping in a binary from a commit that
+genuinely predates the fix — verify it by hash, because binaries are sometimes
+staged in a different commit than the source change they carry.
+
 See `CONTRIBUTING.md` for full contributor guide.
 
 <!-- BEGIN BEADS INTEGRATION v:1 profile:minimal hash:ca08a54f -->
