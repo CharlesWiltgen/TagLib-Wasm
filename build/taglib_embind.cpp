@@ -564,8 +564,13 @@ static const std::set<std::string> ID3V1_MAPPED_FRAME_IDS = {
 class FileHandle {
 private:
     std::unique_ptr<VectorStream> stream;
+    // taglib-f5hp: fileRef is the SOLE owner of the TagLib::File. There is
+    // deliberately no `std::unique_ptr<TagLib::File> file` member beside it:
+    // TagLib::FileRef(File*) takes ownership (fileref.h:208-212) and its private
+    // destructor is `delete file`, so a second owning pointer double-frees the
+    // File on teardown. That corrupted the allocator, which aborts as a Wasm
+    // `unreachable` -- uncatchable, and deferred all the way to dispose().
     std::unique_ptr<TagLib::FileRef> fileRef;
-    std::unique_ptr<TagLib::File> file;
     // taglib-b67: frame IDs (from ID3V1_MAPPED_FRAME_IDS) currently holding a
     // raw-written (UnknownFrame) value on this handle. Non-empty => save()
     // must skip MPEG::File's default Duplicate sync (see comment above) to
@@ -603,31 +608,36 @@ public:
                 return true;
             }
             
-            // If FileRef failed, try specific file types based on format detection
+            // If FileRef failed, try specific file types based on format detection.
+            // Owned locally only until FileRef takes over below — see the
+            // taglib-f5hp note on the member declarations.
             stream->seek(0, TagLib::IOStream::Beginning);
             std::string format = detectFormat(std::string(header, headerLen));
-            
+            std::unique_ptr<TagLib::File> detected;
+
             if (format == "mp3") {
-                file.reset(new TagLib::MPEG::File(stream.get()));
+                detected.reset(new TagLib::MPEG::File(stream.get()));
             } else if (format == "flac") {
-                file.reset(new TagLib::FLAC::File(stream.get()));
+                detected.reset(new TagLib::FLAC::File(stream.get()));
             } else if (format == "ogg") {
-                file.reset(new TagLib::Ogg::Vorbis::File(stream.get()));
+                detected.reset(new TagLib::Ogg::Vorbis::File(stream.get()));
             } else if (format == "mp4") {
-                file.reset(new TagLib::MP4::File(stream.get()));
+                detected.reset(new TagLib::MP4::File(stream.get()));
             } else if (format == "wav") {
-                file.reset(new TagLib::RIFF::WAV::File(stream.get()));
+                detected.reset(new TagLib::RIFF::WAV::File(stream.get()));
             } else if (format == "aiff") {
-                file.reset(new TagLib::RIFF::AIFF::File(stream.get()));
+                detected.reset(new TagLib::RIFF::AIFF::File(stream.get()));
             } else if (format == "matroska") {
-                file.reset(new TagLib::Matroska::File(stream.get()));
+                detected.reset(new TagLib::Matroska::File(stream.get()));
             }
-            
-            if (file && file->isValid()) {
-                fileRef = std::make_unique<TagLib::FileRef>(file.get());
+
+            if (detected && detected->isValid()) {
+                // release(), not get(): FileRef deletes what it is handed, so
+                // letting `detected` keep ownership too would free it twice.
+                fileRef = std::make_unique<TagLib::FileRef>(detected.release());
                 return !fileRef->isNull();
             }
-            
+
             return false;
         } catch (...) {
             return false;
@@ -1708,8 +1718,10 @@ public:
 
     // Explicitly destroy all resources
     void destroy() {
-        // Reset unique_ptrs to release memory immediately
-        file.reset();
+        // Reset unique_ptrs to release memory immediately. fileRef owns the
+        // TagLib::File and must go before the stream it reads from; there is no
+        // separate `file` pointer to reset, because a second owner here is what
+        // freed the File twice and trapped (taglib-f5hp).
         fileRef.reset();
         stream.reset();
     }

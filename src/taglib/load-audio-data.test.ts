@@ -43,13 +43,37 @@ describe("loadAudioData", () => {
       assertEquals(result.isPartiallyLoaded, false);
     });
 
+    /**
+     * `size` bytes beginning with an ID3v2.3 header whose tag ends at
+     * `10 + declaredTagSize`. Partial loading is only allowed when it can prove
+     * the metadata ends inside the header window, so a fixture of arbitrary
+     * bytes is now (correctly) loaded in full — it has to look like something.
+     */
+    function id3File(
+      size: number,
+      declaredTagSize: number,
+    ): Uint8Array<ArrayBuffer> {
+      const content = Uint8Array.from({ length: size }, (_, i) => i);
+      content.set(new TextEncoder().encode("ID3"), 0);
+      content[3] = 3;
+      content[4] = 0;
+      content[5] = 0;
+      content[6] = (declaredTagSize >>> 21) & 0x7F;
+      content[7] = (declaredTagSize >>> 14) & 0x7F;
+      content[8] = (declaredTagSize >>> 7) & 0x7F;
+      content[9] = declaredTagSize & 0x7F;
+      return content;
+    }
+
     it("should partially load large File combining header and footer", async () => {
       const size = 100;
-      const content = Uint8Array.from({ length: size }, (_, i) => i);
-      const file = new File([content], "large.mp3");
-
       const headerSize = 20;
       const footerSize = 10;
+      // Tag ends at byte 15, inside the 20-byte header window, so splicing is
+      // sound and partial loading engages.
+      const content = id3File(size, 5);
+      const file = new File([content], "large.mp3");
+
       const result = await loadAudioData(file, {
         partial: true,
         maxHeaderSize: headerSize,
@@ -66,6 +90,39 @@ describe("loadAudioData", () => {
         result.data.slice(headerSize),
         content.slice(size - footerSize),
       );
+    });
+
+    it("should fully load a File whose metadata overruns the header window", async () => {
+      // taglib-f5hp: splicing here would cut the tag mid-structure and join
+      // footer bytes onto the cut, which TagLib then misreads. Correct answer
+      // is to give up the optimisation and read the whole file.
+      const content = id3File(100, 60); // tag ends at 70, past the 20-byte window
+      const file = new File([content], "bigtag.mp3");
+
+      const result = await loadAudioData(file, {
+        partial: true,
+        maxHeaderSize: 20,
+        maxFooterSize: 10,
+      });
+
+      assertEquals(result.isPartiallyLoaded, false);
+      assertEquals(result.data, content);
+    });
+
+    it("should fully load a File whose container it cannot bound", async () => {
+      // No recognised magic: nothing proves where the metadata ends, so partial
+      // loading is not safe to attempt.
+      const content = Uint8Array.from({ length: 100 }, (_, i) => i);
+      const file = new File([content], "unknown.bin");
+
+      const result = await loadAudioData(file, {
+        partial: true,
+        maxHeaderSize: 20,
+        maxFooterSize: 10,
+      });
+
+      assertEquals(result.isPartiallyLoaded, false);
+      assertEquals(result.data, content);
     });
 
     it("should fully load File when partial is false", async () => {

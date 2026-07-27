@@ -320,4 +320,50 @@ describe("EdgeCases", () => {
     // 1. An error was thrown (corrupted data rejected)
     // 2. File opened but returned safe property values
   });
+
+  // ===========================================================================
+  // Degenerate input must not corrupt the heap (taglib-f5hp)
+  // ===========================================================================
+
+  // A file TagLib cannot open on the first try takes Emscripten's fallback
+  // branch in FileHandle::loadFromBuffer, which used to hand a File the
+  // unique_ptr already owned to FileRef -- and FileRef takes ownership too
+  // (fileref.h:208-212; FileRefPrivate's destructor is `delete file`). The
+  // double free corrupted the allocator, so open() and every read SUCCEEDED and
+  // the abort landed on dispose() as a Wasm `unreachable` trap. A trap is not a
+  // JS exception, so callers could not catch it: 12.5% of one real 384-file MP3
+  // library was unusable on Emscripten.
+  //
+  // The smallest reproducer was 43 bytes; this uses 4 KB so it clears the
+  // minimum-buffer validation and exercises the public API.
+  const DEGENERATE_MP3 = (() => {
+    const tag = new Uint8Array(10);
+    tag.set(new TextEncoder().encode("ID3"), 0);
+    tag[3] = 3; // ID3v2.3, declared size 0
+    const file = new Uint8Array(tag.length + 4096);
+    file.set(tag, 0);
+    return file; // ...followed by zeros: no MPEG frame anywhere
+  })();
+
+  for (const backend of ["wasi", "emscripten"] as const) {
+    it(`Degenerate input: dispose() does not trap [${backend}]`, async () => {
+      const taglib = await TagLib.initialize({ forceWasmType: backend });
+
+      // Either outcome is acceptable — reject it, or open it and dispose
+      // cleanly. What must NEVER happen is an uncatchable trap, which shows up
+      // here as the whole test dying rather than as a caught error.
+      let opened: AudioFile | undefined;
+      try {
+        opened = await taglib.open(DEGENERATE_MP3);
+      } catch (error) {
+        assert(
+          error instanceof Error,
+          "a rejection must be a catchable Error",
+        );
+        return;
+      }
+      opened.properties();
+      opened.dispose();
+    });
+  }
 });

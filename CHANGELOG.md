@@ -4,6 +4,26 @@
 
 ### Fixed
 
+- **Opening a file no longer corrupts the Wasm heap (crash).** On the Emscripten
+  backend, any file TagLib could not open on its first attempt took a fallback
+  branch that handed a `TagLib::File` to `FileRef` while a `unique_ptr` still
+  owned it. `FileRef` takes ownership too, so the file was freed twice on
+  teardown. The corruption was latent: opening and every read **succeeded**, and
+  the abort surfaced later as a Wasm `unreachable` trap during `dispose()`. A
+  trap is not a JavaScript exception, so callers could not catch it. Measured on
+  one real 384-file MP3 library, 12.5% of files were unusable. The smallest
+  reproducer was 43 bytes. WASI was never affected.
+- **Partial loading no longer misreads files with large metadata.**
+  `TagLib.open(path)` defaults to reading a file's first 1 MB plus its last
+  128 KB and discarding the middle. When metadata exceeded the header window that
+  cut the tag mid-structure and spliced unrelated bytes onto the cut, so TagLib
+  parsed whatever landed there — 18 of 40 large MP3s in a real library read back
+  **different metadata** than a full load, silently. Partial loading is now used
+  only when the metadata is provably contained in the header window (ID3v2, FLAC
+  and MP4 are measured; anything else, including a truncated or malformed header,
+  falls back to a full read). Files whose `moov` sits behind the media data, and
+  containers whose extent cannot be determined, now cost a full read instead of a
+  wrong answer.
 - **Saving an MP3 no longer deletes a non-numeric track or date (data loss).**
   Opening an MP3 and saving it — changing nothing at all — silently dropped a
   `TRCK` or `TDRC` frame whose value does not begin with a nonzero integer. A

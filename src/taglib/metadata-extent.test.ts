@@ -1,0 +1,122 @@
+import { assertEquals } from "@std/assert";
+import { describe, it } from "@std/testing/bdd";
+import { metadataFitsInHeader } from "./metadata-extent.ts";
+
+/** ID3v2 header: "ID3", version, flags, then the size as four syncsafe bytes. */
+function id3v2(declaredSize: number, flags = 0): Uint8Array {
+  const b = new Uint8Array(10);
+  b.set(new TextEncoder().encode("ID3"), 0);
+  b[3] = 3;
+  b[5] = flags;
+  b[6] = (declaredSize >>> 21) & 0x7F;
+  b[7] = (declaredSize >>> 14) & 0x7F;
+  b[8] = (declaredSize >>> 7) & 0x7F;
+  b[9] = declaredSize & 0x7F;
+  return b;
+}
+
+/** One FLAC METADATA_BLOCK_HEADER: last-block flag, type, 24-bit length. */
+function flacBlock(length: number, isLast: boolean, type = 1): Uint8Array {
+  const b = new Uint8Array(4 + length);
+  b[0] = (isLast ? 0x80 : 0) | type;
+  b[1] = (length >>> 16) & 0xFF;
+  b[2] = (length >>> 8) & 0xFF;
+  b[3] = length & 0xFF;
+  return b;
+}
+
+function concat(...parts: Uint8Array[]): Uint8Array {
+  const out = new Uint8Array(parts.reduce((n, p) => n + p.length, 0));
+  let o = 0;
+  for (const p of parts) {
+    out.set(p, o);
+    o += p.length;
+  }
+  return out;
+}
+
+/** One MP4 top-level atom: 32-bit big-endian size, then the four-char type. */
+function atom(type: string, payloadLength: number): Uint8Array {
+  const size = 8 + payloadLength;
+  const b = new Uint8Array(size);
+  b[0] = (size >>> 24) & 0xFF;
+  b[1] = (size >>> 16) & 0xFF;
+  b[2] = (size >>> 8) & 0xFF;
+  b[3] = size & 0xFF;
+  b.set(new TextEncoder().encode(type), 4);
+  return b;
+}
+
+const LIMIT = 1024;
+
+describe("metadataFitsInHeader", () => {
+  it("accepts an ID3v2 tag that ends inside the window", () => {
+    // 10-byte header + 100 declared = 110 bytes, well inside LIMIT.
+    assertEquals(metadataFitsInHeader(id3v2(100), LIMIT), true);
+  });
+
+  it("rejects an ID3v2 tag that ends past the window", () => {
+    // The reported defect: a tag larger than the header window gets spliced
+    // mid-frame, so the caller must fall back to a full read.
+    assertEquals(metadataFitsInHeader(id3v2(LIMIT), LIMIT), false);
+  });
+
+  it("counts the ID3v2 footer against the window", () => {
+    // Footer flag (0x10) adds 10 bytes beyond the declared size, which is
+    // exactly enough to push this tag over.
+    const exact = LIMIT - 10;
+    assertEquals(metadataFitsInHeader(id3v2(exact), LIMIT), true);
+    assertEquals(metadataFitsInHeader(id3v2(exact, 0x10), LIMIT), false);
+  });
+
+  it("walks FLAC metadata blocks to the last one", () => {
+    const flac = concat(
+      new TextEncoder().encode("fLaC"),
+      flacBlock(34, false, 0),
+      flacBlock(100, true, 6),
+    );
+    assertEquals(metadataFitsInHeader(flac, LIMIT), true);
+  });
+
+  it("rejects a FLAC picture block that overruns the window", () => {
+    // The real-world FLAC failure: one oversized METADATA_BLOCK_PICTURE.
+    const flac = concat(
+      new TextEncoder().encode("fLaC"),
+      flacBlock(34, false, 0),
+      flacBlock(LIMIT * 4, true, 6),
+    );
+    assertEquals(metadataFitsInHeader(flac, LIMIT), false);
+  });
+
+  it("accepts MP4 when moov precedes the media data", () => {
+    // "faststart" layout: ftyp, moov, then mdat.
+    const mp4 = concat(atom("ftyp", 16), atom("moov", 200), atom("mdat", 64));
+    assertEquals(metadataFitsInHeader(mp4, LIMIT), true);
+  });
+
+  it("rejects MP4 when moov sits past the window behind the media data", () => {
+    // Non-faststart: moov is at the end, so a header+footer splice moves it to
+    // an offset TagLib will not find it at.
+    const mp4 = concat(atom("ftyp", 16), atom("mdat", LIMIT * 4));
+    assertEquals(metadataFitsInHeader(mp4, LIMIT), false);
+  });
+
+  it("rejects a format whose metadata extent it cannot determine", () => {
+    // Unknown container: partial loading is unsafe because nothing here proves
+    // the metadata is intact, so the safe answer is a full read.
+    assertEquals(metadataFitsInHeader(new Uint8Array(64), LIMIT), false);
+  });
+
+  it("rejects malformed input rather than looping or overrunning", () => {
+    // A zero/short atom size must not spin forever, and a truncated ID3v2
+    // header must not be read past its end.
+    assertEquals(
+      metadataFitsInHeader(atom("ftyp", 0).slice(0, 8), LIMIT),
+      false,
+    );
+    assertEquals(metadataFitsInHeader(id3v2(100).slice(0, 6), LIMIT), false);
+    const zeroSized = new Uint8Array(16);
+    zeroSized.set(new TextEncoder().encode("ftyp"), 4);
+    assertEquals(metadataFitsInHeader(zeroSized, LIMIT), false);
+  });
+});

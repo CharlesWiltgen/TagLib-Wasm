@@ -3,6 +3,7 @@ import {
   readFileData,
   readPartialFileData,
 } from "../utils/file.ts";
+import { metadataFitsInHeader } from "./metadata-extent.ts";
 
 /**
  * Load audio data from various sources, with optional partial loading.
@@ -20,11 +21,18 @@ export async function loadAudioData(
       return { data: await readFileData(input), isPartiallyLoaded: false };
     }
 
-    const header = await input.slice(0, headerSize).arrayBuffer();
+    const header = new Uint8Array(
+      await input.slice(0, headerSize).arrayBuffer(),
+    );
+    // Splicing is only sound when the metadata ends inside the header window;
+    // otherwise the tag is cut mid-structure and footer bytes land on the cut.
+    if (!metadataFitsInHeader(header, headerSize)) {
+      return { data: await readFileData(input), isPartiallyLoaded: false };
+    }
     const footerStart = Math.max(0, input.size - footerSize);
     const footer = await input.slice(footerStart).arrayBuffer();
     const combined = new Uint8Array(header.byteLength + footer.byteLength);
-    combined.set(new Uint8Array(header), 0);
+    combined.set(header, 0);
     combined.set(new Uint8Array(footer), header.byteLength);
     return { data: combined, isPartiallyLoaded: true };
   }
@@ -37,7 +45,13 @@ export async function loadAudioData(
         opts.maxHeaderSize,
         opts.maxFooterSize,
       );
-      return { data, isPartiallyLoaded: true };
+      // Same check as the File branch, run against the header half of what was
+      // just read. A file whose metadata overruns the window costs one wasted
+      // partial read and is then loaded in full — the alternative is handing
+      // TagLib a spliced image it silently misreads (taglib-f5hp).
+      if (metadataFitsInHeader(data, opts.maxHeaderSize)) {
+        return { data, isPartiallyLoaded: true };
+      }
     }
     return { data: await readFileData(input), isPartiallyLoaded: false };
   }

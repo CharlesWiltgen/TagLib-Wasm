@@ -9,6 +9,59 @@ import { join } from "@std/path";
 
 const TEST_FILES_DIR = join(Deno.cwd(), "tests/test-files");
 
+/**
+ * The fixture's audio carrying an ID3v2.3 tag of `frameCount` TXXX frames, each
+ * `payloadSize` bytes, so the tag overruns any header window smaller than their
+ * total. Spread over several frames rather than one huge one because a single
+ * value above 1 MB hits the msgpack decoder's string cap on WASI, which is a
+ * different limit than the one under test. Sizes follow ID3v2.3: the tag header
+ * is syncsafe (7 bits per byte), frame headers are plain 32-bit big-endian.
+ */
+function oversizedTagMp3(payloadSize: number, frameCount: number): Uint8Array {
+  const src = Deno.readFileSync(join(TEST_FILES_DIR, "mp3/kiss-snippet.mp3"));
+  let audioStart = 0;
+  if (String.fromCharCode(...src.slice(0, 3)) === "ID3") {
+    audioStart = 10 +
+      ((src[6]! << 21) | (src[7]! << 14) | (src[8]! << 7) | src[9]!);
+  }
+  const audio = src.slice(audioStart);
+
+  const frames: Uint8Array[] = [];
+  for (let i = 0; i < frameCount; i++) {
+    const payload = new Uint8Array(payloadSize);
+    // encoding byte, then a unique description so the frames stay distinct
+    const desc = new TextEncoder().encode(`PAD${i}\0`);
+    payload.set(desc, 1);
+    payload.fill(0x41, 1 + desc.length);
+    const frame = new Uint8Array(10 + payload.length);
+    frame.set(new TextEncoder().encode("TXXX"), 0);
+    frame[4] = (payload.length >>> 24) & 0xFF;
+    frame[5] = (payload.length >>> 16) & 0xFF;
+    frame[6] = (payload.length >>> 8) & 0xFF;
+    frame[7] = payload.length & 0xFF;
+    frame.set(payload, 10);
+    frames.push(frame);
+  }
+
+  const tagSize = frames.reduce((n, f) => n + f.length, 0);
+  const header = new Uint8Array(10);
+  header.set(new TextEncoder().encode("ID3"), 0);
+  header[3] = 3;
+  header[6] = (tagSize >>> 21) & 0x7F;
+  header[7] = (tagSize >>> 14) & 0x7F;
+  header[8] = (tagSize >>> 7) & 0x7F;
+  header[9] = tagSize & 0x7F;
+
+  const parts = [header, ...frames, audio];
+  const out = new Uint8Array(parts.reduce((n, p) => n + p.length, 0));
+  let offset = 0;
+  for (const part of parts) {
+    out.set(part, offset);
+    offset += part.length;
+  }
+  return out;
+}
+
 describe("Partial Loading", () => {
   it("should load file with partial option", async () => {
     const taglib = await TagLib.initialize({ forceWasmType: "emscripten" });
@@ -251,4 +304,51 @@ describe("Partial Loading", () => {
       await Deno.remove(out).catch(() => {});
     }
   });
+
+  // Partial loading concatenates the file's first maxHeaderSize bytes with its
+  // last maxFooterSize bytes and discards the middle. When the metadata is
+  // bigger than the header window that cuts the tag mid-structure and splices
+  // unrelated footer bytes onto the cut, so TagLib parses whatever lands there.
+  // Measured on a real library before the fix: 18 of 40 large MP3s read back
+  // DIFFERENT metadata this way, silently — and the malformed image also tripped
+  // the double free in taglib-f5hp, trapping the whole module.
+  //
+  // A partial read must therefore agree with a full read, always. The check is
+  // "same answer either way" rather than a fixed expectation, so it holds
+  // whichever path the loader picks.
+  for (const backend of ["wasi", "emscripten"] as const) {
+    it(`agrees with a full load when metadata exceeds the header window [${backend}]`, async () => {
+      const taglib = await TagLib.initialize({ forceWasmType: backend });
+      const path = await Deno.makeTempFile({ suffix: ".mp3" });
+      try {
+        // Built by hand rather than written through the library, so the fixture
+        // does not depend on the write path this test is not exercising: the
+        // fixture's audio behind one oversized TXXX frame that pushes the
+        // ID3v2 tag past the 1 MB header window.
+        await Deno.writeFile(path, oversizedTagMp3(400_000, 4));
+        const size = (await Deno.stat(path)).size;
+        assert(
+          size > 1024 * 1024 + 128 * 1024,
+          `fixture must exceed the partial-load threshold, got ${size}`,
+        );
+
+        const readWith = async (options?: { partial: boolean }) => {
+          const f = await taglib.open(path, options);
+          try {
+            return JSON.stringify(f.properties());
+          } finally {
+            f.dispose();
+          }
+        };
+
+        assertEquals(
+          await readWith(),
+          await readWith({ partial: false }),
+          `${backend}: the default (partial) read disagrees with a full read`,
+        );
+      } finally {
+        await Deno.remove(path).catch(() => {});
+      }
+    });
+  }
 });
