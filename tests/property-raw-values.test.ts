@@ -16,7 +16,11 @@
 import { assertEquals } from "@std/assert";
 import { beforeAll, describe, it } from "@std/testing/bdd";
 import { TagLib } from "../src/taglib.ts";
-import { applyTags, readTags } from "../src/simple/tag-operations.ts";
+import {
+  applyTags,
+  clearTags,
+  readTags,
+} from "../src/simple/tag-operations.ts";
 import { FIXTURE_PATH } from "./shared-fixtures.ts";
 import type { AudioFile } from "../src/taglib/audio-file-interface.ts";
 
@@ -881,6 +885,104 @@ describe("an MPEG save keeps a TRCK/TDRC that narrows to 0 (taglib-9m0w)", () =>
         } finally {
           file.dispose();
         }
+      } finally {
+        await Deno.remove(path).catch(() => {});
+      }
+    });
+  }
+});
+
+describe("ID3v1-only values are visible, writable and clearable (taglib-nft5)", () => {
+  // properties() used to report ID3v2's map alone (TagUnion::properties(),
+  // tagunion.cpp:108-114), so a value living only in ID3v1 was INVISIBLE. Every
+  // problem in this area came from that: the declarative save could not carry
+  // what it could not see, so it erased it; preserving it in C++ instead then
+  // made a deliberate clear inexpressible, because clearTags() builds its map
+  // from properties() and so could never name the field it needed to remove.
+  //
+  // Surfacing the value on READ settles both: a round-trip carries it, and a
+  // clear can finally address it.
+
+  /** An MP3 whose ID3v2 lacks `frameId` while ID3v1 carries `value`. */
+  async function id3v1Only(
+    field: "title" | "track",
+    value: string,
+  ): Promise<string> {
+    const path = await tempCopy("mp3");
+    // A non-empty ID3v2 that deliberately omits the field under test, and a
+    // save so TagLib writes the ID3v1 tag this then patches.
+    await seedProperties("emscripten", path, { artist: ["KeepArtist"] });
+    const bytes = await Deno.readFile(path);
+    const tag = bytes.length - 128;
+    assertEquals(
+      new TextDecoder().decode(bytes.slice(tag, tag + 3)),
+      "TAG",
+      "expected an ID3v1 tag to patch",
+    );
+    if (field === "title") {
+      bytes.set(new Uint8Array(30), tag + 3);
+      bytes.set(new TextEncoder().encode(value), tag + 3);
+    } else {
+      bytes[bytes.length - 3] = 0x00; // ID3v1.1 marker
+      bytes[bytes.length - 2] = Number(value);
+    }
+    await Deno.writeFile(path, bytes);
+    return path;
+  }
+
+  for (const backend of BACKENDS) {
+    it(`reports an ID3v1-only value from properties() [${backend}]`, async () => {
+      const path = await id3v1Only("title", "GhostTitle");
+      try {
+        assertEquals(
+          await readProperty(backend, path, "title"),
+          ["GhostTitle"],
+          `${backend} cannot see a value held only in ID3v1`,
+        );
+      } finally {
+        await Deno.remove(path).catch(() => {});
+      }
+    });
+
+    it(`clearTags() removes an ID3v1-only value [${backend}]`, async () => {
+      // The regression this redesign exists to kill: the value came back as a
+      // ghost in ID3v2 after a clear, because the clear could not name it.
+      const path = await id3v1Only("title", "GhostTitle");
+      try {
+        await Deno.writeFile(path, await clearTags(path));
+        assertEquals(
+          await readProperty(backend, path, "title"),
+          undefined,
+          `${backend}: a cleared ID3v1 value came back`,
+        );
+        const file = await taglibs[backend].open(path);
+        try {
+          assertEquals(file.tag().title, "", `${backend}: stale typed title`);
+        } finally {
+          file.dispose();
+        }
+      } finally {
+        await Deno.remove(path).catch(() => {});
+      }
+    });
+
+    it(`carries an ID3v1-only track through an unrelated edit [${backend}]`, async () => {
+      // And the original defect: an ordinary save must not lose it.
+      const path = await id3v1Only("track", "5");
+      try {
+        const file = await taglibs[backend].open(path);
+        try {
+          file.setProperty("title", "Unrelated edit");
+          file.save();
+          await Deno.writeFile(path, file.getFileBuffer());
+        } finally {
+          file.dispose();
+        }
+        assertEquals(
+          await readProperty(backend, path, "trackNumber"),
+          ["5"],
+          `${backend} lost an ID3v1-only track across an unrelated edit`,
+        );
       } finally {
         await Deno.remove(path).catch(() => {});
       }

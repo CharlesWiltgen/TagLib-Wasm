@@ -92,6 +92,48 @@ function mp4MoovEnd(bytes: Uint8Array, limit: number): number | undefined {
 }
 
 /**
+ * End of the Ogg page in which the comment header packet completes. Ogg carries
+ * metadata in the second packet of the stream (the first being the codec
+ * identification header), and a page's segment table ends a packet at the first
+ * segment shorter than 255 — so the walk needs only page headers, never payload.
+ */
+function oggMetadataEnd(bytes: Uint8Array, limit: number): number | undefined {
+  let offset = 0;
+  let packetsCompleted = 0;
+  for (;;) {
+    if (offset + 27 > bytes.length || !startsWith(bytes, "OggS", offset)) {
+      return undefined;
+    }
+    const segmentCount = bytes[offset + 26]!;
+    const tableStart = offset + 27;
+    if (tableStart + segmentCount > bytes.length) return undefined;
+    let payload = 0;
+    for (let i = 0; i < segmentCount; i++) {
+      const segment = bytes[tableStart + i]!;
+      payload += segment;
+      if (segment < 255) packetsCompleted++;
+    }
+    offset = tableStart + segmentCount + payload;
+    // Through the comment header: everything TagLib reads as metadata is behind
+    // us. Also stop once past the window, where the answer can no longer change.
+    if (packetsCompleted >= 2 || offset > limit) return offset;
+  }
+}
+
+/**
+ * True for an MPEG audio frame sync: eleven set bits, then a version and layer
+ * that are not the reserved encodings. Used to recognise an MP3 that carries no
+ * ID3v2 tag, whose metadata therefore lives entirely in the trailer.
+ */
+function isMpegFrameSync(bytes: Uint8Array): boolean {
+  if (bytes.length < 2) return false;
+  if (bytes[0] !== 0xFF || (bytes[1]! & 0xE0) !== 0xE0) return false;
+  const version = (bytes[1]! >> 3) & 0x03;
+  const layer = (bytes[1]! >> 1) & 0x03;
+  return version !== 0x01 && layer !== 0x00;
+}
+
+/**
  * True only when the metadata of `header` provably ends within `limit` bytes.
  *
  * `header` is the start of the file and may be shorter than `limit`; anything
@@ -109,6 +151,12 @@ export function metadataFitsInHeader(
     end = flacEnd(header, limit);
   } else if (startsWith(header, "ftyp", 4)) {
     end = mp4MoovEnd(header, limit);
+  } else if (startsWith(header, "OggS")) {
+    end = oggMetadataEnd(header, limit);
+  } else if (isMpegFrameSync(header)) {
+    // No ID3v2 tag, so nothing in the header window can be truncated. Any
+    // metadata is an ID3v1/APE trailer, which the footer window covers.
+    end = 0;
   }
   return end !== undefined && end <= limit;
 }

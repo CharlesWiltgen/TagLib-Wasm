@@ -135,94 +135,47 @@ inline void duplicate_id3_tags_losslessly(TagLib::MPEG::File* mpeg) {
 }
 
 /*!
- * ID3v1 fields that a PropertyMap write is about to ERASE with nothing to
- * restore them from (taglib-nft5).
+ * Surface ID3v1 values that ID3v2 does not carry (taglib-nft5).
  *
- * MPEG::File::setProperties() forwards to ID3v1::Tag::setProperties(), and the
- * generic Tag::setProperties() (tag.cpp:78+) ZEROES every field the incoming map
- * does not contain. The map is built from properties(), and
- * TagUnion::properties() (tagunion.cpp:108-114) returns the FIRST non-empty
- * tag's map — ID3v2 — without ever merging ID3v1. So a field that ID3v1 holds
- * and ID3v2 does not is absent from the map through no intent of the caller, and
- * the write silently destroys it. Measured: an ID3v1 track of 5 became 0 on a
- * WASI save that changed nothing.
+ * MPEG::File::properties() delegates to TagUnion::properties()
+ * (tagunion.cpp:108-114), which returns the FIRST non-empty tag's map — ID3v2 —
+ * and never merges ID3v1. So a value living only in ID3v1 was invisible, and
+ * every defect in this area followed from that one fact: the declarative save
+ * could not carry what it could not see, so it erased it; preserving it down in
+ * C++ instead then made a deliberate clear inexpressible, because clearTags()
+ * builds its map from properties() and so could never name the field it needed
+ * to remove, and the value came back as a ghost in ID3v2.
  *
- * The trap is that "absent from the map" ALSO means "the caller deleted it", and
- * those must not be conflated — restoring a deliberately deleted field would be
- * its own data loss. They are told apart by asking whether ID3v2 carries the
- * field at all: if it does, the map came from it and absence is a deletion; if
- * it does not, the map never had the chance to mention it.
+ * Reporting it on READ settles both directions at once. A round-trip now
+ * carries the value like any other property, so no write-side preservation is
+ * needed; and a clear can finally address it, because it is in the map the
+ * caller enumerates. ID3v2 stays authoritative — this only fills gaps.
  */
-struct Id3v1Snapshot {
-    bool present = false;
-    TagLib::String title, artist, album, comment, genre;
-    unsigned int year = 0, track = 0;
-    bool keepTitle = false, keepArtist = false, keepAlbum = false;
-    bool keepComment = false, keepGenre = false;
-    bool keepYear = false, keepTrack = false;
-};
-
-/*! True when ID3v2 has no frame for this field AND the incoming map is silent
- *  about it — i.e. the value lives only in ID3v1 and is about to be erased. */
-inline bool id3v1_only_field(TagLib::ID3v2::Tag* v2, const TagLib::PropertyMap& props,
-                             const char* frameId, const char* propKey) {
-    if (props.contains(propKey)) return false;
-    return !v2 || v2->frameList(frameId).isEmpty();
-}
-
-inline Id3v1Snapshot capture_id3v1_only_fields(TagLib::File* file,
-                                               const TagLib::PropertyMap& props) {
-    Id3v1Snapshot snap;
-    auto* mpeg = dynamic_cast<TagLib::MPEG::File*>(file);
-    if (!mpeg) return snap;
-    TagLib::ID3v1::Tag* v1 = mpeg->ID3v1Tag();
-    if (!v1) return snap;
-    TagLib::ID3v2::Tag* v2 = mpeg->ID3v2Tag();
-
-    snap.present = true;
-    snap.title = v1->title();
-    snap.artist = v1->artist();
-    snap.album = v1->album();
-    snap.comment = v1->comment();
-    snap.genre = v1->genre();
-    snap.year = v1->year();
-    snap.track = v1->track();
-
-    snap.keepTitle = !snap.title.isEmpty() &&
-        id3v1_only_field(v2, props, "TIT2", "TITLE");
-    snap.keepArtist = !snap.artist.isEmpty() &&
-        id3v1_only_field(v2, props, "TPE1", "ARTIST");
-    snap.keepAlbum = !snap.album.isEmpty() &&
-        id3v1_only_field(v2, props, "TALB", "ALBUM");
-    snap.keepComment = !snap.comment.isEmpty() &&
-        id3v1_only_field(v2, props, "COMM", "COMMENT");
-    snap.keepGenre = !snap.genre.isEmpty() &&
-        id3v1_only_field(v2, props, "TCON", "GENRE");
-    snap.keepYear = snap.year != 0 &&
-        id3v1_only_field(v2, props, "TDRC", "DATE");
-    snap.keepTrack = snap.track != 0 &&
-        id3v1_only_field(v2, props, "TRCK", "TRACKNUMBER");
-    return snap;
-}
-
-/*! Put back what the PropertyMap write erased. Call immediately after
- *  setProperties(); the caller's own typed mirroring runs on keys the map DOES
- *  contain, which are exactly the ones never captured here, so the two cannot
- *  fight over a field. */
-inline void restore_id3v1_only_fields(TagLib::File* file, const Id3v1Snapshot& snap) {
-    if (!snap.present) return;
+inline void merge_id3v1_only_properties(TagLib::File* file,
+                                        TagLib::PropertyMap& props) {
     auto* mpeg = dynamic_cast<TagLib::MPEG::File*>(file);
     if (!mpeg) return;
     TagLib::ID3v1::Tag* v1 = mpeg->ID3v1Tag();
-    if (!v1) return;
+    if (!v1 || v1->isEmpty()) return;
 
-    if (snap.keepTitle) v1->setTitle(snap.title);
-    if (snap.keepArtist) v1->setArtist(snap.artist);
-    if (snap.keepAlbum) v1->setAlbum(snap.album);
-    if (snap.keepComment) v1->setComment(snap.comment);
-    if (snap.keepGenre) v1->setGenre(snap.genre);
-    if (snap.keepYear) v1->setYear(snap.year);
-    if (snap.keepTrack) v1->setTrack(snap.track);
+    auto fill = [&props](const char* key, const TagLib::String& value) {
+        if (value.isEmpty()) return;
+        auto it = props.find(key);
+        if (it != props.end() && !it->second.isEmpty()) return;
+        props[key] = TagLib::StringList(value);
+    };
+
+    fill("TITLE", v1->title());
+    fill("ARTIST", v1->artist());
+    fill("ALBUM", v1->album());
+    fill("COMMENT", v1->comment());
+    // ID3v1 stores genre as a byte index; 255 means unset and ID3v1::Tag::genre()
+    // already renders that as an empty string, which `fill` skips.
+    fill("GENRE", v1->genre());
+    if (v1->year() != 0) fill("DATE", TagLib::String::number(v1->year()));
+    if (v1->track() != 0) {
+        fill("TRACKNUMBER", TagLib::String::number(v1->track()));
+    }
 }
 
 }  // namespace taglib_wasm

@@ -101,6 +101,51 @@ describe("metadataFitsInHeader", () => {
     assertEquals(metadataFitsInHeader(mp4, LIMIT), false);
   });
 
+  /** One Ogg page: "OggS", header bytes, a segment table, then its payload. */
+  function oggPage(segments: number[]): Uint8Array {
+    const payload = segments.reduce((n, s) => n + s, 0);
+    const b = new Uint8Array(27 + segments.length + payload);
+    b.set(new TextEncoder().encode("OggS"), 0);
+    b[26] = segments.length;
+    b.set(Uint8Array.from(segments), 27);
+    return b;
+  }
+
+  it("accepts Ogg once the comment header packet completes", () => {
+    // Packet 1 is the identification header, packet 2 the comment header; a
+    // segment shorter than 255 terminates a packet. Both land in the window
+    // here, which is the ordinary case a partial read exists for.
+    const ogg = concat(oggPage([30]), oggPage([100]));
+    assertEquals(metadataFitsInHeader(ogg, LIMIT), true);
+  });
+
+  it("rejects Ogg whose comment header runs past the window", () => {
+    // 255 continues the packet into the next page, so this one never completes
+    // inside the window.
+    const ogg = concat(oggPage([30]), oggPage([255, 255]), oggPage([255, 255]));
+    assertEquals(metadataFitsInHeader(ogg, 200), false);
+  });
+
+  it("accepts an MP3 carrying no ID3v2 tag at all", () => {
+    // Metadata lives only in the trailer (ID3v1/APE), which the FOOTER window
+    // covers — so there is nothing in the header window to truncate. These are
+    // precisely the files the footer half was added for, and rejecting them
+    // gave up the optimisation on exactly the wrong set.
+    const mp3 = new Uint8Array(64);
+    mp3[0] = 0xFF;
+    mp3[1] = 0xFB; // MPEG-1 Layer III frame sync
+    assertEquals(metadataFitsInHeader(mp3, LIMIT), true);
+  });
+
+  it("rejects a bare frame sync that is not an MPEG header", () => {
+    // 0xFF followed by an invalid version/layer is not a frame sync, and must
+    // not be mistaken for a tagless MP3.
+    const notMp3 = new Uint8Array(64);
+    notMp3[0] = 0xFF;
+    notMp3[1] = 0x00;
+    assertEquals(metadataFitsInHeader(notMp3, LIMIT), false);
+  });
+
   it("rejects a format whose metadata extent it cannot determine", () => {
     // Unknown container: partial loading is unsafe because nothing here proves
     // the metadata is intact, so the safe answer is a full read.

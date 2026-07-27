@@ -19,11 +19,14 @@
   cut the tag mid-structure and spliced unrelated bytes onto the cut, so TagLib
   parsed whatever landed there — 18 of 40 large MP3s in a real library read back
   **different metadata** than a full load, silently. Partial loading is now used
-  only when the metadata is provably contained in the header window (ID3v2, FLAC
-  and MP4 are measured; anything else, including a truncated or malformed header,
-  falls back to a full read). Files whose `moov` sits behind the media data, and
-  containers whose extent cannot be determined, now cost a full read instead of a
-  wrong answer.
+  only when the metadata is provably contained in the header window. That extent
+  is measured for ID3v2, FLAC, MP4 and Ogg, and an MP3 with no ID3v2 tag
+  qualifies outright because its metadata is an ID3v1/APE trailer the footer
+  window already covers. Anything else — an unrecognised container, a truncated
+  or malformed header, or an MP4 whose `moov` sits behind the media data — falls
+  back to a full read rather than a wrong answer. RIFF (WAV/AIFF) always reads in
+  full: its metadata chunks may sit after the audio data, so containment cannot
+  be proven from the header alone.
 - **Saving an MP3 no longer deletes a non-numeric track or date (data loss).**
   Opening an MP3 and saving it — changing nothing at all — silently dropped a
   `TRCK` or `TDRC` frame whose value does not begin with a nonzero integer. A
@@ -42,22 +45,25 @@
   tag at all. taglib-wasm now performs the ID3v1 sync itself, skipping only the
   two guards that destroy, so both directions of the sync still happen. Non-MPEG
   containers (FLAC, AIFF, WAV) were never affected.
-- **Writing properties to an MP3 no longer erases ID3v1-only fields (data
-  loss).** A field held in a file's ID3v1 tag but not its ID3v2 tag was wiped by
-  any property write — on WASI that meant every save, since its save path is a
-  property write. Measured: an ID3v1 track of `5` became `0` on a save that
-  changed nothing.
+- **`properties()` now reports MP3 values held only in ID3v1, and a save no
+  longer erases them (data loss).** A field in a file's ID3v1 tag but not its
+  ID3v2 tag was invisible to `properties()`, because `TagUnion::properties()`
+  returns the first non-empty tag's map and never merges ID3v1. Everything else
+  followed from that one fact: the declarative save could not carry what it
+  could not see, so any property write wiped it — on WASI that meant EVERY save.
+  Measured: an ID3v1 track of `5` became `0` on a save that changed nothing.
 
-  `MPEG::File::setProperties()` also rewrites the ID3v1 tag, and the generic
-  `Tag::setProperties()` zeroes every field the incoming map omits. That map is
-  built from `properties()`, which reports ID3v2 alone — `TagUnion::properties()`
-  returns the first non-empty tag's map and never merges ID3v1 — so an ID3v1-only
-  value was absent through no intent of the caller and was destroyed. Such fields
-  are now preserved across the write; a field that ID3v2 _does_ carry still
-  clears normally, so deleting a tag still works. As a consequence the two
-  backends now agree on ID3v1 handling in every case: TagLib's own save-time
-  duplication fills an empty ID3v2 field from ID3v1 once the value survives, so
-  an ID3v1-only track is promoted into ID3v2 on both.
+  Fixing it on the write side alone proved unsound — it made a deliberate clear
+  inexpressible, since `clearTags()` builds its map from `properties()` and so
+  could never name the field it needed to remove, and the value came back as a
+  ghost in ID3v2. The READ now fills those gaps instead, which settles both
+  directions: a round-trip carries the value like any other property, and a
+  clear can address it. ID3v2 stays authoritative; this only fills fields it
+  does not have. Both backends agree, and an ID3v1-only value is promoted into
+  ID3v2 on save, as TagLib's own duplication has always done on Emscripten.
+
+  If you enumerate `properties()` on MP3s, expect keys that did not previously
+  appear for files carrying both tag versions.
 - **Raw tag values are no longer coerced to integers (data loss).** On the WASI
   backend, `TRACKNUMBER`, `TRACKTOTAL`, `DISCNUMBER`, `DISCTOTAL` and `BPM` were
   narrowed through `toInt()` when crossing the Wasm boundary, so `properties()`

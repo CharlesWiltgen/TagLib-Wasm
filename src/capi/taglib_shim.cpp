@@ -200,6 +200,10 @@ static void merge_intpair_properties(TagLib::PropertyMap& propMap) {
 static tl_error_code encode_file_to_msgpack(TagLib::File* file,
                                             uint8_t** out_buf, size_t* out_size) {
     TagLib::PropertyMap props = file->properties();
+    // TagUnion reports ID3v2's map alone, so an MP3 value living only in ID3v1
+    // would be invisible here — and therefore absent from the snapshot the save
+    // path writes back, which erased it (taglib-nft5).
+    taglib_wasm::merge_id3v1_only_properties(file, props);
     TagLib::AudioProperties* audio = file->audioProperties();
 
     uint32_t count = 0;
@@ -588,13 +592,10 @@ static tl_error_code decode_msgpack_to_propmap(
 }
 
 static void apply_propmap(TagLib::File* file, const TagLib::PropertyMap& propMap) {
-    // An MPEG PropertyMap write also rewrites the ID3v1 tag, zeroing every field
-    // the map is silent about — and the map only ever describes ID3v2, so an
-    // ID3v1-only value is destroyed by a save that never meant to touch it
-    // (taglib-nft5). Capture those before the write, put them back after.
-    auto id3v1 = taglib_wasm::capture_id3v1_only_fields(file, propMap);
+    // No ID3v1 preservation here any more: the read path now reports ID3v1-only
+    // values, so the incoming map already carries them and an absent key means
+    // the caller genuinely dropped the field (taglib-nft5).
     file->setProperties(propMap);
-    taglib_wasm::restore_id3v1_only_fields(file, id3v1);
 
     TagLib::Tag* tag = file->tag();
     if (!tag) return;

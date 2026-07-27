@@ -710,6 +710,9 @@ public:
         
         if (fileRef && fileRef->file()) {
             TagLib::PropertyMap properties = fileRef->file()->properties();
+            // See merge_id3v1_only_properties(): TagUnion reports ID3v2 alone,
+            // so an ID3v1-only value would otherwise be invisible (taglib-nft5).
+            taglib_wasm::merge_id3v1_only_properties(fileRef->file(), properties);
             
             for (const auto& prop : properties) {
                 val array = val::array();
@@ -768,11 +771,7 @@ public:
         // and repair afterwards (taglib-bnhl).
         auto captured = capture_mp4_freeform_names(fileRef->file());
         for (auto& n : mp4Names) captured.push_back(std::move(n));
-        // See apply_propmap() in src/capi/taglib_shim.cpp: an MPEG PropertyMap
-        // write erases ID3v1-only fields the map never described (taglib-nft5).
-        auto id3v1 = taglib_wasm::capture_id3v1_only_fields(fileRef->file(), propMap);
         fileRef->file()->setProperties(propMap);
-        taglib_wasm::restore_id3v1_only_fields(fileRef->file(), id3v1);
         restore_mp4_freeform_names(fileRef->file(), captured);
     }
     
@@ -780,6 +779,7 @@ public:
         if (!fileRef || !fileRef->file()) return "";
         
         TagLib::PropertyMap properties = fileRef->file()->properties();
+        taglib_wasm::merge_id3v1_only_properties(fileRef->file(), properties);
         TagLib::String tagKey(key, TagLib::String::UTF8);
         
         if (properties.contains(tagKey) && !properties[tagKey].isEmpty()) {
@@ -792,16 +792,18 @@ public:
     void setProperty(const std::string& key, const std::string& value) {
         if (!fileRef || !fileRef->file()) return;
         
+        // Merge before the read-modify-write: without it this rewrites the map
+        // WITHOUT any ID3v1-only value, and setProperties then drops it
+        // (taglib-nft5). Every C++ site that round-trips the map needs this.
         TagLib::PropertyMap properties = fileRef->file()->properties();
+        taglib_wasm::merge_id3v1_only_properties(fileRef->file(), properties);
         TagLib::StringList values;
         values.append(TagLib::String(value, TagLib::String::UTF8));
         properties[TagLib::String(key, TagLib::String::UTF8)] = values;
 
-        // See setProperties: capture before, restore after (taglib-bnhl, nft5).
+        // See setProperties: capture before, restore after (taglib-bnhl).
         auto captured = capture_mp4_freeform_names(fileRef->file());
-        auto id3v1 = taglib_wasm::capture_id3v1_only_fields(fileRef->file(), properties);
         fileRef->file()->setProperties(properties);
-        taglib_wasm::restore_id3v1_only_fields(fileRef->file(), id3v1);
         restore_mp4_freeform_names(fileRef->file(), captured);
     }
     
