@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.6.1
 
 ### Fixed
 
@@ -68,6 +68,35 @@
 
   If you enumerate `properties()` on MP3s, expect keys that did not previously
   appear for files carrying both tag versions.
+
+### Known limitations
+
+- **An MP3 whose ID3v2 tag's only `COMM` frame carries a description** (the
+  usual iTunes shape) and which also has an ID3v1 comment gains a second, bare
+  `COMM` frame holding the ID3v1 text when saved on the WASI backend. Cosmetic
+  and non-accumulating — the described frame is never touched and the count is
+  stable across saves. Suppressing the merge was tried and reverted because it
+  destroyed the ID3v1 comment instead; the correct fix belongs on the write side
+  and is tracked as `taglib-o3sl`.
+
+### Internal
+
+- **The Deno compatibility patcher fails loudly instead of half-patching.**
+  `fix-deno-compat.js` applies five regex patches to Emscripten's generated
+  glue, but each was optional and one shared `modified` flag was set if any of
+  them matched — so it could apply one of five, print success and exit 0. That
+  combination is worse than applying none: the instantiation patch inserts
+  references to `ENVIRONMENT_IS_DENO`, which the detection patch is what
+  defines, so the result threw `ReferenceError: ENVIRONMENT_IS_DENO is not
+  defined` before doing anything. Each patch is now required, a miss names the
+  patch and leaves the file untouched, and the patterns tolerate the comments
+  and quoted keys an unminified (`-g2`) build emits — so a debuggable module
+  with a Wasm name section can now actually be built and run under Deno.
+
+## 1.6.0
+
+### Fixed
+
 - **Raw tag values are no longer coerced to integers (data loss).** On the WASI
   backend, `TRACKNUMBER`, `TRACKTOTAL`, `DISCNUMBER`, `DISCTOTAL` and `BPM` were
   narrowed through `toInt()` when crossing the Wasm boundary, so `properties()`
@@ -115,13 +144,6 @@
 
 ### Known limitations
 
-- **An MP3 whose ID3v2 tag's only `COMM` frame carries a description** (the
-  usual iTunes shape) and which also has an ID3v1 comment gains a second, bare
-  `COMM` frame holding the ID3v1 text when saved on the WASI backend. Cosmetic
-  and non-accumulating — the described frame is never touched and the count is
-  stable across saves. Suppressing the merge was tried and reverted because it
-  destroyed the ID3v1 comment instead; the correct fix belongs on the write side
-  and is tracked as `taglib-o3sl`.
 - **MP4 freeform atoms whose `mean` is not `com.apple.iTunes`** are still
   rewritten into the Apple namespace with an upper-cased name on the WASI
   backend, so a `----:com.acme.tool:MyTag` does not survive a save there.
@@ -154,17 +176,6 @@
 
 ### Internal
 
-- **The Deno compatibility patcher fails loudly instead of half-patching.**
-  `fix-deno-compat.js` applies five regex patches to Emscripten's generated
-  glue, but each was optional and one shared `modified` flag was set if any of
-  them matched — so it could apply one of five, print success and exit 0. That
-  combination is worse than applying none: the instantiation patch inserts
-  references to `ENVIRONMENT_IS_DENO`, which the detection patch is what
-  defines, so the result threw `ReferenceError: ENVIRONMENT_IS_DENO is not
-  defined` before doing anything. Each patch is now required, a miss names the
-  patch and leaves the file untouched, and the patterns tolerate the comments
-  and quoted keys an unminified (`-g2`) build emits — so a debuggable module
-  with a Wasm name section can now actually be built and run under Deno.
 - **`wasm-freshness` now tracks C++ sources, not just the submodule.** As first
   shipped it triggered only on `lib/taglib`, but both binaries also compile
   from `src/capi/` — so editing the WASI shim without rebuilding still shipped
