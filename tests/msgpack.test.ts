@@ -269,7 +269,7 @@ describe("MessagePack", () => {
       title: "Test",
       date: 0, // Zero value
       trackNumber: undefined, // Undefined (should be omitted)
-      comment: "", // Empty string: a property's value, so it is carried
+      comment: "", // Empty string (should be omitted)
       genre: null as any, // Null value
       albumArtist: "Valid Artist",
     } as unknown as ExtendedTag;
@@ -281,9 +281,7 @@ describe("MessagePack", () => {
     assertEquals(decoded.date, 0); // Zero should be preserved
     assertEquals(decoded.albumArtist, "Valid Artist");
     assertEquals("trackNumber" in decoded, false); // Undefined should be omitted
-    // taglib-yc1x: an empty value is a value. Dropping it meant a property whose
-    // text projects to nothing could not survive a save.
-    assertEquals(decoded.comment, "");
+    assertEquals("comment" in decoded, false); // Empty string should be omitted
   });
 
   it("handles large binary data", () => {

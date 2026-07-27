@@ -9,14 +9,11 @@
   upper-cased, so `----:com.acme.tool:MyTag` became `----:com.apple.iTunes:MYTAG`
   — the caller's atom gone and a wrong one in its place. WASI routes MP4 items
   through TagLib's PropertyMap, which knows only one freeform namespace; the
-  exact name the caller supplied is now reinstated after the write.
-- **An empty property value no longer deletes its frame (data loss).** A property
-  whose text projects to nothing — a numeric-only ID3v2 `TCON`, which
-  `ID3v2::Tag::genre()` renders as `""` — was destroyed by a WASI save that
-  changed nothing. An empty value was treated as an absence at four separate
-  points, the last of which mirrored it as `setGenre("")`, and TagLib defines
-  that as removing the frame. `undefined` still means absent, and
-  `setProperty(key, "")` still clears.
+  exact name the caller supplied is now reinstated after the write. The atom
+  still cannot be READ BACK through `getMP4Item()` on WASI — the read path
+  resolves names through that same PropertyMap — so it is correct on disk and
+  visible to other tools, but not yet to this library's own WASI reader
+  (`taglib-5ibr`). Emscripten reads it correctly.
 - **A described `COMM` frame no longer attracts a duplicate.** An MP3 whose only
   comment frame carries a description (the usual iTunes `iTunNORM` shape) and
   which also has an ID3v1 comment gained a second, bare `COMM` on save. The

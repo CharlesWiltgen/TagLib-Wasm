@@ -48,10 +48,7 @@ describe("encodeTagData", () => {
     assertEquals(result.length > 0, true);
   });
 
-  it("strips undefined fields but keeps a property's empty value", () => {
-    // An empty value is a value: hiding it meant a property whose text projects
-    // to nothing could not survive a save (taglib-yc1x). `undefined` still means
-    // absent.
+  it("should strip undefined and empty string fields", () => {
     const tag = {
       title: "Title",
       artist: "",
@@ -60,7 +57,7 @@ describe("encodeTagData", () => {
     const encoded = encodeTagData(tag);
     const decoded = decodeTagData(encoded) as Record<string, unknown>;
     assertEquals(decoded.title, "Title");
-    assertEquals(decoded.artist, "");
+    assertEquals(decoded.artist, undefined);
     assertEquals(decoded.album, undefined);
   });
 

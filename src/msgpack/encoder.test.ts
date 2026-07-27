@@ -125,26 +125,17 @@ describe("encodeTagData key transformation", () => {
     assertEquals(encoded["CUSTOM_FIELD"], "value");
   });
 
-  it("carries a property's empty value but omits an empty non-property", () => {
-    // cleanObject() strips empty strings, which silently dropped a property
-    // whose value is legitimately empty — TagLib reports "" for a numeric-only
-    // TCON — and setProperties() then deleted the frame it belonged to
-    // (taglib-yc1x). A known property key sends [""] instead, which survives
-    // that pass; a key that is not a property (an audio field passes its own
-    // name through) must still be dropped.
-    const tag = {
-      title: "Keep",
-      artist: "",
-      album: "Also Keep",
-      codec: "",
-    } as Record<string, unknown>;
+  it("should omit empty string values via cleanObject", () => {
+    const tag = { title: "Keep", artist: "", album: "Also Keep" } as Record<
+      string,
+      unknown
+    >;
     const encoded = decode(
       encodeTagData(tag as unknown as ExtendedTag),
     ) as Record<string, unknown>;
     assertEquals(encoded["TITLE"], "Keep");
     assertEquals(encoded["ALBUM"], "Also Keep");
-    assertEquals(encoded["ARTIST"], "");
-    assertEquals("codec" in encoded, false);
+    assertEquals("ARTIST" in encoded, false);
   });
 
   it("should preserve null values in cleanObject", () => {

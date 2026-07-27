@@ -66,7 +66,6 @@ export function encodeTagData(tagData: ExtendedTag): Uint8Array {
     const data = tagData as Record<string, unknown>;
 
     const remapped: Record<string, unknown> = {};
-    const propertyKeys = new Set<string>();
     for (const [key, value] of Object.entries(tagData)) {
       if (isShadowedNumericMirror(data, key)) continue;
       if (key === "lyrics") {
@@ -84,18 +83,10 @@ export function encodeTagData(tagData: ExtendedTag): Uint8Array {
       if (PASSTHROUGH_KEYS.has(key)) {
         remapped[key] = value;
       } else {
-        const wireKey = toTagLibKey(key);
-        // A key that RENAMES on the way to the wire is a real property; a key
-        // that passes its own name through is an audio/derived field. Only the
-        // former may legitimately hold an empty value (taglib-yc1x).
-        if (wireKey !== key) propertyKeys.add(wireKey);
-        remapped[wireKey] = value;
+        remapped[toTagLibKey(key)] = value;
       }
     }
-    return encode(
-      cleanObject(remapped, propertyKeys),
-      MSGPACK_ENCODE_OPTIONS,
-    );
+    return encode(cleanObject(remapped), MSGPACK_ENCODE_OPTIONS);
   } catch (error) {
     throw new MetadataError(
       "write",
@@ -192,17 +183,7 @@ export function encodeMessagePackCompact<T>(data: T): Uint8Array {
   }
 }
 
-/**
- * Strip what must not cross the wire. `keepEmptyFor` names the keys whose empty
- * string is a VALUE rather than an absence: TagLib reports "" for a property
- * whose text projects to nothing (a numeric-only TCON is the common case), and
- * dropping it made setProperties() delete the frame it belonged to
- * (taglib-yc1x). Every other empty string is still removed.
- */
-function cleanObject(
-  obj: unknown,
-  keepEmptyFor: ReadonlySet<string> = new Set(),
-): unknown {
+function cleanObject(obj: unknown): unknown {
   if (obj === null || obj === undefined) return null;
   if (typeof obj !== "object") return obj;
   if (obj instanceof Uint8Array || Array.isArray(obj)) return obj;
@@ -215,7 +196,7 @@ function cleanObject(
       cleaned[key] = null;
       continue;
     }
-    if (value === "" && !keepEmptyFor.has(key)) continue;
+    if (typeof value === "string" && value === "") continue;
     cleaned[key] = typeof value === "object" ? cleanObject(value) : value;
   }
   return cleaned;

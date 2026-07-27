@@ -537,12 +537,10 @@ static tl_error_code decode_msgpack_to_propmap(
                 mpack_read_bytes(&reader, vbuf, vlen);
                 mpack_done_str(&reader);
                 vbuf[vlen] = '\0';
-                // A zero-length string is a VALUE, not an absence. Skipping it
-                // meant a property whose text projects to nothing never reached
-                // the PropertyMap, and setProperties() then removed the frame it
-                // belonged to (taglib-yc1x).
-                value = TagLib::String(vbuf, TagLib::String::UTF8);
-                has_value = true;
+                if (vlen > 0) {
+                    value = TagLib::String(vbuf, TagLib::String::UTF8);
+                    has_value = true;
+                }
             } else if (vlen <= MAX_STRING_VALUE_LEN) {
                 char* heap = static_cast<char*>(malloc(vlen + 1));
                 if (!heap) { mpack_reader_destroy(&reader); return TL_ERROR_MEMORY_ALLOCATION; }
@@ -604,24 +602,21 @@ static void apply_propmap(TagLib::File* file, const TagLib::PropertyMap& propMap
 
     TagLib::Tag* tag = file->tag();
     if (!tag) return;
-    // Each mirror is skipped when the value is EMPTY. setTitle("")/setGenre("")
-    // and friends are defined as removeFrames(...), so mirroring an empty value
-    // can only ever delete — and file->setProperties() above has already applied
-    // the caller's intent. A property whose value legitimately projects to
-    // nothing (a numeric-only TCON reads back as "") was destroyed here on every
-    // save, after surviving the whole boundary intact (taglib-yc1x).
-    auto mirror = [&propMap, tag](const char* key,
-                                  void (TagLib::Tag::*setter)(const TagLib::String&)) {
-        auto it = propMap.find(key);
-        if (it == propMap.end() || it->second.size() != 1) return;
-        if (it->second.front().isEmpty()) return;
-        (tag->*setter)(it->second.front());
-    };
-    mirror("TITLE", &TagLib::Tag::setTitle);
-    mirror("ARTIST", &TagLib::Tag::setArtist);
-    mirror("ALBUM", &TagLib::Tag::setAlbum);
-    mirror("COMMENT", &TagLib::Tag::setComment);
-    mirror("GENRE", &TagLib::Tag::setGenre);
+    auto it = propMap.find("TITLE");
+    if (it != propMap.end() && it->second.size() == 1)
+        tag->setTitle(it->second.front());
+    it = propMap.find("ARTIST");
+    if (it != propMap.end() && it->second.size() == 1)
+        tag->setArtist(it->second.front());
+    it = propMap.find("ALBUM");
+    if (it != propMap.end() && it->second.size() == 1)
+        tag->setAlbum(it->second.front());
+    it = propMap.find("COMMENT");
+    if (it != propMap.end() && it->second.size() == 1)
+        tag->setComment(it->second.front());
+    it = propMap.find("GENRE");
+    if (it != propMap.end() && it->second.size() == 1)
+        tag->setGenre(it->second.front());
 
     // LAST, and the ordering is load-bearing. ID3v2::Tag::setComment prefers a
     // bare frame and FALLS BACK to comments.front()->setText() when there is
