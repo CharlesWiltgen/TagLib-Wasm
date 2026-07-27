@@ -1081,6 +1081,56 @@ describe("a described COMM does not attract a duplicate (taglib-o3sl)", () => {
       }
     });
 
+    it(`keeps one COMM across an unrelated property write [${backend}]`, async () => {
+      // The reopened half of taglib-o3sl. A bare Emscripten save never calls
+      // setProperties, so the no-op case above cannot fail there; it is
+      // setProperty/setProperties round-tripping the merged map through
+      // file->setProperties() that materialises the spurious bare frame.
+      const path = await seedDescribedComment(backend);
+      try {
+        const file = await taglibs[backend].open(path);
+        try {
+          file.setProperty("album", "NewAlbum");
+          file.save();
+          await Deno.writeFile(path, file.getFileBuffer());
+        } finally {
+          file.dispose();
+        }
+
+        assertEquals(
+          id3v1Comment(await Deno.readFile(path)),
+          "V1RealComment",
+          `${backend} destroyed the ID3v1 comment`,
+        );
+        assertEquals(
+          await readProperty(backend, path, "album"),
+          ["NewAlbum"],
+          `${backend} lost the property write itself`,
+        );
+        const reopened = await taglibs[backend].open(path);
+        try {
+          const frames = reopened.getId3v2Frames("COMM");
+          assertEquals(
+            frames.length,
+            1,
+            `${backend} added a duplicate COMM frame`,
+          );
+          const text = new TextDecoder("latin1").decode(frames[0]!.data);
+          assertEquals(
+            text.includes(" 00000A1B"),
+            true,
+            `${backend} overwrote the described frame's payload: ${
+              JSON.stringify(text)
+            }`,
+          );
+        } finally {
+          reopened.dispose();
+        }
+      } finally {
+        await Deno.remove(path).catch(() => {});
+      }
+    });
+
     it(`still writes a comment the caller actually set [${backend}]`, async () => {
       // The withdrawal must take back only the value that came from ID3v1.
       const path = await seedDescribedComment(backend);

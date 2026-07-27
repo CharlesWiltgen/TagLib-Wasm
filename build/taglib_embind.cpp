@@ -771,8 +771,15 @@ public:
         // and repair afterwards (taglib-bnhl).
         auto captured = capture_mp4_freeform_names(fileRef->file());
         for (auto& n : mp4Names) captured.push_back(std::move(n));
+        // The map carries ID3v1's merged comment (taglib-nft5), which must not
+        // materialise as a second COMM frame (taglib-o3sl). Unlike the WASI
+        // shim there are no typed mirrors after this write, so the withdrawal
+        // can follow it directly.
+        const auto commentGuard =
+            taglib_wasm::capture_id3v2_comment_guard(fileRef->file());
         fileRef->file()->setProperties(propMap);
         restore_mp4_freeform_names(fileRef->file(), captured);
+        taglib_wasm::apply_id3v2_comment_guard(fileRef->file(), commentGuard);
     }
     
     std::string getProperty(const std::string& key) const {
@@ -801,10 +808,14 @@ public:
         values.append(TagLib::String(value, TagLib::String::UTF8));
         properties[TagLib::String(key, TagLib::String::UTF8)] = values;
 
-        // See setProperties: capture before, restore after (taglib-bnhl).
+        // See setProperties: capture before, restore after (taglib-bnhl), and
+        // withdraw the merged-comment frame the write materialises (taglib-o3sl).
         auto captured = capture_mp4_freeform_names(fileRef->file());
+        const auto commentGuard =
+            taglib_wasm::capture_id3v2_comment_guard(fileRef->file());
         fileRef->file()->setProperties(properties);
         restore_mp4_freeform_names(fileRef->file(), captured);
+        taglib_wasm::apply_id3v2_comment_guard(fileRef->file(), commentGuard);
     }
     
     // MP4-specific methods

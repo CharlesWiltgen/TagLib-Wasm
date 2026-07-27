@@ -171,14 +171,16 @@ inline void merge_id3v1_only_properties(TagLib::File* file,
     fill("ALBUM", v1->album());
     // COMMENT is deliberately merged the same way as every other key, even
     // though CommentsFrame keys a DESCRIBED frame as "COMMENT:<DESC>" so a file
-    // whose only COMM carries a description reads as commentless here and gains
-    // a second, bare COMM on write. Suppressing the merge when any COMM exists
-    // was tried (8cb65a0f) and REVERTED: withholding the value from the map
-    // makes MPEG::File::setProperties clear ID3v1's comment, which
+    // whose only COMM carries a description reads as commentless here and would
+    // gain a second, bare COMM on write. Suppressing the merge when any COMM
+    // exists was tried (8cb65a0f) and REVERTED: withholding the value from the
+    // map makes MPEG::File::setProperties clear ID3v1's comment, which
     // duplicate_id3_tags_losslessly then backfills from the described frame —
-    // so a no-op save DESTROYED the ID3v1 comment. The duplicate frame is
-    // cosmetic and does not accumulate; the cure was data loss. A correct fix
-    // belongs on the write side and is tracked as taglib-o3sl.
+    // so a no-op save DESTROYED the ID3v1 comment. The fix lives on the write
+    // side instead: every property-write site wraps setProperties in
+    // capture_id3v2_comment_guard/apply_id3v2_comment_guard below, which
+    // withdraws the frame this merged value would otherwise materialise
+    // (taglib-o3sl).
     fill("COMMENT", v1->comment());
     fill("GENRE", v1->genre());
     if (v1->year() != 0) fill("DATE", TagLib::String::number(v1->year()));
