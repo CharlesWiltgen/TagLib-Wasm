@@ -43,7 +43,7 @@ on a real divergence) over separate per-backend tests.
 | `isFormat`          |  ✓   |     ✓      |   ✓    | format-narrowing `[wasi]`/`[emscripten]`                                                                        |
 | `isValid`           |  ✓   |     ✓      |   —    | wasi-host (wasi) + taglib.test (emscripten); unpaired                                                           |
 | `isMP4`             | unit |     ✗      |   —    | wasi-adapter-unit only                                                                                          |
-| `properties`        |  ✓   |     ✓      |   ✓    | cross-backend-parity, tag-roundtrip-property, property-raw-values (qpl)                                         |
+| `properties`        |  ✓   |     ✓      |   ✓    | cross-backend-parity, tag-roundtrip-property, property-raw-values (qpl, yc1x)                                   |
 | `getProperty`       |  ✓   |     ✓      |   ✓    | format-narrowing (typed); remap fallback for MP4 atom keys (bnhl)                                               |
 | `setProperty`       |  ✓   |     ✓      |   ✓    | wasi-adapter-unit + extended-metadata                                                                           |
 | `setProperties`     |  ✓   |     ✓      |   ✓    | audio-file-save (REPLACE vs MERGE); property-raw-values (qpl); mp4 casing (bnhl)                                |
@@ -120,6 +120,29 @@ on a real divergence) over separate per-backend tests.
    the write-side preservation be deleted rather than special-cased further.
    Every C++ site that round-trips the map needs the merge — `getProperties`,
    `getProperty` and `setProperty`, not just the snapshot encoder.
+
+6. ~~**An empty-valued property is invisible on WASI and destroyed on save.**~~
+   **RESOLVED (taglib-yc1x).** A frame that exists holding an empty string is a
+   different state from no frame at all. WASI collapsed both into `undefined`,
+   so the value never reached the snapshot, `setProperties()` saw the field as
+   absent, and TagLib deleted a frame the caller never touched — on any save,
+   including one that changed nothing. Emscripten reported `[""]` and was
+   unaffected. It generalised past the numeric `TCON` in the original report to
+   ANY frame whose PropertyMap projection is empty; measured on the reference
+   library, the keys that actually occur are `barcode` / `label` /
+   `replayGainTrackGain`.
+
+   Two attempts before this one tried to resolve it by inferring the CALLER's
+   intent (is this `""` a delete or an empty value?), which is unresolvable —
+   both arrive as identical bytes in the same argument, and the documented
+   `readTags()` → `applyTags()` flow turns one into the other. The fix compares
+   against the FILE instead: an empty value equal to what the file already held
+   is a round-trip echo, not an instruction, so the typed mirror is skipped.
+   That question is answerable, and only in `apply_propmap`, which holds both
+   the incoming map and the open file.
+
+   Writing an empty value _on purpose_, distinct from delete, remains
+   unsupported and still needs a sentinel that is not `""` — see ADR-006.
 
 Minor/unpaired (tracked here, not filed): `isValid` (covered both, unpaired);
 `isMP4` (WASI unit only); `getProperty` string-overload (single-backend each).

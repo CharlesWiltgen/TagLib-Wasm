@@ -621,24 +621,55 @@ static void apply_propmap(TagLib::File* file, const TagLib::PropertyMap& propMap
     // the comment, whose merged value must not materialise as a second ID3v2
     // frame (taglib-o3sl).
     const auto commentGuard = taglib_wasm::capture_id3v2_comment_guard(file);
+
+    // Captured BEFORE setProperties, and merged exactly as the read path builds
+    // the snapshot (taglib_shim.cpp:206) — otherwise an ID3v1-only value would
+    // look changed here when the caller never touched it.
+    TagLib::PropertyMap prior = file->properties();
+    taglib_wasm::merge_id3v1_only_properties(file, prior);
+
     file->setProperties(propMap);
 
     TagLib::Tag* tag = file->tag();
     if (!tag) return;
+
+    // setProperties() keeps a frame whose projection matches the incoming map
+    // (id3v2tag.cpp:450-453), so an unchanged empty value survives it. These
+    // typed mirrors would then destroy it anyway — setGenre("") is defined as
+    // removeFrames("TCON") — deleting a frame on a save that changed nothing
+    // (taglib-yc1x). An empty value equal to what the file already held is a
+    // round-trip echo, not an instruction, so the mirror is skipped.
+    //
+    // Note this needs no knowledge of caller intent: it compares against the
+    // FILE, which is why it can live here and could not live in
+    // normalizeTagInput, where the earlier attempt put it.
+    auto echoesPriorEmpty = [&prior](const char* key,
+                                     const TagLib::String& incoming) {
+        if (!incoming.isEmpty()) return false;
+        auto p = prior.find(key);
+        return p != prior.end() && p->second.size() == 1 &&
+               p->second.front().isEmpty();
+    };
+
     auto it = propMap.find("TITLE");
-    if (it != propMap.end() && it->second.size() == 1)
+    if (it != propMap.end() && it->second.size() == 1 &&
+        !echoesPriorEmpty("TITLE", it->second.front()))
         tag->setTitle(it->second.front());
     it = propMap.find("ARTIST");
-    if (it != propMap.end() && it->second.size() == 1)
+    if (it != propMap.end() && it->second.size() == 1 &&
+        !echoesPriorEmpty("ARTIST", it->second.front()))
         tag->setArtist(it->second.front());
     it = propMap.find("ALBUM");
-    if (it != propMap.end() && it->second.size() == 1)
+    if (it != propMap.end() && it->second.size() == 1 &&
+        !echoesPriorEmpty("ALBUM", it->second.front()))
         tag->setAlbum(it->second.front());
     it = propMap.find("COMMENT");
-    if (it != propMap.end() && it->second.size() == 1)
+    if (it != propMap.end() && it->second.size() == 1 &&
+        !echoesPriorEmpty("COMMENT", it->second.front()))
         tag->setComment(it->second.front());
     it = propMap.find("GENRE");
-    if (it != propMap.end() && it->second.size() == 1)
+    if (it != propMap.end() && it->second.size() == 1 &&
+        !echoesPriorEmpty("GENRE", it->second.front()))
         tag->setGenre(it->second.front());
 
     // LAST, and the ordering is load-bearing. ID3v2::Tag::setComment prefers a

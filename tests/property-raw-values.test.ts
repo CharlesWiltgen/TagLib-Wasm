@@ -718,17 +718,14 @@ describe("an MPEG save keeps a TRCK/TDRC that narrows to 0 (taglib-9m0w)", () =>
   // backends disagree about how to present a numeric genre -- Emscripten reports
   // [""], WASI reports nothing -- and the loss under test is the frame itself.
   //
-  // Emscripten only. WASI loses this frame by a second route (taglib-yc1x,
-  // REOPENED): an empty-valued property is dropped at the msgpack boundary, so
-  // GENRE never reaches the snapshot and setProperties() removes the frame.
+  // Both backends now. WASI used to lose this frame by a second route
+  // (taglib-yc1x): an empty-valued property was dropped at the msgpack boundary,
+  // so GENRE never reached the snapshot and setProperties() removed the frame.
   //
-  // A fix for that shipped briefly and was reverted — teaching the boundary to
-  // carry an empty value made "" ambiguous between "this value is empty" and
-  // "delete this", which broke clearing on MP4/WAV and made readTags->applyTags
-  // destroy the very frame it was meant to save. No [wasi] instance is pinned
-  // to the broken count here: a test that asserts the defect can only fail once
-  // someone fixes it.
-  for (const backend of ["emscripten"] as const) {
+  // The [emscripten] instance is a BASELINE — it passed before the yc1x fix and
+  // asserts cross-backend agreement. The [wasi] instance is the guard: it fails
+  // against the defect.
+  for (const backend of BACKENDS) {
     it(`keeps a numeric TCON across a no-op open+save [${backend}]`, async () => {
       const path = await tempCopy("mp3");
       try {
@@ -767,6 +764,131 @@ describe("an MPEG save keeps a TRCK/TDRC that narrows to 0 (taglib-9m0w)", () =>
       }
     });
   }
+
+  // taglib-yc1x generalises past TCON: ANY ID3v2 frame whose PropertyMap
+  // projection is empty was destroyed by a WASI save that changed nothing.
+  // Measured on the reference library, the empty-valued keys that actually
+  // occur are barcode / label / replayGainTrackGain — ADR-004 claimed they were
+  // "unaffected because dropped consistently", which was wrong: the frame is
+  // deleted from disk. The non-empty case is the control, so a blanket
+  // "TXXX survives" regression cannot make this pass vacuously.
+  for (const backend of BACKENDS) {
+    for (
+      const [label, seeded, shouldSurvive] of [
+        ["empty", "", true],
+        ["non-empty", "0123456789", true],
+      ] as const
+    ) {
+      it(`keeps an ${label} TXXX:BARCODE across a no-op open+save [${backend}]`, async () => {
+        const path = await tempCopy("mp3");
+        try {
+          await seedProperties(backend, path, { barcode: [seeded] });
+
+          // Count the BARCODE frame specifically. The fixture already carries a
+          // Copyright TXXX, so any assertion on TXXX *count* passes whether or
+          // not BARCODE survives — a check that cannot fail.
+          const barcodeFrames = async () => {
+            const f = await taglibs.emscripten.open(path);
+            try {
+              return f.getId3v2Frames("TXXX").filter((fr) =>
+                new TextDecoder().decode(fr.data).includes("BARCODE")
+              ).length;
+            } finally {
+              f.dispose();
+            }
+          };
+
+          assertEquals(
+            await barcodeFrames(),
+            1,
+            "seed did not land — the rest of this test would be vacuous",
+          );
+
+          const file = await taglibs[backend].open(path);
+          try {
+            file.save();
+            await Deno.writeFile(path, file.getFileBuffer());
+          } finally {
+            file.dispose();
+          }
+
+          assertEquals(
+            await barcodeFrames(),
+            shouldSurvive ? 1 : 0,
+            `${backend} destroyed the ${label} TXXX:BARCODE on a save that changed nothing`,
+          );
+        } finally {
+          await Deno.remove(path).catch(() => {});
+        }
+      });
+    }
+  }
+
+  // The documented copy-tags flow feeds a value read FROM a file back in AS a
+  // caller's input. Attempt B's fix destroyed the very frame it existed to save
+  // this way — TCON went 1 -> 0 — because the empty value it taught the boundary
+  // to carry then read back as "delete this". The fix compares against the FILE
+  // instead of guessing intent, so an unchanged empty value is a no-op.
+  //
+  // NOTE the loop varies the SEED backend only: readTags/applyTags are the
+  // simple API, which always uses the default backend (WASI on Deno). Neither
+  // instance is an Emscripten baseline — both exercise the WASI round trip, one
+  // on a file Emscripten wrote. Both fail against the defect.
+  for (const backend of BACKENDS) {
+    it(`readTags -> applyTags keeps a numeric TCON [seeded by ${backend}]`, async () => {
+      const path = await tempCopy("mp3");
+      try {
+        await seedProperties(backend, path, { genre: ["255"] });
+        const tconCount = async () => {
+          const f = await taglibs.emscripten.open(path);
+          try {
+            return f.getId3v2Frames("TCON").length;
+          } finally {
+            f.dispose();
+          }
+        };
+        assertEquals(
+          await tconCount(),
+          1,
+          "seed did not land — the rest of this test would be vacuous",
+        );
+
+        await Deno.writeFile(path, await applyTags(path, await readTags(path)));
+
+        assertEquals(
+          await tconCount(),
+          1,
+          `${backend}: the round trip destroyed the frame it exists to preserve`,
+        );
+      } finally {
+        await Deno.remove(path).catch(() => {});
+      }
+    });
+  }
+
+  // An empty value and an absent value are different states, and properties()
+  // must say so identically on both backends. This is the read-side half of
+  // taglib-yc1x: WASI collapsed "frame present, value empty" into undefined,
+  // which is also why clearTags() could not name the field to remove it.
+  it("reports an empty-valued property identically on both backends (taglib-yc1x)", async () => {
+    const path = await tempCopy("mp3");
+    try {
+      await seedProperties("emscripten", path, { barcode: [""] });
+      const seen: Record<string, unknown> = {};
+      for (const backend of BACKENDS) {
+        const file = await taglibs[backend].open(path);
+        try {
+          seen[backend] =
+            (file.properties() as Record<string, string[]>).barcode;
+        } finally {
+          file.dispose();
+        }
+      }
+      assertEquals(seen, { wasi: [""], emscripten: [""] });
+    } finally {
+      await Deno.remove(path).catch(() => {});
+    }
+  });
 
   // Guards against over-correcting. The fix replaces the destructive Duplicate
   // pass with an equivalent one, so BOTH directions of the ID3v1 <-> ID3v2 sync

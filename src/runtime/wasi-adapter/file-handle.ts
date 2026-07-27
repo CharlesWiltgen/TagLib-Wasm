@@ -60,6 +60,32 @@ const AUDIO_KEYS = new Set([
   "sampleRate",
 ]);
 
+/**
+ * A frame that exists holding an empty string is not the same state as no frame
+ * at all, and the read snapshot must say so — otherwise the save cannot carry
+ * the value back, `setProperties()` sees the field as absent, and TagLib deletes
+ * a frame the caller never touched (taglib-yc1x).
+ *
+ * The C++ encoder emits a single value as a bare string, and both `cleanObject`
+ * and `getProperties` drop a bare `""`. An ARRAY containing `""` already
+ * survives every one of those layers, so promoting the bare form to `[""]` here
+ * carries the value end to end without touching the encoder or the decoder.
+ *
+ * This only concerns readable tag properties: audio metrics and the internal
+ * write-time channels keep their own shapes.
+ */
+function preserveEmptyValues(
+  data: Record<string, unknown>,
+): Record<string, unknown> {
+  for (const [key, value] of Object.entries(data)) {
+    if (value !== "") continue;
+    if (AUDIO_KEYS.has(key) || INTERNAL_KEYS.has(key)) continue;
+    if (key.startsWith("----:")) continue;
+    data[key] = [""];
+  }
+  return data;
+}
+
 const INTERNAL_KEYS = new Set([
   "pictures",
   "ratings",
@@ -127,10 +153,9 @@ export class WasiFileHandle implements FileHandle {
     this.checkNotDestroyed();
     this.fileData = buffer;
     const msgpackData = readTagsFromWasm(this.wasi, buffer);
-    this.tagData = decodeTagData(msgpackData) as unknown as Record<
-      string,
-      unknown
-    >;
+    this.tagData = preserveEmptyValues(
+      decodeTagData(msgpackData) as unknown as Record<string, unknown>,
+    );
     return true;
   }
 
@@ -138,10 +163,9 @@ export class WasiFileHandle implements FileHandle {
     this.checkNotDestroyed();
     this.filePath = path;
     const msgpackData = readTagsFromWasmPath(this.wasi, path);
-    this.tagData = decodeTagData(msgpackData) as unknown as Record<
-      string,
-      unknown
-    >;
+    this.tagData = preserveEmptyValues(
+      decodeTagData(msgpackData) as unknown as Record<string, unknown>,
+    );
     return true;
   }
 

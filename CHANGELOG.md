@@ -1,5 +1,39 @@
 # Changelog
 
+## Unreleased
+
+### Fixed
+
+- **A frame holding an empty value is no longer deleted on save (data loss).**
+  On the WASI backend, any ID3v2 frame whose PropertyMap projection is an empty
+  string was destroyed by a save — including a save that changed nothing. A
+  frame that exists holding an empty string is a different state from no frame
+  at all, but WASI's read collapsed both into "absent", so the value never
+  reached the snapshot, `setProperties()` saw the field as missing, and TagLib
+  removed the frame. The canonical case is a numeric `TCON`: `ID3v2::Tag::genre()`
+  maps a bare number through `ID3v1::genre(n)`, which answers `""` for any index
+  outside the ID3v1 list, so a genre of `"255"` reads back empty while the frame
+  is plainly there. It was not limited to genre — measured on one real MP3
+  library, the affected keys were `barcode`, `label` and `replayGainTrackGain`.
+  Emscripten was never affected.
+
+  Two earlier attempts tried to infer whether a caller's `""` meant "delete" or
+  "empty value", which cannot be answered: both arrive as identical bytes in the
+  same argument, and the documented `readTags()` → `applyTags()` flow turns one
+  into the other. The fix asks a different question — whether the value differs
+  from what the file already holds — which needs no knowledge of intent. An
+  empty value equal to the file's own is a round-trip echo and is left alone.
+
+  `properties()` on WASI now reports `[""]` for such a field, matching what
+  Emscripten already returned. If you enumerate `properties()`, expect keys that
+  did not previously appear. That visibility is also what makes the field
+  clearable: `clearTags()` builds its map from `properties()`, so a field it
+  cannot name is one it cannot remove.
+
+  Writing an empty value **on purpose**, distinct from deleting the field, is
+  still unsupported — `""` continues to mean delete on every field, format and
+  backend.
+
 ## 1.6.1
 
 ### Fixed
