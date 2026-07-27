@@ -703,6 +703,68 @@ describe("an MPEG save keeps a TRCK/TDRC that narrows to 0 (taglib-9m0w)", () =>
     }
   }
 
+  // TCON dies by the same chain, and the first fix missed it. ID3v2::Tag::genre()
+  // maps a purely numeric field through ID3v1::genre(n) (id3v2tag.cpp:200-217),
+  // which answers "" for an index outside the ID3v1 list -- so a TCON of "255"
+  // reads back empty while the frame is plainly there. Tag::duplicate's
+  // `if(target->genre().isEmpty()) target->setGenre(source->genre())` then calls
+  // setGenre(""), which is defined as removeFrames("TCON").
+  //
+  // Asserted on the raw frame rather than properties().genre, because the two
+  // backends disagree about how to present a numeric genre -- Emscripten reports
+  // [""], WASI reports nothing -- and the loss under test is the frame itself.
+  //
+  // WASI still loses it, by a DIFFERENT and pre-existing route: an empty-valued
+  // property is dropped at the msgpack boundary, so GENRE never reaches the
+  // snapshot, and setProperties() removes every frame the incoming map does not
+  // represent. That is taglib-yc1x, it predates this work, and its fix is
+  // entangled with taglib-nft5's "absent vs deleted" problem. Pinned per-backend
+  // rather than asserted uniformly so this guard cannot pass by doing nothing.
+  const TCON_FRAMES_AFTER_SAVE: Record<Backend, number> = {
+    emscripten: 1,
+    wasi: 0,
+  };
+
+  for (const backend of BACKENDS) {
+    it(`keeps a numeric TCON across a no-op open+save [${backend}]`, async () => {
+      const path = await tempCopy("mp3");
+      try {
+        await seedRawFrame(path, "TCON", "255");
+        const seeded = await taglibs[backend].open(path);
+        try {
+          assertEquals(
+            seeded.getId3v2Frames("TCON").length,
+            1,
+            "seed did not land — the rest of this test would be vacuous",
+          );
+        } finally {
+          seeded.dispose();
+        }
+
+        const file = await taglibs[backend].open(path);
+        try {
+          file.save();
+          await Deno.writeFile(path, file.getFileBuffer());
+        } finally {
+          file.dispose();
+        }
+
+        const reopened = await taglibs.emscripten.open(path);
+        try {
+          assertEquals(
+            reopened.getId3v2Frames("TCON").length,
+            TCON_FRAMES_AFTER_SAVE[backend],
+            `${backend} changed how a numeric TCON survives a no-op save`,
+          );
+        } finally {
+          reopened.dispose();
+        }
+      } finally {
+        await Deno.remove(path).catch(() => {});
+      }
+    });
+  }
+
   // Guards against over-correcting. The fix replaces the destructive Duplicate
   // pass with an equivalent one, so BOTH directions of the ID3v1 <-> ID3v2 sync
   // must still happen.

@@ -69,6 +69,22 @@ inline bool id3v2_year_is_hidden(TagLib::ID3v2::Tag* tag) {
 }
 
 /*!
+ * TCON hides the same way, for a different reason: ID3v2::Tag::genre() maps a
+ * purely numeric field through ID3v1::genre(n) (id3v2tag.cpp:200-217), and that
+ * answers "" for any index outside the ID3v1 genre list. So a TCON of "255"
+ * reads back empty while the frame is plainly present, and Tag::duplicate's
+ * `if(target->genre().isEmpty())` guard then calls setGenre(""), which
+ * id3v2tag.cpp:274-279 defines as removeFrames("TCON"). The value narrows to an
+ * empty STRING rather than to zero, so it needs its own test.
+ */
+inline bool id3v2_genre_is_hidden(TagLib::ID3v2::Tag* tag) {
+    if (!tag || !tag->genre().isEmpty()) return false;
+    const TagLib::ID3v2::FrameList& frames = tag->frameList("TCON");
+    if (frames.isEmpty() || !frames.front()) return false;
+    return !frames.front()->toString().isEmpty();
+}
+
+/*!
  * True when saving `file` with TagLib's default Duplicate mode would destroy a
  * value. Non-MPEG files are never affected: no other format runs the pass, which
  * is why the same ID3v2 tag survives verbatim inside an AIFF or WAV container.
@@ -77,7 +93,8 @@ inline bool id3_duplicate_would_destroy(TagLib::File* file) {
     auto* mpeg = dynamic_cast<TagLib::MPEG::File*>(file);
     if (!mpeg) return false;
     TagLib::ID3v2::Tag* v2 = mpeg->ID3v2Tag();
-    return id3v2_track_is_hidden(v2) || id3v2_year_is_hidden(v2);
+    return id3v2_track_is_hidden(v2) || id3v2_year_is_hidden(v2) ||
+           id3v2_genre_is_hidden(v2);
 }
 
 /*!
@@ -97,7 +114,9 @@ inline void duplicate_id3_tags_losslessly(TagLib::MPEG::File* mpeg) {
         if (v2->artist().isEmpty()) v2->setArtist(v1->artist());
         if (v2->album().isEmpty()) v2->setAlbum(v1->album());
         if (v2->comment().isEmpty()) v2->setComment(v1->comment());
-        if (v2->genre().isEmpty()) v2->setGenre(v1->genre());
+        if (v2->genre().isEmpty() && !id3v2_genre_is_hidden(v2)) {
+            v2->setGenre(v1->genre());
+        }
         // The two guards that carry the defect. "Reads 0" is kept as the
         // trigger so a genuinely absent frame is still filled in from ID3v1 —
         // only a frame that EXISTS and merely narrows to 0 is now left alone.

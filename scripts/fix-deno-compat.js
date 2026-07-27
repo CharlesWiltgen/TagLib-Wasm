@@ -138,12 +138,17 @@ export function applyDenoCompatPatches(source) {
 }
 
 function main() {
-  const wrapperPath = join(
-    dirname(fileURLToPath(import.meta.url)),
-    "../build/taglib-wrapper.js",
-  );
+  // The target is build/taglib-wrapper.js by default and dist/taglib-wrapper.js
+  // when postbuild passes it. Both need the same patches and the same hard
+  // failure: dist/ is what ships to npm, and it used to be patched by a
+  // near-duplicate script that kept the any-of-N-is-success behaviour this one
+  // was fixed to drop (taglib-2z1b).
+  const root = dirname(fileURLToPath(import.meta.url));
+  const wrapperPath = process.argv[2]
+    ? join(root, "..", process.argv[2])
+    : join(root, "../build/taglib-wrapper.js");
 
-  console.log("🔧 Applying Deno compatibility fixes to taglib-wrapper.js...");
+  console.log(`🔧 Applying Deno compatibility fixes to ${wrapperPath}...`);
 
   const { content, applied, missing } = applyDenoCompatPatches(
     readFileSync(wrapperPath, "utf8"),

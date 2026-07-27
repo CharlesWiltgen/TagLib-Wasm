@@ -62,8 +62,12 @@ try {
   console.log(
     "🔧 Applying Deno compatibility patches to dist/taglib-wrapper.js...",
   );
+  // Same patcher as the build step, pointed at the shipped copy. Sharing it is
+  // what keeps dist/ from drifting: the separate script this replaced still had
+  // the any-of-N-is-success behaviour taglib-2z1b removed, so the file npm
+  // actually receives had none of the protection (review finding 4).
   execSync(
-    "deno run --allow-read --allow-write scripts/fix-deno-compat-dist.js",
+    "deno run --allow-read --allow-write scripts/fix-deno-compat.js dist/taglib-wrapper.js",
     {
       cwd: rootDir,
       stdio: "inherit",
