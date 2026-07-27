@@ -6,6 +6,7 @@
  */
 
 import type { LoadTagLibOptions } from "./loader-types.ts";
+import { describeNonWasmBinary } from "./loader-types.ts";
 import type { TagLibModule } from "../wasm.ts";
 import {
   EnvironmentError,
@@ -69,6 +70,15 @@ export async function loadTagLibModule(
         "use the Emscripten backend",
       { forceWasmType: "wasi" },
     );
+  }
+
+  if (options?.wasmBinary) {
+    const problem = describeNonWasmBinary(options.wasmBinary);
+    if (problem) {
+      throw new TagLibInitializationError(problem, {
+        byteLength: options.wasmBinary.byteLength,
+      });
+    }
   }
 
   if (

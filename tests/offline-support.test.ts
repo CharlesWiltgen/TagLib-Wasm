@@ -88,12 +88,51 @@ describe("OfflineSupport", () => {
     name: "loadTagLibModule honors provided wasmBinary (not silently dropped)",
     ignore: !emscriptenAvailable,
     fn: async () => {
-      const invalidWasm = new Uint8Array([0x00, 0x00, 0x00, 0x00]);
+      // Valid Wasm MAGIC, deliberately invalid VERSION. The magic must be real
+      // so this gets past loadTagLibModule's own pre-flight check and actually
+      // reaches the Emscripten glue — that glue honoring wasmBinary is the only
+      // thing under test here. Feeding all-zero bytes would be rejected by the
+      // pre-flight instead, and the test would pass even if the glue silently
+      // fell back to the on-disk .wasm, which is precisely the regression it
+      // exists to catch.
+      //
+      // Emscripten reports the compile failure on its own, asynchronously,
+      // after the returned promise settles — so this case prints to the console
+      // during a suite run. That output is expected and cannot be suppressed
+      // without weakening the guard.
+      const wrongVersionWasm = new Uint8Array([
+        0x00,
+        0x61,
+        0x73,
+        0x6d, // "\0asm"
+        0xff,
+        0xff,
+        0xff,
+        0xff, // not version 1
+      ]);
       await assertRejects(() =>
         loadTagLibModule({
-          wasmBinary: invalidWasm,
+          wasmBinary: wrongVersionWasm,
           forceWasmType: "emscripten",
         })
+      );
+    },
+  });
+
+  it({
+    name: "loadTagLibModule rejects a non-Wasm buffer with a typed error",
+    fn: async () => {
+      const err = await assertRejects(() =>
+        loadTagLibModule({
+          wasmBinary: new Uint8Array([0x00, 0x00, 0x00, 0x00]),
+          forceWasmType: "emscripten",
+        })
+      );
+      // Must name the problem rather than surfacing an Emscripten abort.
+      assertEquals(
+        (err as Error).message.includes("not a WebAssembly module"),
+        true,
+        `unhelpful error for a non-Wasm buffer: ${(err as Error).message}`,
       );
     },
   });

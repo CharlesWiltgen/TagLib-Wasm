@@ -3,6 +3,7 @@ import type { WasiModule } from "../wasmer-sdk-loader/types.ts";
 import type { TagLibModule } from "../../wasm.ts";
 import type { UnifiedLoaderOptions, UnifiedTagLibModule } from "./types.ts";
 import { ModuleLoadError } from "./types.ts";
+import { describeNonWasmBinary } from "../loader-types.ts";
 import { selectWasmType } from "./module-selection.ts";
 import { loadModule } from "./module-loading.ts";
 
@@ -16,6 +17,11 @@ export async function loadUnifiedTagLibModule(
         "select the Emscripten backend",
       "wasi",
     );
+  }
+
+  if (options.wasmBinary) {
+    const problem = describeNonWasmBinary(options.wasmBinary);
+    if (problem) throw new ModuleLoadError(problem, "emscripten");
   }
 
   const startTime = performance.now();
