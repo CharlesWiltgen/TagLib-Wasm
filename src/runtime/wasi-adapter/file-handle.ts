@@ -328,7 +328,12 @@ export class WasiFileHandle implements FileHandle {
       // both would collide; the raw string carries more information and wins.
       if (isShadowedNumericMirror(data, key)) continue;
       if (value === undefined || value === null) continue;
-      if (value === 0 || value === "") continue;
+      // `0` is a numeric-mirror artefact and never a property in its own right.
+      // An empty STRING is different: TagLib reported a property whose value
+      // projects to nothing — a numeric-only TCON is the common case — and
+      // hiding it meant the snapshot could not carry it and clearTags() could
+      // not name it, so an ordinary save deleted the frame (taglib-yc1x).
+      if (value === 0) continue;
 
       const propKey = toTagLibKey(key);
       if (Array.isArray(value)) {
@@ -392,6 +397,12 @@ export class WasiFileHandle implements FileHandle {
       // taglib-iyfr).
       const next = { ...this.tagData } as Record<string, unknown>;
       stageRawWrite(next, mirror, value === "" ? [] : [value]);
+      this.tagData = next;
+    } else if (value === "") {
+      // Deleting has to be explicit now that an empty string round-trips as a
+      // real value rather than being dropped on the way out (taglib-yc1x).
+      const next = { ...this.tagData } as Record<string, unknown>;
+      delete next[mappedKey];
       this.tagData = next;
     } else {
       this.tagData = { ...this.tagData, [mappedKey]: value };

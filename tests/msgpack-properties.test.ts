@@ -53,10 +53,12 @@ describe("MessagePack", () => {
           const encoded = encodeTagData(tagData as unknown as ExtendedTag);
           const decoded = decodeTagData(encoded) as Record<string, unknown>;
 
-          // Check each field preserves its value
+          // Every field keeps its value, INCLUDING an empty string: TagLib
+          // reports "" for a property whose text projects to nothing, and
+          // dropping it here made setProperties() delete the frame it belonged
+          // to (taglib-yc1x). Only undefined and null are absences.
           for (const [key, value] of Object.entries(tagData)) {
-            if (value === undefined || value === null || value === "") {
-              // Undefined/null/empty values should be omitted
+            if (value === undefined || value === null) {
               assert(!(key in decoded) || decoded[key] === undefined);
             } else {
               assertEquals(decoded[key], value);
@@ -269,18 +271,23 @@ describe("MessagePack", () => {
           const encoded = encodeTagData(tagData as any);
           const decoded = decodeTagData(encoded) as Record<string, unknown>;
 
-          // Empty strings and undefined should be omitted
-          // Null values are preserved
-          if (tagData.title === "" || tagData.title === undefined) {
+          // `undefined` means absent and is omitted; `null` is preserved; and
+          // an empty STRING is a value, carried as [""] so a property whose
+          // text projects to nothing survives a save (taglib-yc1x).
+          if (tagData.title === undefined) {
             assert(!("title" in decoded) || decoded.title === undefined);
           } else if (tagData.title === null) {
             assertEquals(decoded.title, null);
+          } else if (tagData.title === "") {
+            assertEquals(decoded.title, "");
           }
 
-          if (tagData.artist === "" || tagData.artist === undefined) {
+          if (tagData.artist === undefined) {
             assert(!("artist" in decoded) || decoded.artist === undefined);
           } else if (tagData.artist === null) {
             assertEquals(decoded.artist, null);
+          } else if (tagData.artist === "") {
+            assertEquals(decoded.artist, "");
           }
 
           // Zero values should be preserved
