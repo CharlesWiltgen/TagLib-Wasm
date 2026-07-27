@@ -1,0 +1,26 @@
+id: test-asserts-count-not-content
+snapshots:
+  assertEquals(fh.getPictures().length, 1);:
+    labels:
+    - source: assertEquals(fh.getPictures().length, 1)
+      style: primary
+      start: 0
+      end: 40
+  assertEquals(file.getId3v2Frames("COMM").length, 1);:
+    labels:
+    - source: assertEquals(file.getId3v2Frames("COMM").length, 1)
+      style: primary
+      start: 0
+      end: 51
+  assertEquals(readId3v2FramesFromWasm(wasi, removed, "NCON").length, 1);:
+    labels:
+    - source: assertEquals(readId3v2FramesFromWasm(wasi, removed, "NCON").length, 1)
+      style: primary
+      start: 0
+      end: 70
+  assertEquals(reopened.getId3v2Frames("PRIV").length, 2);:
+    labels:
+    - source: assertEquals(reopened.getId3v2Frames("PRIV").length, 2)
+      style: primary
+      start: 0
+      end: 55

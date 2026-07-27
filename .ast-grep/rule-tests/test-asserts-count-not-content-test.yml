@@ -1,0 +1,18 @@
+id: test-asserts-count-not-content
+valid:
+  # Asserting the payload — what the defect actually destroys.
+  - 'assertEquals(file.getId3v2Frames("COMM")[0].text, "hello");'
+  # A zero count is a real claim about content, not a proxy for one.
+  - "assertEquals(verifyFile.getPictures().length, 0);"
+  # Byte-length of an encoder's output IS the property under test.
+  - "assertEquals(encodeBext({ ...base, version: 0 }).length, 602);"
+  # Unrelated collections are out of scope; this rule targets metadata getters.
+  - "assertEquals(Object.keys(result).length, 2);"
+invalid:
+  # The taglib-o3sl trap shape: the broken path also yields exactly this count.
+  - 'assertEquals(file.getId3v2Frames("COMM").length, 1);'
+  - 'assertEquals(reopened.getId3v2Frames("PRIV").length, 2);'
+  # Same proxy via a free function rather than a method.
+  - 'assertEquals(readId3v2FramesFromWasm(wasi, removed, "NCON").length, 1);'
+  # Pictures are a metadata collection too.
+  - "assertEquals(fh.getPictures().length, 1);"

@@ -1,0 +1,36 @@
+id: test-asserts-count-not-content
+language: typescript
+severity: warning
+message: Asserting a metadata collection's COUNT is a proxy; assert what the defect destroys
+note: |
+  Advisory, not a gate — some count assertions are the real property under test.
+  Review each hit; suppress a deliberate one with `// ast-grep-ignore`.
+
+  A guard asserting `getId3v2Frames("COMM").length === 1` stayed green through a
+  full review round while the broken path destroyed the frame's PAYLOAD — the
+  count was 1 either way. See AGENTS.md, "Regression tests must be observed
+  failing", and CONTINUE.md's "checks that cannot fail".
+
+  Global CLAUDE.md rule T-6 says the same thing generally: assert the whole
+  structure in one assertion rather than its length.
+
+  Assert the value the defect would take away:
+
+    assertEquals(f.getId3v2Frames("COMM")[0].text, "expected");   // GOOD
+    assertEquals(f.getId3v2Frames("COMM").length, 1);             // proxy
+
+  A zero count is exempt: asserting a collection is EMPTY is a real claim about
+  content, not a stand-in for one.
+files:
+  - "tests/**"
+  - "src/**"
+rule:
+  any:
+    - pattern: assertEquals($RECV.$GETTER($$$).length, $N)
+    - pattern: assertEquals($GETTER($$$).length, $N)
+constraints:
+  GETTER:
+    regex: ^(getId3v2Frames|getPictures|getChapters|getMP4Items|readId3v2FramesFromWasm)$
+  N:
+    not:
+      regex: ^0$

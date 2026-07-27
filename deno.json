@@ -81,7 +81,8 @@
       "lib/",
       "build/",
       "docs/.vuepress/",
-      "docs/index.html"
+      "docs/index.html",
+      ".ast-grep/rule-tests/__snapshots__/"
     ],
     "lineWidth": 80,
     "indentWidth": 2,
@@ -108,8 +109,9 @@
     "dev": "deno run --watch --allow-read --allow-write examples/basic-usage.ts",
     "fmt": "deno fmt",
     "lint": "deno lint",
+    "lint:ast": "bash -c 'command -v ast-grep >/dev/null 2>&1 || { echo \"⚠ ast-grep not installed — skipping structural rules (brew install ast-grep)\"; exit 0; }; ast-grep test && ast-grep scan'",
     "check": "deno check index.ts src/**/*.ts tests/**/*.ts",
-    "check:all": "deno fmt --check && deno task lint && deno task check && deno task test && deno task build:ts",
+    "check:all": "deno fmt --check && deno task lint && deno task lint:ast && deno task check && deno task test && deno task build:ts",
     "knip": "npx --yes knip --no-progress --no-config-hints",
     "docs:coverage": "deno run --allow-read --allow-run scripts/docs-coverage.ts",
     "version:patch": "deno run --allow-read --allow-write scripts/sync-version.ts patch",

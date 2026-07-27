@@ -1,0 +1,26 @@
+id: cpp-fileref-takes-ownership
+snapshots:
+  auto *ref = new TagLib::FileRef(file.get());:
+    labels:
+    - source: new TagLib::FileRef(file.get())
+      style: primary
+      start: 12
+      end: 43
+  auto ref = std::make_unique<FileRef>(file.get());:
+    labels:
+    - source: std::make_unique<FileRef>(file.get())
+      style: primary
+      start: 11
+      end: 48
+  fileRef = std::make_unique<TagLib::FileRef>(detected.get());:
+    labels:
+    - source: std::make_unique<TagLib::FileRef>(detected.get())
+      style: primary
+      start: 10
+      end: 59
+  fileRef = std::make_unique<TagLib::FileRef>(file.get());:
+    labels:
+    - source: std::make_unique<TagLib::FileRef>(file.get())
+      style: primary
+      start: 10
+      end: 55

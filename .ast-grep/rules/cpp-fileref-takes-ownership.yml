@@ -1,0 +1,44 @@
+id: cpp-fileref-takes-ownership
+language: cpp
+severity: error
+message: FileRef takes ownership of a File*; pass .release(), never .get()
+note: |
+  TagLib's two FileRef constructors differ in ownership, and the difference is
+  invisible at the call site because both take a raw pointer:
+
+    fileref.h:212  FileRef(File *file)
+                   "The FileRef now takes ownership of the pointer and will
+                    delete the File when it passes out of scope."
+
+    fileref.h:203  FileRef(IOStream *stream, ...)
+                   "TagLib will *not* take ownership of the stream, the caller
+                    is responsible for deleting it after the File object."
+
+  So handing FileRef a File* held by a unique_ptr double-frees it: both owners
+  delete it at teardown. That was taglib-f5hp (P0) at taglib_embind.cpp:627.
+  It was latent in the worst way — opening the file and every read SUCCEEDED,
+  and the abort surfaced later as a Wasm `unreachable` trap during dispose().
+  A trap is not a JS exception, so callers could not catch it. Measured on one
+  real 384-file MP3 library, 12.5% of files were unusable; the smallest
+  reproducer was 43 bytes.
+
+  Fix: transfer ownership explicitly with .release().
+
+  The IOStream overload is exempt (see `stream` in constraints below) because
+  it genuinely does not take ownership — ast-grep matches syntax, not types,
+  and cannot tell the two overloads apart from `.get()` alone.
+files:
+  # Our shim only. lib/taglib is upstream and not ours to lint.
+  - "src/capi/**"
+  - "build/*.cpp"
+rule:
+  any:
+    - pattern: std::make_unique<TagLib::FileRef>($P.get())
+    - pattern: std::make_unique<FileRef>($P.get())
+    - pattern: new TagLib::FileRef($P.get())
+    - pattern: new FileRef($P.get())
+    - pattern: TagLib::FileRef($P.get())
+constraints:
+  P:
+    not:
+      regex: ^stream$
