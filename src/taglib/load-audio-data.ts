@@ -3,7 +3,10 @@ import {
   readFileData,
   readPartialFileData,
 } from "../utils/file.ts";
-import { metadataFitsInHeader } from "./metadata-extent.ts";
+import {
+  metadataFitsInHeader,
+  trailerFitsInFooter,
+} from "./metadata-extent.ts";
 
 /**
  * Load audio data from various sources, with optional partial loading.
@@ -30,10 +33,15 @@ export async function loadAudioData(
       return { data: await readFileData(input), isPartiallyLoaded: false };
     }
     const footerStart = Math.max(0, input.size - footerSize);
-    const footer = await input.slice(footerStart).arrayBuffer();
+    const footer = new Uint8Array(await input.slice(footerStart).arrayBuffer());
+    // The header check says nothing about trailer metadata; an APE tag larger
+    // than the footer window is spliced so TagLib reads nothing at all.
+    if (!trailerFitsInFooter(footer, footerSize)) {
+      return { data: await readFileData(input), isPartiallyLoaded: false };
+    }
     const combined = new Uint8Array(header.byteLength + footer.byteLength);
     combined.set(header, 0);
-    combined.set(new Uint8Array(footer), header.byteLength);
+    combined.set(footer, header.byteLength);
     return { data: combined, isPartiallyLoaded: true };
   }
 
@@ -49,7 +57,12 @@ export async function loadAudioData(
       // just read. A file whose metadata overruns the window costs one wasted
       // partial read and is then loaded in full — the alternative is handing
       // TagLib a spliced image it silently misreads (taglib-f5hp).
-      if (metadataFitsInHeader(data, opts.maxHeaderSize)) {
+      // Both ends must hold: the header check cannot see trailer metadata, and
+      // an oversized APE tag silently loses every value (taglib-f5hp review).
+      if (
+        metadataFitsInHeader(data, opts.maxHeaderSize) &&
+        trailerFitsInFooter(data, opts.maxFooterSize)
+      ) {
         return { data, isPartiallyLoaded: true };
       }
     }

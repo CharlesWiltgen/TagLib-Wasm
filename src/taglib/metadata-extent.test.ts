@@ -25,6 +25,17 @@ function flacBlock(length: number, isLast: boolean, type = 1): Uint8Array {
   return b;
 }
 
+/**
+ * A COMPLETE ID3v2 tag: the header plus the bytes it declares. Distinct from
+ * the bare `id3v2()` header above, which is used only to check that a probe
+ * refuses to vouch for an extent the buffer does not contain.
+ */
+function id3v2Tag(declaredSize: number, flags = 0): Uint8Array {
+  const out = new Uint8Array(10 + declaredSize + ((flags & 0x10) ? 10 : 0));
+  out.set(id3v2(declaredSize, flags), 0);
+  return out;
+}
+
 function concat(...parts: Uint8Array[]): Uint8Array {
   const out = new Uint8Array(parts.reduce((n, p) => n + p.length, 0));
   let o = 0;
@@ -50,23 +61,34 @@ function atom(type: string, payloadLength: number): Uint8Array {
 const LIMIT = 1024;
 
 describe("metadataFitsInHeader", () => {
+  /** One Ogg page: "OggS", header bytes, a segment table, then its payload. */
+  function oggPage(segments: number[], payload?: number[]): Uint8Array {
+    const payloadLength = segments.reduce((n, s) => n + s, 0);
+    const b = new Uint8Array(27 + segments.length + payloadLength);
+    b.set(new TextEncoder().encode("OggS"), 0);
+    b[26] = segments.length;
+    b.set(Uint8Array.from(segments), 27);
+    if (payload) b.set(Uint8Array.from(payload), 27 + segments.length);
+    return b;
+  }
+
   it("accepts an ID3v2 tag that ends inside the window", () => {
     // 10-byte header + 100 declared = 110 bytes, well inside LIMIT.
-    assertEquals(metadataFitsInHeader(id3v2(100), LIMIT), true);
+    assertEquals(metadataFitsInHeader(id3v2Tag(100), LIMIT), true);
   });
 
   it("rejects an ID3v2 tag that ends past the window", () => {
     // The reported defect: a tag larger than the header window gets spliced
     // mid-frame, so the caller must fall back to a full read.
-    assertEquals(metadataFitsInHeader(id3v2(LIMIT), LIMIT), false);
+    assertEquals(metadataFitsInHeader(id3v2Tag(LIMIT), LIMIT), false);
   });
 
   it("counts the ID3v2 footer against the window", () => {
     // Footer flag (0x10) adds 10 bytes beyond the declared size, which is
     // exactly enough to push this tag over.
     const exact = LIMIT - 10;
-    assertEquals(metadataFitsInHeader(id3v2(exact), LIMIT), true);
-    assertEquals(metadataFitsInHeader(id3v2(exact, 0x10), LIMIT), false);
+    assertEquals(metadataFitsInHeader(id3v2Tag(exact), LIMIT), true);
+    assertEquals(metadataFitsInHeader(id3v2Tag(exact, 0x10), LIMIT), false);
   });
 
   it("walks FLAC metadata blocks to the last one", () => {
@@ -101,16 +123,6 @@ describe("metadataFitsInHeader", () => {
     assertEquals(metadataFitsInHeader(mp4, LIMIT), false);
   });
 
-  /** One Ogg page: "OggS", header bytes, a segment table, then its payload. */
-  function oggPage(segments: number[]): Uint8Array {
-    const payload = segments.reduce((n, s) => n + s, 0);
-    const b = new Uint8Array(27 + segments.length + payload);
-    b.set(new TextEncoder().encode("OggS"), 0);
-    b[26] = segments.length;
-    b.set(Uint8Array.from(segments), 27);
-    return b;
-  }
-
   it("accepts Ogg once the comment header packet completes", () => {
     // Packet 1 is the identification header, packet 2 the comment header; a
     // segment shorter than 255 terminates a packet. Both land in the window
@@ -133,7 +145,8 @@ describe("metadataFitsInHeader", () => {
     // gave up the optimisation on exactly the wrong set.
     const mp3 = new Uint8Array(64);
     mp3[0] = 0xFF;
-    mp3[1] = 0xFB; // MPEG-1 Layer III frame sync
+    mp3[1] = 0xFB; // MPEG-1 Layer III
+    mp3[2] = 0x90; // 128 kbps, 44100 Hz — TagLib rejects a free/invalid index
     assertEquals(metadataFitsInHeader(mp3, LIMIT), true);
   });
 
@@ -144,6 +157,52 @@ describe("metadataFitsInHeader", () => {
     notMp3[0] = 0xFF;
     notMp3[1] = 0x00;
     assertEquals(metadataFitsInHeader(notMp3, LIMIT), false);
+  });
+
+  it("walks past an ID3v2 prefix into the container behind it", () => {
+    // TagLib supports an ID3v2 tag PRECEDING FLAC's own chain
+    // (flacfile.cpp:90). Judging by the ID3v2 extent alone authorised a splice
+    // through a 2 MB picture block — a 37-byte prefix flipped the verdict.
+    const prefix = id3v2Tag(27);
+    const oversized = concat(
+      new TextEncoder().encode("fLaC"),
+      flacBlock(34, false, 0),
+      flacBlock(LIMIT * 4, true, 6),
+    );
+    const modest = concat(
+      new TextEncoder().encode("fLaC"),
+      flacBlock(34, false, 0),
+      flacBlock(100, true, 6),
+    );
+    assertEquals(metadataFitsInHeader(concat(prefix, oversized), LIMIT), false);
+    assertEquals(metadataFitsInHeader(concat(prefix, modest), LIMIT), true);
+  });
+
+  it("declines FLAC-in-Ogg, whose comment need not be the second packet", () => {
+    // Ogg::FLAC::File::scan() takes the comment from wherever block type 4
+    // appears; only libFLAC's convention puts it second, and nothing enforces it.
+    const flacInOgg = concat(
+      oggPage([5], [0x7F, ...new TextEncoder().encode("FLAC")]),
+      oggPage([30]),
+    );
+    assertEquals(metadataFitsInHeader(flacInOgg, LIMIT), false);
+  });
+
+  it("rejects a frame sync TagLib itself would reject", () => {
+    // MPEG::Header also requires a usable bitrate and sample-rate index, and
+    // MPEG::File::findID3v2 keeps scanning for a tag when byte 0 is not a valid
+    // frame — so a lax test here concludes "no ID3v2" for a file that has one.
+    const bogus = Uint8Array.from([0xFF, 0xFB, 0xFF, 0xFF, 0, 0, 0, 0]);
+    assertEquals(metadataFitsInHeader(bogus, LIMIT), false);
+    const valid = Uint8Array.from([0xFF, 0xFB, 0x90, 0x00, 0, 0, 0, 0]);
+    assertEquals(metadataFitsInHeader(valid, LIMIT), true);
+  });
+
+  it("refuses to vouch for an extent outside the buffer it was given", () => {
+    // The probes read structural fields only, so they can report an extent they
+    // never saw. Both call sites currently pass a full-length buffer, but a
+    // short-read optimisation would otherwise reopen this whole defect class.
+    assertEquals(metadataFitsInHeader(id3v2(100_000), 1_000_000), false);
   });
 
   it("rejects a format whose metadata extent it cannot determine", () => {

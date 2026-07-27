@@ -21,12 +21,16 @@
   **different metadata** than a full load, silently. Partial loading is now used
   only when the metadata is provably contained in the header window. That extent
   is measured for ID3v2, FLAC, MP4 and Ogg, and an MP3 with no ID3v2 tag
-  qualifies outright because its metadata is an ID3v1/APE trailer the footer
-  window already covers. Anything else — an unrecognised container, a truncated
-  or malformed header, or an MP4 whose `moov` sits behind the media data — falls
-  back to a full read rather than a wrong answer. RIFF (WAV/AIFF) always reads in
-  full: its metadata chunks may sit after the audio data, so containment cannot
-  be proven from the header alone.
+  qualifies outright because its metadata is an ID3v1 trailer the footer window
+  already covers. The trailer is checked too: an APE tag is unbounded (it can
+  carry cover art), and one larger than the footer window loses EVERY tag value
+  silently, so that also falls back. Anything else — an unrecognised container, a
+  truncated or malformed header, an MP4 whose `moov` sits behind the media data,
+  or FLAC-in-Ogg, whose comment block is not required to be the second packet —
+  reads in full rather than answering wrongly. An ID3v2 tag sitting in FRONT of
+  another container (TagLib allows this for FLAC) no longer short-circuits the
+  check: the container behind it is probed too. RIFF (WAV/AIFF) always reads in
+  full, because its metadata chunks may sit after the audio data.
 - **Saving an MP3 no longer deletes a non-numeric track or date (data loss).**
   Opening an MP3 and saving it — changing nothing at all — silently dropped a
   `TRCK` or `TDRC` frame whose value does not begin with a nonzero integer. A
