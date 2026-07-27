@@ -208,7 +208,16 @@ export function normalizeTagInput(
   ) {
     const val = input[field];
     if (val === undefined) continue;
-    props[field] = Array.isArray(val) ? val : [val];
+    const values = Array.isArray(val) ? val : [val];
+    // "" from a CALLER means remove the field. An empty value the file already
+    // holds — a numeric-only TCON reads back as "" — means keep it, and reaches
+    // setProperties as [""] via the spread of current properties. Both looked
+    // identical there, so protecting the second stopped the first from clearing
+    // (MP4 and WAV kept an empty field). Only here are the caller's intent and
+    // the file's state both in scope, so this is where they are told apart: an
+    // all-empty update becomes the empty list setProperties already treats as a
+    // delete.
+    props[field] = values.every((v) => v === "") ? [] : values;
   }
   if (input.year !== undefined) {
     props.date = [String(input.year)];

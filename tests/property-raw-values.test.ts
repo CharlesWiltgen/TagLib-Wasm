@@ -1050,10 +1050,24 @@ describe("a described COMM does not attract a duplicate (taglib-o3sl)", () => {
         );
         const reopened = await taglibs[backend].open(path);
         try {
+          const frames = reopened.getId3v2Frames("COMM");
           assertEquals(
-            reopened.getId3v2Frames("COMM").length,
+            frames.length,
             1,
             `${backend} added a duplicate COMM frame`,
+          );
+          // The COUNT alone blessed silent data loss: withdrawing the bare frame
+          // before the typed COMMENT mirror ran left setComment() with no bare
+          // frame to write to, so it fell through to the DESCRIBED frame and
+          // overwrote the Sound Check value — still exactly one frame. Assert
+          // what the defect actually destroys.
+          const text = new TextDecoder("latin1").decode(frames[0]!.data);
+          assertEquals(
+            text.includes(" 00000A1B"),
+            true,
+            `${backend} overwrote the described frame's payload: ${
+              JSON.stringify(text)
+            }`,
           );
         } finally {
           reopened.dispose();
@@ -1085,6 +1099,71 @@ describe("a described COMM does not attract a duplicate (taglib-o3sl)", () => {
       }
     });
   }
+});
+
+describe("writing an empty string clears the field", () => {
+  // An empty value arrives two ways and they mean opposite things: the caller
+  // writing "" means REMOVE this, while a value the file already holds and that
+  // projects to nothing (a numeric-only TCON) means keep it. Both reached
+  // setProperties() as [""], so protecting the second stopped the first from
+  // clearing — MP4 kept an empty atom where every other format removed it.
+  // The distinction is made where both are in scope: the caller's input.
+  for (const format of ["mp3", "m4a", "flac", "wav"] as const) {
+    it(`applyTags with "" removes the field [${format}]`, async () => {
+      const path = await tempCopy(format);
+      try {
+        await Deno.writeFile(path, await applyTags(path, { title: "Seed" }));
+        assertEquals(
+          await readProperty("wasi", path, "title"),
+          ["Seed"],
+          "seed did not land — the rest of this test would be vacuous",
+        );
+        await Deno.writeFile(path, await applyTags(path, { title: "" }));
+        for (const reader of BACKENDS) {
+          assertEquals(
+            await readProperty(reader, path, "title"),
+            undefined,
+            `${reader} left an empty value behind instead of clearing`,
+          );
+        }
+      } finally {
+        await Deno.remove(path).catch(() => {});
+      }
+    });
+  }
+
+  it("an unrelated edit still preserves a value that is legitimately empty", () => {
+    // The other half: clearing must not become so eager that a read-modify-write
+    // drops an empty value the file already had.
+    return (async () => {
+      const path = await tempCopy("mp3");
+      try {
+        const seeded = await taglibs.emscripten.open(path);
+        try {
+          seeded.setId3v2Frames("TCON", [
+            Uint8Array.from([0x03, ...new TextEncoder().encode("255")]),
+          ]);
+          seeded.save();
+          await Deno.writeFile(path, seeded.getFileBuffer());
+        } finally {
+          seeded.dispose();
+        }
+        await Deno.writeFile(path, await applyTags(path, { artist: "Edited" }));
+        const reopened = await taglibs.wasi.open(path);
+        try {
+          assertEquals(
+            reopened.getId3v2Frames("TCON").length,
+            1,
+            "an unrelated edit destroyed a legitimately empty value",
+          );
+        } finally {
+          reopened.dispose();
+        }
+      } finally {
+        await Deno.remove(path).catch(() => {});
+      }
+    })();
+  });
 });
 
 describe("track and disc totals land in the standard on-disk field", () => {

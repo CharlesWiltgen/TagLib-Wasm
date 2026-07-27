@@ -601,7 +601,6 @@ static void apply_propmap(TagLib::File* file, const TagLib::PropertyMap& propMap
     // frame (taglib-o3sl).
     const auto commentGuard = taglib_wasm::capture_id3v2_comment_guard(file);
     file->setProperties(propMap);
-    taglib_wasm::apply_id3v2_comment_guard(file, commentGuard);
 
     TagLib::Tag* tag = file->tag();
     if (!tag) return;
@@ -623,6 +622,15 @@ static void apply_propmap(TagLib::File* file, const TagLib::PropertyMap& propMap
     mirror("ALBUM", &TagLib::Tag::setAlbum);
     mirror("COMMENT", &TagLib::Tag::setComment);
     mirror("GENRE", &TagLib::Tag::setGenre);
+
+    // LAST, and the ordering is load-bearing. ID3v2::Tag::setComment prefers a
+    // bare frame and FALLS BACK to comments.front()->setText() when there is
+    // none (id3v2tag.cpp:265). Withdrawing the bare frame before the COMMENT
+    // mirror ran therefore aimed that mirror at the DESCRIBED frame and
+    // overwrote its payload — an iTunes Sound Check value destroyed by a save
+    // that changed nothing. Running after leaves the mirror a bare frame to
+    // write to, and only then is it taken away again.
+    taglib_wasm::apply_id3v2_comment_guard(file, commentGuard);
     // NOTE: DATE is intentionally NOT mirrored to tag->setYear() here.
     // file->setProperties() above already wrote the full DATE string; calling
     // setYear(front().toInt()) would truncate "1975-10-31" back to 1975 and
