@@ -38,6 +38,7 @@
 
 #include <id3v1tag.h>
 #include <id3v2tag.h>
+#include <commentsframe.h>
 #include <mpegfile.h>
 #include <tag.h>
 #include <tpropertymap.h>
@@ -183,6 +184,86 @@ inline void merge_id3v1_only_properties(TagLib::File* file,
     if (v1->year() != 0) fill("DATE", TagLib::String::number(v1->year()));
     if (v1->track() != 0) {
         fill("TRACKNUMBER", TagLib::String::number(v1->track()));
+    }
+}
+
+/*!
+ * ID3v2's bare (empty-description) COMM frame text, and whether one exists.
+ * CommentsFrame keys a DESCRIBED frame as "COMMENT:<DESC>", so only the bare
+ * frame corresponds to the plain COMMENT property key.
+ */
+inline bool id3v2_bare_comment(TagLib::ID3v2::Tag* tag, TagLib::String* text) {
+    if (!tag) return false;
+    for (const auto& frame : tag->frameList("COMM")) {
+        auto* comm = dynamic_cast<TagLib::ID3v2::CommentsFrame*>(frame);
+        if (!comm || !comm->description().isEmpty()) continue;
+        if (text) *text = comm->toString();
+        return true;
+    }
+    return false;
+}
+
+/*! True when ID3v2 carries a COMM frame that has a description. */
+inline bool id3v2_has_described_comment(TagLib::ID3v2::Tag* tag) {
+    if (!tag) return false;
+    for (const auto& frame : tag->frameList("COMM")) {
+        auto* comm = dynamic_cast<TagLib::ID3v2::CommentsFrame*>(frame);
+        if (comm && !comm->description().isEmpty()) return true;
+    }
+    return false;
+}
+
+/*!
+ * State needed to undo a COMM frame that exists only because the property map
+ * had to carry ID3v1's comment (taglib-o3sl).
+ *
+ * When ID3v2's only comment frames are DESCRIBED — the usual iTunes shape —
+ * the map has no bare COMMENT key, so merge_id3v1_only_properties fills it from
+ * ID3v1. The map must carry it: ID3v1's own comment is written from that same
+ * map, and withholding it CLEARS ID3v1, which is why suppressing the merge was
+ * tried and reverted. But ID3v2 should not gain a second frame for a value that
+ * was never its own, so the frame is removed again afterwards — and only when it
+ * is provably that value, never a comment the caller actually set.
+ */
+struct Id3v2CommentGuard {
+    bool active = false;
+    TagLib::String id3v1Comment;
+};
+
+inline Id3v2CommentGuard capture_id3v2_comment_guard(TagLib::File* file) {
+    Id3v2CommentGuard guard;
+    auto* mpeg = dynamic_cast<TagLib::MPEG::File*>(file);
+    if (!mpeg) return guard;
+    TagLib::ID3v2::Tag* v2 = mpeg->ID3v2Tag();
+    TagLib::ID3v1::Tag* v1 = mpeg->ID3v1Tag();
+    if (!v2 || !v1) return guard;
+    // Only when a described frame exists, no bare frame does, and ID3v1 has a
+    // comment to have been merged in the first place.
+    if (!id3v2_has_described_comment(v2)) return guard;
+    if (id3v2_bare_comment(v2, nullptr)) return guard;
+    if (v1->comment().isEmpty()) return guard;
+    guard.active = true;
+    guard.id3v1Comment = v1->comment();
+    return guard;
+}
+
+inline void apply_id3v2_comment_guard(TagLib::File* file,
+                                      const Id3v2CommentGuard& guard) {
+    if (!guard.active) return;
+    auto* mpeg = dynamic_cast<TagLib::MPEG::File*>(file);
+    if (!mpeg) return;
+    TagLib::ID3v2::Tag* v2 = mpeg->ID3v2Tag();
+    TagLib::String text;
+    if (!id3v2_bare_comment(v2, &text)) return;
+    // A caller who set a DIFFERENT comment gets to keep it; only the value that
+    // came from ID3v1 is withdrawn.
+    if (text != guard.id3v1Comment) return;
+    for (const auto& frame : v2->frameList("COMM")) {
+        auto* comm = dynamic_cast<TagLib::ID3v2::CommentsFrame*>(frame);
+        if (comm && comm->description().isEmpty()) {
+            v2->removeFrame(comm);
+            break;
+        }
     }
 }
 

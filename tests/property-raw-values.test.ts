@@ -718,16 +718,13 @@ describe("an MPEG save keeps a TRCK/TDRC that narrows to 0 (taglib-9m0w)", () =>
   // backends disagree about how to present a numeric genre -- Emscripten reports
   // [""], WASI reports nothing -- and the loss under test is the frame itself.
   //
-  // Emscripten ONLY, deliberately. WASI still loses this frame by a different and
-  // pre-existing route (taglib-yc1x): an empty-valued property is dropped at the
-  // msgpack boundary, so GENRE never reaches the snapshot and setProperties()
-  // removes every frame the incoming map does not represent.
-  //
-  // A [wasi] instance pinned to the defective count USED to sit here. It could
-  // not fail — 0 is the data loss — so it was a ratchet holding the bug in place
-  // while reading as two-backend coverage. Better to cover one backend honestly
-  // than two dishonestly; this comes back when taglib-yc1x is fixed.
-  for (const backend of ["emscripten"] as const) {
+  // Both backends, since taglib-yc1x is fixed. WASI used to lose the frame by a
+  // second route: an empty-valued property was hidden by getProperties(),
+  // stripped by the msgpack encoder, and then deleted outright by
+  // apply_propmap's typed mirror calling setGenre("") — which TagLib defines as
+  // removeFrames("TCON"). An empty value now crosses the boundary end to end,
+  // and the mirrors skip empty values because writing one can only ever delete.
+  for (const backend of BACKENDS) {
     it(`keeps a numeric TCON across a no-op open+save [${backend}]`, async () => {
       const path = await tempCopy("mp3");
       try {
@@ -980,6 +977,108 @@ describe("ID3v1-only values are visible, writable and clearable (taglib-nft5)", 
           await readProperty(backend, path, "trackNumber"),
           ["5"],
           `${backend} lost an ID3v1-only track across an unrelated edit`,
+        );
+      } finally {
+        await Deno.remove(path).catch(() => {});
+      }
+    });
+  }
+});
+
+describe("a described COMM does not attract a duplicate (taglib-o3sl)", () => {
+  // CommentsFrame keys a DESCRIBED frame as "COMMENT:<DESC>", so a file whose
+  // only comment carries a description (the usual iTunes shape) has no bare
+  // COMMENT key, and merge_id3v1_only_properties fills it from ID3v1. The map
+  // MUST carry that value — ID3v1's own comment is written from the same map and
+  // withholding it CLEARS ID3v1, which is why suppressing the merge was tried
+  // and reverted — so the spurious frame is withdrawn after the write instead.
+  function commFrame(description: string, text: string): Uint8Array {
+    return Uint8Array.from([
+      0x03,
+      ...new TextEncoder().encode("eng"),
+      ...new TextEncoder().encode(description),
+      0x00,
+      ...new TextEncoder().encode(text),
+    ]);
+  }
+
+  /** ID3v1's comment field begins 31 bytes before the end of the file. */
+  async function seedDescribedComment(backend: Backend): Promise<string> {
+    const path = await tempCopy("mp3");
+    const file = await taglibs[backend].open(path);
+    try {
+      file.setProperties({ title: ["Song"], artist: ["Band"] });
+      file.setId3v2Frames("COMM", [commFrame("iTunNORM", " 00000A1B")]);
+      file.save();
+      await Deno.writeFile(path, file.getFileBuffer());
+    } finally {
+      file.dispose();
+    }
+    const bytes = await Deno.readFile(path);
+    const tag = bytes.length - 128;
+    assertEquals(
+      new TextDecoder().decode(bytes.slice(tag, tag + 3)),
+      "TAG",
+      "expected an ID3v1 tag to patch",
+    );
+    bytes.set(new Uint8Array(30), tag + 97);
+    bytes.set(new TextEncoder().encode("V1RealComment"), tag + 97);
+    await Deno.writeFile(path, bytes);
+    return path;
+  }
+
+  const id3v1Comment = (bytes: Uint8Array) =>
+    new TextDecoder().decode(bytes.slice(bytes.length - 31, bytes.length - 1))
+      .replace(/\0/g, "").trim();
+
+  for (const backend of BACKENDS) {
+    it(`keeps one COMM and the ID3v1 comment across a no-op save [${backend}]`, async () => {
+      const path = await seedDescribedComment(backend);
+      try {
+        const file = await taglibs[backend].open(path);
+        try {
+          file.save();
+          await Deno.writeFile(path, file.getFileBuffer());
+        } finally {
+          file.dispose();
+        }
+
+        assertEquals(
+          id3v1Comment(await Deno.readFile(path)),
+          "V1RealComment",
+          `${backend} destroyed the ID3v1 comment`,
+        );
+        const reopened = await taglibs[backend].open(path);
+        try {
+          assertEquals(
+            reopened.getId3v2Frames("COMM").length,
+            1,
+            `${backend} added a duplicate COMM frame`,
+          );
+        } finally {
+          reopened.dispose();
+        }
+      } finally {
+        await Deno.remove(path).catch(() => {});
+      }
+    });
+
+    it(`still writes a comment the caller actually set [${backend}]`, async () => {
+      // The withdrawal must take back only the value that came from ID3v1.
+      const path = await seedDescribedComment(backend);
+      try {
+        const file = await taglibs[backend].open(path);
+        try {
+          file.setProperty("comment", "CallerSet");
+          file.save();
+          await Deno.writeFile(path, file.getFileBuffer());
+        } finally {
+          file.dispose();
+        }
+        assertEquals(
+          await readProperty(backend, path, "comment"),
+          ["CallerSet"],
+          `${backend} withdrew a comment the caller set`,
         );
       } finally {
         await Deno.remove(path).catch(() => {});
