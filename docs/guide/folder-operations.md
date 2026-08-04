@@ -13,15 +13,14 @@ The folder API is available through a dedicated import path:
 import { findDuplicates, scanFolder, updateFolderTags } from "taglib-wasm";
 ```
 
-::: tip Runtime Support
-Folder operations require filesystem access and are available in:
+::: tip Runtime Support Folder operations require filesystem access and are
+available in:
 
 - ✅ Deno
 - ✅ Node.js
 - ✅ Bun
 - ❌ Browsers (no filesystem access)
-- ❌ Cloudflare Workers (no filesystem access)
-  :::
+- ❌ Cloudflare Workers (no filesystem access) :::
 
 ## Scanning Folders
 
@@ -343,3 +342,53 @@ if (errors.length > 0) {
 
 For detailed API documentation, see the
 [Folder API Reference](/api/folder-api.html).
+
+## Album Grouping
+
+`scanAlbums()` scans a folder and groups the result into albums with disc
+subdivisions. `groupAlbums()` is the pure, synchronous core over an existing
+`scanFolder()` result — runtime-agnostic, browsers included.
+
+```typescript
+import { scanAlbums } from "taglib-wasm";
+
+const { albums, singles, unmatched, errors } = await scanAlbums("/music", {
+  recursive: true,
+});
+
+for (const album of albums) {
+  console.log(
+    `${
+      album.albumArtist ?? ""
+    } — ${album.album} (${album.discs.length} disc(s))`,
+  );
+  for (const disc of album.discs) {
+    console.log(
+      `  Disc ${disc.discNumber ?? "?"}: ${disc.items.length} tracks`,
+    );
+  }
+}
+```
+
+Semantics:
+
+- **Tags are authority, folder names are evidence.** Disc folders are recognized
+  by name with confidence tiers (`CD1` high, `Album (Disc 1)` medium unless
+  corroborated by siblings, `Volume 1` medium, `Bonus Disc` and bare numbers
+  gated), with sibling corroboration; embedded `discNumber` wins over the
+  folder. Flat filename prefixes (`1-01`, `101`) subdivide a folder.
+- **Every file carries its own resolution**: `item.albumDir` (the album folder
+  the file was attributed to) and `item.discNumber` — the single authority for
+  UI cards and lint buckets. `album.directory` is the album folder for cover
+  lookup.
+- **Singles and unmatched**: an album of exactly one file is a `single`; ok
+  items with no album tag and no folder title evidence land in `unmatched`;
+  per-file scan errors land in `errors` (disjoint from everything else).
+- **Compilation**: `album.compilation` is `true`/`false` only when the embedded
+  compilation flags agree (COMPILATION/TCMP/cpil), `undefined` otherwise.
+
+Options (`scanAlbums` takes `FolderScanOptions` plus
+`GroupAlbumsOptions`/`ScanAlbumsOptions`): `minFolderConfidence` drops weak
+folder disc evidence, `flatDiscPrefixes` toggles filename-prefix parsing,
+`folderFallback` toggles folder-based grouping of untagged files, `scanRoot`
+pins the scanned directory (a bare `CD1/` directly under it is unmatched).

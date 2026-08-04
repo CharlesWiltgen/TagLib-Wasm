@@ -246,6 +246,45 @@ const dupes = await findDuplicates("/music", { criteria: ["artist", "title"] });
 await exportFolderMetadata("/music", "./catalog.json");
 ```
 
+### Album grouping (read-only)
+
+`scanAlbums` scans a folder and groups the result into albums with disc
+subdivisions; `groupAlbums` is the pure, synchronous core over an existing
+`scanFolder` result (runtime-agnostic — browsers included).
+
+```typescript
+import { scanAlbums, groupAlbums } from "taglib-wasm";
+
+const { albums, singles, unmatched, errors } = await scanAlbums("/music", {
+  recursive: true,
+});
+
+// albums[].discs[] — one per resolved disc number
+// albums[].items[] — every file, each carrying its own resolution:
+//   item.albumDir    — the album folder the file was attributed to
+//   item.discNumber  — resolved disc (tag wins, folder is the fallback)
+// albums[].directory — common album folder (for cover lookup)
+// albums[].compilation — true/false from tag agreement (COMPILATION/TCMP/cpil),
+//                        undefined when tags are absent or disagree
+// singles[] — ok items whose resolved album has exactly one file
+// unmatched[] — untagged files with no folder title evidence
+// errors[] — per-file scan errors
+
+// Pure core (no I/O): group any FolderScanResult
+const grouped = groupAlbums(scanResult, {
+  minFolderConfidence: "high", // drop weak folder disc evidence
+  flatDiscPrefixes: true,      // parse "1-01"/"101" filename discs
+  folderFallback: true,        // group untagged files by folder
+});
+```
+
+Semantics: embedded tags are authority, folder/filename structure is evidence
+(confidence tiers, sibling corroboration); a single-file album is a `single`,
+not an album; per-file `albumDir`/`discNumber` is the resolution consumers key
+UI and lint buckets by. Folder disc recognition covers `CD1`, `Disc One`,
+`DVD 1`, `Album (Disc 1)`, `Volume 1`, `Bonus Disc` (gated), bare numbers, and
+flat filename prefixes (`1-01`, `101`); plain `Bonus`/`Extras` are never discs.
+
 ## Import Patterns
 
 ```typescript

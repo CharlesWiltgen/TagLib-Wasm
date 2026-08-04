@@ -2,6 +2,20 @@
 
 ## Unreleased
 
+### Added
+
+- **Album grouping: `scanAlbums()` and `groupAlbums()`** (folder API). Scan a
+  folder and get albums with disc subdivisions, using embedded tags as
+  authority and folder/filename structure as evidence. Every result item
+  carries its own resolution (`albumDir`, `discNumber`); albums expose
+  `directory`, `compilation` (tag-flag agreement), discs with `totalDiscs`
+  (tag → `of N` → max sibling), `tagDiscNumber`/`folderDiscNumber`/`confidence`;
+  1-file albums are `singles`, untaggable files are `unmatched`, scan errors
+  are `errors` (disjoint partition). Pure, synchronous `groupAlbums` runs
+  anywhere; `scanAlbums` wraps `scanFolder`. Recognizers cover exact/embedded/
+  volume/bonus/bare disc names with sibling corroboration and flat filename
+  prefixes (`1-01`, `101`); plain `Bonus`/`Extras` are never discs.
+
 ### Fixed
 
 - **WMA multi-value attributes now round-trip in the caller's order instead

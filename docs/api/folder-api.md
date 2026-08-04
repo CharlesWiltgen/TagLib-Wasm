@@ -20,6 +20,53 @@ import {
 
 ## Functions
 
+### groupAlbums() / scanAlbums()
+
+Groups a folder scan into albums with disc subdivisions. `groupAlbums` is the
+pure, synchronous core over a `FolderScanResult` (runtime-agnostic);
+`scanAlbums` scans then groups (Deno/Node/Bun only).
+
+```typescript
+function groupAlbums(
+  result: FolderScanResult,
+  options?: GroupAlbumsOptions,
+): AlbumGroupingResult;
+
+function scanAlbums(
+  folderPath: string,
+  options?: ScanAlbumsOptions, // FolderScanOptions & GroupAlbumsOptions
+): Promise<AlbumGroupingResult>;
+```
+
+**`AlbumGroupingResult`:**
+
+- `albums: AlbumGroup[]` - each with `key`, `album`, `albumArtist`,
+  `source: "tags" | "folder"`, `compilation: boolean | undefined` (tag
+  agreement), `directory` (common album folder), `discs: AlbumDisc[]`, and
+  `items: AlbumGroupItem[]`
+- `AlbumGroupItem extends AudioFileMetadata` adding the per-file resolution:
+  `albumDir` (the album folder the file was attributed to) and `discNumber` (tag
+  wins, folder is the fallback)
+- `AlbumDisc` - `discNumber`, `totalDiscs` (tag total → `of N` → max sibling),
+  `folderDiscNumber`, `folderDiscTitle`, `tagDiscNumber`, `confidence`, `items`
+- `singles: AudioFileMetadata[]` - ok items whose resolved album has exactly one
+  file
+- `unmatched: AudioFileMetadata[]` - no album tag and no folder title evidence
+- `errors` - per-file scan errors (disjoint from all other buckets)
+
+**Options:** `minFolderConfidence` (`"low" | "medium" | "high"`),
+`flatDiscPrefixes` (default true), `folderFallback` (default true), `scanRoot`
+(pins the scanned directory; a bare disc folder directly under it is unmatched).
+
+**Example:**
+
+```typescript
+const { albums, singles } = await scanAlbums("/music", { recursive: true });
+for (const album of albums) {
+  console.log(album.album, album.discs.map((d) => d.discNumber));
+}
+```
+
 ### scanFolder()
 
 Scans a directory for audio files and reads their metadata.

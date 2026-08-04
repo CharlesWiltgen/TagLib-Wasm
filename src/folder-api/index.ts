@@ -21,3 +21,16 @@ export {
   findDuplicates,
   updateFolderTags,
 } from "./folder-operations.ts";
+
+export {
+  type AlbumDisc,
+  type AlbumGroup,
+  type AlbumGroupingResult,
+  type AlbumGroupItem,
+  type AlbumGroupKey,
+  type DiscConfidence,
+  groupAlbums,
+  type GroupAlbumsOptions,
+} from "./group-albums.ts";
+
+export { scanAlbums, type ScanAlbumsOptions } from "./scan-albums.ts";
