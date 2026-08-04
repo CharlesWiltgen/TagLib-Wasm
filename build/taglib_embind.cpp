@@ -50,6 +50,7 @@
 #include "../src/capi/formats/taglib_lame.h"
 #include "../src/capi/taglib_mp4_atoms.h"
 #include "../src/capi/taglib_id3_duplicate.h"
+#include "../src/capi/taglib_asf_multi_value.h"
 #include <memory>
 #include <string>
 #include <set>
@@ -650,6 +651,11 @@ public:
     
     bool save() {
         if (!fileRef) return false;
+        // ASF multi-value attributes are rotated by TagLib's render+parse
+        // (ECDO/MLO split); right-rotate before render, restore after save
+        // (taglib-ilrg). Inert for every other format. Twin of
+        // save_preserving_id3() in src/capi/taglib_shim.cpp.
+        taglib_wasm::ASFMultiValueRotationGuard asfGuard(fileRef->file());
         auto* mpegFile = dynamic_cast<TagLib::MPEG::File*>(fileRef->file());
         if (!mpegFile) return fileRef->save();
 

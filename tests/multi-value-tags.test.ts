@@ -240,9 +240,12 @@ describe("applyTags with extended fields", () => {
 const BACKENDS = ["wasi", "emscripten"] as const;
 
 // Formats whose multi-value genre must round-trip in EXACT order. wma is
-// excluded: TagLib's ASF render splits multi-value attributes across the
-// Extended Content Description and Metadata Library objects, so they read
-// back reversed (taglib-ilrg) — covered there, re-enable when fixed.
+// covered by a write-side rotation compensation for TagLib's ASF render
+// (taglib-ilrg): the render splits a multi-value attribute across the
+// Extended Content Description and Metadata Library objects, which parse
+// back as a left rotation; the shim applies the inverse on write. If a
+// TagLib bump ever fixes the render, the wma instances here go red and the
+// compensation must be removed.
 const ORDER_PRESERVING_FORMATS = [
   "mp3",
   "m4a",
@@ -253,6 +256,7 @@ const ORDER_PRESERVING_FORMATS = [
   "tta",
   "wav",
   "mka",
+  "wma",
 ] as const;
 
 describe("multi-genre round-trip per format (parity)", () => {
@@ -278,6 +282,57 @@ describe("multi-genre round-trip per format (parity)", () => {
         assertEquals(props.genre, ["Pop", "Rock"]);
       });
     }
+  }
+});
+
+describe("ASF multi-value rotation compensation (taglib-ilrg)", () => {
+  for (const backend of BACKENDS) {
+    it(`[${backend}] wma 3-value genre round-trips in exact order`, async () => {
+      const tl = await TagLib.initialize({ forceWasmType: backend });
+      const src = await Deno.readFile(FIXTURE_PATH.wma);
+      const file = await tl.open(new Uint8Array(src));
+      file.setProperties({ genre: ["Pop", "Rock", "Jazz"] });
+      file.save();
+      const buf = file.getFileBuffer();
+      file.dispose();
+
+      const tlR = await TagLib.initialize({
+        forceWasmType: backend === "wasi" ? "emscripten" : "wasi",
+      });
+      const reopened = await tlR.open(buf);
+      const props = reopened.properties() as Record<string, string[]>;
+      reopened.dispose();
+      // TagLib's ASF render+parse left-rotates multi-value attributes by one
+      // ([A,B,C] -> [B,C,A]); the write-side compensation must restore the
+      // exact order. A naive reversal would give [A,C,B] here.
+      assertEquals(props.genre, ["Pop", "Rock", "Jazz"]);
+    });
+
+    it(`[${backend}] wma no-op save keeps multi-value order stable`, async () => {
+      const tl = await TagLib.initialize({ forceWasmType: backend });
+      const src = await Deno.readFile(FIXTURE_PATH.wma);
+      const file = await tl.open(new Uint8Array(src));
+      file.setProperties({ genre: ["Pop", "Rock"] });
+      file.save();
+      const once = file.getFileBuffer();
+      file.dispose();
+
+      const tl2 = await TagLib.initialize({
+        forceWasmType: backend === "wasi" ? "emscripten" : "wasi",
+      });
+      const second = await tl2.open(once);
+      second.save(); // no-op: no property changed
+      const twice = second.getFileBuffer();
+      second.dispose();
+
+      const tl3 = await TagLib.initialize({
+        forceWasmType: backend === "wasi" ? "emscripten" : "wasi",
+      });
+      const third = await tl3.open(twice);
+      const props = third.properties() as Record<string, string[]>;
+      third.dispose();
+      assertEquals(props.genre, ["Pop", "Rock"]);
+    });
   }
 });
 

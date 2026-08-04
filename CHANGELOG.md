@@ -4,6 +4,21 @@
 
 ### Fixed
 
+- **WMA multi-value attributes now round-trip in the caller's order instead
+  of being rotated by one.** TagLib 2.3.1's ASF render splits a multi-value
+  attribute across the Extended Content Description and Metadata Library
+  objects, and the header parses them back in an order that left-rotates the
+  values — `["Pop", "Rock"]` was written and read back as `["Rock", "Pop"]`,
+  and because the split happens at render time, even a no-op save flipped the
+  order on every write. Both backends now right-rotate multi-value attributes
+  immediately before `save()` renders (and restore them after), so writes and
+  no-op saves are stable and order-exact for any number of values
+  (`src/capi/taglib_asf_multi_value.h`). This is a deliberate compensation
+  for a TagLib defect, guarded by tests that assert 2- and 3-value round-trip
+  and no-op-save stability on both backends; if a TagLib bump fixes the
+  render, the guard must be deleted, not adjusted (taglib-ilrg). Files
+  written by other taggers are read exactly as TagLib merges them, unchanged.
+
 - **Property values containing an embedded NUL are no longer truncated on the
   WASI backend (parity divergence).** The WASI msgpack decoder built
   `TagLib::String` from a null-terminated C buffer, so any value containing a

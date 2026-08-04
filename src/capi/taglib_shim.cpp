@@ -21,6 +21,7 @@
 #include "taglib_audio_props.h"
 #include "taglib_mp4_atoms.h"
 #include "taglib_id3_duplicate.h"
+#include "taglib_asf_multi_value.h"
 #include "core/taglib_msgpack.h"
 #include "core/taglib_core.h"
 
@@ -770,6 +771,10 @@ static std::vector<std::string> read_mp4_item_names(const uint8_t* data, size_t 
  *    still has a job in both directions.
  */
 static bool save_preserving_id3(TagLib::File* file, bool raw_frames_written) {
+    // ASF multi-value attributes are rotated by TagLib's render+parse
+    // (ECDO/MLO split); right-rotate before render, restore after save
+    // (taglib-ilrg). Inert for every other format.
+    taglib_wasm::ASFMultiValueRotationGuard asfGuard(file);
     auto* mpeg = dynamic_cast<TagLib::MPEG::File*>(file);
     if (!mpeg) return file->save();
 
