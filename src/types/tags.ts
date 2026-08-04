@@ -118,6 +118,11 @@ export interface TagInput {
   readonly replayGainTrackPeak?: string | string[];
   readonly replayGainAlbumGain?: string | string[];
   readonly replayGainAlbumPeak?: string | string[];
+  // EBU R128 loudness gains (RFC 7845): a number is DECIBELS, converted to
+  // the signed Q7.8 wire value with round(dB x 256) (e.g. -2.23828125 ->
+  // "-573"); a string[] is the raw wire integer, written verbatim.
+  readonly r128TrackGain?: number | string[];
+  readonly r128AlbumGain?: number | string[];
 
   // Extended numeric fields
   readonly discNumber?: number;
@@ -227,6 +232,12 @@ export interface ExtendedTag extends Tag {
   readonly replayGainAlbumGain?: string[];
   /** ReplayGain album peak value (0.0-1.0) */
   readonly replayGainAlbumPeak?: string[];
+  // EBU R128 loudness gains (RFC 7845) as DECIBEL numbers: the wire value is
+  // a signed Q7.8 integer (dB x 256, e.g. "-573" = -2.23828125 dB) and the
+  // typed surface converts, so readTags() returns -2.23828125. Lossless on
+  // readTags() -> applyTags() round-trips (see TagInput.r128TrackGain).
+  readonly r128TrackGain?: number;
+  readonly r128AlbumGain?: number;
 
   // Apple Sound Check
   /** Apple Sound Check normalization data (iTunNORM) */

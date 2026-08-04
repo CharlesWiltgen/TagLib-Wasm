@@ -125,6 +125,13 @@ export function mapPropertiesToExtendedTag(props: PropertyMap): ExtendedTag {
       if (num !== undefined) tag[camelKey] = num;
     } else if (camelKey === "compilation") {
       tag[camelKey] = values[0] === "1";
+    } else if (camelKey === "r128TrackGain" || camelKey === "r128AlbumGain") {
+      // EBU R128 (RFC 7845): the wire value is a signed Q7.8 integer; the
+      // typed surface carries the decibel value. Exact inverse of the write
+      // conversion (round(dB x 256)), so readTags() -> applyTags() round-trips
+      // file-derived values losslessly.
+      const raw = parseNumeric(values[0]);
+      if (raw !== undefined) tag[camelKey] = raw / 256;
     } else {
       tag[camelKey] = values;
     }
@@ -237,6 +244,12 @@ export function normalizeTagInput(
       props[field] = [val ? "1" : "0"];
     } else if (NUMERIC_FIELDS.has(field)) {
       props[field] = [String(val)];
+    } else if (field === "r128TrackGain" || field === "r128AlbumGain") {
+      // A number is decibels -> Q7.8 (dB x 256, rounded); a string[] is the
+      // raw wire integer and passes through verbatim.
+      props[field] = Array.isArray(val)
+        ? val
+        : [String(Math.round((val as number) * 256))];
     } else if (typeof val === "string") {
       props[field] = [val];
     } else if (Array.isArray(val)) {

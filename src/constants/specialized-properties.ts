@@ -94,6 +94,30 @@ export const SPECIALIZED_PROPERTIES = {
       mp4: "----:com.apple.iTunes:replaygain_album_peak",
     },
   },
+  r128TrackGain: {
+    key: "R128_TRACK_GAIN",
+    description:
+      "EBU R128 track loudness gain (RFC 7845), raw wire value: signed Q7.8 integer (dB x 256, e.g. '-573' = -2.23828125 dB). readTags() converts to a decibel number (see ExtendedTag.r128TrackGain)",
+    type: "string" as const,
+    supportedFormats: ["ID3v2", "MP4", "Vorbis", "ASF"] as const,
+    mappings: {
+      id3v2: { frame: "TXXX", description: "R128_TRACK_GAIN" },
+      vorbis: "R128_TRACK_GAIN",
+      mp4: "----:com.apple.iTunes:R128_TRACK_GAIN",
+    },
+  },
+  r128AlbumGain: {
+    key: "R128_ALBUM_GAIN",
+    description:
+      "EBU R128 album loudness gain (RFC 7845), raw wire value: signed Q7.8 integer (dB x 256). readTags() converts to a decibel number",
+    type: "string" as const,
+    supportedFormats: ["ID3v2", "MP4", "Vorbis", "ASF"] as const,
+    mappings: {
+      id3v2: { frame: "TXXX", description: "R128_ALBUM_GAIN" },
+      vorbis: "R128_ALBUM_GAIN",
+      mp4: "----:com.apple.iTunes:R128_ALBUM_GAIN",
+    },
+  },
 
   // AcoustID Properties
   acoustidFingerprint: {

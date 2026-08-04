@@ -265,6 +265,16 @@ export const METADATA_MAPPINGS: Record<
     vorbis: "REPLAYGAIN_ALBUM_PEAK",
     mp4: "----:com.apple.iTunes:replaygain_album_peak",
   },
+  r128TrackGain: {
+    id3v2: { frame: "TXXX", description: "R128_TRACK_GAIN" },
+    vorbis: "R128_TRACK_GAIN",
+    mp4: "----:com.apple.iTunes:R128_TRACK_GAIN",
+  },
+  r128AlbumGain: {
+    id3v2: { frame: "TXXX", description: "R128_ALBUM_GAIN" },
+    vorbis: "R128_ALBUM_GAIN",
+    mp4: "----:com.apple.iTunes:R128_ALBUM_GAIN",
+  },
 
   // Apple Sound Check mapping
   appleSoundCheck: {

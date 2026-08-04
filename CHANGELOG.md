@@ -23,7 +23,21 @@
   resolve-to-parent semantics, so consumers (e.g. tuneup's placeholder path)
   can reuse the recognizer instead of reimplementing it.
 
-### Fixed
+### Added
+
+- **Typed EBU R128 loudness properties** (RFC 7845): `r128TrackGain` /
+  `r128AlbumGain` on `readTags()` / `applyTags()` carry the gain in
+  DECIBELS, with the Q7.8 wire conversion handled for you (the file stores
+  a signed integer, dB x 256 — `"-573"` = `-2.23828125` dB). Read converts
+  `int / 256`, write converts `round(dB x 256)` — lossless for values that
+  came from a file, and a `string[]` input passes the raw wire integer
+  verbatim. The raw property surface (`properties()` /
+  `setProperty("R128_TRACK_GAIN", ...)`) keeps the integer untouched, like
+  ReplayGain. Works on Opus/FLAC/Ogg (Vorbis comments), MP3 (TXXX), MP4
+  (freeform atom), and WMA (via the new ASF unknown-attribute path). 15
+  new tests: conversion units, both-backend parity round-trips with
+  byte-level wire verification, clearing, and cross-format coverage —
+  observed failing before the change.
 
 - **ASF/WMA no longer silently drops unknown attributes** (ReplayGain,
   ITUNESADVISORY, R128, arbitrary string attributes). ASF::Tag::setProperties

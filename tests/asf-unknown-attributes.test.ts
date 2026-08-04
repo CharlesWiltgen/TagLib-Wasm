@@ -49,14 +49,14 @@ describe("ASF unknown attributes (taglib-984r)", () => {
       const props = {
         replayGainTrackGain: ["-3.00 dB"],
         ITUNESADVISORY: ["1"],
-        R128_TRACK_GAIN: ["1280"],
+        "X-CUSTOM-ATTRIBUTE": ["custom-value"],
       };
       const { readBack, sameHandle } = await roundTrip(backend, props);
 
       // Disk truth (read by the OTHER backend): nothing dropped.
       assertEquals(readBack.replayGainTrackGain, ["-3.00 dB"]);
       assertEquals(readBack.ITUNESADVISORY, ["1"]);
-      assertEquals(readBack.R128_TRACK_GAIN, ["1280"]);
+      assertEquals(readBack["X-CUSTOM-ATTRIBUTE"], ["custom-value"]);
 
       // Same-handle read (WASI cache echo) must agree with disk.
       assertEquals(sameHandle.replayGainTrackGain, ["-3.00 dB"]);

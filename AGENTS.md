@@ -99,6 +99,11 @@ interface Tag {
 //   acoustidFingerprint, acoustidId: string[]
 //   replayGainTrackGain, replayGainTrackPeak: string[]
 //   replayGainAlbumGain, replayGainAlbumPeak: string[]
+//   r128TrackGain, r128AlbumGain: number  — EBU R128 loudness gain in dB
+//     (RFC 7845); the wire value is a signed Q7.8 integer ("-573" =
+//     -2.23828125 dB). readTags() converts int/256; a number you pass to
+//     applyTags() is converted with round(dB*256) (lossless for values that
+//     came from a file), a string[] passes the raw wire integer verbatim.
 //   appleSoundCheck (iTunNORM), appleGaplessInfo (iTunSMPB): string[]
 //   trackNumber: string | string[]  — RAW track field ("03", "3/12"); wins over
 //     the numeric `track` on write, and is what makes readTags -> applyTags
