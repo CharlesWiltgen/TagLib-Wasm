@@ -114,8 +114,23 @@ export function mapPropertiesToExtendedTag(props: PropertyMap): ExtendedTag {
     if (total !== undefined) tag[totalField] = total;
   }
 
+  // Legacy YEAR-only files: DATE is canonical, YEAR is the fallback — the
+  // same DATE-then-YEAR rule TagLib's typed year() getter applies
+  // (taglib-7ru2). The property surface keeps the raw YEAR key (byte-stable
+  // round-trips); only the typed surface resolves the fallback, so a
+  // readTags() -> applyTags() round-trip canonicalizes YEAR to DATE.
+  if (tag.date === undefined) {
+    const yearValues = props["YEAR"];
+    if (yearValues !== undefined && yearValues.length > 0) {
+      const y = parseNumeric(yearValues[0]);
+      if (y !== undefined) tag.year = y;
+      tag.date = yearValues.length === 1 ? yearValues[0] : yearValues;
+    }
+  }
+
   for (const [key, values] of Object.entries(props)) {
     if (BASIC_PROPERTY_KEYS[key]) continue;
+    if (key === "YEAR") continue; // consumed by the DATE-then-YEAR fallback above
     if (!values || values.length === 0) continue;
     // camelCase PropertyKeys pass through; ALL_CAPS pass-through keys get mapped
     const camelKey = fromTagLibKey(key);
@@ -147,6 +162,14 @@ export function mergeTagUpdates(
   const currentProps = file.properties();
   const newProps = normalizeTagInput(tags);
   reconcilePairFields(currentProps, newProps, tags);
+  // The typed surface resolves the DATE-then-YEAR fallback (taglib-7ru2);
+  // writing the canonical date back must not leave the legacy YEAR field
+  // behind — same "authoritative incoming value" rule as the pair fields.
+  // An empty list is the explicit clear: WASI's merge-model setProperties
+  // only removes keys mentioned in the incoming map (taglib-nc5).
+  if (newProps.date !== undefined || newProps.year !== undefined) {
+    currentProps.YEAR = [];
+  }
   file.setProperties({ ...currentProps, ...newProps });
 }
 

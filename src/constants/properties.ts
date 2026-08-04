@@ -55,6 +55,42 @@ _toTagLib["track"] = "TRACKNUMBER";
 // Legacy: older C++ binaries sent "disc" instead of "discNumber"
 _fromTagLib["disc"] = "discNumber";
 
+// Read-side aliases (taglib-7ru2): legacy/common alternative wire names that
+// resolve to the canonical property key. Read surfaces (properties(), the
+// WASI decoder, the typed map) present the canonical key; writes through
+// setProperties normalize to it too. Canonical keys win when a file carries
+// both spellings (see the guard in remapKeysFromTagLib). YEAR is deliberately
+// NOT here: DATE-then-YEAR is a fallback, not a rename — YEAR stays raw on the
+// property surface (byte-stable round-trips) and is resolved only on the typed
+// surface (mapPropertiesToExtendedTag).
+const READ_ALIASES: Record<string, string> = {
+  "ALBUM ARTIST": "ALBUMARTIST",
+  ALBUM_ARTIST: "ALBUMARTIST",
+  ORGANIZATION: "LABEL",
+  PUBLISHER: "LABEL",
+  UPC: "BARCODE",
+  EAN: "BARCODE",
+  GTIN: "BARCODE",
+  TOTALTRACKS: "TRACKTOTAL",
+  TOTALDISCS: "DISCTOTAL",
+  MUSICBRAINZ_ALBUMTYPE: "RELEASETYPE",
+  "MusicBrainz Album Type": "RELEASETYPE",
+  CONTENTADVISORY: "ITUNESADVISORY",
+  EXPLICIT: "ITUNESADVISORY",
+};
+
+for (const [alias, canonical] of Object.entries(READ_ALIASES)) {
+  // Never shadow a real wire key: the canonical map is built first.
+  if (_fromTagLib[alias] === undefined) {
+    _fromTagLib[alias] = _fromTagLib[canonical];
+  }
+}
+
+/** Resolve a legacy wire alias to its canonical wire key, if any. */
+export function canonicalWireKey(key: string): string {
+  return READ_ALIASES[key] ?? key;
+}
+
 /** Translate a camelCase property key to TagLib's ALL_CAPS wire key. Unknown keys pass through. */
 export function toTagLibKey(key: string): string {
   return _toTagLib[key] ?? key;
@@ -144,6 +180,9 @@ export function remapKeysFromTagLib<V>(
 ): Record<string, V> {
   const result: Record<string, V> = {};
   for (const [key, value] of Object.entries(obj)) {
+    // Canonical spelling wins over an alias when both are present.
+    const canonical = READ_ALIASES[key];
+    if (canonical !== undefined && canonical in obj) continue;
     result[fromTagLibKey(key)] = value;
   }
   return result;

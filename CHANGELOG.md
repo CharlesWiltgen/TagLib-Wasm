@@ -258,7 +258,23 @@
 
 ## 1.6.0
 
-### Fixed
+### Added
+
+- **Read-side alias layer** — legacy tag names now resolve to their canonical
+  property everywhere: `ALBUM ARTIST`/`ALBUM_ARTIST` -> albumArtist,
+  `ORGANIZATION`/`PUBLISHER` -> label, `UPC`/`EAN`/`GTIN` -> barcode,
+  `TOTALTRACKS`/`TOTALDISCS` -> totalTracks/totalDiscs,
+  `MUSICBRAINZ_ALBUMTYPE` -> releaseType, `CONTENTADVISORY`/`EXPLICIT` ->
+  itunesAdvisory (new canonical `itunesAdvisory` property, the landing point
+  for the typed tri-state advisory in the pipeline). A `YEAR`-only file now
+  populates `year`/`date` on the typed surface (DATE stays canonical, YEAR is
+  the fallback); `properties()` keeps the raw `YEAR` key, and a typed
+  readTags()->applyTags() round-trip canonicalizes it to DATE. Canonical
+  spelling wins when a file carries both. Writes through
+  setProperties/setProperty/getProperty normalize alias names, so both
+  backends behave identically. 15 new tests including a byte-surgery-built
+  legacy-name FLAC fixture (FLAC metadata carries no CRC, so inserting Vorbis
+  comments is exact) read on both backends — observed failing pre-change.
 
 - **Raw tag values are no longer coerced to integers (data loss).** On the WASI
   backend, `TRACKNUMBER`, `TRACKTOTAL`, `DISCNUMBER`, `DISCTOTAL` and `BPM` were

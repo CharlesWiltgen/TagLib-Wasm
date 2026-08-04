@@ -280,6 +280,11 @@ export const METADATA_MAPPINGS: Record<
     vorbis: "RELEASETYPE",
     mp4: "----:com.apple.iTunes:MusicBrainz Album Type",
   },
+  itunesAdvisory: {
+    id3v2: { frame: "TXXX", description: "ITUNESADVISORY" },
+    vorbis: "ITUNESADVISORY",
+    mp4: "----:com.apple.iTunes:ITUNESADVISORY",
+  },
 
   // Apple Sound Check mapping
   appleSoundCheck: {

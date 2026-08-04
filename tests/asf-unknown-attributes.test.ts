@@ -48,40 +48,40 @@ describe("ASF unknown attributes (taglib-984r)", () => {
     it(`[${backend}] unknown attributes round-trip to disk and read truthfully`, async () => {
       const props = {
         replayGainTrackGain: ["-3.00 dB"],
-        ITUNESADVISORY: ["1"],
+        "X-CUSTOM-TAG": ["1"],
         "X-CUSTOM-ATTRIBUTE": ["custom-value"],
       };
       const { readBack, sameHandle } = await roundTrip(backend, props);
 
       // Disk truth (read by the OTHER backend): nothing dropped.
       assertEquals(readBack.replayGainTrackGain, ["-3.00 dB"]);
-      assertEquals(readBack.ITUNESADVISORY, ["1"]);
+      assertEquals(readBack["X-CUSTOM-TAG"], ["1"]);
       assertEquals(readBack["X-CUSTOM-ATTRIBUTE"], ["custom-value"]);
 
       // Same-handle read (WASI cache echo) must agree with disk.
       assertEquals(sameHandle.replayGainTrackGain, ["-3.00 dB"]);
-      assertEquals(sameHandle.ITUNESADVISORY, ["1"]);
+      assertEquals(sameHandle["X-CUSTOM-TAG"], ["1"]);
     });
 
     it(`[${backend}] multi-value unknown attribute keeps order across a save`, async () => {
       const { readBack } = await roundTrip(backend, {
-        ITUNESADVISORY: ["a", "b", "c"],
+        "X-CUSTOM-TAG": ["a", "b", "c"],
       });
-      assertEquals(readBack.ITUNESADVISORY, ["a", "b", "c"]);
+      assertEquals(readBack["X-CUSTOM-TAG"], ["a", "b", "c"]);
     });
 
     it(`[${backend}] unknown attribute removal via empty list`, async () => {
       const src = await Deno.readFile(FIXTURE_PATH.wma);
       const tl = await TagLib.initialize({ forceWasmType: backend });
       const file = await tl.open(new Uint8Array(src));
-      file.setProperties({ ITUNESADVISORY: ["1"] });
+      file.setProperties({ "X-CUSTOM-TAG": ["1"] });
       file.save();
       const withAttr = file.getFileBuffer();
       file.dispose();
 
       const tl2 = await TagLib.initialize({ forceWasmType: OTHER[backend] });
       const file2 = await tl2.open(withAttr);
-      file2.setProperties({ ITUNESADVISORY: [] });
+      file2.setProperties({ "X-CUSTOM-TAG": [] });
       file2.save();
       const cleared = file2.getFileBuffer();
       file2.dispose();
@@ -90,14 +90,14 @@ describe("ASF unknown attributes (taglib-984r)", () => {
       const file3 = await tl3.open(cleared);
       const props = file3.properties() as Record<string, string[]>;
       file3.dispose();
-      assertEquals(props.ITUNESADVISORY, undefined);
+      assertEquals(props["X-CUSTOM-TAG"], undefined);
     });
 
     it(`[${backend}] unknown attributes survive a no-op save`, async () => {
       const src = await Deno.readFile(FIXTURE_PATH.wma);
       const tl = await TagLib.initialize({ forceWasmType: backend });
       const file = await tl.open(new Uint8Array(src));
-      file.setProperties({ ITUNESADVISORY: ["1"] });
+      file.setProperties({ "X-CUSTOM-TAG": ["1"] });
       file.save();
       const once = file.getFileBuffer();
       file.dispose();
@@ -112,7 +112,7 @@ describe("ASF unknown attributes (taglib-984r)", () => {
       const file3 = await tl3.open(twice);
       const props = file3.properties() as Record<string, string[]>;
       file3.dispose();
-      assertEquals(props.ITUNESADVISORY, ["1"]);
+      assertEquals(props["X-CUSTOM-TAG"], ["1"]);
     });
   }
 });

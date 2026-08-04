@@ -6,6 +6,7 @@ import type {
   PropertyMap,
 } from "../types.ts";
 import {
+  fromTagLibKey,
   mp4AtomWireKey,
   mp4FreeformAtomNames,
   remapKeysFromTagLib,
@@ -115,7 +116,13 @@ export abstract class BaseAudioFileImpl {
   setProperties(properties: PropertyMap): void {
     const translated: Record<string, string[]> = {};
     for (const [key, values] of Object.entries(properties)) {
-      if (values !== undefined) translated[toTagLibKey(key)] = values;
+      if (values !== undefined) {
+        // Alias wire keys ("ALBUM ARTIST", "TOTALTRACKS", ...) normalize to
+        // the canonical wire key on write, matching the read-side resolution
+        // (taglib-7ru2): fromTagLibKey maps alias -> camel, toTagLibKey maps
+        // camel -> canonical wire. Canonical keys round-trip unchanged.
+        translated[toTagLibKey(fromTagLibKey(key))] = values;
+      }
     }
     // Lyrics is owned by get/setLyrics(), not the properties() surface; when a
     // text-only setProperties (e.g. the applyTags read-modify-write) omits it,
@@ -135,7 +142,8 @@ export abstract class BaseAudioFileImpl {
   }
 
   getProperty(key: string): string | undefined {
-    const value = this.handle.getProperty(toTagLibKey(key));
+    // Alias wire keys normalize to canonical, matching setProperty (taglib-7ru2).
+    const value = this.handle.getProperty(toTagLibKey(fromTagLibKey(key)));
     if (value !== "") return value;
     // MP4 only: this is the sole format whose PropertyMap key can differ from our
     // wire key, and materializing the whole map on every miss would otherwise
@@ -153,7 +161,9 @@ export abstract class BaseAudioFileImpl {
   }
 
   setProperty(key: string, value: string): void {
-    const wireKey = toTagLibKey(key);
+    // Alias wire keys normalize to canonical, matching setProperties
+    // (taglib-7ru2).
+    const wireKey = toTagLibKey(fromTagLibKey(key));
     // Same atom-name channel setProperties uses: without it, a property backed by
     // a mixed-case MP4 freeform atom is written under TagLib's upper-cased name
     // on BOTH backends (taglib-bnhl). setProperty has no property-map to carry

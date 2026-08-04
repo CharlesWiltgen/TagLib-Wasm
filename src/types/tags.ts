@@ -116,6 +116,8 @@ export interface TagInput {
   readonly musicbrainzReleaseGroupId?: string | string[];
   /** Release type (album, single, EP, compilation, ...); multi-value allowed */
   readonly releaseType?: string | string[];
+  /** Content advisory in the ITUNESADVISORY convention ('1' = explicit, '0' = clean) */
+  readonly itunesAdvisory?: string | string[];
   readonly replayGainTrackGain?: string | string[];
   readonly replayGainTrackPeak?: string | string[];
   readonly replayGainAlbumGain?: string | string[];
@@ -180,6 +182,8 @@ export interface ExtendedTag extends Tag {
   readonly musicbrainzReleaseGroupId?: string[];
   /** Release type (album, single, EP, compilation, ...); multi-value */
   readonly releaseType?: string[];
+  /** Content advisory in the ITUNESADVISORY convention ('1' = explicit, '0' = clean) */
+  readonly itunesAdvisory?: string[];
   /** Album artist (different from track artist) */
   readonly albumArtist?: string[];
   /** Composer */

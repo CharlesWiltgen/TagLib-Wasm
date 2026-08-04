@@ -353,6 +353,13 @@ MPC, WavPack, TrueAudio, Matroska/WebM. Auto-detected from content.
 
 **Tag mapping**: All format-specific tag names normalized to camelCase via `properties()`.
 Example: ID3v2 `TPE2` / Vorbis `ALBUMARTIST` / iTunes `aART` → `albumArtist`.
+**Read-side aliases** (taglib-7ru2): legacy wire names resolve to the canonical
+property — `ALBUM ARTIST`/`ALBUM_ARTIST`→albumArtist, `ORGANIZATION`/`PUBLISHER`→label,
+`UPC`/`EAN`/`GTIN`→barcode, `TOTALTRACKS`→totalTracks, `TOTALDISCS`→totalDiscs,
+`MUSICBRAINZ_ALBUMTYPE`→releaseType, `CONTENTADVISORY`/`EXPLICIT`→itunesAdvisory.
+`DATE` is canonical; a `YEAR`-only file populates `year`/`date` on the typed surface
+(properties() keeps the raw `YEAR` key), and a typed write canonicalizes it. Canonical
+spelling wins when a file carries both; writes through setProperties normalize aliases.
 
 ## Error Handling
 
