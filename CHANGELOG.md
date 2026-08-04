@@ -25,6 +25,15 @@
 
 ### Fixed
 
+- **Disc markers now need a right word boundary.** `record` matched inside
+  "Recordings"/"Records"/"Recorded" — five real folders under the Harry Smith
+  anthology ("Robert Johnson - The Complete Recordings (41 Tracks)", ...)
+  parsed as discs and folded to the anthology root, and the single-letter
+  side token consumed the start of the following word (discTitle "ngs (41
+  Tracks"). Markers and non-digit number tokens (roman, word, side letters)
+  are now followed by a non-letter. "Recordings 1", "Records", "CD-ROM" are
+  no longer discs; "CD1", "Disc One", "CD D" are unchanged.
+
 - **Disc-folder recognition gated for title-word markers.** `tape`, `vinyl`,
   `cassette`, `lp`, `record` now require sibling corroboration before acting
   as disc evidence — "Tape 4" (Sleep/Felbm) is an album title, not disc 4,

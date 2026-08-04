@@ -242,8 +242,10 @@ function parseNumberToken(token: string): number | undefined {
 const SEP = String.raw`[\s._#-]*`;
 // A number token: arabic, roman, word — or a SINGLE letter, which is a side
 // label ("CD A", "Album (CD D)") parsed as a gated, numberless token.
+// Non-digit tokens need a right word boundary: without it, "Recordings 1"
+// matched "record" + the first letter of "ings" (2026-08-04 report).
 const NUM = String
-  .raw`(?:\d+|[ivxlcdm]+|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|[a-z])`;
+  .raw`(?:\d+|(?:[ivxlcdm]+|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|[a-z])(?![a-z]))`;
 
 /**
  * Parse a directory name as a disc folder. Returns undefined for non-disc
@@ -255,11 +257,17 @@ function parseDiscName(name: string): DiscParse | undefined {
   if (/^(?:extras?|bonus)$/i.test(trimmed)) return undefined;
 
   for (const marker of MARKERS) {
-    // Word-delimited on the LEFT: start of name or a non-alphanumeric char,
-    // so "Help 1", "Abcd1" and "Scalp 1" are never LP 1 / CD 1.
+    // Word-delimited on the LEFT (start or a non-alphanumeric char) and on
+    // the RIGHT (the marker must not run into a letter — "Recordings" is not
+    // "record" + "ings"), so "Help 1", "Abcd1", "Scalp 1", "Recordings 1"
+    // and "The Complete Recordings (41 Tracks)" are never LP 1 / CD 1 /
+    // record discs.
     const left = String.raw`(?:^|[^a-z0-9])`;
     const esc = marker.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    const re = new RegExp(left + String.raw`(${esc})${SEP}(${NUM})`, "i");
+    const re = new RegExp(
+      left + String.raw`(${esc})(?![a-z])${SEP}(${NUM})`,
+      "i",
+    );
     const m = trimmed.match(re);
     if (!m) continue;
 

@@ -172,6 +172,43 @@ describe("discFolderInfo (standalone recognizer)", () => {
     }
   });
 
+  it("markers need a right word boundary: record inside Recordings/Records is not a disc", () => {
+    // 2026-08-04 report: five real folders under the Harry Smith anthology
+    // ("Robert Johnson - The Complete Recordings (41 Tracks)", ...) parsed as
+    // discs — "record" matched the first letters of "ings", and the
+    // single-letter token consumed them.
+    for (
+      const name of [
+        "Recordings 1",
+        "Records",
+        "Recorded",
+        "The Complete Recordings (41 Tracks)",
+        "Robert Johnson - The Complete Recordings (41 Tracks)",
+        "Bukka White - The Vintage Recordings 1930 - 1940",
+        "CD-ROM",
+        "Discography 1",
+        "Disco 1",
+      ]
+    ) {
+      assertEquals(discFolderInfo(name), undefined, name);
+    }
+  });
+
+  it("record-marker siblings must not fold to the parent (anthology regression)", () => {
+    const root = R("Harry Smith_'s Anthology of American Folk Music");
+    const result = group([
+      [`${root}/Robert Johnson - The Complete Recordings (41 Tracks)/track1.flac`],
+      [`${root}/Robert Johnson - The Complete Recordings (41 Tracks)/track2.flac`],
+      [`${root}/Bukka White - The Vintage Recordings 1930 - 1940/track1.flac`],
+      [`${root}/Bukka White - The Vintage Recordings 1930 - 1940/track2.flac`],
+    ]);
+    // Each folder is its own album; nothing folds to the anthology root.
+    assertEquals(result.albums.length, 2);
+    for (const album of result.albums) {
+      assertEquals(album.directory, `${root}/${album.album}`);
+    }
+  });
+
   it("does not resolve to a parent — the caller decides", () => {
     // Standalone recognizer: no albumDir semantics. Tuneup's placeholder
     // path consumes this without inheriting resolve-to-parent. The folder
