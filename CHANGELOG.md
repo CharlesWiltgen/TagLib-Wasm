@@ -4,6 +4,23 @@
 
 ### Added
 
+- **Typed content advisory** — `advisory: "explicit" | "clean" |
+  "unspecified"` on readTags()/applyTags() (wire contract pinned by review:
+  rtng/ITUNESADVISORY "1" = explicit, "2" = clean, "0" = unspecified;
+  absence = unspecified). MP4 now reads and writes the **native rtng atom**,
+  which TagLib's property map never reported: a shared C++ bridge on both
+  backends surfaces rtng under the ITUNESADVISORY key on read (native wins
+  over a freeform atom) and applies advisory writes to the rtng item,
+  suppressing the freeform write. Other formats keep using ITUNESADVISORY
+  (TXXX/freeform/Vorbis/APE/ASF — the ASF path via the unknown-attribute
+  fix). Writing "unspecified" clears the representation: rtng + freeform
+  atom on MP4, the TXXX frame/freeform/Vorbis field elsewhere (the WASI
+  merge model carries the clear as an explicit empty list, which the C++
+  normalizes per format so ID3v2 never materializes an empty frame). 13 new
+  tests: tri-state mapping units, both-backend rtng parity with byte-level
+  atom-value checks, clearing, cross-format typed round-trips — observed
+  failing before the C++ landed.
+
 - **Album grouping: `scanForAlbums()` and `groupAlbums()`** (folder API). Scan a
   folder and get albums with disc subdivisions, using embedded tags as
   authority and folder/filename structure as evidence. Every result item
