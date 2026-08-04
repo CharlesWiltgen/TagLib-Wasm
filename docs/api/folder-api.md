@@ -40,7 +40,8 @@ function scanForAlbums(
 
 **`AlbumGroupingResult`:**
 
-- `albums: AlbumGroup[]` - each with `key`, `album`, `albumArtist`,
+- `albums: AlbumGroup[]` - each with `key: AlbumGroupKey` (opaque, stable
+  identity; identical input produces identical keys), `album`, `albumArtist`,
   `source: "tags" | "folder"`, `compilation: boolean | undefined` (tag
   agreement), `directory` (common album folder), `discs: AlbumDisc[]`, and
   `items: AlbumGroupItem[]`
@@ -48,7 +49,9 @@ function scanForAlbums(
   `albumDir` (the album folder the file was attributed to) and `discNumber` (tag
   wins, folder is the fallback)
 - `AlbumDisc` - `discNumber`, `totalDiscs` (tag total → `of N` → max sibling),
-  `folderDiscNumber`, `folderDiscTitle`, `tagDiscNumber`, `confidence`, `items`
+  `folderDiscNumber`, `folderDiscTitle`, `tagDiscNumber`,
+  `confidence: DiscConfidence` (`"high" | "medium" | "low"` — the strength of
+  the folder-name evidence; tag-derived discs are `"high"`), `items`
 - `singles: AudioFileMetadata[]` - ok items whose resolved album has exactly one
   file
 - `unmatched: AudioFileMetadata[]` - no album tag and no folder title evidence
