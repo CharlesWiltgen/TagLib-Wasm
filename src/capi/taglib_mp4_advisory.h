@@ -47,7 +47,10 @@ inline TagLib::PropertyMap normalize_advisory_write(
         if (tag) {
             if (it->second.isEmpty()) {
                 tag->removeItem("rtng");
-                tag->removeItem("ITUNESADVISORY");  // any freeform atom
+                // Freeform atoms are keyed by their full name in the item
+                // map; the bare name would be a silent no-op (taglib-an30
+                // review). Removes any third-party ITUNESADVISORY atom.
+                tag->removeItem("----:com.apple.iTunes:ITUNESADVISORY");
             } else {
                 bool ok = false;
                 const int v = it->second.front().toInt(&ok);

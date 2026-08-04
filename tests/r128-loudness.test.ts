@@ -64,7 +64,7 @@ describe("R128 Q7.8 conversion (taglib-2ii2)", () => {
 
 async function rawRoundTrip(
   backend: "wasi" | "emscripten",
-  format: "opus" | "flac" | "wma",
+  format: keyof typeof FIXTURE_PATH,
 ): Promise<{
   readBack: Record<string, string[]>;
   sameHandle: Record<string, string[]>;
@@ -138,15 +138,18 @@ describe("R128 raw property round-trip (taglib-2ii2)", () => {
     });
   }
 
-  it("flac (Vorbis comment) carries R128 the same way", async () => {
-    const { readBack } = await rawRoundTrip("wasi", "flac");
-    assertEquals(readBack.r128AlbumGain, [INT_ALBUM]);
-  });
-
-  it("wma carries R128 via the ASF unknown-attribute path (taglib-984r)", async () => {
-    const { readBack } = await rawRoundTrip("wasi", "wma");
-    assertEquals(readBack.r128TrackGain, [INT_TRACK]);
-  });
+  // Cross-format coverage on BOTH backends: MP3 TXXX, MP4 freeform, FLAC
+  // Vorbis, WMA via the ASF unknown-attribute path (taglib-984r).
+  const FORMATS = ["mp3", "m4a", "flac", "wma"] as const;
+  for (const format of FORMATS) {
+    for (const backend of BACKENDS) {
+      it(`[${backend}] ${format} carries R128 and reads back on the other backend`, async () => {
+        const { readBack } = await rawRoundTrip(backend, format);
+        assertEquals(readBack.r128TrackGain, [INT_TRACK]);
+        assertEquals(readBack.r128AlbumGain, [INT_ALBUM]);
+      });
+    }
+  }
 });
 
 describe("R128 typed simple-API round-trip (taglib-2ii2)", () => {

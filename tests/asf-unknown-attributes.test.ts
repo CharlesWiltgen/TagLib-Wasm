@@ -114,5 +114,52 @@ describe("ASF unknown attributes (taglib-984r)", () => {
       file3.dispose();
       assertEquals(props["X-CUSTOM-TAG"], ["1"]);
     });
+
+    it(`[${backend}] lowercase-named attributes survive saves (name case normalizes)`, async () => {
+      // Attribute names are preserved verbatim on READ (e.g. the Vorbis-case
+      // "replaygain_track_gain" found in the wild); a WRITE normalizes the
+      // name to TagLib's PropertyMap case (PropertyMap::insert uppercases).
+      // The contract is no data loss: the old WASI decoder dropped lowercase
+      // wire keys, so a no-op save DELETED the attribute (taglib-984r
+      // review). The value must survive any number of saves, identically on
+      // both backends.
+      const src = await Deno.readFile(FIXTURE_PATH.wma);
+      const tl = await TagLib.initialize({ forceWasmType: backend });
+      const file = await tl.open(new Uint8Array(src));
+      file.setProperties({ "replaygain_track_gain": ["-3.00 dB"] });
+      file.save();
+      const once = file.getFileBuffer();
+      file.dispose();
+
+      const tl2 = await TagLib.initialize({ forceWasmType: OTHER[backend] });
+      const file2 = await tl2.open(once);
+      // The value is there; the name has normalized to the canonical case.
+      const props2 = file2.properties() as Record<string, string[]>;
+      const surviving = props2["replayGainTrackGain"] ??
+        props2["replaygain_track_gain"];
+      assertEquals(surviving, ["-3.00 dB"]);
+      file2.save(); // no-op: must not strip the attribute
+      const twice = file2.getFileBuffer();
+      file2.dispose();
+
+      const tl3 = await TagLib.initialize({ forceWasmType: OTHER[backend] });
+      const file3 = await tl3.open(twice);
+      const props = file3.properties() as Record<string, string[]>;
+      file3.dispose();
+      const survived = props["replayGainTrackGain"] ??
+        props["replaygain_track_gain"];
+      assertEquals(survived, ["-3.00 dB"]);
+    });
+
+    it(`[${backend}] read surfaces mixed-case attribute names verbatim`, async () => {
+      // The fixture carries a capital-"A" "Author" attribute; the read merge
+      // reports it exactly as stored, not normalized.
+      const src = await Deno.readFile(FIXTURE_PATH.wma);
+      const tl = await TagLib.initialize({ forceWasmType: backend });
+      const file = await tl.open(new Uint8Array(src));
+      const props = file.properties() as Record<string, string[]>;
+      assertEquals(props.AUTHOR, ["Prince and The Revolution"]);
+      file.dispose();
+    });
   }
 });

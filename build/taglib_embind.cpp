@@ -840,7 +840,13 @@ public:
             taglib_wasm::capture_id3v2_comment_guard(fileRef->file());
         const TagLib::PropertyMap effective =
             taglib_wasm::normalize_advisory_write(fileRef->file(), properties);
-        fileRef->file()->setProperties(effective);
+        // ASF: untranslated keys (merged above) return as ignoredProps and
+        // must be written as real attributes, exactly like setProperties —
+        // without this, setProperty on a WMA silently drops them (review
+        // taglib-984r).
+        const TagLib::PropertyMap ignored =
+            fileRef->file()->setProperties(effective);
+        taglib_wasm::apply_asf_properties(fileRef->file(), effective, ignored);
         restore_mp4_freeform_names(fileRef->file(), captured);
         taglib_wasm::apply_id3v2_comment_guard(fileRef->file(), commentGuard);
     }

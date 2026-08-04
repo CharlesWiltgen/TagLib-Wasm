@@ -86,11 +86,6 @@ for (const [alias, canonical] of Object.entries(READ_ALIASES)) {
   }
 }
 
-/** Resolve a legacy wire alias to its canonical wire key, if any. */
-export function canonicalWireKey(key: string): string {
-  return READ_ALIASES[key] ?? key;
-}
-
 /** Translate a camelCase property key to TagLib's ALL_CAPS wire key. Unknown keys pass through. */
 export function toTagLibKey(key: string): string {
   return _toTagLib[key] ?? key;

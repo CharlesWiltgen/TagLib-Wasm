@@ -259,7 +259,25 @@
   If you enumerate `properties()` on MP3s, expect keys that did not previously
   appear for files carrying both tag versions.
 
-### Internal
+### Fixed
+
+- **Review pass over the 1.7.x P1 fixes** (independent reviewer, range
+  546f468..b71d74d): Emscripten's single-key `setProperty` on a WMA now
+  writes ASF unknown attributes (it merged them into the read-modify-write
+  map but never applied the ignored keys — the 984r feature silently
+  no-opped on that path). The WASI decoder's uppercase gate is gone — it
+  dropped lowercase/mixed-case wire names, which made a no-op save DELETE
+  ASF attributes (e.g. Vorbis-case `replaygain_track_gain`); channel and
+  pseudo keys are now filtered by explicit skip lists instead, and the
+  missing audio keys (`bitrateMode`, `duration`, `outputGainDb`) joined
+  them so the relaxed gate cannot materialize junk TXXX frames. MP4
+  advisory clear now removes a third-party freeform ITUNESADVISORY atom
+  (freeform items are keyed by their full `----:com.apple.iTunes:` name).
+  JSDoc/docs corrected to the pinned wire contract ("0" = unspecified, not
+  clean) and TagLib's actual TXXX description casing. Test coverage
+  widened: r128 MP3/M4A/FLAC/WMA and releaseType all seven formats now
+  loop both backends, plus rtng=0, the freeform-atom clear (byte-patched
+  fixture), mixed-case ASF read, and lowercase-name value survival.
 
 - **The Deno compatibility patcher fails loudly instead of half-patching.**
   `fix-deno-compat.js` applies five regex patches to Emscripten's generated

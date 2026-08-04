@@ -81,18 +81,20 @@ async function roundTrip(
 
 describe("RELEASETYPE multi-value round-trip (taglib-ecy4)", () => {
   const FORMATS = ["mp3", "m4a", "wv", "mka", "opus", "wma", "flac"] as const;
-  for (const format of FORMATS) {
-    it(`${format}: album + EP survive save and read back on the other backend`, async () => {
-      const { readBack, buffer } = await roundTrip("wasi", format);
-      assertEquals(readBack.releaseType, ["album", "EP"]);
-      const wire = WIRE_BYTES[format];
-      if (wire) {
-        assert(
-          new TextDecoder().decode(buffer).includes(wire),
-          `${format} bytes should carry ${wire}`,
-        );
-      }
-    });
+  for (const backend of BACKENDS) {
+    for (const format of FORMATS) {
+      it(`[${backend}] ${format}: album + EP survive save and read back on the other backend`, async () => {
+        const { readBack, buffer } = await roundTrip(backend, format);
+        assertEquals(readBack.releaseType, ["album", "EP"]);
+        const wire = WIRE_BYTES[format];
+        if (wire) {
+          assert(
+            new TextDecoder().decode(buffer).includes(wire),
+            `${format} bytes should carry ${wire}`,
+          );
+        }
+      });
+    }
   }
 
   for (const backend of BACKENDS) {

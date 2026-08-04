@@ -116,7 +116,7 @@ export interface TagInput {
   readonly musicbrainzReleaseGroupId?: string | string[];
   /** Release type (album, single, EP, compilation, ...); multi-value allowed */
   readonly releaseType?: string | string[];
-  /** Content advisory in the ITUNESADVISORY convention ('1' = explicit, '0' = clean) */
+  /** Content advisory in the ITUNESADVISORY convention ('1' = explicit, '2' = clean, '0' = unspecified) */
   readonly itunesAdvisory?: string | string[];
   /**
    * Content advisory tri-state (taglib-an30): "explicit" | "clean" |
@@ -189,7 +189,7 @@ export interface ExtendedTag extends Tag {
   readonly musicbrainzReleaseGroupId?: string[];
   /** Release type (album, single, EP, compilation, ...); multi-value */
   readonly releaseType?: string[];
-  /** Content advisory in the ITUNESADVISORY convention ('1' = explicit, '0' = clean) */
+  /** Content advisory in the ITUNESADVISORY convention ('1' = explicit, '2' = clean, '0' = unspecified) */
   readonly itunesAdvisory?: string[];
   /**
    * Content advisory tri-state (taglib-an30): "explicit" | "clean" |

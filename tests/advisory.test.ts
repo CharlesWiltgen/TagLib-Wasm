@@ -47,6 +47,80 @@ function findBytes(haystack: Uint8Array, needle: Uint8Array): number {
   return -1;
 }
 
+/**
+ * Insert a third-party-style freeform ITUNESADVISORY atom
+ * (----:com.apple.iTunes:ITUNESADVISORY) into the moov/udta/meta/ilst tree,
+ * fixing container sizes. The library can no longer CREATE this atom
+ * (advisory writes go to rtng), so the clear-contract half needs byte
+ * surgery: a file written by another tool may carry both.
+ */
+function addFreeformITunesAdvisory(buf: Uint8Array, value: number): Uint8Array {
+  const enc = new TextEncoder();
+  const u8 = buf;
+  const sizeAt = (p: number): number =>
+    new DataView(u8.buffer, u8.byteOffset + p, 8).getUint32(0, false);
+  const find = (start: number, end: number, type: string): number => {
+    let p = start;
+    while (p + 8 <= end) {
+      const s = sizeAt(p);
+      if (s < 8) return -1;
+      if (new TextDecoder().decode(u8.slice(p + 4, p + 8)) === type) return p;
+      p += s;
+    }
+    return -1;
+  };
+
+  const moov = find(0, u8.length, "moov");
+  if (moov < 0) throw new Error("no moov in fixture");
+  const moovEnd = moov + sizeAt(moov);
+  const udta = find(moov + 8, moovEnd, "udta");
+  if (udta < 0) throw new Error("no udta in fixture");
+  const udtaEnd = udta + sizeAt(udta);
+  const meta = find(udta + 8, udtaEnd, "meta");
+  if (meta < 0) throw new Error("no meta in fixture");
+  const metaEnd = meta + sizeAt(meta);
+  // meta carries a 4-byte version/flags header before its children.
+  const ilst = find(meta + 12, metaEnd, "ilst");
+  if (ilst < 0) throw new Error("no ilst in fixture");
+
+  // Build the item: [size]['----'] with mean/name/data subatoms, mirroring
+  // the layout TagLib writes for freeform atoms.
+  const chunk = (type: string, payload: Uint8Array): Uint8Array => {
+    const out = new Uint8Array(8 + payload.length);
+    new DataView(out.buffer).setUint32(0, 8 + payload.length, false);
+    out.set(enc.encode(type), 4);
+    out.set(payload, 8);
+    return out;
+  };
+  const ver = new Uint8Array(4);
+  const mean = chunk(
+    "mean",
+    new Uint8Array([...ver, ...enc.encode("com.apple.iTunes")]),
+  );
+  const name = chunk(
+    "name",
+    new Uint8Array([...ver, ...enc.encode("ITUNESADVISORY")]),
+  );
+  const data = chunk("data", new Uint8Array([0, 0, 0, 0, 0, 0, 0, 0, value]));
+  const item = chunk("----", new Uint8Array([...mean, ...name, ...data]));
+
+  // Insert at the end of the ilst payload; grow the container sizes.
+  const ilstSize = sizeAt(ilst);
+  const ilstPayloadEnd = ilst + 8 + (ilstSize - 8);
+  const out = new Uint8Array(u8.length + item.length);
+  out.set(u8.slice(0, ilstPayloadEnd), 0);
+  out.set(item, ilstPayloadEnd);
+  out.set(u8.slice(ilstPayloadEnd), ilstPayloadEnd + item.length);
+  for (const p of [ilst, meta, udta, moov]) {
+    new DataView(out.buffer, out.byteOffset + p, 8).setUint32(
+      0,
+      sizeAt(p) + item.length,
+      false,
+    );
+  }
+  return out;
+}
+
 describe("advisory tri-state mapping (taglib-an30)", () => {
   it("read: ITUNESADVISORY values narrow to the tri-state", () => {
     assertEquals(
@@ -131,6 +205,16 @@ describe("MP4 native rtng atom (taglib-an30)", () => {
       );
     });
 
+    it(`[${backend}] rtng=0 reads as unspecified (pinned contract)`, async () => {
+      const { readBack, buffer } = await mp4RoundTrip(backend, "0");
+      assertEquals(rtngByte(buffer), 0);
+      assertEquals(readBack.itunesAdvisory, ["0"]);
+      assertEquals(
+        mapPropertiesToExtendedTag(readBack as never).advisory,
+        "unspecified",
+      );
+    });
+
     it(`[${backend}] clearing removes the rtng item`, async () => {
       const src = await Deno.readFile(FIXTURE_PATH.m4a);
       const tl = await TagLib.initialize({ forceWasmType: backend });
@@ -143,6 +227,30 @@ describe("MP4 native rtng atom (taglib-an30)", () => {
       file.dispose();
       assertEquals(rtngByte(buf), undefined);
 
+      const tlR = await TagLib.initialize({ forceWasmType: OTHER[backend] });
+      const reopened = await tlR.open(buf);
+      const props = reopened.properties() as Record<string, string[]>;
+      assertEquals(props.itunesAdvisory, undefined);
+      reopened.dispose();
+    });
+
+    it(`[${backend}] clearing removes a third-party freeform ITUNESADVISORY atom too`, async () => {
+      const src = await Deno.readFile(FIXTURE_PATH.m4a);
+      // A file written by another tool may carry the freeform atom
+      // (----:com.apple.iTunes:ITUNESADVISORY); the clear must remove it
+      // alongside rtng (freeform items are keyed by their FULL name in the
+      // item map — taglib-an30 review).
+      const patched = addFreeformITunesAdvisory(src, 2);
+      assert(new TextDecoder().decode(patched).includes("ITUNESADVISORY"));
+
+      const tl = await TagLib.initialize({ forceWasmType: backend });
+      const file = await tl.open(patched);
+      file.setProperties({ ITUNESADVISORY: [] });
+      file.save();
+      const buf = file.getFileBuffer();
+      file.dispose();
+
+      assert(!new TextDecoder().decode(buf).includes("ITUNESADVISORY"));
       const tlR = await TagLib.initialize({ forceWasmType: OTHER[backend] });
       const reopened = await tlR.open(buf);
       const props = reopened.properties() as Record<string, string[]>;

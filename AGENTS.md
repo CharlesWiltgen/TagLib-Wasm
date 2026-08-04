@@ -97,7 +97,7 @@ interface Tag {
 //   titleSort, artistSort, albumSort, albumArtistSort, composerSort: string[]
 //   musicbrainzTrackId, musicbrainzReleaseId, musicbrainzArtistId, musicbrainzReleaseGroupId: string[]
 //   releaseType: string[]  — release type (album, single, EP, ...); multi-value;
-//     stored per format (TXXX "MusicBrainz Album Type" / freeform / APEv2
+//     stored per format (TXXX "MUSICBRAINZ ALBUM TYPE" / freeform / APEv2
 //     MUSICBRAINZ_ALBUMTYPE / ASF "MusicBrainz/Album Type" / Vorbis+Matroska raw)
 //   acoustidFingerprint, acoustidId: string[]
 //   replayGainTrackGain, replayGainTrackPeak: string[]

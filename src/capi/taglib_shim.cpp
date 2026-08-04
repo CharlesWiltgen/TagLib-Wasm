@@ -447,10 +447,14 @@ static tl_error_code read_from_path(const char* path,
 }
 
 // MUST stay sorted (byte-wise strcmp) — this array is binary-searched.
+// Audio/derived keys ride the same wire as tags (the WASI read merges them
+// into the snapshot) but are never properties: writing them through the
+// PropertyMap would materialize junk frames (e.g. TXXX:bitrateMode).
 static const char* SKIP_KEYS[] = {
-    "bextData", "bitrate", "bitsPerSample", "channels", "chapters", "codec",
-    "containerFormat", "formatVersion", "isEncrypted", "isLossless", "ixml",
-    "length", "lengthMs", "lyrics", "mpegLayer", "mpegVersion",
+    "bextData", "bitrate", "bitrateMode", "bitsPerSample", "channels",
+    "chapters", "codec", "containerFormat", "duration", "formatVersion",
+    "id3v2Frames", "isEncrypted", "isLossless", "ixml", "length",
+    "lengthMs", "lyrics", "mpegLayer", "mpegVersion", "outputGainDb",
     "pictures", "ratings", "sampleRate",
 };
 
@@ -462,6 +466,9 @@ static bool should_skip(const char* key) {
     // the key through the PropertyMap would re-file it in Apple's namespace
     // under a mangled name. Never a property, whatever its case.
     if (strncmp(key, "----:", 5) == 0) return true;
+    // Write-time directives ride `_`-prefixed pseudo-keys (_mp4ChapterStyle,
+    // _stripId3, _mp4ItemNames, ...); never properties.
+    if (key[0] == '_') return true;
     int left = 0, right = static_cast<int>(SKIP_KEYS_SIZE) - 1;
     while (left <= right) {
         int mid = left + (right - left) / 2;
@@ -478,13 +485,6 @@ static const char* map_camel_to_prop(const char* key) {
         if (strcmp(key, FIELD_MAP[i].camel) == 0) return FIELD_MAP[i].prop;
     }
     return nullptr;
-}
-
-static bool is_uppercase_key(const char* key) {
-    for (const char* p = key; *p; p++) {
-        if (*p >= 'a' && *p <= 'z') return false;
-    }
-    return true;
 }
 
 static const uint32_t MAX_STRING_VALUE_LEN = 1024 * 1024;  // 1 MB
@@ -551,7 +551,14 @@ static tl_error_code decode_msgpack_to_propmap(
                 const char* mapped = map_camel_to_prop(key);
                 if (mapped) {
                     propMap[mapped] = list;
-                } else if (is_uppercase_key(key)) {
+                } else {
+                    // Any non-skipped key reaches the PropertyMap verbatim.
+                    // Channel/pseudo keys are filtered by should_skip, so
+                    // raw lowercase wire names (ASF attributes like
+                    // "replaygain_track_gain", Xiph fields) survive the
+                    // round-trip — the old uppercase gate dropped them,
+                    // which made a no-op save DELETE the attribute
+                    // (taglib-984r review).
                     propMap[key] = list;
                 }
             } else if (strcmp(key, "ITUNESADVISORY") == 0) {
@@ -618,7 +625,9 @@ static tl_error_code decode_msgpack_to_propmap(
         const char* mapped = map_camel_to_prop(key);
         if (mapped) {
             propMap[mapped] = TagLib::StringList(value);
-        } else if (is_uppercase_key(key)) {
+        } else {
+            // Same verbatim rule as the array branch: should_skip filters
+            // channel/pseudo keys, everything else is a real wire name.
             propMap[key] = TagLib::StringList(value);
         }
     }

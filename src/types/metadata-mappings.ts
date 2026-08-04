@@ -279,7 +279,7 @@ export const METADATA_MAPPINGS: Record<
     mp4: "----:com.apple.iTunes:R128_ALBUM_GAIN",
   },
   releaseType: {
-    id3v2: { frame: "TXXX", description: "MusicBrainz Album Type" },
+    id3v2: { frame: "TXXX", description: "MUSICBRAINZ ALBUM TYPE" },
     vorbis: "RELEASETYPE",
     mp4: "----:com.apple.iTunes:MusicBrainz Album Type",
   },
