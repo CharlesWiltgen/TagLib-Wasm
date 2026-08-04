@@ -145,7 +145,7 @@ tl_error_code apply_bwf_from_msgpack(
                 uint32_t vlen = 0;
                 char* buf = read_owned_str(&reader, &vlen);
                 if (!buf) { mpack_reader_destroy(&reader); return TL_ERROR_MEMORY_ALLOCATION; }
-                set_ixml(file, TagLib::String(buf, TagLib::String::UTF8));
+                set_ixml(file, TagLib::String(std::string(buf, vlen), TagLib::String::UTF8));
                 free(buf);
             } else {
                 mpack_discard(&reader);

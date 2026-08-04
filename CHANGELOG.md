@@ -4,6 +4,17 @@
 
 ### Fixed
 
+- **Property values containing an embedded NUL are no longer truncated on the
+  WASI backend (parity divergence).** The WASI msgpack decoder built
+  `TagLib::String` from a null-terminated C buffer, so any value containing a
+  `\0` byte (the ID3v2.4 null-separated multi-value form, e.g. `"Pop\0Rock"`
+  written as a single string) was silently cut at the first NUL — the TCON
+  frame landed with only the first genre, and the file differed from what the
+  Emscripten backend wrote for the same API call. All decode sites now use the
+  length-aware `std::string` constructor: property maps, iXML, chapter titles,
+  lyrics text/description/language, and picture MIME type/description. The
+  array form (`setProperties({ genre: ["Pop", "Rock"] })`) was never affected.
+
 - **A frame holding an empty value is no longer deleted on save (data loss).**
   On the WASI backend, any ID3v2 frame whose PropertyMap projection is an empty
   string was destroyed by a save — including a save that changed nothing. A

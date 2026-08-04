@@ -522,14 +522,14 @@ static tl_error_code decode_msgpack_to_propmap(
                     mpack_read_bytes(&reader, sbuf, slen);
                     mpack_done_str(&reader);
                     sbuf[slen] = '\0';
-                    list.append(TagLib::String(sbuf, TagLib::String::UTF8));
+                    list.append(TagLib::String(std::string(sbuf, slen), TagLib::String::UTF8));
                 } else if (slen <= MAX_STRING_VALUE_LEN) {
                     char* heap = static_cast<char*>(malloc(slen + 1));
                     if (!heap) { mpack_reader_destroy(&reader); return TL_ERROR_MEMORY_ALLOCATION; }
                     mpack_read_bytes(&reader, heap, slen);
                     mpack_done_str(&reader);
                     heap[slen] = '\0';
-                    list.append(TagLib::String(heap, TagLib::String::UTF8));
+                    list.append(TagLib::String(std::string(heap, slen), TagLib::String::UTF8));
                     free(heap);
                 } else {
                     mpack_reader_destroy(&reader);
@@ -561,7 +561,7 @@ static tl_error_code decode_msgpack_to_propmap(
                 mpack_done_str(&reader);
                 vbuf[vlen] = '\0';
                 if (vlen > 0) {
-                    value = TagLib::String(vbuf, TagLib::String::UTF8);
+                    value = TagLib::String(std::string(vbuf, vlen), TagLib::String::UTF8);
                     has_value = true;
                 }
             } else if (vlen <= MAX_STRING_VALUE_LEN) {
@@ -570,7 +570,7 @@ static tl_error_code decode_msgpack_to_propmap(
                 mpack_read_bytes(&reader, heap, vlen);
                 mpack_done_str(&reader);
                 heap[vlen] = '\0';
-                value = TagLib::String(heap, TagLib::String::UTF8);
+                value = TagLib::String(std::string(heap, vlen), TagLib::String::UTF8);
                 has_value = true;
                 free(heap);
             } else {

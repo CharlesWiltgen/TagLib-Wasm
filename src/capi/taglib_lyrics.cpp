@@ -126,7 +126,7 @@ tl_error_code apply_lyrics_from_msgpack(
                         mpack_read_bytes(&reader, vbuf, vlen);
                         mpack_done_str(&reader);
                         vbuf[vlen] = '\0';
-                        text = TagLib::String(vbuf, TagLib::String::UTF8);
+                        text = TagLib::String(std::string(vbuf, vlen), TagLib::String::UTF8);
                         free(vbuf);
                     } else if (strcmp(fkey, "description") == 0) {
                         uint32_t vlen = mpack_expect_str(&reader);
@@ -138,7 +138,7 @@ tl_error_code apply_lyrics_from_msgpack(
                         mpack_read_bytes(&reader, vbuf, vlen);
                         mpack_done_str(&reader);
                         vbuf[vlen] = '\0';
-                        description = TagLib::String(vbuf, TagLib::String::UTF8);
+                        description = TagLib::String(std::string(vbuf, vlen), TagLib::String::UTF8);
                         free(vbuf);
                     } else if (strcmp(fkey, "language") == 0) {
                         uint32_t vlen = mpack_expect_str(&reader);
@@ -150,7 +150,7 @@ tl_error_code apply_lyrics_from_msgpack(
                         mpack_read_bytes(&reader, vbuf, vlen);
                         mpack_done_str(&reader);
                         vbuf[vlen] = '\0';
-                        language = TagLib::String(vbuf, TagLib::String::UTF8);
+                        language = TagLib::String(std::string(vbuf, vlen), TagLib::String::UTF8);
                         free(vbuf);
                     } else {
                         mpack_discard(&reader);

@@ -13,6 +13,7 @@ import {
   readTags,
   setBufferMode,
 } from "../src/simple/index.ts";
+import { TagLib } from "../src/taglib.ts";
 import type { Tag, TagInput } from "../src/types.ts";
 import { FIXTURE_PATH } from "./shared-fixtures.ts";
 
@@ -233,5 +234,87 @@ describe("applyTags with extended fields", () => {
     const props = audioFile.properties();
     assertEquals(props.albumArtist, ["Album Artist"]);
     assertEquals(props.bpm, ["140"]);
+  });
+});
+
+const BACKENDS = ["wasi", "emscripten"] as const;
+
+// Formats whose multi-value genre must round-trip in EXACT order. wma is
+// excluded: TagLib's ASF render splits multi-value attributes across the
+// Extended Content Description and Metadata Library objects, so they read
+// back reversed (taglib-ilrg) — covered there, re-enable when fixed.
+const ORDER_PRESERVING_FORMATS = [
+  "mp3",
+  "m4a",
+  "flac",
+  "ogg",
+  "opus",
+  "wv",
+  "tta",
+  "wav",
+  "mka",
+] as const;
+
+describe("multi-genre round-trip per format (parity)", () => {
+  for (const backend of BACKENDS) {
+    for (const format of ORDER_PRESERVING_FORMATS) {
+      it(`[${backend}] ${format}: genre ["Pop","Rock"] round-trips in order`, async () => {
+        const tl = await TagLib.initialize({ forceWasmType: backend });
+        const src = await Deno.readFile(FIXTURE_PATH[format]);
+        const file = await tl.open(new Uint8Array(src));
+        file.setProperties({ genre: ["Pop", "Rock"] });
+        file.save();
+        const buf = file.getFileBuffer();
+        file.dispose();
+
+        // Read with the OTHER backend so the WASI same-handle cache can
+        // never echo un-persisted state.
+        const tlR = await TagLib.initialize({
+          forceWasmType: backend === "wasi" ? "emscripten" : "wasi",
+        });
+        const reopened = await tlR.open(buf);
+        const props = reopened.properties() as Record<string, string[]>;
+        reopened.dispose();
+        assertEquals(props.genre, ["Pop", "Rock"]);
+      });
+    }
+  }
+});
+
+describe("embedded-null single-string multi-value (taglib-ktfn)", () => {
+  it("'Pop\\0Rock' via setProperty writes byte-identical TCON on both backends and reads back both values", async () => {
+    const written: Uint8Array[] = [];
+    for (const backend of BACKENDS) {
+      const tl = await TagLib.initialize({ forceWasmType: backend });
+      const src = await Deno.readFile(FIXTURE_PATH.mp3);
+      const file = await tl.open(new Uint8Array(src));
+      file.setProperty("genre", "Pop\u0000Rock");
+      file.save();
+      const buf = file.getFileBuffer();
+      const tcon = file.getId3v2Frames("TCON");
+      const body = tcon.length === 1
+        ? new Uint8Array(tcon[0].data)
+        : new Uint8Array(0);
+      file.dispose();
+      written.push(body);
+      assertEquals(
+        new TextDecoder().decode(body),
+        "\u0003Pop\u0000Rock",
+        `${backend} truncated the value after the embedded null`,
+      );
+      // The saved file must read back BOTH values (cross-backend read).
+      const tlR = await TagLib.initialize({
+        forceWasmType: backend === "wasi" ? "emscripten" : "wasi",
+      });
+      const reopened = await tlR.open(buf);
+      const props = reopened.properties() as Record<string, string[]>;
+      reopened.dispose();
+      assertEquals(props.genre, ["Pop", "Rock"]);
+    }
+    assertEquals(
+      written[0],
+      written[1],
+      "backends produced different TCON bytes for the same input",
+    );
   });
 });

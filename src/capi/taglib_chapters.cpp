@@ -157,9 +157,10 @@ bool read_chapter_entry(mpack_reader_t* reader, ChapterEntry* entry) {
         } else if (strcmp(fkey, "endTimeMs") == 0) {
             entry->endTimeMs = static_cast<unsigned int>(mpack_expect_u64(reader));
         } else if (strcmp(fkey, "title") == 0) {
-            char* v = read_owned_str(reader, nullptr);
+            uint32_t vlen = 0;
+            char* v = read_owned_str(reader, &vlen);
             if (!v) return false;
-            entry->title = TagLib::String(v, TagLib::String::UTF8);
+            entry->title = TagLib::String(std::string(v, vlen), TagLib::String::UTF8);
             free(v);
         } else {
             mpack_discard(reader);

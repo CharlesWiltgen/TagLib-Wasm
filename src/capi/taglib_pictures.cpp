@@ -185,7 +185,7 @@ tl_error_code apply_pictures_from_msgpack(
                         if (vlen < sizeof(vbuf)) {
                             mpack_read_bytes(&reader, vbuf, vlen);
                             vbuf[vlen] = '\0';
-                            mimeType = TagLib::String(vbuf, TagLib::String::UTF8);
+                            mimeType = TagLib::String(std::string(vbuf, vlen), TagLib::String::UTF8);
                         } else {
                             mpack_skip_bytes(&reader, vlen);
                         }
@@ -211,7 +211,7 @@ tl_error_code apply_pictures_from_msgpack(
                         if (vlen < sizeof(vbuf)) {
                             mpack_read_bytes(&reader, vbuf, vlen);
                             vbuf[vlen] = '\0';
-                            description = TagLib::String(vbuf, TagLib::String::UTF8);
+                            description = TagLib::String(std::string(vbuf, vlen), TagLib::String::UTF8);
                         } else {
                             mpack_skip_bytes(&reader, vlen);
                         }
