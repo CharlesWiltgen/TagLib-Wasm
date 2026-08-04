@@ -118,6 +118,13 @@ export interface TagInput {
   readonly releaseType?: string | string[];
   /** Content advisory in the ITUNESADVISORY convention ('1' = explicit, '0' = clean) */
   readonly itunesAdvisory?: string | string[];
+  /**
+   * Content advisory tri-state (taglib-an30): "explicit" | "clean" |
+   * "unspecified". Stored as MP4's native rtng atom on MP4, ITUNESADVISORY
+   * elsewhere. "unspecified" clears the representation; undefined leaves it
+   * unchanged.
+   */
+  readonly advisory?: "explicit" | "clean" | "unspecified";
   readonly replayGainTrackGain?: string | string[];
   readonly replayGainTrackPeak?: string | string[];
   readonly replayGainAlbumGain?: string | string[];
@@ -184,6 +191,12 @@ export interface ExtendedTag extends Tag {
   readonly releaseType?: string[];
   /** Content advisory in the ITUNESADVISORY convention ('1' = explicit, '0' = clean) */
   readonly itunesAdvisory?: string[];
+  /**
+   * Content advisory tri-state (taglib-an30): "explicit" | "clean" |
+   * "unspecified" ("0" and absence both read as unspecified; unknown raw
+   * values leave it unset while itunesAdvisory keeps the raw string).
+   */
+  readonly advisory?: "explicit" | "clean" | "unspecified";
   /** Album artist (different from track artist) */
   readonly albumArtist?: string[];
   /** Composer */

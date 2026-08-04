@@ -23,6 +23,7 @@
 #include "taglib_id3_duplicate.h"
 #include "taglib_asf_multi_value.h"
 #include "taglib_asf_properties.h"
+#include "taglib_mp4_advisory.h"
 #include "core/taglib_msgpack.h"
 #include "core/taglib_core.h"
 
@@ -209,6 +210,9 @@ static tl_error_code encode_file_to_msgpack(TagLib::File* file,
     // Untranslated ASF attributes (ReplayGain, ITUNESADVISORY, ...) never
     // crossed the wire before; surface them verbatim (taglib-984r).
     taglib_wasm::merge_asf_unsupported_properties(file, props);
+    // MP4 content advisory lives in the rtng item, invisible to the property
+    // map; surface it under the ITUNESADVISORY key (native wins) (taglib-an30).
+    taglib_wasm::merge_mp4_rtng_advisory(file, props);
     TagLib::AudioProperties* audio = file->audioProperties();
 
     uint32_t count = 0;
@@ -550,6 +554,11 @@ static tl_error_code decode_msgpack_to_propmap(
                 } else if (is_uppercase_key(key)) {
                     propMap[key] = list;
                 }
+            } else if (strcmp(key, "ITUNESADVISORY") == 0) {
+                // An empty advisory list is the clear signal for MP4's rtng
+                // item, which is invisible to the property map (taglib-an30);
+                // the generic decoder treats [] as absent, so keep it here.
+                propMap[key] = list;
             }
             continue;
         }
@@ -633,10 +642,17 @@ static void apply_propmap(TagLib::File* file, const TagLib::PropertyMap& propMap
     TagLib::PropertyMap prior = file->properties();
     taglib_wasm::merge_id3v1_only_properties(file, prior);
 
+    // MP4 content advisory: apply to the native rtng item before the
+    // PropertyMap write, and hand setProperties the effective map (a set
+    // suppresses the freeform write; an empty list clears rtng and lets the
+    // generic path clear any freeform atom) (taglib-an30).
+    const TagLib::PropertyMap effective =
+        taglib_wasm::normalize_advisory_write(file, propMap);
+
     // TagLib ignores untranslated keys for ASF (asftag.cpp:394); write them
     // as real attributes so nothing is silently dropped (taglib-984r).
-    const TagLib::PropertyMap ignored = file->setProperties(propMap);
-    taglib_wasm::apply_asf_properties(file, propMap, ignored);
+    const TagLib::PropertyMap ignored = file->setProperties(effective);
+    taglib_wasm::apply_asf_properties(file, effective, ignored);
 
     TagLib::Tag* tag = file->tag();
     if (!tag) return;

@@ -360,6 +360,10 @@ export class WasiFileHandle implements FileHandle {
 
       const propKey = toTagLibKey(key);
       if (Array.isArray(value)) {
+        // An empty array is the cleared-state marker (itunesAdvisory's rtng
+        // removal signal, taglib-an30); the surface shows cleared fields as
+        // absent, matching Emscripten.
+        if (value.length === 0) continue;
         result[propKey] = value.map(String);
       } else if (typeof value === "object") {
         continue;
@@ -392,7 +396,13 @@ export class WasiFileHandle implements FileHandle {
         // semantics). This is what lets clearTags() actually remove a field
         // under WASI's merge model, matching Emscripten's replace-style
         // setProperties (taglib-nc5).
-        delete next[camelKey];
+        // EXCEPT itunesAdvisory: MP4's rtng item is invisible to TagLib's
+        // property map, so the C++ layer must SEE the empty list to remove
+        // it (taglib-an30) — an absent key would leave the stale rtng atom
+        // behind on MP4. The wire carries [] and apply_mp4_advisory removes
+        // the item; getProperties() hides empty arrays from the surface.
+        if (camelKey === "itunesAdvisory") next[camelKey] = [];
+        else delete next[camelKey];
       } else {
         next[camelKey] = values;
       }

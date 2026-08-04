@@ -70,7 +70,7 @@ export const SPECIALIZED_PROPERTIES = {
   itunesAdvisory: {
     key: "ITUNESADVISORY",
     description:
-      "Content advisory in the ITUNESADVISORY convention ('1' = explicit, '0' = clean). Raw string passthrough; the typed tri-state (unspecified | explicit | clean) and MP4's native rtng atom land with taglib-an30. Aliases CONTENTADVISORY and EXPLICIT resolve here",
+      "Content advisory in the ITUNESADVISORY convention ('1' = explicit, '2' = clean, '0' = unspecified). On MP4 the value is stored in the native rtng atom and surfaced here. The typed tri-state lives on ExtendedTag.advisory; aliases CONTENTADVISORY and EXPLICIT resolve here",
     type: "string" as const,
     supportedFormats: ["ID3v2", "MP4", "Vorbis", "APE", "ASF"] as const,
     mappings: {

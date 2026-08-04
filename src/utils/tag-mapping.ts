@@ -140,6 +140,14 @@ export function mapPropertiesToExtendedTag(props: PropertyMap): ExtendedTag {
       if (num !== undefined) tag[camelKey] = num;
     } else if (camelKey === "compilation") {
       tag[camelKey] = values[0] === "1";
+    } else if (camelKey === "itunesAdvisory") {
+      // Content advisory tri-state (taglib-an30), pinned contract:
+      // rtng/ITUNESADVISORY "1" -> explicit, "2" -> clean, "0" ->
+      // unspecified. The raw field stays for unknown values.
+      tag[camelKey] = values;
+      if (values[0] === "1") tag.advisory = "explicit";
+      else if (values[0] === "2") tag.advisory = "clean";
+      else if (values[0] === "0") tag.advisory = "unspecified";
     } else if (camelKey === "r128TrackGain" || camelKey === "r128AlbumGain") {
       // EBU R128 (RFC 7845): the wire value is a signed Q7.8 integer; the
       // typed surface carries the decibel value. Exact inverse of the write
@@ -265,6 +273,13 @@ export function normalizeTagInput(
 
     if (field === "compilation") {
       props[field] = [val ? "1" : "0"];
+    } else if (field === "advisory") {
+      // Tri-state -> ITUNESADVISORY (taglib-an30): "unspecified" is an
+      // explicit clear via the empty-list semantics (taglib-nc5). Anything
+      // else at runtime is ignored — never guess destructively.
+      if (val === "explicit") props.itunesAdvisory = ["1"];
+      else if (val === "clean") props.itunesAdvisory = ["2"];
+      else if (val === "unspecified") props.itunesAdvisory = [];
     } else if (NUMERIC_FIELDS.has(field)) {
       props[field] = [String(val)];
     } else if (field === "r128TrackGain" || field === "r128AlbumGain") {

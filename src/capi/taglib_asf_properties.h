@@ -85,8 +85,6 @@ inline void apply_asf_properties(
     for (const auto& name : fileProps.unsupportedData()) {
         const std::string nb = name.to8Bit(true);
         
-        
-        fprintf(stderr, "\n");
         if (!tag->contains(name)) continue;
         const auto it = incoming.find(name);
         if (it != incoming.end() && !it->second.isEmpty()) continue;

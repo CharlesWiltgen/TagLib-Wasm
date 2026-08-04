@@ -52,6 +52,7 @@
 #include "../src/capi/taglib_id3_duplicate.h"
 #include "../src/capi/taglib_asf_multi_value.h"
 #include "../src/capi/taglib_asf_properties.h"
+#include "../src/capi/taglib_mp4_advisory.h"
 #include <memory>
 #include <string>
 #include <set>
@@ -726,6 +727,9 @@ public:
             // so an ID3v1-only value would otherwise be invisible (taglib-nft5).
             taglib_wasm::merge_id3v1_only_properties(fileRef->file(), properties);
             taglib_wasm::merge_asf_unsupported_properties(fileRef->file(), properties);
+            // MP4 content advisory: the rtng item is invisible to the
+            // property map; surface it under ITUNESADVISORY (taglib-an30).
+            taglib_wasm::merge_mp4_rtng_advisory(fileRef->file(), properties);
             
             for (const auto& prop : properties) {
                 val array = val::array();
@@ -790,8 +794,12 @@ public:
         // can follow it directly.
         const auto commentGuard =
             taglib_wasm::capture_id3v2_comment_guard(fileRef->file());
-        const TagLib::PropertyMap ignored = fileRef->file()->setProperties(propMap);
-        taglib_wasm::apply_asf_properties(fileRef->file(), propMap, ignored);
+        // MP4 content advisory: apply to the native rtng item and hand
+        // setProperties the effective map (taglib-an30).
+        const TagLib::PropertyMap effective =
+            taglib_wasm::normalize_advisory_write(fileRef->file(), propMap);
+        const TagLib::PropertyMap ignored = fileRef->file()->setProperties(effective);
+        taglib_wasm::apply_asf_properties(fileRef->file(), effective, ignored);
         restore_mp4_freeform_names(fileRef->file(), captured);
         taglib_wasm::apply_id3v2_comment_guard(fileRef->file(), commentGuard);
     }
@@ -802,6 +810,7 @@ public:
         TagLib::PropertyMap properties = fileRef->file()->properties();
         taglib_wasm::merge_id3v1_only_properties(fileRef->file(), properties);
         taglib_wasm::merge_asf_unsupported_properties(fileRef->file(), properties);
+        taglib_wasm::merge_mp4_rtng_advisory(fileRef->file(), properties);
         TagLib::String tagKey(key, TagLib::String::UTF8);
         
         if (properties.contains(tagKey) && !properties[tagKey].isEmpty()) {
@@ -829,7 +838,9 @@ public:
         auto captured = capture_mp4_freeform_names(fileRef->file());
         const auto commentGuard =
             taglib_wasm::capture_id3v2_comment_guard(fileRef->file());
-        fileRef->file()->setProperties(properties);
+        const TagLib::PropertyMap effective =
+            taglib_wasm::normalize_advisory_write(fileRef->file(), properties);
+        fileRef->file()->setProperties(effective);
         restore_mp4_freeform_names(fileRef->file(), captured);
         taglib_wasm::apply_id3v2_comment_guard(fileRef->file(), commentGuard);
     }

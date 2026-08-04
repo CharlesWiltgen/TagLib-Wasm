@@ -357,6 +357,12 @@ Example: ID3v2 `TPE2` / Vorbis `ALBUMARTIST` / iTunes `aART` → `albumArtist`.
 property — `ALBUM ARTIST`/`ALBUM_ARTIST`→albumArtist, `ORGANIZATION`/`PUBLISHER`→label,
 `UPC`/`EAN`/`GTIN`→barcode, `TOTALTRACKS`→totalTracks, `TOTALDISCS`→totalDiscs,
 `MUSICBRAINZ_ALBUMTYPE`→releaseType, `CONTENTADVISORY`/`EXPLICIT`→itunesAdvisory.
+**Content advisory** (taglib-an30): typed `advisory: "explicit" | "clean" | "unspecified"`
+on `readTags()`/`applyTags()` — wire values `ITUNESADVISORY` "1"/"2"/"0". On MP4 the
+value lives in the native `rtng` atom (0/1/2), bridged in C++ on both backends; other
+formats use ITUNESADVISORY (TXXX/freeform/Vorbis/APE/ASF). `"unspecified"` clears the
+representation (removes rtng + freeform atom on MP4, the TXXX frame/freeform/Vorbis
+field elsewhere).
 `DATE` is canonical; a `YEAR`-only file populates `year`/`date` on the typed surface
 (properties() keeps the raw `YEAR` key), and a typed write canonicalizes it. Canonical
 spelling wins when a file carries both; writes through setProperties normalize aliases.

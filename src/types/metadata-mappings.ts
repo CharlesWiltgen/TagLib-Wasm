@@ -55,6 +55,9 @@ export const METADATA_MAPPINGS: Record<
     | "bextData"
     | "ixml"
     | "id3v2Frames"
+    // Derived typed view of itunesAdvisory/rtng (taglib-an30): not a wire
+    // field with its own per-format mapping.
+    | "advisory"
   >,
   FieldMapping
 > = {
