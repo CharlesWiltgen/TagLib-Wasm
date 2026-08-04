@@ -16,7 +16,27 @@
   volume/bonus/bare disc names with sibling corroboration and flat filename
   prefixes (`1-01`, `101`); plain `Bonus`/`Extras` are never discs.
 
+### Added
+
+- **`discFolderInfo(name)`** — the standalone disc-folder recognizer exposed
+  publicly (with `DiscFolderInfo`). Classifies a directory name without
+  resolve-to-parent semantics, so consumers (e.g. tuneup's placeholder path)
+  can reuse the recognizer instead of reimplementing it.
+
 ### Fixed
+
+- **Disc-folder recognition gated for title-word markers.** `tape`, `vinyl`,
+  `cassette`, `lp`, `record` now require sibling corroboration before acting
+  as disc evidence — "Tape 4" (Sleep/Felbm) is an album title, not disc 4,
+  while `Tape 1` + `Tape 2` siblings still fold. Previously a lone "Tape 4"
+  folder resolved to its parent.
+- **Single-letter disc tokens are side labels, not numbers.** "Album (CD D)"
+  no longer parses D as roman 500 and promotes the folder; side letters are
+  gated like the bare-letter tier and corroborate each other ("CD D" + "CD E"
+  still fold). The number token now accepts any single letter.
+- **Word/roman disc confidence fixed.** "Disc One"/"Disc II" reported
+  `high` confidence because the check tested the parsed number instead of
+  the token form; they now correctly report `low`.
 
 - **WMA multi-value attributes now round-trip in the caller's order instead
   of being rotated by one.** TagLib 2.3.1's ASF render splits a multi-value

@@ -13,6 +13,7 @@ import {
   type AlbumDisc,
   type AlbumGroup,
   type AlbumGroupingResult,
+  discFolderInfo,
   groupAlbums,
   type GroupAlbumsOptions,
 } from "../src/folder-api/group-albums.ts";
@@ -94,7 +95,99 @@ function discOf(album: AlbumGroup, n: number | undefined): AlbumDisc {
 const R = (dir: string) => `${ROOT}/${dir}`;
 
 // ---------------------------------------------------------------------------
-// 1. Recognizer table
+// 1b. Standalone recognizer (discFolderInfo)
+// ---------------------------------------------------------------------------
+
+describe("discFolderInfo (standalone recognizer)", () => {
+  it("classifies the grammar forms with base confidence", () => {
+    assertEquals(discFolderInfo("CD1"), {
+      kind: "exact",
+      gated: false,
+      number: 1,
+      total: undefined,
+      title: undefined,
+      discTitle: undefined,
+      confidence: "high",
+    });
+    assertEquals(discFolderInfo("Disc One"), {
+      kind: "exact",
+      gated: false,
+      number: 1,
+      total: undefined,
+      title: undefined,
+      discTitle: undefined,
+      confidence: "low",
+    });
+    assertEquals(discFolderInfo("Album (Disc 1)"), {
+      kind: "embedded",
+      gated: false,
+      number: 1,
+      total: undefined,
+      title: "Album",
+      discTitle: undefined,
+      confidence: "medium",
+    });
+    assertEquals(discFolderInfo("Vol 2"), {
+      kind: "volume",
+      gated: false,
+      number: 2,
+      total: undefined,
+      title: undefined,
+      discTitle: undefined,
+      confidence: "medium",
+    });
+  });
+
+  it("gates title-word markers and side letters", () => {
+    const tape = discFolderInfo("Tape 4")!;
+    assertEquals(tape.gated, true);
+    assertEquals(tape.number, 4);
+    assertEquals(tape.confidence, "low");
+
+    const side = discFolderInfo("Album (CD D)")!;
+    assertEquals(side.gated, true);
+    assertEquals(side.number, undefined);
+    assertEquals(side.kind, "embedded");
+    assertEquals(side.title, "Album");
+
+    const sideA = discFolderInfo("CD A")!;
+    assertEquals(sideA.gated, true);
+    assertEquals(sideA.number, undefined);
+  });
+
+  it("returns undefined for non-disc names", () => {
+    for (
+      const name of [
+        "Greatest Hits",
+        "2001 A Space Odyssey",
+        "CD",
+        "Help 1",
+        "Abcd1",
+        "Scalp 1",
+        "Extras",
+        "Bonus",
+      ]
+    ) {
+      assertEquals(discFolderInfo(name), undefined, name);
+    }
+  });
+
+  it("does not resolve to a parent — the caller decides", () => {
+    // Standalone recognizer: no albumDir semantics. Tuneup's placeholder
+    // path consumes this without inheriting resolve-to-parent. The folder
+    // "Felbm - Tape 4" is an embedded form: title "Felbm", gated tape
+    // marker, disc 4 — the library resolves it to the parent inside
+    // groupAlbums, the standalone recognizer just reports the parse.
+    const info = discFolderInfo("Felbm - Tape 4")!;
+    assertEquals(info.kind, "embedded");
+    assertEquals(info.title, "Felbm");
+    assertEquals(info.gated, true);
+    assertEquals(info.number, 4);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 1. Recognizer table (via groupAlbums)
 // ---------------------------------------------------------------------------
 
 describe("disc-folder recognizer (via groupAlbums)", () => {
@@ -170,6 +263,83 @@ describe("disc-folder recognizer (via groupAlbums)", () => {
     ]);
     const album = albumByTitle(result, "Album");
     assertEquals(discOf(album, 1).totalDiscs, 2);
+  });
+
+  it("title-word markers are gated: lone 'Tape 4' is an album title, not a disc", () => {
+    // Sleep/Felbm "Tape 4" regression (2026-08-04 feedback): the release is
+    // titled "Tape 4"; it must NOT resolve up to its parent as disc 4.
+    const result = group([
+      [R("Artist/Felbm - Tape 4/track1.flac")],
+      [R("Artist/Felbm - Tape 4/track2.flac")],
+    ]);
+    const album = albumByTitle(result, "Felbm - Tape 4");
+    assertEquals(album.directory, R("Artist/Felbm - Tape 4"));
+    assertEquals(album.discs.length, 1);
+    assertEquals(album.discs[0].discNumber, undefined);
+  });
+
+  it("gated marker siblings still fold: Tape 1 + Tape 2", () => {
+    const result = group([
+      [R("Album/Tape 1/track1.flac")],
+      [R("Album/Tape 2/track1.flac")],
+    ]);
+    const album = albumByTitle(result, "Album");
+    assertEquals(album.discs.length, 2);
+    assertEquals(discOf(album, 1).confidence, "low");
+  });
+
+  it("gated vinyl and LP siblings fold; lone vinyl does not", () => {
+    const lone = group([
+      [R("Artist/Vinyl 1/track1.flac")],
+      [R("Artist/Vinyl 1/track2.flac")],
+    ]);
+    assertEquals(albumByTitle(lone, "Vinyl 1").discs.length, 1);
+
+    const pair = group([
+      [R("Album/Vinyl 1/track1.flac")],
+      [R("Album/Vinyl 2/track1.flac")],
+    ]);
+    assertEquals(albumByTitle(pair, "Album").discs.length, 2);
+
+    const lpPair = group([
+      [R("Album/LP 1/track1.flac")],
+      [R("Album/LP 2/track1.flac")],
+    ]);
+    assertEquals(albumByTitle(lpPair, "Album").discs.length, 2);
+  });
+
+  it("single-letter tokens are gated: lone 'Album (CD D)' is not a disc", () => {
+    // 2026-08-04 feedback: a letter-labeled folder ("CD D" side label) must
+    // not promote to a disc without a sibling. Previously D parsed as roman
+    // 500, resolving the folder to its parent.
+    const result = group([
+      [R("Artist/Album (CD D)/track1.flac")],
+      [R("Artist/Album (CD D)/track2.flac")],
+    ]);
+    const album = albumByTitle(result, "Album (CD D)");
+    assertEquals(album.discs.length, 1);
+    assertEquals(album.discs[0].discNumber, undefined);
+    assertEquals(album.directory, R("Artist/Album (CD D)"));
+  });
+
+  it("side-letter siblings corroborate each other: (CD D) + (CD E) fold", () => {
+    const result = group([
+      [R("Artist/Album (CD D)/track1.flac")],
+      [R("Artist/Album (CD E)/track1.flac")],
+    ]);
+    const album = albumByTitle(result, "Album");
+    assertEquals(album.discs.length, 2);
+    assertEquals(album.discs[0].discNumber, undefined);
+    assertEquals(album.discs[1].discNumber, undefined);
+  });
+
+  it("multi-letter roman numerals stay unconditional: Disc II is disc 2", () => {
+    const result = group([
+      [R("Album/Disc II/track1.flac")],
+      [R("Album/Disc III/track1.flac")],
+    ]);
+    const album = albumByTitle(result, "Album");
+    assertEquals(album.discs.map((d) => d.discNumber), [2, 3]);
   });
 });
 

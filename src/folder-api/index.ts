@@ -29,6 +29,8 @@ export {
   type AlbumGroupItem,
   type AlbumGroupKey,
   type DiscConfidence,
+  type DiscFolderInfo,
+  discFolderInfo,
   groupAlbums,
   type GroupAlbumsOptions,
 } from "./group-albums.ts";

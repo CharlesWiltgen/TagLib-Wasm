@@ -101,6 +101,46 @@ export interface GroupAlbumsOptions {
   scanRoot?: string;
 }
 
+/** The standalone disc-folder recognizer result. */
+export interface DiscFolderInfo {
+  /** Which grammar form matched. */
+  kind: "exact" | "embedded" | "volume" | "bonus" | "bare";
+  /** True when corroboration is required (title-word markers like "Tape 4",
+   * side letters like "CD D", bonus, bare). */
+  gated: boolean;
+  /** Disc number; undefined for side letters, bonus, and bare letters. */
+  number: number | undefined;
+  /** "of N" total from "CD 1 of 2". */
+  total: number | undefined;
+  /** Title text before an embedded marker ("Album (Disc 1)" -> "Album"). */
+  title: string | undefined;
+  /** Trailing text after the number ("Bonus Tracks" from "Disc 2 (Bonus Tracks)"). */
+  discTitle: string | undefined;
+  /** Base confidence tier; sibling corroboration may upgrade embedded to
+   * "high" inside groupAlbums. Gated names stay "low" even corroborated. */
+  confidence: DiscConfidence;
+}
+
+/**
+ * Recognize a directory name as a disc folder. Standalone — it only
+ * classifies the name; it does not resolve the folder to its parent (use
+ * the album result's per-file `albumDir` for that). Returns undefined for
+ * non-disc names. Plain "Bonus" and "Extras" are never discs by name.
+ */
+export function discFolderInfo(name: string): DiscFolderInfo | undefined {
+  const parse = parseDiscName(name);
+  if (!parse) return undefined;
+  return {
+    kind: parse.kind,
+    gated: parse.gated,
+    number: parse.number,
+    total: parse.total,
+    title: parse.title,
+    discTitle: parse.discTitle,
+    confidence: parse.gated ? "low" : baseConfidence(parse),
+  };
+}
+
 // ---------------------------------------------------------------------------
 // Path helpers (both / and \ are separators; runtime-agnostic)
 // ---------------------------------------------------------------------------
@@ -126,9 +166,22 @@ interface DiscParse {
   title: string | undefined;
   /** Trailing text after the number ("Bonus Tracks" from "Disc 2 (Bonus Tracks)"). */
   discTitle: string | undefined;
+  /** True for title-word markers (tape/vinyl/cassette/lp/record) and
+   * single-letter number tokens: corroboration required, low confidence. */
+  gated: boolean;
+  /** True when the number token was a single letter ("CD D"): a side label,
+   * not a number — corroboration required (2026-08-04 feedback). */
+  sideLetter: boolean;
+  /** True when the number token was arabic digits ("CD1" vs "Disc One"). */
+  digit: boolean;
 }
 
-const MARKERS = [
+// Medium-label markers. Unconditional ones (CD, DVD, SACD, ...) are not
+// plausible album-title words, so "CD1" alone is a disc. Title-word markers
+// (tape, vinyl, cassette, LP, record) collide with real album titles ("Tape 4"
+// by Sleep/Felbm) and are GATED: a lone "Tape 4" folder is an album title,
+// while "Tape 1" + "Tape 2" siblings still fold as discs (2026-08-04 feedback).
+const UNCONDITIONAL_MARKERS = [
   "cd",
   "disc",
   "disk",
@@ -136,13 +189,11 @@ const MARKERS = [
   "sacd",
   "blu-ray",
   "bd",
-  "vinyl",
-  "lp",
-  "record",
-  "cassette",
-  "tape",
   "digital media",
 ];
+const GATED_MARKERS = ["tape", "vinyl", "cassette", "lp", "record"];
+const MARKERS = [...UNCONDITIONAL_MARKERS, ...GATED_MARKERS];
+const GATED_MARKER_SET = new Set(GATED_MARKERS);
 
 const WORD_NUMBERS: Record<string, number> = {
   one: 1,
@@ -189,8 +240,10 @@ function parseNumberToken(token: string): number | undefined {
 }
 
 const SEP = String.raw`[\s._#-]*`;
+// A number token: arabic, roman, word — or a SINGLE letter, which is a side
+// label ("CD A", "Album (CD D)") parsed as a gated, numberless token.
 const NUM = String
-  .raw`(?:\d+|[ivxlcdm]+|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve)`;
+  .raw`(?:\d+|[ivxlcdm]+|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|[a-z])`;
 
 /**
  * Parse a directory name as a disc folder. Returns undefined for non-disc
@@ -210,8 +263,13 @@ function parseDiscName(name: string): DiscParse | undefined {
     const m = trimmed.match(re);
     if (!m) continue;
 
-    const number = parseNumberToken(m[2]);
-    if (number === undefined) continue;
+    // A single-letter token ("CD D", "CD A") is a side label, not a number —
+    // gated like the bare-letter tier, no disc number (box-set convention).
+    const sideLetter = /^[a-z]$/i.test(m[2]);
+    const number = sideLetter ? undefined : parseNumberToken(m[2]);
+    if (number === undefined && !sideLetter) continue;
+
+    const isGated = GATED_MARKER_SET.has(marker.toLowerCase()) || sideLetter;
 
     // Title text = everything before the marker's first character.
     const markerStart = m.index! + m[1].length - marker.length;
@@ -233,10 +291,13 @@ function parseDiscName(name: string): DiscParse | undefined {
 
     return {
       kind: isExact ? "exact" : "embedded",
-      number,
+      number: sideLetter ? undefined : number,
       total,
       title,
       discTitle,
+      gated: isGated,
+      sideLetter,
+      digit: /^\d+$/.test(m[2]),
     };
   }
 
@@ -251,6 +312,9 @@ function parseDiscName(name: string): DiscParse | undefined {
       total: volume[2] ? parseInt(volume[2], 10) : undefined,
       title: undefined,
       discTitle: undefined,
+      gated: false,
+      sideLetter: false,
+      digit: true,
     };
   }
 
@@ -262,6 +326,9 @@ function parseDiscName(name: string): DiscParse | undefined {
       total: undefined,
       title: undefined,
       discTitle: undefined,
+      gated: true,
+      sideLetter: false,
+      digit: false,
     };
   }
 
@@ -273,6 +340,9 @@ function parseDiscName(name: string): DiscParse | undefined {
       total: undefined,
       title: undefined,
       discTitle: undefined,
+      gated: true,
+      sideLetter: false,
+      digit: false,
     };
   }
 
@@ -283,10 +353,7 @@ function baseConfidence(parse: DiscParse): DiscConfidence {
   switch (parse.kind) {
     case "exact":
       // Word/roman numerals are only low-confidence evidence.
-      return typeof parse.number === "number" &&
-          /^\d+$/.test(String(parse.number))
-        ? "high"
-        : "low";
+      return parse.digit ? "high" : "low";
     case "embedded":
       return "medium";
     case "volume":
@@ -298,26 +365,36 @@ function baseConfidence(parse: DiscParse): DiscConfidence {
 }
 
 /**
- * Sibling corroboration (spec step 3): gated names are discs only when a
- * sibling under the same parent confirms them — an unconditional disc
- * sibling, or sibling numbering of their own (a folder never confirms
- * itself). Low-tier names additionally need the title-less set rules.
+ * Sibling corroboration (spec step 3): gated names (title-word markers,
+ * single-letter tokens, bonus, bare) are discs only when a sibling under the
+ * same parent confirms them — an unconditional disc sibling, or sibling
+ * numbering of their own (a folder never confirms itself). Side-letter
+ * tokens corroborate each other ("CD D" + "CD E").
  */
 function corroborated(parse: DiscParse, siblings: string[]): boolean {
-  if (parse.kind === "exact") return true;
+  if (!parse.gated && parse.kind === "exact") return true;
   if (siblings.length === 0) return false;
 
   const siblingParses = siblings
     .map((s) => parseDiscName(basename(s)))
     .filter((p): p is DiscParse => p !== undefined);
-  const hasExactSibling = siblingParses.some((p) => p.kind === "exact");
+  const hasExactSibling = siblingParses.some(
+    (p) => !p.gated && p.kind === "exact",
+  );
   const hasNumberedSibling = siblingParses.some(
     (p) => p.number !== undefined,
   );
 
   if (parse.number !== undefined && hasNumberedSibling) return true;
-  if (parse.kind === "embedded" && hasExactSibling) return true;
-  if (parse.kind === "volume" && hasNumberedSibling) return true;
+  if (!parse.gated && parse.kind === "embedded" && hasExactSibling) return true;
+  if (!parse.gated && parse.kind === "volume" && hasNumberedSibling) {
+    return true;
+  }
+
+  // Side-letter tokens corroborate each other ("CD D" + "CD E").
+  if (parse.sideLetter) {
+    return siblingParses.some((p) => p.sideLetter);
+  }
 
   // Title-less set rules (low tier): bare numbers/letters or bonus names
   // accompanying at least two numbered siblings, or a numbered sibling of
@@ -456,8 +533,12 @@ export function groupAlbums(
       (d) => d !== dir && dirname(d) === dirname(dir),
     );
     const corroboratedBySiblings = corroborated(parse, siblings);
-    let confidence = baseConfidence(parse);
-    if (parse.kind === "bonus" || parse.kind === "bare") {
+    // Gated names (title-word markers, side letters, bonus, bare) keep low
+    // confidence even when corroborated; everything else upgrades to high.
+    let confidence = parse.gated ? "low" : baseConfidence(parse);
+    if (parse.gated) {
+      if (!corroboratedBySiblings) continue;
+    } else if (parse.kind === "bonus" || parse.kind === "bare") {
       if (!corroboratedBySiblings) continue;
     } else if (corroboratedBySiblings) {
       confidence = "high";

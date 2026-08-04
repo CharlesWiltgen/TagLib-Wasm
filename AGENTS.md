@@ -285,6 +285,22 @@ UI and lint buckets by. Folder disc recognition covers `CD1`, `Disc One`,
 `DVD 1`, `Album (Disc 1)`, `Volume 1`, `Bonus Disc` (gated), bare numbers, and
 flat filename prefixes (`1-01`, `101`); plain `Bonus`/`Extras` are never discs.
 
+Standalone recognizer (no resolve-to-parent semantics — the caller decides
+what the parse means):
+
+```typescript
+import { discFolderInfo } from "taglib-wasm";
+
+discFolderInfo("CD1"); // { kind: "exact", gated: false, number: 1, confidence: "high", ... }
+discFolderInfo("Tape 4"); // { kind: "exact", gated: true,  number: 4, confidence: "low" }
+discFolderInfo("Album (CD D)"); // { kind: "embedded", gated: true, number: undefined, title: "Album", ... }
+discFolderInfo("Greatest Hits"); // undefined
+```
+
+Title-word markers (`tape`, `vinyl`, `cassette`, `lp`, `record`) and side
+letters (`CD D`) are gated: they only act as disc evidence with sibling
+corroboration, so real album titles like "Tape 4" are not misread as discs.
+
 ## Import Patterns
 
 ```typescript

@@ -61,6 +61,14 @@ function scanForAlbums(
 `flatDiscPrefixes` (default true), `folderFallback` (default true), `scanRoot`
 (pins the scanned directory; a bare disc folder directly under it is unmatched).
 
+**`discFolderInfo(name)`** — the standalone disc-folder recognizer. Classifies
+a directory name only; it does not resolve the folder to its parent (the
+album result's per-file `albumDir` carries the resolution). Returns
+`DiscFolderInfo | undefined`: `kind` (`"exact" | "embedded" | "volume" |
+"bonus" | "bare"`), `gated` (corroboration required — title-word markers like
+`tape`/`vinyl`/`cassette`/`lp`/`record`, side letters like `CD D`, bonus,
+bare), `number`, `total`, `title`, `discTitle`, `confidence`.
+
 **Example:**
 
 ```typescript
