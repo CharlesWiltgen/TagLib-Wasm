@@ -276,6 +276,12 @@ function parseDiscName(name: string): DiscParse | undefined {
     const sideLetter = /^[a-z]$/i.test(m[2]);
     const number = sideLetter ? undefined : parseNumberToken(m[2]);
     if (number === undefined && !sideLetter) continue;
+    // Multi-letter roman tokens must be plausible disc numbers: all-roman-
+    // letter words ("Mic" = 1099, "Mix" = 1011) are titles, not numerals
+    // (2026-08-04 review — same word-collision class as the Recordings bug).
+    if (
+      !sideLetter && /^[ivxlcdm]{2,}$/i.test(m[2]) && (number ?? 0) > 100
+    ) continue;
 
     const isGated = GATED_MARKER_SET.has(marker.toLowerCase()) || sideLetter;
 

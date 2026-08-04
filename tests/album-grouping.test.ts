@@ -188,10 +188,30 @@ describe("discFolderInfo (standalone recognizer)", () => {
         "CD-ROM",
         "Discography 1",
         "Disco 1",
+        // Marker-half guards: only these fail if the marker-level lookahead
+        // alone is reverted (the side-letter token still matches at end/space).
+        "CDs",
+        "DVDs",
+        "Vinyls",
+        "LPs",
+        // Token-branch guards: the roman and word alternatives of the token
+        // lookahead (the side-letter branch is covered by CD-ROM above).
+        "Disc IVB",
+        "Disc Oner",
+        // Roman plausibility: all-roman-letter words are titles, not numerals.
+        "Disc Mic",
+        "Disc Mix 1",
+        "CD Mix 1",
       ]
     ) {
       assertEquals(discFolderInfo(name), undefined, name);
     }
+  });
+
+  it("roman numerals stay discs within a plausible bound", () => {
+    assertEquals(discFolderInfo("Disc IV")!.number, 4);
+    assertEquals(discFolderInfo("Disc XII")!.number, 12);
+    assertEquals(discFolderInfo("Disc L")!.gated, true); // single char: side label
   });
 
   it("record-marker siblings must not fold to the parent (anthology regression)", () => {
