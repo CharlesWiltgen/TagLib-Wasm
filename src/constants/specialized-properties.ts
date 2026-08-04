@@ -48,6 +48,25 @@ export const SPECIALIZED_PROPERTIES = {
       mp4: "----:com.apple.iTunes:MusicBrainz Release Group Id",
     },
   },
+  releaseType: {
+    key: "RELEASETYPE",
+    description:
+      "Release type (album, single, EP, compilation, ...). Multi-value (e.g. 'album' + 'EP'). TagLib 2.3.1 translates the RELEASETYPE key per format: ID3v2 TXXX 'MusicBrainz Album Type', MP4 freeform atom, APEv2 MUSICBRAINZ_ALBUMTYPE, ASF 'MusicBrainz/Album Type', Vorbis/Matroska raw RELEASETYPE",
+    type: "string" as const,
+    supportedFormats: [
+      "ID3v2",
+      "MP4",
+      "Vorbis",
+      "APE",
+      "ASF",
+      "Matroska",
+    ] as const,
+    mappings: {
+      id3v2: { frame: "TXXX", description: "MusicBrainz Album Type" },
+      vorbis: "RELEASETYPE",
+      mp4: "----:com.apple.iTunes:MusicBrainz Album Type",
+    },
+  },
 
   // ReplayGain Properties
   replayGainTrackGain: {

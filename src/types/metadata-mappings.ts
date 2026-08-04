@@ -275,6 +275,11 @@ export const METADATA_MAPPINGS: Record<
     vorbis: "R128_ALBUM_GAIN",
     mp4: "----:com.apple.iTunes:R128_ALBUM_GAIN",
   },
+  releaseType: {
+    id3v2: { frame: "TXXX", description: "MusicBrainz Album Type" },
+    vorbis: "RELEASETYPE",
+    mp4: "----:com.apple.iTunes:MusicBrainz Album Type",
+  },
 
   // Apple Sound Check mapping
   appleSoundCheck: {

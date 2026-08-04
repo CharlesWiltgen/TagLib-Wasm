@@ -142,7 +142,21 @@
 
 ## 1.6.1
 
-### Fixed
+### Added
+
+- **Typed `releaseType` property** — readTags()/applyTags() now surface
+  release type (album, single, EP, compilation, ...), multi-value. TagLib
+  2.3.1 already translated the `RELEASETYPE` key per format — TXXX
+  "MusicBrainz Album Type" (MP3), MP4 freeform atom, APEv2
+  MUSICBRAINZ_ALBUMTYPE (WavPack/APE), ASF "MusicBrainz/Album Type" (WMA),
+  Vorbis/Matroska raw — so this is a typed-surface gap, not a write gap:
+  the value round-tripped everywhere but readTags() never showed it.
+  `releaseType: string[]` on ExtendedTag, `string | string[]` accepted on
+  input, PROPERTIES + METADATA_MAPPINGS entries added. 15 new tests:
+  multi-value round-trips on all seven fixture formats (MP3/M4A/WV/MKA/
+  Opus/WMA/FLAC) with byte-level wire-name checks (MP4 freeform, APEv2,
+  Vorbis, Matroska), cross-backend parity, typed simple-API round-trips —
+  observed failing before the change.
 
 - **A freeform MP4 atom keeps its own namespace, and reads back.** On the WASI
   backend an atom whose `mean` is not `com.apple.iTunes` was relocated into
