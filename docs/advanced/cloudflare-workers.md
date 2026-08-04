@@ -121,7 +121,7 @@ interface BatchRequest {
 }
 
 async function handleBatch(request: Request): Promise<Response> {
-  const { files } = await request.json<BatchRequest>();
+  const { files } = (await request.json()) as BatchRequest;
 
   const results = await Promise.all(files.map(async (file) => {
     try {

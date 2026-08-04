@@ -185,7 +185,14 @@ async function checkAlbumCompleteness(albumPath: string) {
   const files = await getAudioFiles(albumPath);
   const result = await readMetadataBatch(files, { concurrency: 8 });
 
-  const issues = {
+  const issues: {
+    missingTitles: string[];
+    missingTrackNumbers: string[];
+    missingCoverArt: string[];
+    inconsistentAlbum: Set<string>;
+    inconsistentArtist: Set<string>;
+    missingReplayGain: string[];
+  } = {
     missingTitles: [],
     missingTrackNumbers: [],
     missingCoverArt: [],

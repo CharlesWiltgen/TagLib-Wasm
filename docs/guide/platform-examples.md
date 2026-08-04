@@ -113,8 +113,8 @@ Browsers have no filesystem access. Audio data comes from the
 import { applyTags, readTags } from "taglib-wasm/simple";
 
 // Get audio data from a file input
-const input = document.querySelector('input[type="file"]');
-const audioData = new Uint8Array(await input.files[0].arrayBuffer());
+const input = document.querySelector('input[type="file"]') as HTMLInputElement;
+const audioData = new Uint8Array(await input.files![0].arrayBuffer());
 
 // Read
 const tags = await readTags(audioData);

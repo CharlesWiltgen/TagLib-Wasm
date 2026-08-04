@@ -208,8 +208,10 @@ await writeFile("output.mp3", updatedData);
 import { TagLib } from "taglib-wasm";
 
 // From file input
-const fileInput = document.querySelector('input[type="file"]');
-const audioFile = fileInput.files[0];
+const fileInput = document.querySelector(
+  'input[type="file"]',
+) as HTMLInputElement;
+const audioFile = fileInput.files![0];
 const audioData = new Uint8Array(await audioFile.arrayBuffer());
 
 const taglib = await TagLib.initialize();

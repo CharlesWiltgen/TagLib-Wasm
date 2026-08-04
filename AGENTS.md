@@ -390,9 +390,12 @@ export default {
 ### Browser File Input
 
 ```typescript
+import { TagLib } from "taglib-wasm";
+
 const taglib = await TagLib.initialize();
+const input = document.querySelector('input[type="file"]') as HTMLInputElement;
 input.addEventListener("change", async (e) => {
-  using audioFile = await taglib.open(e.target.files[0]);
+  using audioFile = await taglib.open((e.target as HTMLInputElement).files![0]);
   console.log(audioFile.tag().title);
 });
 ```

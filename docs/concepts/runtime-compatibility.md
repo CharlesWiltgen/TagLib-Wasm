@@ -79,8 +79,10 @@ import { TagLib } from "taglib-wasm";
 const taglib = await TagLib.initialize();
 
 // From file input
-const fileInput = document.querySelector('input[type="file"]');
-const file = fileInput.files[0];
+const fileInput = document.querySelector(
+  'input[type="file"]',
+) as HTMLInputElement;
+const file = fileInput.files![0];
 const audioData = new Uint8Array(await file.arrayBuffer());
 using tagFile = await taglib.open(audioData);
 

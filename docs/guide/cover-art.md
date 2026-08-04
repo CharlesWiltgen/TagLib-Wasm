@@ -48,11 +48,11 @@ import { readPictures } from "taglib-wasm/simple";
 
 // Display cover art in browser
 const pictures = await readPictures("song.mp3");
-const img = document.getElementById("coverArt");
+const img = document.getElementById("coverArt") as HTMLImageElement;
 img.src = pictureToDataURL(pictures[0]);
 
 // Set cover art from HTML canvas
-const canvas = document.getElementById("myCanvas");
+const canvas = document.getElementById("myCanvas") as HTMLCanvasElement;
 const modifiedBuffer = await setCoverArtFromCanvas("song.mp3", canvas, {
   format: "image/jpeg",
   quality: 0.9,

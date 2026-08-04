@@ -91,7 +91,8 @@ const arrayBuffer = await fetch("song.mp3").then((r) => r.arrayBuffer());
 const tags = await readTags(arrayBuffer);
 
 // From File object (browsers)
-const file = document.getElementById("file-input").files[0];
+const file =
+  (document.getElementById("file-input") as HTMLInputElement).files![0];
 const tags = await readTags(file);
 ```
 
@@ -131,7 +132,8 @@ const modifiedBuffer = await applyTags("song.mp3", {
 await Deno.writeFile("song-updated.mp3", modifiedBuffer);
 
 // From File object (browsers)
-const file = document.getElementById("file-input").files[0];
+const file =
+  (document.getElementById("file-input") as HTMLInputElement).files![0];
 const modifiedBuffer = await applyTags(file, {
   title: "New Title",
   artist: "New Artist",
@@ -790,7 +792,8 @@ const arrayBuffer = await fetch("song.mp3").then((r) => r.arrayBuffer());
 using file = await taglib.open(arrayBuffer);
 
 // From File object (browsers)
-const fileInput = document.getElementById("file-input").files[0];
+const fileInput =
+  (document.getElementById("file-input") as HTMLInputElement).files![0];
 using file = await taglib.open(fileInput);
 
 // Partial loading is enabled by default — only headers/footers are read.
