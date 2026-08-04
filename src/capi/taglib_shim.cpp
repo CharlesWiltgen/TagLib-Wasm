@@ -22,6 +22,7 @@
 #include "taglib_mp4_atoms.h"
 #include "taglib_id3_duplicate.h"
 #include "taglib_asf_multi_value.h"
+#include "taglib_asf_properties.h"
 #include "core/taglib_msgpack.h"
 #include "core/taglib_core.h"
 
@@ -205,6 +206,9 @@ static tl_error_code encode_file_to_msgpack(TagLib::File* file,
     // would be invisible here — and therefore absent from the snapshot the save
     // path writes back, which erased it (taglib-nft5).
     taglib_wasm::merge_id3v1_only_properties(file, props);
+    // Untranslated ASF attributes (ReplayGain, ITUNESADVISORY, ...) never
+    // crossed the wire before; surface them verbatim (taglib-984r).
+    taglib_wasm::merge_asf_unsupported_properties(file, props);
     TagLib::AudioProperties* audio = file->audioProperties();
 
     uint32_t count = 0;
@@ -629,7 +633,10 @@ static void apply_propmap(TagLib::File* file, const TagLib::PropertyMap& propMap
     TagLib::PropertyMap prior = file->properties();
     taglib_wasm::merge_id3v1_only_properties(file, prior);
 
-    file->setProperties(propMap);
+    // TagLib ignores untranslated keys for ASF (asftag.cpp:394); write them
+    // as real attributes so nothing is silently dropped (taglib-984r).
+    const TagLib::PropertyMap ignored = file->setProperties(propMap);
+    taglib_wasm::apply_asf_properties(file, propMap, ignored);
 
     TagLib::Tag* tag = file->tag();
     if (!tag) return;

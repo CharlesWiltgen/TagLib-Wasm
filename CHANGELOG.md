@@ -25,6 +25,21 @@
 
 ### Fixed
 
+- **ASF/WMA no longer silently drops unknown attributes** (ReplayGain,
+  ITUNESADVISORY, R128, arbitrary string attributes). ASF::Tag::setProperties
+  returned untranslated keys as ignoredProps — never written — and
+  properties() hid untranslated attributes, so a WMA write of these fields
+  persisted nothing while the WASI same-handle read echoed the write back
+  (optimistic cache). Both backends now: write ignored keys as real ASF
+  attributes (removal-by-absence, so `setProperties({key: []})` clears
+  them), and surface untranslated attributes on read — with a collision
+  guard so a raw lowercase attribute can never override its canonical
+  property (raw `title` vs the CDO TITLE). Emscripten's typed `year()`
+  reads the merged view too, keeping the two backends' typed surfaces in
+  agreement. 8 new parity tests (round-trip, multi-value order, removal,
+  no-op-save stability, truthful same-handle read) — observed failing
+  before the fix.
+
 - **Disc markers now need a right word boundary.** `record` matched inside
   "Recordings"/"Records"/"Recorded" — five real folders under the Harry Smith
   anthology ("Robert Johnson - The Complete Recordings (41 Tracks)", ...)

@@ -51,6 +51,7 @@
 #include "../src/capi/taglib_mp4_atoms.h"
 #include "../src/capi/taglib_id3_duplicate.h"
 #include "../src/capi/taglib_asf_multi_value.h"
+#include "../src/capi/taglib_asf_properties.h"
 #include <memory>
 #include <string>
 #include <set>
@@ -96,6 +97,11 @@ public:
         unsigned int y = tag->year();
         if (y != 0) return y;
         TagLib::PropertyMap props = tag->properties();
+        // Raw ASF attributes (e.g. a lowercase "date" attribute) must be
+        // visible here too — the WASI mirror reads the merged map, so
+        // without this the two backends disagree on year (taglib-984r).
+        taglib_wasm::merge_asf_unsupported_properties_into(
+            dynamic_cast<TagLib::ASF::Tag*>(tag), props);
         auto it = props.find("DATE");
         if (it != props.end() && !it->second.isEmpty()) {
             y = it->second.front().toInt();
@@ -719,6 +725,7 @@ public:
             // See merge_id3v1_only_properties(): TagUnion reports ID3v2 alone,
             // so an ID3v1-only value would otherwise be invisible (taglib-nft5).
             taglib_wasm::merge_id3v1_only_properties(fileRef->file(), properties);
+            taglib_wasm::merge_asf_unsupported_properties(fileRef->file(), properties);
             
             for (const auto& prop : properties) {
                 val array = val::array();
@@ -783,7 +790,8 @@ public:
         // can follow it directly.
         const auto commentGuard =
             taglib_wasm::capture_id3v2_comment_guard(fileRef->file());
-        fileRef->file()->setProperties(propMap);
+        const TagLib::PropertyMap ignored = fileRef->file()->setProperties(propMap);
+        taglib_wasm::apply_asf_properties(fileRef->file(), propMap, ignored);
         restore_mp4_freeform_names(fileRef->file(), captured);
         taglib_wasm::apply_id3v2_comment_guard(fileRef->file(), commentGuard);
     }
@@ -793,6 +801,7 @@ public:
         
         TagLib::PropertyMap properties = fileRef->file()->properties();
         taglib_wasm::merge_id3v1_only_properties(fileRef->file(), properties);
+        taglib_wasm::merge_asf_unsupported_properties(fileRef->file(), properties);
         TagLib::String tagKey(key, TagLib::String::UTF8);
         
         if (properties.contains(tagKey) && !properties[tagKey].isEmpty()) {
@@ -810,6 +819,7 @@ public:
         // (taglib-nft5). Every C++ site that round-trips the map needs this.
         TagLib::PropertyMap properties = fileRef->file()->properties();
         taglib_wasm::merge_id3v1_only_properties(fileRef->file(), properties);
+        taglib_wasm::merge_asf_unsupported_properties(fileRef->file(), properties);
         TagLib::StringList values;
         values.append(TagLib::String(value, TagLib::String::UTF8));
         properties[TagLib::String(key, TagLib::String::UTF8)] = values;
