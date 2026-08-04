@@ -37,5 +37,19 @@
     "publint",
     "vite"
   ],
-  "ignoreExportsUsedInFile": true
+  "ignoreExportsUsedInFile": true,
+  "ignoreIssues": {
+    "src/file-utils/index.ts": [
+      "exports",
+      "types"
+    ],
+    "src/constants/properties.ts": [
+      "exports",
+      "types"
+    ],
+    "src/folder-api/types.ts": [
+      "exports",
+      "types"
+    ]
+  }
 }
