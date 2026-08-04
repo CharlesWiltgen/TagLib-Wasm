@@ -97,7 +97,7 @@ export interface GroupAlbumsOptions {
    * (CD1/) directly under it is unmatched instead of an album named after
    * the root. Default: no guard — the scan root cannot be inferred from a
    * bare FolderScanResult (the common ancestor is the album folder, not the
-   * scanned root). scanAlbums always passes the folder path it scanned. */
+   * scanned root). scanForAlbums always passes the folder path it scanned. */
   scanRoot?: string;
 }
 
@@ -421,7 +421,7 @@ export function groupAlbums(
     return { albums: [], singles: [], unmatched: [], errors };
   }
 
-  // The scan root, when the caller knows it (scanAlbums always does). The
+  // The scan root, when the caller knows it (scanForAlbums always does). The
   // guard that keeps a bare "CD1/" at the root unmatched applies ONLY with an
   // explicit root: the common ancestor of the paths is the album folder, not
   // the scanned root, so it cannot be inferred safely.

@@ -345,14 +345,14 @@ For detailed API documentation, see the
 
 ## Album Grouping
 
-`scanAlbums()` scans a folder and groups the result into albums with disc
+`scanForAlbums()` scans a folder and groups the result into albums with disc
 subdivisions. `groupAlbums()` is the pure, synchronous core over an existing
 `scanFolder()` result — runtime-agnostic, browsers included.
 
 ```typescript
-import { scanAlbums } from "taglib-wasm";
+import { scanForAlbums } from "taglib-wasm";
 
-const { albums, singles, unmatched, errors } = await scanAlbums("/music", {
+const { albums, singles, unmatched, errors } = await scanForAlbums("/music", {
   recursive: true,
 });
 
@@ -387,8 +387,8 @@ Semantics:
 - **Compilation**: `album.compilation` is `true`/`false` only when the embedded
   compilation flags agree (COMPILATION/TCMP/cpil), `undefined` otherwise.
 
-Options (`scanAlbums` takes `FolderScanOptions` plus
-`GroupAlbumsOptions`/`ScanAlbumsOptions`): `minFolderConfidence` drops weak
+Options (`scanForAlbums` takes `FolderScanOptions` plus
+`GroupAlbumsOptions`/`ScanForAlbumsOptions`): `minFolderConfidence` drops weak
 folder disc evidence, `flatDiscPrefixes` toggles filename-prefix parsing,
 `folderFallback` toggles folder-based grouping of untagged files, `scanRoot`
 pins the scanned directory (a bare `CD1/` directly under it is unmatched).

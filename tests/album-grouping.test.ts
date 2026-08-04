@@ -16,6 +16,7 @@ import {
   groupAlbums,
   type GroupAlbumsOptions,
 } from "../src/folder-api/group-albums.ts";
+import { scanForAlbums } from "../src/folder-api/index.ts";
 import type { ExtendedTag, FolderScanItem } from "../src/folder-api/types.ts";
 
 const ROOT = "/music";
@@ -729,8 +730,60 @@ describe("error paths", () => {
 });
 
 // ---------------------------------------------------------------------------
-// 11. Singles
+// 10. Integration: scanForAlbums over a real fixture tree
 // ---------------------------------------------------------------------------
+
+describe("scanForAlbums integration", () => {
+  it("scans a disc-folder tree into one album with two discs", async () => {
+    const tempDir = await Deno.makeTempDir();
+    try {
+      const mp3Data = await Deno.readFile(
+        `${
+          new URL(".", import.meta.url).pathname
+        }test-files/mp3/kiss-snippet.mp3`,
+      );
+      const mk = async (rel: string) => {
+        const full = `${tempDir}/${rel}`;
+        await Deno.mkdir(`${tempDir}/${rel.slice(0, rel.lastIndexOf("/"))}`, {
+          recursive: true,
+        });
+        await Deno.writeFile(full, mp3Data);
+        return full;
+      };
+      const disc1 = await mk("Artist/Album/Disc 1/01 - A.mp3");
+      const disc2 = await mk("Artist/Album/Disc 2/02 - B.mp3");
+      const loose = await mk("Artist/Album/03 - C.mp3");
+
+      const result = await scanForAlbums(tempDir, { recursive: true });
+
+      assertEquals(result.errors.length, 0, JSON.stringify(result.errors));
+      assertEquals(result.albums.length, 1);
+      const album = result.albums[0];
+      // The fixture's tag is "Parade - ..." — tags are authority, so all
+      // three copies group under it despite the folder name.
+      assertEquals(album.items.length, 3);
+      assertEquals(album.discs.length, 2);
+      const disc1Files = album.discs.find((d) => d.discNumber === 1)!.items;
+      const disc2Files = album.discs.find((d) => d.discNumber === 2)!.items;
+      assertEquals(disc1Files.length, 2); // disc 1 file + loose file joins lowest
+      assertEquals(disc2Files.length, 1);
+      assertEquals(
+        disc1Files.find((i) => i.path === disc1)?.albumDir,
+        `${tempDir}/Artist/Album`,
+      );
+      assertEquals(
+        disc2Files[0].albumDir,
+        `${tempDir}/Artist/Album`,
+      );
+      assertEquals(
+        disc1Files.find((i) => i.path === loose)?.albumDir,
+        `${tempDir}/Artist/Album`,
+      );
+    } finally {
+      await Deno.remove(tempDir, { recursive: true });
+    }
+  });
+});
 
 describe("singles", () => {
   it("a 1-file tag-keyed group is a single, not an album", () => {

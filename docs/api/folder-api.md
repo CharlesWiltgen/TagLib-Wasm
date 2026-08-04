@@ -20,11 +20,11 @@ import {
 
 ## Functions
 
-### groupAlbums() / scanAlbums()
+### groupAlbums() / scanForAlbums()
 
 Groups a folder scan into albums with disc subdivisions. `groupAlbums` is the
 pure, synchronous core over a `FolderScanResult` (runtime-agnostic);
-`scanAlbums` scans then groups (Deno/Node/Bun only).
+`scanForAlbums` scans then groups (Deno/Node/Bun only).
 
 ```typescript
 function groupAlbums(
@@ -32,9 +32,9 @@ function groupAlbums(
   options?: GroupAlbumsOptions,
 ): AlbumGroupingResult;
 
-function scanAlbums(
+function scanForAlbums(
   folderPath: string,
-  options?: ScanAlbumsOptions, // FolderScanOptions & GroupAlbumsOptions
+  options?: ScanForAlbumsOptions, // FolderScanOptions & GroupAlbumsOptions
 ): Promise<AlbumGroupingResult>;
 ```
 
@@ -61,7 +61,7 @@ function scanAlbums(
 **Example:**
 
 ```typescript
-const { albums, singles } = await scanAlbums("/music", { recursive: true });
+const { albums, singles } = await scanForAlbums("/music", { recursive: true });
 for (const album of albums) {
   console.log(album.album, album.discs.map((d) => d.discNumber));
 }

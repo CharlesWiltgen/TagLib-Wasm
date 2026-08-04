@@ -12,7 +12,7 @@ import {
   type GroupAlbumsOptions,
 } from "./group-albums.ts";
 
-export type ScanAlbumsOptions = FolderScanOptions & GroupAlbumsOptions;
+export type ScanForAlbumsOptions = FolderScanOptions & GroupAlbumsOptions;
 
 /**
  * Scan a folder and group the result into albums with disc subdivisions.
@@ -24,9 +24,9 @@ export type ScanAlbumsOptions = FolderScanOptions & GroupAlbumsOptions;
  *
  * @throws the same errors scanFolder throws (permission, missing path, abort).
  */
-export async function scanAlbums(
+export async function scanForAlbums(
   folderPath: string,
-  options: ScanAlbumsOptions = {},
+  options: ScanForAlbumsOptions = {},
 ): Promise<AlbumGroupingResult> {
   const {
     minFolderConfidence,

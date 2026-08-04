@@ -248,14 +248,14 @@ await exportFolderMetadata("/music", "./catalog.json");
 
 ### Album grouping (read-only)
 
-`scanAlbums` scans a folder and groups the result into albums with disc
+`scanForAlbums` scans a folder and groups the result into albums with disc
 subdivisions; `groupAlbums` is the pure, synchronous core over an existing
 `scanFolder` result (runtime-agnostic — browsers included).
 
 ```typescript
-import { scanAlbums, groupAlbums } from "taglib-wasm";
+import { groupAlbums, scanForAlbums } from "taglib-wasm";
 
-const { albums, singles, unmatched, errors } = await scanAlbums("/music", {
+const { albums, singles, unmatched, errors } = await scanForAlbums("/music", {
   recursive: true,
 });
 
@@ -273,8 +273,8 @@ const { albums, singles, unmatched, errors } = await scanAlbums("/music", {
 // Pure core (no I/O): group any FolderScanResult
 const grouped = groupAlbums(scanResult, {
   minFolderConfidence: "high", // drop weak folder disc evidence
-  flatDiscPrefixes: true,      // parse "1-01"/"101" filename discs
-  folderFallback: true,        // group untagged files by folder
+  flatDiscPrefixes: true, // parse "1-01"/"101" filename discs
+  folderFallback: true, // group untagged files by folder
 });
 ```
 
@@ -495,7 +495,7 @@ setTagData(data) {
 }
 ```
 
-**WASI is declarative.** C++ hands JavaScript a MessagePack *snapshot*. Writes
+**WASI is declarative.** C++ hands JavaScript a MessagePack _snapshot_. Writes
 mutate a JS-side cache; nothing reaches C++ until `save()` ships the whole
 snapshot back and C++ rebuilds the file from it:
 
@@ -523,7 +523,7 @@ written against one silently misbehaves on the other.
   reporting in-memory payload to on-disk block presence, so a read between
   `setBext()` and `save()` now answers differently.
 - **Asymmetric write paths.** WASI's `apply_propmap`
-  (`src/capi/taglib_shim.cpp:548-560`) calls `setProperties()` *and then*
+  (`src/capi/taglib_shim.cpp:548-560`) calls `setProperties()` _and then_
   writes `TITLE`/`ARTIST`/`ALBUM` again through `file->tag()`. The Embind path
   writes only through the tag. On files carrying two tag types, a double-write
   through a `TagUnion` can reach tags the other backend never touches.
@@ -547,7 +547,7 @@ written against one silently misbehaves on the other.
 2. Add a parity test that runs the **same scenario** on both backends —
    `forEachBackend()` / `BackendAdapter` (`tests/backend-adapter.ts:435`), or
    a loop over `TagLib.initialize({ forceWasmType })`. A test with no
-   `forceWasmType` exercises WASI only on Deno, which is *not* parity coverage.
+   `forceWasmType` exercises WASI only on Deno, which is _not_ parity coverage.
 3. Prefer one seed-then-assert scenario looped over both backends, so the test
    can actually fail on divergence.
 4. Decide explicitly whether a read reflects **staged** or **saved** state, and
@@ -564,14 +564,14 @@ fail:
 1. **A test written after its fix, verified only by "it is green".** That
    proves the test agrees with current behavior, not that it detects the
    defect. The worst case certified data loss for a full review round: a guard
-   asserted a COMM frame *count* that the broken path also satisfied while it
+   asserted a COMM frame _count_ that the broken path also satisfied while it
    destroyed the frame's payload. A regression test must be **observed
    failing** against the defect — write it first, or mutation-verify it
    afterwards by reverting the fix. Corollary: assert what the defect actually
    destroys, not a proxy for it.
 2. **A parity instance that cannot fail.** Tests here loop over
    `["wasi", "emscripten"]`. When a defect is one-backend, the other backend's
-   instance is a *baseline* asserting cross-backend agreement, not a guard —
+   instance is a _baseline_ asserting cross-backend agreement, not a guard —
    yet both render identically as `ok`, so the suite reads as double the
    coverage it has. Label a baseline instance as such (a comment suffices),
    and never pin an expectation to a known-broken value: a test asserting the

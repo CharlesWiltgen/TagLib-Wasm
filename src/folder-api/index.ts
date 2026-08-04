@@ -33,4 +33,4 @@ export {
   type GroupAlbumsOptions,
 } from "./group-albums.ts";
 
-export { scanAlbums, type ScanAlbumsOptions } from "./scan-albums.ts";
+export { scanForAlbums, type ScanForAlbumsOptions } from "./scan-for-albums.ts";
