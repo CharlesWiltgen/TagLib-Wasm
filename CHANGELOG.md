@@ -14,11 +14,12 @@
 
 ### Internal
 
-- **MP4 covr mapping absorbed into the vendored TagLib** — `MP4::Tag::
-  complexProperties("PICTURE")` now emits `pictureType: "Front Cover"`
-  for covr atoms (submodule commit b25661f7, proposed upstream as
-  taglib-ri4b), so the wasm boundary special case was deleted. Behavior
-  is byte-identical; the taglib-cvr parity tests remain the guard.
+- **MP4 covr mapping lives at the wasm boundary** — the WASI encoder
+  (`encode_pictures`) maps the missing `pictureType` to Front Cover when
+  the file is an MP4; the submodule stays at upstream taglib v2.3.1 (no
+  vendored fork). Proposed upstream as taglib-ri4b; if merged, the
+  boundary fallback can be deleted. Behavior is byte-identical to the
+  original fix; the taglib-cvr parity tests remain the guard.
 
 ## 1.8.0
 

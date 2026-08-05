@@ -53,7 +53,7 @@ on a real divergence) over separate per-backend tests.
 | `save`              |  ✓   |     ✓      |   ✓    | audio-file-save, all `forEachBackend` suites; MPEG ID3v1 sync must not delete a TRCK/TDRC narrowing to 0 (9m0w) |
 | `getFileBuffer`     |  ✓   |     ✓      |   ✓    | audio-file-save loops both; 0sv read-failure throws (WASI) vs in-memory (EM)                                    |
 | `saveToFile`        |  ✓   |     ✓      |   —    | backend-specific paths: EM full-load (0iq) + EM partial + WASI save-as                                          |
-| `getPictures`       |  ✓   |     ✓      |   ✓    | audio-file-save nc5 loops both; MP4 covr→FrontCover (cvr, mapping now in vendored TagLib b25661f7)              |
+| `getPictures`       |  ✓   |     ✓      |   ✓    | audio-file-save nc5 loops both; MP4 covr→FrontCover (cvr, WASI boundary maps missing pictureType for MP4)       |
 | `setPictures`       |  ✓   |     ✓      |   ✓    | picture-api 1dr loops both (replace round-trip)                                                                 |
 | `addPicture`        |  ✓   |     ✓      |   ✓    | audio-file-save nc5 loops both                                                                                  |
 | `removePictures`    |  ✓   |     ✓      |   ✓    | audio-file-save nc5 (clearTags) loops both                                                                      |
@@ -167,10 +167,12 @@ on a real divergence) over separate per-backend tests.
    MP4 `setComplexProperties` ignores `pictureType`, so BackCover/Media
    distinctions remain unrepresentable in m4a by design.
 
-   **Absorbed (taglib-ri4b):** the mapping now lives in the vendored TagLib —
-   `MP4::Tag::complexProperties("PICTURE")` emits `pictureType: "Front Cover"`
-   (submodule commit b25661f7) — and the wasm-boundary fallback was deleted.
-   Behavior is byte-identical; this parity test remains the guard.
+   **Boundary, not vendored (taglib-ri4b):** the fix lives in the WASI
+   encoder (`encode_pictures` maps the missing key to Front Cover when the
+   file is an MP4); the submodule stays at upstream taglib v2.3.1 — no
+   vendored fork. Proposed upstream as taglib-ri4b; if merged, the boundary
+   fallback can be deleted. Behavior is byte-identical; this parity test
+   remains the guard.
 
 Minor/unpaired (tracked here, not filed): `isValid` (covered both, unpaired);
 `isMP4` (WASI unit only); `getProperty` string-overload (single-backend each).

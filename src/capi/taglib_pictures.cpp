@@ -6,6 +6,7 @@
 #include <tstring.h>
 #include <tlist.h>
 #include <tmap.h>
+#include <mp4file.h>
 #include <mpack/mpack.h>
 
 #include <cstring>
@@ -100,9 +101,15 @@ void encode_pictures(mpack_writer_t* writer, TagLib::File* file) {
         if (typeIt != pic.end()) {
             mpack_write_uint(writer, picture_type_to_int(
                 typeIt->second.toString()));
+        } else if (dynamic_cast<TagLib::MP4::File*>(file) != nullptr) {
+            // taglib-cvr: an MP4 covr atom has no per-atom picture type, so
+            // TagLib's MP4::Tag::complexProperties("PICTURE") emits no
+            // "pictureType" key. covr is album art by definition; read it back
+            // as Front Cover to match the Emscripten backend's getPictures()
+            // (type 3, "FrontCover" for MP4) and every other format's
+            // convention (ID3v2/FLAC/Xiph/ASF/APE all emit a real type).
+            mpack_write_uint(writer, picture_type_to_int("Front Cover"));
         } else {
-            // Missing pictureType is unreachable for MP4: the vendored TagLib
-            // emits "Front Cover" for covr (submodule b25661f7, taglib-ri4b).
             mpack_write_uint(writer, 0);
         }
 
