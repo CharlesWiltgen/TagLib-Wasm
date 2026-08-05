@@ -3,6 +3,16 @@
 WebAssembly build of TagLib for reading/writing audio metadata in JS/TS.
 Works in Deno, Node.js, Bun, browsers, and Cloudflare Workers.
 
+## Boundaries (OFF LIMITS)
+
+- The Poppy app repo (`~/Projects/Poppy`) is **off limits**. Never open,
+  read, grep, or run tools in it — even when a memory search, a user topic,
+  or a "Nit" about a progress bar seems to point there. Ask the user first;
+  Poppy work happens only in Poppy sessions.
+- General rule: never leave this workspace's repo without explicit user
+  confirmation. Memory hits and vague topics are not authorization to cross
+  into another project.
+
 ## Install
 
 ```text
