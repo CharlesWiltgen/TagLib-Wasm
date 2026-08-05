@@ -82,12 +82,13 @@ try {
   const tags = await readTags("song.mp3");
   console.log(tags);
 } catch (error) {
-  if (error.message.includes("File not found")) {
+  const message = error instanceof Error ? error.message : String(error);
+  if (message.includes("File not found")) {
     console.error("Audio file doesn't exist");
-  } else if (error.message.includes("Unsupported format")) {
+  } else if (message.includes("Unsupported format")) {
     console.error("File format not supported");
   } else {
-    console.error("Failed to read tags:", error.message);
+    console.error("Failed to read tags:", message);
   }
 }
 
@@ -99,7 +100,10 @@ try {
   });
   await Deno.writeFile("song-updated.mp3", modified);
 } catch (error) {
-  console.error("Failed to write tags:", error.message);
+  console.error(
+    "Failed to write tags:",
+    error instanceof Error ? error.message : String(error),
+  );
 }
 
 // Reading properties
@@ -107,7 +111,10 @@ try {
   const props = await readProperties("song.mp3");
   console.log(`Duration: ${props.duration}s`);
 } catch (error) {
-  console.error("Failed to read properties:", error.message);
+  console.error(
+    "Failed to read properties:",
+    error instanceof Error ? error.message : String(error),
+  );
 }
 ```
 

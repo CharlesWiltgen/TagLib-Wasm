@@ -6,8 +6,8 @@ binaries, with multiple approaches for different use cases.
 ## Overview
 
 `TagLib.initialize()` **auto-detects Deno compile mode**. When running inside a
-compiled binary, it automatically switches to Emscripten buffer mode and attempts
-to load embedded Wasm — no special API needed.
+compiled binary, it automatically switches to Emscripten buffer mode and
+attempts to load embedded Wasm — no special API needed.
 
 For advanced use cases, explicit helpers are also available:
 
@@ -176,8 +176,8 @@ async function initializeTagLib(): Promise<TagLib> {
 const taglib = await initializeTagLib();
 ```
 
-> **Note:** supplying `wasmBinary` selects the Emscripten backend, which is
-> why these strategies embed `taglib-web.wasm`. The WASI backend loads from a
+> **Note:** supplying `wasmBinary` selects the Emscripten backend, which is why
+> these strategies embed `taglib-web.wasm`. The WASI backend loads from a
 > filesystem path or URL (`wasmUrl`); combining `wasmBinary` with
 > `forceWasmType: "wasi"` throws.
 
@@ -209,7 +209,9 @@ async function processAudioFile(filePath: string) {
       console.log("  ✅ Updated comment tag");
     }
   } catch (error) {
-    console.error(`  ❌ Error: ${error.message}`);
+    console.error(
+      `  ❌ Error: ${error instanceof Error ? error.message : String(error)}`,
+    );
   }
 }
 
@@ -235,7 +237,10 @@ async function main() {
 
     console.log("\n✅ All files processed!");
   } catch (error) {
-    console.error("Fatal error:", error.message);
+    console.error(
+      "Fatal error:",
+      error instanceof Error ? error.message : String(error),
+    );
     Deno.exit(1);
   }
 }

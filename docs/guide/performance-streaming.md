@@ -50,6 +50,8 @@ This ensures compatibility across all environments.
 ### 1. Use CDN URLs for Web Apps
 
 ```typescript
+import { TagLib } from "taglib-wasm";
+
 // Recommended: Load from CDN with streaming
 const taglib = await TagLib.initialize({
   wasmUrl:
@@ -57,7 +59,7 @@ const taglib = await TagLib.initialize({
 });
 
 // Also good: Use your own CDN
-const taglib = await TagLib.initialize({
+const ownCdnTaglib = await TagLib.initialize({
   wasmUrl: "https://your-cdn.com/assets/taglib.wasm",
 });
 ```

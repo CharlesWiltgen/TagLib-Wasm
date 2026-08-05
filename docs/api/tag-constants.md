@@ -78,7 +78,9 @@ isValidProperty("INVALID_KEY"); // false
 
 // Get metadata about a property
 const metadata = getPropertyMetadata("musicbrainzTrackId");
-console.log(metadata.description); // "MusicBrainz Track ID"
+if (metadata) {
+  console.log(metadata.description); // "MusicBrainZ Track ID"
+}
 
 // Get all available property keys
 const allKeys = getAllPropertyKeys(); // ["title", "artist", "album", ...]

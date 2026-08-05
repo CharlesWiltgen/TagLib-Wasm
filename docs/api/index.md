@@ -78,22 +78,24 @@ interface Tag {
 #### Example
 
 ```typescript
+import { readTags } from "taglib-wasm/simple";
+
 // From file path (Node.js/Deno/Bun only)
 const tags = await readTags("song.mp3");
 console.log(tags.title?.[0], tags.artist?.[0]);
 
 // From buffer
 const buffer = await Deno.readFile("song.mp3");
-const tags = await readTags(buffer);
+const tagsFromBuffer = await readTags(buffer);
 
 // From ArrayBuffer
 const arrayBuffer = await fetch("song.mp3").then((r) => r.arrayBuffer());
-const tags = await readTags(arrayBuffer);
+const tagsFromArrayBuffer = await readTags(arrayBuffer);
 
 // From File object (browsers)
 const file =
   (document.getElementById("file-input") as HTMLInputElement).files![0];
-const tags = await readTags(file);
+const tagsFromFile = await readTags(file);
 ```
 
 ### applyTags()
@@ -121,6 +123,8 @@ Promise resolving to the modified audio file as Uint8Array.
 #### Example
 
 ```typescript
+import { applyTags } from "taglib-wasm/simple";
+
 // Update specific tags from file path
 const modifiedBuffer = await applyTags("song.mp3", {
   title: "New Title",
@@ -134,7 +138,7 @@ await Deno.writeFile("song-updated.mp3", modifiedBuffer);
 // From File object (browsers)
 const file =
   (document.getElementById("file-input") as HTMLInputElement).files![0];
-const modifiedBuffer = await applyTags(file, {
+const modifiedBufferFromFile = await applyTags(file, {
   title: "New Title",
   artist: "New Artist",
 });
@@ -732,19 +736,23 @@ static async initialize(options?: {
 ##### Example
 
 ```typescript
+import { TagLib } from "taglib-wasm";
+
 // Default initialization (auto-detects best backend)
 const taglib = await TagLib.initialize();
 
 // With pre-loaded WASM binary (for offline usage; selects the Emscripten
 // backend, so fetch its artifact, taglib-web.wasm)
 const wasmBinary = await fetch("taglib-web.wasm").then((r) => r.arrayBuffer());
-const taglib = await TagLib.initialize({ wasmBinary });
+const offlineTaglib = await TagLib.initialize({ wasmBinary });
 
 // With custom WASM URL
-const taglib = await TagLib.initialize({ wasmUrl: "/assets/taglib.wasm" });
+const cdnTaglib = await TagLib.initialize({ wasmUrl: "/assets/taglib.wasm" });
 
 // Force Emscripten backend
-const taglib = await TagLib.initialize({ forceWasmType: "emscripten" });
+const emscriptenTaglib = await TagLib.initialize({
+  forceWasmType: "emscripten",
+});
 ```
 
 #### taglib.open()
@@ -780,21 +788,25 @@ Promise resolving to an `AudioFile` instance.
 ##### Example
 
 ```typescript
+import { TagLib } from "taglib-wasm";
+
+const taglib = await TagLib.initialize();
+
 // From file path (Node.js/Deno/Bun only)
 using file = await taglib.open("song.mp3");
 
 // From buffer
 const audioData = await Deno.readFile("song.mp3");
-using file = await taglib.open(audioData);
+using fileFromBuffer = await taglib.open(audioData);
 
 // From ArrayBuffer
 const arrayBuffer = await fetch("song.mp3").then((r) => r.arrayBuffer());
-using file = await taglib.open(arrayBuffer);
+using fileFromArrayBuffer = await taglib.open(arrayBuffer);
 
 // From File object (browsers)
 const fileInput =
   (document.getElementById("file-input") as HTMLInputElement).files![0];
-using file = await taglib.open(fileInput);
+using fileFromInput = await taglib.open(fileInput);
 
 // Partial loading is enabled by default — only headers/footers are read.
 // Disable for operations that need the full file buffer:
@@ -2221,11 +2233,13 @@ The WebAssembly module automatically configures memory based on your
 environment. For most use cases, the default configuration works well.
 
 ```typescript
+import { TagLib } from "taglib-wasm";
+
 // Default initialization (recommended)
 const taglib = await TagLib.initialize();
 
 // With custom WASM URL
-const taglib = await TagLib.initialize({
+const customUrlTaglib = await TagLib.initialize({
   wasmUrl: "/custom/path/taglib.wasm",
 });
 ```

@@ -156,12 +156,18 @@ const modifiedBuffer = await applyTags(audioBuffer, tags);
 When using TagLib-Wasm in your own project, replace the example import paths:
 
 ```typescript
-// Examples use relative imports (for development)
-import { TagLib } from "../../src/taglib.js";
+// Development: relative import into this repo's source
+import { TagLib } from "../../src/taglib.ts";
+```
 
-// Your project should use package imports
-import { TagLib } from "taglib-wasm"; // NPM
-import { TagLib } from "npm:taglib-wasm"; // Deno
+```typescript
+// NPM (Node.js / Bun)
+import { TagLib } from "taglib-wasm";
+```
+
+```typescript
+// Deno (JSR — preferred)
+import { TagLib } from "jsr:@charlesw/taglib-wasm";
 ```
 
 ## Next Steps

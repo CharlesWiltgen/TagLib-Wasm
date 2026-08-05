@@ -32,14 +32,18 @@ const results = await readTagsBatch(files, { concurrency: 8 });
 ### Optimal Settings by System
 
 ```typescript
+import { readTagsBatch } from "taglib-wasm/simple";
+
+const files = ["song.mp3", "album.mp3", "concert.mp3"];
+
 // SSD/Fast disk
-const results = await readTagsBatch(files, { concurrency: 12 });
+const ssdResults = await readTagsBatch(files, { concurrency: 12 });
 
 // HDD/Network drive
-const results = await readTagsBatch(files, { concurrency: 6 });
+const hddResults = await readTagsBatch(files, { concurrency: 6 });
 
 // Default (works well for most systems)
-const results = await readTagsBatch(files, { concurrency: 8 });
+const defaultResults = await readTagsBatch(files, { concurrency: 8 });
 ```
 
 ## Table of Contents
@@ -125,7 +129,9 @@ Understanding memory usage helps optimize performance:
 // - Per file overhead: ~2x file size
 // - Peak usage during save: ~3x file size
 
-function estimateMemoryUsage(fileSizeMB: number): number {
+function estimateMemoryUsage(
+  fileSizeMB: number,
+): { minimum: number; peak: number } {
   const baseOverhead = 4; // MB
   const fileOverhead = fileSizeMB * 2;
   const peakOverhead = fileSizeMB * 3;

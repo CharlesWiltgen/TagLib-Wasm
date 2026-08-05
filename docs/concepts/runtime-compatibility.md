@@ -88,8 +88,8 @@ using tagFile = await taglib.open(audioData);
 
 // From fetch
 const response = await fetch("song.mp3");
-const audioData = new Uint8Array(await response.arrayBuffer());
-using tagFile = await taglib.open(audioData);
+const audioDataFromFetch = new Uint8Array(await response.arrayBuffer());
+using tagFileFromFetch = await taglib.open(audioDataFromFetch);
 ```
 
 ### ✅ Cloudflare Workers
