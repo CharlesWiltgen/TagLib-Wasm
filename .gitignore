@@ -47,6 +47,7 @@ cov_profile/
 
 # Tool configuration
 mise.toml
+.omp/
 
 # ===================
 # Dependencies
