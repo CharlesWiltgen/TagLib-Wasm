@@ -129,8 +129,16 @@ export {
 
 // Folder/batch operations
 export {
+  type AlbumDisc,
+  type AlbumGroup,
+  type AlbumGroupingResult,
+  type AlbumGroupItem,
+  type AlbumGroupKey,
   type AudioDynamics,
   type AudioFileMetadata,
+  type DiscConfidence,
+  type DiscFolderInfo,
+  discFolderInfo,
   type DuplicateGroup,
   exportFolderMetadata,
   findDuplicates,
@@ -139,7 +147,9 @@ export {
   type FolderScanResult,
   type FolderUpdateItem,
   type FolderUpdateResult,
+  groupAlbums,
   scanFolder,
+  scanForAlbums,
   updateFolderTags,
 } from "./src/folder-api/index.ts";
 
