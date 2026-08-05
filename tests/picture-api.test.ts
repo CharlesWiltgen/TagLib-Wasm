@@ -119,13 +119,20 @@ describe("Core Picture API", () => {
 
       file.setPictures([TEST_PICTURES.backCover]);
       file.save();
+      const saved = file.getFileBuffer();
+      file.dispose();
 
-      const pictures = file.getPictures();
+      // Reopen before asserting type: within one session the backends answer
+      // differently for staged writes (WASI reads its cache, Emscripten the
+      // live object). The file truth — MP4 covr carries no picture type, so
+      // every picture reads back as FrontCover — is what must agree.
+      const reopened = await taglib.open(saved);
+      const pictures = reopened.getPictures();
+      reopened.dispose();
       assertEquals(pictures.length, 1, "Should have 1 picture");
+      assertEquals(pictures[0].type, "FrontCover");
       assertEquals(pictures[0].mimeType, "image/jpeg");
       assertEquals(pictures[0].data.length, BLUE_JPEG.length);
-
-      file.dispose();
     }
   });
 
@@ -527,6 +534,74 @@ describe("setPictures cross-backend parity (taglib-1dr)", () => {
           data1: BLUE_JPEG.length,
         },
         `${backend}: setPictures must replace and round-trip through save`,
+      );
+    });
+  }
+});
+
+// Regression/parity: taglib-cvr — an MP4 covr atom has no per-atom picture
+// type, and TagLib's MP4::Tag::complexProperties("PICTURE") omits the
+// "pictureType" key entirely. The Emscripten backend always reported covr as
+// type 3 (FrontCover); the WASI backend encoded the missing key as 0 ("Other"),
+// so a write(FrontCover) -> save -> reopen round-trip read back "Other".
+// Both backends must agree: covr == album art == FrontCover.
+describe("MP4 covr picture-type parity (taglib-cvr)", () => {
+  for (const backend of ["wasi", "emscripten"] as const) {
+    it(`[${backend}] single covr reads back as FrontCover after save+reopen`, async () => {
+      const tl = await TagLib.initialize({ forceWasmType: backend });
+      const seed = await tl.open(await readFileData(TEST_FILES.m4a));
+      seed.setPictures([TEST_PICTURES.frontCover]);
+      seed.save();
+      const buffer = seed.getFileBuffer();
+      seed.dispose();
+
+      const file = await tl.open(buffer);
+      const pics = file.getPictures();
+      file.dispose();
+
+      assertEquals(
+        {
+          count: pics.length,
+          type: pics[0]?.type,
+          mimeType: pics[0]?.mimeType,
+          dataLength: pics[0]?.data.length,
+        },
+        {
+          count: 1,
+          type: "FrontCover",
+          mimeType: "image/png",
+          dataLength: RED_PNG.length,
+        },
+        `${backend}: m4a covr must map to FrontCover on read`,
+      );
+    });
+
+    it(`[${backend}] every covr in a multi-atom file reads as FrontCover`, async () => {
+      const tl = await TagLib.initialize({ forceWasmType: backend });
+      const seed = await tl.open(await readFileData(TEST_FILES.m4a));
+      // MP4 has no picture type field: both atoms are covr, so both must read
+      // back as FrontCover — no BackCover/Media representation exists in m4a.
+      seed.setPictures([TEST_PICTURES.frontCover, TEST_PICTURES.backCover]);
+      seed.save();
+      const buffer = seed.getFileBuffer();
+      seed.dispose();
+
+      const file = await tl.open(buffer);
+      const pics = file.getPictures();
+      file.dispose();
+
+      assertEquals(
+        {
+          count: pics.length,
+          types: pics.map((p) => p.type),
+          dataLengths: pics.map((p) => p.data.length),
+        },
+        {
+          count: 2,
+          types: ["FrontCover", "FrontCover"],
+          dataLengths: [RED_PNG.length, BLUE_JPEG.length],
+        },
+        `${backend}: all m4a covr atoms must map to FrontCover on read`,
       );
     });
   }

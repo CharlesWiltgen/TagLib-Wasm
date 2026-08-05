@@ -139,7 +139,9 @@ Different audio formats have varying levels of picture support:
 
 - **MP3 (ID3v2)**: Full support for all picture types
 - **FLAC**: Full support via PICTURE blocks
-- **MP4/M4A**: Limited to one cover art image
+- **MP4/M4A**: Multiple `covr` atoms allowed, but the atom carries no picture
+  type, so every picture reads back as `"FrontCover"` (matching the other
+  formats' convention); BackCover/Media distinctions are unrepresentable
 - **OGG Vorbis**: Full support via METADATA_BLOCK_PICTURE
 - **WAV**: No standard picture support
 

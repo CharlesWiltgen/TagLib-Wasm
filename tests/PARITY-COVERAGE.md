@@ -53,7 +53,7 @@ on a real divergence) over separate per-backend tests.
 | `save`              |  ✓   |     ✓      |   ✓    | audio-file-save, all `forEachBackend` suites; MPEG ID3v1 sync must not delete a TRCK/TDRC narrowing to 0 (9m0w) |
 | `getFileBuffer`     |  ✓   |     ✓      |   ✓    | audio-file-save loops both; 0sv read-failure throws (WASI) vs in-memory (EM)                                    |
 | `saveToFile`        |  ✓   |     ✓      |   —    | backend-specific paths: EM full-load (0iq) + EM partial + WASI save-as                                          |
-| `getPictures`       |  ✓   |     ✓      |   ✓    | audio-file-save nc5 loops both                                                                                  |
+| `getPictures`       |  ✓   |     ✓      |   ✓    | audio-file-save nc5 loops both; MP4 covr→FrontCover mapping (cvr)                                               |
 | `setPictures`       |  ✓   |     ✓      |   ✓    | picture-api 1dr loops both (replace round-trip)                                                                 |
 | `addPicture`        |  ✓   |     ✓      |   ✓    | audio-file-save nc5 loops both                                                                                  |
 | `removePictures`    |  ✓   |     ✓      |   ✓    | audio-file-save nc5 (clearTags) loops both                                                                      |
@@ -144,11 +144,28 @@ on a real divergence) over separate per-backend tests.
    Writing an empty value _on purpose_, distinct from delete, remains
    unsupported: it needs a delete sentinel that is not `""` (`null`, or a
    dedicated remove API) applied to all ~25 string fields at once, because a
-   caller's `""` and a `""` read back from a file are identical bytes in the
+   a caller's `""` and a `""` read back from a file are identical bytes in the
    same argument. One consequence is already visible: writing `""` to a field
    whose stored value _already_ projects to empty is a no-op rather than a
    delete, on both backends. Use `setProperties({ key: [] })`, `clearTags()` or
    `removeId3v2Frames()` there.
+
+7. ~~**MP4 covr reads back as `"Other"` on WASI.**~~ **RESOLVED (taglib-cvr).**
+   An MP4 covr atom has no per-atom picture type; TagLib's
+   `MP4::Tag::complexProperties("PICTURE")` emits only `data` + `mimeType`, no
+   `pictureType` key. The WASI encoder defaulted the missing key to 0
+   ("Other"), so every m4a picture read back as Other regardless of what was
+   written, while Emscripten hardcoded type 3 ("FrontCover for MP4"). The
+   encoder now maps the missing key to Front Cover when the file is an MP4,
+   matching the Emscripten backend and every other format's convention (covr
+   is album art by definition). Pinned by `picture-api.test.ts` "MP4 covr
+   picture-type parity (taglib-cvr)", which loops both backends through
+   write→save→reopen; the WASI instance was observed failing before the fix
+   (`["Other", "Other"]`). Within one session the backends still answer
+   differently for staged writes (WASI reads its cache, Emscripten the live
+   object) — assert only on the reopened file. The write side is unaffected:
+   MP4 `setComplexProperties` ignores `pictureType`, so BackCover/Media
+   distinctions remain unrepresentable in m4a by design.
 
 Minor/unpaired (tracked here, not filed): `isValid` (covered both, unpaired);
 `isMP4` (WASI unit only); `getProperty` string-overload (single-backend each).
