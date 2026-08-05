@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+### Fixed
+
+- **MP4 covr reads back as `"FrontCover"`** — the WASI backend encoded the
+  missing `pictureType` complex-property key as `"Other"`, so every m4a
+  picture read back as Other regardless of what was written, while
+  Emscripten reported FrontCover. covr has no per-atom type; it is now
+  mapped to Front Cover on read on both backends, matching every other
+  format. (taglib-cvr — `readCoverArt`/`readPictures`/batch `hasCoverArt`
+  all agree on m4a now.)
+
+## 1.8.0
+
 ### Added
 
 - **Typed content advisory** — `advisory: "explicit" | "clean" |
