@@ -1,4 +1,0 @@
-bash:
-  patterns:
-    - match: "*Projects/Poppy*"
-      approval: deny
