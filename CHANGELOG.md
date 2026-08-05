@@ -12,6 +12,14 @@
   format. (taglib-cvr — `readCoverArt`/`readPictures`/batch `hasCoverArt`
   all agree on m4a now.)
 
+### Internal
+
+- **MP4 covr mapping absorbed into the vendored TagLib** — `MP4::Tag::
+  complexProperties("PICTURE")` now emits `pictureType: "Front Cover"`
+  for covr atoms (submodule commit b25661f7, proposed upstream as
+  taglib-ri4b), so the wasm boundary special case was deleted. Behavior
+  is byte-identical; the taglib-cvr parity tests remain the guard.
+
 ## 1.8.0
 
 ### Added

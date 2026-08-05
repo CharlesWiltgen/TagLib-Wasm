@@ -53,7 +53,7 @@ on a real divergence) over separate per-backend tests.
 | `save`              |  ✓   |     ✓      |   ✓    | audio-file-save, all `forEachBackend` suites; MPEG ID3v1 sync must not delete a TRCK/TDRC narrowing to 0 (9m0w) |
 | `getFileBuffer`     |  ✓   |     ✓      |   ✓    | audio-file-save loops both; 0sv read-failure throws (WASI) vs in-memory (EM)                                    |
 | `saveToFile`        |  ✓   |     ✓      |   —    | backend-specific paths: EM full-load (0iq) + EM partial + WASI save-as                                          |
-| `getPictures`       |  ✓   |     ✓      |   ✓    | audio-file-save nc5 loops both; MP4 covr→FrontCover mapping (cvr)                                               |
+| `getPictures`       |  ✓   |     ✓      |   ✓    | audio-file-save nc5 loops both; MP4 covr→FrontCover (cvr, mapping now in vendored TagLib b25661f7)              |
 | `setPictures`       |  ✓   |     ✓      |   ✓    | picture-api 1dr loops both (replace round-trip)                                                                 |
 | `addPicture`        |  ✓   |     ✓      |   ✓    | audio-file-save nc5 loops both                                                                                  |
 | `removePictures`    |  ✓   |     ✓      |   ✓    | audio-file-save nc5 (clearTags) loops both                                                                      |
@@ -166,6 +166,11 @@ on a real divergence) over separate per-backend tests.
    object) — assert only on the reopened file. The write side is unaffected:
    MP4 `setComplexProperties` ignores `pictureType`, so BackCover/Media
    distinctions remain unrepresentable in m4a by design.
+
+   **Absorbed (taglib-ri4b):** the mapping now lives in the vendored TagLib —
+   `MP4::Tag::complexProperties("PICTURE")` emits `pictureType: "Front Cover"`
+   (submodule commit b25661f7) — and the wasm-boundary fallback was deleted.
+   Behavior is byte-identical; this parity test remains the guard.
 
 Minor/unpaired (tracked here, not filed): `isValid` (covered both, unpaired);
 `isMP4` (WASI unit only); `getProperty` string-overload (single-backend each).
