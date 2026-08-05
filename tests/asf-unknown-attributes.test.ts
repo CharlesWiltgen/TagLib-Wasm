@@ -9,7 +9,7 @@
  * attributes and reports unsupported ones on read.
  */
 
-import { assertEquals } from "@std/assert";
+import { assert, assertEquals } from "@std/assert";
 import { describe, it } from "@std/testing/bdd";
 import { TagLib } from "../src/taglib.ts";
 import { FIXTURE_PATH } from "./shared-fixtures.ts";
@@ -160,6 +160,34 @@ describe("ASF unknown attributes (taglib-984r)", () => {
       const props = file.properties() as Record<string, string[]>;
       assertEquals(props.AUTHOR, ["Prince and The Revolution"]);
       file.dispose();
+    });
+
+    it(`[${backend}] writing a key with a differently-cased on-disk attribute replaces it, not duplicates`, async () => {
+      // wma-lowercase-attr.wma is a REAL wild file produced by ffmpeg: it
+      // carries the Vorbis-case attribute "replaygain_track_gain". The
+      // PropertyMap normalizes incoming names to upper case, so the write
+      // must replace the differently-cased original, not leave a stale
+      // duplicate (taglib-984r review).
+      const src = await Deno.readFile(
+        "tests/test-files/wma/wma-lowercase-attr.wma",
+      );
+      const tl = await TagLib.initialize({ forceWasmType: backend });
+      const file = await tl.open(src);
+      file.setProperties({ "replaygain_track_gain": ["-9.99 dB"] });
+      file.save();
+      const buf = file.getFileBuffer();
+      file.dispose();
+
+      const text = new TextDecoder("utf-16le").decode(buf);
+      // Exactly one attribute: the canonical rewrite with the new value.
+      assert(text.includes("REPLAYGAIN_TRACK_GAIN"));
+      assert(!text.includes("replaygain_track_gain"));
+
+      const tlR = await TagLib.initialize({ forceWasmType: OTHER[backend] });
+      const reopened = await tlR.open(buf);
+      const props = reopened.properties() as Record<string, string[]>;
+      assertEquals(props.replayGainTrackGain, ["-9.99 dB"]);
+      reopened.dispose();
     });
   }
 });

@@ -92,6 +92,20 @@ inline void apply_asf_properties(
 
     // Writes: ignored (untranslated) incoming keys become real attributes.
     for (const auto& [key, values] : ignored) {
+        // The PropertyMap normalizes incoming names to upper case, so a
+        // differently-cased original (Vorbis-case names written by other
+        // tools) would survive next to the canonical rewrite as a stale
+        // duplicate. Remove any case-variant first — contains() is
+        // case-sensitive, so scan the attribute map (taglib-984r review).
+        TagLib::StringList toRemove;
+        for (const auto& [existing, _] : tag->attributeListMap()) {
+            if (existing.upper() == key.upper() && existing != key) {
+                toRemove.append(existing);
+            }
+        }
+        for (const auto& name : toRemove) {
+            tag->removeItem(name);
+        }
         if (values.isEmpty()) {
             tag->removeItem(key);
             continue;

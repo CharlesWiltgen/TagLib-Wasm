@@ -453,9 +453,9 @@ static tl_error_code read_from_path(const char* path,
 static const char* SKIP_KEYS[] = {
     "bextData", "bitrate", "bitrateMode", "bitsPerSample", "channels",
     "chapters", "codec", "containerFormat", "duration", "formatVersion",
-    "id3v2Frames", "isEncrypted", "isLossless", "ixml", "length",
+    "id3Tags", "id3v2Frames", "isEncrypted", "isLossless", "ixml", "length",
     "lengthMs", "lyrics", "mpegLayer", "mpegVersion", "outputGainDb",
-    "pictures", "ratings", "sampleRate",
+    "pictures", "ratings", "sampleRate", "track", "year",
 };
 
 static const size_t SKIP_KEYS_SIZE = sizeof(SKIP_KEYS) / sizeof(SKIP_KEYS[0]);
@@ -467,8 +467,10 @@ static bool should_skip(const char* key) {
     // under a mangled name. Never a property, whatever its case.
     if (strncmp(key, "----:", 5) == 0) return true;
     // Write-time directives ride `_`-prefixed pseudo-keys (_mp4ChapterStyle,
-    // _stripId3, _mp4ItemNames, ...); never properties.
-    if (key[0] == '_') return true;
+    // _stripId3, _mp4ItemNames, ...); never properties. Narrow to the
+    // `_`+lowercase convention those keys use, so a legitimate user property
+    // like an all-uppercase "_FOO" still round-trips (taglib-984r review).
+    if (key[0] == '_' && key[1] >= 'a' && key[1] <= 'z') return true;
     int left = 0, right = static_cast<int>(SKIP_KEYS_SIZE) - 1;
     while (left <= right) {
         int mid = left + (right - left) / 2;
