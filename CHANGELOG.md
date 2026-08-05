@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 1.8.3
+
 ### Fixed
 
 - **MP4 covr reads back as `"FrontCover"`** — the WASI backend encoded the
