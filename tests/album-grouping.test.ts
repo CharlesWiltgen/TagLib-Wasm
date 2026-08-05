@@ -964,10 +964,11 @@ describe("scanForAlbums integration", () => {
   it("scans a disc-folder tree into one album with two discs", async () => {
     const tempDir = await Deno.makeTempDir();
     try {
+      // Pass the URL, not .pathname: on Windows the URL pathname is
+      // "/D:/a/..." — a root-relative path that Deno.readFile cannot resolve
+      // (os error 3). Deno's fs APIs accept file:// URLs on all platforms.
       const mp3Data = await Deno.readFile(
-        `${
-          new URL(".", import.meta.url).pathname
-        }test-files/mp3/kiss-snippet.mp3`,
+        new URL("test-files/mp3/kiss-snippet.mp3", import.meta.url),
       );
       const mk = async (rel: string) => {
         const full = `${tempDir}/${rel}`;
