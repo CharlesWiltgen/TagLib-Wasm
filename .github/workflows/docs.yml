@@ -57,8 +57,3 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
-        with:
-          # Default 10 min; the Pages queue occasionally stalls in
-          # deployment_queued past it (actions/deploy-pages#406). 15 min
-          # headroom turns that rare stall into a success.
-          timeout: 900000
