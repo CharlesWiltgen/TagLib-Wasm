@@ -382,8 +382,9 @@ jobs:
         # tests/ and src/ both contain colocated unit tests (CLAUDE.md T-1);
         # the local gate runs both, so CI must too — a guard that does not
         # run in CI is decoration (extra-state-registry.test.ts caught
-        # _mp4ItemNames to no one).
-        run: deno test --allow-read --allow-write --allow-env --coverage=coverage tests/ src/
+        # _mp4ItemNames to no one). --v8-flags=--expose-gc: tests/
+        # auto-dispose.test.ts requires it and fails loudly without it.
+        run: deno test --allow-read --allow-write --allow-env --coverage=coverage --v8-flags=--expose-gc tests/ src/
 
       - name: Generate coverage report
         if: matrix.os == 'ubuntu-latest'

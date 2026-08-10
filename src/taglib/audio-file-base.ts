@@ -17,6 +17,7 @@ import type { MutableTag } from "./mutable-tag.ts";
 import type { TypedAudioFile } from "./audio-file-interface.ts";
 import { MP4_ITEM_NAMES_KEY } from "./mp4-item-names.ts";
 import { buildMutableTag } from "./mutable-tag-impl.ts";
+import { registerAutoDispose, unregisterAutoDispose } from "./auto-dispose.ts";
 
 // Lyrics (ID3v2 USLT / Vorbis LYRICS) is a structured field surfaced through the
 // dedicated get/setLyrics() accessor, like pictures/ratings/chapters. It is
@@ -62,6 +63,10 @@ export abstract class BaseAudioFileImpl {
     this.partialKeysAtLoad = isPartiallyLoaded
       ? new Set(Object.keys(fileHandle.getProperties()))
       : undefined;
+    // taglib-t4sn: best-effort release when the wrapper is dropped without an
+    // explicit dispose(). dispose() unregisters, so this only fires for
+    // forgetful callers.
+    registerAutoDispose(this, fileHandle);
   }
 
   /**
@@ -231,6 +236,7 @@ export abstract class BaseAudioFileImpl {
   }
 
   dispose(): void {
+    unregisterAutoDispose(this);
     if (this.fileHandle) {
       this.fileHandle.destroy();
       this.fileHandle = null;

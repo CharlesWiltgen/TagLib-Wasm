@@ -74,6 +74,9 @@ export function wrapEmbindHandle(raw: EmbindFileHandle): FileHandle {
   // both backends; the underlying Embind handle still applies each write
   // immediately, this just mirrors that write into `stagedId3v2Frames`.
   const stagedId3v2Frames: Record<string, Uint8Array[]> = {};
+  // Mirrors WasiFileHandle.destroyed: destroy() is idempotent, and the flag
+  // makes the released state observable for parity tests (taglib-t4sn).
+  let destroyed = false;
 
   const overrides: Record<string, unknown> = {
     getTagData(): BasicTagData {
@@ -168,6 +171,14 @@ export function wrapEmbindHandle(raw: EmbindFileHandle): FileHandle {
       (raw as unknown as {
         stripId3Tags(o: { v1: boolean; v2: boolean }): void;
       }).stripId3Tags(opts);
+    },
+    destroy(): void {
+      if (destroyed) return;
+      destroyed = true;
+      (raw as unknown as { destroy(): void }).destroy();
+    },
+    get destroyed(): boolean {
+      return destroyed;
     },
     getAudioProperties(): AudioProperties | null {
       const pw = raw.getAudioProperties();

@@ -344,7 +344,9 @@ Emscripten for browsers (loads full buffer). No configuration needed.
 paths: `import { initializeForDenoCompile } from "taglib-wasm"`. For offline,
 embed with `deno compile --allow-read --include taglib-web.wasm myapp.ts`.
 
-**Memory**: Simple API auto-manages. Full API requires `using` (preferred) or `dispose()`.
+**Memory**: Simple API auto-manages. Full API requires `using` (preferred) or `dispose()`; a best-effort
+FinalizationRegistry also releases a forgotten handle when its wrapper is garbage-collected, but that path
+is non-deterministic — explicit disposal is still the contract (taglib-t4sn).
 WASI path mode (Deno/Node.js with file paths) uses ~1-2MB regardless of file size.
 Buffer mode (browsers, or when passing Uint8Array) uses ~2x file size.
 
@@ -389,7 +391,7 @@ Error types: `TagLibInitializationError`, `FileOperationError`, `UnsupportedForm
 | `TagLib.open(buffer)`         | `const taglib = await TagLib.initialize(); await taglib.open(buffer)` |
 | `tag.getTitle()`              | `tag.title` (properties, not getter methods)                          |
 | `tag.title = "New"`           | `tag.setTitle("New")` (setter methods, not assignment)                |
-| Forgetting disposal           | Use `using audioFile = ...` for automatic cleanup                     |
+| Forgetting disposal           | Use `using audioFile = ...` for automatic cleanup (a FinalizationRegistry safety net exists, but explicit disposal is deterministic) |
 | Processing files sequentially | Use batch APIs with `concurrency: 8`                                  |
 
 ## Initialization Options

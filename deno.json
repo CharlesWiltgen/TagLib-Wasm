@@ -103,7 +103,7 @@
     "build:wasm:emscripten": "cd build && bash build-wasm.sh",
     "build:wasm:wasi": "cd build && bash build-wasi.sh",
     "smoke:emscripten": "deno run --allow-read --allow-env scripts/smoke-emscripten.ts",
-    "test": "deno test --allow-read --allow-write --allow-env tests/ src/",
+    "test": "deno test --allow-read --allow-write --allow-env --v8-flags=--expose-gc tests/ src/",
     "test:watch": "deno test --allow-read --allow-write --allow-env --watch tests/",
     "test:systematic": "deno test --allow-read tests/test-systematic.ts",
     "test:unified": "deno test --allow-read --allow-write tests/unified-*.test.ts tests/runtime-*.test.ts tests/msgpack.test.ts tests/wasi-*.test.ts",
