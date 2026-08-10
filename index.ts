@@ -108,6 +108,8 @@ export {
   getPropertyMetadata,
   isValidProperty,
   PROPERTIES,
+  propertyValue,
+  propertyValues,
 } from "./src/constants.ts";
 export type { PropertyMetadata } from "./src/constants/property-types.ts";
 

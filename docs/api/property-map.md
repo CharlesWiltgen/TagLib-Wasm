@@ -258,3 +258,16 @@ This automatic tag mapping system represents **professional-grade audio metadata
 handling** that works seamlessly across all major audio formats. The
 format-agnostic approach eliminates the complexity of dealing with different
 metadata systems while ensuring proper, standards-compliant storage.
+
+### Reading Without the Narrowing Filter
+
+The `PropertyMap` index signature must admit `undefined`, so a bare read is
+`string[] | undefined` even for known keys. The accessor helpers remove the
+filter at call sites that opt in (taglib-lk8u):
+
+```typescript
+import { propertyValue, propertyValues } from "taglib-wasm";
+
+const values = propertyValues(props, "title"); // string[] — [] when absent
+const first = propertyValue(props, "title"); // string | undefined
+```

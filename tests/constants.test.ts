@@ -3,6 +3,7 @@
  */
 
 import { assertEquals, assertExists } from "@std/assert";
+import type { PropertyMap } from "../src/types/tags.ts";
 import { describe, it } from "@std/testing/bdd";
 import {
   fromTagLibKey,
@@ -13,6 +14,8 @@ import {
   isValidProperty,
   PROPERTIES,
   type PropertyKey,
+  propertyValue,
+  propertyValues,
   toTagLibKey,
 } from "../src/constants.ts";
 
@@ -418,4 +421,13 @@ describe("Property key translation", () => {
       );
     }
   });
+});
+
+Deno.test("propertyValues / propertyValue accessors (taglib-lk8u)", () => {
+  const props: PropertyMap = { title: ["Kiss"], artist: [] };
+  assertEquals(propertyValues(props, "title"), ["Kiss"]);
+  assertEquals(propertyValues(props, "absent"), []);
+  assertEquals(propertyValue(props, "title"), "Kiss");
+  assertEquals(propertyValue(props, "artist"), undefined);
+  assertEquals(propertyValue(props, "absent"), undefined);
 });

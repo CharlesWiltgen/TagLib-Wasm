@@ -1,4 +1,5 @@
 import { PROPERTIES, type PropertyKey } from "./properties.ts";
+import type { PropertyMap } from "../types/tags.ts";
 import type { PropertyMetadata } from "./property-types.ts";
 
 /**
@@ -44,4 +45,25 @@ export function getPropertiesByFormat(format: string): PropertyKey[] {
   return getAllPropertyKeys().filter((key) =>
     (PROPERTIES[key].supportedFormats as readonly string[]).includes(format)
   );
+}
+
+/**
+ * All values for a property key in a PropertyMap; `[]` when absent
+ * (taglib-lk8u). Removes the narrowing filter at the call site: the map's
+ * index signature must admit undefined, so a bare read is
+ * `string[] | undefined` even for known keys.
+ */
+export function propertyValues(props: PropertyMap, key: string): string[] {
+  return props[key] ?? [];
+}
+
+/**
+ * First value for a property key in a PropertyMap; `undefined` when absent.
+ * The common single-value read, without the `?.[0]` at every call site.
+ */
+export function propertyValue(
+  props: PropertyMap,
+  key: string,
+): string | undefined {
+  return props[key]?.[0];
 }
