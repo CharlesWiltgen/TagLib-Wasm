@@ -27,6 +27,7 @@ function forceGc(): void {
 /** The @internal FileHandle every AudioFile wrapper owns. */
 interface DisposableHandle {
   destroyed?: boolean;
+  destroy(): void;
 }
 
 async function flushMacrotask(): Promise<void> {
@@ -81,7 +82,7 @@ for (const wasmType of ["wasi", "emscripten"] as const) {
 }
 
 Deno.test(
-  "explicit dispose() still works and prevents a later double-destroy",
+  "explicit dispose() destroys the handle and destroy() is idempotent",
   async () => {
     const taglib = await TagLib.initialize();
     const wrapper = await taglib.open(await readFixture("mp3"));
@@ -95,9 +96,14 @@ Deno.test(
       true,
       "explicit dispose destroys the handle",
     );
-    // Dropping the already-disposed wrapper must not throw or double-run:
-    // dispose() unregisters from the FinalizationRegistry first.
-    const disposed = await waitForDisposal(handle);
-    assertEquals(disposed, true, "handle stays destroyed");
+    // The double-destroy path is the contract that matters: a finalizer
+    // racing an explicit dispose, or the open()-failure path, may call
+    // destroy() twice. Both backends must be idempotent — no throw, state
+    // stays destroyed. (Unregister-then-destroy ordering is unobservable
+    // through this API because of that idempotency, so this asserts the
+    // invariant the ordering exists to protect.)
+    wrapper.dispose();
+    handle.destroy();
+    assertEquals(handle.destroyed, true, "destroy() is idempotent");
   },
 );

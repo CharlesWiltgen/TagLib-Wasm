@@ -69,7 +69,10 @@ async function generateTestReport() {
   // Now run actual tests to get real results
   console.log("\nRunning tests to get actual results...");
   const cmd = new Deno.Command("deno", {
-    args: ["test", "--allow-all", "tests/"],
+    // --v8-flags=--expose-gc: tests/auto-dispose.test.ts requires it and
+    // throws without it (taglib-t4sn); without the flag this weekly run
+    // would fail every invocation.
+    args: ["test", "--allow-all", "--v8-flags=--expose-gc", "tests/"],
     stdout: "piped",
     stderr: "piped",
   });
@@ -78,8 +81,9 @@ async function generateTestReport() {
   const output = new TextDecoder().decode(stdout);
   const errorOutput = new TextDecoder().decode(stderr);
 
-  // Parse test output for failures
-  const failurePattern = /FAILED\s+(.+?)\s+\.\.\./g;
+  // Parse test output for failures. Deno prints `test <name> ... FAILED` —
+  // the name precedes the ellipsis, so the pattern must capture before it.
+  const failurePattern = /([^\n]+?)\s+\.\.\.\s+FAILED/g;
   let failureMatch;
   while ((failureMatch = failurePattern.exec(output)) !== null) {
     const failedTest = failureMatch[1];

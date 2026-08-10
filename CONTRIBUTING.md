@@ -104,7 +104,7 @@ deno task check:all
 deno task test
 
 # Watch mode
-deno test --allow-read --allow-write --allow-env --watch tests/
+deno test --allow-read --allow-write --allow-env --v8-flags=--expose-gc --watch tests/
 
 # Run a specific test file
 deno test --allow-read --allow-write --allow-env tests/basic-tags.test.ts
