@@ -46,6 +46,7 @@ on a real divergence) over separate per-backend tests.
 | `properties`        |  ✓   |     ✓      |   ✓    | cross-backend-parity, tag-roundtrip-property, property-raw-values (qpl, yc1x)                                   |
 | `getProperty`       |  ✓   |     ✓      |   ✓    | format-narrowing (typed); remap fallback for MP4 atom keys (bnhl)                                               |
 | `setProperty`       |  ✓   |     ✓      |   ✓    | wasi-adapter-unit + extended-metadata                                                                           |
+| `removeProperty`    |  ✓   |     ✓      |   ✓    | property-raw-values (qyw2; empty-string clearing contract, buffer mode)                                         |
 | `setProperties`     |  ✓   |     ✓      |   ✓    | audio-file-save (REPLACE vs MERGE); property-raw-values (qpl); mp4 casing (bnhl)                                |
 | `audioProperties`   |  ✓   |     ✓      |   ✓    | audio-properties (`forEachBackend`)                                                                             |
 | `tag()` read        |  ✓   |     ✓      |   ✓    | basic-tags (`forEachBackend`)                                                                                   |

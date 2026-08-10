@@ -52,6 +52,15 @@ export interface AudioFile {
   /** Set a single property value (string version). */
   setProperty(key: string, value: string): void;
 
+  /**
+   * Remove a single property by key.
+   *
+   * Equivalent to `setProperty(key, "")` — the empty-string clearing contract,
+   * made explicit (taglib-qyw2). On both backends an empty write removes the
+   * property from the file on save.
+   */
+  removeProperty(key: string): void;
+
   /** Type-narrowing check: returns true if this file matches the given format. */
   isFormat<F extends FileType>(format: F): this is TypedAudioFile<F>;
 
@@ -204,8 +213,11 @@ export interface AudioFile {
  * Note: The string-accepting overloads are intentionally removed. If you need
  * arbitrary string keys (e.g. custom tags), use the un-narrowed AudioFile reference.
  */
-export interface TypedAudioFile<F extends FileType>
-  extends Omit<AudioFile, "getProperty" | "setProperty" | "audioProperties"> {
+export interface TypedAudioFile<F extends FileType> extends
+  Omit<
+    AudioFile,
+    "getProperty" | "setProperty" | "removeProperty" | "audioProperties"
+  > {
   getFormat(): F;
 
   audioProperties(): TypedAudioProperties<F> | undefined;
@@ -218,4 +230,6 @@ export interface TypedAudioFile<F extends FileType>
     key: K,
     value: import("../constants.ts").PropertyValue<K>,
   ): void;
+
+  removeProperty<K extends FormatPropertyKey<F>>(key: K): void;
 }

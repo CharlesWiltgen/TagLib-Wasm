@@ -1404,3 +1404,37 @@ describe("track and disc totals land in the standard on-disk field", () => {
     }
   });
 });
+
+describe("removeProperty (taglib-qyw2)", () => {
+  for (const backend of BACKENDS) {
+    it(`[${backend}] removes a property through save`, async () => {
+      const taglib = taglibs[backend];
+      const src = await Deno.readFile(FIXTURE_PATH.mp3);
+
+      const seed = await taglib.open(src);
+      seed.setProperty("album", "to-remove");
+      seed.save();
+      const seeded = seed.getFileBuffer();
+      seed.dispose();
+
+      const reopened = await taglib.open(seeded);
+      assertEquals(
+        reopened.getProperty("album"),
+        "to-remove",
+        `${backend}: seed did not write the property`,
+      );
+      reopened.removeProperty("album");
+      reopened.save();
+      const removed = reopened.getFileBuffer();
+      reopened.dispose();
+
+      const final = await taglib.open(removed);
+      assertEquals(
+        final.getProperty("album"),
+        undefined,
+        `${backend}: removeProperty did not persist through save`,
+      );
+      final.dispose();
+    });
+  }
+});

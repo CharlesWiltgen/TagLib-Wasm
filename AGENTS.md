@@ -172,7 +172,13 @@ import { PROPERTIES } from "taglib-wasm"; // Type-safe property keys
 const allProps = audioFile.properties(); // { albumArtist: ["..."], bpm: ["120"], ... }
 audioFile.getProperty(PROPERTIES.musicbrainzTrackId.key);
 audioFile.setProperty(PROPERTIES.replayGainTrackGain.key, "-3.5 dB");
+audioFile.removeProperty(PROPERTIES.replayGainTrackGain.key); // clears
 audioFile.setProperties({ albumArtist: ["VA"], composer: ["Bach"] });
+
+// Clearing contract (taglib-qyw2): writing an EMPTY value removes the
+// property — setProperty(key, "") and removeProperty(key) are equivalent on
+// both backends (WASI's setProperties is replace-style; an absent/empty key
+// removes). Empty-string values are NOT stored.
 
 // Ratings (normalized 0.0-1.0)
 audioFile.getRating(); // number | undefined

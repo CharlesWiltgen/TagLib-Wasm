@@ -185,6 +185,15 @@ export abstract class BaseAudioFileImpl {
     this.handle.setProperty(wireKey, value);
   }
 
+  /**
+   * The empty-string clearing contract, named (taglib-qyw2): both backends
+   * remove the property when the written value is empty, and setProperty's
+   * wire-key normalization + MP4 freeform atom-name handling apply unchanged.
+   */
+  removeProperty(key: string): void {
+    this.setProperty(key, "");
+  }
+
   isMP4(): boolean {
     return this.handle.isMP4();
   }
