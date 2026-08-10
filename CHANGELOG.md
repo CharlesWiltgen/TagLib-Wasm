@@ -1,6 +1,64 @@
 # Changelog
 
-## Unreleased
+## 2.0.0
+
+### Breaking
+
+- **`getProperty()` returns all values** — the Full API's `getProperty` (all
+  overloads) now returns `string[] | undefined` instead of `string | undefined`.
+  Tag reads are arrays everywhere: `readTags`/`readTagsBatch`/`scanFolder`,
+  `properties()`, and `getProperty()` all return `string[]` (`undefined` =
+  absent); scalars exist only in the typed accessors (`tag().title`) and the
+  write side. First-value idiom: `getProperty(k)?.[0]`. (taglib-sip2)
+- **`MutableTag` read fields are `T | undefined`, not optional** — the
+  `?`-optional fields (`title`, `artist`, `album`, `comment`, `genre`, `year`,
+  `date`, `track`) became explicit `T | undefined`; values and semantics are
+  unchanged. (taglib-4p15)
+- **`COMPLEX_PROPERTIES` / `COMPLEX_PROPERTY_KEY` exports removed** — they
+  described a generic accessor pattern that was never built; complex data is
+  reached through the typed accessors (`getPictures()`, `getRatings()`,
+  `getChapters()`, `getLyrics()`). The supporting types
+  (`ComplexPropertyKey`, `ComplexPropertyKeyMap`, `ComplexPropertyValueMap`)
+  went with them. (taglib-ivq)
+- **`exactOptionalPropertyTypes` enabled** in the published declarations —
+  assigning explicit `undefined` to an optional field no longer typechecks.
+  (taglib-4p15)
+
+### Added
+
+- **`removeProperty(key)`** — the empty-string clearing contract, named.
+  Equivalent to `setProperty(key, "")` on both backends. (taglib-qyw2)
+- **`taglib-wasm/disc-folder` subpath** — the disc-folder grammar
+  (`discFolderInfo`) and pure `groupAlbums` core, declared Wasm-free and
+  CI-guarded. (taglib-cd7b)
+
+### Fixed
+
+- **MP4 freeform property clears removed the value but left an empty atom on
+  disk** — `removeProperty`/`setProperty(key, "")` on a freeform-backed MP4
+  property (e.g. `appleSoundCheck`) now removes the atom on both backends via
+  the exact-name deletion directive; previously an empty `iTunNORM`-style atom
+  survived the save, invisible to the read surface but present in the raw
+  file. (taglib-qyw2)
+- **Foreign-mean MP4 freeform atoms are now removable on WASI** —
+  `removeMP4Item("----:mean:name")` for a non-Apple mean was a silent no-op on
+  the WASI backend; the deletion-directive channel now removes it on disk.
+  (taglib-65nm)
+- **MP3 frame-sync probe validates the next frame** — a lone syntactically
+  valid MPEG header no longer authorises a partial-load splice through an
+  unseen ID3v2 tag. (taglib-rfwe)
+- **FinalizationRegistry auto-dispose for AudioFile handles** — a wrapper
+  dropped without explicit `dispose()` now releases its native FileHandle at
+  GC; explicit disposal remains the deterministic contract. (taglib-t4sn)
+- **CI gates**: `lint:ast` runs in CI; colocated `src/` tests run in CI and
+  SonarCloud; a JSR publish dry-run tripwire blocks stray C++/CMake.
+  (taglib-evmk, taglib-olas, taglib-asy)
+
+### Internal
+
+- **`WasmFileHandle` brand** — library-owned handles are branded at the
+  ownership boundaries (`wrapEmbindHandle`, WASI raw casts); raw handles can
+  no longer reach the AudioFile/save paths. (taglib-0te)
 
 ## 1.8.3
 

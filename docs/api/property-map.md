@@ -15,7 +15,7 @@ const properties = file.properties();
 console.log(properties); // { albumArtist: ["Various Artists"], bpm: ["120"], ... }
 
 // Get a specific property
-const acoustidId = file.getProperty("ACOUSTID_ID");
+const acoustidId = file.getProperty("ACOUSTID_ID")?.[0];
 
 // Set a property
 file.setProperty("ACOUSTID_FINGERPRINT", fingerprint);
@@ -43,12 +43,12 @@ console.log(titleProp.type); // "string"
 console.log(titleProp.supportedFormats); // ["ID3v2", "MP4", "Vorbis", "WAV"]
 
 // Use for type-safe property access
-const title = file.getProperty(PROPERTIES.title.key);
-const trackNumber = file.getProperty(PROPERTIES.trackNumber.key);
+const title = file.getProperty(PROPERTIES.title.key)?.[0];
+const trackNumber = file.getProperty(PROPERTIES.trackNumber.key)?.[0];
 
 // Iterate through all known properties
 Object.values(PROPERTIES).forEach((prop) => {
-  const value = file.getProperty(prop.key);
+  const value = file.getProperty(prop.key)?.[0];
   if (value !== undefined) {
     console.log(`${prop.key}: ${value} (${prop.description})`);
   }
@@ -143,8 +143,8 @@ file.setProperty("acoustidFingerprint", "AQADtMmybfGO8NCNEESLnzHyXNOHeHnG...");
 file.setProperty("acoustidId", "e7359e88-f1f7-41ed-b9f6-16e58e906997");
 
 // Read AcoustID data (works for ANY format)
-const fingerprint = file.getProperty("acoustidFingerprint");
-const acoustidId = file.getProperty("acoustidId");
+const fingerprint = file.getProperty("acoustidFingerprint")?.[0];
+const acoustidId = file.getProperty("acoustidId")?.[0];
 
 console.log("AcoustID:", acoustidId);
 console.log("Fingerprint:", fingerprint);

@@ -1091,10 +1091,12 @@ setProperties(properties: PropertyMap): void
 
 ##### getProperty()
 
-Get a single property value by key.
+Get all values for a property key. Tag reads are arrays (taglib-sip2) —
+`undefined` means the key is absent; use `?.[0]` for the first value. The
+scalar convenience lives in the typed accessors (`tag().title`).
 
 ```typescript
-getProperty(key: string): string | undefined
+getProperty(key: string): string[] | undefined
 ```
 
 ##### setProperty()
@@ -1120,7 +1122,7 @@ file.setProperties({
 });
 
 // Single property access (getProperty/setProperty also accept ALL_CAPS keys)
-const albumArtist = file.getProperty("albumArtist");
+const albumArtist = file.getProperty("albumArtist")?.[0];
 file.setProperty("albumArtist", "New Album Artist");
 ```
 
@@ -1465,11 +1467,11 @@ AcoustID data is read and written through `getProperty()` / `setProperty()`:
 ```typescript
 // Fingerprint
 file.setProperty("acoustidFingerprint", fingerprint);
-file.getProperty("acoustidFingerprint"); // string | undefined
+file.getProperty("acoustidFingerprint"); // string[] | undefined
 
 // ID
 file.setProperty("acoustidId", id);
-file.getProperty("acoustidId"); // string | undefined
+file.getProperty("acoustidId"); // string[] | undefined
 ```
 
 #### MusicBrainz Integration
@@ -1477,15 +1479,15 @@ file.getProperty("acoustidId"); // string | undefined
 ```typescript
 // Track ID
 file.setProperty("musicbrainzTrackId", id);
-file.getProperty("musicbrainzTrackId"); // string | undefined
+file.getProperty("musicbrainzTrackId"); // string[] | undefined
 
 // Release ID
 file.setProperty("musicbrainzReleaseId", id);
-file.getProperty("musicbrainzReleaseId"); // string | undefined
+file.getProperty("musicbrainzReleaseId"); // string[] | undefined
 
 // Artist ID
 file.setProperty("musicbrainzArtistId", id);
-file.getProperty("musicbrainzArtistId"); // string | undefined
+file.getProperty("musicbrainzArtistId"); // string[] | undefined
 ```
 
 #### Volume Normalization
@@ -1495,15 +1497,15 @@ file.getProperty("musicbrainzArtistId"); // string | undefined
 ```typescript
 // Track gain/peak
 file.setProperty("replayGainTrackGain", gain);
-file.getProperty("replayGainTrackGain"); // string | undefined
+file.getProperty("replayGainTrackGain"); // string[] | undefined
 file.setProperty("replayGainTrackPeak", peak);
-file.getProperty("replayGainTrackPeak"); // string | undefined
+file.getProperty("replayGainTrackPeak"); // string[] | undefined
 
 // Album gain/peak
 file.setProperty("replayGainAlbumGain", gain);
-file.getProperty("replayGainAlbumGain"); // string | undefined
+file.getProperty("replayGainAlbumGain"); // string[] | undefined
 file.setProperty("replayGainAlbumPeak", peak);
-file.getProperty("replayGainAlbumPeak"); // string | undefined
+file.getProperty("replayGainAlbumPeak"); // string[] | undefined
 ```
 
 ##### Apple Sound Check and gapless playback
@@ -1514,11 +1516,11 @@ Both are freeform MP4 atoms, written with Apple's exact casing (`iTunNORM` /
 ```typescript
 // Volume normalization (iTunNORM)
 file.setProperty("appleSoundCheck", iTunNORM);
-file.getProperty("appleSoundCheck"); // string | undefined
+file.getProperty("appleSoundCheck"); // string[] | undefined
 
 // Gapless playback: encoder delay and padding (iTunSMPB)
 file.setProperty("appleGaplessInfo", iTunSMPB);
-file.getProperty("appleGaplessInfo"); // string | undefined
+file.getProperty("appleGaplessInfo"); // string[] | undefined
 ```
 
 #### File Operations
@@ -1854,7 +1856,7 @@ interface TypedAudioFile<F extends FileType>
   audioProperties(): TypedAudioProperties<F> | undefined;
   getProperty<K extends FormatPropertyKey<F>>(
     key: K,
-  ): PropertyValue<K> | undefined;
+  ): PropertyValue<K>[] | undefined;
   setProperty<K extends FormatPropertyKey<F>>(
     key: K,
     value: PropertyValue<K>,
@@ -1939,52 +1941,20 @@ interface DuplicateGroup {
 }
 ```
 
-#### COMPLEX_PROPERTIES
-
-Introspection table describing each complex property (description, type,
-supported formats, and per-format frame/atom mappings). Use for documentation or
-format-aware logic.
-
-```typescript
-const COMPLEX_PROPERTIES = {
-  PICTURE: {
-    key: "PICTURE",
-    type: "binary",
-    supportedFormats: ["ID3v2", "MP4", "Vorbis", "FLAC"],
-    mappings: {
-      id3v2: { frame: "APIC" },
-      mp4: "covr",
-      vorbis: "METADATA_BLOCK_PICTURE",
-      flac: "PICTURE",
-    },
-  },
-  RATING: {/* POPM / RATING / ----:com.apple.iTunes:RATING */},
-  LYRICS: {/* USLT / LYRICS / ©lyr */},
-  CHAPTER: {/* CHAP (ID3v2 only) */},
-} as const;
-```
-
-#### COMPLEX_PROPERTY_KEY
-
-Plain string-keyed map of the complex-property names — a companion to
-`COMPLEX_PROPERTIES` that avoids the `.key` ceremony. Complex properties are
-read and written through their dedicated `AudioFile` methods.
-
-```typescript
-const COMPLEX_PROPERTY_KEY = {
-  PICTURE: "PICTURE",
-  RATING: "RATING",
-  LYRICS: "LYRICS",
-  CHAPTER: "CHAPTER",
-} as const;
+Complex properties (pictures, ratings, lyrics, chapters) are read and written
+through their dedicated `AudioFile` methods (`getPictures()`/`setPictures()`,
+`getRatings()`/`setRating()`, `getChapters()`/`setChapters()`, `getLyrics()`/
+`setLyrics()`). The `COMPLEX_PROPERTIES`/`COMPLEX_PROPERTY_KEY` constant exports
+were removed in 2.0.0 (taglib-ivq) — they described a generic accessor pattern
+that was never built.
 
 // Complex properties use dedicated methods:
 const ratings = file.getRatings(); // Rating[]
 const pictures = file.getPictures(); // Picture[]
 const lyrics = file.getLyrics(); // UnsyncedLyrics[]
 const chapters = file.getChapters(); // Chapter[]
-```
 
+````
 ## Workers API
 
 The Full API works in Cloudflare Workers with no special configuration needed.
@@ -1999,7 +1969,7 @@ const taglib = await TagLib.initialize();
 using file = await taglib.open(audioBuffer);
 const tag = file.tag();
 console.log(tag.title);
-```
+````
 
 The WebAssembly module automatically detects the Workers environment and
 optimizes memory usage accordingly.

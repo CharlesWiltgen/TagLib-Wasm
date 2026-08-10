@@ -39,11 +39,13 @@ async function demonstrateEnhancedProperties() {
     console.log("=".repeat(50));
 
     // NEW: Using typed property methods with PROPERTIES constants
-    console.log(`Title: ${file.getProperty("title") || "(none)"}`);
-    console.log(`Artist: ${file.getProperty("artist") || "(none)"}`);
-    console.log(`Album: ${file.getProperty("album") || "(none)"}`);
-    console.log(`Album Artist: ${file.getProperty("albumArtist") || "(none)"}`);
-    console.log(`Composer: ${file.getProperty("composer") || "(none)"}`);
+    console.log(`Title: ${file.getProperty("title")?.[0] || "(none)"}`);
+    console.log(`Artist: ${file.getProperty("artist")?.[0] || "(none)"}`);
+    console.log(`Album: ${file.getProperty("album")?.[0] || "(none)"}`);
+    console.log(
+      `Album Artist: ${file.getProperty("albumArtist")?.[0] || "(none)"}`,
+    );
+    console.log(`Composer: ${file.getProperty("composer")?.[0] || "(none)"}`);
 
     console.log("\n📊 Rich Property Metadata:");
     console.log("=".repeat(50));
@@ -88,14 +90,16 @@ async function demonstrateEnhancedProperties() {
     file.setProperty("replayGainTrackGain", "-6.54 dB");
 
     // Verify the changes with typed access
-    console.log(`Updated Title: ${file.getProperty("title")}`);
-    console.log(`Updated Artist: ${file.getProperty("artist")}`);
-    console.log(`Updated Album Artist: ${file.getProperty("albumArtist")}`);
+    console.log(`Updated Title: ${file.getProperty("title")?.[0]}`);
+    console.log(`Updated Artist: ${file.getProperty("artist")?.[0]}`);
     console.log(
-      `Updated MusicBrainz ID: ${file.getProperty("musicbrainzTrackId")}`,
+      `Updated Album Artist: ${file.getProperty("albumArtist")?.[0]}`,
     );
     console.log(
-      `Updated ReplayGain: ${file.getProperty("replayGainTrackGain")}`,
+      `Updated MusicBrainz ID: ${file.getProperty("musicbrainzTrackId")?.[0]}`,
+    );
+    console.log(
+      `Updated ReplayGain: ${file.getProperty("replayGainTrackGain")?.[0]}`,
     );
 
     console.log("\n🔍 Property Validation and Discovery:");

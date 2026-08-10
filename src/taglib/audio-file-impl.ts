@@ -234,8 +234,12 @@ export class AudioFileImpl extends BaseAudioFileImpl implements AudioFile {
       return {
         startTimeMs: c.startTimeMs,
         ...(endTimeMs !== undefined ? { endTimeMs } : {}),
-        ...(c.title !== undefined ? { title: c.title } : {}),
-        ...(c.id !== undefined ? { id: c.id } : {}),
+        // Truthiness, not !== undefined: an empty CHAP title/id must read back
+        // as ABSENT (the old `c.title || undefined` contract; the Embind
+        // reader emits "" unconditionally, WASI omits — coalescing keeps the
+        // backends agreeing).
+        ...(c.title ? { title: c.title } : {}),
+        ...(c.id ? { id: c.id } : {}),
         ...(c.source !== undefined
           ? { source: c.source as Exclude<Chapter["source"], undefined> }
           : {}),
@@ -295,7 +299,8 @@ export class AudioFileImpl extends BaseAudioFileImpl implements AudioFile {
       (r: { rating: number; email: string; counter: number }) => ({
         rating: r.rating,
         ...(r.email !== undefined && r.email !== "" ? { email: r.email } : {}),
-        ...(r.counter !== undefined ? { counter: r.counter } : {}),
+        // 0 must read back as ABSENT (old `r.counter || undefined` contract).
+        ...(r.counter !== 0 ? { counter: r.counter } : {}),
       }),
     );
   }
