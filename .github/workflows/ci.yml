@@ -197,15 +197,22 @@ jobs:
         # taglib-cd7b: the disc-folder subpath is DECLARED dependency-free so
         # clients (tuneup) can import discFolderInfo without a wasm runtime.
         # esbuild's metafile lists every resolved module in the graph; anything
-        # outside the pure allowlist is a regression of that contract.
+        # outside the exact pure allowlist is a regression of that contract.
+        # The re-bundle must also byte-match the artifact build-js.mjs shipped
+        # to dist/ moments ago — otherwise the guard would police a parallel
+        # build while the real bundle regressed.
         run: |
           set -euo pipefail
           npx esbuild disc-folder.ts --bundle --format=esm --platform=neutral \
             --outfile=/tmp/disc-folder-bundle.js \
             --metafile=/tmp/disc-folder-meta.json
+          if ! cmp -s /tmp/disc-folder-bundle.js dist/disc-folder.js; then
+            echo "::error::disc-folder bundle diverged from build-js.mjs output (taglib-cd7b)"
+            exit 1
+          fi
           STRAY="$(
             jq -r '.inputs | keys[]' /tmp/disc-folder-meta.json \
-              | grep -vE '^(src/(folder-api|utils)/|disc-folder\.ts$)' \
+              | grep -vE '^(disc-folder\.ts|src/folder-api/group-albums\.ts|src/utils/path\.ts)$' \
               || true
           )"
           if [ -n "$STRAY" ]; then
@@ -213,7 +220,7 @@ jobs:
             printf '%s\n' "$STRAY"
             exit 1
           fi
-          echo ":: disc-folder entry Wasm-free: $(jq -r '.inputs | length' /tmp/disc-folder-meta.json) modules"
+          echo ":: disc-folder entry Wasm-free: $(jq -r '.inputs | length' /tmp/disc-folder-meta.json) modules, matches dist/"
 
       - name: Verify JSR publish ships no stray C++/CMake
         # taglib-asy: deno.json publish.exclude statically blocks CMakeLists.txt

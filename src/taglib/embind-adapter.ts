@@ -180,6 +180,14 @@ export function wrapEmbindHandle(raw: EmbindFileHandle): FileHandle {
     get destroyed(): boolean {
       return destroyed;
     },
+    // taglib-qyw2: the PropertyMap erase pass computes freeform item names
+    // from the property table (upper-cased) and misses the restored exact-case
+    // atom (taglib-bnhl), so clears queue the exact name here; the imperative
+    // Embind model applies removeItem immediately, before setProperties.
+    setMp4ItemRemovals(removals: string[]): void {
+      const handle = raw as unknown as { removeMP4Item(name: string): void };
+      for (const name of removals) handle.removeMP4Item(name);
+    },
     getAudioProperties(): AudioProperties | null {
       const pw = raw.getAudioProperties();
       if (!pw) return null;

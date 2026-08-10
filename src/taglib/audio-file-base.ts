@@ -175,6 +175,36 @@ export abstract class BaseAudioFileImpl {
     // the reserved key, so it goes through the dedicated handle call.
     const atomNames = mp4FreeformAtomNames([wireKey]);
     if (atomNames.length > 0 && this.isMP4()) {
+      // Clearing contract (taglib-qyw2): an empty value must REMOVE the item.
+      // The PropertyMap erase pass computes freeform item names from the
+      // property table (upper-cased "ITUNNORM") and misses the restored
+      // exact-case atom on disk (taglib-bnhl), so the exact name is queued
+      // through the deletion directive (taglib-65nm) — consumed by the WASI
+      // shim before apply_propmap, applied immediately by the Embind proxy.
+      // What the propmap itself carries then differs per backend:
+      //  - WASI (merge model): [wireKey]: [] — the merge DELETES the key from
+      //    tagData (absent keys are untouched), so the wire no longer carries
+      //    the value that would re-create the atom.
+      //  - Embind (replace model): the key must be ABSENT from the map — an
+      //    empty-list entry would re-create the item in setProperties' write
+      //    pass after the directive removed it.
+      if (value === "") {
+        const prior = this.handle.getMp4ItemRemovals?.() ?? [];
+        this.handle.setMp4ItemRemovals?.([
+          ...new Set([...prior, ...atomNames]),
+        ]);
+        if (this.module.isWasi) {
+          this.handle.setProperties({
+            ...this.handle.getProperties(),
+            [wireKey]: [],
+          });
+        } else {
+          const rest = { ...this.handle.getProperties() };
+          delete rest[wireKey];
+          this.handle.setProperties(rest);
+        }
+        return;
+      }
       this.handle.setProperties({
         ...this.handle.getProperties(),
         [wireKey]: [value],

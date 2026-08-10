@@ -1436,5 +1436,36 @@ describe("removeProperty (taglib-qyw2)", () => {
       );
       final.dispose();
     });
+
+    it(`[${backend}] removeProperty clears an MP4 freeform-backed property from the raw file`, async () => {
+      // The read surface masks an empty-valued freeform atom ("" reads as
+      // absent), so only the raw-bytes assertion can fail on the residue
+      // defect: before the fix, [""] wrote an empty iTunNORM atom that
+      // survived the save (taglib-qyw2 review).
+      const taglib = taglibs[backend];
+      const src = await Deno.readFile(FIXTURE_PATH.m4a);
+
+      const seed = await taglib.open(src);
+      seed.setProperty("appleSoundCheck", "to-remove");
+      seed.save();
+      const seeded = seed.getFileBuffer();
+      seed.dispose();
+      assertEquals(
+        new TextDecoder().decode(seeded).includes("iTunNORM"),
+        true,
+        `${backend}: seed did not write the freeform atom`,
+      );
+
+      const file = await taglib.open(seeded);
+      file.removeProperty("appleSoundCheck");
+      file.save();
+      const removed = file.getFileBuffer();
+      file.dispose();
+      assertEquals(
+        new TextDecoder().decode(removed).includes("iTunNORM"),
+        false,
+        `${backend}: empty freeform atom survives removeProperty`,
+      );
+    });
   }
 });

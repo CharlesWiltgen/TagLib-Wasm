@@ -230,6 +230,14 @@ console.log(`Found ${duplicates.length} groups of duplicates`);
 // Group into albums with disc subdivisions (tags are authority, folder
 // names are evidence)
 const { albums, singles, unmatched } = await scanForAlbums("/path/to/music");
+for (const album of albums) {
+  console.log(
+    `${
+      album.albumArtist ?? ""
+    } - ${album.album}: ${album.discs.length} disc(s)`,
+  );
+}
+console.log(`${singles.length} singles, ${unmatched.length} unmatched`);
 ```
 
 The disc-folder grammar (`discFolderInfo`) and the pure `groupAlbums` core are
@@ -240,16 +248,6 @@ Wasm-free — import them from the dedicated subpath in browser/UI contexts
 import { discFolderInfo, groupAlbums } from "taglib-wasm/disc-folder";
 ```
 
-for (const album of albums) {
-console.log(
-`${
-      album.albumArtist ?? ""
-    } - ${album.album}: ${album.discs.length} disc(s)`,
-);
-}
-console.log(`${singles.length} singles, ${unmatched.length} unmatched`);
-
-````
 ### Working with Cover Art
 
 ```typescript
@@ -265,7 +263,7 @@ if (coverData) {
 const imageData = await Deno.readFile("new-cover.jpg");
 const modifiedBuffer = await applyCoverArt("song.mp3", imageData, "image/jpeg");
 // Save modifiedBuffer to file if needed
-````
+```
 
 ### Working with Ratings
 
