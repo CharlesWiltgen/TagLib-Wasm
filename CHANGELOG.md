@@ -36,9 +36,16 @@
 
 - **`removeProperty(key)`** — the empty-string clearing contract, named.
   Equivalent to `setProperty(key, "")` on both backends. (taglib-qyw2)
+  ```typescript
+  file.removeProperty("discNumber"); // clears the disc tag
+  ```
 - **`taglib-wasm/disc-folder` subpath** — the disc-folder grammar
   (`discFolderInfo`) and pure `groupAlbums` core, declared Wasm-free and
   CI-guarded. (taglib-cd7b)
+  ```typescript
+  import { discFolderInfo } from "taglib-wasm/disc-folder";
+  discFolderInfo("CD1"); // { kind: "exact", number: 1, ... }
+  ```
 
 ### Fixed
 

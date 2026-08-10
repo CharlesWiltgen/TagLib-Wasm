@@ -6,6 +6,7 @@
     "simple.ts",
     "simple.browser.ts",
     "folder.ts",
+    "disc-folder.ts",
     "web.ts",
     "rating.ts",
     "src/taglib/index.ts",
@@ -20,7 +21,8 @@
   "project": [
     "src/**/*.ts",
     "tests/**/*.ts",
-    "scripts/**/*.{ts,mjs,js}"
+    "scripts/**/*.{ts,mjs,js}",
+    "*.ts"
   ],
   "ignore": [
     "build/**",
@@ -50,6 +52,9 @@
     "src/folder-api/types.ts": [
       "exports",
       "types"
+    ],
+    "scripts/build-js.mjs": [
+      "unresolved"
     ]
   }
 }
