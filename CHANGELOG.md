@@ -71,6 +71,10 @@
 
 ### Internal
 
+- **Emscripten 6.0.3 → 6.0.6 toolchain** — CI pins and the committed
+  `taglib-web.wasm` moved to 6.0.6; `build-wasm.sh` links C++ explicitly
+  (`-sDEFAULT_TO_CXX=1`) for the tightened runtime default in ≥ 6.0.4.
+  Binary rebuilt from source, suite green on both backends.
 - **`WasmFileHandle` brand** — library-owned handles are branded at the
   ownership boundaries (`wrapEmbindHandle`, WASI raw casts); raw handles can
   no longer reach the AudioFile/save paths. (taglib-0te)

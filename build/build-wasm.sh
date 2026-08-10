@@ -77,6 +77,9 @@ cp "$BUILD_DIR/taglib_embind.cpp" "$BUILD_DIR/taglib_wasm.cpp"
 echo "🔗 Compiling Wasm module with Embind..."
 
 # Compile the Wasm module with Embind.
+# DEFAULT_TO_CXX: Emscripten >= 6.0.4 tightened the C++ runtime default for
+# emcc on .cpp inputs (wasm-ld: undefined symbol: operator new); opt in
+# explicitly so old and new toolchains link C++ deterministically.
 # NOTE: Emscripten 6.0.2 dropped wasmBinary from the default INCOMING_MODULE_JS_API.
 # The runtime loaders (src/runtime/module-loader.ts, module-loader-browser.ts,
 # unified-loader/module-loading.ts) pass moduleConfig.wasmBinary and locateFile into
@@ -92,6 +95,7 @@ emcc "$BUILD_DIR/taglib_wasm.cpp" \
   -o "$OUTPUT_DIR/taglib-wrapper.js" \
   -s WASM=1 \
   -s MODULARIZE=1 \
+  -s DEFAULT_TO_CXX=1 \
   -s EXPORT_NAME="createTagLibModule" \
   -s ALLOW_MEMORY_GROWTH=1 \
   -s MAXIMUM_MEMORY=4GB \

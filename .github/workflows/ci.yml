@@ -302,7 +302,7 @@ jobs:
       - name: Install Emscripten
         uses: mymindstorm/setup-emsdk@v16
         with:
-          version: 6.0.3
+          version: 6.0.6
 
       - name: Build WebAssembly
         # Emscripten-only by design: this job installs emsdk but not the WASI
