@@ -17,6 +17,7 @@ const ENTRY_POINTS = [
   "index.ts",
   "simple.ts",
   "folder.ts",
+  "disc-folder.ts",
   "web.ts",
   "rating.ts",
 ];
@@ -97,6 +98,30 @@ async function collectDocText(path: string, sink: string[]): Promise<void> {
   }
 }
 
+/**
+ * Names imported from the taglib-wasm package in doc code blocks (the
+ * REVERSE check, taglib-gmq5): the forward pass only verifies "every public
+ * export is mentioned somewhere" — it cannot see a doc claiming an export
+ * that does not exist (the Tags object documented as public for a year while
+ * unexported). Parsing import statements catches that class: a name that
+ * resolves against nothing in the exports map is a doc lie.
+ */
+function docImportedNames(docs: string[]): Set<string> {
+  const names = new Set<string>();
+  const importRe =
+    /import\s+(?:type\s+)?\{([^}]+)\}\s+from\s+["']taglib-wasm(?:\/[^"']*)?["']/g;
+  for (const text of docs) {
+    for (const m of text.matchAll(importRe)) {
+      for (const part of m[1].split(",")) {
+        const cleaned = part.trim().replace(/^type\s+/, "");
+        const name = cleaned.split(/\s+as\s+/)[0].trim();
+        if (name) names.add(name);
+      }
+    }
+  }
+  return names;
+}
+
 function escapeRegExp(s: string): string {
   return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
@@ -137,6 +162,25 @@ async function main(): Promise<void> {
     Deno.exit(1);
   }
   console.log("✅ Every public export is referenced in the docs.");
+
+  // Reverse check (taglib-gmq5): every name the docs import from the package
+  // must resolve against the actual exports map.
+  const imported = docImportedNames(docs);
+  const stale = [...imported].filter((n) => !exports.has(n)).sort();
+  if (stale.length > 0) {
+    console.log(
+      `\n❌ ${stale.length} doc-imported name(s) do not exist in the public exports ` +
+        "(documented-but-unshipped):",
+    );
+    for (const name of stale) console.log(`   - ${name}`);
+    console.log(
+      "\nFix the docs to import a real export, or export the name if it should be public.",
+    );
+    Deno.exit(1);
+  }
+  console.log(
+    "✅ Every doc-imported name resolves against the public exports.",
+  );
   // State the blind spot on the success path. This is a name-mention check:
   // it cannot tell whether the surrounding prose is true. Two real cases it
   // passed while wrong (both fixed in c041af0d): property-map.md described a
