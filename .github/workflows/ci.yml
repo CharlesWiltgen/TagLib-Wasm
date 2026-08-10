@@ -655,11 +655,13 @@ jobs:
           echo "- **WASI SDK**: Deno, Node.js (WASI), Cloudflare Workers" >> $GITHUB_STEP_SUMMARY
 
   summary:
-    # BINDING GATE (taglib-wgz): main branch protection requires this job's
-    # check to pass, so every job in `needs` — including the ones listed as
-    # "optional" below, which still fail the summary on a failure result — is
-    # enforced on every push to main and every PR merge. The required/optional
-    # wording inside the step is reporting, not enforcement: protection is.
+    # Repository health report, not an enforced gate (2026-08-10): main branch
+    # protection was tried with this job as the required check (taglib-wgz),
+    # but required checks reject direct pushes to main (fresh commits can
+    # never have a check), forcing a PR flow. Reverted to force-push/delete
+    # protection only per workflow decision. If this should become binding
+    # again, the ceremony-free path is a GitHub merge queue (merge_group
+    # trigger + queue config), not required checks on direct pushes.
     name: Summary
     needs: [
       wasm-freshness,
