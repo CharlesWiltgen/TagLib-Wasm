@@ -55,6 +55,22 @@ jobs:
             return 1
           }
 
+          # A comment-only or whitespace-only edit changes no wasm bytes and
+          # must not demand a rebuild — the same false-alarm reasoning that
+          # excludes the build scripts below (a gate that cries wolf on every
+          # comment edit trains people to ignore it). Heuristic: keep only the
+          # +/- change lines, strip blank and C++-comment-only ones; nothing
+          # left means the edit is cosmetic.
+          is_cosmetic_diff() {
+            local f="$1"
+            local changed noncosmetic
+            changed=$(git diff -w --ignore-blank-lines "$BASE_SHA"..HEAD -- "$f" \
+              | grep -E '^[+-]' | grep -vE '^[+-][+-]' || true)
+            noncosmetic=$(printf '%s\n' "$changed" \
+              | grep -vE '^[+-]\s*$|^[+-]\s*(//|/\*|\*)' || true)
+            [ -z "$noncosmetic" ]
+          }
+
           FAIL=0
           # check_backend <label> <binary> <input glob>...
           #
@@ -88,9 +104,19 @@ jobs:
               echo "  $name: inputs changed, $binary rebuilt"
               return
             fi
+            # Drop cosmetic-only (comment/whitespace) edits from the demands.
+            local real_hits="" f
+            while IFS= read -r f; do
+              [ -z "$f" ] && continue
+              is_cosmetic_diff "$f" || real_hits="${real_hits}${f}"$'\n'
+            done <<<"$hits"
+            if [ -z "$real_hits" ]; then
+              echo "  $name: inputs changed cosmetically only (comments/whitespace)"
+              return
+            fi
             echo "::error::$name inputs changed but $binary was not rebuilt."
             echo "  Changed inputs:"
-            printf '%s' "$hits"
+            printf '%s' "$real_hits"
             FAIL=1
           }
 
