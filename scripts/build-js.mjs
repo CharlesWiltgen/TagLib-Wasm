@@ -143,6 +143,18 @@ try {
     );
   }
 
+  // Wasm-free pure entry (taglib-cd7b): fully bundled with NO externals — the
+  // module graph is dependency-free by contract (CI-guarded), so one
+  // self-contained file serves node, browsers, and bundler-less contexts.
+  console.log("  ⚡ Building disc-folder.js (fully bundled)...");
+  execSync(
+    `npx esbuild disc-folder.ts --bundle --outfile=dist/disc-folder.js --format=esm --platform=neutral --target=es2020`,
+    {
+      cwd: rootDir,
+      stdio: "inherit",
+    },
+  );
+
   // Build browser entry files (fully bundled, no server imports)
   for (const entry of browserEntryFiles) {
     const outName = entry.replace(".ts", ".js");

@@ -8,6 +8,7 @@
     ".": "./index.ts",
     "./simple": "./simple.ts",
     "./folder": "./folder.ts",
+    "./disc-folder": "./disc-folder.ts",
     "./web": "./web.ts",
     "./rating": "./rating.ts"
   },

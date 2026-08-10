@@ -294,10 +294,14 @@ UI and lint buckets by. Folder disc recognition covers `CD1`, `Disc One`,
 flat filename prefixes (`1-01`, `101`); plain `Bonus`/`Extras` are never discs.
 
 Standalone recognizer (no resolve-to-parent semantics — the caller decides
-what the parse means):
+what the parse means). The grammar is PURE — no Wasm, no runtime deps — and is
+declared as such: import it from the dedicated `taglib-wasm/disc-folder`
+subpath (also exports the pure `groupAlbums` core and its types), which CI
+verifies stays dependency-free (taglib-cd7b). Browser/UI consumers must use
+the subpath rather than the main entry:
 
 ```typescript
-import { discFolderInfo } from "taglib-wasm";
+import { discFolderInfo } from "taglib-wasm/disc-folder";
 
 discFolderInfo("CD1"); // { kind: "exact", gated: false, number: 1, confidence: "high", ... }
 discFolderInfo("Tape 4"); // { kind: "exact", gated: true,  number: 4, confidence: "low" }

@@ -193,6 +193,28 @@ jobs:
       - name: Build TypeScript bundles
         run: deno task build:ts
 
+      - name: Verify disc-folder entry stays Wasm-free
+        # taglib-cd7b: the disc-folder subpath is DECLARED dependency-free so
+        # clients (tuneup) can import discFolderInfo without a wasm runtime.
+        # esbuild's metafile lists every resolved module in the graph; anything
+        # outside the pure allowlist is a regression of that contract.
+        run: |
+          set -euo pipefail
+          npx esbuild disc-folder.ts --bundle --format=esm --platform=neutral \
+            --outfile=/tmp/disc-folder-bundle.js \
+            --metafile=/tmp/disc-folder-meta.json
+          STRAY="$(
+            jq -r '.inputs | keys[]' /tmp/disc-folder-meta.json \
+              | grep -vE '^(src/(folder-api|utils)/|disc-folder\.ts$)' \
+              || true
+          )"
+          if [ -n "$STRAY" ]; then
+            echo "::error::disc-folder.ts pulled non-pure imports (taglib-cd7b):"
+            printf '%s\n' "$STRAY"
+            exit 1
+          fi
+          echo ":: disc-folder entry Wasm-free: $(jq -r '.inputs | length' /tmp/disc-folder-meta.json) modules"
+
       - name: Verify JSR publish ships no stray C++/CMake
         # taglib-asy: deno.json publish.exclude statically blocks CMakeLists.txt
         # / *.cmake / taglib/ / bindings/, but nothing proved it on every PR —
@@ -534,11 +556,13 @@ jobs:
           import { TagLib, readTags } from "taglib-wasm";
           import { readTags as simpleReadTags } from "taglib-wasm/simple";
           import { RatingUtils } from "taglib-wasm";
+          import { discFolderInfo } from "taglib-wasm/disc-folder";
 
           if (typeof TagLib !== "function") throw new Error("TagLib export failed");
           if (typeof readTags !== "function") throw new Error("readTags export failed");
           if (typeof simpleReadTags !== "function") throw new Error("simple subpath export failed");
           if (typeof RatingUtils !== "object") throw new Error("RatingUtils export failed");
+          if (discFolderInfo("CD1")?.number !== 1) throw new Error("disc-folder subpath export failed");
 
           console.log(":: Main exports resolve correctly");
           console.log(":: Simple subpath exports resolve correctly");
@@ -563,11 +587,13 @@ jobs:
           import { TagLib, readTags } from "taglib-wasm";
           import { readTags as simpleReadTags } from "taglib-wasm/simple";
           import { RatingUtils } from "taglib-wasm";
+          import { discFolderInfo } from "taglib-wasm/disc-folder";
 
           if (typeof TagLib !== "function") throw new Error("TagLib export failed");
           if (typeof readTags !== "function") throw new Error("readTags export failed");
           if (typeof simpleReadTags !== "function") throw new Error("simple subpath export failed");
           if (typeof RatingUtils !== "object") throw new Error("RatingUtils export failed");
+          if (discFolderInfo("CD1")?.number !== 1) throw new Error("disc-folder subpath export failed");
 
           console.log(":: Main exports resolve correctly");
           console.log(":: Simple subpath exports resolve correctly");
@@ -594,11 +620,13 @@ jobs:
           import { TagLib, readTags } from "taglib-wasm";
           import { readTags as simpleReadTags } from "taglib-wasm/simple";
           import { RatingUtils } from "taglib-wasm";
+          import { discFolderInfo } from "taglib-wasm/disc-folder";
 
           if (typeof TagLib !== "function") throw new Error("TagLib export failed");
           if (typeof readTags !== "function") throw new Error("readTags export failed");
           if (typeof simpleReadTags !== "function") throw new Error("simple subpath export failed");
           if (typeof RatingUtils !== "object") throw new Error("RatingUtils export failed");
+          if (discFolderInfo("CD1")?.number !== 1) throw new Error("disc-folder subpath export failed");
 
           console.log("taglib-wasm browser imports OK");
           JSEOF

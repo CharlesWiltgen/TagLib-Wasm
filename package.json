@@ -31,6 +31,10 @@
       "types": "./dist/folder.d.ts",
       "default": "./dist/folder.js"
     },
+    "./disc-folder": {
+      "types": "./dist/disc-folder.d.ts",
+      "default": "./dist/disc-folder.js"
+    },
     "./web": {
       "types": "./dist/web.d.ts",
       "default": "./dist/web.js"
@@ -47,6 +51,9 @@
       ],
       "folder": [
         "dist/folder.d.ts"
+      ],
+      "disc-folder": [
+        "dist/disc-folder.d.ts"
       ],
       "web": [
         "dist/web.d.ts"
@@ -65,6 +72,7 @@
     "simple.ts",
     "simple.browser.ts",
     "folder.ts",
+    "disc-folder.ts",
     "web.ts",
     "rating.ts",
     "src/**/*.ts",

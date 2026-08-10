@@ -31,6 +31,7 @@
     "simple.ts",
     "simple.browser.ts",
     "folder.ts",
+    "disc-folder.ts",
     "web.ts",
     "rating.ts",
     "src/**/*",
