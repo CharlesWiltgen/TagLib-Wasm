@@ -308,7 +308,7 @@ WAV files use INFO chunks with specific FourCC codes:
 ### Reading Tags (TypeScript)
 
 ```typescript
-import { PROPERTIES, TagLib, Tags } from "taglib-wasm";
+import { PROPERTIES, TagLib } from "taglib-wasm";
 
 const taglib = await TagLib.initialize();
 using file = await taglib.open(audioBuffer);

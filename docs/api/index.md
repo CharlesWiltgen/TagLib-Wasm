@@ -1959,13 +1959,14 @@ through their dedicated `AudioFile` methods (`getPictures()`/`setPictures()`,
 were removed in 2.0.0 (taglib-ivq) — they described a generic accessor pattern
 that was never built.
 
+```typescript
 // Complex properties use dedicated methods:
 const ratings = file.getRatings(); // Rating[]
 const pictures = file.getPictures(); // Picture[]
 const lyrics = file.getLyrics(); // UnsyncedLyrics[]
 const chapters = file.getChapters(); // Chapter[]
+```
 
-````
 ## Workers API
 
 The Full API works in Cloudflare Workers with no special configuration needed.
@@ -1980,7 +1981,7 @@ const taglib = await TagLib.initialize();
 using file = await taglib.open(audioBuffer);
 const tag = file.tag();
 console.log(tag.title);
-````
+```
 
 The WebAssembly module automatically detects the Workers environment and
 optimizes memory usage accordingly.
@@ -2148,11 +2149,12 @@ so `?.[0]` is the first-value idiom:
 ```typescript
 import { PROPERTIES } from "taglib-wasm";
 
-// Read properties using constants
-const properties = file.properties();
-const title = properties[PROPERTIES.title.key]?.[0];
-const albumArtist = properties[PROPERTIES.albumArtist.key]?.[0];
-const musicBrainzId = properties[PROPERTIES.musicbrainzArtistId.key]?.[0];
+// Read properties using constants (getProperty normalizes the ALL_CAPS
+// wire key; the properties() map itself is camelCase-keyed, so index it
+// with camelCase strings, not .key)
+const title = file.getProperty(PROPERTIES.title.key)?.[0];
+const albumArtist = file.getProperty(PROPERTIES.albumArtist.key)?.[0];
+const musicBrainzId = file.getProperty(PROPERTIES.musicbrainzArtistId.key)?.[0];
 
 // Write properties using constants
 file.setProperties({
