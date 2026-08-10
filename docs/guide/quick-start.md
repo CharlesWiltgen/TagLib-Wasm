@@ -146,9 +146,9 @@ const titleProp = PROPERTIES.title;
 console.log(titleProp.description); // "The title of the track"
 console.log(titleProp.supportedFormats); // ["ID3v2", "MP4", "Vorbis", "WAV"]
 
-// Read properties with type safety
-const title = file.getProperty(PROPERTIES.title.key);
-const albumArtist = file.getProperty(PROPERTIES.albumArtist.key);
+// Read properties with type safety (arrays; ?.[0] for the first value)
+const title = file.getProperty(PROPERTIES.title.key)?.[0];
+const albumArtist = file.getProperty(PROPERTIES.albumArtist.key)?.[0];
 
 // Write properties
 file.setProperty(PROPERTIES.title.key, "My Song");

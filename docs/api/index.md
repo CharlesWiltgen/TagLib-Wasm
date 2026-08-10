@@ -1107,6 +1107,17 @@ Set a single property value.
 setProperty(key: string, value: string): void
 ```
 
+##### removeProperty()
+
+Remove a single property by key. Equivalent to `setProperty(key, "")` — the
+empty-string clearing contract, made explicit (taglib-qyw2): an empty write
+removes the property from the file on save on both backends. Empty-string
+values are never stored.
+
+```typescript
+removeProperty(key: string): void
+```
+
 ##### Example
 
 ```typescript

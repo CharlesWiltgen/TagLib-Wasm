@@ -26,13 +26,13 @@ console.log(titleProp.type); // "string"
 console.log(titleProp.supportedFormats); // ["ID3v2", "MP4", "Vorbis", "WAV"]
 console.log(titleProp.mappings.id3v2.frame); // "TIT2"
 
-// Use for type-safe property access
-const title = file.getProperty(PROPERTIES.title.key);
-const artist = file.getProperty(PROPERTIES.artist.key);
+// Use for type-safe property access (arrays; ?.[0] for the first value)
+const title = file.getProperty(PROPERTIES.title.key)?.[0];
+const artist = file.getProperty(PROPERTIES.artist.key)?.[0];
 
 // Iterate through all known properties with metadata
 Object.values(PROPERTIES).forEach((prop) => {
-  const value = file.getProperty(prop.key);
+  const value = file.getProperty(prop.key)?.[0];
   if (value !== undefined) {
     console.log(`${prop.key}: ${value}`);
     console.log(`  Description: ${prop.description}`);
@@ -334,9 +334,9 @@ using file = await taglib.open(audioBuffer);
 
 // Using PROPERTIES constant (recommended - provides rich metadata)
 const properties = file.properties();
-const title = file.getProperty(PROPERTIES.title.key);
-const artist = file.getProperty(PROPERTIES.artist.key);
-const musicBrainzId = file.getProperty(PROPERTIES.musicbrainzTrackId.key);
+const title = file.getProperty(PROPERTIES.title.key)?.[0];
+const artist = file.getProperty(PROPERTIES.artist.key)?.[0];
+const musicBrainzId = file.getProperty(PROPERTIES.musicbrainzTrackId.key)?.[0];
 
 // Using legacy Tags constants (still supported)
 const title2 = properties[Tags.Title]?.[0];
