@@ -286,7 +286,7 @@ describe("WasiFileHandle", () => {
       type: 3,
     };
     fh.addPicture(pic);
-    assertEquals(fh.getPictures().length, 1);
+    assertEquals(fh.getPictures(), [pic]);
 
     fh.removePictures();
     assertEquals(fh.getPictures(), []);

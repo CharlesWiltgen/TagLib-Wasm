@@ -174,7 +174,12 @@ describe("apply_id3v2_frames_from_msgpack (write contract)", () => {
     );
     assert(removed);
     assertEquals(readId3v2FramesFromWasm(wasi, removed, "RGAD"), []);
-    assertEquals(readId3v2FramesFromWasm(wasi, removed, "NCON").length, 1);
+    // Content, not count: a count-only guard stays green while the payload
+    // is destroyed (AGENTS.md observed-failing doctrine).
+    assertEquals(
+      [...readId3v2FramesFromWasm(wasi, removed, "NCON")[0].data],
+      [3, 4],
+    );
   });
 
   it("unrelated typed writes preserve existing raw frames", async () => {
@@ -265,9 +270,12 @@ for (const backend of BACKENDS) {
     const { taglib, file } = await openMp3(backend);
     let out: Uint8Array;
     try {
+      // Owner-prefixed bodies: PRIV re-normalizes its owner+data framing, so
+      // bare payloads would collapse to indistinguishable frames — a count
+      // assertion would be the only surviving check (the ast-grep proxy rule).
       file.setId3v2Frames("PRIV", [
-        new Uint8Array([1]),
-        new Uint8Array([2]),
+        new Uint8Array([0x41, 0x00, 0x01]), // owner "A", data [1]
+        new Uint8Array([0x42, 0x00, 0x02]), // owner "B", data [2]
       ]);
       file.save();
       out = file.getFileBuffer();
@@ -277,7 +285,12 @@ for (const backend of BACKENDS) {
     const reopened = await taglib.open(out);
     let out2: Uint8Array;
     try {
-      assertEquals(reopened.getId3v2Frames("PRIV").length, 2);
+      // Content, not count: both seeded owners AND payloads must survive the
+      // round-trip (a count-only guard stays green while payloads are lost).
+      assertEquals(
+        reopened.getId3v2Frames("PRIV").map((f) => [...f.data]),
+        [[65, 0, 1], [66, 0, 2]],
+      );
       reopened.removeId3v2Frames("PRIV");
       assertEquals(reopened.getId3v2Frames("PRIV"), []);
       reopened.save();
