@@ -732,7 +732,8 @@ static void apply_propmap(TagLib::File* file, const TagLib::PropertyMap& propMap
  * on disk cannot be captured from the file, so the caller has to supply it —
  * see taglib_mp4_atoms.h (taglib-bnhl).
  */
-static std::vector<std::string> read_mp4_item_names(const uint8_t* data, size_t len)
+static std::vector<std::string> read_mp4_key_list(const uint8_t* data, size_t len,
+                                                  const char* want)
 {
     std::vector<std::string> names;
     mpack_reader_t reader;
@@ -763,7 +764,7 @@ static std::vector<std::string> read_mp4_item_names(const uint8_t* data, size_t 
         if (mpack_reader_error(&reader) != mpack_ok) break;
         key[klen] = '\0';
 
-        if (strcmp(key, "_mp4ItemNames") != 0) {
+        if (strcmp(key, want) != 0) {
             mpack_discard(&reader);
             continue;
         }
@@ -787,6 +788,17 @@ static std::vector<std::string> read_mp4_item_names(const uint8_t* data, size_t 
 
     mpack_reader_destroy(&reader);
     return names;
+}
+
+static std::vector<std::string> read_mp4_item_names(const uint8_t* data, size_t len)
+{
+    return read_mp4_key_list(data, len, "_mp4ItemNames");
+}
+
+/*! Foreign-mean atom deletions queued by removeMP4Item (taglib-65nm). */
+static std::vector<std::string> read_mp4_item_removals(const uint8_t* data, size_t len)
+{
+    return read_mp4_key_list(data, len, "_mp4ItemRemovals");
 }
 
 /*!
@@ -843,6 +855,11 @@ static tl_error_code write_to_path(const char* path,
         for (auto& n : read_mp4_item_names(tags_msgpack, tags_msgpack_len)) {
             mp4_names.push_back(std::move(n));
         }
+        // Foreign-mean atom deletions queued by removeMP4Item: the PropertyMap
+        // cannot express them, so delete them here (taglib-65nm).
+        apply_mp4_item_removals(ref.file(),
+                                read_mp4_item_removals(tags_msgpack,
+                                                       tags_msgpack_len));
         apply_propmap(ref.file(), propMap);
         restore_mp4_freeform_names(ref.file(), mp4_names);
         apply_pictures_from_msgpack(ref.file(), tags_msgpack, tags_msgpack_len);
@@ -900,6 +917,9 @@ static tl_error_code write_to_buffer(const uint8_t* buf, size_t len,
         for (auto& n : read_mp4_item_names(tags_msgpack, tags_msgpack_len)) {
             mp4_names.push_back(std::move(n));
         }
+        // Foreign-mean atom deletions queued by removeMP4Item (taglib-65nm).
+        apply_mp4_item_removals(f, read_mp4_item_removals(tags_msgpack,
+                                                          tags_msgpack_len));
         apply_propmap(f, propMap);
         restore_mp4_freeform_names(f, mp4_names);
         apply_pictures_from_msgpack(f, tags_msgpack, tags_msgpack_len);

@@ -20,6 +20,24 @@ const BACKENDS = ["wasi", "emscripten"] as const;
 // to via getMP4Item.
 const CUSTOM = "----:com.apple.iTunes:CUSTOM_PARITY";
 const ITUNNORM = "----:com.apple.iTunes:iTunNORM";
+// A genuinely foreign mean (NOT com.apple.iTunes): TagLib's PropertyMap
+// translation covers iTunes-mean freeform atoms but no others, so WASI's
+// setProperties-based erase pass cannot delete this atom — the taglib-65nm
+// defect half the saved-bytes assertions below exist to catch.
+const FOREIGN = "----:org.example.test:FOREIGN_ATOM";
+
+/** True when `needle` appears verbatim in `haystack` (ASCII atom names). */
+function bytesContain(haystack: Uint8Array, needle: string): boolean {
+  const bytes = new TextEncoder().encode(needle);
+  if (bytes.length === 0 || bytes.length > haystack.length) return false;
+  outer: for (let i = 0; i <= haystack.length - bytes.length; i++) {
+    for (let j = 0; j < bytes.length; j++) {
+      if (haystack[i + j] !== bytes[j]) continue outer;
+    }
+    return true;
+  }
+  return false;
+}
 
 for (const backend of BACKENDS) {
   Deno.test(`[${backend}] MP4 freeform item round-trips through save (taglib-1qn)`, async () => {
@@ -79,6 +97,56 @@ for (const backend of BACKENDS) {
       value,
       undefined,
       `${backend}: removeMP4Item did not persist through save`,
+    );
+  });
+
+  Deno.test(`[${backend}] removeMP4Item clears a FOREIGN-mean atom through save (taglib-65nm)`, async () => {
+    const tl = await TagLib.initialize({ forceWasmType: backend });
+    const seeded = await tl.open(await Deno.readFile(FIXTURE_PATH.m4a));
+    seeded.setMP4Item(FOREIGN, "to-remove");
+    seeded.save();
+    const withItem = seeded.getFileBuffer();
+    seeded.dispose();
+
+    // Seed check: the atom must actually be on disk before removal — a test
+    // that only asserts post-removal absence cannot tell "removed" from
+    // "never written" (AGENTS.md observed-failing rule).
+    assertEquals(
+      bytesContain(withItem, "FOREIGN_ATOM"),
+      true,
+      `${backend}: seed did not write the foreign atom to disk`,
+    );
+
+    const file = await tl.open(withItem);
+    file.removeMP4Item(FOREIGN);
+    // Layer 1 — same-handle JS view: the raw `----:` snapshot slot must clear
+    // immediately (the WASI raw-key deletion fix; Emscripten applies at once).
+    assertEquals(
+      file.getMP4Item(FOREIGN),
+      undefined,
+      `${backend}: removeMP4Item did not clear the live handle view`,
+    );
+    file.save();
+    const buf = file.getFileBuffer();
+    file.dispose();
+
+    // Layer 2 — the on-disk half: the atom bytes must be gone from the saved
+    // file. This is the assertion the WASI C++ deletion channel exists for;
+    // a view-only test cannot fail on the defect (AGENTS.md).
+    assertEquals(
+      bytesContain(buf, "FOREIGN_ATOM"),
+      false,
+      `${backend}: foreign-mean atom survives on disk after removeMP4Item`,
+    );
+
+    // Layer 3 — reopened view: disk-backed read-back agrees.
+    const reopened = await tl.open(buf);
+    const value = reopened.getMP4Item(FOREIGN);
+    reopened.dispose();
+    assertEquals(
+      value,
+      undefined,
+      `${backend}: foreign-mean atom still reported after reopen`,
     );
   });
 }

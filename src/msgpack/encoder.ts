@@ -29,6 +29,8 @@ export const PASSTHROUGH_KEYS = new Set([
   "_stripId3",
   // Exact MP4 atom names — must reach C++ verbatim, not via toTagLibKey.
   "_mp4ItemNames",
+  // Foreign-mean MP4 atom names to delete at save (taglib-65nm).
+  "_mp4ItemRemovals",
 ]);
 
 const MSGPACK_ENCODE_OPTIONS: EncoderOptions = {

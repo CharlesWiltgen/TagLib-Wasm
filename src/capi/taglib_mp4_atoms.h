@@ -159,6 +159,30 @@ inline std::string mp4_propertymap_roundtrip_name(const std::string& name)
 }
 
 /*!
+ * Delete exact MP4 freeform atom names supplied by the JS layer under the
+ * reserved "_mp4ItemRemovals" key (taglib-65nm). The PropertyMap cannot
+ * express foreign-mean atoms, so setProperties' erase pass can never delete
+ * them — this is the write-time deletion channel. Call BEFORE apply_propmap:
+ * the atoms are not in the incoming map either way, but removing first keeps
+ * the save from ever seeing them.
+ *
+ * Exact-name matching is safe because the restore pass below re-bases each
+ * atom to the caller's exact spelling on the seed write (taglib-wkyi), so the
+ * recorded key is what is on disk.
+ */
+inline void apply_mp4_item_removals(TagLib::File* file,
+                                    const std::vector<std::string>& removals)
+{
+    if (removals.empty()) return;
+    auto* mp4 = dynamic_cast<TagLib::MP4::File*>(file);
+    if (!mp4 || !mp4->tag()) return;
+    for (const auto& name : removals) {
+        if (name.compare(0, 5, "----:") != 0) continue;
+        mp4->tag()->removeItem(TagLib::String(name, TagLib::String::UTF8));
+    }
+}
+
+/*!
  * Move each mangled twin atom back onto its canonical name. Call AFTER
  * file->setProperties(). \a names should be the capture from before the write
  * plus any name the caller is creating.

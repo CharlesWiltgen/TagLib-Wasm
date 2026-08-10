@@ -70,6 +70,9 @@ const INTERNAL_KEYS = new Set([
   "ixml",
   // Exact MP4 atom names for the write path, not a readable property.
   "_mp4ItemNames",
+  // Foreign-mean MP4 atom names to delete at save (taglib-65nm): a write-time
+  // directive, never a property.
+  "_mp4ItemRemovals",
 ]);
 
 /**
@@ -498,9 +501,45 @@ export class WasiFileHandle implements FileHandle {
     } as Record<string, unknown>;
   }
 
+  /**
+   * Record a foreign-mean freeform atom for deletion at save (taglib-65nm).
+   * The PropertyMap erase pass cannot express foreign atoms, so the C++ shim
+   * consumes this list and calls removeItem on each exact atom name.
+   */
+  private registerMp4ItemRemoval(name: string): void {
+    const existing = (this.tagData?._mp4ItemRemovals as string[] | undefined) ??
+      [];
+    if (existing.includes(name)) return;
+    this.tagData = {
+      ...this.tagData,
+      _mp4ItemRemovals: [...existing, name],
+    } as Record<string, unknown>;
+  }
+
+  getMp4ItemRemovals(): string[] | undefined {
+    this.checkNotDestroyed();
+    return this.tagData?._mp4ItemRemovals as string[] | undefined;
+  }
+
+  setMp4ItemRemovals(removals: string[]): void {
+    this.checkNotDestroyed();
+    this.tagData = {
+      ...this.tagData,
+      _mp4ItemRemovals: [...new Set(removals)],
+    } as Record<string, unknown>;
+  }
+
   removeMP4Item(key: string): void {
     this.checkNotDestroyed();
     if (this.tagData) {
+      if (key.startsWith("----:")) {
+        // Foreign-mean freeform atom: the value may sit under the raw
+        // `----:` key (snapshot mirror, taglib-5ibr) — delete it there AND
+        // record the exact atom name for the C++ save to removeItem() (the
+        // PropertyMap erase pass cannot express foreign atoms, taglib-65nm).
+        delete this.tagData[key];
+        this.registerMp4ItemRemoval(key);
+      }
       // "trkn" now resolves to TRACKNUMBER, so the numeric mirror IS reachable
       // here and must go with the raw value — otherwise tag().track keeps
       // reporting a removed track (taglib-qpl mirror invariant).

@@ -136,6 +136,13 @@ export interface FileHandle {
   getStagedId3v2Frames?(): Record<string, Uint8Array[]> | undefined;
   hasId3Tags(): { v1: boolean; v2: boolean };
   stripId3Tags(opts: { v1: boolean; v2: boolean }): void;
+  /**
+   * Pending foreign-mean MP4 freeform atom removals (taglib-65nm), for
+   * save-reconstruct copying. WASI carries the list in tagData; Embind applies
+   * removals immediately, so its getter is undefined (nothing to copy).
+   */
+  getMp4ItemRemovals?(): string[] | undefined;
+  setMp4ItemRemovals?(removals: string[]): void;
   destroy(): void;
 }
 

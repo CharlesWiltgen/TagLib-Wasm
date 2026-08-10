@@ -76,6 +76,18 @@ export const EXTRA_FIELDS: readonly ExtraField[] = [
     },
   },
   {
+    name: "_mp4ItemRemovals",
+    copy(target, source, complete) {
+      // Foreign-mean freeform atom deletions (taglib-65nm): carried state on
+      // the WASI handle (Emscripten applies removals immediately and has no
+      // list), so it must ride a reconstruct or a save-as drops the removal.
+      const v = source.getMp4ItemRemovals?.();
+      if (complete || (v !== undefined && v.length > 0)) {
+        target.setMp4ItemRemovals?.(v ?? []);
+      }
+    },
+  },
+  {
     name: "id3v2Frames",
     copy(target, source) {
       // Staged-only by design: copying the full raw view would clobber typed
