@@ -674,6 +674,16 @@ static void apply_propmap(TagLib::File* file, const TagLib::PropertyMap& propMap
     // Note this needs no knowledge of caller intent: it compares against the
     // FILE, which is why it can live here and could not live in
     // normalizeTagInput, where the earlier attempt put it.
+    // Why sampling AFTER setProperties is safe here (reviewed 2026-08-10):
+    // a clear (incoming [""] over a stored non-empty value) deletes the old
+    // frame and does NOT materialize an empty replacement on this TagLib
+    // build — ID3v2 renders drop empty text frames, so the post-write read
+    // sees the frame absent and the echo check correctly returns false
+    // (measured: setProperties({genre:[""]}) removes TCON outright). The
+    // only case the echo check must skip is a frame that already WAS empty
+    // pre-write, which setProperties leaves untouched — identical before
+    // and after the call. Lazy sampling is therefore behavior-neutral while
+    // keeping the k3vw win for the common save.
     struct PriorCache {
         bool built = false;
         TagLib::PropertyMap map;

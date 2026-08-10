@@ -1,5 +1,23 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- **`propertyValues(props, key)` / `propertyValue(props, key)`** — PropertyMap
+  read accessors that remove the `string[] | undefined` narrowing filter:
+  `propertyValues` returns `[]` for an absent key, `propertyValue` the first
+  value or `undefined`. (taglib-lk8u)
+
+### Internal
+
+- **P3 batch**: count-proxy test assertions converted to content checks
+  (taglib-usqu); docs-coverage reverse check — doc-imported names must resolve
+  against the exports (taglib-gmq5); zlib download validated retry
+  (taglib-71u1); table-driven typed mirrors + lazy prior in `apply_propmap`
+  (taglib-hahs, taglib-k3vw); dead WASI structured-lyrics path removed
+  (taglib-0mx).
+
 ## 2.0.0
 
 ### Breaking
