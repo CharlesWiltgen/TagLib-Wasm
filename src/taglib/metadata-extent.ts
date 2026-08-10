@@ -148,18 +148,39 @@ function oggMetadataEnd(
   }
 }
 
+// MPEG frame-length tables, mirroring mpegheader.cpp:250-266. Indexed
+// [version: 0=MPEG-1, 1=MPEG-2/2.5][layer: 0=I, 1=II, 2=III][bitrate index].
+const MPEG_BITRATES: readonly number[][][] = [
+  [
+    [0, 32, 64, 96, 128, 160, 192, 224, 256, 288, 320, 352, 384, 416, 448, 0], // Layer I
+    [0, 32, 48, 56, 64, 80, 96, 112, 128, 160, 192, 224, 256, 320, 384, 0], // Layer II
+    [0, 32, 40, 48, 56, 64, 80, 96, 112, 128, 160, 192, 224, 256, 320, 0], // Layer III
+  ],
+  [
+    [0, 32, 48, 56, 64, 80, 96, 112, 128, 144, 160, 176, 192, 224, 256, 0], // Layer I
+    [0, 8, 16, 24, 32, 40, 48, 56, 64, 80, 96, 112, 128, 144, 160, 0], // Layer II
+    [0, 8, 16, 24, 32, 40, 48, 56, 64, 80, 96, 112, 128, 144, 160, 0], // Layer III
+  ],
+];
+
+/** kbps tables are shared by MPEG-2 and MPEG-2.5; sample rates are not. */
+const MPEG_SAMPLE_RATES: readonly number[][] = [
+  [44100, 48000, 32000], // MPEG-1
+  [22050, 24000, 16000], // MPEG-2
+  [11025, 12000, 8000], // MPEG-2.5
+];
+
 /**
- * True for a syntactically valid MPEG audio frame header: eleven sync bits, a
- * non-reserved version and layer, a bitrate index that is neither free (0) nor
- * invalid (15), and a sample-rate index that is not reserved (3).
- *
- * This is NARROWER than MPEG::Header's own test, which additionally verifies
- * that the NEXT frame is consistent (checkLength, mpegheader.cpp:330-357) — and
- * MPEG::File::findID3v2 uses that stricter test to decide whether to stop
- * scanning for an ID3v2 tag (mpegfile.cpp:530). So a header TagLib rejects on
- * next-frame grounds is accepted here, and this concludes "no ID3v2 tag" for a
- * file that has one further in. That residual wrong-`true` is tracked as
- * taglib-rfwe; closing it needs frame-length arithmetic this does not do.
+ * True for a syntactically valid MPEG audio frame header whose frame CHAINS
+ * into a consistent next frame: eleven sync bits, a non-reserved version and
+ * layer, a bitrate index that is neither free (0) nor invalid (15), a
+ * sample-rate index that is not reserved (3), and — mirroring MPEG::Header's
+ * checkLength (mpegheader.cpp:330-357) — a header at offset + frameLength
+ * matching on sync/version/layer/sample-rate (mask 0xfffe0c00). A frame that
+ * cannot be verified this way (no next header, or an inconsistent one)
+ * answers false: MPEG::File::findID3v2 keeps scanning for a tag in exactly
+ * that case (mpegfile.cpp:530), and a wrong-`true` here authorises a splice
+ * straight through a tag the probe did not see (taglib-rfwe).
  */
 function isMpegFrameSync(bytes: Uint8Array, at = 0): boolean {
   if (bytes.length < at + 4) return false;
@@ -169,8 +190,40 @@ function isMpegFrameSync(bytes: Uint8Array, at = 0): boolean {
   if (version === 0x01 || layer === 0x00) return false;
   const bitrateIndex = (bytes[at + 2]! >> 4) & 0x0F;
   const sampleRateIndex = (bytes[at + 2]! >> 2) & 0x03;
-  return bitrateIndex !== 0x00 && bitrateIndex !== 0x0F &&
-    sampleRateIndex !== 0x03;
+  if (
+    bitrateIndex === 0x00 || bitrateIndex === 0x0F ||
+    sampleRateIndex === 0x03
+  ) {
+    return false;
+  }
+
+  // Frame-length arithmetic (mpegheader.cpp:236-264): bitrate/sample-rate
+  // tables + padding bit, then require a consistent header at the next frame.
+  const mpeg1 = version === 0b11;
+  const layerIndex = layer ^ 0b11; // 11=Layer I → 0, 10=II → 1, 01=III → 2
+  const bitrate = MPEG_BITRATES[mpeg1 ? 0 : 1]![layerIndex]![bitrateIndex]!;
+  const sampleRateTable = mpeg1 ? 0 : version === 0b10 ? 1 : 2;
+  const sampleRate = MPEG_SAMPLE_RATES[sampleRateTable]![sampleRateIndex]!;
+  const samplesPerFrame = layerIndex === 2
+    ? (mpeg1 ? 1152 : 576)
+    : layerIndex === 1
+    ? 1152
+    : 384;
+  // C++ integer division truncates (mpegheader.cpp:236-264); JS `/` is float,
+  // and a fractional frameLength would fail the buffer-length check below.
+  let frameLength = Math.floor(samplesPerFrame * bitrate * 125 / sampleRate);
+  if ((bytes[at + 2]! & 0x02) !== 0) frameLength += layerIndex === 0 ? 4 : 1;
+  if (frameLength === 0) return false;
+
+  const next = at + frameLength;
+  if (bytes.length < next + 4) return false;
+  const mask = 0xfffe0c00;
+  const header =
+    ((((bytes[at]! << 24) | (bytes[at + 1]! << 16) | (bytes[at + 2]! << 8) |
+      bytes[at + 3]!) >>> 0) & mask) >>> 0;
+  const nextHeader = ((((bytes[next]! << 24) | (bytes[next + 1]! << 16) |
+    (bytes[next + 2]! << 8) | bytes[next + 3]!) >>> 0) & mask) >>> 0;
+  return header === nextHeader;
 }
 
 /**

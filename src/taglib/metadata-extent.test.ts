@@ -149,10 +149,16 @@ describe("metadataFitsInHeader", () => {
     // covers — so there is nothing in the header window to truncate. These are
     // precisely the files the footer half was added for, and rejecting them
     // gave up the optimisation on exactly the wrong set.
-    const mp3 = new Uint8Array(64);
+    // A real tagless MP3 has a FRAME CHAIN, not a lone header: frameLength for
+    // this header (128 kbps / 44100 Hz) is 417, so the second frame starts at
+    // byte 417 (taglib-rfwe requires the next frame to be consistent).
+    const mp3 = new Uint8Array(417 + 4);
     mp3[0] = 0xFF;
     mp3[1] = 0xFB; // MPEG-1 Layer III
     mp3[2] = 0x90; // 128 kbps, 44100 Hz — TagLib rejects a free/invalid index
+    mp3[417] = 0xFF;
+    mp3[418] = 0xFB;
+    mp3[419] = 0x90;
     assertEquals(metadataFitsInHeader(mp3, LIMIT), true);
   });
 
@@ -203,8 +209,41 @@ describe("metadataFitsInHeader", () => {
     // frame — so a lax test here concludes "no ID3v2" for a file that has one.
     const bogus = Uint8Array.from([0xFF, 0xFB, 0xFF, 0xFF, 0, 0, 0, 0]);
     assertEquals(metadataFitsInHeader(bogus, LIMIT), false);
-    const valid = Uint8Array.from([0xFF, 0xFB, 0x90, 0x00, 0, 0, 0, 0]);
+    // "Valid" means a chained pair of frames: the first header alone cannot
+    // vouch for "no metadata" any more (taglib-rfwe).
+    const valid = new Uint8Array(417 + 4);
+    valid.set([0xFF, 0xFB, 0x90, 0x00], 0);
+    valid.set([0xFF, 0xFB, 0x90, 0x00], 417);
     assertEquals(metadataFitsInHeader(valid, LIMIT), true);
+  });
+
+  it("rejects a lone MPEG frame whose next frame is inconsistent (taglib-rfwe)", () => {
+    // MPEG::Header additionally requires the frame at offset + frameLength to
+    // be consistent (checkLength, mpegheader.cpp:330-357); MPEG::File::findID3v2
+    // keeps scanning for an ID3v2 tag when it is not. A probe that answers
+    // "no metadata in the header window" here authorises a splice straight
+    // through the tag it did not see — measured losing every value of a 1.2 MB
+    // ID3v2 tag behind 4 valid-looking frame bytes.
+    // Frame: FF FB 90 64 — MPEG-1 Layer III, bitrate index 9 (128 kbps),
+    // sample-rate index 0 (44100 Hz) → frameLength 417; byte 417 lands inside
+    // the ID3v2 tag, whose header fails the mask comparison.
+    const frame = Uint8Array.from([0xFF, 0xFB, 0x90, 0x64]);
+    const id3 = new Uint8Array(LIMIT * 2);
+    id3.set(new TextEncoder().encode("ID3\x04\x00\x00"), 0);
+    const tagged = concat(frame, id3);
+    assertEquals(metadataFitsInHeader(tagged, LIMIT), false);
+
+    // The same frame followed by a CONSISTENT frame is a real tagless MP3 —
+    // the next-frame check must not reject the population the footer window
+    // exists for.
+    const chain = new Uint8Array(417 + 4);
+    chain.set(frame, 0);
+    chain.set(Uint8Array.from([0xFF, 0xFB, 0x90, 0x64]), 417);
+    assertEquals(metadataFitsInHeader(chain, LIMIT), true);
+
+    // A frame whose chain is cut off by the end of the buffer cannot vouch for
+    // "no metadata" either (TagLib: nextData.size() < 4 → invalid).
+    assertEquals(metadataFitsInHeader(frame, LIMIT), false);
   });
 
   it("refuses to vouch for an extent outside the buffer it was given", () => {
