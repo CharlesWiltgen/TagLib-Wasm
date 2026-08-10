@@ -211,7 +211,6 @@ CAPI_SOURCES=(
     "$SRC_DIR/taglib_shim.cpp"            # Tiny C++ shim with Wasm EH - TagLib exception boundary
     "$SRC_DIR/taglib_pictures.cpp"        # C++ picture encode/decode via complexProperties
     "$SRC_DIR/taglib_ratings.cpp"         # C++ rating encode/decode via format-specific APIs
-    "$SRC_DIR/taglib_lyrics.cpp"          # C++ lyrics encode/decode via complexProperties
     "$SRC_DIR/taglib_chapters.cpp"        # C++ chapter encode/decode via ID3v2 CHAP frames
     "$SRC_DIR/taglib_bwf.cpp"             # C++ BWF bext/iXML passthrough for WAV+FLAC
     "$SRC_DIR/taglib_id3_strip.cpp"       # C++ FLAC ID3v1/v2 strip detection + directive
@@ -238,7 +237,6 @@ for src in "${CAPI_SOURCES[@]}"; do
     elif [[ "$(basename "$src")" == "taglib_shim.cpp" ]] || \
          [[ "$(basename "$src")" == "taglib_pictures.cpp" ]] || \
          [[ "$(basename "$src")" == "taglib_ratings.cpp" ]] || \
-         [[ "$(basename "$src")" == "taglib_lyrics.cpp" ]] || \
          [[ "$(basename "$src")" == "taglib_chapters.cpp" ]] || \
          [[ "$(basename "$src")" == "taglib_bwf.cpp" ]] || \
          [[ "$(basename "$src")" == "taglib_id3_strip.cpp" ]] || \

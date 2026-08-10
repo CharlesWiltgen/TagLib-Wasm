@@ -13,7 +13,6 @@
 #include "taglib_shim.h"
 #include "taglib_pictures.h"
 #include "taglib_ratings.h"
-#include "taglib_lyrics.h"
 #include "taglib_chapters.h"
 #include "taglib_bwf.h"
 #include "taglib_id3_strip.h"
@@ -232,8 +231,6 @@ static tl_error_code encode_file_to_msgpack(TagLib::File* file,
     uint32_t rating_count = count_ratings(file);
     if (rating_count > 0) count++;  // "ratings" key + array
 
-    uint32_t lyrics_count = count_lyrics(file);
-    if (lyrics_count > 0) count++;  // "lyrics" key + array
 
     uint32_t chapter_count = count_chapters(file);
     if (chapter_count > 0) count++;  // "chapters" key + array
@@ -354,9 +351,6 @@ static tl_error_code encode_file_to_msgpack(TagLib::File* file,
         encode_ratings(&writer, file);
     }
 
-    if (lyrics_count > 0) {
-        encode_lyrics(&writer, file);
-    }
 
     if (chapter_count > 0) {
         encode_chapters(&writer, file);
@@ -454,6 +448,9 @@ static const char* SKIP_KEYS[] = {
     "bextData", "bitrate", "bitrateMode", "bitsPerSample", "channels",
     "chapters", "codec", "containerFormat", "duration", "formatVersion",
     "id3Tags", "id3v2Frames", "isEncrypted", "isLossless", "ixml", "length",
+    // "lyrics" stays skipped: the batch encoder ships the raw structured
+    // key and this list keeps it off the PropertyMap (taglib-0mx removed
+    // the dead complexProperties path, not this guard).
     "lengthMs", "lyrics", "mpegLayer", "mpegVersion", "outputGainDb",
     "pictures", "ratings", "sampleRate", "track", "year",
 };
@@ -647,11 +644,10 @@ static void apply_propmap(TagLib::File* file, const TagLib::PropertyMap& propMap
     // frame (taglib-o3sl).
     const auto commentGuard = taglib_wasm::capture_id3v2_comment_guard(file);
 
-    // Captured BEFORE setProperties, and merged exactly as the read path builds
-    // the snapshot (taglib_shim.cpp:206) — otherwise an ID3v1-only value would
-    // look changed here when the caller never touched it.
-    TagLib::PropertyMap prior = file->properties();
-    taglib_wasm::merge_id3v1_only_properties(file, prior);
+    // Prior properties are read ONLY when an incoming value is empty — see
+    // echoesPriorEmpty below. file->properties() walks every frame allocating
+    // a String/StringList per frame, so build it lazily on the first empty
+    // hit instead of eagerly on every save (taglib-k3vw).
 
     // MP4 content advisory: apply to the native rtng item before the
     // PropertyMap write, and hand setProperties the effective map (a set
@@ -678,34 +674,48 @@ static void apply_propmap(TagLib::File* file, const TagLib::PropertyMap& propMap
     // Note this needs no knowledge of caller intent: it compares against the
     // FILE, which is why it can live here and could not live in
     // normalizeTagInput, where the earlier attempt put it.
-    auto echoesPriorEmpty = [&prior](const char* key,
-                                     const TagLib::String& incoming) {
+    struct PriorCache {
+        bool built = false;
+        TagLib::PropertyMap map;
+    } prior;
+    auto echoesPriorEmpty = [&prior, file](const char* key,
+                                           const TagLib::String& incoming) {
         if (!incoming.isEmpty()) return false;
-        auto p = prior.find(key);
-        return p != prior.end() && p->second.size() == 1 &&
+        if (!prior.built) {
+            // Merged exactly as the read path builds the snapshot
+            // (taglib_shim.cpp:206) — otherwise an ID3v1-only value would look
+            // changed here when the caller never touched it.
+            prior.map = file->properties();
+            taglib_wasm::merge_id3v1_only_properties(file, prior.map);
+            prior.built = true;
+        }
+        auto p = prior.map.find(key);
+        return p != prior.map.end() && p->second.size() == 1 &&
                p->second.front().isEmpty();
     };
 
-    auto it = propMap.find("TITLE");
-    if (it != propMap.end() && it->second.size() == 1 &&
-        !echoesPriorEmpty("TITLE", it->second.front()))
-        tag->setTitle(it->second.front());
-    it = propMap.find("ARTIST");
-    if (it != propMap.end() && it->second.size() == 1 &&
-        !echoesPriorEmpty("ARTIST", it->second.front()))
-        tag->setArtist(it->second.front());
-    it = propMap.find("ALBUM");
-    if (it != propMap.end() && it->second.size() == 1 &&
-        !echoesPriorEmpty("ALBUM", it->second.front()))
-        tag->setAlbum(it->second.front());
-    it = propMap.find("COMMENT");
-    if (it != propMap.end() && it->second.size() == 1 &&
-        !echoesPriorEmpty("COMMENT", it->second.front()))
-        tag->setComment(it->second.front());
-    it = propMap.find("GENRE");
-    if (it != propMap.end() && it->second.size() == 1 &&
-        !echoesPriorEmpty("GENRE", it->second.front()))
-        tag->setGenre(it->second.front());
+    // Table-driven mirrors (taglib-hahs): each block used to repeat its key
+    // literal twice — a wrong key in one call compiled, passed every test,
+    // and silently reinstated the data-loss bug for one field. One table,
+    // iterated once, has no second spelling to drift.
+    struct Mirror {
+        const char* key;
+        void (TagLib::Tag::*setter)(const TagLib::String&);
+    };
+    static constexpr Mirror MIRRORS[] = {
+        {"TITLE", &TagLib::Tag::setTitle},
+        {"ARTIST", &TagLib::Tag::setArtist},
+        {"ALBUM", &TagLib::Tag::setAlbum},
+        {"COMMENT", &TagLib::Tag::setComment},
+        {"GENRE", &TagLib::Tag::setGenre},
+    };
+    for (const auto& m : MIRRORS) {
+        auto it = propMap.find(m.key);
+        if (it != propMap.end() && it->second.size() == 1 &&
+            !echoesPriorEmpty(m.key, it->second.front())) {
+            (tag->*m.setter)(it->second.front());
+        }
+    }
 
     // LAST, and the ordering is load-bearing. ID3v2::Tag::setComment prefers a
     // bare frame and FALLS BACK to comments.front()->setText() when there is
@@ -864,7 +874,6 @@ static tl_error_code write_to_path(const char* path,
         restore_mp4_freeform_names(ref.file(), mp4_names);
         apply_pictures_from_msgpack(ref.file(), tags_msgpack, tags_msgpack_len);
         apply_ratings_from_msgpack(ref.file(), tags_msgpack, tags_msgpack_len);
-        apply_lyrics_from_msgpack(ref.file(), tags_msgpack, tags_msgpack_len);
         apply_chapters_from_msgpack(ref.file(), tags_msgpack, tags_msgpack_len);
         apply_bwf_from_msgpack(ref.file(), tags_msgpack, tags_msgpack_len);
         apply_id3_strip_from_msgpack(ref.file(), tags_msgpack, tags_msgpack_len);
@@ -924,7 +933,6 @@ static tl_error_code write_to_buffer(const uint8_t* buf, size_t len,
         restore_mp4_freeform_names(f, mp4_names);
         apply_pictures_from_msgpack(f, tags_msgpack, tags_msgpack_len);
         apply_ratings_from_msgpack(f, tags_msgpack, tags_msgpack_len);
-        apply_lyrics_from_msgpack(f, tags_msgpack, tags_msgpack_len);
         apply_chapters_from_msgpack(f, tags_msgpack, tags_msgpack_len);
         apply_bwf_from_msgpack(f, tags_msgpack, tags_msgpack_len);
         apply_id3_strip_from_msgpack(f, tags_msgpack, tags_msgpack_len);
