@@ -273,8 +273,8 @@ describe("write normalization (taglib-7ru2)", () => {
       const tl = await TagLib.initialize({ forceWasmType: backend });
       const file = await tl.open(new Uint8Array(src));
       file.setProperty("TOTALTRACKS", "12");
-      assertEquals(file.getProperty("TOTALTRACKS"), "12");
-      assertEquals(file.getProperty("totalTracks"), "12");
+      assertEquals(file.getProperty("TOTALTRACKS")?.[0], "12");
+      assertEquals(file.getProperty("totalTracks")?.[0], "12");
       file.dispose();
     });
   }

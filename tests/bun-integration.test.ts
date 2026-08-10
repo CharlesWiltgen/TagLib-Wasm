@@ -305,7 +305,7 @@ describe("Full API lifecycle", () => {
     file.dispose();
 
     const file2 = await taglib.open(new Uint8Array(modified));
-    expect(file2.getProperty("title")).toBe("Property Title");
+    expect(file2.getProperty("title")?.[0]).toBe("Property Title");
     file2.dispose();
   });
 });

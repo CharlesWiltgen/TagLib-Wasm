@@ -146,23 +146,32 @@ export abstract class BaseAudioFileImpl {
     this.handle.setProperties(translated);
   }
 
-  getProperty(key: string): string | undefined {
+  getProperty(key: string): string[] | undefined {
     // Alias wire keys normalize to canonical, matching setProperty (taglib-7ru2).
-    const value = this.handle.getProperty(toTagLibKey(fromTagLibKey(key)));
-    if (value !== "") return value;
+    const wireKey = toTagLibKey(fromTagLibKey(key));
+    // Tag reads are arrays (taglib-sip2): the map is the wire shape, so this
+    // returns ALL values for the key; `undefined` means absent. The scalar
+    // convenience lives in the typed accessors (tag().title). Materializing
+    // the map per call is consistent with the Simple family's read path.
+    const values = this.handle.getProperties()[wireKey]?.filter((v) =>
+      v !== ""
+    );
+    if (values !== undefined && values.length > 0) return values;
     // MP4 only: this is the sole format whose PropertyMap key can differ from our
     // wire key, and materializing the whole map on every miss would otherwise
-    // turn N absent-property probes into N full map builds.
-    if (!this.isMP4()) return undefined;
-    // A direct wire-key lookup can miss when the format keys the field
+    // turn N absent-property probes into N full map builds — but the direct
+    // lookup above already materialized, so the fallback is cheap here. A
+    // direct wire-key lookup can miss when the format keys the field
     // differently: MP4 reports the `Acoustid Fingerprint` atom as
     // "ACOUSTID FINGERPRINT" (space) while our wire key — correct for Vorbis —
     // is ACOUSTID_FINGERPRINT (underscore). properties() goes through the full
     // key remap, which resolves both, so fall back to it on a miss (taglib-bnhl).
-    // Empty means absent here too, matching the direct path: a cleared property
-    // can still be present as [""].
-    const remapped = (this.properties() as Record<string, string[]>)[key]?.[0];
-    return remapped === "" ? undefined : remapped;
+    // Empty strings are dropped throughout ("cleared" reads as absent,
+    // taglib-yc1x).
+    if (!this.isMP4()) return undefined;
+    const remapped = (this.properties() as Record<string, string[]>)[key]
+      ?.filter((v) => v !== "");
+    return remapped !== undefined && remapped.length > 0 ? remapped : undefined;
   }
 
   setProperty(key: string, value: string): void {

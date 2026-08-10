@@ -134,8 +134,11 @@ describe("updateFile with extended fields", () => {
       const verifyFile = await taglib.open(tmpFile);
       try {
         assertEquals(verifyFile.tag().title, "Test Title");
-        assertEquals(verifyFile.getProperty("albumArtist"), "Various Artists");
-        assertEquals(verifyFile.getProperty("composer"), "Test Composer");
+        assertEquals(
+          verifyFile.getProperty("albumArtist")?.[0],
+          "Various Artists",
+        );
+        assertEquals(verifyFile.getProperty("composer")?.[0], "Test Composer");
       } finally {
         verifyFile.dispose();
       }
@@ -158,10 +161,10 @@ describe("updateFile with extended fields", () => {
 
       const verifyFile = await taglib.open(tmpFile);
       try {
-        assertEquals(verifyFile.getProperty("discNumber"), "2");
-        assertEquals(verifyFile.getProperty("TRACKTOTAL"), "12");
-        assertEquals(verifyFile.getProperty("bpm"), "128");
-        assertEquals(verifyFile.getProperty("COMPILATION"), "1");
+        assertEquals(verifyFile.getProperty("discNumber")?.[0], "2");
+        assertEquals(verifyFile.getProperty("TRACKTOTAL")?.[0], "12");
+        assertEquals(verifyFile.getProperty("bpm")?.[0], "128");
+        assertEquals(verifyFile.getProperty("COMPILATION")?.[0], "1");
       } finally {
         verifyFile.dispose();
       }

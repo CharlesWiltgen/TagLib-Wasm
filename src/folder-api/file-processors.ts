@@ -60,13 +60,13 @@ export async function processFileWithTagLib(
     ];
 
     for (const field of fieldNames) {
-      const value = audioFile.getProperty(field);
-      if (value) {
+      const value = audioFile.getProperty(field)?.[0];
+      if (value !== undefined) {
         (dynamics as any)[field] = value;
       }
     }
 
-    let appleSoundCheck = audioFile.getProperty("appleSoundCheck");
+    let appleSoundCheck = audioFile.getProperty("appleSoundCheck")?.[0];
     if (!appleSoundCheck && audioFile.isMP4()) {
       appleSoundCheck = audioFile.getMP4Item("----:com.apple.iTunes:iTunNORM");
     }

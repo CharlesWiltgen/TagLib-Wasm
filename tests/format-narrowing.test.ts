@@ -17,24 +17,24 @@ describe("FormatPropertyKey type narrowing", () => {
   describe("MP3 (ID3v2)", () => {
     it("accepts basic and ID3v2-supported properties", () => {
       void ((_f: TypedAudioFile<"MP3">) => {
-        _f.getProperty("title");
-        _f.getProperty("artist");
-        _f.getProperty("albumArtist");
-        _f.getProperty("composer");
-        _f.getProperty("bpm");
-        _f.getProperty("musicbrainzTrackId");
-        _f.getProperty("replayGainTrackGain");
+        _f.getProperty("title")?.[0];
+        _f.getProperty("artist")?.[0];
+        _f.getProperty("albumArtist")?.[0];
+        _f.getProperty("composer")?.[0];
+        _f.getProperty("bpm")?.[0];
+        _f.getProperty("musicbrainzTrackId")?.[0];
+        _f.getProperty("replayGainTrackGain")?.[0];
       });
     });
 
     it("rejects Vorbis-only properties", () => {
       void ((_f: TypedAudioFile<"MP3">) => {
         // @ts-expect-error: lyricist is Vorbis-only
-        _f.getProperty("lyricist");
+        _f.getProperty("lyricist")?.[0];
         // @ts-expect-error: mood is Vorbis-only
-        _f.getProperty("mood");
+        _f.getProperty("mood")?.[0];
         // @ts-expect-error: publisher is Vorbis-only
-        _f.getProperty("publisher");
+        _f.getProperty("publisher")?.[0];
       });
     });
   });
@@ -42,24 +42,24 @@ describe("FormatPropertyKey type narrowing", () => {
   describe("WAV", () => {
     it("accepts only basic 7 properties", () => {
       void ((_f: TypedAudioFile<"WAV">) => {
-        _f.getProperty("title");
-        _f.getProperty("artist");
-        _f.getProperty("album");
-        _f.getProperty("date");
-        _f.getProperty("trackNumber");
-        _f.getProperty("genre");
-        _f.getProperty("comment");
+        _f.getProperty("title")?.[0];
+        _f.getProperty("artist")?.[0];
+        _f.getProperty("album")?.[0];
+        _f.getProperty("date")?.[0];
+        _f.getProperty("trackNumber")?.[0];
+        _f.getProperty("genre")?.[0];
+        _f.getProperty("comment")?.[0];
       });
     });
 
     it("rejects extended properties", () => {
       void ((_f: TypedAudioFile<"WAV">) => {
         // @ts-expect-error: albumArtist not supported on WAV
-        _f.getProperty("albumArtist");
+        _f.getProperty("albumArtist")?.[0];
         // @ts-expect-error: bpm not supported on WAV
-        _f.getProperty("bpm");
+        _f.getProperty("bpm")?.[0];
         // @ts-expect-error: discNumber not supported on WAV
-        _f.getProperty("discNumber");
+        _f.getProperty("discNumber")?.[0];
       });
     });
   });
@@ -67,12 +67,12 @@ describe("FormatPropertyKey type narrowing", () => {
   describe("FLAC (Vorbis)", () => {
     it("accepts all properties including Vorbis-exclusive", () => {
       void ((_f: TypedAudioFile<"FLAC">) => {
-        _f.getProperty("title");
-        _f.getProperty("albumArtist");
-        _f.getProperty("lyricist");
-        _f.getProperty("mood");
-        _f.getProperty("publisher");
-        _f.getProperty("musicbrainzTrackId");
+        _f.getProperty("title")?.[0];
+        _f.getProperty("albumArtist")?.[0];
+        _f.getProperty("lyricist")?.[0];
+        _f.getProperty("mood")?.[0];
+        _f.getProperty("publisher")?.[0];
+        _f.getProperty("musicbrainzTrackId")?.[0];
       });
     });
   });
@@ -80,19 +80,19 @@ describe("FormatPropertyKey type narrowing", () => {
   describe("MP4", () => {
     it("accepts MP4-supported properties", () => {
       void ((_f: TypedAudioFile<"MP4">) => {
-        _f.getProperty("title");
-        _f.getProperty("albumArtist");
-        _f.getProperty("bpm");
-        _f.getProperty("musicbrainzTrackId");
+        _f.getProperty("title")?.[0];
+        _f.getProperty("albumArtist")?.[0];
+        _f.getProperty("bpm")?.[0];
+        _f.getProperty("musicbrainzTrackId")?.[0];
       });
     });
 
     it("rejects Vorbis-only properties", () => {
       void ((_f: TypedAudioFile<"MP4">) => {
         // @ts-expect-error: lyricist is Vorbis-only
-        _f.getProperty("lyricist");
+        _f.getProperty("lyricist")?.[0];
         // @ts-expect-error: mood is Vorbis-only
-        _f.getProperty("mood");
+        _f.getProperty("mood")?.[0];
       });
     });
   });
@@ -100,16 +100,16 @@ describe("FormatPropertyKey type narrowing", () => {
   describe("AIFF (shares ID3v2 with MP3)", () => {
     it("accepts same keys as MP3", () => {
       void ((_f: TypedAudioFile<"AIFF">) => {
-        _f.getProperty("title");
-        _f.getProperty("albumArtist");
-        _f.getProperty("replayGainTrackGain");
+        _f.getProperty("title")?.[0];
+        _f.getProperty("albumArtist")?.[0];
+        _f.getProperty("replayGainTrackGain")?.[0];
       });
     });
 
     it("rejects Vorbis-only properties", () => {
       void ((_f: TypedAudioFile<"AIFF">) => {
         // @ts-expect-error: lyricist is Vorbis-only
-        _f.getProperty("lyricist");
+        _f.getProperty("lyricist")?.[0];
       });
     });
   });
@@ -172,7 +172,7 @@ describe("isFormat runtime behavior", () => {
     const buffer = await Deno.readFile(FIXTURE_PATH.mp3);
     using file = await taglib.open(buffer);
     if (file.isFormat("MP3")) {
-      const title = file.getProperty("title");
+      const title = file.getProperty("title")?.[0];
       assert(title === undefined || typeof title === "string");
     }
   });

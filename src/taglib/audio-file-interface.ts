@@ -35,13 +35,25 @@ export interface AudioFile {
   /** Set multiple properties at once from a PropertyMap. */
   setProperties(properties: PropertyMap): void;
 
-  /** Get a single property value by key (typed version). */
+  /**
+   * Get a property's values by key (typed version).
+   *
+   * Returns ALL values for the key — tag reads are arrays (taglib-sip2); the
+   * scalar convenience lives in the typed accessors (`tag().title`). `undefined`
+   * means the key is absent. Use `?.[0]` for the first value.
+   */
   getProperty<K extends import("../constants.ts").PropertyKey>(
     key: K,
-  ): import("../constants.ts").PropertyValue<K> | undefined;
+  ): import("../constants.ts").PropertyValue<K>[] | undefined;
 
-  /** Get a single property value by key (string version). */
-  getProperty(key: string): string | undefined;
+  /**
+   * Get a property's values by key (string version).
+   *
+   * Returns ALL values for the key — tag reads are arrays (taglib-sip2); the
+   * scalar convenience lives in the typed accessors (`tag().title`). `undefined`
+   * means the key is absent. Use `?.[0]` for the first value.
+   */
+  getProperty(key: string): string[] | undefined;
 
   /** Set a single property value (typed version). */
   setProperty<K extends import("../constants.ts").PropertyKey>(
@@ -224,7 +236,7 @@ export interface TypedAudioFile<F extends FileType> extends
 
   getProperty<K extends FormatPropertyKey<F>>(
     key: K,
-  ): import("../constants.ts").PropertyValue<K> | undefined;
+  ): import("../constants.ts").PropertyValue<K>[] | undefined;
 
   setProperty<K extends FormatPropertyKey<F>>(
     key: K,

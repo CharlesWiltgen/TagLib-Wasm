@@ -136,10 +136,10 @@ function extractDynamics(audioFile: AudioFile): AudioDynamics | undefined {
     "replayGainAlbumPeak",
   ];
   for (const field of fields) {
-    const val = audioFile.getProperty(field);
-    if (val) dynamics[field] = val;
+    const val = audioFile.getProperty(field)?.[0];
+    if (val !== undefined) dynamics[field] = val;
   }
-  let appleSoundCheck = audioFile.getProperty("appleSoundCheck");
+  let appleSoundCheck = audioFile.getProperty("appleSoundCheck")?.[0];
   if (!appleSoundCheck && audioFile.isMP4()) {
     appleSoundCheck = audioFile.getMP4Item("----:com.apple.iTunes:iTunNORM");
   }

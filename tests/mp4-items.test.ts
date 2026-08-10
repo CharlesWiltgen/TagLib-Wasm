@@ -217,7 +217,7 @@ for (const backend of BACKENDS) {
     // The value must still be readable, i.e. the correct casing is not bought
     // by breaking the round-trip.
     const reopened = await tl.open(buf);
-    assertEquals(reopened.getProperty("appleSoundCheck"), SOUND_CHECK);
+    assertEquals(reopened.getProperty("appleSoundCheck")?.[0], SOUND_CHECK);
     reopened.dispose();
   });
 
@@ -363,7 +363,7 @@ for (const backend of BACKENDS) {
 
       // Correct casing must not cost the round-trip.
       const reopened = await tl.open(buf);
-      assertEquals(reopened.getProperty(property), "probe-value");
+      assertEquals(reopened.getProperty(property)?.[0], "probe-value");
       reopened.dispose();
     });
   }

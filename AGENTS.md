@@ -170,7 +170,7 @@ await taglib.updateFile("song.mp3", { title: "New", artist: "New" }); // Shortha
 // PropertyMap (advanced metadata)
 import { PROPERTIES } from "taglib-wasm"; // Type-safe property keys
 const allProps = audioFile.properties(); // { albumArtist: ["..."], bpm: ["120"], ... }
-audioFile.getProperty(PROPERTIES.musicbrainzTrackId.key);
+audioFile.getProperty(PROPERTIES.musicbrainzTrackId.key); // string[] | undefined
 audioFile.setProperty(PROPERTIES.replayGainTrackGain.key, "-3.5 dB");
 audioFile.removeProperty(PROPERTIES.replayGainTrackGain.key); // clears
 audioFile.setProperties({ albumArtist: ["VA"], composer: ["Bach"] });
@@ -179,6 +179,12 @@ audioFile.setProperties({ albumArtist: ["VA"], composer: ["Bach"] });
 // property — setProperty(key, "") and removeProperty(key) are equivalent on
 // both backends (WASI's setProperties is replace-style; an absent/empty key
 // removes). Empty-string values are NOT stored.
+
+// Tag shape contract (taglib-sip2): tag READS are arrays everywhere —
+// readTags/readTagsBatch/scanFolder, properties(), and getProperty() all
+// return string[] (undefined = absent). Scalars exist only in the typed
+// accessors (tag().title) and the write side (setProperty takes a single
+// value; use setProperties for multi). First-value idiom: getProperty(k)?.[0].
 
 // Ratings (normalized 0.0-1.0)
 audioFile.getRating(); // number | undefined

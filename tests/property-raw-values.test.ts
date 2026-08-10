@@ -1419,7 +1419,7 @@ describe("removeProperty (taglib-qyw2)", () => {
 
       const reopened = await taglib.open(seeded);
       assertEquals(
-        reopened.getProperty("album"),
+        reopened.getProperty("album")?.[0],
         "to-remove",
         `${backend}: seed did not write the property`,
       );
@@ -1430,7 +1430,7 @@ describe("removeProperty (taglib-qyw2)", () => {
 
       const final = await taglib.open(removed);
       assertEquals(
-        final.getProperty("album"),
+        final.getProperty("album")?.[0],
         undefined,
         `${backend}: removeProperty did not persist through save`,
       );
@@ -1466,6 +1466,35 @@ describe("removeProperty (taglib-qyw2)", () => {
         false,
         `${backend}: empty freeform atom survives removeProperty`,
       );
+    });
+  }
+});
+
+describe("getProperty array shape (taglib-sip2)", () => {
+  for (const backend of BACKENDS) {
+    it(`[${backend}] returns ALL values for a multi-value property`, async () => {
+      const taglib = taglibs[backend];
+      const src = await Deno.readFile(FIXTURE_PATH.mp3);
+
+      const file = await taglib.open(src);
+      file.setProperties({ genre: ["Rock", "Alternative"] });
+      file.save();
+      const buf = file.getFileBuffer();
+      file.dispose();
+
+      const reopened = await taglib.open(buf);
+      const values = reopened.getProperty("genre");
+      assertEquals(
+        values,
+        ["Rock", "Alternative"],
+        `${backend}: getProperty must return every value, not just the first`,
+      );
+      // Scalar access is the documented `?.[0]` idiom.
+      assertEquals(values?.[0], "Rock");
+      assertEquals(reopened.getProperty("genre")?.[0], "Rock");
+      // Absent keys read as undefined, not [].
+      assertEquals(reopened.getProperty("totallyAbsentKey"), undefined);
+      reopened.dispose();
     });
   }
 });
