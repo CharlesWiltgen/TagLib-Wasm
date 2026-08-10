@@ -193,6 +193,40 @@ jobs:
       - name: Build TypeScript bundles
         run: deno task build:ts
 
+      - name: Verify JSR publish ships no stray C++/CMake
+        # taglib-asy: deno.json publish.exclude statically blocks CMakeLists.txt
+        # / *.cmake / taglib/ / bindings/, but nothing proved it on every PR —
+        # the taglib-qrp subtree island shipped ~88 C++/CMake files to JSR
+        # because the list was incomplete. This step dry-runs the publish and
+        # fails on any .cpp/.cmake outside the legit src/capi/ C shim, or any
+        # CMakeLists.txt / *.cmake / taglib/ / bindings/ entry at all.
+        # The dry-run lists files on stderr as `   file://<abs> (size)` and
+        # ABORTS on uncommitted changes — fail closed on that abort instead of
+        # silently passing on an empty list.
+        run: |
+          set -euo pipefail
+          ROOT="${GITHUB_WORKSPACE:-$(pwd)}"
+          DRYRUN="$(deno publish --dry-run 2>&1 || true)"
+          if printf '%s\n' "$DRYRUN" | grep -q '^error:'; then
+            echo "::error::deno publish --dry-run failed (uncommitted changes or config):"
+            printf '%s\n' "$DRYRUN" | tail -5
+            exit 1
+          fi
+          STRAY="$(
+            printf '%s\n' "$DRYRUN" \
+              | sed -n 's|^   file://||p' \
+              | sed 's/ ([0-9.]*[KMG]*B)$//' \
+              | sed "s|^$ROOT/||" \
+              | grep -v '^src/capi/' \
+              | grep -E '(\.cpp|\.cmake(\.in)?|CMakeLists\.txt)$|^(taglib/|bindings/)' \
+              || true
+          )"
+          if [ -n "$STRAY" ]; then
+            echo "::error::JSR publish would ship stray C++/CMake files (fix deno.json publish.exclude):"
+            printf '%s\n' "$STRAY"
+            exit 1
+          fi
+
   test-capi-cpp:
     name: Test (C API C++ unit tests)
     runs-on: ubuntu-latest
