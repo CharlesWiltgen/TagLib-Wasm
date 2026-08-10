@@ -655,6 +655,11 @@ jobs:
           echo "- **WASI SDK**: Deno, Node.js (WASI), Cloudflare Workers" >> $GITHUB_STEP_SUMMARY
 
   summary:
+    # BINDING GATE (taglib-wgz): main branch protection requires this job's
+    # check to pass, so every job in `needs` — including the ones listed as
+    # "optional" below, which still fail the summary on a failure result — is
+    # enforced on every push to main and every PR merge. The required/optional
+    # wording inside the step is reporting, not enforcement: protection is.
     name: Summary
     needs: [
       wasm-freshness,
