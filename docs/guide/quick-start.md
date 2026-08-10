@@ -162,26 +162,6 @@ file.setProperties({
 });
 ```
 
-#### Legacy Tags Constants
-
-For backward compatibility, the `Tags` constants are still available:
-
-```typescript
-import { Tags } from "taglib-wasm";
-
-// Read properties with constants
-const properties = file.properties();
-const title = properties[Tags.Title]?.[0];
-const albumArtist = properties[Tags.AlbumArtist]?.[0];
-
-// Write properties with constants
-file.setProperties({
-  [Tags.Title]: ["My Song"],
-  [Tags.AlbumArtist]: ["Various Artists"],
-  [Tags.Bpm]: ["120"],
-});
-```
-
 ## Platform Examples
 
 ### Node.js

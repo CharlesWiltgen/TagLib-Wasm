@@ -2140,21 +2140,26 @@ readability:
 
 ### Using Tag Constants
 
+The canonical constant object is `PROPERTIES` — every key carries metadata
+(description, supported formats, per-format mappings) and `.key` is the
+ALL_CAPS wire name. Tag reads are arrays (`properties()` / `getProperty()`),
+so `?.[0]` is the first-value idiom:
+
 ```typescript
-import { Tags } from "taglib-wasm";
+import { PROPERTIES } from "taglib-wasm";
 
 // Read properties using constants
 const properties = file.properties();
-const title = properties[Tags.Title]?.[0];
-const albumArtist = properties[Tags.AlbumArtist]?.[0];
-const musicBrainzId = properties[Tags.MusicBrainzArtistId]?.[0];
+const title = properties[PROPERTIES.title.key]?.[0];
+const albumArtist = properties[PROPERTIES.albumArtist.key]?.[0];
+const musicBrainzId = properties[PROPERTIES.musicbrainzArtistId.key]?.[0];
 
 // Write properties using constants
 file.setProperties({
-  [Tags.Title]: ["My Song"],
-  [Tags.AlbumArtist]: ["Various Artists"],
-  [Tags.Bpm]: ["128"],
-  [Tags.MusicBrainzTrackId]: ["12345678-90ab-cdef-1234-567890abcdef"],
+  [PROPERTIES.title.key]: ["My Song"],
+  [PROPERTIES.albumArtist.key]: ["Various Artists"],
+  [PROPERTIES.bpm.key]: ["128"],
+  [PROPERTIES.musicbrainzTrackId.key]: ["12345678-90ab-cdef-1234-567890abcdef"],
 });
 ```
 
@@ -2174,16 +2179,10 @@ console.log(`Available tags: ${allTags.length}`);
 
 ### Available Constants
 
-The `Tags` object provides constants for all standard tag names:
-
-- **Basic Tags**: `Title`, `Artist`, `Album`, `Date`, `Genre`, `Comment`,
-  `TrackNumber`
-- **Extended Tags**: `AlbumArtist`, `Composer`, `Bpm`, `Copyright`, `Conductor`
-- **MusicBrainz**: `MusicBrainzArtistId`, `MusicBrainzReleaseId`,
-  `MusicBrainzTrackId`
-- **ReplayGain**: `TrackGain`, `TrackPeak`, `AlbumGain`, `AlbumPeak`
-- **Sorting**: `TitleSort`, `ArtistSort`, `AlbumSort`, `AlbumArtistSort`
-- And many more...
+The `PROPERTIES` object provides typed constants for all standard tag names —
+grouped into basic, extended, MusicBrainz, ReplayGain, sorting, and advanced
+keys, each with metadata (description, supported formats, per-format
+mappings). `getAllPropertyKeys()` / `getPropertiesByFormat()` enumerate them.
 
 See [Tag Name Constants](/api/tag-constants) for the complete reference.
 

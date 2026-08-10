@@ -42,25 +42,6 @@ Object.values(PROPERTIES).forEach((prop) => {
 });
 ```
 
-### Legacy Tags Object
-
-The `Tags` object provides a simplified approach for common property names and
-remains fully supported:
-
-```typescript
-import { Tags } from "taglib-wasm";
-
-// Use constants instead of strings
-const title = properties[Tags.Title]?.[0]; // Instead of properties["title"]
-const artist = properties[Tags.Artist]?.[0]; // Instead of properties["artist"]
-const bpm = properties[Tags.Bpm]?.[0]; // Instead of properties["bpm"]
-
-// Constants map to the camelCase property names
-console.log(Tags.Title); // "title"
-console.log(Tags.AlbumArtist); // "albumArtist"
-console.log(Tags.TrackGain); // "replayGainTrackGain"
-```
-
 ### Utility Functions
 
 ```typescript
@@ -338,11 +319,6 @@ const title = file.getProperty(PROPERTIES.title.key)?.[0];
 const artist = file.getProperty(PROPERTIES.artist.key)?.[0];
 const musicBrainzId = file.getProperty(PROPERTIES.musicbrainzTrackId.key)?.[0];
 
-// Using legacy Tags constants (still supported)
-const title2 = properties[Tags.Title]?.[0];
-const artist2 = properties[Tags.Artist]?.[0];
-const album = properties[Tags.Album]?.[0];
-
 // Or using camelCase string property names directly
 const title3 = properties["title"]?.[0];
 const artist3 = properties["artist"]?.[0];
@@ -370,15 +346,6 @@ file.setProperties({
   ],
 });
 
-// Using legacy Tags constants
-file.setProperties({
-  [Tags.Title]: ["My Song Title"],
-  [Tags.Artist]: ["Artist Name"],
-  [Tags.AlbumArtist]: ["Album Artist"],
-  [Tags.MusicBrainzTrackId]: ["123e4567-e89b-12d3-a456-426614174000"],
-});
-
-// Save changes
 file.save();
 const outputBuffer = file.getFileBuffer();
 ```
