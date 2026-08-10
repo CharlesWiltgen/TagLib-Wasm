@@ -61,8 +61,22 @@ if [ ! -f "$ZLIB_BUILD_DIR/libz.a" ]; then
     if [ ! -f "$ZLIB_SRC_DIR/CMakeLists.txt" ]; then
         rm -rf "$ZLIB_SRC_DIR"
         echo "Downloading zlib $ZLIB_VERSION..."
-        curl -sfL "https://zlib.net/zlib-${ZLIB_VERSION}.tar.gz" -o "$BUILD_DIR/zlib.tar.gz" \
-            || curl -sfL "https://github.com/madler/zlib/releases/download/v${ZLIB_VERSION}/zlib-${ZLIB_VERSION}.tar.gz" -o "$BUILD_DIR/zlib.tar.gz"
+        # curl -f alone is not enough: a mirror can answer an HTML error page
+        # with HTTP 200, which then dies in tar with "not in gzip format"
+        # (taglib-71u1). Validate the payload is real gzip and retry both
+        # mirrors before giving up.
+        download_zlib() {
+            local url="$1" out="$2" attempt
+            for attempt in 1 2 3; do
+                curl -sfL "$url" -o "$out" && gzip -t "$out" 2>/dev/null && return 0
+                echo "  (zlib download attempt $attempt failed, retrying...)"
+                sleep 2
+            done
+            return 1
+        }
+        download_zlib "https://zlib.net/zlib-${ZLIB_VERSION}.tar.gz" "$BUILD_DIR/zlib.tar.gz" \
+            || download_zlib "https://github.com/madler/zlib/releases/download/v${ZLIB_VERSION}/zlib-${ZLIB_VERSION}.tar.gz" "$BUILD_DIR/zlib.tar.gz" \
+            || { echo "❌ Failed to download zlib $ZLIB_VERSION from either mirror"; exit 1; }
         tar xzf "$BUILD_DIR/zlib.tar.gz" -C "$BUILD_DIR"
         mv "$BUILD_DIR/zlib-${ZLIB_VERSION}" "$ZLIB_SRC_DIR"
         rm -f "$BUILD_DIR/zlib.tar.gz"
