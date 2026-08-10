@@ -203,15 +203,10 @@ export type {
 } from "./src/types/format-property-keys.ts";
 export type { TypedAudioProperties } from "./src/types/audio-formats.ts";
 
-// Complex property types and constants
-export {
-  COMPLEX_PROPERTIES,
-  COMPLEX_PROPERTY_KEY,
-} from "./src/constants/complex-properties.ts";
+// Complex property TYPES (the COMPLEX_PROPERTIES/COMPLEX_PROPERTY_KEY value
+// exports were removed in 2.0.0 — they described a generic accessor pattern
+// that was never built; the real API is the typed accessors, taglib-ivq).
 export type {
-  ComplexPropertyKey,
-  ComplexPropertyKeyMap,
-  ComplexPropertyValueMap,
   Id3v2Frame,
   Rating,
   UnsyncedLyrics,
