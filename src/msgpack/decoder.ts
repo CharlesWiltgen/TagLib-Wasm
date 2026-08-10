@@ -13,7 +13,6 @@ import { remapKeysFromTagLib } from "../constants/properties.ts";
 
 const MSGPACK_DECODE_OPTIONS: DecoderOptions = {
   useBigInt64: false,
-  extensionCodec: undefined,
   maxStrLength: 1_000_000,
   maxBinLength: 50_000_000,
   maxArrayLength: 10_000,
@@ -240,11 +239,11 @@ export function decodeFastTagData(
       maxMapLength: 50,
     }) as ExtendedTag;
     return {
-      title: decoded.title,
-      artist: decoded.artist,
-      album: decoded.album,
-      year: decoded.year,
-      track: decoded.track,
+      ...(decoded.title !== undefined ? { title: decoded.title } : {}),
+      ...(decoded.artist !== undefined ? { artist: decoded.artist } : {}),
+      ...(decoded.album !== undefined ? { album: decoded.album } : {}),
+      ...(decoded.year !== undefined ? { year: decoded.year } : {}),
+      ...(decoded.track !== undefined ? { track: decoded.track } : {}),
     };
   } catch (error) {
     throw new MetadataError(

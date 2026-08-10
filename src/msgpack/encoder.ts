@@ -39,7 +39,6 @@ const MSGPACK_ENCODE_OPTIONS: EncoderOptions = {
   ignoreUndefined: true,
   initialBufferSize: 2048,
   maxDepth: 32,
-  extensionCodec: undefined,
 };
 
 /**

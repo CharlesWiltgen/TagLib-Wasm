@@ -198,7 +198,9 @@ export class AudioFileImpl extends BaseAudioFileImpl implements AudioFile {
       mimeType: pic.mimeType,
       data: pic.data,
       type: PICTURE_TYPE_NAMES[pic.type] ?? "Other",
-      description: pic.description,
+      ...(pic.description !== undefined
+        ? { description: pic.description }
+        : {}),
     }));
   }
 
@@ -227,13 +229,18 @@ export class AudioFileImpl extends BaseAudioFileImpl implements AudioFile {
   getChapters(): Chapter[] {
     const sorted = sortChapters(this.handle.getChapters());
     const trackEndMs = this.audioProperties()?.durationMs;
-    return sorted.map((c, i) => ({
-      startTimeMs: c.startTimeMs,
-      endTimeMs: inferEndTimeMs(sorted, i, trackEndMs),
-      title: c.title || undefined,
-      id: c.id || undefined,
-      source: c.source as Chapter["source"],
-    }));
+    return sorted.map((c, i) => {
+      const endTimeMs = inferEndTimeMs(sorted, i, trackEndMs);
+      return {
+        startTimeMs: c.startTimeMs,
+        ...(endTimeMs !== undefined ? { endTimeMs } : {}),
+        ...(c.title !== undefined ? { title: c.title } : {}),
+        ...(c.id !== undefined ? { id: c.id } : {}),
+        ...(c.source !== undefined
+          ? { source: c.source as Exclude<Chapter["source"], undefined> }
+          : {}),
+      };
+    });
   }
 
   setChapters(chapters: Chapter[], options?: SetChaptersOptions): void {
@@ -250,10 +257,10 @@ export class AudioFileImpl extends BaseAudioFileImpl implements AudioFile {
     // style from RawChapter.source (the registry derives it from there).
     const source = fmt === "MP4" ? style : "id3";
     const raw: RawChapter[] = sorted.map((c, i) => ({
-      id: c.id,
+      ...(c.id !== undefined ? { id: c.id } : {}),
       startTimeMs: c.startTimeMs,
       endTimeMs: inferEndTimeMs(sorted, i, trackEndMs) ?? c.startTimeMs,
-      title: c.title,
+      ...(c.title !== undefined ? { title: c.title } : {}),
       source,
     }));
     this.handle.setChapters(raw, style);
@@ -287,8 +294,8 @@ export class AudioFileImpl extends BaseAudioFileImpl implements AudioFile {
     return this.handle.getRatings().map(
       (r: { rating: number; email: string; counter: number }) => ({
         rating: r.rating,
-        email: r.email || undefined,
-        counter: r.counter || undefined,
+        ...(r.email !== undefined && r.email !== "" ? { email: r.email } : {}),
+        ...(r.counter !== undefined ? { counter: r.counter } : {}),
       }),
     );
   }
@@ -324,7 +331,11 @@ export class AudioFileImpl extends BaseAudioFileImpl implements AudioFile {
   }
 
   setRating(rating: number, email?: string): void {
-    this.setRatings([{ rating, email, counter: 0 }]);
+    this.setRatings([{
+      rating,
+      ...(email !== undefined ? { email } : {}),
+      counter: 0,
+    }]);
   }
 
   getId3v2Frames(id?: string): Id3v2Frame[] {

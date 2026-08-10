@@ -88,7 +88,12 @@ export async function canvasToPicture(
         blob.arrayBuffer().then(
           (arrayBuffer) => {
             const data = new Uint8Array(arrayBuffer);
-            resolve({ mimeType: format, data, type, description });
+            resolve({
+              mimeType: format,
+              data,
+              type,
+              ...(description !== undefined ? { description } : {}),
+            });
           },
           reject,
         );

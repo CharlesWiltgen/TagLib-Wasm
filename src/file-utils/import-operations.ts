@@ -76,7 +76,9 @@ export async function importPictureWithType(
     mimeType,
     data: imageData,
     type,
-    description: options.description,
+    ...(options.description !== undefined
+      ? { description: options.description }
+      : {}),
   };
 
   const modifiedBuffer = await replacePictureByType(audioPath, picture);

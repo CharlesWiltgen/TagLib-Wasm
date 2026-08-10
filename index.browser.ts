@@ -125,15 +125,8 @@ export type {
   TagFormat,
 } from "./src/types/format-property-keys.ts";
 
-// Complex property types and constants
-export {
-  COMPLEX_PROPERTIES,
-  COMPLEX_PROPERTY_KEY,
-} from "./src/constants/complex-properties.ts";
+// Complex property TYPES (value exports removed in 2.0.0, taglib-ivq)
 export type {
-  ComplexPropertyKey,
-  ComplexPropertyKeyMap,
-  ComplexPropertyValueMap,
   Rating,
   UnsyncedLyrics,
   VariantMap,

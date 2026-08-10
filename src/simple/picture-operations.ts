@@ -178,7 +178,7 @@ export async function readPictureMetadata(
   return pictures.map((pic) => ({
     type: pic.type,
     mimeType: pic.mimeType,
-    description: pic.description,
+    ...(pic.description !== undefined ? { description: pic.description } : {}),
     size: pic.data.length,
   }));
 }

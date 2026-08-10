@@ -36,9 +36,9 @@ export async function scanForAlbums(
   } = options;
   const scan = await scanFolder(folderPath, scanOptions);
   return groupAlbums(scan, {
-    minFolderConfidence,
-    flatDiscPrefixes,
-    folderFallback,
+    ...(minFolderConfidence !== undefined ? { minFolderConfidence } : {}),
+    ...(flatDiscPrefixes !== undefined ? { flatDiscPrefixes } : {}),
+    ...(folderFallback !== undefined ? { folderFallback } : {}),
     scanRoot: folderPath,
   });
 }

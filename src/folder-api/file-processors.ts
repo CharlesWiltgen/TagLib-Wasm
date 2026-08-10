@@ -77,12 +77,15 @@ export async function processFileWithTagLib(
       onProgress?.(current, totalFound, filePath);
     }
 
+    const withDynamics = Object.keys(dynamics).length > 0
+      ? dynamics
+      : undefined;
     return {
       path: filePath,
       tags,
-      properties,
+      ...(properties !== undefined ? { properties } : {}),
       hasCoverArt,
-      dynamics: Object.keys(dynamics).length > 0 ? dynamics : undefined,
+      ...(withDynamics !== undefined ? { dynamics: withDynamics } : {}),
     };
   } finally {
     audioFile.dispose();

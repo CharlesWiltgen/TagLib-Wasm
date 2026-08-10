@@ -40,12 +40,17 @@ const EMPTY_KEY_SET: ReadonlySet<string> = new Set();
 export abstract class BaseAudioFileImpl {
   protected fileHandle: WasmFileHandle | null;
   protected cachedAudioProperties: AudioProperties | null = null;
-  protected readonly sourcePath?: string;
-  protected originalSource?: string | Uint8Array | ArrayBuffer | File;
+  protected readonly sourcePath: string | undefined;
+  protected originalSource:
+    | string
+    | Uint8Array
+    | ArrayBuffer
+    | File
+    | undefined;
   protected isPartiallyLoaded: boolean = false;
-  protected readonly partialLoadOptions?: OpenOptions;
+  protected readonly partialLoadOptions: OpenOptions | undefined;
   /** Text-property wire keys in the partial header at load; undefined if full. */
-  protected readonly partialKeysAtLoad?: ReadonlySet<string>;
+  protected readonly partialKeysAtLoad: ReadonlySet<string> | undefined;
 
   constructor(
     protected readonly module: TagLibModule,

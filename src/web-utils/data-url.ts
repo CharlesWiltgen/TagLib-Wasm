@@ -61,6 +61,6 @@ export function dataURLToPicture(
     mimeType,
     data,
     type,
-    description,
+    ...(description !== undefined ? { description } : {}),
   };
 }

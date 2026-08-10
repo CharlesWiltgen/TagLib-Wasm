@@ -111,9 +111,9 @@ export async function scanFolder(
   const processOpts: ScanProcessOptions = {
     includeProperties,
     continueOnError,
-    onProgress,
+    ...(onProgress !== undefined ? { onProgress } : {}),
     totalFound,
-    signal,
+    ...(signal !== undefined ? { signal } : {}),
   };
 
   const items = await scanWithTagLib(taglib, filePaths, processOpts);

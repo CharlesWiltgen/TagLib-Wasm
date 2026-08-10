@@ -177,11 +177,12 @@ export async function readMetadata(
         `File may be corrupted or in an unsupported format. File: ${name}`,
       );
     }
+    const dynamics = extractDynamics(audioFile);
     return {
       tags: readExtendedTag(audioFile),
       properties: audioFile.audioProperties(),
       hasCoverArt: audioFile.getPictures().length > 0,
-      dynamics: extractDynamics(audioFile),
+      ...(dynamics !== undefined ? { dynamics } : {}),
     };
   } finally {
     audioFile.dispose();
@@ -200,10 +201,13 @@ export async function readMetadataBatch(
   files: AudioFileInput[],
   options: BatchOptions = {},
 ): Promise<BatchResult<FileMetadata>> {
-  return executeBatch(files, options, (audioFile) => ({
-    tags: readExtendedTag(audioFile),
-    properties: audioFile.audioProperties(),
-    hasCoverArt: audioFile.getPictures().length > 0,
-    dynamics: extractDynamics(audioFile),
-  }));
+  return executeBatch(files, options, (audioFile) => {
+    const dynamics = extractDynamics(audioFile);
+    return {
+      tags: readExtendedTag(audioFile),
+      properties: audioFile.audioProperties(),
+      hasCoverArt: audioFile.getPictures().length > 0,
+      ...(dynamics !== undefined ? { dynamics } : {}),
+    };
+  });
 }

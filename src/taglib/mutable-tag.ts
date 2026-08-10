@@ -22,22 +22,22 @@
  * ```
  */
 export interface MutableTag {
-  /** Track title */
-  readonly title?: string;
-  /** Artist name */
-  readonly artist?: string;
-  /** Album name */
-  readonly album?: string;
-  /** Comment */
-  readonly comment?: string;
-  /** Genre */
-  readonly genre?: string;
-  /** Year */
-  readonly year?: number;
+  /** Track title (undefined when absent) */
+  readonly title: string | undefined;
+  /** Artist name (undefined when absent) */
+  readonly artist: string | undefined;
+  /** Album name (undefined when absent) */
+  readonly album: string | undefined;
+  /** Comment (undefined when absent) */
+  readonly comment: string | undefined;
+  /** Genre (undefined when absent) */
+  readonly genre: string | undefined;
+  /** Year (undefined when absent) */
+  readonly year: number | undefined;
   /** Full release date, e.g. "1975-10-31" or "1975". Lossless companion to {@link year}. */
-  readonly date?: string;
-  /** Track number */
-  readonly track?: number;
+  readonly date: string | undefined;
+  /** Track number (undefined when absent) */
+  readonly track: number | undefined;
   /** Set the track title */
   setTitle(value: string): MutableTag;
   /** Set the artist name */

@@ -108,9 +108,13 @@ export async function loadTagLibModule(
       "./unified-loader/index.ts"
     );
     return await loadUnifiedTagLibModule({
-      wasmBinary: options?.wasmBinary,
-      wasmUrl: options?.wasmUrl,
-      forceWasmType: options?.forceWasmType,
+      ...(options?.wasmBinary !== undefined
+        ? { wasmBinary: options.wasmBinary }
+        : {}),
+      ...(options?.wasmUrl !== undefined ? { wasmUrl: options.wasmUrl } : {}),
+      ...(options?.forceWasmType !== undefined
+        ? { forceWasmType: options.forceWasmType }
+        : {}),
       debug: false,
     });
   } catch (error) {

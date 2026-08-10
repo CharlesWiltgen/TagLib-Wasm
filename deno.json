@@ -17,7 +17,8 @@
       "deno.window",
       "dom"
     ],
-    "strict": true
+    "strict": true,
+    "exactOptionalPropertyTypes": true
   },
   "publish": {
     "exclude": [
