@@ -3,6 +3,7 @@ import type {
   RawChapter,
   RawLyrics,
   TagLibModule,
+  WasmFileHandle,
 } from "../wasm.ts";
 import type { OpenOptions, Picture } from "../types.ts";
 import { PICTURE_TYPE_NAMES, PICTURE_TYPE_VALUES } from "../types.ts";
@@ -73,7 +74,7 @@ export class AudioFileImpl extends BaseAudioFileImpl implements AudioFile {
 
   constructor(
     module: TagLibModule,
-    fileHandle: FileHandle,
+    fileHandle: WasmFileHandle,
     sourcePath?: string,
     originalSource?: string | Uint8Array | ArrayBuffer | File,
     isPartiallyLoaded: boolean = false,

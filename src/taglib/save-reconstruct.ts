@@ -4,7 +4,7 @@
  * partial load, and the WASI path-mode "save as". Both must produce a complete
  * file at the target without mutating the editing handle's source in place.
  */
-import type { FileHandle, TagLibModule } from "../wasm.ts";
+import type { FileHandle, TagLibModule, WasmFileHandle } from "../wasm.ts";
 import { FileOperationError, InvalidFormatError } from "../errors.ts";
 import { readFileData } from "../utils/file.ts";
 import { writeFileData } from "../utils/write.ts";
@@ -62,8 +62,8 @@ export async function saveViaFreshHandle(
   deletedKeys: ReadonlySet<string> = new Set(),
 ): Promise<void> {
   const rawFullHandle = module.createFileHandle();
-  const fullFileHandle = module.isWasi
-    ? rawFullHandle
+  const fullFileHandle: WasmFileHandle = module.isWasi
+    ? (rawFullHandle as WasmFileHandle) // WASI raw == library-owned (taglib-0te)
     : wrapEmbindHandle(rawFullHandle as unknown as EmbindFileHandle);
   try {
     {

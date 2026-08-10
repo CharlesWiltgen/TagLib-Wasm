@@ -1,4 +1,4 @@
-import type { FileHandle, TagLibModule, WasmModule } from "../wasm.ts";
+import type { TagLibModule, WasmFileHandle, WasmModule } from "../wasm.ts";
 import type { AudioFileInput, OpenOptions, TagInput } from "../types.ts";
 import type { LoadTagLibOptions } from "../runtime/loader-types.ts";
 import {
@@ -99,7 +99,9 @@ export class TagLib {
 
     // WASI path-based I/O: skip buffer loading entirely
     if (typeof actualInput === "string" && this.module.isWasi) {
-      const fileHandle = this.module.createFileHandle();
+      // WASI's raw handle IS the library-owned handle — brand asserted here,
+      // the WASI equivalent of wrapEmbindHandle (taglib-0te).
+      const fileHandle = this.module.createFileHandle() as WasmFileHandle;
       try {
         const fh = fileHandle as { loadFromPath?: (p: string) => boolean };
         if (fh.loadFromPath) {
@@ -153,8 +155,8 @@ export class TagLib {
       )
       : audioData;
     const rawHandle = this.module.createFileHandle();
-    const fileHandle = this.module.isWasi
-      ? rawHandle
+    const fileHandle: WasmFileHandle = this.module.isWasi
+      ? (rawHandle as WasmFileHandle) // WASI raw == library-owned (taglib-0te)
       : wrapEmbindHandle(rawHandle as unknown as EmbindFileHandle);
     try {
       const success = fileHandle.loadFromBuffer(uint8Array);

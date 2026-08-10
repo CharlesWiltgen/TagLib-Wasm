@@ -1,4 +1,4 @@
-import type { FileHandle, TagLibModule } from "../wasm.ts";
+import type { TagLibModule, WasmFileHandle } from "../wasm.ts";
 import type {
   AudioProperties,
   FileType,
@@ -38,7 +38,7 @@ const EMPTY_KEY_SET: ReadonlySet<string> = new Set();
  * @internal Not exported from the public API.
  */
 export abstract class BaseAudioFileImpl {
-  protected fileHandle: FileHandle | null;
+  protected fileHandle: WasmFileHandle | null;
   protected cachedAudioProperties: AudioProperties | null = null;
   protected readonly sourcePath?: string;
   protected originalSource?: string | Uint8Array | ArrayBuffer | File;
@@ -49,7 +49,7 @@ export abstract class BaseAudioFileImpl {
 
   constructor(
     protected readonly module: TagLibModule,
-    fileHandle: FileHandle,
+    fileHandle: WasmFileHandle,
     sourcePath?: string,
     originalSource?: string | Uint8Array | ArrayBuffer | File,
     isPartiallyLoaded: boolean = false,
@@ -86,7 +86,7 @@ export abstract class BaseAudioFileImpl {
     return deleted;
   }
 
-  protected get handle(): FileHandle {
+  protected get handle(): WasmFileHandle {
     if (!this.fileHandle) {
       throw new MetadataError("read", "File handle has been disposed");
     }

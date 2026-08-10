@@ -6,7 +6,7 @@
  * overriding only getTagData, setTagData, and getAudioProperties.
  */
 
-import type { FileHandle, RawLyrics } from "../wasm.ts";
+import type { FileHandle, RawLyrics, WasmFileHandle } from "../wasm.ts";
 import type { BasicTagData } from "../types/tags.ts";
 import type {
   AudioCodec,
@@ -65,7 +65,7 @@ export interface EmbindFileHandle {
 }
 
 /** @internal Wrap an Embind FileHandle with a Proxy for the data-oriented interface. */
-export function wrapEmbindHandle(raw: EmbindFileHandle): FileHandle {
+export function wrapEmbindHandle(raw: EmbindFileHandle): WasmFileHandle {
   // taglib-b67 (C2): Embind applies raw frame writes immediately (no staging
   // buffer of its own), so getStagedId3v2Frames was undefined here — the
   // shared "id3v2Frames" extra-state-registry entry (which copies staged
@@ -218,11 +218,13 @@ export function wrapEmbindHandle(raw: EmbindFileHandle): FileHandle {
     },
   };
 
+  // The brand is asserted exactly here: this is the single boundary where a
+  // raw Embind handle becomes a library-owned WasmFileHandle (taglib-0te).
   return new Proxy(raw as unknown as FileHandle, {
     get(target, prop, receiver) {
       if (prop in overrides) return overrides[prop as string];
       const value = Reflect.get(target, prop, receiver);
       return typeof value === "function" ? value.bind(target) : value;
     },
-  });
+  }) as unknown as WasmFileHandle;
 }

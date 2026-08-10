@@ -147,6 +147,19 @@ export interface FileHandle {
 }
 
 /**
+ * Branded, library-owned file handle (taglib-0te).
+ *
+ * Only the wrap boundaries produce this type: the WASI adapter's
+ * createFileHandle and wrapEmbindHandle. A raw {@link FileHandle} (e.g. a
+ * naked Embind handle) is NOT a WasmFileHandle, so it cannot be passed into
+ * the AudioFile or save paths — the brand prevents mixing raw handles with
+ * library-owned ones.
+ */
+export type WasmFileHandle = FileHandle & {
+  readonly __brand: "WasmFileHandle";
+};
+
+/**
  * TagLib WebAssembly module interface.
  * Provides access to Embind classes and low-level C-style functions.
  * @internal Most users should use {@link TagLib} instead of accessing this directly.
@@ -157,7 +170,7 @@ export interface TagLibModule extends Omit<EmscriptenModule, "then"> {
 
   /** @internal Embind FileHandle class constructor */
   FileHandle: new () => FileHandle;
-  /** @internal Create a new file handle for audio file operations */
+  /** @internal Create a new (raw) file handle for audio file operations */
   createFileHandle(): FileHandle;
 
   /** @internal Embind function: returns TagLib version (e.g. "2.2.1") */
