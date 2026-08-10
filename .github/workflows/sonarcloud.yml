@@ -32,7 +32,10 @@ jobs:
         run: deno task build:wasm:emscripten
 
       - name: Run tests with coverage
-        run: deno test --allow-read --allow-write --allow-env --coverage=coverage tests/
+        # tests/ and src/ both contain colocated unit tests; the local gate
+        # runs both, so the coverage feed must too. Coverage should go UP
+        # (cheap, dense unit tests); verified on branch before merge.
+        run: deno test --allow-read --allow-write --allow-env --coverage=coverage tests/ src/
 
       - name: Generate coverage report
         run: |

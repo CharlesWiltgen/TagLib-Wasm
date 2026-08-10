@@ -146,6 +146,16 @@ jobs:
       - name: Type check
         run: deno check ./src ./tests
 
+      - name: Install ast-grep
+        run: npm install -g @ast-grep/cli@0.45.1
+
+      - name: Run structural rules
+        # lint:ast self-skips when the ast-grep binary is absent, so the
+        # install step above is mandatory — without it this step would
+        # silently pass and the cpp-fileref-takes-ownership ERROR rule
+        # (taglib-f5hp double-free guard) would still catch nothing on PRs.
+        run: deno task lint:ast
+
   bundle:
     name: Bundle (fast)
     runs-on: ubuntu-latest
@@ -369,7 +379,11 @@ jobs:
           path: .
 
       - name: Run tests
-        run: deno test --allow-read --allow-write --allow-env --coverage=coverage tests/
+        # tests/ and src/ both contain colocated unit tests (CLAUDE.md T-1);
+        # the local gate runs both, so CI must too — a guard that does not
+        # run in CI is decoration (extra-state-registry.test.ts caught
+        # _mp4ItemNames to no one).
+        run: deno test --allow-read --allow-write --allow-env --coverage=coverage tests/ src/
 
       - name: Generate coverage report
         if: matrix.os == 'ubuntu-latest'
