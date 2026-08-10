@@ -20,6 +20,14 @@
   `getChapters()`, `getLyrics()`). The supporting types
   (`ComplexPropertyKey`, `ComplexPropertyKeyMap`, `ComplexPropertyValueMap`)
   went with them. (taglib-ivq)
+- **`Tags`, `isValidTagName`, `getAllTagNames`, `TagName` removed** — the
+  `Tags` constant object and its validators were a strict subset of the
+  canonical `PROPERTIES` family: every `TagName` is a `PropertyKey`, and
+  `isValidProperty`/`getAllPropertyKeys`/`PropertyKey` cover strictly more
+  with the same camelCase semantics. Migrate by renaming: `Tags.Title` →
+  `PROPERTIES.title.key` (or `"title"`), `isValidTagName(k)` →
+  `isValidProperty(k)`, `getAllTagNames()` → `getAllPropertyKeys()`,
+  `TagName` → `PropertyKey`.
 - **`exactOptionalPropertyTypes` enabled** in the published declarations —
   assigning explicit `undefined` to an optional field no longer typechecks.
   (taglib-4p15)

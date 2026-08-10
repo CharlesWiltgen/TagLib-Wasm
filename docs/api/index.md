@@ -2166,15 +2166,15 @@ file.setProperties({
 ### Tag Validation
 
 ```typescript
-import { getAllTagNames, isValidTagName } from "taglib-wasm";
+import { getAllPropertyKeys, isValidProperty } from "taglib-wasm";
 
-// Check if a tag name is valid (names are camelCase)
-isValidTagName("title"); // true
-isValidTagName("INVALID_TAG"); // false
+// Check if a property key is valid (keys are camelCase)
+isValidProperty("title"); // true
+isValidProperty("INVALID_TAG"); // false
 
-// Get all available tag names
-const allTags = getAllTagNames();
-console.log(`Available tags: ${allTags.length}`);
+// Get all available property keys
+const allKeys = getAllPropertyKeys();
+console.log(`Available properties: ${allKeys.length}`);
 ```
 
 ### Available Constants

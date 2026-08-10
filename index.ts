@@ -104,13 +104,10 @@ export {
   FormatMappings,
   getAllProperties,
   getAllPropertyKeys,
-  getAllTagNames,
   getPropertiesByFormat,
   getPropertyMetadata,
   isValidProperty,
-  isValidTagName,
   PROPERTIES,
-  Tags,
 } from "./src/constants.ts";
 export type { PropertyMetadata } from "./src/constants/property-types.ts";
 
@@ -187,7 +184,6 @@ export type {
   SetChaptersOptions,
   Tag,
   TagInput,
-  TagName,
 } from "./src/types.ts";
 export {
   BITRATE_CONTROL_MODE_NAMES,

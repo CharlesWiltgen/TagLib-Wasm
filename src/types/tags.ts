@@ -304,8 +304,3 @@ export interface ExtendedTag extends Tag {
 export type PropertyMap =
   & { [K in PropertyKey]?: string[] }
   & { [key: string]: string[] | undefined };
-
-/**
- * Re-export TagName type from constants
- */
-export type { TagName } from "../constants.ts";
