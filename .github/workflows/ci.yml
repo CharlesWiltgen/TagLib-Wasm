@@ -41,6 +41,16 @@ jobs:
             echo "No usable base ref; skipping."
             exit 0
           fi
+          # Force-pushes and history rewrites can leave github.event.before
+          # pointing at a commit the fresh checkout cannot resolve — a full
+          # fetch-depth 0 clone still misses it once GitHub drops the old ref.
+          # git diff would then die with exit 128 under the runner's bash -e,
+          # turning an infra artifact into an opaque CI failure (observed
+          # 2026-08-04: "fatal: Invalid revision range").
+          if ! git cat-file -e "$BASE_SHA^{commit}" 2>/dev/null; then
+            echo "Base ref $BASE_SHA not resolvable in this checkout; skipping."
+            exit 0
+          fi
           CHANGED=$(git diff --name-only "$BASE_SHA"..HEAD)
 
           # Shell glob patterns, not regex: `case` avoids grep dialect
