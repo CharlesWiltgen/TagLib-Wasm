@@ -20,19 +20,11 @@ export default tseslint.config(
     // globalThis.Deno / .Bun / .process runtime detection.
     // Remove files from this list as they gain proper type narrowing.
     files: [
-      "src/constants/utilities.ts",
-      "src/deno-compile.ts",
-      "src/folder-api/directory-walker.ts",
       "src/folder-api/file-processors.ts",
       "src/msgpack/decoder.ts",
       "src/msgpack/utils.ts",
-      "src/runtime/deno-detect.ts",
       "src/runtime/detector.ts",
       "src/runtime/module-loader.ts",
-      "src/runtime/wasi-fs-deno.ts",
-      "src/simple/batch-operations.ts",
-      "src/utils/file.ts",
-      "src/utils/write.ts",
     ],
     rules: {
       "@typescript-eslint/no-unsafe-argument": "off",

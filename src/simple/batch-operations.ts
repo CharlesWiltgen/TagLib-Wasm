@@ -35,7 +35,7 @@ async function executeBatch<T>(
   const startTime = Date.now();
   const { concurrency = 4, continueOnError = true, onProgress, signal } =
     options;
-  const items: BatchItem<T>[] = new Array(files.length);
+  const items: BatchItem<T>[] = new Array<BatchItem<T>>(files.length);
   const taglib = await getTagLib();
   let processed = 0;
   const total = files.length;
