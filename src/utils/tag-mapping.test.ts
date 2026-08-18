@@ -70,6 +70,17 @@ describe(mapPropertiesToExtendedTag.name, () => {
       mapPropertiesToExtendedTag({ compilation: ["0"] }).compilation,
       false,
     );
+    // Non-canonical disk values (literal "true" COMPILATION fields) must
+    // read the same on both backends: WASI canonicalizes to "1", Emscripten
+    // surfaces "true" verbatim (taglib-c9b).
+    assertEquals(
+      mapPropertiesToExtendedTag({ compilation: ["true"] }).compilation,
+      true,
+    );
+    assertEquals(
+      mapPropertiesToExtendedTag({ compilation: ["false"] }).compilation,
+      false,
+    );
   });
 
   it("should pass through unknown camelCase property keys", () => {

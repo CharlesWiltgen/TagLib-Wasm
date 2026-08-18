@@ -74,6 +74,23 @@ describe("COMPILATION boolean contract (taglib-c9b)", () => {
         assertEquals(file.properties().compilation, ["1"]);
         assertEquals(file.getProperty("COMPILATION"), ["1"]);
       });
+
+      it(`${backend}: literal 'true' COMPILATION reads as compilation=true (flac)`, async () => {
+        const taglib = await TagLib.initialize({ forceWasmType: backend });
+        const src = await Deno.readFile(FIXTURE_PATH.flac);
+
+        // Non-canonical disk value: a tool wrote the literal string "true".
+        // The typed surface must agree across backends — WASI's shim
+        // canonicalizes to "1" at the wire, Emscripten's PropertyMap is
+        // verbatim ("true"), so the mapper accepts both spellings (taglib-c9b).
+        using written = await taglib.open(new Uint8Array(src));
+        written.setProperty("COMPILATION", "true");
+        written.save();
+        const buf = written.getFileBuffer();
+
+        using file = await taglib.open(buf);
+        assertEquals(readExtendedTag(file).compilation, true);
+      });
     }
   }
 });

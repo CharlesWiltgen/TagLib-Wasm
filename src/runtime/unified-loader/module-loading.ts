@@ -127,10 +127,14 @@ async function loadEmscriptenModule(
       ) => Promise<TagLibModule>;
     } catch {
       try {
-        const module = await import("../../../dist/taglib-wrapper.js");
-        createModule = module.default as (
-          config?: unknown,
-        ) => Promise<TagLibModule>;
+        // dist/ is gitignored (absent in CI), so this import is untyped there;
+        // the build/ twin above is typed by its committed .d.ts (taglib-c9b
+        // lint gate). The whole-result cast types the const and the member
+        // access in one step.
+        const module = (await import("../../../dist/taglib-wrapper.js")) as {
+          default: (config?: unknown) => Promise<TagLibModule>;
+        };
+        createModule = module.default;
       } catch {
         throw new ModuleLoadError(
           "Could not load Emscripten module from build or dist",

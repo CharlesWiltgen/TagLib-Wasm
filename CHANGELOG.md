@@ -10,9 +10,11 @@
   typed mapper's `"1"` check never matched. The shim now emits the canonical
   `"1"`/`"0"` strings end to end (matching the write side and the Emscripten
   path), so the raw surface round-trips and the typed boolean reads
-  correctly on both backends. Regression: WASI round-trip test + dual-backend
-  parity tests (typed boolean, raw `"1"`/`"0"`, cross-backend byte reads) on
-  MP3/FLAC/MP4.
+  correctly on both backends. The typed mapper also accepts a literal
+  `"true"` (non-canonical disk values surface verbatim on Emscripten while
+  the WASI shim canonicalizes them). Regression: WASI round-trip test +
+  dual-backend parity tests (typed boolean, raw `"1"`/`"0"`, cross-backend
+  byte reads, literal-`"true"` edge) on MP3/FLAC/MP4.
 
 ### Added
 
