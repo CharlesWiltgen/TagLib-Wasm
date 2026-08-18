@@ -17,6 +17,12 @@
   (taglib-71u1); table-driven typed mirrors + lazy prior in `apply_propmap`
   (taglib-hahs, taglib-k3vw); dead WASI structured-lyrics path removed
   (taglib-0mx).
+- **Emscripten 6.0.6 → 6.0.7 toolchain** — CI pins and the committed
+  `taglib-web.wasm` moved to 6.0.7; the stale 6.0.3 pins left in the publish
+  workflow and `setup-dev-env.sh` from the 6.0.6 bump were corrected to
+  match. 6.0.7 raises the minimum targetable Safari to 15.0 and links the
+  Wasm EH runtime independently of C++ linking — no build-flag changes were
+  needed. Binary rebuilt from source, suite green on both backends.
 
 ## 2.0.0
 
