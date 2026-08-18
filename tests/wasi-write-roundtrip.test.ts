@@ -179,5 +179,47 @@ describe(
         await Deno.remove(tempDir, { recursive: true }).catch(() => {});
       }
     });
+
+    it("should roundtrip the COMPILATION boolean as '1'/'0' (taglib-c9b)", async () => {
+      const tempDir = await Deno.makeTempDir();
+      const srcPath = resolve(TEST_FILES_DIR_PATH, "flac/kiss-snippet.flac");
+      const destPath = resolve(tempDir, "compilation.flac");
+      await Deno.copyFile(srcPath, destPath);
+
+      try {
+        // Write true: the typed input encodes as mpack bool; C++ writes "1".
+        using wasi1 = await loadWasiHost({
+          wasmPath: WASM_PATH,
+          preopens: { "/tmp": tempDir },
+        });
+        writeTagsWasi(wasi1, "/tmp/compilation.flac", {
+          compilation: true,
+        } as unknown as ExtendedTag);
+
+        // Read back: the wire carries an mpack bool, which must decode to the
+        // canonical "1", not "true" (the typed surface keys on "1").
+        using wasi2 = await loadWasiHost({
+          wasmPath: WASM_PATH,
+          preopens: { "/tmp": tempDir },
+        });
+        const tagsTrue = readTagsViaPath(
+          wasi2,
+          "/tmp/compilation.flac",
+        ) as unknown as RawTag;
+        assertEquals(tagsTrue.compilation, "1");
+
+        // Write false, read back "0".
+        writeTagsWasi(wasi2, "/tmp/compilation.flac", {
+          compilation: false,
+        } as unknown as ExtendedTag);
+        const tagsFalse = readTagsViaPath(
+          wasi2,
+          "/tmp/compilation.flac",
+        ) as unknown as RawTag;
+        assertEquals(tagsFalse.compilation, "0");
+      } finally {
+        await Deno.remove(tempDir, { recursive: true }).catch(() => {});
+      }
+    });
   },
 );

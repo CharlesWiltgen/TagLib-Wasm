@@ -9,7 +9,7 @@ import type {
   PropertyMap,
 } from "../types.ts";
 import type { MessagePackDataType } from "./types.ts";
-import { remapKeysFromTagLib } from "../constants/properties.ts";
+import { PROPERTIES, remapKeysFromTagLib } from "../constants/properties.ts";
 
 const MSGPACK_DECODE_OPTIONS: DecoderOptions = {
   useBigInt64: false,
@@ -26,12 +26,45 @@ export function decodeTagData(msgpackBuffer: Uint8Array): ExtendedTag {
       string,
       unknown
     >;
+    normalizeBooleanPropertyValues(raw);
     return remapKeysFromTagLib(raw);
   } catch (error) {
     throw new MetadataError(
       "read",
       `Failed to decode tag data: ${errorMessage(error)}`,
     );
+  }
+}
+
+/**
+ * FIELD_BOOLEAN properties (COMPILATION) serialize as mpack bools, but the
+ * property surface's contract is strings ("1"/"0", matching what the write
+ * side emits). Decode them back as "1"/"0" so a written "1" reads as "1"
+ * (taglib-c9b). Only boolean-typed PROPERTIES keys are touched: audio-info
+ * bools (isLossless, isEncrypted) and id3Tags' {v1, v2} share the buffer and
+ * must keep their boolean type.
+ */
+const BOOLEAN_PROPERTY_KEYS: Record<string, true> = Object.fromEntries(
+  Object.entries(PROPERTIES)
+    .filter(([, def]) => def.type === "boolean")
+    .map(([name]) => [name, true]),
+);
+
+function normalizeBooleanPropertyValues(
+  remapped: Record<string, unknown>,
+): void {
+  for (const key of Object.keys(remapped)) {
+    if (!(key in BOOLEAN_PROPERTY_KEYS)) continue;
+    const value = remapped[key];
+    if (typeof value === "boolean") {
+      remapped[key] = value ? "1" : "0";
+    } else if (
+      Array.isArray(value) && value.some((v) => typeof v === "boolean")
+    ) {
+      remapped[key] = value.map((v) =>
+        typeof v === "boolean" ? (v ? "1" : "0") : v
+      );
+    }
   }
 }
 

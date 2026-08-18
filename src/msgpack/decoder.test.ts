@@ -105,3 +105,56 @@ describe("decodeTagData key normalization", () => {
     assertEquals(decoded["CUSTOM_UNKNOWN"], "value");
   });
 });
+
+describe("decodeTagData boolean property normalization", () => {
+  it("decodes a bare mpack bool as '1'/'0' (FIELD_BOOLEAN round-trip)", () => {
+    const msgpack = encode({ compilation: true });
+    const decoded = decodeTagData(new Uint8Array(msgpack)) as Record<
+      string,
+      unknown
+    >;
+    assertEquals(decoded.compilation, "1");
+    const decodedFalse = decodeTagData(
+      new Uint8Array(encode({ compilation: false })),
+    ) as Record<string, unknown>;
+    assertEquals(decodedFalse.compilation, "0");
+  });
+
+  it("decodes booleans inside value arrays as '1'/'0'", () => {
+    const msgpack = encode({ compilation: [true, false] });
+    const decoded = decodeTagData(new Uint8Array(msgpack)) as Record<
+      string,
+      unknown
+    >;
+    assertEquals(decoded.compilation, ["1", "0"]);
+  });
+
+  it("leaves bare booleans in nested maps (id3Tags) untouched", () => {
+    const msgpack = encode({ id3Tags: { v1: true, v2: false } });
+    const decoded = decodeTagData(new Uint8Array(msgpack)) as Record<
+      string,
+      unknown
+    >;
+    assertEquals(decoded.id3Tags, { v1: true, v2: false });
+  });
+
+  it("leaves audio-info booleans (isLossless, isEncrypted) untouched", () => {
+    const msgpack = encode({ isLossless: true, isEncrypted: false });
+    const decoded = decodeTagData(new Uint8Array(msgpack)) as Record<
+      string,
+      unknown
+    >;
+    assertEquals(decoded.isLossless, true);
+    assertEquals(decoded.isEncrypted, false);
+  });
+
+  it("leaves string and number values untouched", () => {
+    const msgpack = encode({ title: "Song", track: 3 });
+    const decoded = decodeTagData(new Uint8Array(msgpack)) as Record<
+      string,
+      unknown
+    >;
+    assertEquals(decoded.title, "Song");
+    assertEquals(decoded.track, 3);
+  });
+});
