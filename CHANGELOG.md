@@ -2,6 +2,21 @@
 
 ## Unreleased
 
+### Fixed
+
+- **Written-true COMPILATION reads back as `true` on the typed surface**
+  (taglib-c9b) — the C++ FIELD_BOOLEAN path serialized the value as an mpack
+  bool, the JS decoder surfaced it as a boolean, and the property map
+  stringified it to `"true"`/`"false"`, so the typed mapper's `"1"` check
+  never matched and the raw surface lost the written value. `decodeTagData`
+  now decodes mpack bools as `"1"`/`"0"` for boolean-typed PROPERTIES keys
+  (COMPILATION; driven by the PROPERTIES table, which mirrors the C++
+  FIELD_BOOLEAN mapping), and the typed mapper accepts TagLib's MP4 Bool
+  `"true"`/`"false"` strings (Emscripten path). Audio-info bools
+  (`isLossless`, `isEncrypted`) and `id3Tags`' nested `{v1, v2}` keep their
+  boolean type. Regression: decoder unit tests, typed-mapper acceptance, and
+  a WASI end-to-end round-trip that fails without the decode fix.
+
 ### Added
 
 - **`propertyValues(props, key)` / `propertyValue(props, key)`** — PropertyMap
