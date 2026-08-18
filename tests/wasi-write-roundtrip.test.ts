@@ -181,3 +181,53 @@ describe(
     });
   },
 );
+
+describe(
+  { name: "WASI COMPILATION boolean contract (taglib-c9b)", ignore: !HAS_WASM },
+  () => {
+    it("round-trips the COMPILATION boolean as '1'/'0' (not bool/'true')", async () => {
+      const tempDir = await Deno.makeTempDir();
+      const destPath = resolve(tempDir, "compilation.flac");
+      await Deno.copyFile(
+        resolve(TEST_FILES_DIR_PATH, "flac/kiss-snippet.flac"),
+        destPath,
+      );
+
+      try {
+        // Write true: the typed input encodes as an mpack bool; C++ writes "1".
+        using wasi1 = await loadWasiHost({
+          wasmPath: WASM_PATH,
+          preopens: { "/tmp": tempDir },
+        });
+        writeTagsWasi(wasi1, "/tmp/compilation.flac", {
+          compilation: true,
+        } as unknown as ExtendedTag);
+
+        // Read back: the raw surface must carry the canonical "1" string, not
+        // the mpack bool (which the pre-fix binary surfaced as JS true and the
+        // property map as "true").
+        using wasi2 = await loadWasiHost({
+          wasmPath: WASM_PATH,
+          preopens: { "/tmp": tempDir },
+        });
+        const tagsTrue = readTagsViaPath(
+          wasi2,
+          "/tmp/compilation.flac",
+        ) as unknown as RawTag;
+        assertEquals(tagsTrue.compilation, "1");
+
+        // Write false, read back "0".
+        writeTagsWasi(wasi2, "/tmp/compilation.flac", {
+          compilation: false,
+        } as unknown as ExtendedTag);
+        const tagsFalse = readTagsViaPath(
+          wasi2,
+          "/tmp/compilation.flac",
+        ) as unknown as RawTag;
+        assertEquals(tagsFalse.compilation, "0");
+      } finally {
+        await Deno.remove(tempDir, { recursive: true }).catch(() => {});
+      }
+    });
+  },
+);

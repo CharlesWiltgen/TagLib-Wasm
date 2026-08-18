@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+### Fixed
+
+- **Written-true COMPILATION read back as `false` on the WASI backend**
+  (taglib-c9b) — the C++ FIELD_BOOLEAN branch serialized COMPILATION as an
+  mpack bool, the JS surface stringified it to `"true"`/`"false"`, and the
+  typed mapper's `"1"` check never matched. The shim now emits the canonical
+  `"1"`/`"0"` strings end to end (matching the write side and the Emscripten
+  path), so the raw surface round-trips and the typed boolean reads
+  correctly on both backends. Regression: WASI round-trip test + dual-backend
+  parity tests (typed boolean, raw `"1"`/`"0"`, cross-backend byte reads) on
+  MP3/FLAC/MP4.
+
 ### Added
 
 - **`propertyValues(props, key)` / `propertyValue(props, key)`** — PropertyMap

@@ -293,8 +293,15 @@ static tl_error_code encode_file_to_msgpack(TagLib::File* file,
         mpack_write_cstr(&writer, outKey);
 
         if (mapping && mapping->type == FIELD_BOOLEAN) {
+            // Canonical "1"/"0" strings end to end (taglib-c9b): the raw
+            // surface contract is string[] ("1"/"0" — what the write side
+            // emits), so a bool here made JS String() it to "true"/"false"
+            // and the typed mapper's "1" check read written-true as false.
+            // TagLib can report MP4 Bool items as "true", hence the
+            // normalization. Emscripten's PropertyMap path already yields
+            // "1"/"0", so this keeps both backends byte-identical on disk.
             TagLib::String raw = it->second.front();
-            mpack_write_bool(&writer, raw == "1" || raw == "true");
+            write_mpack_string(&writer, raw == "1" || raw == "true" ? "1" : "0");
         } else {
             const TagLib::StringList& values = it->second;
             if (values.size() == 1) {
