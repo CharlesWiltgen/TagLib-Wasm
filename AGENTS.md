@@ -531,7 +531,10 @@ Auto-selected at runtime. Both wrap TagLib 2.3.1 C++ via a C boundary layer.
 Key files: `build/taglib_embind.cpp` (Emscripten), `src/capi/taglib_shim.cpp` (WASI),
 `src/capi/core/taglib_boundary.c` (C boundary), `src/taglib.ts` (core TS API).
 
-Dependencies are git submodules: `lib/taglib`, `lib/mpack`, `lib/msgpack`.
+Dependencies are git submodules: `lib/taglib`, `lib/mpack`. (The C
+`lib/msgpack` submodule was removed with the orphan Emscripten C-API path in
+taglib-g0f; the WASI backend speaks MessagePack through `lib/mpack`, and the
+TS side has its own encoder/decoder in `src/msgpack/`.)
 
 ### The dual-backend state model (read before adding a feature)
 
