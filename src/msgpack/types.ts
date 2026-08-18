@@ -163,3 +163,14 @@ export interface AutoDetectionResult {
   }>;
   detectionClues: string[];
 }
+
+/**
+ * The raw tag-data shape decoded from the C++ MessagePack snapshot: wire
+ * values, not the typed surface. Property values are canonical strings —
+ * boolean-typed keys (COMPILATION) decode as "1"/"0" (taglib-c9b), numbers
+ * stay verbatim strings ("03", "3/12"). Audio-info booleans and nested maps
+ * (id3Tags {v1, v2}) keep their native shapes.
+ */
+export type RawTagData = Record<string, unknown> & {
+  compilation?: "1" | "0";
+};

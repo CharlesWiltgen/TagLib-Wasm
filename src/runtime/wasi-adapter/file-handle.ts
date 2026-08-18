@@ -158,7 +158,7 @@ export class WasiFileHandle implements FileHandle {
     this.fileData = buffer;
     const msgpackData = readTagsFromWasm(this.wasi, buffer);
     this.tagData = preserveEmptyValues(
-      decodeTagData(msgpackData) as unknown as Record<string, unknown>,
+      decodeTagData(msgpackData),
     );
     return true;
   }
@@ -168,7 +168,7 @@ export class WasiFileHandle implements FileHandle {
     this.filePath = path;
     const msgpackData = readTagsFromWasmPath(this.wasi, path);
     this.tagData = preserveEmptyValues(
-      decodeTagData(msgpackData) as unknown as Record<string, unknown>,
+      decodeTagData(msgpackData),
     );
     return true;
   }

@@ -297,9 +297,10 @@ static tl_error_code encode_file_to_msgpack(TagLib::File* file,
             // surface contract is string[] ("1"/"0" — what the write side
             // emits), so a bool here made JS String() it to "true"/"false"
             // and the typed mapper's "1" check read written-true as false.
-            // TagLib can report MP4 Bool items as "true", hence the
-            // normalization. Emscripten's PropertyMap path already yields
-            // "1"/"0", so this keeps both backends byte-identical on disk.
+            // The "true" spelling is accepted for free-text COMPILATION
+            // fields written by other tools (TagLib's own MP4 Bool items
+            // render as "1"/"0", mp4itemfactory.cpp); normalizing it here
+            // keeps WASI's raw surface canonical like Emscripten's.
             TagLib::String raw = it->second.front();
             write_mpack_string(&writer, raw == "1" || raw == "true" ? "1" : "0");
         } else {

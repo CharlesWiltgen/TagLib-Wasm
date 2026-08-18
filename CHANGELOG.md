@@ -14,7 +14,8 @@
   `"true"` (non-canonical disk values surface verbatim on Emscripten while
   the WASI shim canonicalizes them). Regression: WASI round-trip test +
   dual-backend parity tests (typed boolean, raw `"1"`/`"0"`, cross-backend
-  byte reads, literal-`"true"` edge) on MP3/FLAC/MP4.
+  byte reads on MP3/FLAC/MP4; literal-`"true"` edge on FLAC — MP4's `cpil`
+  is a typed Bool atom and cannot carry a literal string).
 
 ### Added
 

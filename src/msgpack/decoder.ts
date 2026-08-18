@@ -8,7 +8,7 @@ import type {
   Picture,
   PropertyMap,
 } from "../types.ts";
-import type { MessagePackDataType } from "./types.ts";
+import type { MessagePackDataType, RawTagData } from "./types.ts";
 import { remapKeysFromTagLib } from "../constants/properties.ts";
 
 const MSGPACK_DECODE_OPTIONS: DecoderOptions = {
@@ -20,7 +20,7 @@ const MSGPACK_DECODE_OPTIONS: DecoderOptions = {
   maxExtLength: 50_000_000,
 };
 
-export function decodeTagData(msgpackBuffer: Uint8Array): ExtendedTag {
+export function decodeTagData(msgpackBuffer: Uint8Array): RawTagData {
   try {
     const raw = decode(msgpackBuffer, MSGPACK_DECODE_OPTIONS) as Record<
       string,

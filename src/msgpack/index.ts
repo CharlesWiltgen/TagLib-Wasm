@@ -67,6 +67,7 @@ export type {
   MessagePackErrorInfo,
   MessagePackMetrics,
   MessagePackValue,
+  RawTagData,
   StreamingConfig,
   TagLibMessagePackData,
   TagLibMessagePackMarker,

@@ -3,6 +3,7 @@
  */
 
 import { errorMessage, MetadataError } from "../errors/classes.ts";
+import type { RawTagData } from "./types.ts";
 import type {
   AudioProperties,
   ExtendedTag,
@@ -36,7 +37,7 @@ export class MessagePackUtils {
   /**
    * Validate and decode tag data with error handling
    */
-  static safeDecodeTagData(buffer: Uint8Array): ExtendedTag | null {
+  static safeDecodeTagData(buffer: Uint8Array): RawTagData | null {
     try {
       if (!isValidMessagePack(buffer)) {
         return null;
