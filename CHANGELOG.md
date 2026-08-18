@@ -28,6 +28,12 @@
   TS 6.0.3), esbuild 0.28.0 → 0.28.2, tsx 4.22.4 → 4.23.12, fast-check
   4.8.0 → 4.9.0, `@std/expect`/`@std/testing` 1.0.19 → 1.0.20, `@std/path`
   1.1.5 → 1.1.6; Deno CI pin 2.9.1 → 2.9.5 (matches the local toolchain).
+- **ESLint debt cleared and gated** — all 151 typescript-eslint errors
+  eliminated: the `Deno: any` global stub replaced with a typed structural
+  subset, `String()`/`toString()` on `unknown`/`any` values funneled through
+  a `stringifyScalar` helper, the `new Function` require fallback replaced
+  with typed `globalThis.require` access, and 77 unnecessary type assertions
+  auto-fixed. `npm run lint:ts` now runs in CI, so the debt cannot regrow.
 
 ## 2.0.0
 
