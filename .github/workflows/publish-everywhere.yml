@@ -66,7 +66,7 @@ jobs:
       - name: Setup Deno
         uses: denoland/setup-deno@v2
         with:
-          deno-version: "2.9.1"
+          deno-version: "2.9.5"
 
       - name: Install dependencies
         run: npm install
@@ -206,7 +206,7 @@ jobs:
 
       - uses: denoland/setup-deno@v2
         with:
-          deno-version: "2.9.1"
+          deno-version: "2.9.5"
 
       - name: Download build artifacts
         uses: actions/download-artifact@v8
@@ -265,7 +265,7 @@ jobs:
     steps:
       - uses: denoland/setup-deno@v2
         with:
-          deno-version: "2.9.1"
+          deno-version: "2.9.5"
       - name: Instantiate both backends from the published JSR package
         env:
           VERSION: ${{ needs.prepare-and-build.outputs.version }}

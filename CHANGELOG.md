@@ -23,6 +23,11 @@
   match. 6.0.7 raises the minimum targetable Safari to 15.0 and links the
   Wasm EH runtime independently of C++ linking — no build-flag changes were
   needed. Binary rebuilt from source, suite green on both backends.
+- **Dev/test dependency batch + Deno CI pin** — eslint 10.4.1 → 10.8.1,
+  typescript-eslint 8.60.1 → 8.67.0 (peer-compatible with eslint ^10 and
+  TS 6.0.3), esbuild 0.28.0 → 0.28.2, tsx 4.22.4 → 4.23.12, fast-check
+  4.8.0 → 4.9.0, `@std/expect`/`@std/testing` 1.0.19 → 1.0.20, `@std/path`
+  1.1.5 → 1.1.6; Deno CI pin 2.9.1 → 2.9.5 (matches the local toolchain).
 
 ## 2.0.0
 
