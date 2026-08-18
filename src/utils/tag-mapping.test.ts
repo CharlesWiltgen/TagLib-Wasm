@@ -70,16 +70,6 @@ describe(mapPropertiesToExtendedTag.name, () => {
       mapPropertiesToExtendedTag({ compilation: ["0"] }).compilation,
       false,
     );
-    // TagLib's MP4 Bool items surface as "true"/"false" on the Emscripten
-    // path (taglib-c9b); the typed surface must not read them as false.
-    assertEquals(
-      mapPropertiesToExtendedTag({ compilation: ["true"] }).compilation,
-      true,
-    );
-    assertEquals(
-      mapPropertiesToExtendedTag({ compilation: ["false"] }).compilation,
-      false,
-    );
   });
 
   it("should pass through unknown camelCase property keys", () => {

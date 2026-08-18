@@ -139,10 +139,7 @@ export function mapPropertiesToExtendedTag(props: PropertyMap): ExtendedTag {
       const num = parseNumeric(values[0]);
       if (num !== undefined) tag[camelKey] = num;
     } else if (camelKey === "compilation") {
-      // "1" is the canonical wire value (what the write side emits);
-      // "true" appears from TagLib's MP4 Bool items on the Emscripten path
-      // (taglib-c9b).
-      tag[camelKey] = values[0] === "1" || values[0] === "true";
+      tag[camelKey] = values[0] === "1";
     } else if (camelKey === "itunesAdvisory") {
       // Content advisory tri-state (taglib-an30), pinned contract:
       // rtng/ITUNESADVISORY "1" -> explicit, "2" -> clean, "0" ->
