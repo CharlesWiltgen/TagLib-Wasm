@@ -77,7 +77,7 @@ function createDenoIO(): PlatformIO {
         combined.set(footer, actualHeader);
         return combined;
       } finally {
-        file.close();
+        void file.close();
       }
     },
   };

@@ -44,6 +44,7 @@ export default tseslint.config(
   },
   {
     ignores: [
+      ".omp/",
       "node_modules/",
       "dist/",
       "build/",

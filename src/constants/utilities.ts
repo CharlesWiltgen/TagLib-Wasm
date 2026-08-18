@@ -15,7 +15,7 @@ export function isValidProperty(key: string): key is PropertyKey {
 export function getPropertyMetadata<K extends PropertyKey>(
   key: K,
 ): PropertyMetadata | undefined {
-  return PROPERTIES[key] as PropertyMetadata | undefined;
+  return PROPERTIES[key];
 }
 
 /**

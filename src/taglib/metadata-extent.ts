@@ -18,8 +18,8 @@
 
 /** Big-endian 32-bit read; callers must have bounds-checked `offset`. */
 function be32(b: Uint8Array, offset: number): number {
-  return ((b[offset]! << 24) | (b[offset + 1]! << 16) |
-    (b[offset + 2]! << 8) | b[offset + 3]!) >>> 0;
+  return ((b[offset] << 24) | (b[offset + 1] << 16) |
+    (b[offset + 2] << 8) | b[offset + 3]) >>> 0;
 }
 
 function startsWith(bytes: Uint8Array, magic: string, at = 0): boolean {
@@ -37,9 +37,9 @@ function startsWith(bytes: Uint8Array, magic: string, at = 0): boolean {
  */
 function id3v2End(bytes: Uint8Array): number | undefined {
   if (bytes.length < 10) return undefined;
-  const size = (bytes[6]! << 21) | (bytes[7]! << 14) | (bytes[8]! << 7) |
-    bytes[9]!;
-  const hasFooter = (bytes[5]! & 0x10) !== 0;
+  const size = (bytes[6] << 21) | (bytes[7] << 14) | (bytes[8] << 7) |
+    bytes[9];
+  const hasFooter = (bytes[5] & 0x10) !== 0;
   return 10 + size + (hasFooter ? 10 : 0);
 }
 
@@ -57,9 +57,9 @@ function flacEnd(
   let offset = start + 4; // past "fLaC"
   for (;;) {
     if (offset + 4 > bytes.length) return undefined;
-    const isLast = (bytes[offset]! & 0x80) !== 0;
-    const length = (bytes[offset + 1]! << 16) | (bytes[offset + 2]! << 8) |
-      bytes[offset + 3]!;
+    const isLast = (bytes[offset] & 0x80) !== 0;
+    const length = (bytes[offset + 1] << 16) | (bytes[offset + 2] << 8) |
+      bytes[offset + 3];
     offset += 4 + length;
     // Already past the window: the answer cannot change, so stop walking rather
     // than demand bytes the caller may not have read.
@@ -85,10 +85,10 @@ function mp4MoovEnd(
   while (offset + 8 <= readable) {
     const size = be32(bytes, offset);
     const type = String.fromCharCode(
-      bytes[offset + 4]!,
-      bytes[offset + 5]!,
-      bytes[offset + 6]!,
-      bytes[offset + 7]!,
+      bytes[offset + 4],
+      bytes[offset + 5],
+      bytes[offset + 6],
+      bytes[offset + 7],
     );
     // size 0 runs to end of file and size < 8 is malformed; either way the walk
     // cannot advance, and a loop that cannot advance must not spin.
@@ -117,12 +117,12 @@ function oggMetadataEnd(
     if (offset + 27 > bytes.length || !startsWith(bytes, "OggS", offset)) {
       return undefined;
     }
-    const segmentCount = bytes[offset + 26]!;
+    const segmentCount = bytes[offset + 26];
     const tableStart = offset + 27;
     if (tableStart + segmentCount > bytes.length) return undefined;
     let payload = 0;
     for (let i = 0; i < segmentCount; i++) {
-      const segment = bytes[tableStart + i]!;
+      const segment = bytes[tableStart + i];
       payload += segment;
       if (segment < 255) packetsCompleted++;
     }
@@ -184,12 +184,12 @@ const MPEG_SAMPLE_RATES: readonly number[][] = [
  */
 function isMpegFrameSync(bytes: Uint8Array, at = 0): boolean {
   if (bytes.length < at + 4) return false;
-  if (bytes[at] !== 0xFF || (bytes[at + 1]! & 0xE0) !== 0xE0) return false;
-  const version = (bytes[at + 1]! >> 3) & 0x03;
-  const layer = (bytes[at + 1]! >> 1) & 0x03;
+  if (bytes[at] !== 0xFF || (bytes[at + 1] & 0xE0) !== 0xE0) return false;
+  const version = (bytes[at + 1] >> 3) & 0x03;
+  const layer = (bytes[at + 1] >> 1) & 0x03;
   if (version === 0x01 || layer === 0x00) return false;
-  const bitrateIndex = (bytes[at + 2]! >> 4) & 0x0F;
-  const sampleRateIndex = (bytes[at + 2]! >> 2) & 0x03;
+  const bitrateIndex = (bytes[at + 2] >> 4) & 0x0F;
+  const sampleRateIndex = (bytes[at + 2] >> 2) & 0x03;
   if (
     bitrateIndex === 0x00 || bitrateIndex === 0x0F ||
     sampleRateIndex === 0x03
@@ -201,9 +201,9 @@ function isMpegFrameSync(bytes: Uint8Array, at = 0): boolean {
   // tables + padding bit, then require a consistent header at the next frame.
   const mpeg1 = version === 0b11;
   const layerIndex = layer ^ 0b11; // 11=Layer I → 0, 10=II → 1, 01=III → 2
-  const bitrate = MPEG_BITRATES[mpeg1 ? 0 : 1]![layerIndex]![bitrateIndex]!;
+  const bitrate = MPEG_BITRATES[mpeg1 ? 0 : 1][layerIndex][bitrateIndex];
   const sampleRateTable = mpeg1 ? 0 : version === 0b10 ? 1 : 2;
-  const sampleRate = MPEG_SAMPLE_RATES[sampleRateTable]![sampleRateIndex]!;
+  const sampleRate = MPEG_SAMPLE_RATES[sampleRateTable][sampleRateIndex];
   const samplesPerFrame = layerIndex === 2
     ? (mpeg1 ? 1152 : 576)
     : layerIndex === 1
@@ -212,17 +212,17 @@ function isMpegFrameSync(bytes: Uint8Array, at = 0): boolean {
   // C++ integer division truncates (mpegheader.cpp:236-264); JS `/` is float,
   // and a fractional frameLength would fail the buffer-length check below.
   let frameLength = Math.floor(samplesPerFrame * bitrate * 125 / sampleRate);
-  if ((bytes[at + 2]! & 0x02) !== 0) frameLength += layerIndex === 0 ? 4 : 1;
+  if ((bytes[at + 2] & 0x02) !== 0) frameLength += layerIndex === 0 ? 4 : 1;
   if (frameLength === 0) return false;
 
   const next = at + frameLength;
   if (bytes.length < next + 4) return false;
   const mask = 0xfffe0c00;
   const header =
-    ((((bytes[at]! << 24) | (bytes[at + 1]! << 16) | (bytes[at + 2]! << 8) |
-      bytes[at + 3]!) >>> 0) & mask) >>> 0;
-  const nextHeader = ((((bytes[next]! << 24) | (bytes[next + 1]! << 16) |
-    (bytes[next + 2]! << 8) | bytes[next + 3]!) >>> 0) & mask) >>> 0;
+    ((((bytes[at] << 24) | (bytes[at + 1] << 16) | (bytes[at + 2] << 8) |
+      bytes[at + 3]) >>> 0) & mask) >>> 0;
+  const nextHeader = ((((bytes[next] << 24) | (bytes[next + 1] << 16) |
+    (bytes[next + 2] << 8) | bytes[next + 3]) >>> 0) & mask) >>> 0;
   return header === nextHeader;
 }
 
@@ -326,8 +326,8 @@ export function trailerFitsInFooter(
     if (at < 0 || !startsWith(tail, "APETAGEX", at)) continue;
     // Bytes 12..16 of the footer: tag size in little-endian, covering the
     // footer and all items but not the optional 32-byte header.
-    const size = (tail[at + 12]! | (tail[at + 13]! << 8) |
-      (tail[at + 14]! << 16) | (tail[at + 15]! << 24)) >>> 0;
+    const size = (tail[at + 12] | (tail[at + 13] << 8) |
+      (tail[at + 14] << 16) | (tail[at + 15] << 24)) >>> 0;
     // At the second position the tag is followed by a 128-byte ID3v1 block, so
     // it ends that much earlier and needs that much more of the window. Omitting
     // this left a 96-byte band where an APE tag was spliced and read as audio.

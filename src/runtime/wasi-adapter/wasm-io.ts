@@ -27,7 +27,7 @@ export function readTagsFromWasm(
   wasi: WasiModule,
   buffer: Uint8Array,
 ): Uint8Array {
-  using arena = new WasmArena(wasi as WasmExports);
+  using arena = new WasmArena(wasi);
 
   const inputBuf = arena.allocBuffer(buffer);
   const outSizePtr = arena.allocUint32();
@@ -68,7 +68,7 @@ export function readTagsFromWasmPath(
   wasi: WasiModule,
   path: string,
 ): Uint8Array {
-  using arena = new WasmArena(wasi as WasmExports);
+  using arena = new WasmArena(wasi);
 
   const pathAlloc = arena.allocString(path);
   const outSizePtr = arena.allocUint32();
@@ -104,7 +104,7 @@ export function readId3v2FramesFromWasm(
   source: Uint8Array | string,
   id?: string,
 ): RawId3v2Frame[] {
-  using arena = new WasmArena(wasi as WasmExports);
+  using arena = new WasmArena(wasi);
 
   const idAlloc = id ? arena.allocString(id) : null;
   const outSizePtr = arena.allocUint32();
@@ -156,7 +156,7 @@ export function writeTagsToWasmPath(
   path: string,
   tagData: ExtendedTag,
 ): boolean {
-  using arena = new WasmArena(wasi as WasmExports);
+  using arena = new WasmArena(wasi);
 
   const pathAlloc = arena.allocString(path);
   const tagBytes = encodeTagData(tagData);
@@ -189,7 +189,7 @@ export function writeTagsToWasm(
   fileData: Uint8Array,
   tagData: ExtendedTag,
 ): Uint8Array | null {
-  using arena = new WasmArena(wasi as WasmExports);
+  using arena = new WasmArena(wasi);
 
   const tagBytes = encodeTagData(tagData);
   const inputBuf = arena.allocBuffer(fileData);

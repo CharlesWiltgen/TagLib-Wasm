@@ -50,11 +50,11 @@ const MSGPACK_ENCODE_OPTIONS: EncoderOptions = {
 function lyricsTexts(value: unknown): string[] {
   const entries = Array.isArray(value) ? value : [value];
   return entries
-    .map((entry) =>
-      typeof entry === "string"
-        ? entry
-        : String((entry as { text?: unknown })?.text ?? "")
-    )
+    .map((entry) => {
+      if (typeof entry === "string") return entry;
+      const text = (entry as { text?: unknown })?.text;
+      return typeof text === "string" ? text : "";
+    })
     .filter((text) => text !== "");
 }
 

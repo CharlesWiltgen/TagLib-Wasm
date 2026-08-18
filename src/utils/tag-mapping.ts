@@ -66,7 +66,7 @@ export function readExtendedTag(audioFile: AudioFile): ExtendedTag {
   const ixml = audioFile.getIxml();
   if (ixml !== undefined) tag.ixml = ixml;
 
-  return tag as ExtendedTag;
+  return tag;
 }
 
 export function mapPropertiesToExtendedTag(props: PropertyMap): ExtendedTag {
@@ -160,7 +160,7 @@ export function mapPropertiesToExtendedTag(props: PropertyMap): ExtendedTag {
     }
   }
 
-  return tag as ExtendedTag;
+  return tag;
 }
 
 export function mergeTagUpdates(
@@ -308,5 +308,5 @@ export function normalizeTagInput(
     if (props[rawField]?.[0]?.includes("/")) delete props[totalField];
   }
 
-  return props as PropertyMap;
+  return props;
 }

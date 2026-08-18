@@ -82,7 +82,7 @@ async function createUnifiedModule(
         environment: runtime.environment,
         memoryUsage: wasiModule.memory.buffer.byteLength,
       }),
-    }) as UnifiedTagLibModule;
+    });
   } else {
     const emscriptenModule = module as TagLibModule;
     return {

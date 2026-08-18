@@ -57,6 +57,6 @@ export async function loadTagLibModule(
       path.endsWith(".wasm") ? wasmUrl.href : path;
   }
 
-  const module = await createTagLibModule(moduleConfig);
-  return module as TagLibModule;
+  const module = (await createTagLibModule(moduleConfig)) as TagLibModule;
+  return module;
 }

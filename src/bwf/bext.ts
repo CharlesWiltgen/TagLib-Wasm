@@ -137,7 +137,7 @@ export function encodeBext(b: BroadcastAudioExtension): Uint8Array {
     b.maxMomentaryLoudnessDb !== undefined ||
     b.maxShortTermLoudnessDb !== undefined;
   const version = Number.isInteger(b.version)
-    ? (b.version as number)
+    ? (b.version)
     : (hasLoudness ? 2 : (b.umid ? 1 : 0));
   writeFixedString(bytes, 0, 256, b.description ?? "");
   writeFixedString(bytes, 256, 32, b.originator ?? "");

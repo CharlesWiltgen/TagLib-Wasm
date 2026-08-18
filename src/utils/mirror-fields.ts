@@ -49,8 +49,8 @@ export function parseLeadingInt(raw: string): number | undefined {
  * lookup that can return undefined — renaming a field in MIRROR_FIELDS then
  * fails at build time here instead of throwing at the first read.
  */
-export const DATE_MIRROR: MirrorField = MIRROR_FIELDS[0]!;
-export const TRACK_MIRROR: MirrorField = MIRROR_FIELDS[1]!;
+export const DATE_MIRROR: MirrorField = MIRROR_FIELDS[0];
+export const TRACK_MIRROR: MirrorField = MIRROR_FIELDS[1];
 
 /** The pair whose raw key is `key`, if any. */
 export function mirrorForRawKey(key: string): MirrorField | undefined {
@@ -68,10 +68,22 @@ function hasValue(v: unknown): boolean {
   return v !== undefined && v !== null && v !== "";
 }
 
+/** Stringify a primitive scalar; non-primitive values yield "". */
+export function stringifyScalar(v: unknown): string {
+  const t = typeof v;
+  return t === "string" || t === "number" || t === "boolean" ||
+      t === "bigint" || t === "symbol"
+    ? String(v)
+    : "";
+}
+
 /** First element of an array value, or the scalar itself, as a string. */
 export function firstValueString(v: unknown): string {
-  if (Array.isArray(v)) return (v[0] as string) ?? "";
-  return v === undefined || v === null ? "" : String(v);
+  if (Array.isArray(v)) {
+    const first: unknown = v[0];
+    return stringifyScalar(first);
+  }
+  return v === undefined || v === null ? "" : stringifyScalar(v);
 }
 
 /**

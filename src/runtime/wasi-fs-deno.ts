@@ -14,10 +14,9 @@ function wrapDenoFile(file: Deno.FsFile): WasiFileHandle {
   return {
     readSync: (target) => file.readSync(target),
     writeSync: (data) => file.writeSync(data),
-    seekSync: (offset, whence) =>
-      file.seekSync(offset, whence as Deno.SeekMode),
+    seekSync: (offset, whence) => file.seekSync(offset, whence),
     truncateSync: (size) => file.truncateSync(size),
-    close: () => file.close(),
+    close: () => void file.close(),
   };
 }
 

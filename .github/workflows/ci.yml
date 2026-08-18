@@ -179,6 +179,9 @@ jobs:
       - name: Run linter
         run: deno lint
 
+      - name: Run ESLint (typescript-eslint)
+        run: npm run lint:ts
+
       - name: Type check
         run: deno check ./src ./tests
 

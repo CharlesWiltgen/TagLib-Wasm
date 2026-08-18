@@ -144,9 +144,7 @@ function extractDynamics(audioFile: AudioFile): AudioDynamics | undefined {
     appleSoundCheck = audioFile.getMP4Item("----:com.apple.iTunes:iTunNORM");
   }
   if (appleSoundCheck) dynamics.appleSoundCheck = appleSoundCheck;
-  return Object.keys(dynamics).length > 0
-    ? dynamics as AudioDynamics
-    : undefined;
+  return Object.keys(dynamics).length > 0 ? dynamics : undefined;
 }
 
 /**

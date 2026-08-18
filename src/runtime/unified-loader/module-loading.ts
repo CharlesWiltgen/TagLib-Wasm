@@ -23,7 +23,9 @@ export function getPreopens(): Record<string, string> {
   if (!isWindows()) return { "/": "/" };
   // Acquire fs ONCE, outside the loop: the per-drive catch must only swallow
   // stat failures, or a broken fs acquisition silently skips every drive (GH #24)
-  const statSync = isDeno() ? Deno.statSync : getNodeFsSync()?.statSync;
+  const statSync = isDeno()
+    ? (p: string) => Deno.statSync(p)
+    : getNodeFsSync()?.statSync;
   if (!statSync) {
     console.warn(
       "[taglib-wasm] Windows drive detection unavailable: node:fs could not " +
@@ -91,8 +93,8 @@ async function loadWasiModuleWithFallback(
       );
     }
     if (runtime.environment === "node-wasi" && !supportsExnref()) {
-      const g = globalThis as Record<string, unknown>;
-      const nodeVersion = ((g.process as any)?.versions?.node ?? "") as string;
+      const g = globalThis as { process?: { versions?: { node?: string } } };
+      const nodeVersion = g.process?.versions?.node ?? "";
       console.warn(
         `[taglib-wasm] WASI unavailable: Node.js ${nodeVersion} requires --experimental-wasm-exnref. ` +
           `Falling back to Emscripten. Run with: node --experimental-wasm-exnref your-script.js`,

@@ -120,7 +120,7 @@ export abstract class BaseAudioFileImpl {
   properties(): PropertyMap {
     const remapped = remapKeysFromTagLib(this.handle.getProperties());
     delete (remapped as Record<string, unknown>)[LYRICS_PROPERTY_KEY];
-    return remapped as PropertyMap;
+    return remapped;
   }
 
   setProperties(properties: PropertyMap): void {

@@ -26,7 +26,7 @@ export function decodeTagData(msgpackBuffer: Uint8Array): ExtendedTag {
       string,
       unknown
     >;
-    return remapKeysFromTagLib(raw) as unknown as ExtendedTag;
+    return remapKeysFromTagLib(raw);
   } catch (error) {
     throw new MetadataError(
       "read",
@@ -147,17 +147,17 @@ export function decodeMessagePackAuto(
           obj.duration = obj.length;
           delete obj.length;
         }
-        return obj as unknown as AudioProperties;
+        return obj;
       }
       if (isPicture(obj)) {
         coercePictureData(obj);
-        return obj as unknown as Picture;
+        return obj;
       }
       // PropertyMap before TagLike: UPPERCASE-keyed PropertyMaps (e.g. {TITLE: ["Song"]})
       // would match isTagLike's UPPERCASE check and get incorrectly normalized.
-      if (isPropertyMap(obj)) return obj as unknown as PropertyMap;
+      if (isPropertyMap(obj)) return obj;
       if (isTagLike(obj)) {
-        return remapKeysFromTagLib(obj) as unknown as ExtendedTag;
+        return remapKeysFromTagLib(obj);
       }
     }
     throw new MetadataError(

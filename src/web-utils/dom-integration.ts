@@ -16,7 +16,7 @@ function ensureArrayBufferBacked(
   }
   const copy = new Uint8Array(data.length);
   copy.set(data);
-  return copy as Uint8Array & { buffer: ArrayBuffer };
+  return copy;
 }
 
 /**

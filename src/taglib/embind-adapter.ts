@@ -223,8 +223,10 @@ export function wrapEmbindHandle(raw: EmbindFileHandle): WasmFileHandle {
   return new Proxy(raw as unknown as FileHandle, {
     get(target, prop, receiver) {
       if (prop in overrides) return overrides[prop as string];
-      const value = Reflect.get(target, prop, receiver);
-      return typeof value === "function" ? value.bind(target) : value;
+      const value: unknown = Reflect.get(target, prop, receiver);
+      return typeof value === "function"
+        ? (value as (...args: unknown[]) => unknown).bind(target)
+        : value;
     },
   }) as unknown as WasmFileHandle;
 }

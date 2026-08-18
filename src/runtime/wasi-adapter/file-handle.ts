@@ -31,6 +31,7 @@ import {
   readNumericMirror,
   stageNumericWrite,
   stageRawWrite,
+  stringifyScalar,
   TRACK_MIRROR,
 } from "../../utils/mirror-fields.ts";
 import {
@@ -186,7 +187,7 @@ export class WasiFileHandle implements FileHandle {
       return writeTagsToWasmPath(
         this.wasi,
         this.filePath,
-        this.tagData as import("../../types.ts").ExtendedTag,
+        this.tagData,
       );
     }
 
@@ -370,8 +371,12 @@ export class WasiFileHandle implements FileHandle {
         result[propKey] = value.map(String);
       } else if (typeof value === "object") {
         continue;
-      } else {
-        result[propKey] = [String(value as string | number | boolean)];
+      } else if (
+        typeof value === "string" || typeof value === "number" ||
+        typeof value === "boolean" || typeof value === "bigint" ||
+        typeof value === "symbol"
+      ) {
+        result[propKey] = [String(value)];
       }
     }
 
@@ -416,10 +421,12 @@ export class WasiFileHandle implements FileHandle {
   getProperty(key: string): string {
     this.checkNotDestroyed();
     const mappedKey = fromTagLibKey(key);
-    const stored = this.tagData?.[mappedKey];
-    return Array.isArray(stored)
-      ? (stored[0]?.toString() ?? "")
-      : (stored?.toString() ?? "");
+    const stored: unknown = this.tagData?.[mappedKey];
+    if (Array.isArray(stored)) {
+      const first: unknown = stored[0];
+      return stringifyScalar(first);
+    }
+    return stringifyScalar(stored);
   }
 
   setProperty(key: string, value: string): void {
@@ -462,11 +469,13 @@ export class WasiFileHandle implements FileHandle {
     // Checked first: the bare-name property slot can name a DIFFERENT atom
     // (TagLib files "MYTAG" under Apple's namespace).
     if (key.startsWith("----:")) {
-      const foreign = this.tagData?.[key];
+      const foreign: unknown = this.tagData?.[key];
       if (foreign !== undefined) {
-        return Array.isArray(foreign)
-          ? (foreign[0]?.toString() ?? "")
-          : String(foreign);
+        if (Array.isArray(foreign)) {
+          const first: unknown = foreign[0];
+          return stringifyScalar(first);
+        }
+        return stringifyScalar(foreign);
       }
     }
     return this.getProperty(mp4ItemPropertyKey(key));
@@ -498,7 +507,7 @@ export class WasiFileHandle implements FileHandle {
     this.tagData = {
       ...this.tagData,
       _mp4ItemNames: [...existing, name],
-    } as Record<string, unknown>;
+    };
   }
 
   /**
@@ -513,7 +522,7 @@ export class WasiFileHandle implements FileHandle {
     this.tagData = {
       ...this.tagData,
       _mp4ItemRemovals: [...existing, name],
-    } as Record<string, unknown>;
+    };
   }
 
   getMp4ItemRemovals(): string[] | undefined {
@@ -526,7 +535,7 @@ export class WasiFileHandle implements FileHandle {
     this.tagData = {
       ...this.tagData,
       _mp4ItemRemovals: [...new Set(removals)],
-    } as Record<string, unknown>;
+    };
   }
 
   removeMP4Item(key: string): void {
@@ -557,7 +566,7 @@ export class WasiFileHandle implements FileHandle {
 
   setPictures(pictures: RawPicture[]): void {
     this.checkNotDestroyed();
-    this.tagData = { ...this.tagData, pictures } as Record<string, unknown>;
+    this.tagData = { ...this.tagData, pictures };
   }
 
   addPicture(picture: RawPicture): void {
@@ -569,7 +578,7 @@ export class WasiFileHandle implements FileHandle {
 
   removePictures(): void {
     this.checkNotDestroyed();
-    this.tagData = { ...this.tagData, pictures: [] } as Record<string, unknown>;
+    this.tagData = { ...this.tagData, pictures: [] };
   }
 
   getChapters(): RawChapter[] {
@@ -583,7 +592,7 @@ export class WasiFileHandle implements FileHandle {
       ...this.tagData,
       _mp4ChapterStyle: mp4ChapterStyle,
       chapters,
-    } as Record<string, unknown>;
+    };
   }
 
   getBextData(): Uint8Array | undefined {
@@ -594,10 +603,7 @@ export class WasiFileHandle implements FileHandle {
   setBextData(data: Uint8Array | null): void {
     this.checkNotDestroyed();
     // Store `null` (not delete) so the encoder emits msgpack nil => C++ removes.
-    this.tagData = { ...this.tagData, bextData: data } as Record<
-      string,
-      unknown
-    >;
+    this.tagData = { ...this.tagData, bextData: data };
   }
 
   getIxml(): string | undefined {
@@ -608,7 +614,7 @@ export class WasiFileHandle implements FileHandle {
 
   setIxml(data: string | null): void {
     this.checkNotDestroyed();
-    this.tagData = { ...this.tagData, ixml: data } as Record<string, unknown>;
+    this.tagData = { ...this.tagData, ixml: data };
   }
 
   hasId3Tags(): { v1: boolean; v2: boolean } {
@@ -647,7 +653,7 @@ export class WasiFileHandle implements FileHandle {
         v1: (current.v1 ?? false) && !stripV1,
         v2: (current.v2 ?? false) && !stripV2,
       },
-    } as Record<string, unknown>;
+    };
   }
 
   getRatings(): { rating: number; email: string; counter: number }[] {
@@ -669,7 +675,7 @@ export class WasiFileHandle implements FileHandle {
     this.tagData = {
       ...this.tagData,
       ratings: normalizedRatings,
-    } as Record<string, unknown>;
+    };
   }
 
   getLyrics(): RawLyrics[] {
@@ -694,7 +700,7 @@ export class WasiFileHandle implements FileHandle {
 
   setLyrics(lyrics: RawLyrics[]): void {
     this.checkNotDestroyed();
-    this.tagData = { ...this.tagData, lyrics } as Record<string, unknown>;
+    this.tagData = { ...this.tagData, lyrics };
   }
 
   getId3v2Frames(id: string): RawId3v2Frame[] {
@@ -726,7 +732,7 @@ export class WasiFileHandle implements FileHandle {
     this.tagData = {
       ...this.tagData,
       id3v2Frames: staged,
-    } as Record<string, unknown>;
+    };
   }
 
   removeId3v2Frames(id: string): void {
