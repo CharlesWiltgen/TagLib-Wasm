@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 2.1.0
+
 ### Fixed
 
 - **Written-true COMPILATION read back as `false` on the WASI backend**
