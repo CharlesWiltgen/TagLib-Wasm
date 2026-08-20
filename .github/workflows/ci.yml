@@ -323,16 +323,28 @@ jobs:
       # git-diff heuristic (wasm-freshness job) — it catches stale commits,
       # toolchain drift, and force-push artifacts equally, with zero
       # heuristics. Comment-only C++ edits produce identical bytes and pass.
+      # NOTE: the WASI SDK's clang emits different bytes on macOS vs Linux
+      # (same version), so the committed reference is the CI/Linux build —
+      # download it from the wasi-fresh-reference artifact below.
       - name: Verify committed WASI binary is fresh
         run: |
           if ! git diff --quiet -- build/taglib-wasi.wasm; then
             echo "::error::build/taglib-wasi.wasm is stale — the fresh build differs from the committed binary."
             echo "Rebuild with 'deno task build:wasm' (both backends) or 'deno task build:wasm:wasi',"
             echo "then commit the updated binary."
+            echo "For the CI/Linux reference build: download the 'wasi-fresh-reference' artifact"
+            echo "from this run and commit dist/wasi/taglib-wasi.wasm as build/taglib-wasi.wasm."
             git diff --stat -- build/taglib-wasi.wasm
             exit 1
           fi
           echo "build/taglib-wasi.wasm matches the fresh build"
+
+      - name: Upload fresh WASI binary (reference for the committed copy)
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: wasi-fresh-reference
+          path: dist/wasi/taglib-wasi.wasm
 
       - name: Verify WASI artifacts
         run: |
