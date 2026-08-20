@@ -16,131 +16,6 @@ on:
         default: false
         type: boolean
 
-jobs:
-  # Guard against shipping a WASI backend built from a different TagLib than
-  # the Emscripten one (taglib-mpw). Nothing else catches this: CI builds the
-  # WASI binary fresh but tests the committed one, and publish only checks that
-  # the committed file exists. If a commit moves the lib/taglib gitlink, both
-  # wasm binaries must move with it.
-  wasm-freshness:
-    name: Wasm / submodule sync
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v7
-        with:
-          fetch-depth: 0
-
-      - name: Check wasm binaries track their sources
-        env:
-          BASE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
-        run: |
-          set -uo pipefail
-          # Empty/zero BASE_SHA means a new branch or force-push with no usable
-          # base — nothing to diff against, so skip rather than fail open loudly.
-          if [ -z "$BASE_SHA" ] || [ "$BASE_SHA" = "0000000000000000000000000000000000000000" ]; then
-            echo "No usable base ref; skipping."
-            exit 0
-          fi
-          # Force-pushes and history rewrites can leave github.event.before
-          # pointing at a commit the fresh checkout cannot resolve — a full
-          # fetch-depth 0 clone still misses it once GitHub drops the old ref.
-          # git diff would then die with exit 128 under the runner's bash -e,
-          # turning an infra artifact into an opaque CI failure (observed
-          # 2026-08-04: "fatal: Invalid revision range").
-          if ! git cat-file -e "$BASE_SHA^{commit}" 2>/dev/null; then
-            echo "Base ref $BASE_SHA not resolvable in this checkout; skipping."
-            exit 0
-          fi
-          CHANGED=$(git diff --name-only "$BASE_SHA"..HEAD)
-
-          # Shell glob patterns, not regex: `case` avoids grep dialect
-          # differences entirely. In a case pattern `*` spans `/`, so
-          # 'src/capi/*' covers nested paths, while the bare 'lib/taglib'
-          # matches the submodule gitlink exactly and never lib/taglib-*.
-          changed_has() {
-            local target="$1" f
-            while IFS= read -r f; do
-              [ "$f" = "$target" ] && return 0
-            done <<<"$CHANGED"
-            return 1
-          }
-
-          # A comment-only or whitespace-only edit changes no wasm bytes and
-          # must not demand a rebuild — the same false-alarm reasoning that
-          # excludes the build scripts below (a gate that cries wolf on every
-          # comment edit trains people to ignore it). Heuristic: keep only the
-          # +/- change lines, strip blank and C++-comment-only ones; nothing
-          # left means the edit is cosmetic.
-          is_cosmetic_diff() {
-            local f="$1"
-            local changed noncosmetic
-            changed=$(git diff -w --ignore-blank-lines "$BASE_SHA"..HEAD -- "$f" \
-              | grep -E '^[+-]' | grep -vE '^[+-][+-]' || true)
-            noncosmetic=$(printf '%s\n' "$changed" \
-              | grep -vE '^[+-]\s*$|^[+-]\s*(//|/\*|\*)' || true)
-            [ -z "$noncosmetic" ]
-          }
-
-          FAIL=0
-          # check_backend <label> <binary> <input glob>...
-          #
-          # Input sets are exactly what each script compiles, verified against
-          # the scripts: build-wasi.sh builds all of src/capi (SRC_DIR) plus
-          # lib/mpack; build-wasm.sh builds only build/taglib_embind.cpp and
-          # src/capi/formats/taglib_lame.cpp. Emscripten deliberately does NOT
-          # list all of src/capi — the WASI shim is not linked into it, and
-          # requiring a web rebuild for WASI-only edits would fire on ~6% of
-          # commits and train people to ignore this gate.
-          #
-          # The build scripts themselves are deliberately excluded: edits to
-          # them often change emcc flags, glue JS, or guard logic without
-          # changing wasm bytes, so demanding a rebuild produces false alarms.
-          check_backend() {
-            local name="$1" binary="$2"; shift 2
-            local patterns=("$@") f pat hits=""
-            while IFS= read -r f; do
-              [ -z "$f" ] && continue
-              for pat in "${patterns[@]}"; do
-                case "$f" in
-                  $pat) hits="${hits}    ${f}"$'\n'; break ;;
-                esac
-              done
-            done <<<"$CHANGED"
-            if [ -z "$hits" ]; then
-              echo "  $name: inputs unchanged"
-              return
-            fi
-            if changed_has "$binary"; then
-              echo "  $name: inputs changed, $binary rebuilt"
-              return
-            fi
-            # Drop cosmetic-only (comment/whitespace) edits from the demands.
-            local real_hits="" f
-            while IFS= read -r f; do
-              [ -z "$f" ] && continue
-              is_cosmetic_diff "$f" || real_hits="${real_hits}${f}"$'\n'
-            done <<<"$hits"
-            if [ -z "$real_hits" ]; then
-              echo "  $name: inputs changed cosmetically only (comments/whitespace)"
-              return
-            fi
-            echo "::error::$name inputs changed but $binary was not rebuilt."
-            echo "  Changed inputs:"
-            printf '%s' "$real_hits"
-            FAIL=1
-          }
-
-          check_backend "WASI" build/taglib-wasi.wasm \
-            'lib/taglib' 'lib/mpack' 'src/capi/*'
-          check_backend "Emscripten" build/taglib-web.wasm \
-            'lib/taglib' 'build/taglib_embind.cpp' 'src/capi/formats/*'
-
-          if [ "$FAIL" -ne 0 ]; then
-            echo "Rebuild with 'deno task build:wasm' (both backends) or the"
-            echo "per-backend task, then commit the updated binary."
-            exit 1
-          fi
-
   lint:
     name: Lint & Format
     runs-on: ubuntu-latest
@@ -348,6 +223,21 @@ jobs:
         # SDK. The WASI backend is built by the separate build-wasi job.
         run: npm run build:wasm:emscripten
 
+      # Byte-compare freshness gate (taglib-peml): build-wasm.sh pins
+      # BINARYEN_ROOT to emsdk's vendored Binaryen, so the fresh rebuild must
+      # be byte-identical to the committed binary. Comment-only C++ edits
+      # produce identical bytes and pass.
+      - name: Verify committed Emscripten binary is fresh
+        run: |
+          if ! git diff --quiet -- build/taglib-web.wasm; then
+            echo "::error::build/taglib-web.wasm is stale — the fresh build differs from the committed binary."
+            echo "Rebuild with 'deno task build:wasm' (both backends) or 'deno task build:wasm:emscripten',"
+            echo "then commit the updated binary."
+            git diff --stat -- build/taglib-web.wasm
+            exit 1
+          fi
+          echo "build/taglib-web.wasm matches the fresh build"
+
       # Hard gate: the Emscripten wasm must actually instantiate on Deno. The
       # unit suite skips the Emscripten backend on load-failure (so a broken
       # wasm stays green); this fails the build instead. Catches wasm/glue
@@ -402,9 +292,12 @@ jobs:
           echo "WASI_SDK_PATH=$PWD/wasi-sdk-${WASI_VERSION}-x86_64-linux" >> $GITHUB_ENV
           echo "$PWD/wasi-sdk-${WASI_VERSION}-x86_64-linux/bin" >> $GITHUB_PATH
 
-      - name: Install wasm-opt and ninja
+      - name: Install wasm-opt (binaryen) and ninja
+        # binaryen is pinned at 132.0.0 — the same version as emsdk 6.0.7's
+        # vendored Binaryen — so the WASI rebuild is byte-deterministic and
+        # the freshness compare below is meaningful (taglib-peml).
         run: |
-          npm install -g wasm-opt
+          npm install -g binaryen@132.0.0
           sudo apt-get install -y ninja-build
 
       # WASI SDK 33's stock sysroot ships C++ exceptions (eh/ multilib), so the
@@ -423,6 +316,22 @@ jobs:
           chmod +x build/build-wasi.sh
           printf '#!/bin/bash\nexport WASI_SDK_PATH="%s"\nexport PATH="$WASI_SDK_PATH/bin:$PATH"\necho "WASI SDK environment configured"\n' "$WASI_SDK_PATH" > build/wasi-env.sh
           ./build/build-wasi.sh
+
+      # Byte-compare freshness gate (taglib-peml): the fresh rebuild must be
+      # byte-identical to the committed binary. This replaces the old
+      # git-diff heuristic (wasm-freshness job) — it catches stale commits,
+      # toolchain drift, and force-push artifacts equally, with zero
+      # heuristics. Comment-only C++ edits produce identical bytes and pass.
+      - name: Verify committed WASI binary is fresh
+        run: |
+          if ! git diff --quiet -- build/taglib-wasi.wasm; then
+            echo "::error::build/taglib-wasi.wasm is stale — the fresh build differs from the committed binary."
+            echo "Rebuild with 'deno task build:wasm' (both backends) or 'deno task build:wasm:wasi',"
+            echo "then commit the updated binary."
+            git diff --stat -- build/taglib-wasi.wasm
+            exit 1
+          fi
+          echo "build/taglib-wasi.wasm matches the fresh build"
 
       - name: Verify WASI artifacts
         run: |
@@ -738,7 +647,6 @@ jobs:
     # trigger + queue config), not required checks on direct pushes.
     name: Summary
     needs: [
-      wasm-freshness,
       lint,
       bundle,
       build-embind,
@@ -758,10 +666,9 @@ jobs:
 
           # Required jobs (must pass)
           FAILED=false
-          for job in wasm-freshness lint bundle build-embind test package-compat; do
+          for job in lint bundle build-embind test package-compat; do
             result="${{ needs.lint.result }}"
             case "$job" in
-              wasm-freshness) result="${{ needs.wasm-freshness.result }}" ;;
               lint) result="${{ needs.lint.result }}" ;;
               bundle) result="${{ needs.bundle.result }}" ;;
               build-embind) result="${{ needs.build-embind.result }}" ;;
