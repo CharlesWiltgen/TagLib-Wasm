@@ -144,14 +144,24 @@ verify_wasm_freshness() {
         print_warning "Run: deno task build:wasm:wasi"
         exit 1
     fi
-    if ! git diff --quiet -- build/taglib-wasi.wasm; then
-        print_error "build/taglib-wasi.wasm is stale!"
-        print_warning "The WASI build produced a different binary than what's committed."
-        print_warning "Stage the updated file and re-run the release:"
-        print_warning "  git add build/taglib-wasi.wasm && git commit --amend --no-edit"
-        exit 1
+    # The WASI reference binary is the CI/Linux build: wasi-sdk's clang emits
+    # different bytes per host platform (taglib-peml), so a macOS rebuild can
+    # never match the committed reference. CI's byte-compare gate is the
+    # authority (release waits for CI green before tagging), so the local
+    # compare only applies on Linux hosts.
+    if [[ "$(uname -s)" == "Linux" ]]; then
+        if ! git diff --quiet -- build/taglib-wasi.wasm; then
+            print_error "build/taglib-wasi.wasm is stale!"
+            print_warning "The WASI build produced a different binary than what's committed."
+            print_warning "Stage the updated file and re-run the release:"
+            print_warning "  git add build/taglib-wasi.wasm && git commit --amend --no-edit"
+            exit 1
+        fi
+        print_success "build/taglib-wasi.wasm matches fresh build"
+    else
+        print_warning "Skipping local WASI byte-compare on $(uname -s) — the committed"
+        print_warning "reference is the CI/Linux build; CI validates freshness before tagging."
     fi
-    print_success "build/taglib-wasi.wasm matches fresh build"
 }
 
 # Function to run package publishing preflight checks
