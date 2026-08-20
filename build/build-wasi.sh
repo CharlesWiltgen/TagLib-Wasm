@@ -343,12 +343,12 @@ echo "━━━━━━━━━━━━━━━━━━━━━━━━�
 # wasm-strip (wasm-tools) has no npm package and its version is unpinned
 # everywhere, so the byte-compare freshness gate (taglib-peml) cannot rely
 # on it. wasm-opt (binaryen, pinned in CI and setup-dev-env.sh at the same
-# version as emsdk's vendored Binaryen) covers both steps:
-#   -Oz --strip-debug --strip-name-section ≈ wasm-strip's observable
-# effect (no debug info, no name section) with one pinned tool.
+# version as emsdk's vendored Binaryen) covers both steps: binaryen's
+# --strip-debug removes debug info including the name section, matching
+# wasm-strip's observable effect with one pinned tool.
 if command -v wasm-opt &> /dev/null; then
     echo "Stripping debug info with wasm-opt..."
-    wasm-opt --strip-debug --strip-name-section \
+    wasm-opt --strip-debug \
         "$DIST_DIR/taglib-wasi.wasm" \
         -o "$DIST_DIR/taglib-wasi.wasm"
     echo -e "${GREEN}✅ Debug info stripped${NC}"
