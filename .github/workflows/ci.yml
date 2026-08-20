@@ -16,6 +16,7 @@ on:
         default: false
         type: boolean
 
+jobs:
   lint:
     name: Lint & Format
     runs-on: ubuntu-latest
