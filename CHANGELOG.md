@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 2.2.1
+
 ### Fixed
 
 - **Batch writes fit the wire-key write model** (taglib-pmhp rework, post-2.2.0
