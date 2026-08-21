@@ -74,7 +74,7 @@ echo ""
 echo "Optional tools:"
 check_command deno "Install from https://deno.land" || true
 check_command bun "Install from https://bun.sh" || true
-# binaryen is pinned at the same version as emsdk 6.0.7's vendored Binaryen
+# binaryen is pinned at the same version as emsdk 6.0.8's vendored Binaryen
 # so dev builds are byte-identical to CI's (taglib-peml byte-compare gate).
 check_command wasm-opt "npm install -g binaryen@132.0.0" || true
 
@@ -104,8 +104,8 @@ else
     cd "$HOME/emsdk"
     
     # Install pinned SDK (must match CI: .github/workflows/ci.yml)
-    ./emsdk install 6.0.7
-    ./emsdk activate 6.0.7
+    ./emsdk install 6.0.8
+    ./emsdk activate 6.0.8
     
     # Add to shell config
     SHELL_CONFIG=""
@@ -229,7 +229,7 @@ fi
 # Install global tools
 echo ""
 echo "Installing global WebAssembly tools..."
-# binaryen@132.0.0: pinned to emsdk 6.0.7's vendored Binaryen version so the
+# binaryen@132.0.0: pinned to emsdk 6.0.8's vendored Binaryen version so the
 # WASI rebuild is byte-deterministic across machines (taglib-peml). wasm-strip
 # has no npm package and is no longer used by the build.
 npm install -g binaryen@132.0.0 2>/dev/null || true

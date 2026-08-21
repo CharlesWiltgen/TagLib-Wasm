@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+### Internal
+
+- **Emscripten 6.0.7 → 6.0.8 toolchain** — CI pins (ci.yml, sonarcloud.yml,
+  publish-everywhere.yml) and `setup-dev-env.sh` moved to 6.0.8; the
+  committed `taglib-web.wasm` was rebuilt with it (vendored Binaryen stays
+  on the 132 line, so the `binaryen@132.0.0` pins are unchanged). The
+  committed `taglib-wasi.wasm` reference is untouched (CI/Linux build).
+
 ### Breaking
 
 - **`updateFolderTags` (Folder API) removed** (taglib-pmhp) — replaced by

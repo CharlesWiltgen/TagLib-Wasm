@@ -217,7 +217,7 @@ jobs:
       - name: Install Emscripten
         uses: mymindstorm/setup-emsdk@v16
         with:
-          version: 6.0.7
+          version: 6.0.8
 
       - name: Build WebAssembly
         # Emscripten-only by design: this job installs emsdk but not the WASI
@@ -294,7 +294,7 @@ jobs:
           echo "$PWD/wasi-sdk-${WASI_VERSION}-x86_64-linux/bin" >> $GITHUB_PATH
 
       - name: Install wasm-opt (binaryen) and ninja
-        # binaryen is pinned at 132.0.0 — the same version as emsdk 6.0.7's
+        # binaryen is pinned at 132.0.0 — the same version as emsdk 6.0.8's
         # vendored Binaryen — so the WASI rebuild is byte-deterministic and
         # the freshness compare below is meaningful (taglib-peml).
         run: |
