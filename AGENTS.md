@@ -74,16 +74,27 @@ const metadata = await readMetadataBatch(files, { concurrency: 8 });
 // Batch writes: same BatchOptions contract (concurrency, continueOnError,
 // onProgress, signal). Per-file ok/error items in input order; a failed file
 // is left in its pre-write state (atomic temp-file saves); abort is honored
-// between files, never mid-save. writeTagsBatch takes WriteTagUpdate[]
-// ({ path: string; tags: Partial<TagInput> } — a duplicate path applies the
-// last update; an empty tags object still re-saves).
+// between files, never mid-save. WriteTagUpdate = { path, tags?, properties?,
+// clears? } — `tags` is the typed merge; `properties` are raw WIRE-key sets
+// merged verbatim (keys outside TagInput: barcode, unmodeled TXXX);
+// `clears` are WIRE keys to remove entirely (true removal, no empty-string
+// carrier). All three apply in ONE save. A duplicate path applies the last
+// update; an update with no fields still re-saves.
 await writeTagsBatch([
   { path: "song.mp3", tags: { title: "New" } },
-  { path: "song.flac", tags: { artist: ["A", "B"] } },
+  {
+    path: "song.flac",
+    tags: { artist: ["A", "B"] },
+    properties: { BARCODE: ["LC1234"] },
+    clears: ["COMPILATION", "PUBLISHER"],
+  },
 ]);
-// Mutator-callback variant (Full-API style per-file edits, auto-saved):
-await editTagsBatch(["/music/a.mp3", "/music/b.mp3"], (file) => {
-  file.tag().setTitle("New");
+// Mutator-callback variant (Full-API style per-file edits, auto-saved). The
+// mutator receives (audioFile, path) — the path it was opened from, a
+// per-invocation contract, so precomputed per-path plans need no order
+// coupling; a one-argument mutator keeps working:
+await editTagsBatch(["/music/a.mp3", "/music/b.mp3"], (file, path) => {
+  file.tag().setTitle(plans.get(path)!.title);
 });
 // Extra wire keys outside the typed set: readTags/readTagsBatch/readMetadata/
 // readMetadataBatch accept { includeProperties: ["CATALOGNUMBER", ...] } (WIRE

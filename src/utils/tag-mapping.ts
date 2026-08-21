@@ -191,11 +191,17 @@ export function mapPropertiesToExtendedTag(props: PropertyMap): ExtendedTag {
   return tag;
 }
 
-export function mergeTagUpdates(
-  file: AudioFile,
+/**
+ * Pure read-modify-write merge of typed tag input into an existing property
+ * map, WITHOUT touching the file. Shared by {@link mergeTagUpdates} (the
+ * single-file path) and the batch writer, which must fold raw wire-key sets
+ * and clears into the SAME map so one `setProperties` call reaches the
+ * replace-style Emscripten backend (taglib-pmhp review).
+ */
+export function mergeTagUpdatesInto(
+  currentProps: PropertyMap,
   tags: Partial<TagInput>,
-): void {
-  const currentProps = file.properties();
+): PropertyMap {
   const newProps = normalizeTagInput(tags);
   reconcilePairFields(currentProps, newProps, tags);
   // The typed surface resolves the DATE-then-YEAR fallback (taglib-7ru2);
@@ -206,7 +212,14 @@ export function mergeTagUpdates(
   if (newProps.date !== undefined || newProps.year !== undefined) {
     currentProps.YEAR = [];
   }
-  file.setProperties({ ...currentProps, ...newProps });
+  return { ...currentProps, ...newProps };
+}
+
+export function mergeTagUpdates(
+  file: AudioFile,
+  tags: Partial<TagInput>,
+): void {
+  file.setProperties(mergeTagUpdatesInto(file.properties(), tags));
 }
 
 /**

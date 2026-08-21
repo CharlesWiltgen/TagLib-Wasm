@@ -8,8 +8,8 @@ import type {
 } from "../types.ts";
 import { isNamedAudioInput } from "../types/audio-formats.ts";
 import { InvalidFormatError } from "../errors.ts";
-import { readExtendedTag } from "../utils/tag-mapping.ts";
-import { applyTagsToFile } from "./tag-operations.ts";
+import { fromTagLibKey } from "../constants/properties.ts";
+import { mergeTagUpdatesInto, readExtendedTag } from "../utils/tag-mapping.ts";
 import { withAudioFileSaveToFile } from "./with-audio-file.ts";
 import { getTagLib } from "./config.ts";
 
@@ -232,10 +232,19 @@ export interface WriteTagUpdate {
   /** File path on disk; the file is updated in place. */
   path: string;
   /**
-   * Partial tag fields to merge with the file's existing metadata. An empty
-   * object performs a save with no tag changes (a no-op rewrite).
+   * Partial typed tag fields to merge with the file's existing metadata. An
+   * empty object performs a save with no tag changes (a no-op rewrite).
    */
-  tags: Partial<TagInput>;
+  tags?: Partial<TagInput>;
+  /**
+   * Raw WIRE-key sets, merged verbatim (taglib-pmhp review): for keys
+   * outside the typed TagInput surface (barcode, alias-folded wire keys,
+   * unmodeled TXXX fields). An empty array for a key clears it — same
+   * contract as `clears`. Applied in the same single save as `tags`.
+   */
+  properties?: Record<string, string[]>;
+  /** WIRE keys to remove entirely (true removal, no empty-string carrier). */
+  clears?: string[];
 }
 
 type WriteEntry = WriteTagUpdate | string;
@@ -311,22 +320,48 @@ export async function writeTagsBatch(
   options: BatchOptions = {},
 ): Promise<BatchResult<void>> {
   const byPath = new Map(updates.map((u) => [u.path, u]));
-  return executeWriteBatch(updates, options, (path) => {
-    const update = byPath.get(path)!;
-    return applyTagsToFile(path, update.tags);
-  });
+  return executeWriteBatch(
+    updates,
+    options,
+    (path) =>
+      withAudioFileSaveToFile(path, (audioFile) => {
+        const update = byPath.get(path)!;
+        const merged = update.tags !== undefined
+          ? mergeTagUpdatesInto(audioFile.properties(), update.tags)
+          : audioFile.properties();
+        // Raw wire-key sets and clears fold into the SAME map so one
+        // setProperties call reaches the replace-style Emscripten backend —
+        // two calls would drop the first's keys there (taglib-pmhp review).
+        if (update.properties !== undefined) {
+          for (const [key, values] of Object.entries(update.properties)) {
+            merged[fromTagLibKey(key)] = values;
+          }
+        }
+        if (update.clears !== undefined) {
+          for (const key of update.clears) {
+            // The [] clear (qyw2/nc5), NOT setProperty(key, ""): the empty
+            // string leaves an empty carrier frame on disk (probed).
+            merged[fromTagLibKey(key)] = [];
+          }
+        }
+        audioFile.setProperties(merged);
+      }),
+  );
 }
 
 /**
  * Open, mutate, and save multiple files with configurable concurrency.
  *
  * Mutator-callback variant of {@link writeTagsBatch}: the callback receives
- * the open {@link AudioFile} (Full-API style) and its changes are saved per
- * file. Same {@link BatchOptions} contract and atomicity guarantees.
+ * the open {@link AudioFile} (Full-API style) plus the `path` it was opened
+ * from — the pair is a per-invocation contract, so precomputed per-path
+ * plans can be looked up without relying on invocation order (taglib-pmhp
+ * review). A one-argument mutator keeps working. Changes are saved per file;
+ * same {@link BatchOptions} contract and atomicity guarantees.
  *
  * @param files - File paths on disk, updated in place.
- * @param mutator - Called once per file with the open audio file; changes are
- *   saved automatically.
+ * @param mutator - Called once per file with the open audio file and its
+ *   path; changes are saved automatically.
  * @param options - Batch processing options (concurrency, error handling,
  *   progress, abort).
  * @returns A `BatchItem` per file in input order plus total duration in ms.
@@ -334,12 +369,13 @@ export async function writeTagsBatch(
  */
 export async function editTagsBatch(
   files: string[],
-  mutator: (audioFile: AudioFile) => void,
+  mutator: (audioFile: AudioFile, path: string) => void,
   options: BatchOptions = {},
 ): Promise<BatchResult<void>> {
   return executeWriteBatch(
     files,
     options,
-    (path) => withAudioFileSaveToFile(path, mutator),
+    (path) =>
+      withAudioFileSaveToFile(path, (audioFile) => mutator(audioFile, path)),
   );
 }

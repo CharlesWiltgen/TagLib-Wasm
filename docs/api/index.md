@@ -611,7 +611,12 @@ convention (replaces the removed `updateFolderTags`). Import from
 
 ```typescript
 function writeTagsBatch(
-  updates: Array<{ path: string; tags: Partial<TagInput> }>,
+  updates: Array<{
+    path: string;
+    tags?: Partial<TagInput>; // typed merge
+    properties?: Record<string, string[]>; // raw WIRE-key sets, verbatim
+    clears?: string[]; // WIRE keys to remove entirely
+  }>,
   options?: BatchOptions,
 ): Promise<BatchResult<void>>;
 ```
@@ -624,7 +629,12 @@ import { writeTagsBatch } from "taglib-wasm/simple";
 const result = await writeTagsBatch(
   [
     { path: "/music/song1.mp3", tags: { artist: "New Artist" } },
-    { path: "/music/song2.mp3", tags: { album: "New Album" } },
+    {
+      path: "/music/song2.mp3",
+      tags: { album: "New Album" },
+      properties: { BARCODE: ["LC1234"] },
+      clears: ["COMPILATION"],
+    },
   ],
   { concurrency: 8 },
 );
@@ -634,7 +644,8 @@ console.log(`Updated ${updated} files`);
 ```
 
 Mutator-callback variant: `editTagsBatch(files, mutator, options)` — opens
-each file, applies `mutator(audioFile)`, saves.
+each file, applies `mutator(audioFile, path)` (the path it was opened from),
+saves.
 
 ### findDuplicates()
 

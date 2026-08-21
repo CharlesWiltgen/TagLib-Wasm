@@ -135,15 +135,22 @@ removed). Import from `taglib-wasm/simple`.
 
 ```typescript
 function writeTagsBatch(
-  updates: Array<{ path: string; tags: Partial<TagInput> }>,
+  updates: Array<{
+    path: string;
+    tags?: Partial<TagInput>; // typed merge
+    properties?: Record<string, string[]>; // raw WIRE-key sets, verbatim
+    clears?: string[]; // WIRE keys to remove entirely
+  }>,
   options?: BatchOptions,
 ): Promise<BatchResult<void>>;
 ```
 
 **Parameters:**
 
-- `updates` - Array of file paths and tag updates (merge semantics per file;
-  a path may appear more than once, last update wins)
+- `updates` - Per-file updates: `tags` is the typed merge; `properties` are
+  raw wire-key sets (keys outside TagInput — e.g. `BARCODE`); `clears` are
+  wire keys to remove (true removal, no empty-string carrier). All three
+  apply in one save. A path may appear more than once (last update wins)
 - `options` - `BatchOptions`: `concurrency`, `continueOnError` (default:
   `true`), `onProgress(processed, total, file)`, `signal`
 
@@ -158,7 +165,12 @@ import { writeTagsBatch } from "taglib-wasm/simple";
 
 const result = await writeTagsBatch([
   { path: "/music/song1.mp3", tags: { artist: "New Artist" } },
-  { path: "/music/song2.mp3", tags: { album: "New Album" } },
+  {
+    path: "/music/song2.mp3",
+    tags: { album: "New Album" },
+    properties: { BARCODE: ["LC1234"] },
+    clears: ["COMPILATION"],
+  },
 ], {
   concurrency: 8,
   onProgress: (processed, total, file) =>
@@ -167,8 +179,8 @@ const result = await writeTagsBatch([
 ```
 
 The mutator-callback variant `editTagsBatch(files, mutator, options)` opens
-each file, applies `mutator(audioFile)`, and saves — same options and
-result contract.
+each file, applies `mutator(audioFile, path)` (the path it was opened from —
+no order coupling), and saves — same options and result contract.
 
 ### findDuplicates()
 

@@ -13,6 +13,7 @@
 
 import { assertEquals, assertRejects } from "@std/assert";
 import { describe, it } from "@std/testing/bdd";
+import { TagLib } from "../src/taglib.ts";
 import {
   editTagsBatch,
   readTags,
@@ -153,6 +154,117 @@ function runScenarios(): void {
   it("empty input returns an empty result", async () => {
     const result = await writeTagsBatch([]);
     assertEquals(result.items, []);
+  });
+
+  // --- Post-review contracts (tuneup write-model review) ---
+
+  it("editTagsBatch delivers the correct path per invocation under concurrency", async () => {
+    const { mp3, flac } = await makeTempFiles();
+    const third = `${mp3.replace("song1", "song3")}`.replace(".mp3", ".flac");
+    await Deno.writeFile(third, await Deno.readFile(FIXTURE_PATH.flac));
+    const seen = new Map<string, string>();
+    await editTagsBatch(
+      [mp3, flac, third],
+      (audioFile, path) => {
+        seen.set(path, "called");
+        // Title is derived from the path, so an order-coupled (wrong) path
+        // assignment would produce a mismatched title.
+        audioFile.tag().setTitle(`title-of-${path.split("/").pop()}`);
+      },
+      { concurrency: 3 },
+    );
+    assertEquals(seen.size, 3);
+    for (const path of [mp3, flac, third]) {
+      const tags = await readTags(path);
+      assertEquals(tags.title, [`title-of-${path.split("/").pop()}`]);
+    }
+  });
+
+  it("writeTagsBatch properties: raw wire-key sets (modeled + multi-value)", async () => {
+    const { mp3 } = await makeTempFiles();
+    const result = await writeTagsBatch([
+      {
+        path: mp3,
+        properties: { BARCODE: ["LC1234"], PERFORMER: ["A", "B"] },
+      },
+    ]);
+    assertEquals(result.items[0].status, "ok");
+    const tags = await readTags(mp3, {
+      includeProperties: ["BARCODE", "PERFORMER"],
+    });
+    assertEquals(tags.extraProperties, {
+      BARCODE: ["LC1234"],
+      PERFORMER: ["A", "B"],
+    });
+  });
+
+  it("writeTagsBatch clears: wire-key removal with no empty-string carrier", async () => {
+    const { mp3 } = await makeTempFiles();
+    // Seed a COMPILATION frame.
+    const tl = await TagLib.initialize();
+    const seed = await tl.open(mp3);
+    seed.setProperty("COMPILATION", "1");
+    await seed.saveToFile(mp3);
+    seed.dispose();
+
+    const result = await writeTagsBatch([
+      { path: mp3, clears: ["COMPILATION"] },
+    ]);
+    assertEquals(result.items[0].status, "ok");
+
+    const reopened = await tl.open(mp3);
+    const props = reopened.properties() as Record<string, string[]>;
+    reopened.dispose();
+    assertEquals(props.compilation, undefined); // no key, no [""] carrier
+    const tags = await readTags(mp3);
+    assertEquals(tags.compilation, undefined);
+  });
+
+  it("writeTagsBatch PUBLISHER+LABEL pair in a single save", async () => {
+    const { mp3 } = await makeTempFiles();
+    // Seed a stale legacy PUBLISHER frame.
+    const tl = await TagLib.initialize();
+    const seed = await tl.open(mp3);
+    seed.setProperty("PUBLISHER", "Legacy");
+    await seed.saveToFile(mp3);
+    seed.dispose();
+
+    const result = await writeTagsBatch([
+      { path: mp3, properties: { LABEL: ["Apple"] }, clears: ["PUBLISHER"] },
+    ]);
+    assertEquals(result.items[0].status, "ok");
+
+    const reopened = await tl.open(mp3);
+    const props = reopened.properties() as Record<string, string[]>;
+    reopened.dispose();
+    assertEquals(props.label, ["Apple"]);
+    assertEquals(props.publisher, undefined); // removed, no carrier
+  });
+
+  it("writeTagsBatch combines tags + properties + clears in one update", async () => {
+    const { mp3 } = await makeTempFiles();
+    const tl = await TagLib.initialize();
+    const seed = await tl.open(mp3);
+    seed.setProperty("COMPILATION", "1");
+    await seed.saveToFile(mp3);
+    seed.dispose();
+
+    const result = await writeTagsBatch([
+      {
+        path: mp3,
+        tags: { title: "Combined" },
+        properties: { BARCODE: ["X1"] },
+        clears: ["COMPILATION"],
+      },
+    ]);
+    assertEquals(result.items[0].status, "ok");
+
+    const reopened = await tl.open(mp3);
+    const props = reopened.properties() as Record<string, string[]>;
+    reopened.dispose();
+    assertEquals(props.title, ["Combined"]);
+    assertEquals(props.barcode, ["X1"]);
+    assertEquals(props.compilation, undefined);
   });
 }
 
