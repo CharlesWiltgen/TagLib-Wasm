@@ -2,6 +2,28 @@
 
 ## Unreleased
 
+### Breaking
+
+- **`updateFolderTags` (Folder API) removed** (taglib-pmhp) — replaced by
+  `writeTagsBatch` / `editTagsBatch` in the Simple API
+  (`taglib-wasm/simple`), the single batch-write convention. Same per-file
+  `{ status: "ok" | "error", path }` result shape (input-ordered, plus
+  `duration`), same `continueOnError`/`concurrency` options, and now also
+  `onProgress` and `signal` (abort between files). The removed API's results
+  were completion-ordered and silently deduped duplicate paths; the new one
+  preserves input order and processes every entry.
+
+### Added
+
+- **`writeTagsBatch(updates, options)`** — batch tag writes with
+  `BatchOptions` (concurrency, continueOnError, onProgress, signal).
+  Per-file ok/error items in input order; a failed file is left in its
+  pre-write state (atomic temp-file saves); abort honored between files,
+  never mid-save. (taglib-pmhp)
+- **`editTagsBatch(files, mutator, options)`** — mutator-callback batch
+  write: opens each file, applies `mutator(audioFile)`, saves. Same
+  options/result contract as `writeTagsBatch`. (taglib-pmhp)
+
 ## 2.1.0
 
 ### Fixed

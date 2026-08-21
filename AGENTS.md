@@ -71,6 +71,18 @@ const buf2 = await applyCoverArt("song.mp3", imgData, "image/jpeg");
 // Batch (10-20x faster than sequential)
 const results = await readTagsBatch(files, { concurrency: 8 });
 const metadata = await readMetadataBatch(files, { concurrency: 8 });
+// Batch writes: same BatchOptions contract (concurrency, continueOnError,
+// onProgress, signal). Per-file ok/error items in input order; a failed file
+// is left in its pre-write state (atomic temp-file saves); abort is honored
+// between files, never mid-save.
+await writeTagsBatch([
+  { path: "song.mp3", tags: { title: "New" } },
+  { path: "song.flac", tags: { artist: ["A", "B"] } },
+]);
+// Mutator-callback variant (Full-API style per-file edits, auto-saved):
+await editTagsBatch(["/music/a.mp3", "/music/b.mp3"], (file) => {
+  file.tag().setTitle("New");
+});
 // Extra wire keys outside the typed set: readTags/readTagsBatch/readMetadata/
 // readMetadataBatch accept { includeProperties: ["CATALOGNUMBER", ...] } (WIRE
 // keys); the per-item result carries them in `data.extraProperties` (or
@@ -251,8 +263,13 @@ RatingUtils.toPercent(normalized(0.8)); // 80
 ## Folder API Reference
 
 ```typescript
-import { scanFolder, updateFolderTags, findDuplicates, exportFolderMetadata } from "taglib-wasm";
+import { scanFolder, findDuplicates, exportFolderMetadata } from "taglib-wasm";
+// Batch writes live in the Simple API (writeTagsBatch / editTagsBatch), the
+// single batch-write convention; the Folder API's updateFolderTags was
+// removed in their favor.
+```
 
+```typescript
 // Scan (Deno/Node.js/Bun only)
 const result = await scanFolder("/music", {
   recursive: true,
@@ -261,11 +278,6 @@ const result = await scanFolder("/music", {
 });
 // result.items[]: { status, path, tags, properties?, hasCoverArt?, dynamics? }
 // dynamics: { replayGainTrackGain?, replayGainAlbumGain?, appleSoundCheck? }
-
-// Batch update
-await updateFolderTags([
-  { path: "/music/song.mp3", tags: { artist: "New" } },
-]);
 
 // Find duplicates
 const dupes = await findDuplicates("/music", { criteria: ["artist", "title"] });

@@ -10,7 +10,8 @@ editors.
 The folder API is available through a dedicated import path:
 
 ```typescript
-import { findDuplicates, scanFolder, updateFolderTags } from "taglib-wasm";
+import { findDuplicates, scanFolder } from "taglib-wasm";
+import { writeTagsBatch } from "taglib-wasm/simple"; // batch writes
 ```
 
 ::: tip Runtime Support Folder operations require filesystem access and are
@@ -94,9 +95,11 @@ const updates = [
   },
 ];
 
-const result = await updateFolderTags(updates, {
+const result = await writeTagsBatch(updates, {
   continueOnError: true, // Continue if some files fail
   concurrency: 4, // Process 4 files in parallel
+  onProgress: (processed, total, file) =>
+    console.log(`${processed}/${total}: ${file}`),
 });
 
 const updated = result.items.filter((i) => i.status === "ok").length;
@@ -275,7 +278,7 @@ const updates = needsFixing.map((file) => ({
   },
 }));
 
-await updateFolderTags(updates);
+await writeTagsBatch(updates);
 ```
 
 ### Duplicate Cleanup

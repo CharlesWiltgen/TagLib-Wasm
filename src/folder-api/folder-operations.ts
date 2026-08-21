@@ -1,80 +1,15 @@
 /**
- * Folder-level operations: batch updates, duplicates, metadata export
+ * Folder-level operations: duplicates, metadata export
  */
 
-import type { Tag, TagInput } from "../simple/index.ts";
-import { applyTagsToFile } from "../simple/index.ts";
+import type { Tag } from "../simple/index.ts";
 import { writeFileData } from "../utils/write.ts";
-import { processBatch } from "./file-processors.ts";
 import { scanFolder } from "./scan-operations.ts";
 import type {
   AudioFileMetadata,
   DuplicateGroup,
   FolderScanOptions,
-  FolderUpdateItem,
-  FolderUpdateResult,
 } from "./types.ts";
-import { EMPTY_TAG } from "./types.ts";
-
-/**
- * Update metadata for multiple files in a folder
- *
- * @param updates - Array of objects containing path and tags to update
- * @param options - Update options
- * @returns Results of the update operation
- *
- * @example
- * ```typescript
- * const updates = [
- *   { path: "/music/song1.mp3", tags: { artist: "New Artist" } },
- *   { path: "/music/song2.mp3", tags: { album: "New Album" } }
- * ];
- *
- * const result = await updateFolderTags(updates);
- * const updated = result.items.filter((i) => i.status === "ok").length;
- * console.log(`Updated ${updated} files`);
- * ```
- */
-export async function updateFolderTags(
-  updates: Array<{ path: string; tags: Partial<TagInput> }>,
-  options: {
-    continueOnError?: boolean;
-    concurrency?: number;
-    signal?: AbortSignal;
-  } = {},
-): Promise<FolderUpdateResult> {
-  const startTime = Date.now();
-  const { continueOnError = true, concurrency = 4, signal } = options;
-  const items: FolderUpdateItem[] = [];
-
-  const batchSize = concurrency * 10;
-  for (let i = 0; i < updates.length; i += batchSize) {
-    signal?.throwIfAborted();
-    const batch = updates.slice(i, Math.min(i + batchSize, updates.length));
-    const updateMap = new Map(batch.map((u) => [u.path, u]));
-    await processBatch(
-      batch.map((u) => u.path),
-      async (path) => {
-        const update = updateMap.get(path)!;
-        try {
-          await applyTagsToFile(update.path, update.tags);
-          items.push({ status: "ok", path: update.path });
-        } catch (error) {
-          const err = error instanceof Error ? error : new Error(String(error));
-          if (continueOnError) {
-            items.push({ status: "error", path: update.path, error: err });
-          } else {
-            throw err;
-          }
-        }
-        return { path, tags: EMPTY_TAG };
-      },
-      concurrency,
-    );
-  }
-
-  return { items, duration: Date.now() - startTime };
-}
 
 function buildCriteriaKey(
   tags: Tag,

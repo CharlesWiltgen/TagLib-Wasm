@@ -22,7 +22,7 @@ JavaScript/TypeScript.
     - [readMetadataBatch()](#readmetadatabatch)
 - [Folder API](#folder-api)
   - [scanFolder()](#scanfolder)
-  - [updateFolderTags()](#updatefoldertags)
+  - [writeTagsBatch()](#writetagsbatch)
   - [findDuplicates()](#findduplicates)
   - [exportFolderMetadata()](#exportfoldermetadata)
 - [Full API](#full-api)
@@ -572,7 +572,9 @@ Node.js, and Bun environments. :::
 ### Import
 
 ```typescript
-import { findDuplicates, scanFolder, updateFolderTags } from "taglib-wasm";
+import { findDuplicates, scanFolder } from "taglib-wasm";
+// Batch writes: import { writeTagsBatch } from "taglib-wasm/simple" —
+// replaces the removed updateFolderTags.
 ```
 
 ### scanFolder()
@@ -601,28 +603,38 @@ console.log(`Found ${result.items.length} files`);
 console.log(`Processed ${okItems.length} successfully`);
 ```
 
-### updateFolderTags()
+### writeTagsBatch()
 
-Update metadata for multiple files in batch.
+Update metadata for multiple files in batch — the single batch-write
+convention (replaces the removed `updateFolderTags`). Import from
+`taglib-wasm/simple`.
 
 ```typescript
-function updateFolderTags(
+function writeTagsBatch(
   updates: Array<{ path: string; tags: Partial<TagInput> }>,
-  options?: { continueOnError?: boolean },
-): Promise<FolderUpdateResult>;
+  options?: BatchOptions,
+): Promise<BatchResult<void>>;
 ```
 
 #### Example
 
 ```typescript
-const result = await updateFolderTags([
-  { path: "/music/song1.mp3", tags: { artist: "New Artist" } },
-  { path: "/music/song2.mp3", tags: { album: "New Album" } },
-]);
+import { writeTagsBatch } from "taglib-wasm/simple";
+
+const result = await writeTagsBatch(
+  [
+    { path: "/music/song1.mp3", tags: { artist: "New Artist" } },
+    { path: "/music/song2.mp3", tags: { album: "New Album" } },
+  ],
+  { concurrency: 8 },
+);
 
 const updated = result.items.filter((i) => i.status === "ok").length;
 console.log(`Updated ${updated} files`);
 ```
+
+Mutator-callback variant: `editTagsBatch(files, mutator, options)` — opens
+each file, applies `mutator(audioFile)`, saves.
 
 ### findDuplicates()
 

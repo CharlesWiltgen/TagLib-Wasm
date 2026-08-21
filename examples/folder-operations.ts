@@ -8,12 +8,8 @@
  * batch operations like finding duplicates and updating tags.
  */
 
-import {
-  exportFolderMetadata,
-  findDuplicates,
-  scanFolder,
-  updateFolderTags,
-} from "../index.ts";
+import { exportFolderMetadata, findDuplicates, scanFolder } from "../index.ts";
+import { writeTagsBatch } from "../simple/index.ts";
 
 // Example 1: Scan a folder and display all metadata
 async function scanAndDisplay() {
@@ -111,7 +107,11 @@ async function batchUpdateExample() {
 
   console.log(`Updating ${updates.length} files...`);
 
-  const updateResult = await updateFolderTags(updates);
+  const updateResult = await writeTagsBatch(updates, {
+    onProgress: (processed, total, file) => {
+      console.log(`  Updated ${processed}/${total}: ${file}`);
+    },
+  });
 
   const failed = updateResult.items.filter((i) => i.status === "error");
 

@@ -7,18 +7,6 @@ import type { AudioProperties } from "../types.ts";
 
 export type { AudioProperties, ExtendedTag, Tag, TagInput };
 
-export const EMPTY_TAG = Object.freeze(
-  {
-    title: [],
-    artist: [],
-    album: [],
-    comment: [],
-    genre: [],
-    year: 0,
-    track: 0,
-  } satisfies Required<Tag>,
-);
-
 export const DEFAULT_AUDIO_EXTENSIONS = [
   ".mp3",
   ".m4a",
@@ -109,15 +97,6 @@ export interface FolderScanResult {
   /** Ordered results — one entry per discovered file */
   items: FolderScanItem[];
   /** Time taken in milliseconds */
-  duration: number;
-}
-
-export type FolderUpdateItem =
-  | { status: "ok"; path: string }
-  | { status: "error"; path: string; error: Error };
-
-export interface FolderUpdateResult {
-  items: FolderUpdateItem[];
   duration: number;
 }
 

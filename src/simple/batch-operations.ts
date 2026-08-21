@@ -1,9 +1,16 @@
 import type { AudioFile } from "../taglib.ts";
 import type { AudioDynamics } from "../folder-api/types.ts";
-import type { AudioFileInput, AudioProperties, ExtendedTag } from "../types.ts";
+import type {
+  AudioFileInput,
+  AudioProperties,
+  ExtendedTag,
+  TagInput,
+} from "../types.ts";
 import { isNamedAudioInput } from "../types/audio-formats.ts";
 import { InvalidFormatError } from "../errors.ts";
 import { readExtendedTag } from "../utils/tag-mapping.ts";
+import { applyTagsToFile } from "./tag-operations.ts";
+import { withAudioFileSaveToFile } from "./with-audio-file.ts";
 import { getTagLib } from "./config.ts";
 
 /** Configuration for batch processing operations. */
@@ -218,4 +225,114 @@ export async function readMetadataBatch(
       ...(dynamics !== undefined ? { dynamics } : {}),
     };
   });
+}
+
+/** One file to update in a {@link writeTagsBatch} call. */
+export interface WriteTagUpdate {
+  /** File path on disk; the file is updated in place. */
+  path: string;
+  /** Partial tag fields to merge with the file's existing metadata. */
+  tags: Partial<TagInput>;
+}
+
+type WriteEntry = WriteTagUpdate | string;
+
+function entryPath(entry: WriteEntry): string {
+  return typeof entry === "string" ? entry : entry.path;
+}
+
+/**
+ * Shared batch-write driver: the read-side executeBatch contract applied to
+ * writes (taglib-pmhp). Per-file try/catch with ok/error items, abort between
+ * chunks (never mid-save), progress after each file, input-order-preserving
+ * results. Atomicity is inherited from saveToFile's temp-file save: a failed
+ * file is left in its pre-write state.
+ */
+async function executeWriteBatch(
+  entries: WriteEntry[],
+  options: BatchOptions,
+  writer: (path: string) => Promise<void>,
+): Promise<BatchResult<void>> {
+  if (entries.length === 0) return { items: [], duration: 0 };
+  const startTime = Date.now();
+  const { concurrency = 4, continueOnError = true, onProgress, signal } =
+    options;
+  const items: BatchItem<void>[] = new Array<BatchItem<void>>(entries.length);
+  let processed = 0;
+  const total = entries.length;
+
+  for (let i = 0; i < entries.length; i += concurrency) {
+    signal?.throwIfAborted();
+    const chunk = entries.slice(i, i + concurrency);
+    const chunkPromises = chunk.map(async (entry, idx) => {
+      const index = i + idx;
+      const path = entryPath(entry);
+      try {
+        await writer(path);
+        items[index] = { status: "ok", path, data: undefined };
+      } catch (error) {
+        const err = error instanceof Error ? error : new Error(String(error));
+        items[index] = { status: "error", path, error: err };
+        if (!continueOnError) throw err;
+      }
+      processed++;
+      onProgress?.(processed, total, path);
+    });
+    await Promise.all(chunkPromises);
+  }
+  return { items, duration: Date.now() - startTime };
+}
+
+/**
+ * Apply tag updates to multiple files with configurable concurrency.
+ *
+ * The batch write counterpart to {@link readTagsBatch}: same
+ * {@link BatchOptions} contract (concurrency, continueOnError, onProgress,
+ * signal). Each file is updated via the same path as
+ * {@link applyTagsToFile} — merge semantics, atomic temp-file save, so a
+ * failed file is left in its pre-write state.
+ *
+ * @param updates - Per-file tag updates; a path may appear more than once
+ *   (the last update for a path wins).
+ * @param options - Batch processing options (concurrency, error handling,
+ *   progress, abort).
+ * @returns A `BatchItem` per update in input order plus total duration in ms.
+ * @throws If `continueOnError` is `false` and any file fails to process.
+ */
+export async function writeTagsBatch(
+  updates: WriteTagUpdate[],
+  options: BatchOptions = {},
+): Promise<BatchResult<void>> {
+  const byPath = new Map(updates.map((u) => [u.path, u]));
+  return executeWriteBatch(updates, options, (path) => {
+    const update = byPath.get(path)!;
+    return applyTagsToFile(path, update.tags);
+  });
+}
+
+/**
+ * Open, mutate, and save multiple files with configurable concurrency.
+ *
+ * Mutator-callback variant of {@link writeTagsBatch}: the callback receives
+ * the open {@link AudioFile} (Full-API style) and its changes are saved per
+ * file. Same {@link BatchOptions} contract and atomicity guarantees.
+ *
+ * @param files - File paths on disk, updated in place.
+ * @param mutator - Called once per file with the open audio file; changes are
+ *   saved automatically.
+ * @param options - Batch processing options (concurrency, error handling,
+ *   progress, abort).
+ * @returns A `BatchItem` per file in input order plus total duration in ms.
+ * @throws If `continueOnError` is `false` and any file fails to process.
+ */
+export async function editTagsBatch(
+  files: string[],
+  mutator: (audioFile: AudioFile) => void,
+  options: BatchOptions = {},
+): Promise<BatchResult<void>> {
+  return executeWriteBatch(
+    files,
+    options,
+    (path) => withAudioFileSaveToFile(path, mutator),
+  );
 }

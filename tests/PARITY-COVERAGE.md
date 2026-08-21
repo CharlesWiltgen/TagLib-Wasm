@@ -95,6 +95,11 @@ Simple API batch layer) are pinned by looped-backend suites in `tests/`:
   `extraProperties` on readTags/readTagsBatch/readMetadata/readMetadataBatch,
   absent-key omission, and the never-writes-EXTRAPROPERTIES round-trip guard;
   both `[wasi]` and `[emscripten]` suites via `setBufferMode`.
+- `tests/write-tags-batch.test.ts` (taglib-pmhp) — `writeTagsBatch` /
+  `editTagsBatch` parity: per-file status + input order, progress,
+  pre-write-state atomicity on failure, `continueOnError=false` rejection,
+  abort between files (never mid-save); both `[wasi]` and `[emscripten]`
+  suites via `setBufferMode`.
 
 ## Parity gaps (filed as sub-issues of taglib-7ek)
 

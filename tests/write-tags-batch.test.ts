@@ -1,0 +1,167 @@
+/**
+ * @fileoverview Batch writes: writeTagsBatch + editTagsBatch (taglib-pmhp).
+ *
+ * The Simple API's read side has batch surfaces (readTagsBatch,
+ * readMetadataBatch); the write side had none — consumers hand-rolled
+ * open -> mutate -> saveToFile loops with per-file try/catch, status
+ * counts, and abort checks. writeTagsBatch ships the same BatchOptions
+ * contract (concurrency/continueOnError/onProgress/signal) for writes,
+ * with per-file status, atomicity (a failed file stays pre-write), and
+ * abort between files. updateFolderTags is removed in favor of this
+ * surface (single batch-write convention).
+ */
+
+import { assertEquals, assertRejects } from "@std/assert";
+import { describe, it } from "@std/testing/bdd";
+import {
+  editTagsBatch,
+  readTags,
+  setBufferMode,
+  writeTagsBatch,
+} from "../src/simple/index.ts";
+import { FIXTURE_PATH } from "./shared-fixtures.ts";
+
+interface TempFiles {
+  mp3: string;
+  flac: string;
+  corrupt: string;
+}
+
+async function makeTempFiles(): Promise<TempFiles> {
+  const dir = await Deno.makeTempDir();
+  const mp3 = `${dir}/song1.mp3`;
+  const flac = `${dir}/song2.flac`;
+  const corrupt = `${dir}/broken.mp3`;
+  await Deno.writeFile(mp3, await Deno.readFile(FIXTURE_PATH.mp3));
+  await Deno.writeFile(flac, await Deno.readFile(FIXTURE_PATH.flac));
+  await Deno.writeFile(corrupt, new Uint8Array(4096)); // not audio
+  return { mp3, flac, corrupt };
+}
+
+async function bytesOf(path: string): Promise<Uint8Array> {
+  return await Deno.readFile(path);
+}
+
+function runScenarios(): void {
+  it("writeTagsBatch applies tags to every file; ok items preserve input order", async () => {
+    const { mp3, flac } = await makeTempFiles();
+    const result = await writeTagsBatch([
+      { path: mp3, tags: { title: "New Title" } },
+      { path: flac, tags: { artist: "New Artist" } },
+    ]);
+    assertEquals(result.items.length, 2);
+    assertEquals(result.items.every((i) => i.status === "ok"), true);
+    assertEquals(result.items[0].path, mp3);
+    assertEquals(result.items[1].path, flac);
+    const mp3Tags = await readTags(mp3);
+    const flacTags = await readTags(flac);
+    assertEquals(mp3Tags.title, ["New Title"]);
+    assertEquals(flacTags.artist, ["New Artist"]);
+  });
+
+  it("onProgress reports processed/total with the current file", async () => {
+    const { mp3, flac } = await makeTempFiles();
+    const calls: Array<[number, number, string]> = [];
+    await writeTagsBatch(
+      [
+        { path: mp3, tags: { title: "A" } },
+        { path: flac, tags: { title: "B" } },
+      ],
+      {
+        concurrency: 1,
+        onProgress: (processed, total, file) =>
+          calls.push([processed, total, file]),
+      },
+    );
+    assertEquals(calls, [
+      [1, 2, mp3],
+      [2, 2, flac],
+    ]);
+  });
+
+  it("failed file is left in its pre-write state; others still succeed", async () => {
+    const { mp3, corrupt } = await makeTempFiles();
+    const before = await bytesOf(corrupt);
+    const result = await writeTagsBatch([
+      { path: corrupt, tags: { title: "X" } },
+      { path: mp3, tags: { title: "OK" } },
+    ]);
+    assertEquals(result.items[0].status, "error");
+    assertEquals(result.items[1].status, "ok");
+    // Atomicity: the failed file's bytes are untouched.
+    assertEquals(await bytesOf(corrupt), before);
+    const tags = await readTags(mp3);
+    assertEquals(tags.title, ["OK"]);
+  });
+
+  it("continueOnError=false rejects on the first failure", async () => {
+    const { mp3, corrupt } = await makeTempFiles();
+    await assertRejects(
+      () =>
+        writeTagsBatch(
+          [
+            { path: corrupt, tags: { title: "X" } },
+            { path: mp3, tags: { title: "OK" } },
+          ],
+          { continueOnError: false },
+        ),
+    );
+  });
+
+  it("AbortSignal stops between files, never mid-save", async () => {
+    const { mp3, flac } = await makeTempFiles();
+    const flacBefore = await bytesOf(flac);
+    const controller = new AbortController();
+    await assertRejects(
+      () =>
+        writeTagsBatch(
+          [
+            { path: mp3, tags: { title: "First" } },
+            { path: flac, tags: { title: "Second" } },
+          ],
+          {
+            concurrency: 1,
+            signal: controller.signal,
+            onProgress: (processed) => {
+              if (processed === 1) controller.abort();
+            },
+          },
+        ),
+      DOMException,
+      "aborted",
+    );
+    // First file was written, second never opened: bytes unchanged.
+    const tags = await readTags(mp3);
+    assertEquals(tags.title, ["First"]);
+    assertEquals(await bytesOf(flac), flacBefore);
+  });
+
+  it("editTagsBatch mutator variant applies per-file edits and saves", async () => {
+    const { mp3, flac } = await makeTempFiles();
+    const result = await editTagsBatch(
+      [mp3, flac],
+      (audioFile) => audioFile.tag().setTitle("Mutated"),
+    );
+    assertEquals(result.items.length, 2);
+    assertEquals(result.items.every((i) => i.status === "ok"), true);
+    const mp3Tags = await readTags(mp3);
+    const flacTags = await readTags(flac);
+    assertEquals(mp3Tags.title, ["Mutated"]);
+    assertEquals(flacTags.title, ["Mutated"]);
+  });
+
+  it("empty input returns an empty result", async () => {
+    const result = await writeTagsBatch([]);
+    assertEquals(result.items, []);
+  });
+}
+
+describe("writeTagsBatch (taglib-pmhp) [wasi]", () => {
+  setBufferMode(false);
+  runScenarios();
+});
+
+describe("writeTagsBatch (taglib-pmhp) [emscripten]", () => {
+  setBufferMode(true);
+  runScenarios();
+});

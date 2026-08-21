@@ -6,9 +6,9 @@ This guide shows the recommended way to set up a Deno application that uses TagL
 
 The JSR package (`@charlesw/taglib-wasm`) includes everything you need:
 
-- Folder API (scanFolder, updateFolderTags, etc.)
+- Folder API (scanFolder, findDuplicates, etc.)
 - Deno compile utilities (isDenoCompiled, initializeForDenoCompile)
-- Simple API (readTags, applyTags, applyTagsToFile)
+- Simple API (readTags, applyTags, applyTagsToFile, writeTagsBatch)
 - Full API (TagLib class)
 - All TypeScript types
 

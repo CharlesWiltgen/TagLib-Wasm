@@ -5,9 +5,8 @@ import {
   exportFolderMetadata,
   findDuplicates,
   scanFolder,
-  updateFolderTags,
 } from "../src/folder-api/index.ts";
-import { readTags, setBufferMode } from "../src/simple/index.ts";
+import { setBufferMode, writeTagsBatch } from "../src/simple/index.ts";
 import { fromFileUrl } from "@std/path";
 
 // Force Emscripten backend for Simple API calls
@@ -104,51 +103,6 @@ describe("folder-api", () => {
     }
   });
 
-  it("updateFolderTags - updates multiple files", async () => {
-    // Create temporary copies of test files
-    const tempDir = await Deno.makeTempDir();
-    const testFile1 = `${tempDir}/test1.mp3`;
-    const testFile2 = `${tempDir}/test2.mp3`;
-
-    // Copy test files
-    const mp3Data = await Deno.readFile(
-      `${TEST_FILES_DIR}/mp3/kiss-snippet.mp3`,
-    );
-    await Deno.writeFile(testFile1, mp3Data);
-    await Deno.writeFile(testFile2, mp3Data);
-
-    try {
-      // Update tags
-      const updates = [
-        {
-          path: testFile1,
-          tags: { artist: "Updated Artist 1", album: "Batch Album" },
-        },
-        {
-          path: testFile2,
-          tags: { artist: "Updated Artist 2", album: "Batch Album" },
-        },
-      ];
-
-      const result = await updateFolderTags(updates);
-      assertEquals(result.items.length, 2);
-      assertEquals(result.items.every((i) => i.status === "ok"), true);
-
-      // Verify updates - note that tags preserve existing metadata
-      const tags1 = await readTags(testFile1);
-      assertEquals(tags1.artist, ["Updated Artist 1"]);
-      assertEquals(tags1.album, ["Batch Album"]);
-      assertEquals(tags1.title, ["Kiss"]);
-
-      const tags2 = await readTags(testFile2);
-      assertEquals(tags2.artist, ["Updated Artist 2"]);
-      assertEquals(tags2.album, ["Batch Album"]);
-      assertEquals(tags2.title, ["Kiss"]);
-    } finally {
-      await Deno.remove(tempDir, { recursive: true });
-    }
-  });
-
   it("findDuplicates - finds files with same metadata", async () => {
     // Create temporary directory with duplicate metadata
     const tempDir = await Deno.makeTempDir();
@@ -165,7 +119,7 @@ describe("folder-api", () => {
     await Deno.writeFile(file3, mp3Data);
 
     // Set up duplicate tags
-    await updateFolderTags([
+    await writeTagsBatch([
       {
         path: file1,
         tags: { artist: "Duplicate Artist", title: "Duplicate Title" },

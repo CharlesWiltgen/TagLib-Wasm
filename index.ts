@@ -144,14 +144,11 @@ export {
   type FolderScanItem,
   type FolderScanOptions,
   type FolderScanResult,
-  type FolderUpdateItem,
-  type FolderUpdateResult,
   groupAlbums,
   type GroupAlbumsOptions,
   scanFolder,
   scanForAlbums,
   type ScanForAlbumsOptions,
-  updateFolderTags,
 } from "./src/folder-api/index.ts";
 
 // Web browser utilities

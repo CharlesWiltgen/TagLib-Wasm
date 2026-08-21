@@ -14,9 +14,12 @@ import {
   type FolderScanOptions,
   type FolderScanResult,
   scanFolder,
-  updateFolderTags,
 } from "taglib-wasm";
 ```
+
+> **Batch writes** (`writeTagsBatch`, `editTagsBatch`) live in the Simple API
+> — `import { writeTagsBatch } from "taglib-wasm/simple"`. They replace the
+> former `updateFolderTags`.
 
 ## Functions
 
@@ -124,35 +127,48 @@ for (const file of result.items) {
 }
 ```
 
-### updateFolderTags()
+### writeTagsBatch()
 
-Updates metadata for multiple files in batch.
+Applies tag updates to multiple files in batch — the single batch-write
+convention (this replaced the Folder API's `updateFolderTags`, which was
+removed). Import from `taglib-wasm/simple`.
 
 ```typescript
-function updateFolderTags(
+function writeTagsBatch(
   updates: Array<{ path: string; tags: Partial<TagInput> }>,
-  options?: {
-    continueOnError?: boolean;
-  },
-): Promise<FolderUpdateResult>;
+  options?: BatchOptions,
+): Promise<BatchResult<void>>;
 ```
 
 **Parameters:**
 
-- `updates` - Array of file paths and tag updates
-- `options` - Optional configuration
-  - `continueOnError` - Continue if files fail (default: `true`)
+- `updates` - Array of file paths and tag updates (merge semantics per file;
+  a path may appear more than once, last update wins)
+- `options` - `BatchOptions`: `concurrency`, `continueOnError` (default:
+  `true`), `onProgress(processed, total, file)`, `signal`
 
-**Returns:** Promise with update results
+**Returns:** Promise with per-file `ok`/`error` items in input order plus
+`duration`. A failed file is left in its pre-write state (atomic temp-file
+saves); abort is honored between files, never mid-save.
 
 **Example:**
 
 ```typescript
-const result = await updateFolderTags([
+import { writeTagsBatch } from "taglib-wasm/simple";
+
+const result = await writeTagsBatch([
   { path: "/music/song1.mp3", tags: { artist: "New Artist" } },
   { path: "/music/song2.mp3", tags: { album: "New Album" } },
-]);
+], {
+  concurrency: 8,
+  onProgress: (processed, total, file) =>
+    console.log(`${processed}/${total}: ${file}`),
+});
 ```
+
+The mutator-callback variant `editTagsBatch(files, mutator, options)` opens
+each file, applies `mutator(audioFile)`, and saves — same options and
+result contract.
 
 ### findDuplicates()
 
@@ -273,21 +289,9 @@ interface FolderScanResult {
 
 ### FolderUpdateResult
 
-Results from a folder update operation.
-
-```typescript
-type FolderUpdateItem =
-  | { status: "ok"; path: string }
-  | { status: "error"; path: string; error: Error };
-
-interface FolderUpdateResult {
-  /** All update results (check status to discriminate ok vs error) */
-  items: FolderUpdateItem[];
-
-  /** Time taken in milliseconds */
-  duration: number;
-}
-```
+Removed with `updateFolderTags`. Batch-write results use the Simple API's
+`BatchResult<void>` (`{ status: "ok" | "error"; path; ... }` per item in
+input order) — see `writeTagsBatch` above.
 
 ### AudioFileMetadata
 

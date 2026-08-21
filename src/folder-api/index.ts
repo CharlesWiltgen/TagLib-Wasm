@@ -10,17 +10,11 @@ export type {
   FolderScanItem,
   FolderScanOptions,
   FolderScanResult,
-  FolderUpdateItem,
-  FolderUpdateResult,
 } from "./types.ts";
 
 export { scanFolder } from "./scan-operations.ts";
 
-export {
-  exportFolderMetadata,
-  findDuplicates,
-  updateFolderTags,
-} from "./folder-operations.ts";
+export { exportFolderMetadata, findDuplicates } from "./folder-operations.ts";
 
 export {
   type AlbumDisc,

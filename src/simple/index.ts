@@ -23,16 +23,19 @@ export {
 } from "./picture-operations.ts";
 
 export {
+  editTagsBatch,
   readMetadata,
   readMetadataBatch,
   readPropertiesBatch,
   readTagsBatch,
+  writeTagsBatch,
 } from "./batch-operations.ts";
 export type {
   BatchItem,
   BatchOptions,
   BatchResult,
   FileMetadata,
+  WriteTagUpdate,
 } from "./batch-operations.ts";
 
 export type {
