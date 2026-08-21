@@ -10,8 +10,8 @@
   `{ status: "ok" | "error", path }` result shape (input-ordered, plus
   `duration`), same `continueOnError`/`concurrency` options, and now also
   `onProgress` and `signal` (abort between files). The removed API's results
-  were completion-ordered and silently deduped duplicate paths; the new one
-  preserves input order and processes every entry.
+  were completion-ordered and applied chunk-local last-wins for duplicate
+  paths; the new one preserves input order and applies whole-array last-wins.
 
 ### Added
 

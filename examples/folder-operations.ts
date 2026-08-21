@@ -9,7 +9,7 @@
  */
 
 import { exportFolderMetadata, findDuplicates, scanFolder } from "../index.ts";
-import { writeTagsBatch } from "../simple/index.ts";
+import { writeTagsBatch } from "../src/simple/index.ts";
 
 // Example 1: Scan a folder and display all metadata
 async function scanAndDisplay() {
@@ -38,7 +38,7 @@ async function scanAndDisplay() {
     console.log(`    Album: ${file.tags.album || "(unknown)"}`);
     console.log(`    Title: ${file.tags.title || "(unknown)"}`);
     if (file.properties) {
-      console.log(`    Duration: ${file.properties.length}s`);
+      console.log(`    Duration: ${file.properties.duration}s`);
       console.log(`    Bitrate: ${file.properties.bitrate} kbps`);
     }
   }
@@ -57,24 +57,25 @@ async function findDuplicateSongs() {
 
   const duplicates = await findDuplicates("./examples/sample-music");
 
-  if (duplicates.size === 0) {
+  if (duplicates.length === 0) {
     console.log("No duplicates found!");
     return;
   }
 
-  console.log(`Found ${duplicates.size} groups of duplicates:\n`);
+  console.log(`Found ${duplicates.length} groups of duplicates:\n`);
 
   let groupNum = 1;
-  for (const [key, files] of duplicates) {
+  for (const group of duplicates) {
+    const { criteria, files } = group;
     console.log(`Duplicate Group ${groupNum}:`);
-    console.log(`  Key: ${key}`);
+    console.log(`  Key: ${JSON.stringify(criteria)}`);
     console.log(`  Files:`);
     for (const file of files) {
       console.log(`    - ${file.path}`);
       if (file.properties) {
         console.log(
           `      Size: ${
-            (file.properties.length * file.properties.bitrate * 125).toFixed(
+            (file.properties.duration * file.properties.bitrate * 125).toFixed(
               0,
             )
           } bytes`,

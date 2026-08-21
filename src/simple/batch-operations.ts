@@ -231,7 +231,10 @@ export async function readMetadataBatch(
 export interface WriteTagUpdate {
   /** File path on disk; the file is updated in place. */
   path: string;
-  /** Partial tag fields to merge with the file's existing metadata. */
+  /**
+   * Partial tag fields to merge with the file's existing metadata. An empty
+   * object performs a save with no tag changes (a no-op rewrite).
+   */
   tags: Partial<TagInput>;
 }
 
@@ -254,6 +257,10 @@ async function executeWriteBatch(
   writer: (path: string) => Promise<void>,
 ): Promise<BatchResult<void>> {
   if (entries.length === 0) return { items: [], duration: 0 };
+  // Mirror executeBatch: initialize BEFORE the loop so a Wasm init failure
+  // rejects the batch instead of surfacing as a per-file error item under
+  // the default continueOnError.
+  await getTagLib();
   const startTime = Date.now();
   const { concurrency = 4, continueOnError = true, onProgress, signal } =
     options;
