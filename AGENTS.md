@@ -74,7 +74,9 @@ const metadata = await readMetadataBatch(files, { concurrency: 8 });
 // Batch writes: same BatchOptions contract (concurrency, continueOnError,
 // onProgress, signal). Per-file ok/error items in input order; a failed file
 // is left in its pre-write state (atomic temp-file saves); abort is honored
-// between files, never mid-save.
+// between files, never mid-save. writeTagsBatch takes WriteTagUpdate[]
+// ({ path: string; tags: Partial<TagInput> } — a duplicate path applies the
+// last update; an empty tags object still re-saves).
 await writeTagsBatch([
   { path: "song.mp3", tags: { title: "New" } },
   { path: "song.flac", tags: { artist: ["A", "B"] } },
