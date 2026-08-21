@@ -2,13 +2,7 @@
 
 ## Unreleased
 
-### Internal
-
-- **Emscripten 6.0.7 → 6.0.8 toolchain** — CI pins (ci.yml, sonarcloud.yml,
-  publish-everywhere.yml) and `setup-dev-env.sh` moved to 6.0.8; the
-  committed `taglib-web.wasm` was rebuilt with it (vendored Binaryen stays
-  on the 132 line, so the `binaryen@132.0.0` pins are unchanged). The
-  committed `taglib-wasi.wasm` reference is untouched (CI/Linux build).
+## 2.2.0
 
 ### Breaking
 
@@ -31,6 +25,27 @@
 - **`editTagsBatch(files, mutator, options)`** — mutator-callback batch
   write: opens each file, applies `mutator(audioFile)`, saves. Same
   options/result contract as `writeTagsBatch`. (taglib-pmhp)
+- **`includeProperties` (wire keys) on batch and single-file reads**
+  (taglib-3s1f) — `readTags`/`readTagsBatch`/`readMetadata`/
+  `readMetadataBatch` accept `{ includeProperties: ["CATALOGNUMBER", ...] }`
+  (WIRE keys); the result carries them in `extraProperties` under their exact
+  wire names, absent keys omitted. Kills the second Full-API open pass for
+  unmodeled keys; the PropertyMap was already fetched per file on both
+  backends. `extraProperties` is read-only — `applyTags` never writes it
+  back.
+- **`releaseCountry` typed mapping** (taglib-m0c2) — `RELEASECOUNTRY` joins
+  the PROPERTIES table (`TagInput`/`ExtendedTag.releaseCountry`). TagLib
+  2.3.1 already maps the key natively on every format (ID3v2 TXXX
+  `MUSICBRAINZ ALBUM RELEASE COUNTRY`, MP4 freeform, ASF, WAV ICNT,
+  Vorbis/Matroska raw), so the change is TS-side only.
+
+### Internal
+
+- **Emscripten 6.0.7 → 6.0.8 toolchain** — CI pins (ci.yml, sonarcloud.yml,
+  publish-everywhere.yml) and `setup-dev-env.sh` moved to 6.0.8; the
+  committed `taglib-web.wasm` was rebuilt with it (vendored Binaryen stays
+  on the 132 line, so the `binaryen@132.0.0` pins are unchanged). The
+  committed `taglib-wasi.wasm` reference is untouched (CI/Linux build).
 
 ## 2.1.0
 
