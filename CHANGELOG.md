@@ -6,11 +6,11 @@
 
 - **Batch writes fit the wire-key write model** (taglib-pmhp rework, post-2.2.0
   review): `writeTagsBatch` updates gain `properties?: Record<string, string[]>`
-  (raw WIRE-key sets, merged verbatim — keys outside TagInput such as `BARCODE`
-  and unmodeled TXXX fields) and `clears?: string[]` (WIRE keys to remove
-  entirely, via the `[]` clear — the empty-string form leaves a carrier frame
-  on disk). All three (`tags` + `properties` + `clears`) apply in ONE save —
-  the replace-style Emscripten `setProperties` would drop keys across multiple
+  — a raw WIRE-key map with the SAME shape and rule as the Full API's
+  `setProperties` (keys outside TagInput such as `BARCODE` ride here; an
+  empty array removes the key, since the empty-string form leaves a carrier
+  frame on disk). `tags` and `properties` apply in ONE save — the
+  replace-style Emscripten `setProperties` would drop keys across multiple
   calls. `editTagsBatch`'s mutator gains the `path` it was opened from as a
   second argument, making per-path plan lookup order-independent under
   concurrency. Both changes are additive: a one-argument mutator and

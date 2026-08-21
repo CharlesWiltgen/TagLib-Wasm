@@ -605,17 +605,15 @@ console.log(`Processed ${okItems.length} successfully`);
 
 ### writeTagsBatch()
 
-Update metadata for multiple files in batch — the single batch-write
-convention (replaces the removed `updateFolderTags`). Import from
-`taglib-wasm/simple`.
+Update metadata for multiple files in batch — the single batch-write convention
+(replaces the removed `updateFolderTags`). Import from `taglib-wasm/simple`.
 
 ```typescript
 function writeTagsBatch(
   updates: Array<{
     path: string;
     tags?: Partial<TagInput>; // typed merge
-    properties?: Record<string, string[]>; // raw WIRE-key sets, verbatim
-    clears?: string[]; // WIRE keys to remove entirely
+    properties?: Record<string, string[]>; // raw WIRE-key map ([] removes)
   }>,
   options?: BatchOptions,
 ): Promise<BatchResult<void>>;
@@ -632,8 +630,7 @@ const result = await writeTagsBatch(
     {
       path: "/music/song2.mp3",
       tags: { album: "New Album" },
-      properties: { BARCODE: ["LC1234"] },
-      clears: ["COMPILATION"],
+      properties: { BARCODE: ["LC1234"], COMPILATION: [] },
     },
   ],
   { concurrency: 8 },
@@ -643,9 +640,8 @@ const updated = result.items.filter((i) => i.status === "ok").length;
 console.log(`Updated ${updated} files`);
 ```
 
-Mutator-callback variant: `editTagsBatch(files, mutator, options)` — opens
-each file, applies `mutator(audioFile, path)` (the path it was opened from),
-saves.
+Mutator-callback variant: `editTagsBatch(files, mutator, options)` — opens each
+file, applies `mutator(audioFile, path)` (the path it was opened from), saves.
 
 ### findDuplicates()
 
@@ -1115,8 +1111,8 @@ setProperties(properties: PropertyMap): void
 ##### getProperty()
 
 Get all values for a property key. Tag reads are arrays (taglib-sip2) —
-`undefined` means the key is absent; use `?.[0]` for the first value. The
-scalar convenience lives in the typed accessors (`tag().title`).
+`undefined` means the key is absent; use `?.[0]` for the first value. The scalar
+convenience lives in the typed accessors (`tag().title`).
 
 ```typescript
 getProperty(key: string): string[] | undefined
@@ -1134,8 +1130,8 @@ setProperty(key: string, value: string): void
 
 Remove a single property by key. Equivalent to `setProperty(key, "")` — the
 empty-string clearing contract, made explicit (taglib-qyw2): an empty write
-removes the property from the file on save on both backends. Empty-string
-values are never stored.
+removes the property from the file on save on both backends. Empty-string values
+are never stored.
 
 ```typescript
 removeProperty(key: string): void
@@ -2165,9 +2161,9 @@ readability:
 ### Using Tag Constants
 
 The canonical constant object is `PROPERTIES` — every key carries metadata
-(description, supported formats, per-format mappings) and `.key` is the
-ALL_CAPS wire name. Tag reads are arrays (`properties()` / `getProperty()`),
-so `?.[0]` is the first-value idiom:
+(description, supported formats, per-format mappings) and `.key` is the ALL_CAPS
+wire name. Tag reads are arrays (`properties()` / `getProperty()`), so `?.[0]`
+is the first-value idiom:
 
 ```typescript
 import { PROPERTIES } from "taglib-wasm";
@@ -2206,8 +2202,8 @@ console.log(`Available properties: ${allKeys.length}`);
 
 The `PROPERTIES` object provides typed constants for all standard tag names —
 grouped into basic, extended, MusicBrainz, ReplayGain, sorting, and advanced
-keys, each with metadata (description, supported formats, per-format
-mappings). `getAllPropertyKeys()` / `getPropertiesByFormat()` enumerate them.
+keys, each with metadata (description, supported formats, per-format mappings).
+`getAllPropertyKeys()` / `getPropertiesByFormat()` enumerate them.
 
 See [Tag Name Constants](/api/tag-constants) for the complete reference.
 

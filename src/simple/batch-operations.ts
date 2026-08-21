@@ -237,14 +237,13 @@ export interface WriteTagUpdate {
    */
   tags?: Partial<TagInput>;
   /**
-   * Raw WIRE-key sets, merged verbatim (taglib-pmhp review): for keys
-   * outside the typed TagInput surface (barcode, alias-folded wire keys,
-   * unmodeled TXXX fields). An empty array for a key clears it — same
-   * contract as `clears`. Applied in the same single save as `tags`.
+   * Raw WIRE-key map, merged verbatim — the same shape and rule as the Full
+   * API's `setProperties` (taglib-pmhp review): keys outside the typed
+   * TagInput surface (barcode, unmodeled TXXX fields) ride here, and an
+   * EMPTY ARRAY removes the key (the qyw2/nc5 clearing contract; no
+   * empty-string carrier). Applied in the same single save as `tags`.
    */
   properties?: Record<string, string[]>;
-  /** WIRE keys to remove entirely (true removal, no empty-string carrier). */
-  clears?: string[];
 }
 
 type WriteEntry = WriteTagUpdate | string;
@@ -329,19 +328,14 @@ export async function writeTagsBatch(
         const merged = update.tags !== undefined
           ? mergeTagUpdatesInto(audioFile.properties(), update.tags)
           : audioFile.properties();
-        // Raw wire-key sets and clears fold into the SAME map so one
-        // setProperties call reaches the replace-style Emscripten backend —
-        // two calls would drop the first's keys there (taglib-pmhp review).
+        // Raw wire-key entries fold into the SAME map so one setProperties call
+        // reaches the replace-style Emscripten backend — two calls would drop
+        // the first's keys there (taglib-pmhp review). The empty-array removal
+        // (qyw2/nc5) is the map's own rule: `{ COMPILATION: [] }` removes the
+        // key with no empty-string carrier (setProperty(key, "") leaves one).
         if (update.properties !== undefined) {
           for (const [key, values] of Object.entries(update.properties)) {
             merged[fromTagLibKey(key)] = values;
-          }
-        }
-        if (update.clears !== undefined) {
-          for (const key of update.clears) {
-            // The [] clear (qyw2/nc5), NOT setProperty(key, ""): the empty
-            // string leaves an empty carrier frame on disk (probed).
-            merged[fromTagLibKey(key)] = [];
           }
         }
         audioFile.setProperties(merged);

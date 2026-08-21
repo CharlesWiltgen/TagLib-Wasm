@@ -17,9 +17,9 @@ import {
 } from "taglib-wasm";
 ```
 
-> **Batch writes** (`writeTagsBatch`, `editTagsBatch`) live in the Simple API
-> — `import { writeTagsBatch } from "taglib-wasm/simple"`. They replace the
-> former `updateFolderTags`.
+> **Batch writes** (`writeTagsBatch`, `editTagsBatch`) live in the Simple API —
+> `import { writeTagsBatch } from "taglib-wasm/simple"`. They replace the former
+> `updateFolderTags`.
 
 ## Functions
 
@@ -64,13 +64,15 @@ function scanForAlbums(
 `flatDiscPrefixes` (default true), `folderFallback` (default true), `scanRoot`
 (pins the scanned directory; a bare disc folder directly under it is unmatched).
 
-**`discFolderInfo(name)`** — the standalone disc-folder recognizer. Classifies
-a directory name only; it does not resolve the folder to its parent (the
-album result's per-file `albumDir` carries the resolution). Returns
-`DiscFolderInfo | undefined`: `kind` (`"exact" | "embedded" | "volume" |
-"bonus" | "bare"`), `gated` (corroboration required — title-word markers like
-`tape`/`vinyl`/`cassette`/`lp`/`record`, side letters like `CD D`, bonus,
-bare), `number`, `total`, `title`, `discTitle`, `confidence`.
+**`discFolderInfo(name)`** — the standalone disc-folder recognizer. Classifies a
+directory name only; it does not resolve the folder to its parent (the album
+result's per-file `albumDir` carries the resolution). Returns
+`DiscFolderInfo | undefined`: `kind`
+(`"exact" | "embedded" | "volume" |
+"bonus" | "bare"`), `gated` (corroboration
+required — title-word markers like `tape`/`vinyl`/`cassette`/`lp`/`record`, side
+letters like `CD D`, bonus, bare), `number`, `total`, `title`, `discTitle`,
+`confidence`.
 
 **Example:**
 
@@ -138,8 +140,7 @@ function writeTagsBatch(
   updates: Array<{
     path: string;
     tags?: Partial<TagInput>; // typed merge
-    properties?: Record<string, string[]>; // raw WIRE-key sets, verbatim
-    clears?: string[]; // WIRE keys to remove entirely
+    properties?: Record<string, string[]>; // raw WIRE-key map ([] removes)
   }>,
   options?: BatchOptions,
 ): Promise<BatchResult<void>>;
@@ -147,10 +148,11 @@ function writeTagsBatch(
 
 **Parameters:**
 
-- `updates` - Per-file updates: `tags` is the typed merge; `properties` are
-  raw wire-key sets (keys outside TagInput — e.g. `BARCODE`); `clears` are
-  wire keys to remove (true removal, no empty-string carrier). All three
-  apply in one save. A path may appear more than once (last update wins)
+- `updates` - Per-file updates: `tags` is the typed merge; `properties` is a raw
+  wire-key map with the same shape and rule as the Full API's `setProperties` —
+  keys outside TagInput (e.g. `BARCODE`) ride here, and an empty array removes
+  the key (true removal, no empty-string carrier). Both apply in one save. A
+  path may appear more than once (last update wins)
 - `options` - `BatchOptions`: `concurrency`, `continueOnError` (default:
   `true`), `onProgress(processed, total, file)`, `signal`
 
@@ -168,8 +170,7 @@ const result = await writeTagsBatch([
   {
     path: "/music/song2.mp3",
     tags: { album: "New Album" },
-    properties: { BARCODE: ["LC1234"] },
-    clears: ["COMPILATION"],
+    properties: { BARCODE: ["LC1234"], COMPILATION: [] },
   },
 ], {
   concurrency: 8,
@@ -178,9 +179,9 @@ const result = await writeTagsBatch([
 });
 ```
 
-The mutator-callback variant `editTagsBatch(files, mutator, options)` opens
-each file, applies `mutator(audioFile, path)` (the path it was opened from —
-no order coupling), and saves — same options and result contract.
+The mutator-callback variant `editTagsBatch(files, mutator, options)` opens each
+file, applies `mutator(audioFile, path)` (the path it was opened from — no order
+coupling), and saves — same options and result contract.
 
 ### findDuplicates()
 
@@ -302,8 +303,8 @@ interface FolderScanResult {
 ### FolderUpdateResult
 
 Removed with `updateFolderTags`. Batch-write results use the Simple API's
-`BatchResult<void>` (`{ status: "ok" | "error"; path; ... }` per item in
-input order) — see `writeTagsBatch` above.
+`BatchResult<void>` (`{ status: "ok" | "error"; path; ... }` per item in input
+order) — see `writeTagsBatch` above.
 
 ### AudioFileMetadata
 

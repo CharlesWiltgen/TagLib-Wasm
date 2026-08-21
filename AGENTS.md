@@ -74,19 +74,17 @@ const metadata = await readMetadataBatch(files, { concurrency: 8 });
 // Batch writes: same BatchOptions contract (concurrency, continueOnError,
 // onProgress, signal). Per-file ok/error items in input order; a failed file
 // is left in its pre-write state (atomic temp-file saves); abort is honored
-// between files, never mid-save. WriteTagUpdate = { path, tags?, properties?,
-// clears? } — `tags` is the typed merge; `properties` are raw WIRE-key sets
-// merged verbatim (keys outside TagInput: barcode, unmodeled TXXX);
-// `clears` are WIRE keys to remove entirely (true removal, no empty-string
-// carrier). All three apply in ONE save. A duplicate path applies the last
-// update; an update with no fields still re-saves.
+// between files, never mid-save. WriteTagUpdate = { path, tags?, properties? }
+// — `tags` is the typed merge; `properties` is a raw WIRE-key map with the
+// SAME shape and rule as the Full API's setProperties (empty array removes
+// the key; no empty-string carrier). Both apply in ONE save. A duplicate
+// path applies the last update; an update with no fields still re-saves.
 await writeTagsBatch([
   { path: "song.mp3", tags: { title: "New" } },
   {
     path: "song.flac",
     tags: { artist: ["A", "B"] },
-    properties: { BARCODE: ["LC1234"] },
-    clears: ["COMPILATION", "PUBLISHER"],
+    properties: { BARCODE: ["LC1234"], COMPILATION: [], PUBLISHER: [] },
   },
 ]);
 // Mutator-callback variant (Full-API style per-file edits, auto-saved). The

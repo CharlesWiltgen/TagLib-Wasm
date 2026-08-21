@@ -198,7 +198,7 @@ function runScenarios(): void {
     });
   });
 
-  it("writeTagsBatch clears: wire-key removal with no empty-string carrier", async () => {
+  it("writeTagsBatch properties: removal via empty array, no carrier", async () => {
     const { mp3 } = await makeTempFiles();
     // Seed a COMPILATION frame.
     const tl = await TagLib.initialize();
@@ -208,7 +208,7 @@ function runScenarios(): void {
     seed.dispose();
 
     const result = await writeTagsBatch([
-      { path: mp3, clears: ["COMPILATION"] },
+      { path: mp3, properties: { COMPILATION: [] } },
     ]);
     assertEquals(result.items[0].status, "ok");
 
@@ -230,7 +230,10 @@ function runScenarios(): void {
     seed.dispose();
 
     const result = await writeTagsBatch([
-      { path: mp3, properties: { LABEL: ["Apple"] }, clears: ["PUBLISHER"] },
+      {
+        path: mp3,
+        properties: { LABEL: ["Apple"], PUBLISHER: [] },
+      },
     ]);
     assertEquals(result.items[0].status, "ok");
 
@@ -241,7 +244,7 @@ function runScenarios(): void {
     assertEquals(props.publisher, undefined); // removed, no carrier
   });
 
-  it("writeTagsBatch combines tags + properties + clears in one update", async () => {
+  it("writeTagsBatch combines tags + properties in one update", async () => {
     const { mp3 } = await makeTempFiles();
     const tl = await TagLib.initialize();
     const seed = await tl.open(mp3);
@@ -253,8 +256,7 @@ function runScenarios(): void {
       {
         path: mp3,
         tags: { title: "Combined" },
-        properties: { BARCODE: ["X1"] },
-        clears: ["COMPILATION"],
+        properties: { BARCODE: ["X1"], COMPILATION: [] },
       },
     ]);
     assertEquals(result.items[0].status, "ok");
