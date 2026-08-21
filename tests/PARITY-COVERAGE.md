@@ -83,6 +83,19 @@ on a real divergence) over separate per-backend tests.
 | `removeId3v2Frames` |  ✓   |     ✓      |   ✓    | id3v2-frames.test.ts per-ID removal                                                                             |
 | `[Symbol.dispose]`  |  ✓   |     ✓      |   ✓    | strip-id3-flac (`using`)                                                                                        |
 
+## Simple-API typed-surface parity suites
+
+Features above the `AudioFile` matrix (the typed `ExtendedTag` surface and the
+Simple API batch layer) are pinned by looped-backend suites in `tests/`:
+
+- `tests/release-country.test.ts` (taglib-m0c2) — `releaseCountry` typed
+  mapping + cross-backend round-trip on MP3/M4A/WV/MKA/Opus/WMA/FLAC with
+  wire-byte checks.
+- `tests/include-properties.test.ts` (taglib-3s1f) — `includeProperties` →
+  `extraProperties` on readTags/readTagsBatch/readMetadata/readMetadataBatch,
+  absent-key omission, and the never-writes-EXTRAPROPERTIES round-trip guard;
+  both `[wasi]` and `[emscripten]` suites via `setBufferMode`.
+
 ## Parity gaps (filed as sub-issues of taglib-7ek)
 
 1. ~~**MP4 items — no functional round-trip on EITHER backend.**~~ **RESOLVED

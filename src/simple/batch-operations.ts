@@ -13,6 +13,13 @@ export interface BatchOptions {
   onProgress?: (processed: number, total: number, currentFile: string) => void;
   /** AbortSignal to cancel the batch operation between chunks. */
   signal?: AbortSignal;
+  /**
+   * Raw WIRE keys (e.g. "CATALOGNUMBER") to surface per item under
+   * `extraProperties`, for keys outside the modeled typed set (taglib-3s1f).
+   * The PropertyMap is already fetched per file, so this costs no extra
+   * opens on either backend. Absent keys are omitted, not empty arrays.
+   */
+  includeProperties?: string[];
 }
 
 /** Discriminated union result for a single file in a batch operation. */
@@ -96,7 +103,7 @@ export async function readTagsBatch(
   return executeBatch(
     files,
     options,
-    (audioFile) => readExtendedTag(audioFile),
+    (audioFile) => readExtendedTag(audioFile, options.includeProperties),
   );
 }
 
@@ -156,6 +163,7 @@ function extractDynamics(audioFile: AudioFile): AudioDynamics | undefined {
  */
 export async function readMetadata(
   file: AudioFileInput,
+  options: { includeProperties?: string[] } = {},
 ): Promise<FileMetadata> {
   const taglib = await getTagLib();
   const audioFile = await taglib.open(file);
@@ -177,7 +185,7 @@ export async function readMetadata(
     }
     const dynamics = extractDynamics(audioFile);
     return {
-      tags: readExtendedTag(audioFile),
+      tags: readExtendedTag(audioFile, options.includeProperties),
       properties: audioFile.audioProperties(),
       hasCoverArt: audioFile.getPictures().length > 0,
       ...(dynamics !== undefined ? { dynamics } : {}),
@@ -202,7 +210,7 @@ export async function readMetadataBatch(
   return executeBatch(files, options, (audioFile) => {
     const dynamics = extractDynamics(audioFile);
     return {
-      tags: readExtendedTag(audioFile),
+      tags: readExtendedTag(audioFile, options.includeProperties),
       properties: audioFile.audioProperties(),
       hasCoverArt: audioFile.getPictures().length > 0,
       ...(dynamics !== undefined ? { dynamics } : {}),

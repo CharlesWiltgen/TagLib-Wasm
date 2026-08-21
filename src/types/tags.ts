@@ -116,6 +116,8 @@ export interface TagInput {
   readonly musicbrainzReleaseGroupId?: string | string[];
   /** Release type (album, single, EP, compilation, ...); multi-value allowed */
   readonly releaseType?: string | string[];
+  /** Release country (ISO 3166-1 code, e.g. "US"); multi-value allowed */
+  readonly releaseCountry?: string | string[];
   /** Content advisory in the ITUNESADVISORY convention ('1' = explicit, '2' = clean, '0' = unspecified) */
   readonly itunesAdvisory?: string | string[];
   /**
@@ -189,6 +191,8 @@ export interface ExtendedTag extends Tag {
   readonly musicbrainzReleaseGroupId?: string[];
   /** Release type (album, single, EP, compilation, ...); multi-value */
   readonly releaseType?: string[];
+  /** Release country (ISO 3166-1 code, e.g. "US"); multi-value */
+  readonly releaseCountry?: string[];
   /** Content advisory in the ITUNESADVISORY convention ('1' = explicit, '2' = clean, '0' = unspecified) */
   readonly itunesAdvisory?: string[];
   /**
@@ -283,6 +287,15 @@ export interface ExtendedTag extends Tag {
   readonly bextData?: Uint8Array;
   /** Raw iXML chunk as a string. WAV and FLAC only. */
   readonly ixml?: string;
+  /**
+   * Raw wire-key values requested via `includeProperties` (taglib-3s1f):
+   * keys outside the modeled typed set surface here under their exact WIRE
+   * names (e.g. `{ CATALOGNUMBER: ["LC1234"] }`). Present only when the read
+   * was asked for them; absent keys are omitted. Never written back —
+   * `normalizeTagInput` ignores it, so a readTags() -> applyTags() round-trip
+   * cannot create an EXTRAPROPERTIES tag.
+   */
+  readonly extraProperties?: Record<string, string[]>;
   /** Staged raw ID3v2 frame replacements: frame ID → list of body byte arrays. */
   id3v2Frames?: Record<string, Uint8Array[]>;
 }

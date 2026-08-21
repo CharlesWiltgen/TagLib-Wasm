@@ -58,6 +58,9 @@ export const METADATA_MAPPINGS: Record<
     // Derived typed view of itunesAdvisory/rtng (taglib-an30): not a wire
     // field with its own per-format mapping.
     | "advisory"
+    // Read-only container for includeProperties extras (taglib-3s1f):
+    // raw wire keys, never written, so no per-format mapping applies.
+    | "extraProperties"
   >,
   FieldMapping
 > = {
@@ -282,6 +285,11 @@ export const METADATA_MAPPINGS: Record<
     id3v2: { frame: "TXXX", description: "MUSICBRAINZ ALBUM TYPE" },
     vorbis: "RELEASETYPE",
     mp4: "----:com.apple.iTunes:MusicBrainz Album Type",
+  },
+  releaseCountry: {
+    id3v2: { frame: "TXXX", description: "MUSICBRAINZ ALBUM RELEASE COUNTRY" },
+    vorbis: "RELEASECOUNTRY",
+    mp4: "----:com.apple.iTunes:MusicBrainz Album Release Country",
   },
   itunesAdvisory: {
     id3v2: { frame: "TXXX", description: "ITUNESADVISORY" },

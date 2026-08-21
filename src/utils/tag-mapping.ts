@@ -44,8 +44,12 @@ const NUMERIC_FIELDS = new Set([
  * (taglib-0co). Each field is included only when present, mirroring how
  * {@link mapPropertiesToExtendedTag} omits absent text properties.
  */
-export function readExtendedTag(audioFile: AudioFile): ExtendedTag {
-  const tag = mapPropertiesToExtendedTag(audioFile.properties()) as Record<
+export function readExtendedTag(
+  audioFile: AudioFile,
+  includeProperties?: string[],
+): ExtendedTag {
+  const props = audioFile.properties();
+  const tag = mapPropertiesToExtendedTag(props) as Record<
     string,
     unknown
   >;
@@ -65,6 +69,25 @@ export function readExtendedTag(audioFile: AudioFile): ExtendedTag {
   if (bextData !== undefined) tag.bextData = bextData;
   const ixml = audioFile.getIxml();
   if (ixml !== undefined) tag.ixml = ixml;
+
+  // Raw wire-key extras (taglib-3s1f): the PropertyMap is already in hand
+  // (WASI: open-time snapshot; Emscripten: built once), so this is a filter,
+  // not extra work. Lookup mirrors getProperty's normalization — modeled keys
+  // appear in the remapped map under their camelCase name, unmodeled keys
+  // under their verbatim wire name. Absent keys and empty strings are
+  // omitted, never empty arrays.
+  if (includeProperties !== undefined && includeProperties.length > 0) {
+    const extraProperties: Record<string, string[]> = {};
+    for (const wireKey of includeProperties) {
+      const values = props[fromTagLibKey(wireKey)]?.filter((v) => v !== "");
+      if (values !== undefined && values.length > 0) {
+        extraProperties[wireKey] = values;
+      }
+    }
+    if (Object.keys(extraProperties).length > 0) {
+      tag.extraProperties = extraProperties;
+    }
+  }
 
   return tag;
 }
@@ -275,6 +298,9 @@ export function normalizeTagInput(
 
   for (const [field, val] of Object.entries(input)) {
     if (BASIC_FIELDS.has(field) || val === undefined) continue;
+    // Read-only output of includeProperties (taglib-3s1f): a readTags() ->
+    // applyTags() round-trip must not invent an EXTRAPROPERTIES wire key.
+    if (field === "extraProperties") continue;
 
     if (field === "compilation") {
       props[field] = [val ? "1" : "0"];

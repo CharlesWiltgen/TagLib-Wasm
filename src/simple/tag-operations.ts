@@ -26,8 +26,12 @@ import {
  */
 export async function readTags(
   file: AudioFileInput,
+  options: { includeProperties?: string[] } = {},
 ): Promise<ExtendedTag> {
-  return withAudioFile(file, (audioFile) => readExtendedTag(audioFile));
+  return withAudioFile(
+    file,
+    (audioFile) => readExtendedTag(audioFile, options.includeProperties),
+  );
 }
 
 /**

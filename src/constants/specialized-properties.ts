@@ -67,6 +67,29 @@ export const SPECIALIZED_PROPERTIES = {
       mp4: "----:com.apple.iTunes:MusicBrainz Album Type",
     },
   },
+  releaseCountry: {
+    key: "RELEASECOUNTRY",
+    description:
+      "Release country (ISO 3166-1 code, e.g. 'US'). TagLib 2.3.1 translates the RELEASECOUNTRY key per format: ID3v2 TXXX 'MUSICBRAINZ ALBUM RELEASE COUNTRY' (TagLib's description casing; an uppercase TXXX:RELEASECOUNTRY description also reads back), MP4 freeform atom 'MusicBrainz Album Release Country', APEv2 raw RELEASECOUNTRY, ASF 'MusicBrainz/Album Release Country', WAV ICNT, Vorbis/Matroska raw RELEASECOUNTRY",
+    type: "string" as const,
+    supportedFormats: [
+      "ID3v2",
+      "MP4",
+      "Vorbis",
+      "APE",
+      "ASF",
+      "Matroska",
+      "WAV",
+    ] as const,
+    mappings: {
+      id3v2: {
+        frame: "TXXX",
+        description: "MusicBrainz Album Release Country",
+      },
+      vorbis: "RELEASECOUNTRY",
+      mp4: "----:com.apple.iTunes:MusicBrainz Album Release Country",
+    },
+  },
   itunesAdvisory: {
     key: "ITUNESADVISORY",
     description:

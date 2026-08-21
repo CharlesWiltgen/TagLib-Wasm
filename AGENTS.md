@@ -71,6 +71,11 @@ const buf2 = await applyCoverArt("song.mp3", imgData, "image/jpeg");
 // Batch (10-20x faster than sequential)
 const results = await readTagsBatch(files, { concurrency: 8 });
 const metadata = await readMetadataBatch(files, { concurrency: 8 });
+// Extra wire keys outside the typed set: readTags/readTagsBatch/readMetadata/
+// readMetadataBatch accept { includeProperties: ["CATALOGNUMBER", ...] } (WIRE
+// keys); the per-item result carries them in `data.extraProperties` (or
+// `data.tags.extraProperties` for metadata) — raw string[] under their exact
+// wire names, absent keys omitted. Read-only: applyTags never writes it back.
 // Results: { items: [{ status: "ok", path, data } | { status: "error", path, error }] }
 ```
 
@@ -99,6 +104,9 @@ interface Tag {
 //   releaseType: string[]  — release type (album, single, EP, ...); multi-value;
 //     stored per format (TXXX "MUSICBRAINZ ALBUM TYPE" / freeform / APEv2
 //     MUSICBRAINZ_ALBUMTYPE / ASF "MusicBrainz/Album Type" / Vorbis+Matroska raw)
+//   releaseCountry: string[]  — ISO 3166-1 release country (TXXX
+//     "MUSICBRAINZ ALBUM RELEASE COUNTRY" / MP4 freeform / ASF / WAV ICNT /
+//     Vorbis+Matroska raw)
 //   acoustidFingerprint, acoustidId: string[]
 //   replayGainTrackGain, replayGainTrackPeak: string[]
 //   replayGainAlbumGain, replayGainAlbumPeak: string[]
