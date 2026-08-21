@@ -31,7 +31,12 @@ async function seedMp3(): Promise<Uint8Array> {
   const tl = await TagLib.initialize();
   const file = await tl.open(src);
   file.setProperty("MUSICBRAINZ_RELEASEID", RELEASE_ID);
+  // Modeled key: catalogNumber IS in the PROPERTIES table, so it would not
+  // catch a regression where extras only work for modeled keys.
   file.setProperty("CATALOGNUMBER", "LC1234");
+  // Truly unmodeled: no PROPERTIES entry, so it only surfaces via
+  // extraProperties (taglib-3s1f).
+  file.setProperty("WEIRDK3Y", "wxyz");
   file.save();
   const buf = file.getFileBuffer();
   file.dispose();
@@ -42,40 +47,55 @@ function runScenarios(): void {
   it("readMetadataBatch: modeled + unmodeled wire keys in extraProperties, absent keys omitted", async () => {
     const seeded = await seedMp3();
     const { items } = await readMetadataBatch([seeded], {
-      includeProperties: ["MUSICBRAINZ_RELEASEID", "CATALOGNUMBER", "NOPE"],
+      includeProperties: [
+        "MUSICBRAINZ_RELEASEID",
+        "CATALOGNUMBER",
+        "WEIRDK3Y",
+        "NOPE",
+      ],
     });
     const item = items[0];
     if (item.status === "error") throw item.error;
     assertEquals(item.data.tags.extraProperties, {
       MUSICBRAINZ_RELEASEID: [RELEASE_ID],
       CATALOGNUMBER: ["LC1234"],
+      WEIRDK3Y: ["wxyz"],
     });
   });
 
   it("readTagsBatch: same option surfaces extras per item", async () => {
     const seeded = await seedMp3();
     const { items } = await readTagsBatch([seeded], {
-      includeProperties: ["CATALOGNUMBER"],
+      includeProperties: ["CATALOGNUMBER", "WEIRDK3Y"],
     });
     const item = items[0];
     if (item.status === "error") throw item.error;
-    assertEquals(item.data.extraProperties, { CATALOGNUMBER: ["LC1234"] });
+    assertEquals(item.data.extraProperties, {
+      CATALOGNUMBER: ["LC1234"],
+      WEIRDK3Y: ["wxyz"],
+    });
   });
 
   it("readTags (single-file): same option, same field", async () => {
     const seeded = await seedMp3();
     const tags = await readTags(seeded, {
-      includeProperties: ["CATALOGNUMBER", "NOPE"],
+      includeProperties: ["CATALOGNUMBER", "WEIRDK3Y", "NOPE"],
     });
-    assertEquals(tags.extraProperties, { CATALOGNUMBER: ["LC1234"] });
+    assertEquals(tags.extraProperties, {
+      CATALOGNUMBER: ["LC1234"],
+      WEIRDK3Y: ["wxyz"],
+    });
   });
 
   it("readMetadata (single-file): same option, same field", async () => {
     const seeded = await seedMp3();
     const meta = await readMetadata(seeded, {
-      includeProperties: ["CATALOGNUMBER"],
+      includeProperties: ["CATALOGNUMBER", "WEIRDK3Y"],
     });
-    assertEquals(meta.tags.extraProperties, { CATALOGNUMBER: ["LC1234"] });
+    assertEquals(meta.tags.extraProperties, {
+      CATALOGNUMBER: ["LC1234"],
+      WEIRDK3Y: ["wxyz"],
+    });
   });
 
   it("without the option extraProperties is absent", async () => {
@@ -91,7 +111,7 @@ function runScenarios(): void {
   it("readTags -> applyTags round-trip never writes EXTRAPROPERTIES", async () => {
     const seeded = await seedMp3();
     const tags = await readTags(seeded, {
-      includeProperties: ["CATALOGNUMBER"],
+      includeProperties: ["CATALOGNUMBER", "WEIRDK3Y"],
     });
     const out = await applyTags(seeded, tags);
     const again = await readTags(out);
@@ -106,8 +126,13 @@ function runScenarios(): void {
       undefined,
     );
     // The unmodeled key itself must survive the round-trip.
-    const after = await readTags(out, { includeProperties: ["CATALOGNUMBER"] });
-    assertEquals(after.extraProperties, { CATALOGNUMBER: ["LC1234"] });
+    const after = await readTags(out, {
+      includeProperties: ["CATALOGNUMBER", "WEIRDK3Y"],
+    });
+    assertEquals(after.extraProperties, {
+      CATALOGNUMBER: ["LC1234"],
+      WEIRDK3Y: ["wxyz"],
+    });
   });
 }
 

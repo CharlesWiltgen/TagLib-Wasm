@@ -105,8 +105,8 @@ interface Tag {
 //     stored per format (TXXX "MUSICBRAINZ ALBUM TYPE" / freeform / APEv2
 //     MUSICBRAINZ_ALBUMTYPE / ASF "MusicBrainz/Album Type" / Vorbis+Matroska raw)
 //   releaseCountry: string[]  — ISO 3166-1 release country (TXXX
-//     "MUSICBRAINZ ALBUM RELEASE COUNTRY" / MP4 freeform / ASF / WAV ICNT /
-//     Vorbis+Matroska raw)
+//     "MUSICBRAINZ ALBUM RELEASE COUNTRY" / MP4 freeform / APEv2 raw / ASF /
+//     WAV ICNT / Vorbis+Matroska raw)
 //   acoustidFingerprint, acoustidId: string[]
 //   replayGainTrackGain, replayGainTrackPeak: string[]
 //   replayGainAlbumGain, replayGainAlbumPeak: string[]
@@ -410,13 +410,13 @@ Error types: `TagLibInitializationError`, `FileOperationError`, `UnsupportedForm
 
 ## Common Mistakes
 
-| Mistake                       | Fix                                                                   |
-| ----------------------------- | --------------------------------------------------------------------- |
-| `TagLib.open(buffer)`         | `const taglib = await TagLib.initialize(); await taglib.open(buffer)` |
-| `tag.getTitle()`              | `tag.title` (properties, not getter methods)                          |
-| `tag.title = "New"`           | `tag.setTitle("New")` (setter methods, not assignment)                |
+| Mistake                       | Fix                                                                                                                                  |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `TagLib.open(buffer)`         | `const taglib = await TagLib.initialize(); await taglib.open(buffer)`                                                                |
+| `tag.getTitle()`              | `tag.title` (properties, not getter methods)                                                                                         |
+| `tag.title = "New"`           | `tag.setTitle("New")` (setter methods, not assignment)                                                                               |
 | Forgetting disposal           | Use `using audioFile = ...` for automatic cleanup (a FinalizationRegistry safety net exists, but explicit disposal is deterministic) |
-| Processing files sequentially | Use batch APIs with `concurrency: 8`                                  |
+| Processing files sequentially | Use batch APIs with `concurrency: 8`                                                                                                 |
 
 ## Initialization Options
 

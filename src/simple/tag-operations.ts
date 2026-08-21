@@ -20,6 +20,8 @@ import {
  * Reads all metadata tags from an audio file.
  *
  * @param file - File path, Uint8Array, ArrayBuffer, or File object
+ * @param options - Read options; `includeProperties` (wire keys) surfaces raw
+ *   values in `extraProperties` (taglib-3s1f)
  * @returns Parsed tag fields including extended metadata from the audio file
  * @throws {TagLibInitializationError} If the Wasm module fails to initialize
  * @throws {InvalidFormatError} If the file is corrupted or in an unsupported format
