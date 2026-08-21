@@ -98,8 +98,10 @@ Simple API batch layer) are pinned by looped-backend suites in `tests/`:
 - `tests/write-tags-batch.test.ts` (taglib-pmhp) — `writeTagsBatch` /
   `editTagsBatch` parity: per-file status + input order, progress,
   pre-write-state atomicity on failure, `continueOnError=false` rejection,
-  abort between files (never mid-save); both `[wasi]` and `[emscripten]`
-  suites via `setBufferMode`.
+  abort between files (never mid-save), mutator path delivery under
+  concurrency > 1, raw wire-key `properties` (multi-value), empty-array
+  removal without carrier, PUBLISHER+LABEL pair, combined tags+properties;
+  both `[wasi]` and `[emscripten]` suites via `setBufferMode`.
 
 ## Parity gaps (filed as sub-issues of taglib-7ek)
 

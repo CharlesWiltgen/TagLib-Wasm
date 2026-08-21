@@ -268,6 +268,27 @@ function runScenarios(): void {
     assertEquals(props.barcode, ["X1"]);
     assertEquals(props.compilation, undefined);
   });
+
+  it("writeTagsBatch properties take precedence over tags for the same key", async () => {
+    const { mp3 } = await makeTempFiles();
+    const result = await writeTagsBatch([
+      {
+        path: mp3,
+        tags: { compilation: true },
+        properties: { COMPILATION: [] },
+      },
+    ]);
+    assertEquals(result.items[0].status, "ok");
+    // The raw removal wins over the typed set (fold order): the flag is
+    // gone entirely, not stored as a "1" or "0" carrier.
+    const tl = await TagLib.initialize();
+    const file = await tl.open(mp3);
+    const props = file.properties() as Record<string, string[]>;
+    file.dispose();
+    assertEquals(props.compilation, undefined);
+    const tags = await readTags(mp3);
+    assertEquals(tags.compilation, undefined);
+  });
 }
 
 describe("writeTagsBatch (taglib-pmhp) [wasi]", () => {

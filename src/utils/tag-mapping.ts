@@ -194,9 +194,9 @@ export function mapPropertiesToExtendedTag(props: PropertyMap): ExtendedTag {
 /**
  * Pure read-modify-write merge of typed tag input into an existing property
  * map, WITHOUT touching the file. Shared by {@link mergeTagUpdates} (the
- * single-file path) and the batch writer, which must fold raw wire-key sets
- * and clears into the SAME map so one `setProperties` call reaches the
- * replace-style Emscripten backend (taglib-pmhp review).
+ * single-file path) and the batch writer, which must fold raw wire-key
+ * entries and removals into the SAME map so one `setProperties` call reaches
+ * the replace-style Emscripten backend (taglib-pmhp review).
  */
 export function mergeTagUpdatesInto(
   currentProps: PropertyMap,

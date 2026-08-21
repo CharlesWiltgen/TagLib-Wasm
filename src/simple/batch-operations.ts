@@ -241,7 +241,11 @@ export interface WriteTagUpdate {
    * API's `setProperties` (taglib-pmhp review): keys outside the typed
    * TagInput surface (barcode, unmodeled TXXX fields) ride here, and an
    * EMPTY ARRAY removes the key (the qyw2/nc5 clearing contract; no
-   * empty-string carrier). Applied in the same single save as `tags`.
+   * empty-string carrier). Applied in the same single save as `tags`;
+   * entries here take precedence over `tags` for the same normalized key.
+   * Writes are verbatim: unlike the typed `tags` channel (which clears the
+   * legacy YEAR field when DATE is set), a raw `properties` write does not
+   * reconcile related keys — exactly like the Full API's `setProperties`.
    */
   properties?: Record<string, string[]>;
 }
@@ -303,9 +307,11 @@ async function executeWriteBatch(
  *
  * The batch write counterpart to {@link readTagsBatch}: same
  * {@link BatchOptions} contract (concurrency, continueOnError, onProgress,
- * signal). Each file is updated via the same path as
- * {@link applyTagsToFile} — merge semantics, atomic temp-file save, so a
- * failed file is left in its pre-write state.
+ * signal). Each file is updated in ONE save via a single `setProperties`
+ * fold: the typed `tags` merge ({@link mergeTagUpdatesInto} — the same
+ * semantics as {@link applyTagsToFile}) plus the raw wire-key `properties`
+ * entries. Atomic temp-file save, so a failed file is left in its pre-write
+ * state.
  *
  * @param updates - Per-file tag updates; a path may appear more than once
  *   (the last update for a path wins).
