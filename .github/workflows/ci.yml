@@ -290,7 +290,9 @@ jobs:
       # setup step below all read it, so a bump edits one line (the
       # scripts/check-toolchain-pins.sh guard keeps it in sync with the other
       # files that pin wasi-sdk).
-      WASI_VERSION: 33.0
+      # Quoted on purpose: unquoted, 33.0 parses as a YAML float and the
+      # runner stringifies it to "33", which breaks the download URL.
+      WASI_VERSION: "33.0"
     steps:
       - uses: actions/checkout@v7
         with:
