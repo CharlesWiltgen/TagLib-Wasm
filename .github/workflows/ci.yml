@@ -71,6 +71,15 @@ jobs:
         # (taglib-f5hp double-free guard) would still catch nothing on PRs.
         run: deno task lint:ast
 
+      - name: Verify toolchain pins agree across files
+        # The wasm freshness gates byte-compare fresh builds against the
+        # committed binaries, so a toolchain bump that misses one pin (three
+        # workflow files + build/setup-dev-env.sh for emsdk; ci.yml + setup
+        # scripts for wasi-sdk/binaryen) reds the pipeline with a confusing
+        # "binary is stale" error. This fails fast at the pins instead; also
+        # runs in the local check:all gate.
+        run: bash scripts/check-toolchain-pins.sh
+
   bundle:
     name: Bundle (fast)
     runs-on: ubuntu-latest
@@ -276,22 +285,64 @@ jobs:
     name: Build (WASI)
     runs-on: ubuntu-latest
     if: ${{ !inputs.skip_wasi }}
+    env:
+      # Single source for the SDK version in this job: cache path/key and the
+      # setup step below all read it, so a bump edits one line (the
+      # scripts/check-toolchain-pins.sh guard keeps it in sync with the other
+      # files that pin wasi-sdk).
+      WASI_VERSION: 33.0
     steps:
       - uses: actions/checkout@v7
         with:
           submodules: recursive
 
+      # ~100MB tarball from GitHub Releases on every run: cache the unpacked
+      # SDK so a transient download failure (429/503) can't red the pipeline,
+      # and cache hits skip the download entirely. A version bump is a clean
+      # miss (exact key, no restore-keys).
+      - name: Cache WASI SDK
+        uses: actions/cache@v5
+        with:
+          path: build/wasi-sdk/wasi-sdk-${{ env.WASI_VERSION }}-x86_64-linux
+          key: ${{ runner.os }}-wasi-sdk-${{ env.WASI_VERSION }}
+
+      - name: Cache dependencies
+        uses: actions/cache@v5
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-npm-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-npm-
+
       - name: Setup WASI SDK
         run: |
-          WASI_VERSION=33.0
-          WASI_URL="https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-${WASI_VERSION%%.*}/wasi-sdk-${WASI_VERSION}-x86_64-linux.tar.gz"
-          mkdir -p build/wasi-sdk
-          cd build/wasi-sdk
-          wget -q "$WASI_URL"
-          tar xf wasi-sdk-*.tar.gz
-          rm wasi-sdk-*.tar.gz
-          echo "WASI_SDK_PATH=$PWD/wasi-sdk-${WASI_VERSION}-x86_64-linux" >> $GITHUB_ENV
-          echo "$PWD/wasi-sdk-${WASI_VERSION}-x86_64-linux/bin" >> $GITHUB_PATH
+          set -euo pipefail
+          WASI_SDK_DIR="$(pwd)/build/wasi-sdk/wasi-sdk-${WASI_VERSION}-x86_64-linux"
+          if [ ! -x "$WASI_SDK_DIR/bin/clang++" ]; then
+            echo "Downloading WASI SDK ${WASI_VERSION}..."
+            mkdir -p build/wasi-sdk
+            cd build/wasi-sdk
+            WASI_URL="https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-${WASI_VERSION%%.*}/wasi-sdk-${WASI_VERSION}-x86_64-linux.tar.gz"
+            # Retry: GitHub release downloads from hosted runners occasionally
+            # 429/503; a transient fetch failure must not red the pipeline.
+            for attempt in 1 2 3; do
+              if curl -fL --retry 3 --retry-delay 5 --retry-all-errors -o wasi-sdk.tar.gz "$WASI_URL" \
+                  && tar xf wasi-sdk.tar.gz; then
+                rm -f wasi-sdk.tar.gz
+                break
+              fi
+              echo "::warning::WASI SDK download attempt ${attempt} failed; retrying in 5s"
+              sleep 5
+            done
+            if [ ! -x "$WASI_SDK_DIR/bin/clang++" ]; then
+              echo "::error::Failed to download WASI SDK ${WASI_VERSION} (3 attempts)"
+              exit 1
+            fi
+          else
+            echo "WASI SDK ${WASI_VERSION} present (cache hit)"
+          fi
+          echo "WASI_SDK_PATH=$WASI_SDK_DIR" >> "$GITHUB_ENV"
+          echo "$WASI_SDK_DIR/bin" >> "$GITHUB_PATH"
 
       - name: Install wasm-opt (binaryen) and ninja
         # binaryen is pinned at 132.0.0 — the same version as emsdk 6.0.8's
@@ -299,7 +350,11 @@ jobs:
         # the freshness compare below is meaningful (taglib-peml).
         run: |
           npm install -g binaryen@132.0.0
-          sudo apt-get install -y ninja-build
+          # ninja-build ships on ubuntu-latest images; apt is only a fallback
+          # so a runner-image change never hard-fails on a package fetch.
+          if ! command -v ninja >/dev/null 2>&1; then
+            sudo apt-get install -y ninja-build
+          fi
 
       # WASI SDK 33's stock sysroot ships C++ exceptions (eh/ multilib), so the
       # previous custom EH-sysroot build (build-eh-sysroot.sh) is no longer
