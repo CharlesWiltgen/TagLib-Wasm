@@ -142,7 +142,7 @@ jobs:
           fi
           STRAY="$(
             jq -r '.inputs | keys[]' /tmp/disc-folder-meta.json \
-              | grep -vE '^(disc-folder\.ts|src/folder-api/group-albums\.ts|src/utils/path\.ts)$' \
+              | grep -vE '^(disc-folder\.ts|src/folder-api/(album-types|album-grouping|album-identity|album-discs|album-corroborate|folder-disc)\.ts|src/utils/path\.ts)$' \
               || true
           )"
           if [ -n "$STRAY" ]; then
