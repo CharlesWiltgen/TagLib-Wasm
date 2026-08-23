@@ -6,11 +6,8 @@
 
 import type { FolderScanOptions } from "./types.ts";
 import { scanFolder } from "./scan-operations.ts";
-import {
-  type AlbumGroupingResult,
-  groupAlbums,
-  type GroupAlbumsOptions,
-} from "./group-albums.ts";
+import type { AlbumGroupingResult, GroupAlbumsOptions } from "./album-types.ts";
+import { groupAlbums } from "./album-grouping.ts";
 
 export type ScanForAlbumsOptions = FolderScanOptions & GroupAlbumsOptions;
 

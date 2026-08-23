@@ -9,14 +9,14 @@
 
 import { assert, assertEquals } from "@std/assert";
 import { describe, it } from "@std/testing/bdd";
-import {
-  type AlbumDisc,
-  type AlbumGroup,
-  type AlbumGroupingResult,
-  discFolderInfo,
-  groupAlbums,
-  type GroupAlbumsOptions,
-} from "../src/folder-api/group-albums.ts";
+import type {
+  AlbumDisc,
+  AlbumGroup,
+  AlbumGroupingResult,
+  GroupAlbumsOptions,
+} from "../src/folder-api/album-types.ts";
+import { discFolderInfo } from "../src/folder-api/folder-disc.ts";
+import { groupAlbums } from "../src/folder-api/album-grouping.ts";
 import { scanForAlbums } from "../src/folder-api/index.ts";
 import type { ExtendedTag, FolderScanItem } from "../src/folder-api/types.ts";
 

@@ -14,5 +14,18 @@
  * discFolderInfo("CD1"); // { kind: "exact", number: 1, ... }
  * ```
  */
-export * from "./src/folder-api/group-albums.ts";
+// taglib-ys7m: the grouping surface now spans four modules; export the public
+// names explicitly so internal helpers (DiscParse, OkItem, ...) stay private.
+export { discFolderInfo } from "./src/folder-api/folder-disc.ts";
+export { groupAlbums } from "./src/folder-api/album-grouping.ts";
+export type {
+  AlbumDisc,
+  AlbumGroup,
+  AlbumGroupingResult,
+  AlbumGroupItem,
+  AlbumGroupKey,
+  DiscConfidence,
+  DiscFolderInfo,
+  GroupAlbumsOptions,
+} from "./src/folder-api/album-types.ts";
 export type { FolderScanResult } from "./src/folder-api/types.ts";

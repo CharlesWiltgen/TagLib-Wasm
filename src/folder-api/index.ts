@@ -24,9 +24,10 @@ export {
   type AlbumGroupKey,
   type DiscConfidence,
   type DiscFolderInfo,
-  discFolderInfo,
-  groupAlbums,
   type GroupAlbumsOptions,
-} from "./group-albums.ts";
+} from "./album-types.ts";
+
+export { discFolderInfo } from "./folder-disc.ts";
+export { groupAlbums } from "./album-grouping.ts";
 
 export { scanForAlbums, type ScanForAlbumsOptions } from "./scan-for-albums.ts";
