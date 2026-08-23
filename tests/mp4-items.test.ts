@@ -161,11 +161,15 @@ for (const backend of BACKENDS) {
   Deno.test(`[${backend}] isMP4() reflects the opened format`, async () => {
     const tl = await TagLib.initialize({ forceWasmType: backend });
     const mp4 = await tl.open(await Deno.readFile(FIXTURE_PATH.m4a));
-    assertEquals(mp4.isMP4(), true);
+    assertEquals(
+      mp4.isMP4(),
+      true,
+      `${backend}: m4a fixture not detected as MP4`,
+    );
     mp4.dispose();
 
     const mp3 = await tl.open(await Deno.readFile(FIXTURE_PATH.mp3));
-    assertEquals(mp3.isMP4(), false);
+    assertEquals(mp3.isMP4(), false, `${backend}: mp3 fixture detected as MP4`);
     mp3.dispose();
   });
 }

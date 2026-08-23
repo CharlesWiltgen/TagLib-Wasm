@@ -15,7 +15,7 @@ CONTINUE.md
 build/*/
 build/*.wasm
 !build/taglib-web.wasm
-!build/taglib_wasi.wasm
+!build/taglib-wasi.wasm
 build/*.js
 build/wasi-env.sh
 dist/

@@ -1,3 +1,7 @@
+# Changelog
+
+## Unreleased
+
 ### Fixed
 
 - **SonarCloud now measures the WASI backend** — the analysis job ran tests
@@ -32,8 +36,6 @@
   `PropertyKey`/`getAllPropertyKeys()`/`isValidProperty()`).
 - **Ratings conversion examples brand-correct** — `fromNormalized`/`toNormalized`
   now show the `normalized()`/`popm()` wrappers the branded types require.
-
-## 2.2.1
 
 ## 2.2.1
 
