@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 2.2.2
+
 ### Fixed
 
 - **SonarCloud now measures the WASI backend** — the analysis job ran tests
@@ -11,11 +13,21 @@
   `build/taglib-wasi.wasm` to `dist/wasi/` instead of building — same binaries
   the freshness-gated CI produces, both backends exercised, and the emsdk
   dependency dropped from the job.
+- **WASI SDK fetch hardened** — the toolchain download now validates what it
+  got and guards against pin drift; the workflow's `WASI_VERSION` pin is
+  quoted so YAML can't truncate `33.0` to `33` (which 404'd the asset), and a
+  duplicated pin-check step from the rework was removed.
 
 ### Changed
 
 - **`isMP4()` parity coverage added** — the matrix's last WASI-only unit row
   now has a looped both-backend test against real MP4/MP3 fixtures.
+- **knip + docs:coverage gates enforced in CI** (taglib-butu) — unreferenced
+  exports and undocumented public API now fail the build instead of passing
+  silently.
+- **Internal refactors, no behavior change**: `file-handle.ts` split into
+  tag-data modules (taglib-1dfc) and `group-albums.ts` into five modules
+  (taglib-ys7m) — verified byte-identical wasm and unchanged public API.
 
 ### Removed
 
