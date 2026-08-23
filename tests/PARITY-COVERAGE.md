@@ -196,7 +196,7 @@ Simple API batch layer) are pinned by looped-backend suites in `tests/`:
    remains the guard.
 
 Minor/unpaired (tracked here, not filed): `isValid` (covered both, unpaired);
-`isMP4` (WASI unit only); `getProperty` string-overload (single-backend each).
+`getProperty` string-overload (single-backend each).
 
 ## Resolved divergence: the int-pair split (MP3/MP4)
 
