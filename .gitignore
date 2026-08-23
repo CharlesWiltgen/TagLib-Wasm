@@ -188,4 +188,6 @@ package.json.backup
 
 # Beads / Dolt files (added by bd init)
 .beads-credential-key
+
+# Serena project state (MCP server tool files, machine-local)
 .serena/
