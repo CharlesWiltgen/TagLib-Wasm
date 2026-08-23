@@ -1934,13 +1934,11 @@ type TagLibErrorCode =
 
 #### TagName
 
-Union of all valid camelCase tag property names (the values of the `Tags`
-constant). Returned by `getAllTagNames()` and guarded by `isValidTagName()`.
-
-```typescript
-type TagName = typeof Tags[keyof typeof Tags];
-// e.g. "title" | "artist" | "album" | "albumArtist" | "composer" | ...
-```
+Removed in 2.0.0 — `Tags`, `TagName`, `getAllTagNames()`, and
+`isValidTagName()` were deleted (CHANGELOG 2.0.0 Breaking). They were a
+strict subset of the `PROPERTIES` family; migrate by renaming:
+`getAllTagNames()` → `getAllPropertyKeys()`, `isValidTagName(k)` →
+`isValidProperty(k)`, `TagName` → `PropertyKey`. See [Tag Name Constants](/api/tag-constants) and §Tag Validation.
 
 #### PropertyMetadata
 

@@ -22,14 +22,17 @@ jobs:
         with:
           deno-version: "2.9.5"
 
-      - name: Setup Emscripten
-        uses: mymindstorm/setup-emsdk@v16
-        with:
-          version: 6.0.8
-
-      - name: Build Wasm
-        # Emscripten-only: this job installs emsdk but not the WASI SDK.
-        run: deno task build:wasm:emscripten
+      - name: Materialize committed WASM binaries for tests
+        # Tests run against the committed build/*.wasm (module-loader.ts
+        # resolves build/taglib-web.wasm for the Emscripten backend). The
+        # WASI half of every parity test additionally requires
+        # dist/wasi/taglib-wasi.wasm (tests/backend-adapter.ts HAS_WASI);
+        # without it those instances silently skip and the coverage feed
+        # measures only the Emscripten path. No build needed: the freshness
+        # gate in ci.yml keeps the committed binaries current.
+        run: |
+          mkdir -p dist/wasi
+          cp build/taglib-wasi.wasm dist/wasi/taglib-wasi.wasm
 
       - name: Run tests with coverage
         # tests/ and src/ both contain colocated unit tests; the local gate

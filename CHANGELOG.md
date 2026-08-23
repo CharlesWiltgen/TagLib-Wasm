@@ -1,6 +1,39 @@
-# Changelog
+### Fixed
 
-## Unreleased
+- **SonarCloud now measures the WASI backend** — the analysis job ran tests
+  against an Emscripten-only build, so every WASI parity instance silently
+  skipped (`tests/backend-adapter.ts` `HAS_WASI` gate) and the coverage feed
+  reflected one backend. The job now copies the committed
+  `build/taglib-wasi.wasm` to `dist/wasi/` instead of building — same binaries
+  the freshness-gated CI produces, both backends exercised, and the emsdk
+  dependency dropped from the job.
+
+### Changed
+
+- **`isMP4()` parity coverage added** — the matrix's last WASI-only unit row
+  now has a looped both-backend test against real MP4/MP3 fixtures.
+
+### Removed
+
+- **Orphan scripts deleted**: `deno-test-sonar-reporter.ts` (superseded by
+  `generate-sonar-test-report.ts`), `cleanup-workflow-runs.ts`,
+  `fetch-sonarcloud-report.ts` (unreferenced), `setup-git-hooks.sh` (repo
+  uses committed `.githooks/`).
+- **Stale `test:systematic` task** removed (targeted `tests/test-systematic.ts`,
+  which no longer exists); **`mise.toml` deno pinned to 2.9.5** to match CI.
+
+### Documentation
+
+- **`findDuplicates()` examples fixed** — folder-operations.md treated the
+  result as a `Map` (`duplicates.size`, `[key, files]` destructuring); it
+  returns `DuplicateGroup[]` (`duplicates.length`, `group.files`).
+- **Removed `TagName`/`Tags`/`getAllTagNames()`/`isValidTagName()` marked as
+  removed** in the API reference (deleted in 2.0.0; migrate to
+  `PropertyKey`/`getAllPropertyKeys()`/`isValidProperty()`).
+- **Ratings conversion examples brand-correct** — `fromNormalized`/`toNormalized`
+  now show the `normalized()`/`popm()` wrappers the branded types require.
+
+## 2.2.1
 
 ## 2.2.1
 

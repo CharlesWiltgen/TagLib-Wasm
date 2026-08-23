@@ -155,10 +155,10 @@ For direct linear conversion without star-level quantization:
 
 ```typescript
 // Normalized to raw 0-255 (linear)
-RatingUtils.fromNormalized(0.8); // 204 (Math.round(0.8 * 255))
+RatingUtils.fromNormalized(RatingUtils.normalized(0.8)); // 204 (Math.round(0.8 * 255))
 
 // Raw 0-255 to normalized (linear)
-RatingUtils.toNormalized(204); // 0.8
+RatingUtils.toNormalized(RatingUtils.popm(204)); // 0.8
 ```
 
 ### Validation

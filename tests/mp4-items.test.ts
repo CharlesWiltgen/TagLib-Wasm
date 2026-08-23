@@ -152,6 +152,25 @@ for (const backend of BACKENDS) {
 }
 
 /**
+ * isMP4() on the public surface. The WASI mock unit test
+ * (wasi-adapter-unit.test.ts) covers magic-byte sniffing; this asserts both
+ * backends agree on real fixtures, so a format-detection divergence on either
+ * backend fails here.
+ */
+for (const backend of BACKENDS) {
+  Deno.test(`[${backend}] isMP4() reflects the opened format`, async () => {
+    const tl = await TagLib.initialize({ forceWasmType: backend });
+    const mp4 = await tl.open(await Deno.readFile(FIXTURE_PATH.m4a));
+    assertEquals(mp4.isMP4(), true);
+    mp4.dispose();
+
+    const mp3 = await tl.open(await Deno.readFile(FIXTURE_PATH.mp3));
+    assertEquals(mp3.isMP4(), false);
+    mp3.dispose();
+  });
+}
+
+/**
  * Atom-NAME fidelity (taglib-bnhl).
  *
  * TagLib::PropertyMap uppercases every key, so a freeform atom written through

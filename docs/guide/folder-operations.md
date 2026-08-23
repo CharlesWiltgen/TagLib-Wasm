@@ -122,12 +122,12 @@ Find duplicate audio files based on metadata criteria:
 // Find duplicates by artist and title (default criteria)
 const duplicates = await findDuplicates("/path/to/music");
 
-console.log(`Found ${duplicates.size} groups of duplicates`);
+console.log(`Found ${duplicates.length} groups of duplicates`);
 
 // Process each duplicate group
-for (const [key, files] of duplicates) {
-  console.log(`\nDuplicate group: ${key}`);
-  for (const file of files) {
+for (const group of duplicates) {
+  console.log(`\nDuplicate group: ${JSON.stringify(group.criteria)}`);
+  for (const file of group.files) {
     console.log(`  - ${file.path}`);
     console.log(
       `    Size: ${file.properties?.duration}s @ ${file.properties?.bitrate}kbps`,
@@ -287,9 +287,9 @@ await writeTagsBatch(updates);
 // Find and handle duplicates
 const duplicates = await findDuplicates("/music");
 
-for (const [key, files] of duplicates) {
+for (const group of duplicates) {
   // Sort by quality (highest bitrate first)
-  const sorted = files.sort((a, b) =>
+  const sorted = group.files.sort((a, b) =>
     (b.properties?.bitrate || 0) - (a.properties?.bitrate || 0)
   );
 

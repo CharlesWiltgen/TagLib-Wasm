@@ -42,7 +42,7 @@ on a real divergence) over separate per-backend tests.
 | `getFormat`         |  ✓   |     ✓      |   ✓    | format-detection, id3-format-detection (`forEachBackend`)                                                       |
 | `isFormat`          |  ✓   |     ✓      |   ✓    | format-narrowing `[wasi]`/`[emscripten]`                                                                        |
 | `isValid`           |  ✓   |     ✓      |   —    | wasi-host (wasi) + taglib.test (emscripten); unpaired                                                           |
-| `isMP4`             | unit |     ✗      |   —    | wasi-adapter-unit only                                                                                          |
+| `isMP4`             |  ✓   |     ✓      |   ✓    | mp4-items isMP4 parity (`[${backend}]` loop)                                                                    |
 | `properties`        |  ✓   |     ✓      |   ✓    | cross-backend-parity, tag-roundtrip-property, property-raw-values (qpl, yc1x)                                   |
 | `getProperty`       |  ✓   |     ✓      |   ✓    | format-narrowing (typed); remap fallback for MP4 atom keys (bnhl)                                               |
 | `setProperty`       |  ✓   |     ✓      |   ✓    | wasi-adapter-unit + extended-metadata                                                                           |
