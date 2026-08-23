@@ -78,8 +78,6 @@ jobs:
         run: deno task knip
 
       - name: Verify toolchain pins agree across files
-
-      - name: Verify toolchain pins agree across files
         # The wasm freshness gates byte-compare fresh builds against the
         # committed binaries, so a toolchain bump that misses one pin (three
         # workflow files + build/setup-dev-env.sh for emsdk; ci.yml + setup
