@@ -129,13 +129,11 @@ export interface DiscParse {
   digit: boolean;
 }
 
-interface OkItemFields {
+export interface OkItem {
   path: string;
   tags: AudioFileMetadata["tags"];
   metadata: AudioFileMetadata;
 }
-
-export interface OkItem extends OkItemFields {}
 
 export interface DirNode {
   files: OkItem[];
