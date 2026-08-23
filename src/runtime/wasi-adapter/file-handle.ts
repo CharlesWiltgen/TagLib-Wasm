@@ -1,6 +1,4 @@
-/**
- * @fileoverview WASI-based FileHandle implementation
- */
+/** WASI-based FileHandle implementation (taglib-1dfc split). */
 
 import type {
   FileHandle,
@@ -10,744 +8,242 @@ import type {
   RawPicture,
 } from "../../wasm.ts";
 import type { BasicTagData } from "../../types/tags.ts";
-import type {
-  AudioCodec,
-  AudioProperties,
-  ContainerFormat,
-} from "../../types.ts";
+import type { AudioProperties } from "../../types.ts";
 import type { WasiModule } from "../wasmer-sdk-loader/types.ts";
 import { WasmerExecutionError } from "../wasmer-sdk-loader/types.ts";
-import { decodeTagData } from "../../msgpack/decoder.ts";
 import {
-  fromTagLibKey,
-  mp4AtomWireKey,
-  toTagLibKey,
-} from "../../constants/properties.ts";
-import {
-  DATE_MIRROR,
-  firstValueString,
-  isShadowedNumericMirror,
-  mirrorForRawKey,
-  readNumericMirror,
-  stageNumericWrite,
-  stageRawWrite,
-  stringifyScalar,
-  TRACK_MIRROR,
-} from "../../utils/mirror-fields.ts";
-import {
-  readId3v2FramesFromWasm,
-  readTagsFromWasm,
-  readTagsFromWasmPath,
-  writeTagsToWasm,
-  writeTagsToWasmPath,
-} from "./wasm-io.ts";
-
-const AUDIO_KEYS = new Set([
-  "bitrate",
-  "bitrateMode",
-  "bitsPerSample",
-  "channels",
-  "codec",
-  "containerFormat",
-  "formatVersion",
-  "isEncrypted",
-  "isLossless",
-  "duration",
-  "length",
-  "lengthMs",
-  "mpegLayer",
-  "mpegVersion",
-  "outputGainDb",
-  "sampleRate",
-]);
-
-const INTERNAL_KEYS = new Set([
-  "pictures",
-  "ratings",
-  "lyrics",
-  "chapters",
-  "_mp4ChapterStyle",
-  "bextData",
-  "ixml",
-  // Exact MP4 atom names for the write path, not a readable property.
-  "_mp4ItemNames",
-  // Foreign-mean MP4 atom names to delete at save (taglib-65nm): a write-time
-  // directive, never a property.
-  "_mp4ItemRemovals",
-]);
-
-/**
- * A frame that exists holding an empty string is not the same state as no frame
- * at all, and the read snapshot must say so — otherwise the save cannot carry
- * the value back, `setProperties()` sees the field as absent, and TagLib deletes
- * a frame the caller never touched (taglib-yc1x).
- *
- * The C++ encoder emits a single value as a bare string, and both `cleanObject`
- * and `getProperties` drop a bare `""`. An ARRAY containing `""` already
- * survives every one of those layers, so promoting the bare form to `[""]` here
- * carries the value end to end without touching the encoder or the decoder.
- *
- * This only concerns readable tag properties: audio metrics and the internal
- * write-time channels keep their own shapes.
- */
-function preserveEmptyValues(
-  data: Record<string, unknown>,
-): Record<string, unknown> {
-  for (const [key, value] of Object.entries(data)) {
-    if (value !== "") continue;
-    if (AUDIO_KEYS.has(key) || INTERNAL_KEYS.has(key)) continue;
-    if (key.startsWith("----:")) continue;
-    data[key] = [""];
-  }
-  return data;
-}
-
-const CONTAINER_TO_FORMAT: Record<string, string> = {
-  MP3: "MP3",
-  MP4: "MP4",
-  FLAC: "FLAC",
-  OGG: "OGG",
-  WAV: "WAV",
-  AIFF: "AIFF",
-  WavPack: "WV",
-  TTA: "TTA",
-  ASF: "ASF",
-  Matroska: "MATROSKA",
-};
-
-/**
- * Normalize an MP4 item key for the PropertyMap path. TagLib's MP4 PropertyMap
- * keys a freeform `----:mean:NAME` atom by its bare NAME, uppercased (the usual
- * key remap then maps known atoms like iTunNORM -> appleSoundCheck). WASI MP4
- * items ride the PropertyMap, so the full iTunes atom key that Emscripten's
- * dedicated Item API uses must be normalized or the value is silently dropped on
- * save (taglib-1qn). Non-freeform keys pass through unchanged.
- */
-function mp4ItemPropertyKey(key: string): string {
-  if (key.startsWith("----:")) {
-    return key.slice(key.lastIndexOf(":") + 1).toUpperCase();
-  }
-  // A STANDARD atom ("trkn", "©nam") is not a PropertyMap key either — TagLib
-  // keys it by the corresponding property. Without this, WASI looked up
-  // tagData["trkn"] while the value lives under `trackNumber`, so every item
-  // operation on a standard atom silently targeted nothing (taglib-0piv).
-  return mp4AtomWireKey(key) ?? key;
-}
+  createHandleState,
+  destroy,
+  getBuffer,
+  type HandleState,
+  isValid,
+  loadBuffer,
+  loadPath,
+  save,
+} from "./handle-state.ts";
+import * as audio from "./audio-properties.ts";
+import * as props from "./property-surface.ts";
+import * as mp4 from "./mp4-items.ts";
+import * as fields from "./structured-fields.ts";
 
 export class WasiFileHandle implements FileHandle {
-  private readonly wasi: WasiModule;
-  private fileData: Uint8Array | null = null;
-  private filePath: string | null = null;
-  private tagData: Record<string, unknown> | null = null;
+  private readonly state: HandleState;
   private destroyed = false;
 
   constructor(wasiModule: WasiModule) {
-    this.wasi = wasiModule;
+    this.state = createHandleState(wasiModule);
   }
 
   private checkNotDestroyed(): void {
     if (this.destroyed) {
-      throw new WasmerExecutionError(
-        "FileHandle has been destroyed",
-      );
+      throw new WasmerExecutionError("FileHandle has been destroyed");
     }
   }
 
   loadFromBuffer(buffer: Uint8Array): boolean {
     this.checkNotDestroyed();
-    this.fileData = buffer;
-    const msgpackData = readTagsFromWasm(this.wasi, buffer);
-    this.tagData = preserveEmptyValues(
-      decodeTagData(msgpackData),
-    );
+    loadBuffer(this.state, buffer);
     return true;
   }
 
   loadFromPath(path: string): boolean {
     this.checkNotDestroyed();
-    this.filePath = path;
-    const msgpackData = readTagsFromWasmPath(this.wasi, path);
-    this.tagData = preserveEmptyValues(
-      decodeTagData(msgpackData),
-    );
+    loadPath(this.state, path);
     return true;
   }
 
   isValid(): boolean {
     this.checkNotDestroyed();
-    return (this.fileData !== null && this.fileData.length > 0) ||
-      (this.filePath !== null && this.tagData !== null);
+    return isValid(this.state);
   }
 
   save(): boolean {
     this.checkNotDestroyed();
-    if (!this.tagData) return false;
-
-    if (this.filePath) {
-      return writeTagsToWasmPath(
-        this.wasi,
-        this.filePath,
-        this.tagData,
-      );
-    }
-
-    if (!this.fileData) return false;
-    const result = writeTagsToWasm(this.wasi, this.fileData, this.tagData);
-    if (result) {
-      this.fileData = result;
-      return true;
-    }
-    return false;
-  }
-
-  getTagData(): BasicTagData {
-    this.checkNotDestroyed();
-    const d = this.tagData ?? {};
-    return {
-      title: firstValueString(d.title),
-      artist: firstValueString(d.artist),
-      album: firstValueString(d.album),
-      comment: firstValueString(d.comment),
-      genre: firstValueString(d.genre),
-      year: readNumericMirror(d, DATE_MIRROR),
-      track: readNumericMirror(d, TRACK_MIRROR),
-    };
-  }
-
-  setTagData(data: Partial<BasicTagData>): void {
-    this.checkNotDestroyed();
-    const merged = { ...this.tagData, ...data } as Record<string, unknown>;
-    // setYear()/setTrack() are authoritative for their wire key: the raw mirror
-    // is replaced so a stale "1975-10-31" or "3/12" cannot shadow the new
-    // number, and a non-positive value clears the field outright (taglib-bk7,
-    // taglib-qpl).
-    if (data.year !== undefined) {
-      stageNumericWrite(merged, DATE_MIRROR, data.year);
-    }
-    if (data.track !== undefined) {
-      stageNumericWrite(merged, TRACK_MIRROR, data.track);
-    }
-    this.tagData = merged;
-  }
-
-  getAudioProperties(): AudioProperties | null {
-    this.checkNotDestroyed();
-    if (!this.tagData || !("sampleRate" in this.tagData)) return null;
-    const d = this.tagData;
-    const containerFormat =
-      ((d.containerFormat as string) || "unknown") as ContainerFormat;
-    const mpegVersion = (d.mpegVersion as number) ?? 0;
-    const formatVersion = (d.formatVersion as number) ?? 0;
-    return {
-      duration: (d.length as number) ?? 0,
-      durationMs: (d.lengthMs as number) ?? 0,
-      bitrate: (d.bitrate as number) ?? 0,
-      sampleRate: (d.sampleRate as number) ?? 0,
-      channels: (d.channels as number) ?? 0,
-      bitsPerSample: (d.bitsPerSample as number) ?? 0,
-      codec: ((d.codec as string) || "unknown") as AudioCodec,
-      containerFormat,
-      isLossless: (d.isLossless as boolean) ?? false,
-      ...(mpegVersion > 0
-        ? { mpegVersion, mpegLayer: (d.mpegLayer as number) ?? 0 }
-        : {}),
-      ...(containerFormat === "MP4" || containerFormat === "ASF"
-        ? { isEncrypted: (d.isEncrypted as boolean) ?? false }
-        : {}),
-      ...(formatVersion > 0 ? { formatVersion } : {}),
-      ...(d.outputGainDb !== undefined
-        ? { outputGainDb: d.outputGainDb as number }
-        : {}),
-    };
-  }
-
-  getFormat(): string {
-    this.checkNotDestroyed();
-
-    // Container-based detection works for both path and buffer modes
-    const container = this.tagData?.containerFormat as string | undefined;
-    if (container) {
-      const codec = this.tagData?.codec as string | undefined;
-      if (container === "OGG" && codec === "Opus") return "OPUS";
-      if (CONTAINER_TO_FORMAT[container]) return CONTAINER_TO_FORMAT[container];
-    }
-
-    // Magic byte fallback requires buffer data
-    if (!this.fileData || this.fileData.length < 8) return "unknown";
-    const magic = this.fileData.slice(0, 4);
-    if (magic[0] === 0xFF && (magic[1] & 0xE0) === 0xE0) return "MP3";
-    if (magic[0] === 0x49 && magic[1] === 0x44 && magic[2] === 0x33) {
-      return "MP3";
-    }
-    if (
-      magic[0] === 0x66 && magic[1] === 0x4C && magic[2] === 0x61 &&
-      magic[3] === 0x43
-    ) return "FLAC";
-    if (
-      magic[0] === 0x4F && magic[1] === 0x67 && magic[2] === 0x67 &&
-      magic[3] === 0x53
-    ) return this.detectOggCodec();
-    if (
-      magic[0] === 0x52 && magic[1] === 0x49 && magic[2] === 0x46 &&
-      magic[3] === 0x46
-    ) return "WAV";
-    // WavPack: "wvpk"
-    if (
-      magic[0] === 0x77 && magic[1] === 0x76 && magic[2] === 0x70 &&
-      magic[3] === 0x6B
-    ) return "WV";
-    // TrueAudio: "TTA1"
-    if (
-      magic[0] === 0x54 && magic[1] === 0x54 && magic[2] === 0x41 &&
-      magic[3] === 0x31
-    ) return "TTA";
-    // ASF/WMA: ASF header object GUID
-    if (
-      this.fileData.length >= 16 &&
-      magic[0] === 0x30 && magic[1] === 0x26 &&
-      magic[2] === 0xB2 && magic[3] === 0x75
-    ) return "ASF";
-    // Matroska/WebM: EBML signature
-    if (
-      magic[0] === 0x1A && magic[1] === 0x45 && magic[2] === 0xDF &&
-      magic[3] === 0xA3
-    ) return "MATROSKA";
-    const ftyp = this.fileData.slice(4, 8);
-    if (
-      ftyp[0] === 0x66 && ftyp[1] === 0x74 && ftyp[2] === 0x79 &&
-      ftyp[3] === 0x70
-    ) return "MP4";
-    return "unknown";
-  }
-
-  private detectOggCodec(): string {
-    if (!this.fileData || this.fileData.length < 37) return "OGG";
-    // OGG page header: "OggS" at 0, then header_type(1), granule(8),
-    // serial(4), seq(4), crc(4), segments(1), segment_table(variable).
-    // First page payload starts after 27 + segment_count bytes.
-    const segCount = this.fileData[26];
-    if (segCount === undefined) return "OGG";
-    const payloadStart = 27 + segCount;
-    if (this.fileData.length < payloadStart + 8) return "OGG";
-    // Opus: payload starts with "OpusHead"
-    const sig = String.fromCharCode(
-      ...this.fileData.slice(payloadStart, payloadStart + 8),
-    );
-    if (sig === "OpusHead") return "OPUS";
-    return "OGG";
+    return save(this.state);
   }
 
   getBuffer(): Uint8Array {
     this.checkNotDestroyed();
-    return this.fileData ?? new Uint8Array(0);
+    return getBuffer(this.state);
   }
 
-  getProperties(): Record<string, string[]> {
+  getTagData(): BasicTagData {
     this.checkNotDestroyed();
-    const result: Record<string, string[]> = {};
-    const data = this.tagData ?? {};
-
-    for (const [key, value] of Object.entries(data)) {
-      if (AUDIO_KEYS.has(key) || INTERNAL_KEYS.has(key)) continue;
-      // The foreign-atom read channel (taglib-5ibr): full `----:mean:name`
-      // keys are getMP4Item's, not properties — TagLib's PropertyMap never
-      // carries a foreign mean, so Emscripten's properties() has no such key.
-      if (key.startsWith("----:")) continue;
-      // `year` is a numeric mirror of the DATE property; when the full `date`
-      // string is present it carries DATE, so skip `year` to avoid both mapping
-      // to the same "DATE" wire key (taglib-bk7).
-      // A numeric mirror and its raw partner share one wire key, so emitting
-      // both would collide; the raw string carries more information and wins.
-      if (isShadowedNumericMirror(data, key)) continue;
-      if (value === undefined || value === null) continue;
-      if (value === 0 || value === "") continue;
-
-      const propKey = toTagLibKey(key);
-      if (Array.isArray(value)) {
-        // An empty array is the cleared-state marker (itunesAdvisory's rtng
-        // removal signal, taglib-an30); the surface shows cleared fields as
-        // absent, matching Emscripten.
-        if (value.length === 0) continue;
-        result[propKey] = value.map(String);
-      } else if (typeof value === "object") {
-        continue;
-      } else if (
-        typeof value === "string" || typeof value === "number" ||
-        typeof value === "boolean" || typeof value === "bigint" ||
-        typeof value === "symbol"
-      ) {
-        result[propKey] = [String(value)];
-      }
-    }
-
-    return result;
+    return props.getBasicTagData(this.state.tagData);
   }
 
-  setProperties(props: Record<string, string[]>): void {
+  setTagData(data: Partial<BasicTagData>): void {
     this.checkNotDestroyed();
-    const next = { ...this.tagData } as Record<string, unknown>;
-    for (const [key, values] of Object.entries(props)) {
-      const camelKey = fromTagLibKey(key);
-      if (camelKey === "_mp4ItemNames") {
-        // Accumulate: a setMP4Item earlier in this handle's life may already
-        // have registered a name that this call does not mention.
-        const existing = (next._mp4ItemNames as string[] | undefined) ?? [];
-        next._mp4ItemNames = [...new Set([...existing, ...values])];
-        continue;
-      }
-      const mirror = mirrorForRawKey(camelKey);
-      if (mirror !== undefined) {
-        // Raw string verbatim, mirror re-derived; an empty list clears both.
-        stageRawWrite(next, mirror, values);
-      } else if (values.length === 0) {
-        // An empty value list clears the property (TagLib PropertyMap
-        // semantics). This is what lets clearTags() actually remove a field
-        // under WASI's merge model, matching Emscripten's replace-style
-        // setProperties (taglib-nc5).
-        // EXCEPT itunesAdvisory: MP4's rtng item is invisible to TagLib's
-        // property map, so the C++ layer must SEE the empty list to remove
-        // it (taglib-an30) — an absent key would leave the stale rtng atom
-        // behind on MP4. The wire carries [] and apply_mp4_advisory removes
-        // the item; getProperties() hides empty arrays from the surface.
-        if (camelKey === "itunesAdvisory") next[camelKey] = [];
-        else delete next[camelKey];
-      } else {
-        next[camelKey] = values;
-      }
-    }
-    this.tagData = next;
+    this.state.tagData = props.setBasicTagData(this.state.tagData, data);
   }
 
-  getProperty(key: string): string {
+  getAudioProperties(): AudioProperties | null {
     this.checkNotDestroyed();
-    const mappedKey = fromTagLibKey(key);
-    const stored: unknown = this.tagData?.[mappedKey];
-    if (Array.isArray(stored)) {
-      const first: unknown = stored[0];
-      return stringifyScalar(first);
-    }
-    return stringifyScalar(stored);
+    return audio.getAudioProperties(this.state.tagData);
   }
 
-  setProperty(key: string, value: string): void {
+  getFormat(): string {
     this.checkNotDestroyed();
-    const mappedKey = fromTagLibKey(key);
-    const mirror = mirrorForRawKey(mappedKey);
-    if (mirror !== undefined) {
-      // The mirror must never outlive the raw string: an empty value is a clear,
-      // and an unparseable one has no valid mirror. Leaving a stale number made
-      // a delete a silent no-op and let tag() contradict the file (taglib-qpl,
-      // taglib-iyfr).
-      const next = { ...this.tagData } as Record<string, unknown>;
-      stageRawWrite(next, mirror, value === "" ? [] : [value]);
-      this.tagData = next;
-    } else {
-      this.tagData = { ...this.tagData, [mappedKey]: value };
-    }
+    return audio.getFormat(this.state.tagData, this.state.fileData);
   }
 
   isMP4(): boolean {
     this.checkNotDestroyed();
-    if (!this.fileData) {
-      return (this.tagData?.containerFormat as string | undefined) === "MP4";
-    }
-    if (this.fileData.length < 8) return false;
-    const magic = this.fileData.slice(4, 8);
-    return (
-      magic[0] === 0x66 &&
-      magic[1] === 0x74 &&
-      magic[2] === 0x79 &&
-      magic[3] === 0x70
-    );
+    return audio.isMP4(this.state.tagData, this.state.fileData);
+  }
+
+  getProperties(): Record<string, string[]> {
+    this.checkNotDestroyed();
+    return props.getProperties(this.state.tagData);
+  }
+
+  setProperties(properties: Record<string, string[]>): void {
+    this.checkNotDestroyed();
+    this.state.tagData = props.setProperties(this.state.tagData, properties);
+  }
+
+  getProperty(key: string): string {
+    this.checkNotDestroyed();
+    return props.getProperty(this.state.tagData, key);
+  }
+
+  setProperty(key: string, value: string): void {
+    this.checkNotDestroyed();
+    this.state.tagData = props.setProperty(this.state.tagData, key, value);
   }
 
   getMP4Item(key: string): string {
     this.checkNotDestroyed();
-    // A foreign-mean freeform atom never reaches the PropertyMap; the shim
-    // ships it in the snapshot under its FULL atom name instead, and
-    // setMP4Item keeps that slot current for staged writes (taglib-5ibr).
-    // Checked first: the bare-name property slot can name a DIFFERENT atom
-    // (TagLib files "MYTAG" under Apple's namespace).
-    if (key.startsWith("----:")) {
-      const foreign: unknown = this.tagData?.[key];
-      if (foreign !== undefined) {
-        if (Array.isArray(foreign)) {
-          const first: unknown = foreign[0];
-          return stringifyScalar(first);
-        }
-        return stringifyScalar(foreign);
-      }
-    }
-    return this.getProperty(mp4ItemPropertyKey(key));
+    return mp4.getMP4Item(this.state.tagData, key);
   }
 
   setMP4Item(key: string, value: string): void {
     this.checkNotDestroyed();
-    this.setProperty(mp4ItemPropertyKey(key), value);
-    // The property slot above is keyed by the UPPERCASED bare name, which is
-    // what TagLib's PropertyMap will hand back. Register the caller's exact
-    // spelling so the C++ write path can restore it (taglib-bnhl).
-    if (key.startsWith("----:")) {
-      this.registerMp4ItemName(key);
-      // A snapshot from a file that already held this atom serves reads under
-      // the full name; without this a staged overwrite would read back stale
-      // (taglib-5ibr). The key never reaches the propMap — the C++ decoder
-      // drops `----:` keys.
-      if (this.tagData?.[key] !== undefined) {
-        this.tagData = { ...this.tagData, [key]: value };
-      }
-    }
-  }
-
-  /** Record an exact atom name to be repaired after the PropertyMap write. */
-  private registerMp4ItemName(name: string): void {
-    const existing = (this.tagData?._mp4ItemNames as string[] | undefined) ??
-      [];
-    if (existing.includes(name)) return;
-    this.tagData = {
-      ...this.tagData,
-      _mp4ItemNames: [...existing, name],
-    };
-  }
-
-  /**
-   * Record a foreign-mean freeform atom for deletion at save (taglib-65nm).
-   * The PropertyMap erase pass cannot express foreign atoms, so the C++ shim
-   * consumes this list and calls removeItem on each exact atom name.
-   */
-  private registerMp4ItemRemoval(name: string): void {
-    const existing = (this.tagData?._mp4ItemRemovals as string[] | undefined) ??
-      [];
-    if (existing.includes(name)) return;
-    this.tagData = {
-      ...this.tagData,
-      _mp4ItemRemovals: [...existing, name],
-    };
+    this.state.tagData = mp4.setMP4Item(this.state.tagData, key, value);
   }
 
   getMp4ItemRemovals(): string[] | undefined {
     this.checkNotDestroyed();
-    return this.tagData?._mp4ItemRemovals as string[] | undefined;
+    return mp4.getMp4ItemRemovals(this.state.tagData);
   }
 
   setMp4ItemRemovals(removals: string[]): void {
     this.checkNotDestroyed();
-    this.tagData = {
-      ...this.tagData,
-      _mp4ItemRemovals: [...new Set(removals)],
-    };
+    this.state.tagData = mp4.setMp4ItemRemovals(this.state.tagData, removals);
   }
 
   removeMP4Item(key: string): void {
     this.checkNotDestroyed();
-    if (this.tagData) {
-      if (key.startsWith("----:")) {
-        // Foreign-mean freeform atom: the value may sit under the raw
-        // `----:` key (snapshot mirror, taglib-5ibr) — delete it there AND
-        // record the exact atom name for the C++ save to removeItem() (the
-        // PropertyMap erase pass cannot express foreign atoms, taglib-65nm).
-        delete this.tagData[key];
-        this.registerMp4ItemRemoval(key);
-      }
-      // "trkn" now resolves to TRACKNUMBER, so the numeric mirror IS reachable
-      // here and must go with the raw value — otherwise tag().track keeps
-      // reporting a removed track (taglib-qpl mirror invariant).
-      const mappedKey = fromTagLibKey(mp4ItemPropertyKey(key));
-      delete this.tagData[mappedKey];
-      const mirror = mirrorForRawKey(mappedKey);
-      if (mirror !== undefined) delete this.tagData[mirror.numeric];
-    }
+    this.state.tagData = mp4.removeMP4Item(this.state.tagData, key);
   }
 
   getPictures(): RawPicture[] {
     this.checkNotDestroyed();
-    return (this.tagData?.pictures as RawPicture[] | undefined) ?? [];
+    return fields.getPictures(this.state.tagData);
   }
 
   setPictures(pictures: RawPicture[]): void {
     this.checkNotDestroyed();
-    this.tagData = { ...this.tagData, pictures };
+    this.state.tagData = fields.setPictures(this.state.tagData, pictures);
   }
 
   addPicture(picture: RawPicture): void {
     this.checkNotDestroyed();
-    const pictures = this.getPictures();
-    pictures.push(picture);
-    this.setPictures(pictures);
+    this.state.tagData = fields.addPicture(this.state.tagData, picture);
   }
 
   removePictures(): void {
     this.checkNotDestroyed();
-    this.tagData = { ...this.tagData, pictures: [] };
+    this.state.tagData = fields.removePictures(this.state.tagData);
   }
 
   getChapters(): RawChapter[] {
     this.checkNotDestroyed();
-    return (this.tagData?.chapters as RawChapter[] | undefined) ?? [];
+    return fields.getChapters(this.state.tagData);
   }
 
   setChapters(chapters: RawChapter[], mp4ChapterStyle: string): void {
     this.checkNotDestroyed();
-    this.tagData = {
-      ...this.tagData,
-      _mp4ChapterStyle: mp4ChapterStyle,
+    this.state.tagData = fields.setChapters(
+      this.state.tagData,
       chapters,
-    };
+      mp4ChapterStyle,
+    );
   }
 
   getBextData(): Uint8Array | undefined {
     this.checkNotDestroyed();
-    return (this.tagData?.bextData as Uint8Array | undefined) ?? undefined;
+    return fields.getBextData(this.state.tagData);
   }
 
   setBextData(data: Uint8Array | null): void {
     this.checkNotDestroyed();
-    // Store `null` (not delete) so the encoder emits msgpack nil => C++ removes.
-    this.tagData = { ...this.tagData, bextData: data };
+    this.state.tagData = fields.setBextData(this.state.tagData, data);
   }
 
   getIxml(): string | undefined {
     this.checkNotDestroyed();
-    const v = this.tagData?.ixml;
-    return typeof v === "string" && v.length > 0 ? v : undefined;
+    return fields.getIxml(this.state.tagData);
   }
 
   setIxml(data: string | null): void {
     this.checkNotDestroyed();
-    this.tagData = { ...this.tagData, ixml: data };
+    this.state.tagData = fields.setIxml(this.state.tagData, data);
   }
 
   hasId3Tags(): { v1: boolean; v2: boolean } {
     this.checkNotDestroyed();
-    const t = this.tagData?.id3Tags as
-      | { v1?: boolean; v2?: boolean }
-      | undefined;
-    return { v1: t?.v1 ?? false, v2: t?.v2 ?? false };
+    return fields.hasId3Tags(this.state.tagData);
   }
 
   stripId3Tags(opts: { v1: boolean; v2: boolean }): void {
     this.checkNotDestroyed();
-    // id3Tags is only emitted by the read path on FLAC files that have any
-    // ID3 attached. Skip the directive entirely on non-FLAC handles so the
-    // optimistic cache update doesn't synthesize a key the read path would
-    // never have written. hasId3Tags() returns {false,false} either way.
-    const current = this.tagData?.id3Tags as
-      | { v1?: boolean; v2?: boolean }
-      | undefined;
-    if (!current) return;
-    // _stripId3 is a write-time directive consumed by the C++ shim. OR-merge
-    // with any prior directive so successive calls accumulate (Embind applies
-    // strip immediately and naturally composes; WASI must mirror that).
-    const prior = this.tagData?._stripId3 as
-      | { v1?: boolean; v2?: boolean }
-      | undefined;
-    const stripV1 = (prior?.v1 ?? false) || opts.v1;
-    const stripV2 = (prior?.v2 ?? false) || opts.v2;
-    // Optimistically reflect the post-strip state in the local cache so that
-    // hasId3Tags() on the same handle matches Embind semantics without a
-    // round-trip through save+reload.
-    this.tagData = {
-      ...this.tagData,
-      _stripId3: { v1: stripV1, v2: stripV2 },
-      id3Tags: {
-        v1: (current.v1 ?? false) && !stripV1,
-        v2: (current.v2 ?? false) && !stripV2,
-      },
-    };
+    this.state.tagData = fields.stripId3Tags(this.state.tagData, opts);
   }
 
   getRatings(): { rating: number; email: string; counter: number }[] {
     this.checkNotDestroyed();
-    return (this.tagData?.ratings as
-      | { rating: number; email: string; counter: number }[]
-      | undefined) ?? [];
+    return fields.getRatings(this.state.tagData);
   }
 
   setRatings(
     ratings: { rating: number; email?: string; counter?: number }[],
   ): void {
     this.checkNotDestroyed();
-    const normalizedRatings = ratings.map((r) => ({
-      rating: r.rating,
-      email: r.email ?? "",
-      counter: r.counter ?? 0,
-    }));
-    this.tagData = {
-      ...this.tagData,
-      ratings: normalizedRatings,
-    };
+    this.state.tagData = fields.setRatings(this.state.tagData, ratings);
   }
 
   getLyrics(): RawLyrics[] {
     this.checkNotDestroyed();
-    const value = this.tagData?.lyrics;
-    if (value === undefined || value === null) return [];
-    // A fresh read surfaces lyrics as the "LYRICS" text property (a string, or a
-    // string[] for multi-value); setLyrics stores a RawLyrics[]. Normalize all
-    // shapes — description/language are not persisted via the PropertyMap so
-    // they read back empty (taglib-gq9).
-    const entries = Array.isArray(value) ? value : [value];
-    return entries.map((entry) =>
-      typeof entry === "string"
-        ? { text: entry, description: "", language: "" }
-        : {
-          text: (entry as RawLyrics)?.text ?? "",
-          description: (entry as RawLyrics)?.description ?? "",
-          language: (entry as RawLyrics)?.language ?? "",
-        }
-    );
+    return fields.getLyrics(this.state.tagData);
   }
 
   setLyrics(lyrics: RawLyrics[]): void {
     this.checkNotDestroyed();
-    this.tagData = { ...this.tagData, lyrics };
+    this.state.tagData = fields.setLyrics(this.state.tagData, lyrics);
   }
 
   getId3v2Frames(id: string): RawId3v2Frame[] {
     this.checkNotDestroyed();
-    const filter = id === "" ? undefined : id;
-    const source = this.filePath ?? this.fileData;
-    let frames: RawId3v2Frame[] = [];
-    if (source) {
-      frames = readId3v2FramesFromWasm(this.wasi, source, filter);
-    }
-    const staged = this.getStagedId3v2Frames();
-    if (!staged) return frames;
-    // Staged per-ID replacements win over (possibly stale) file state.
-    const stagedIds = new Set(Object.keys(staged));
-    frames = frames.filter((f) => !stagedIds.has(f.id));
-    for (const [sid, bodies] of Object.entries(staged)) {
-      if (filter && sid !== filter) continue;
-      // Copy: callers must not be able to mutate staged state by mutating
-      // the returned array (Embind's getId3v2Frames already returns copies).
-      for (const data of bodies) frames.push({ id: sid, data: data.slice() });
-    }
-    return frames;
+    return fields.getId3v2Frames(this.state, id);
   }
 
   setId3v2Frames(id: string, data: Uint8Array[]): void {
     this.checkNotDestroyed();
-    const staged = { ...(this.getStagedId3v2Frames() ?? {}) };
-    staged[id] = data.map((d) => new Uint8Array(d));
-    this.tagData = {
-      ...this.tagData,
-      id3v2Frames: staged,
-    };
+    this.state.tagData = fields.setId3v2Frames(this.state.tagData, id, data);
   }
 
   removeId3v2Frames(id: string): void {
-    this.setId3v2Frames(id, []);
+    this.checkNotDestroyed();
+    this.state.tagData = fields.removeId3v2Frames(this.state.tagData, id);
   }
 
   getStagedId3v2Frames(): Record<string, Uint8Array[]> | undefined {
-    return this.tagData?.id3v2Frames as
-      | Record<string, Uint8Array[]>
-      | undefined;
+    return fields.getStagedId3v2Frames(this.state.tagData);
   }
 
   destroy(): void {
-    this.fileData = null;
-    this.tagData = null;
+    destroy(this.state);
     this.destroyed = true;
   }
 }
