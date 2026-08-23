@@ -1,14 +1,6 @@
 {
   "$schema": "https://unpkg.com/knip@6/schema.json",
   "entry": [
-    "index.ts",
-    "index.browser.ts",
-    "simple.ts",
-    "simple.browser.ts",
-    "folder.ts",
-    "disc-folder.ts",
-    "web.ts",
-    "rating.ts",
     "src/taglib/index.ts",
     "src/msgpack/index.ts",
     "src/types/index.ts",
@@ -24,20 +16,9 @@
     "scripts/**/*.{ts,mjs,js}",
     "*.ts"
   ],
-  "ignore": [
-    "build/**",
-    "dist/**",
-    "lib/**",
-    "docs/**"
-  ],
   "ignoreDependencies": [
     "@std/.*",
-    "@msgpack/msgpack",
     "npm"
-  ],
-  "ignoreBinaries": [
-    "publint",
-    "vite"
   ],
   "ignoreExportsUsedInFile": true,
   "ignoreIssues": {

@@ -64,12 +64,20 @@ jobs:
       - name: Install ast-grep
         run: npm install -g @ast-grep/cli@0.45.1
 
-      - name: Run structural rules
-        # lint:ast self-skips when the ast-grep binary is absent, so the
-        # install step above is mandatory — without it this step would
-        # silently pass and the cpp-fileref-takes-ownership ERROR rule
-        # (taglib-f5hp double-free guard) would still catch nothing on PRs.
-        run: deno task lint:ast
+      - name: Verify docs coverage of public exports
+        # Local-only gate made mandatory: flags a shipped export that no doc
+        # mentions (name-mention check, not accuracy). A guard that does not
+        # run in CI is decoration — the same rule as the ast-grep step above.
+        run: deno task docs:coverage
+
+      - name: Verify no unused exports or dependencies (knip)
+        # Local-only gate made mandatory: dead exports and orphaned deps rot
+        # silently otherwise. knip is pinned in devDependencies and the task
+        # uses --no-install, so the analyzed version is deterministic rather
+        # than whatever npx would fetch.
+        run: deno task knip
+
+      - name: Verify toolchain pins agree across files
 
       - name: Verify toolchain pins agree across files
         # The wasm freshness gates byte-compare fresh builds against the
