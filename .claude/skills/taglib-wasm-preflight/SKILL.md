@@ -114,7 +114,7 @@ Tag only when the beads state reflects what you're shipping.
 Draft notes covering: new features, fixes, breaking changes, deprecations. For new public API, include a usage example. Match the detail of `MEMORY.md` release entries.
 
 **Docs accuracy:** this skill covers code, not prose. For the docs, run the
-companion `/tlw-preflight-docs` (tiered: 1 quick API-sync / 2 +examples / 3 full).
+companion `/taglib-wasm-preflight-docs` (tiered: 1 quick API-sync / 2 +examples / 3 full).
 At minimum run Tier 1 when the release changed the public API, so a new or changed
 export doesn't ship undocumented (`deno task docs:coverage` is the mechanical check).
 

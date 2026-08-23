@@ -7,7 +7,7 @@ description: Use when reviewing taglib-wasm documentation for accuracy and cover
 
 ## Overview
 
-A **tiered documentation review** — the docs companion to `/preflight`. `/preflight`
+A **tiered documentation review** — the docs companion to `/taglib-wasm-preflight`. `/taglib-wasm-preflight`
 verifies the _code_ is releasable; this verifies the _docs_ match what ships.
 
 `scripts/docs-coverage.ts` (`deno task docs:coverage`) is the mechanical aid: it
@@ -21,7 +21,7 @@ decides fixes.
 
 ## When to Use
 
-- Before a release (after `/preflight`'s semver + public-API-diff work).
+- Before a release (after `/taglib-wasm-preflight`'s semver + public-API-diff work).
 - After adding, changing, or removing any public export.
 - When asked to "review/audit the docs" or check docs are in sync with source.
 
@@ -30,7 +30,7 @@ Per `CLAUDE.md`, "documentation" means all three: `README.md`, `/docs`, and `AGE
 ## Pick a rigor tier (ASK first)
 
 On invocation, **ask the operator which tier to run** (or honor an arg, e.g.
-`/tlw-preflight-docs 3`). Rule of thumb: **Tier 1** for a routine pre-release check,
+`/taglib-wasm-preflight-docs 3`). Rule of thumb: **Tier 1** for a routine pre-release check,
 **Tier 3** for a periodic full audit. Each tier is cumulative.
 
 ### Tier 1 — API sync (fast)

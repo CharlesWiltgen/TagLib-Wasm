@@ -46,6 +46,7 @@ cov_profile/
 # skills from the committed tree (gitignored skills are invisible to it).
 .claude/*
 !.claude/skills/
+!.claude/commands/
 .githooks/
 
 # Tool configuration

@@ -15,7 +15,7 @@ A pushed `v*` tag by itself publishes **nothing**. `release-safe.sh` calls
 package. If `gh` is missing or unauthenticated, the script prints a manual URL,
 exits 0, and the release silently never happens.
 
-Run `/preflight` first. This skill starts where that one ends.
+Run `/taglib-wasm-preflight` first. This skill starts where that one ends.
 
 ## When to Use
 
@@ -23,7 +23,7 @@ Run `/preflight` first. This skill starts where that one ends.
 - A publish run failed, was skipped, or published to only some registries
 - You need to confirm a version actually landed on JSR/npm
 
-**Do not use** to decide the version number — that is `/preflight` §1.
+**Do not use** to decide the version number — that is `/taglib-wasm-preflight` §1.
 
 ## The Command
 
