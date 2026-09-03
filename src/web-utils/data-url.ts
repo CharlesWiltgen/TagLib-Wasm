@@ -15,9 +15,15 @@ import { InvalidFormatError } from "../errors/classes.ts";
  * ```
  */
 export function pictureToDataURL(picture: Picture): string {
+  // Chunked byte -> binary-string conversion: per-byte `+=` builds O(n^2)
+  // intermediate strings and is GC-heavy for large cover art; fixed-size
+  // chunks keep it linear (taglib-1zc.5lx). fromCharCode over bytes 0-255
+  // is 1:1 with fromCodePoint and faster.
+  const data = picture.data;
+  const CHUNK = 0x8000;
   let binary = "";
-  for (const byte of picture.data) {
-    binary += String.fromCodePoint(byte);
+  for (let i = 0; i < data.length; i += CHUNK) {
+    binary += String.fromCharCode(...data.subarray(i, i + CHUNK));
   }
   const base64 = btoa(binary);
   return `data:${picture.mimeType};base64,${base64}`;
