@@ -176,6 +176,20 @@ describe(normalizeTagInput.name, () => {
     assertEquals(result.discNumber, ["0"]);
   });
 
+  it("should truncate fractional bpm to an integer (taglib-ory8)", () => {
+    // ID3v2 TBPM is an integer numeric string and MP4 tmpo is an integer
+    // atom: a fractional typed value would be stored verbatim by one and
+    // truncated by the other — same input, different files. The typed write
+    // canonicalizes with the read side's narrowing rule (parseLeadingInt),
+    // so wire "120.5" reads back as 120 and a typed write of 120.5 writes
+    // "120" everywhere (taglib-ory8).
+    assertEquals(normalizeTagInput({ bpm: 120.5 }).bpm, ["120"]);
+    assertEquals(normalizeTagInput({ bpm: 120.99 }).bpm, ["120"]);
+    assertEquals(normalizeTagInput({ bpm: -3.7 }).bpm, ["-3"]);
+    assertEquals(normalizeTagInput({ bpm: 120 }).bpm, ["120"]);
+    assertEquals(normalizeTagInput({ bpm: 0 }).bpm, ["0"]);
+  });
+
   it("should map compilation true to '1'", () => {
     const result = normalizeTagInput({ compilation: true });
     assertEquals(result.compilation, ["1"]);

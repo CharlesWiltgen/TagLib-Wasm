@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+### Fixed
+
+- **Fractional typed BPM writes canonicalize to an integer** (taglib-ory8) —
+  `applyTags({ bpm: 120.5 })` used to write the decimal verbatim into ID3v2
+  TBPM while MP4's integer `tmpo` atom truncated it, so the same input
+  produced format-divergent files. Typed writes now truncate toward zero,
+  matching the read-side narrowing (a wire `"120.5"` already read back as
+  `120`); the raw wire surface still stores decimals verbatim.
+
 ## 2.2.2
 
 ### Fixed
