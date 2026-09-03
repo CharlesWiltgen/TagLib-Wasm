@@ -27,14 +27,15 @@ export function selectWasmType(
   return "emscripten";
 }
 
-export function isWasiAvailable(): boolean {
-  const runtime = detectRuntime();
+export function isWasiAvailable(
+  runtime: RuntimeDetectionResult = detectRuntime(),
+): boolean {
   return runtime.wasmType === "wasi" && runtime.supportsFilesystem;
 }
 
-export function getRecommendedConfig(): UnifiedLoaderOptions {
-  const runtime = detectRuntime();
-
+export function getRecommendedConfig(
+  runtime: RuntimeDetectionResult = detectRuntime(),
+): UnifiedLoaderOptions {
   if (runtime.environment === "browser") {
     return {
       forceWasmType: "emscripten",
@@ -42,7 +43,10 @@ export function getRecommendedConfig(): UnifiedLoaderOptions {
     };
   }
 
-  if (runtime.supportsFilesystem) {
+  // Same predicate as isWasiAvailable/selectWasmType: node-emscripten has a
+  // filesystem but no WASI backend, so forcing "wasi" there would select a
+  // binary the runtime cannot load (taglib-2b4).
+  if (runtime.wasmType === "wasi" && runtime.supportsFilesystem) {
     return {
       forceWasmType: "wasi",
       disableOptimizations: false,

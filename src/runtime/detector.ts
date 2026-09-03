@@ -17,6 +17,72 @@ export interface RuntimeDetectionResult {
   performanceTier: 1 | 2 | 3;
 }
 
+/**
+ * The pure per-environment backend configuration. `detectRuntime()` is the
+ * only sniffer in the codebase; every downstream decision (backend choice,
+ * PlatformIO creation, WASI availability) derives from this table so it can
+ * be exercised with synthetic environments instead of real runtimes
+ * (taglib-2b4).
+ */
+export interface EnvironmentProfile {
+  wasmType: WasmBinaryType;
+  supportsFilesystem: boolean;
+  supportsStreaming: boolean;
+  performanceTier: 1 | 2 | 3;
+}
+
+const ENVIRONMENT_PROFILES: Record<RuntimeEnvironment, EnvironmentProfile> = {
+  "deno-wasi": {
+    wasmType: "wasi",
+    supportsFilesystem: true,
+    supportsStreaming: true,
+    performanceTier: 1,
+  },
+  "node-wasi": {
+    wasmType: "wasi",
+    supportsFilesystem: true,
+    supportsStreaming: true,
+    performanceTier: 1,
+  },
+  "bun-wasi": {
+    wasmType: "wasi",
+    supportsFilesystem: true,
+    supportsStreaming: true,
+    performanceTier: 1,
+  },
+  browser: {
+    wasmType: "emscripten",
+    supportsFilesystem: false,
+    supportsStreaming: true,
+    performanceTier: 2,
+  },
+  worker: {
+    wasmType: "emscripten",
+    supportsFilesystem: false,
+    supportsStreaming: true,
+    performanceTier: 2,
+  },
+  cloudflare: {
+    wasmType: "emscripten",
+    supportsFilesystem: false,
+    supportsStreaming: false,
+    performanceTier: 3,
+  },
+  "node-emscripten": {
+    wasmType: "emscripten",
+    supportsFilesystem: true,
+    supportsStreaming: true,
+    performanceTier: 3,
+  },
+};
+
+/** Pure environment -> backend configuration lookup (taglib-2b4). */
+export function environmentProfile(
+  env: RuntimeEnvironment,
+): EnvironmentProfile {
+  return ENVIRONMENT_PROFILES[env];
+}
+
 const g = globalThis as Record<string, unknown>;
 
 const MIN_NODE_MAJOR = 22;
@@ -90,80 +156,41 @@ export function isDeno(): boolean {
 
 export function detectRuntime(): RuntimeDetectionResult {
   if (isDeno() && hasWASISupport()) {
-    return {
-      environment: "deno-wasi",
-      wasmType: "wasi",
-      supportsFilesystem: true,
-      supportsStreaming: true,
-      performanceTier: 1,
-    };
+    return { environment: "deno-wasi", ...environmentProfile("deno-wasi") };
   }
 
   if (isBun()) {
-    return {
-      environment: "bun-wasi",
-      wasmType: "wasi",
-      supportsFilesystem: true,
-      supportsStreaming: true,
-      performanceTier: 1,
-    };
+    return { environment: "bun-wasi", ...environmentProfile("bun-wasi") };
   }
 
   if (isNode() && hasWASISupport()) {
-    return {
-      environment: "node-wasi",
-      wasmType: "wasi",
-      supportsFilesystem: true,
-      supportsStreaming: true,
-      performanceTier: 1,
-    };
+    return { environment: "node-wasi", ...environmentProfile("node-wasi") };
   }
 
   if (isBrowser()) {
-    return {
-      environment: "browser",
-      wasmType: "emscripten",
-      supportsFilesystem: false,
-      supportsStreaming: true,
-      performanceTier: 2,
-    };
+    return { environment: "browser", ...environmentProfile("browser") };
   }
 
   if (isWebWorker()) {
-    return {
-      environment: "worker",
-      wasmType: "emscripten",
-      supportsFilesystem: false,
-      supportsStreaming: true,
-      performanceTier: 2,
-    };
+    return { environment: "worker", ...environmentProfile("worker") };
   }
 
   if (isCloudflareWorker()) {
-    return {
-      environment: "cloudflare",
-      wasmType: "emscripten",
-      supportsFilesystem: false,
-      supportsStreaming: false,
-      performanceTier: 3,
-    };
+    return { environment: "cloudflare", ...environmentProfile("cloudflare") };
   }
 
   if (isNode()) {
     return {
       environment: "node-emscripten",
-      wasmType: "emscripten",
-      supportsFilesystem: true,
-      supportsStreaming: true,
-      performanceTier: 3,
+      ...environmentProfile("node-emscripten"),
     };
   }
 
+  // Unknown embedder: report as browser-shaped but at the slowest tier —
+  // the profile table cannot express this variant of "browser", so override.
   return {
     environment: "browser",
-    wasmType: "emscripten",
-    supportsFilesystem: false,
-    supportsStreaming: true,
+    ...environmentProfile("browser"),
     performanceTier: 3,
   };
 }
@@ -210,12 +237,12 @@ export function getEnvironmentDescription(env: RuntimeEnvironment): string {
   }
 }
 
-export function canLoadWasmType(wasmType: WasmBinaryType): boolean {
-  const result = detectRuntime();
+export function canLoadWasmType(
+  wasmType: WasmBinaryType,
+  env: RuntimeEnvironment = detectRuntime().environment,
+): boolean {
   if (wasmType === "wasi") {
-    return result.environment === "deno-wasi" ||
-      result.environment === "node-wasi" ||
-      result.environment === "bun-wasi";
+    return environmentProfile(env).wasmType === "wasi";
   }
   return true;
 }

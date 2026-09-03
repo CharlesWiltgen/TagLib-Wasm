@@ -1,5 +1,5 @@
 import { EnvironmentError } from "../errors/classes.ts";
-import { detectRuntime } from "./detector.ts";
+import { detectRuntime, type RuntimeEnvironment } from "./detector.ts";
 
 export type PlatformIO = {
   readFile(path: string): Promise<Uint8Array>;
@@ -199,29 +199,34 @@ function createBunIO(): PlatformIO {
   };
 }
 
-export function getPlatformIO(): PlatformIO {
-  if (platformIO) return platformIO;
-
-  const runtime = detectRuntime();
-
-  switch (runtime.environment) {
+/**
+ * Pure environment -> PlatformIO selection (taglib-2b4): each environment's
+ * factory is chosen without sniffing, so the routing is testable with a
+ * synthetic environment. Factories are lazy — nothing touches the runtime
+ * until a method is called, so calling this under any runtime is safe.
+ */
+export function createPlatformIOFor(env: RuntimeEnvironment): PlatformIO {
+  switch (env) {
     case "deno-wasi":
-      platformIO = createDenoIO();
-      break;
+      return createDenoIO();
     case "bun-wasi":
-      platformIO = createBunIO();
-      break;
+      return createBunIO();
     case "node-wasi":
     case "node-emscripten":
-      platformIO = createNodeIO();
-      break;
+      return createNodeIO();
     default:
       throw new EnvironmentError(
-        runtime.environment,
+        env,
         "does not support filesystem operations",
         "filesystem access",
       );
   }
+}
+
+export function getPlatformIO(): PlatformIO {
+  if (platformIO) return platformIO;
+
+  platformIO = createPlatformIOFor(detectRuntime().environment);
 
   return platformIO;
 }
