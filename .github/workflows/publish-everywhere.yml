@@ -69,7 +69,7 @@ jobs:
           deno-version: "2.9.5"
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci
 
       - name: Install Emscripten
         uses: mymindstorm/setup-emsdk@v16
