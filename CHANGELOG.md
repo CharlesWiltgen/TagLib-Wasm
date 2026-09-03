@@ -4,6 +4,11 @@
 
 ### Fixed
 
+- **`getRecommendedConfig()` no longer selects an unloadable WASI backend**
+  (taglib-2b4) — the advisory config forced `forceWasmType: "wasi"` for any
+  filesystem-capable runtime, including `node-emscripten` (a filesystem
+  without a WASI backend); it now shares the wasi+filesystem predicate with
+  `selectWasmType`/`isWasiAvailable`.
 - **Fractional typed BPM writes canonicalize to an integer** (taglib-ory8) —
   `applyTags({ bpm: 120.5 })` used to write the decimal verbatim into ID3v2
   TBPM while MP4's integer `tmpo` atom truncated it, so the same input

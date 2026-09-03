@@ -141,9 +141,11 @@ export interface TagInput {
   readonly discNumber?: number;
   readonly totalTracks?: number;
   readonly totalDiscs?: number;
-  /** Integer BPM. A fractional value is truncated toward zero on write:
-   * every wire format is integer-only (ID3v2 TBPM, MP4 tmpo), and the read
-   * side narrows the same way (taglib-ory8). */
+  /** Integer BPM. The typed surface is integer by convention — the read
+   * side narrows any wire value to its leading integer, so a fractional
+   * value is truncated toward zero on write to keep all formats in
+   * agreement (ID3v2 would store "120.5" verbatim while MP4's tmpo atom
+   * int-converts; taglib-ory8). */
   readonly bpm?: number;
 
   // Extended boolean fields
@@ -214,8 +216,8 @@ export interface ExtendedTag extends Tag {
   readonly totalTracks?: number;
   /** Total discs in release */
   readonly totalDiscs?: number;
-  /** BPM (beats per minute), always an integer — the wire formats are
-   * integer-only and the typed surface narrows to the leading integer
+  /** BPM (beats per minute), always an integer — the typed surface narrows
+   * to the leading integer on read and truncates fractional writes
    * (taglib-ory8). */
   readonly bpm?: number;
   /** Compilation flag */

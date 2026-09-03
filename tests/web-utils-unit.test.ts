@@ -31,6 +31,34 @@ describe("pictureToDataURL", () => {
     assertEquals(result.startsWith("data:image/jpeg;base64,"), true);
   });
 
+  it("should be byte-identical to per-byte conversion across the chunk boundary (taglib-1zc.5lx)", () => {
+    // The chunked loop's second iteration is the only genuinely new code; a
+    // per-byte reference pins it. Lengths: one chunk + remainder, and an
+    // exact multiple of the 0x8000 chunk size (off-by-one / arg-limit
+    // regressions would land here).
+    const CHUNK = 0x8000;
+    const patterned = (length: number): Uint8Array => {
+      const bytes = new Uint8Array(length);
+      for (let i = 0; i < length; i++) bytes[i] = (i * 31 + 7) & 0xff;
+      return bytes;
+    };
+    const reference = (data: Uint8Array): string => {
+      let binary = "";
+      for (const byte of data) binary += String.fromCodePoint(byte);
+      return btoa(binary);
+    };
+
+    for (const length of [CHUNK + 3, CHUNK * 2, CHUNK * 2 + 1, 1]) {
+      const data = patterned(length);
+      const result = pictureToDataURL(makePicture({ data }));
+      assertEquals(
+        result,
+        `data:image/jpeg;base64,${reference(data)}`,
+        `length ${length}`,
+      );
+    }
+  });
+
   it("should encode image/png MIME type", () => {
     const picture = makePicture({
       mimeType: "image/png",

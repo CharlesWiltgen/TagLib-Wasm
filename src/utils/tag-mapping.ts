@@ -325,14 +325,15 @@ export function normalizeTagInput(
       else if (val === "clean") props.itunesAdvisory = ["2"];
       else if (val === "unspecified") props.itunesAdvisory = [];
     } else if (field === "bpm") {
-      // BPM is integer-only on every wire format (ID3v2 TBPM is an integer
-      // numeric string, MP4 tmpo is an integer atom), and TagLib truncates a
-      // fractional tmpo at the C++ boundary while ID3v2 stored the verbatim
-      // decimal — the same typed input produced format-divergent files
-      // (taglib-ory8). Canonicalize here with the read side's narrowing rule
-      // (parseLeadingInt: truncate toward zero, so a wire "120.5" reads back
-      // as 120) and every format agrees. The raw wire surface is untouched:
-      // setProperties({ BPM: ["120.5"] }) still stores the decimal verbatim.
+      // The typed surface treats BPM as an integer: the read side narrows
+      // any wire value to its leading integer (parseLeadingInt), so a
+      // fractional typed write would not round-trip — ID3v2 TBPM stores
+      // "120.5" verbatim while MP4's tmpo atom int-converts, producing
+      // format-divergent files from one input (taglib-ory8). Truncate
+      // toward zero here to mirror the read-side narrowing, and every
+      // format agrees. The raw wire surface is untouched: a raw
+      // setProperties({ BPM: ["120.5"] }) still stores the decimal verbatim
+      // on text frames (ID3v2, Vorbis).
       props[field] = [String(Math.trunc(val as number))];
     } else if (NUMERIC_FIELDS.has(field)) {
       props[field] = [String(val)];
