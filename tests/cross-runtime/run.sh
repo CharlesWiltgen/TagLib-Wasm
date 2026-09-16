@@ -94,6 +94,10 @@ echo "cross-runtime: $ran passed, $failures failed, $skipped skipped"
 # A run that executed nothing must not look green: with no runtime (or no tsx)
 # the suite silently covered nothing before this check.
 if [ "$failures" -ne 0 ] || [ "$ran" -eq 0 ]; then
-  [ "$ran" -eq 0 ] && echo "  ✗ nothing ran — install a runtime (deno/bun/node+tsx)"
+  # `ran` counts PASSED suites, so ran==0 with failures>0 means suites ran and
+  # failed — only the genuinely-nothing-executed case gets the install hint.
+  if [ "$ran" -eq 0 ] && [ "$failures" -eq 0 ]; then
+    echo "  ✗ nothing ran — install a runtime (deno/bun/node+tsx)"
+  fi
   exit 1
 fi

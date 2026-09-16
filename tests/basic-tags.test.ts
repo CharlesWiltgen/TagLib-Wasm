@@ -27,7 +27,12 @@ forEachBackend("Basic Tags", (adapter: BackendAdapter) => {
       const tags = await adapter.readTags(buffer, extForFormat(format));
 
       assertExists(tags.title, `${format}: title missing`);
-      assertEquals(tags.title, EXPECTED_KISS_TAGS.title);
+      // Per-format expectations: the fixtures are not uniform (see
+      // EXPECTED_KISS_TAGS), so artist/album are asserted per format too
+      // rather than decaying into an unused constant.
+      assertEquals(tags.title, EXPECTED_KISS_TAGS[format].title);
+      assertEquals(tags.artist, EXPECTED_KISS_TAGS[format].artist);
+      assertEquals(tags.album, EXPECTED_KISS_TAGS[format].album);
     });
   }
 

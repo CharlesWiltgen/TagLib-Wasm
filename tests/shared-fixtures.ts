@@ -45,15 +45,56 @@ export const FIXTURE_PATH: Record<Format, string> = {
   webm: resolve(TEST_FILES_DIR, "matroska/kiss-snippet.webm"),
 };
 
-export const EXPECTED_KISS_TAGS = {
+/**
+ * Expected tags for the kiss-snippet fixtures, PER FORMAT.
+ *
+ * These files are not identical, and a single format-agnostic constant was
+ * wrong for 8 of the 14 (it looked authoritative while asserting nothing).
+ * Measured at the file level with readTags over every fixture and corroborated
+ * by parsing each container's tag payload directly (ID3, Vorbis, MP4 `ilst`,
+ * APE, ASF, Matroska):
+ *
+ * - mp3/flac/ogg/oga/opus/wav carry the album from the motion-picture soundtrack
+ * - mp4/m4a were remuxed from the single and carry "Kiss (Single)"
+ * - wv/tta/wma/mka/mkv/webm still carry the older "Prince and The Revolution"
+ *   + "Parade" pair
+ */
+const PARADE = "Parade - Music from the Motion Picture Under the Cherry Moon";
+const SOURCE_ALBUM = {
   title: "Kiss",
-  // These are the values the kiss-snippet fixtures actually carry (verified
-  // with readTags and independently with strings(1) on the files). The older
-  // "Prince and The Revolution" / "Parade" pair was never asserted — only
-  // `title` is read today — so it silently rotted into a trap.
   artist: "Prince",
-  album: "Parade - Music from the Motion Picture Under the Cherry Moon",
+  album: PARADE,
 } as const;
+const SINGLE = {
+  title: "Kiss",
+  artist: "Prince",
+  album: "Kiss (Single)",
+} as const;
+const LEGACY = {
+  title: "Kiss",
+  artist: "Prince and The Revolution",
+  album: "Parade",
+} as const;
+
+export const EXPECTED_KISS_TAGS: Record<
+  Format,
+  { title: string; artist: string; album: string }
+> = {
+  mp3: SOURCE_ALBUM,
+  flac: SOURCE_ALBUM,
+  ogg: SOURCE_ALBUM,
+  oga: SOURCE_ALBUM,
+  opus: SOURCE_ALBUM,
+  wav: SOURCE_ALBUM,
+  mp4: SINGLE,
+  m4a: SINGLE,
+  wv: LEGACY,
+  tta: LEGACY,
+  wma: LEGACY,
+  mka: LEGACY,
+  mkv: LEGACY,
+  webm: LEGACY,
+};
 
 export const EXPECTED_AUDIO_PROPS: Record<
   Format,
