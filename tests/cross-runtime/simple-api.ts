@@ -16,11 +16,16 @@
  * WASI/Emscripten matrix lives in `backends.ts`.
  */
 
+import { fileURLToPath } from "node:url";
 import process from "node:process";
 import { readFormat, readProperties, readTags } from "../../simple.ts";
 
 const fixture = (dir: string, ext: string): string =>
-  new URL(`../test-files/${dir}/kiss-snippet.${ext}`, import.meta.url).pathname;
+  // fileURLToPath, not URL.pathname: pathname is percent-encoded (a checkout
+  // under a path with a space yields "%20") and mangles Windows drive letters.
+  fileURLToPath(
+    new URL(`../test-files/${dir}/kiss-snippet.${ext}`, import.meta.url),
+  );
 
 let checks = 0;
 let failures = 0;

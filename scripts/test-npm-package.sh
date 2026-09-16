@@ -217,7 +217,10 @@ const pkg = JSON.parse(
 const requiredFiles = ["package.json"];
 const collect = (value: unknown): void => {
   if (typeof value === "string") {
-    if (value.startsWith("./")) requiredFiles.push(value.slice(2));
+    // `exports` targets are "./"-prefixed; `main`/`module`/`browser`/`types`
+    // are not — record both, or those fields go silently unchecked (the
+    // filter here once dropped every non-"./"-prefixed path).
+    requiredFiles.push(value.startsWith("./") ? value.slice(2) : value);
     return;
   }
   if (value && typeof value === "object") {

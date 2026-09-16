@@ -576,9 +576,10 @@ jobs:
 
       - name: Cross-runtime smoke (Deno, Bun, Node × both backends)
         # tests/cross-runtime/*.ts run unmodified under all three runtimes and
-        # assert real values for both wasm backends. A runtime that cannot load
-        # a backend is reported as a skip, never as a pass, and any failed
-        # check exits non-zero. Local entry point: npm run test:cross-runtime.
+        # assert real values for both wasm backends. A backend a runtime cannot
+        # load is reported with its reason and fails the run — never a silent
+        # skip — and any failed check exits non-zero. A run that executes
+        # nothing also fails. Local entry point: npm run test:cross-runtime.
         run: bash tests/cross-runtime/run.sh
 
       - name: NPM - publint

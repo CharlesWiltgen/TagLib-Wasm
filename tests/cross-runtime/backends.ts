@@ -43,8 +43,9 @@ for (const backend of BACKENDS) {
   try {
     taglib = await TagLib.initialize({ forceWasmType: backend });
   } catch (error) {
-    // A runtime that cannot load this backend is a SKIP, not a pass: it is
-    // reported loudly so a silently-skipping matrix can never look green.
+    // A backend that cannot be loaded in a supported runtime is reported with
+    // its reason and FAILS the run (see the exit below): a silently-skipping
+    // matrix can never look green.
     skipped++;
     console.log(
       `  ⚠ ${backend}: not loadable in this runtime — ${
@@ -69,9 +70,27 @@ for (const backend of BACKENDS) {
   }
 }
 
+// A backend that cannot be loaded in a runtime this library claims to support
+// is a FAILURE, not a pass: a silently-skipping matrix is exactly how the WASI
+// half of the parity tests stayed dark in CI for months. The skip is printed
+// with its reason first, then the run fails (measured: an empty backend list
+// used to report "0/0 checks passed" and exit 0; a single skipped backend
+// reported "12/12 checks passed, 1 skipped" and also exited 0).
+if (checks === 0) {
+  console.error(
+    `  ✗ no backend could be loaded in this runtime (${skipped} skipped) — nothing was asserted`,
+  );
+  process.exit(1);
+}
+if (skipped > 0) {
+  console.error(
+    `  ✗ ${skipped} backend(s) could not be loaded — the matrix is incomplete`,
+  );
+}
+
 console.log(
   `backends: ${
     checks - failures
   }/${checks} checks passed, ${skipped} backend(s) skipped`,
 );
-process.exit(failures === 0 ? 0 : 1);
+process.exit(failures === 0 && skipped === 0 ? 0 : 1);

@@ -79,9 +79,10 @@
   `tests/cross-runtime/` — two dependency-free suites that run unmodified on
   Deno, Bun and Node and assert real values: `simple-api.ts` (default backend,
   three fixtures) and `backends.ts` (explicit `wasi` + `emscripten` matrix,
-  where a backend a runtime cannot load is reported as a **skip**, never a
-  pass). `npm run test:cross-runtime` drives all six cases; CI runs it in the
-  Package Compatibility job. `tsx` returns to devDependencies for the Node leg.
+  where a backend a runtime cannot load is reported with its reason and fails
+  the run — never a silent skip, and a run that executes nothing also fails).
+  `npm run test:cross-runtime` drives all six cases; CI runs it in the Package
+  Compatibility job. `tsx` returns to devDependencies for the Node leg.
   Its first run immediately caught something real: the WASI backend needs
   `--experimental-wasm-exnref` on Node versions that still gate Wasm exception
   handling (24.12 does, 24.21 does not), so the driver passes the flag only

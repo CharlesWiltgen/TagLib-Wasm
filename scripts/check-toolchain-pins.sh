@@ -93,6 +93,11 @@ if [ -f mise.toml ]; then
     | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' || true)"
   deno_mise="$(grep -oE '^deno = "[0-9]+\.[0-9]+\.[0-9]+"' mise.toml \
     | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' || true)"
+  # The file exists, so its pins must be found: without this a renamed or
+  # reformatted line would empty the value and the filter below would drop it
+  # silently — the vanish-class this guard exists to close.
+  require_pin "binaryen (mise.toml)" "$bin_mise"
+  require_pin "deno (mise.toml)" "$deno_mise"
 else
   bin_mise=""
   deno_mise=""

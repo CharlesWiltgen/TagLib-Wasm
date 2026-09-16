@@ -70,8 +70,16 @@ if command -v node >/dev/null 2>&1; then
     node_flags+=(--experimental-wasm-exnref)
   fi
   if [ -x "$ROOT/node_modules/.bin/tsx" ]; then
+    # bash 3.2 (stock macOS /bin/bash) aborts on an empty "${arr[@]}" under
+    # `set -u`, so build the argv explicitly instead of expanding a maybe-empty
+    # array.
+    if [ "${#node_flags[@]}" -gt 0 ]; then
+      node_argv=(node "${node_flags[@]}" --import tsx)
+    else
+      node_argv=(node --import tsx)
+    fi
     for suite in "${SUITES[@]}"; do
-      run_suite "node(tsx)" "$suite" node "${node_flags[@]}" --import tsx
+      run_suite "node(tsx)" "$suite" "${node_argv[@]}"
     done
   else
     echo "  ⚠ node present but tsx is not installed (run npm ci) — SKIPPED"
@@ -83,4 +91,9 @@ fi
 
 echo "-------------------------"
 echo "cross-runtime: $ran passed, $failures failed, $skipped skipped"
-[ "$failures" -eq 0 ] || exit 1
+# A run that executed nothing must not look green: with no runtime (or no tsx)
+# the suite silently covered nothing before this check.
+if [ "$failures" -ne 0 ] || [ "$ran" -eq 0 ]; then
+  [ "$ran" -eq 0 ] && echo "  ✗ nothing ran — install a runtime (deno/bun/node+tsx)"
+  exit 1
+fi
