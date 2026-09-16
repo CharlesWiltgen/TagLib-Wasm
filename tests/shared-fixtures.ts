@@ -47,8 +47,12 @@ export const FIXTURE_PATH: Record<Format, string> = {
 
 export const EXPECTED_KISS_TAGS = {
   title: "Kiss",
-  artist: "Prince and The Revolution",
-  album: "Parade",
+  // These are the values the kiss-snippet fixtures actually carry (verified
+  // with readTags and independently with strings(1) on the files). The older
+  // "Prince and The Revolution" / "Parade" pair was never asserted — only
+  // `title` is read today — so it silently rotted into a trap.
+  artist: "Prince",
+  album: "Parade - Music from the Motion Picture Under the Cherry Moon",
 } as const;
 
 export const EXPECTED_AUDIO_PROPS: Record<
