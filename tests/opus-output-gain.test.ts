@@ -53,4 +53,24 @@ for (const backend of BACKENDS) {
       f.dispose();
     }
   });
+
+  // The field is OpusHead gain — an Ogg-Opus structure. An MP4 carrying an
+  // Opus track reports codec "Opus" but has no OpusHead, so the key must stay
+  // absent (the Emscripten adapter used to fabricate 0 for any codec=="Opus"
+  // file once the MP4 codec enum was mapped; WASI never did).
+  Deno.test(`[${backend}] MP4 with an Opus track has no outputGainDb`, async () => {
+    const taglib = await TagLib.initialize({ forceWasmType: backend });
+    const buffer = await Deno.readFile(
+      join("tests", "test-files", "mp4", "opus.m4a"),
+    );
+    const f = await taglib.open(buffer);
+    try {
+      const p = f.audioProperties() as Record<string, unknown> | undefined;
+      assertEquals(p?.codec, "Opus");
+      assertEquals(p?.containerFormat, "MP4");
+      assertEquals("outputGainDb" in (p ?? {}), false);
+    } finally {
+      f.dispose();
+    }
+  });
 }

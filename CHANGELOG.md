@@ -20,6 +20,13 @@
   `lib/taglib` to the SHA recorded in the index (the version being replaced)
   before staging, silently leaving the submodule on the old release. The
   nested-submodule sync now runs inside the submodule.
+- **Emscripten fabricated an Ogg-only `outputGainDb` on MP4/Opus** — the
+  adapter keyed the OpusHead gain on `codec === "Opus"`, so once the MP4 codec
+  enum was mapped an MP4 carrying an Opus track reported `outputGainDb: 0`
+  while WASI omitted the key (the field has no meaning outside an Ogg Opus
+  stream). The gate now requires the Ogg container, matching WASI; guarded by
+  a both-backend case in `tests/opus-output-gain.test.ts`, observed failing on
+  Emscripten before the fix.
 
 ### Changed
 
@@ -33,7 +40,9 @@
   On WMA the ASF attribute-name handling is now upstream's: incoming keys
   match on-disk names case-insensitively and the rewritten attribute uses
   TagLib's canonical spelling (`replaygain_track_gain`) instead of the
-  property-key spelling — the value contract is unchanged.
+  property-key spelling — the value contract is unchanged. The guard asserts
+  the raw name-occurrence list (a deduped set also passes when both spellings
+  coexist) and was observed failing against the pre-bump binaries.
   Guarded by `tests/mp4-codec.test.ts` over ffmpeg-generated fixtures
   (`_gen/make-mp4-codec-fixtures.sh --regen`), observed failing against the
   pre-fix binaries. The DTS branch has no fixture: ffmpeg's mov muxer cannot
@@ -46,7 +55,10 @@
   CI pin 1.3.14 → 1.4.2, and both committed Wasm binaries rebuilt.
   `binaryen@132.0.0` still matches emsdk 6.0.9's vendored Binaryen.
   `mise.toml` (local, gitignored) pins the same dev toolchain, and
-  `scripts/check-toolchain-pins.sh` validates its pins too when present.
+  `scripts/check-toolchain-pins.sh` validates its pins too when present. Every
+  pin lookup in that guard is now miss-tolerant (`|| true`): a lookup whose
+  format drifts reaches the guard's "no pin found" diagnostic instead of
+  aborting mid-pipeline under `set -euo pipefail` with no message.
 - **Dependency updates** — eslint 10.8.1 → 10.10.0, knip 6.32.2 → 6.35.1,
   tsx 4.23.12 → 4.23.13, typescript-eslint 8.67.0 → 8.70.0, fast-check
   4.9.0 → 4.10.0, @types/node 24.13.3 → 24.13.4, actions/cache v5 → v6,

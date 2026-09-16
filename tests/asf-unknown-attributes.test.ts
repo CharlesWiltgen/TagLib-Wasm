@@ -169,28 +169,31 @@ describe("ASF unknown attributes (taglib-984r)", () => {
       // must replace the differently-cased original, not leave a stale
       // duplicate (taglib-984r review).
       //
-      // The on-disk SPELLING is TagLib's, not ours: 2.3.2 matches attribute
+      // The write must collapse the differently-cased on-disk name into ONE
+      // attribute — the spelling itself is TagLib's: 2.3.2 matches attribute
       // names case-insensitively and rewrites the canonical name from its
-      // translation table (replaygain_track_gain), where 2.3.1 kept the
-      // property-key spelling (REPLAYGAIN_TRACK_GAIN). Assert the invariant —
-      // one case-insensitive name family, new value — not the case.
+      // translation table (replaygain_track_gain), where 2.3.1 wrote the
+      // property-key spelling. Assert on the raw occurrence list, not a
+      // deduped set: a deduped set also passes when both spellings are
+      // present, which is exactly the stale-duplicate regression this test
+      // exists for (measured: a correct write leaves exactly one occurrence).
       const src = await Deno.readFile(
         "tests/test-files/wma/wma-lowercase-attr.wma",
       );
       const tl = await TagLib.initialize({ forceWasmType: backend });
       const file = await tl.open(src);
-      file.setProperties({ "replaygain_track_gain": ["-9.99 dB"] });
+      // Deliberately the property-key (upper) spelling: it is the casing that
+      // would land beside the existing lower-case attribute if the collapse
+      // regressed.
+      file.setProperties({ "REPLAYGAIN_TRACK_GAIN": ["-9.99 dB"] });
       file.save();
       const buf = file.getFileBuffer();
       file.dispose();
 
       const text = new TextDecoder("utf-16le").decode(buf);
-      const families: Record<string, true> = {};
-      for (const m of text.matchAll(/[A-Za-z_]*replaygain[A-Za-z_]*/gi)) {
-        families[m[0].toLowerCase()] = true;
-      }
-      // Exactly one attribute: the canonical rewrite with the new value.
-      assertEquals(Object.keys(families), ["replaygain_track_gain"]);
+      const names = [...text.matchAll(/[A-Za-z_]*replaygain[A-Za-z_]*/gi)]
+        .map((m) => m[0]);
+      assertEquals(names, ["replaygain_track_gain"]);
 
       const tlR = await TagLib.initialize({ forceWasmType: OTHER[backend] });
       const reopened = await tlR.open(buf);

@@ -58,7 +58,7 @@ libunwind rebuilt with `-fwasm-exceptions`). See
 
 All C++ files: `-fwasm-exceptions -mllvm -wasm-use-legacy-eh=false`
 All C files: `-fwasm-exceptions` (for target_features consistency)
-Linker: `-fwasm-exceptions -lunwind -mexec-model=reactor` — `-fwasm-exceptions` auto-selects WASI SDK 33's stock `eh/` multilib (which also provides the `__cpp_exception` tag, so no `wasm_eh_tag.S` shim is needed)
+Linker: `-fwasm-exceptions -lunwind -mexec-model=reactor` — `-fwasm-exceptions` auto-selects the stock WASI SDK `eh/` multilib (introduced in SDK 33; the pinned SDK is 34, which also provides the `__cpp_exception` tag, so no `wasm_eh_tag.S` shim is needed)
 
 The `-mexec-model=reactor` flag is critical — it exports `_initialize`
 instead of `_start`, enabling the host to call it for static constructor
@@ -78,8 +78,8 @@ initialization.
 # Emscripten binary
 deno task build:wasm
 
-# WASI binary (requires WASI SDK 33 — stock sysroot ships C++ exceptions)
-bash build/setup-wasi-sdk.sh        # One-time: download WASI SDK 33
+# WASI binary (requires WASI SDK 34 — stock sysroot ships C++ exceptions)
+bash build/setup-wasi-sdk.sh        # One-time: download WASI SDK 34
 bash build/build-wasi.sh            # Build WASI binaries
 ```
 

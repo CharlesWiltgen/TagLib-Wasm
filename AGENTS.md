@@ -551,7 +551,7 @@ deno task test              # Run the test suite (fast inner loop)
 deno task check:all         # Full pre-push gate: fmt, lint, typecheck, tests, build:ts
 deno task build             # Build TypeScript + both Wasm backends
 deno task build:wasm        # Rebuild both Wasm backends
-deno task build:wasm:wasi   # Rebuild WASI Wasm only (requires WASI SDK 33)
+deno task build:wasm:wasi   # Rebuild WASI Wasm only (requires WASI SDK 34)
 ```
 
 ### Architecture

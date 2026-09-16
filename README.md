@@ -386,7 +386,7 @@ import { readProperties } from "taglib-wasm/simple";
 const props = await readProperties("song.m4a");
 
 console.log(props.containerFormat); // "MP4" (container format)
-console.log(props.codec); // "AAC" or "ALAC" (compressed media format)
+console.log(props.codec); // "AAC", "ALAC", "AC-3", … (compressed media format)
 console.log(props.isLossless); // false for AAC, true for ALAC
 console.log(props.bitsPerSample); // 16 for most formats
 console.log(props.bitrate); // 256 (kbps)
@@ -407,7 +407,7 @@ Container format vs Codec:
 
 Supported formats:
 
-- **MP4 container** (.mp4, .m4a) – Can contain AAC (lossy) or ALAC (lossless)
+- **MP4 container** (.mp4, .m4a) – Can contain AAC, ALAC, AC-3, E-AC-3, DTS, FLAC, or Opus
 - **OGG container** (.ogg) – Can contain Vorbis, Opus, FLAC, or Speex
 - **MP3** – Both container and codec (lossy)
 - **FLAC** – Both container and codec (lossless)

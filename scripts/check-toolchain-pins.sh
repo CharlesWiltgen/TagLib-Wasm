@@ -46,19 +46,24 @@ check_family() {
 
 WF_FILES=(.github/workflows/ci.yml .github/workflows/sonarcloud.yml .github/workflows/publish-everywhere.yml)
 
+# Every lookup below ends in `|| true`. Under `set -euo pipefail` a pattern
+# that stops matching aborts the script mid-flight, which would hide
+# check_family's designed "no pin found (file moved, renamed, or format
+# changed?)" diagnostic — the exact confusing-failure class this guard exists
+# to prevent. Never drop the `|| true`.
 emsdk_wf="$(grep -hA2 'mymindstorm/setup-emsdk' "${WF_FILES[@]}" \
-  | grep -oE 'version: [0-9]+\.[0-9]+\.[0-9]+' | awk '{print $2}')"
+  | grep -oE 'version: [0-9]+\.[0-9]+\.[0-9]+' | awk '{print $2}' || true)"
 emsdk_dev="$(grep -hoE 'emsdk (install|activate) [0-9]+\.[0-9]+\.[0-9]+' build/setup-dev-env.sh \
-  | awk '{print $3}')"
+  | awk '{print $3}' || true)"
 check_family "emsdk" "$emsdk_wf
 $emsdk_dev"
 
 wasi_ci="$(grep -oE 'WASI_VERSION[:=][[:space:]]*"?[0-9]+\.[0-9]+' .github/workflows/ci.yml \
-  | head -1 | grep -oE '[0-9]+\.[0-9]+$')"
+  | head -1 | grep -oE '[0-9]+\.[0-9]+$' || true)"
 wasi_dev="$(grep -oE 'WASI_VERSION="[0-9]+\.[0-9]+"' build/setup-dev-env.sh \
-  | head -1 | sed -E 's/.*"([0-9.]+)"/\1/')"
+  | head -1 | sed -E 's/.*"([0-9.]+)"/\1/' || true)"
 wasi_local="$(grep -oE 'WASI_SDK_VERSION_FULL="[0-9]+\.[0-9]+"' build/setup-wasi-sdk.sh \
-  | head -1 | sed -E 's/.*"([0-9.]+)"/\1/')"
+  | head -1 | sed -E 's/.*"([0-9.]+)"/\1/' || true)"
 check_family "wasi-sdk" "$wasi_ci
 $wasi_dev
 $wasi_local"
@@ -76,12 +81,12 @@ else
   deno_mise=""
 fi
 
-bin_ci="$(grep -oE 'binaryen@[0-9]+\.[0-9]+\.[0-9]+' .github/workflows/ci.yml | sed 's/.*@//')"
-bin_dev="$(grep -oE 'binaryen@[0-9]+\.[0-9]+\.[0-9]+' build/setup-dev-env.sh | sed 's/.*@//')"
+bin_ci="$(grep -oE 'binaryen@[0-9]+\.[0-9]+\.[0-9]+' .github/workflows/ci.yml | sed 's/.*@//' || true)"
+bin_dev="$(grep -oE 'binaryen@[0-9]+\.[0-9]+\.[0-9]+' build/setup-dev-env.sh | sed 's/.*@//' || true)"
 check_family "binaryen" "$(printf '%s\n' "$bin_ci" "$bin_dev" "$bin_mise" | grep .)"
 
 deno_wf="$(grep -hoE 'deno-version: "[0-9]+\.[0-9]+\.[0-9]+"' "${WF_FILES[@]}" \
-  | grep -oE '[0-9]+\.[0-9]+\.[0-9]+')"
+  | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' || true)"
 check_family "deno" "$(printf '%s\n' "$deno_wf" "$deno_mise" | grep .)"
 
 echo "All toolchain pins agree."

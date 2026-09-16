@@ -70,13 +70,13 @@ The `containerFormat` field returns:
 
 The `codec` field returns a string identifying the audio codec:
 
-- **MP4/M4A files**: `"AAC"`, `"ALAC"`, `"AC-3"`, `"E-AC-3"`, `"DTS"`, `"FLAC"`, or `"Opus"`
+- **MP4/M4A files**: `"AAC"`, `"ALAC"`, `"AC-3"`, `"E-AC-3"`, `"DTS"`, `"FLAC"`, `"Opus"`, or `"unknown"` (a sample entry TagLib cannot classify)
 - **MP3 files**: `"MP3"`
 - **FLAC files**: `"FLAC"`
 - **OGG files**: `"Vorbis"` or `"Opus"`
 - **WAV files**: `"PCM"`, `"IEEE Float"`, or `"WAV"` (for other codecs)
 - **AIFF files**: `"PCM"`
-- **Unknown**: `"Unknown"`
+- **Unclassified**: `"unknown"`
 
 ## Lossless Detection
 

@@ -364,8 +364,8 @@ jobs:
             sudo apt-get install -y ninja-build
           fi
 
-      # WASI SDK 33's stock sysroot ships C++ exceptions (eh/ multilib), so the
-      # previous custom EH-sysroot build (build-eh-sysroot.sh) is no longer
+      # The stock WASI SDK sysroot (33+) ships C++ exceptions (eh/ multilib), so
+      # the previous custom EH-sysroot build (build-eh-sysroot.sh) is no longer
       # needed — build-wasi.sh links against the SDK's stock eh/ libs (taglib-sgh).
 
       - name: Cache WASI build

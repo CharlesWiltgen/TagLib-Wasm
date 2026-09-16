@@ -15,7 +15,7 @@ software together.
 - **Deno 2.x** - Primary development runtime
 - **Node.js 24+** - For npm compatibility testing (Active LTS; matches the CI matrix)
 - **Emscripten SDK** - For building the Emscripten Wasm backend
-- **WASI SDK 33** - For building the WASI Wasm backend (optional for TS-only changes)
+- **WASI SDK 34** - For building the WASI Wasm backend (optional for TS-only changes)
 - **Git** - With submodule support
 
 ### Development Setup
@@ -35,7 +35,7 @@ software together.
 
 3. **Install WASI SDK** (only needed if modifying the WASI backend)
    ```bash
-   bash build/setup-wasi-sdk.sh        # Downloads WASI SDK 33 (stock sysroot ships C++ exceptions)
+   bash build/setup-wasi-sdk.sh        # Downloads WASI SDK 34 (stock sysroot ships C++ exceptions)
    ```
 
 4. **Build the project**

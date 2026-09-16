@@ -213,7 +213,12 @@ export function wrapEmbindHandle(raw: EmbindFileHandle): WasmFileHandle {
           : {}),
         ...(formatVersion > 0 ? { formatVersion } : {}),
         ...(isValidBitrateMode(bitrateMode) ? { bitrateMode } : {}),
-        ...(codec === "Opus" ? { outputGainDb: pw.outputGainDb() } : {}),
+        // OpusHead gain exists only in an Ogg Opus stream. Gating on codec
+        // alone fabricated outputGainDb: 0 for MP4 tracks once the MP4 codec
+        // enum was mapped (the WASI side never emitted it there) — taglib-kswf.
+        ...(containerFormat === "OGG" && codec === "Opus"
+          ? { outputGainDb: pw.outputGainDb() }
+          : {}),
       };
     },
   };
