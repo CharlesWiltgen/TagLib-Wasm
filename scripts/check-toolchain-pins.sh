@@ -8,12 +8,16 @@
 # themselves. Runs in CI (lint job) and locally (deno task check:all).
 #
 # Covered pins:
-#   emsdk    — .github/workflows/{ci,sonarcloud,publish-everywhere}.yml
+#   emsdk    — .github/workflows/{ci,publish-everywhere}.yml
 #              (mymindstorm/setup-emsdk version:) and build/setup-dev-env.sh
-#              (emsdk install/activate)
+#              (emsdk install/activate). sonarcloud.yml carries no emsdk pin:
+#              that job tests the committed binaries instead of building.
 #   wasi-sdk — .github/workflows/ci.yml (WASI_VERSION), build/setup-dev-env.sh
 #              (WASI_VERSION), build/setup-wasi-sdk.sh (WASI_SDK_VERSION_FULL)
-#   binaryen — .github/workflows/ci.yml and build/setup-dev-env.sh (binaryen@)
+#   binaryen — .github/workflows/ci.yml, build/setup-dev-env.sh (binaryen@),
+#              and mise.toml (npm:binaryen, the local toolchain)
+#   deno     — .github/workflows/{ci,publish-everywhere,sonarcloud}.yml
+#              (deno-version:) and mise.toml (local toolchain)
 
 set -euo pipefail
 
@@ -61,7 +65,16 @@ $wasi_local"
 
 bin_ci="$(grep -oE 'binaryen@[0-9]+\.[0-9]+\.[0-9]+' .github/workflows/ci.yml | sed 's/.*@//')"
 bin_dev="$(grep -oE 'binaryen@[0-9]+\.[0-9]+\.[0-9]+' build/setup-dev-env.sh | sed 's/.*@//')"
+bin_mise="$(grep -oE '"npm:binaryen" = "[0-9]+\.[0-9]+\.[0-9]+"' mise.toml | grep -oE '[0-9]+\.[0-9]+\.[0-9]+')"
 check_family "binaryen" "$bin_ci
-$bin_dev"
+$bin_dev
+$bin_mise"
+
+deno_wf="$(grep -hoE 'deno-version: "[0-9]+\.[0-9]+\.[0-9]+"' "${WF_FILES[@]}" \
+  | grep -oE '[0-9]+\.[0-9]+\.[0-9]+')"
+deno_mise="$(grep -oE '^deno = "[0-9]+\.[0-9]+\.[0-9]+"' mise.toml \
+  | grep -oE '[0-9]+\.[0-9]+\.[0-9]+')"
+check_family "deno" "$deno_wf
+$deno_mise"
 
 echo "All toolchain pins agree."

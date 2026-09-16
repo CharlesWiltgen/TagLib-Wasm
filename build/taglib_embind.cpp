@@ -225,11 +225,24 @@ public:
         
         // MP4/M4A files
         if (TagLib::MP4::Properties* mp4Props = dynamic_cast<TagLib::MP4::Properties*>(props)) {
+            // TagLib 2.3.2 detects AC-3/E-AC-3/FLAC/DTS/Opus sample entries in
+            // MP4 (previously all non-ALAC tracks read as AAC). Twin of the
+            // switch in src/capi/taglib_audio_props.cpp — keep in sync.
             switch (mp4Props->codec()) {
                 case TagLib::MP4::Properties::AAC:
                     return "AAC";
                 case TagLib::MP4::Properties::ALAC:
                     return "ALAC";
+                case TagLib::MP4::Properties::AC3:
+                    return "AC-3";
+                case TagLib::MP4::Properties::EAC3:
+                    return "E-AC-3";
+                case TagLib::MP4::Properties::FLAC:
+                    return "FLAC";
+                case TagLib::MP4::Properties::DTS:
+                    return "DTS";
+                case TagLib::MP4::Properties::Opus:
+                    return "Opus";
                 default:
                     return "unknown";
             }

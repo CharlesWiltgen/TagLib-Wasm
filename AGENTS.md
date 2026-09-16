@@ -397,8 +397,8 @@ is non-deterministic — explicit disposal is still the contract (taglib-t4sn).
 WASI path mode (Deno/Node.js with file paths) uses ~1-2MB regardless of file size.
 Buffer mode (browsers, or when passing Uint8Array) uses ~2x file size.
 
-**Supported formats**: MP3 (ID3v1/v2), MP4/M4A, FLAC, OGG Vorbis, WAV, Opus, APE,
-MPC, WavPack, TrueAudio, Matroska/WebM. Auto-detected from content.
+**Supported formats**: MP3 (ID3v1/v2), MP4/M4A, FLAC, OGG Vorbis, WAV (incl. RF64/
+BW64), Opus, APE, MPC, WavPack, TrueAudio, Matroska/WebM. Auto-detected from content.
 
 **Tag mapping**: All format-specific tag names normalized to camelCase via `properties()`.
 Example: ID3v2 `TPE2` / Vorbis `ALBUMARTIST` / iTunes `aART` → `albumArtist`.
@@ -557,7 +557,7 @@ deno task build:wasm:wasi   # Rebuild WASI Wasm only (requires WASI SDK 33)
 ### Architecture
 
 Two Wasm backends: **Emscripten** (browsers) and **WASI** (Deno/Node.js).
-Auto-selected at runtime. Both wrap TagLib 2.3.1 C++ via a C boundary layer.
+Auto-selected at runtime. Both wrap TagLib 2.3.2 C++ via a C boundary layer.
 
 Key files: `build/taglib_embind.cpp` (Emscripten), `src/capi/taglib_shim.cpp` (WASI),
 `src/capi/core/taglib_boundary.c` (C boundary), `src/taglib.ts` (core TS API).

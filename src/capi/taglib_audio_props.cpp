@@ -90,11 +90,36 @@ ExtendedAudioInfo get_extended_audio_info(
         if (props) {
             info.bitsPerSample = props->bitsPerSample();
             info.isEncrypted = props->isEncrypted();
-            if (props->codec() == TagLib::MP4::Properties::ALAC) {
-                info.codec = "ALAC";
-                info.isLossless = true;
-            } else {
-                info.codec = "AAC";
+            // TagLib 2.3.2 detects AC-3/E-AC-3/FLAC/DTS/Opus sample entries in
+            // MP4 (previously all non-ALAC tracks read as AAC). Twin of the
+            // switch in build/taglib_embind.cpp — keep in sync.
+            switch (props->codec()) {
+                case TagLib::MP4::Properties::AAC:
+                    info.codec = "AAC";
+                    break;
+                case TagLib::MP4::Properties::ALAC:
+                    info.codec = "ALAC";
+                    info.isLossless = true;
+                    break;
+                case TagLib::MP4::Properties::AC3:
+                    info.codec = "AC-3";
+                    break;
+                case TagLib::MP4::Properties::EAC3:
+                    info.codec = "E-AC-3";
+                    break;
+                case TagLib::MP4::Properties::FLAC:
+                    info.codec = "FLAC";
+                    info.isLossless = true;
+                    break;
+                case TagLib::MP4::Properties::DTS:
+                    info.codec = "DTS";
+                    break;
+                case TagLib::MP4::Properties::Opus:
+                    info.codec = "Opus";
+                    break;
+                default:
+                    info.codec = "unknown";
+                    break;
             }
         }
         info.container = "MP4";

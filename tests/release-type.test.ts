@@ -1,7 +1,7 @@
 /**
  * @fileoverview Typed releaseType property (taglib-ecy4).
  *
- * RELEASETYPE is translated natively by TagLib 2.3.1 on every format
+ * RELEASETYPE is translated natively by TagLib 2.3.2 on every format
  * (ID3v2 TXXX 'MusicBrainz Album Type', MP4 freeform atom, APEv2
  * MUSICBRAINZ_ALBUMTYPE, ASF 'MusicBrainz/Album Type', Vorbis/Matroska raw)
  * and round-trips as a raw property on all of them — but there was no

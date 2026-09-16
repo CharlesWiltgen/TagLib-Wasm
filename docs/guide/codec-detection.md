@@ -49,7 +49,7 @@ Understanding the difference between container formats and codecs is important:
 
 Some formats like MP3 and FLAC are both container and codec, while others like MP4 and OGG are containers that can hold different codecs:
 
-- **MP4 container** (includes .m4a files): Can contain AAC (lossy) or ALAC (lossless)
+- **MP4 container** (includes .m4a files): Can contain AAC, ALAC, AC-3, E-AC-3, DTS, FLAC, or Opus
 - **OGG container**: Can contain Vorbis, Opus, FLAC, or Speex codecs
 - **MP3**: Both container and codec
 - **FLAC**: Both container and codec
@@ -70,7 +70,7 @@ The `containerFormat` field returns:
 
 The `codec` field returns a string identifying the audio codec:
 
-- **MP4/M4A files**: `"AAC"` or `"ALAC"`
+- **MP4/M4A files**: `"AAC"`, `"ALAC"`, `"AC-3"`, `"E-AC-3"`, `"DTS"`, `"FLAC"`, or `"Opus"`
 - **MP3 files**: `"MP3"`
 - **FLAC files**: `"FLAC"`
 - **OGG files**: `"Vorbis"` or `"Opus"`

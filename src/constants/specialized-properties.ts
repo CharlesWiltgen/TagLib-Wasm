@@ -51,7 +51,7 @@ export const SPECIALIZED_PROPERTIES = {
   releaseType: {
     key: "RELEASETYPE",
     description:
-      "Release type (album, single, EP, compilation, ...). Multi-value (e.g. 'album' + 'EP'). TagLib 2.3.1 translates the RELEASETYPE key per format: ID3v2 TXXX 'MUSICBRAINZ ALBUM TYPE' (TagLib's description casing), MP4 freeform atom, APEv2 MUSICBRAINZ_ALBUMTYPE, ASF 'MusicBrainz/Album Type', Vorbis/Matroska raw RELEASETYPE",
+      "Release type (album, single, EP, compilation, ...). Multi-value (e.g. 'album' + 'EP'). TagLib 2.3.2 translates the RELEASETYPE key per format: ID3v2 TXXX 'MUSICBRAINZ ALBUM TYPE' (TagLib's description casing), MP4 freeform atom, APEv2 MUSICBRAINZ_ALBUMTYPE, ASF 'MusicBrainz/Album Type', Vorbis/Matroska raw RELEASETYPE",
     type: "string" as const,
     supportedFormats: [
       "ID3v2",
@@ -70,7 +70,7 @@ export const SPECIALIZED_PROPERTIES = {
   releaseCountry: {
     key: "RELEASECOUNTRY",
     description:
-      "Release country (ISO 3166-1 code, e.g. 'US'). TagLib 2.3.1 translates the RELEASECOUNTRY key per format: ID3v2 TXXX 'MUSICBRAINZ ALBUM RELEASE COUNTRY' (TagLib's description casing; an uppercase TXXX:RELEASECOUNTRY description also reads back), MP4 freeform atom 'MusicBrainz Album Release Country', APEv2 raw RELEASECOUNTRY, ASF 'MusicBrainz/Album Release Country', WAV ICNT, Vorbis/Matroska raw RELEASECOUNTRY",
+      "Release country (ISO 3166-1 code, e.g. 'US'). TagLib 2.3.2 translates the RELEASECOUNTRY key per format: ID3v2 TXXX 'MUSICBRAINZ ALBUM RELEASE COUNTRY' (TagLib's description casing; an uppercase TXXX:RELEASECOUNTRY description also reads back), MP4 freeform atom 'MusicBrainz Album Release Country', APEv2 raw RELEASECOUNTRY, ASF 'MusicBrainz/Album Release Country', WAV ICNT, Vorbis/Matroska raw RELEASECOUNTRY",
     type: "string" as const,
     supportedFormats: [
       "ID3v2",

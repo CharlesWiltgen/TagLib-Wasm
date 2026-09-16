@@ -74,8 +74,10 @@ echo ""
 echo "Optional tools:"
 check_command deno "Install from https://deno.land" || true
 check_command bun "Install from https://bun.sh" || true
-# binaryen is pinned at the same version as emsdk 6.0.8's vendored Binaryen
+# binaryen is pinned at the same version as emsdk 6.0.9's vendored Binaryen
 # so dev builds are byte-identical to CI's (taglib-peml byte-compare gate).
+# Local toolchains (deno, node, binaryen) also come from mise.toml, which
+# pins the same versions for this repo.
 check_command wasm-opt "npm install -g binaryen@132.0.0" || true
 
 if [ "$MISSING_TOOLS" = true ]; then
@@ -104,8 +106,8 @@ else
     cd "$HOME/emsdk"
     
     # Install pinned SDK (must match CI: .github/workflows/ci.yml)
-    ./emsdk install 6.0.8
-    ./emsdk activate 6.0.8
+    ./emsdk install 6.0.9
+    ./emsdk activate 6.0.9
     
     # Add to shell config
     SHELL_CONFIG=""
@@ -138,7 +140,7 @@ echo "━━━━━━━━━━━━━━━━━━━━━━━━�
 WASI_SDK_DIR="$PROJECT_ROOT/build/wasi-sdk"
 # Must match CI (.github/workflows/ci.yml). SDK 33 is the first with the stock
 # eh/ multilib sysroot that FileRef's exceptions/RTTI need — 30 won't build the shim.
-WASI_VERSION="33.0"
+WASI_VERSION="34.0"
 
 # Determine WASI SDK download URL based on OS and architecture
 WASI_SDK_NAME=""
@@ -229,7 +231,7 @@ fi
 # Install global tools
 echo ""
 echo "Installing global WebAssembly tools..."
-# binaryen@132.0.0: pinned to emsdk 6.0.8's vendored Binaryen version so the
+# binaryen@132.0.0: pinned to emsdk 6.0.9's vendored Binaryen version so the
 # WASI rebuild is byte-deterministic across machines (taglib-peml). wasm-strip
 # has no npm package and is no longer used by the build.
 npm install -g binaryen@132.0.0 2>/dev/null || true

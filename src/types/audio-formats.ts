@@ -122,6 +122,9 @@ export type ContainerFormat =
 export type AudioCodec =
   | "AAC" // Advanced Audio Coding (lossy)
   | "ALAC" // Apple Lossless Audio Codec
+  | "AC-3" // Dolby Digital (MP4 only)
+  | "E-AC-3" // Dolby Digital Plus / Enhanced AC-3 (MP4 only)
+  | "DTS" // DTS Coherent Acoustics (MP4 only)
   | "MP3" // MPEG Layer 3 (lossy)
   | "FLAC" // Free Lossless Audio Codec
   | "Vorbis" // Ogg Vorbis (lossy)

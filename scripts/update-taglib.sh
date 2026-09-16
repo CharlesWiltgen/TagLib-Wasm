@@ -52,8 +52,11 @@ if ! git -C "$SUBMODULE" rev-parse -q --verify "refs/tags/$VERSION" >/dev/null; 
 fi
 git -C "$SUBMODULE" checkout --quiet "tags/$VERSION"
 
-# Re-sync nested submodules (utfcpp) and clear a known stale leftover.
-git -C "$REPO_ROOT" submodule update --init --recursive
+# Re-sync the NESTED submodules (utfcpp) and clear a known stale leftover.
+# Scoped to the submodule on purpose: a superproject-level
+# `git submodule update` resets lib/taglib to the SHA recorded in the index —
+# i.e. the version we are replacing — silently undoing the checkout above.
+git -C "$SUBMODULE" submodule update --init --recursive
 STALE_UTFCPP="$SUBMODULE/3rdparty/utfcpp/extern/ftest"
 if [[ -d "$STALE_UTFCPP" ]]; then
   warn "Removing stale utfcpp leftover: $STALE_UTFCPP"

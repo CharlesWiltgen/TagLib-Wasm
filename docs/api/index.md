@@ -1788,6 +1788,9 @@ The compression format of the audio stream (`AudioProperties.codec`).
 type AudioCodec =
   | "AAC"
   | "ALAC"
+  | "AC-3"
+  | "E-AC-3"
+  | "DTS"
   | "MP3"
   | "FLAC"
   | "Vorbis"

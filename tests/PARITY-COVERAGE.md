@@ -190,7 +190,7 @@ Simple API batch layer) are pinned by looped-backend suites in `tests/`:
 
    **Boundary, not vendored (taglib-ri4b):** the fix lives in the WASI
    encoder (`encode_pictures` maps the missing key to Front Cover when the
-   file is an MP4); the submodule stays at upstream taglib v2.3.1 — no
+   file is an MP4); the submodule stays at upstream taglib v2.3.2 — no
    vendored fork. Proposed upstream as taglib-ri4b; if merged, the boundary
    fallback can be deleted. Behavior is byte-identical; this parity test
    remains the guard.

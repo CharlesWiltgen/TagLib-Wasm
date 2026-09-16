@@ -32,10 +32,10 @@ jobs:
       - name: Setup Deno
         uses: denoland/setup-deno@v2
         with:
-          deno-version: "2.9.5"
+          deno-version: "2.9.6"
 
       - name: Cache dependencies
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           # Cache only the npm download cache, not node_modules itself:
           # node_modules contains Deno-managed junctions (nodeModulesDir: auto),
@@ -99,10 +99,10 @@ jobs:
       - name: Setup Deno
         uses: denoland/setup-deno@v2
         with:
-          deno-version: "2.9.5"
+          deno-version: "2.9.6"
 
       - name: Cache dependencies
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: ~/.npm
           key: ${{ runner.os }}-npm-${{ hashFiles('**/package-lock.json') }}
@@ -212,10 +212,10 @@ jobs:
       - name: Setup Deno
         uses: denoland/setup-deno@v2
         with:
-          deno-version: "2.9.5"
+          deno-version: "2.9.6"
 
       - name: Cache dependencies
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           # Cache only the npm download cache, not node_modules itself:
           # node_modules contains Deno-managed junctions (nodeModulesDir: auto),
@@ -232,7 +232,7 @@ jobs:
       - name: Install Emscripten
         uses: mymindstorm/setup-emsdk@v16
         with:
-          version: 6.0.8
+          version: 6.0.9
 
       - name: Build WebAssembly
         # Emscripten-only by design: this job installs emsdk but not the WASI
@@ -298,7 +298,7 @@ jobs:
       # files that pin wasi-sdk).
       # Quoted on purpose: unquoted, 33.0 parses as a YAML float and the
       # runner stringifies it to "33", which breaks the download URL.
-      WASI_VERSION: "33.0"
+      WASI_VERSION: "34.0"
     steps:
       - uses: actions/checkout@v7
         with:
@@ -309,13 +309,13 @@ jobs:
       # and cache hits skip the download entirely. A version bump is a clean
       # miss (exact key, no restore-keys).
       - name: Cache WASI SDK
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: build/wasi-sdk/wasi-sdk-${{ env.WASI_VERSION }}-x86_64-linux
           key: ${{ runner.os }}-wasi-sdk-${{ env.WASI_VERSION }}
 
       - name: Cache dependencies
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: ~/.npm
           key: ${{ runner.os }}-npm-${{ hashFiles('**/package-lock.json') }}
@@ -353,7 +353,7 @@ jobs:
           echo "$WASI_SDK_DIR/bin" >> "$GITHUB_PATH"
 
       - name: Install wasm-opt (binaryen) and ninja
-        # binaryen is pinned at 132.0.0 — the same version as emsdk 6.0.8's
+        # binaryen is pinned at 132.0.0 — the same version as emsdk 6.0.9's
         # vendored Binaryen — so the WASI rebuild is byte-deterministic and
         # the freshness compare below is meaningful (taglib-peml).
         run: |
@@ -369,7 +369,7 @@ jobs:
       # needed — build-wasi.sh links against the SDK's stock eh/ libs (taglib-sgh).
 
       - name: Cache WASI build
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: |
             build/wasi
@@ -442,10 +442,10 @@ jobs:
       - name: Setup Deno
         uses: denoland/setup-deno@v2
         with:
-          deno-version: "2.9.5"
+          deno-version: "2.9.6"
 
       - name: Cache dependencies
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           # Cache only the npm download cache, not node_modules itself:
           # node_modules contains Deno-managed junctions (nodeModulesDir: auto),
@@ -496,7 +496,7 @@ jobs:
       - name: Setup Deno
         uses: denoland/setup-deno@v2
         with:
-          deno-version: "2.9.5"
+          deno-version: "2.9.6"
 
       - name: Download WASI artifacts
         uses: actions/download-artifact@v8
@@ -544,14 +544,14 @@ jobs:
       - name: Setup Deno
         uses: denoland/setup-deno@v2
         with:
-          deno-version: "2.9.5"
+          deno-version: "2.9.6"
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
         with:
           # Pinned: "latest" resolves via the oven-sh/bun refs/tags API on
           # every run, which 503s intermittently from Actions runners
-          bun-version: 1.3.14
+          bun-version: 1.4.2
 
       - name: Install dependencies
         run: npm ci

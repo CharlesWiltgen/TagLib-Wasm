@@ -1,7 +1,7 @@
 /**
  * @fileoverview Typed releaseCountry property (taglib-m0c2).
  *
- * RELEASECOUNTRY is a first-class TagLib 2.3.1 PropertyMap key — listed in
+ * RELEASECOUNTRY is a first-class TagLib 2.3.2 PropertyMap key — listed in
  * TagLib's standard-key docs (tpropertymap.h) and translated natively on
  * every format (ID3v2 TXXX 'MUSICBRAINZ ALBUM RELEASE COUNTRY' plus the
  * uppercase TXXX:RELEASECOUNTRY fallback, MP4 freeform 'MusicBrainz Album

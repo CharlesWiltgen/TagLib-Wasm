@@ -15,6 +15,46 @@
   produced format-divergent files. Typed writes now truncate toward zero,
   matching the read-side narrowing (a wire `"120.5"` already read back as
   `120`); the raw wire surface still stores decimals verbatim.
+- **`scripts/update-taglib.sh` clobbered its own checkout** — the script ran
+  `git submodule update --recursive` at the superproject level, which reset
+  `lib/taglib` to the SHA recorded in the index (the version being replaced)
+  before staging, silently leaving the submodule on the old release. The
+  nested-submodule sync now runs inside the submodule.
+
+### Changed
+
+- **TagLib 2.3.1 → 2.3.2** — MP4 tracks carrying AC-3, E-AC-3, DTS, FLAC, or
+  Opus now report their real codec (`AudioCodec` gains `"AC-3"`, `"E-AC-3"`,
+  and `"DTS"`); before this bump every non-ALAC MP4 read as `"AAC"` on WASI
+  and `"unknown"` on Emscripten. Upstream also brings RF64/BW64 WAV support
+  (previously rejected), extraction of MP4 `covr` atoms with wrong flags,
+  correct parsing of per-frame unsynchronised ID3v2.4 frames, lazy Matroska
+  attachments, and parsing bounds across formats against crafted input.
+  On WMA the ASF attribute-name handling is now upstream's: incoming keys
+  match on-disk names case-insensitively and the rewritten attribute uses
+  TagLib's canonical spelling (`replaygain_track_gain`) instead of the
+  property-key spelling — the value contract is unchanged.
+  Guarded by `tests/mp4-codec.test.ts` over ffmpeg-generated fixtures
+  (`_gen/make-mp4-codec-fixtures.sh --regen`), observed failing against the
+  pre-fix binaries. The DTS branch has no fixture: ffmpeg's mov muxer cannot
+  emit the `dtsc`-family sample entry TagLib classifies.
+
+### Internal
+
+- **Toolchain bumps** — emsdk 6.0.8 → 6.0.9, WASI SDK 33.0 → 34.0, Deno pin
+  2.9.5 → 2.9.6 (CI workflows, `setup-dev-env.sh`, `setup-wasi-sdk.sh`), Bun
+  CI pin 1.3.14 → 1.4.2, and both committed Wasm binaries rebuilt.
+  `binaryen@132.0.0` still matches emsdk 6.0.9's vendored Binaryen.
+  `mise.toml` now pins the local toolchain (deno, node, `npm:binaryen`), and
+  `scripts/check-toolchain-pins.sh` guards the Deno and mise pins as well.
+- **Dependency updates** — eslint 10.8.1 → 10.10.0, knip 6.32.2 → 6.35.1,
+  tsx 4.23.12 → 4.23.13, typescript-eslint 8.67.0 → 8.70.0, fast-check
+  4.9.0 → 4.10.0, @types/node 24.13.3 → 24.13.4, actions/cache v5 → v6,
+  actions/upload-pages-artifact v3 → v5, actions/deploy-pages v4 → v5.
+  Floors are the newest releases that clear Deno's 24 h
+  minimum-dependency-age policy. TypeScript stays at 6.0.3 —
+  typescript-eslint's peer range stops below 6.1, so TS 7 is not yet
+  installable.
 
 ## 2.2.2
 

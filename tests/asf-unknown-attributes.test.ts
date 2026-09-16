@@ -9,7 +9,7 @@
  * attributes and reports unsupported ones on read.
  */
 
-import { assert, assertEquals } from "@std/assert";
+import { assertEquals } from "@std/assert";
 import { describe, it } from "@std/testing/bdd";
 import { TagLib } from "../src/taglib.ts";
 import { FIXTURE_PATH } from "./shared-fixtures.ts";
@@ -168,6 +168,12 @@ describe("ASF unknown attributes (taglib-984r)", () => {
       // PropertyMap normalizes incoming names to upper case, so the write
       // must replace the differently-cased original, not leave a stale
       // duplicate (taglib-984r review).
+      //
+      // The on-disk SPELLING is TagLib's, not ours: 2.3.2 matches attribute
+      // names case-insensitively and rewrites the canonical name from its
+      // translation table (replaygain_track_gain), where 2.3.1 kept the
+      // property-key spelling (REPLAYGAIN_TRACK_GAIN). Assert the invariant —
+      // one case-insensitive name family, new value — not the case.
       const src = await Deno.readFile(
         "tests/test-files/wma/wma-lowercase-attr.wma",
       );
@@ -179,9 +185,12 @@ describe("ASF unknown attributes (taglib-984r)", () => {
       file.dispose();
 
       const text = new TextDecoder("utf-16le").decode(buf);
+      const families: Record<string, true> = {};
+      for (const m of text.matchAll(/[A-Za-z_]*replaygain[A-Za-z_]*/gi)) {
+        families[m[0].toLowerCase()] = true;
+      }
       // Exactly one attribute: the canonical rewrite with the new value.
-      assert(text.includes("REPLAYGAIN_TRACK_GAIN"));
-      assert(!text.includes("replaygain_track_gain"));
+      assertEquals(Object.keys(families), ["replaygain_track_gain"]);
 
       const tlR = await TagLib.initialize({ forceWasmType: OTHER[backend] });
       const reopened = await tlR.open(buf);
