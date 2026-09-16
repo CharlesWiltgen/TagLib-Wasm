@@ -48,7 +48,7 @@ on a real divergence) over separate per-backend tests.
 | `setProperty`       |  ✓   |     ✓      |   ✓    | wasi-adapter-unit + extended-metadata                                                                           |
 | `removeProperty`    |  ✓   |     ✓      |   ✓    | property-raw-values (qyw2; empty-string clearing contract, buffer mode)                                         |
 | `setProperties`     |  ✓   |     ✓      |   ✓    | audio-file-save (REPLACE vs MERGE); property-raw-values (qpl); mp4 casing (bnhl)                                |
-| `audioProperties`   |  ✓   |     ✓      |   ✓    | audio-properties (`forEachBackend`)                                                                             |
+| `audioProperties`   |  ✓   |     ✓      |   ✓    | audio-properties (`forEachBackend`); mp4-codec (extended codec enum, both backends)                             |
 | `tag()` read        |  ✓   |     ✓      |   ✓    | basic-tags (`forEachBackend`)                                                                                   |
 | `tag()` write       |  ✓   |     ✓      |   ✓    | basic-tags, BackendAdapter.writeTags; setTrack keeps the total (eq3)                                            |
 | `save`              |  ✓   |     ✓      |   ✓    | audio-file-save, all `forEachBackend` suites; MPEG ID3v1 sync must not delete a TRCK/TDRC narrowing to 0 (9m0w) |

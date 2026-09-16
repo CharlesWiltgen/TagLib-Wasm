@@ -15,9 +15,9 @@
 #   wasi-sdk — .github/workflows/ci.yml (WASI_VERSION), build/setup-dev-env.sh
 #              (WASI_VERSION), build/setup-wasi-sdk.sh (WASI_SDK_VERSION_FULL)
 #   binaryen — .github/workflows/ci.yml, build/setup-dev-env.sh (binaryen@),
-#              and mise.toml (npm:binaryen, the local toolchain)
+#              and mise.toml (npm:binaryen) when that local file exists
 #   deno     — .github/workflows/{ci,publish-everywhere,sonarcloud}.yml
-#              (deno-version:) and mise.toml (local toolchain)
+#              (deno-version:) and mise.toml when present
 
 set -euo pipefail
 
@@ -63,18 +63,25 @@ check_family "wasi-sdk" "$wasi_ci
 $wasi_dev
 $wasi_local"
 
+# mise.toml is gitignored (local toolchain manager), so its pins are checked
+# only when the file is present — CI checkouts have none. The workflow and
+# setup-script pins above/below are the ones CI enforces independently.
+if [ -f mise.toml ]; then
+  bin_mise="$(grep -oE '"npm:binaryen" = "[0-9]+\.[0-9]+\.[0-9]+"' mise.toml \
+    | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' || true)"
+  deno_mise="$(grep -oE '^deno = "[0-9]+\.[0-9]+\.[0-9]+"' mise.toml \
+    | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' || true)"
+else
+  bin_mise=""
+  deno_mise=""
+fi
+
 bin_ci="$(grep -oE 'binaryen@[0-9]+\.[0-9]+\.[0-9]+' .github/workflows/ci.yml | sed 's/.*@//')"
 bin_dev="$(grep -oE 'binaryen@[0-9]+\.[0-9]+\.[0-9]+' build/setup-dev-env.sh | sed 's/.*@//')"
-bin_mise="$(grep -oE '"npm:binaryen" = "[0-9]+\.[0-9]+\.[0-9]+"' mise.toml | grep -oE '[0-9]+\.[0-9]+\.[0-9]+')"
-check_family "binaryen" "$bin_ci
-$bin_dev
-$bin_mise"
+check_family "binaryen" "$(printf '%s\n' "$bin_ci" "$bin_dev" "$bin_mise" | grep .)"
 
 deno_wf="$(grep -hoE 'deno-version: "[0-9]+\.[0-9]+\.[0-9]+"' "${WF_FILES[@]}" \
   | grep -oE '[0-9]+\.[0-9]+\.[0-9]+')"
-deno_mise="$(grep -oE '^deno = "[0-9]+\.[0-9]+\.[0-9]+"' mise.toml \
-  | grep -oE '[0-9]+\.[0-9]+\.[0-9]+')"
-check_family "deno" "$deno_wf
-$deno_mise"
+check_family "deno" "$(printf '%s\n' "$deno_wf" "$deno_mise" | grep .)"
 
 echo "All toolchain pins agree."

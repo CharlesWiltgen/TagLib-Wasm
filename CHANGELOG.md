@@ -45,8 +45,8 @@
   2.9.5 → 2.9.6 (CI workflows, `setup-dev-env.sh`, `setup-wasi-sdk.sh`), Bun
   CI pin 1.3.14 → 1.4.2, and both committed Wasm binaries rebuilt.
   `binaryen@132.0.0` still matches emsdk 6.0.9's vendored Binaryen.
-  `mise.toml` now pins the local toolchain (deno, node, `npm:binaryen`), and
-  `scripts/check-toolchain-pins.sh` guards the Deno and mise pins as well.
+  `mise.toml` (local, gitignored) pins the same dev toolchain, and
+  `scripts/check-toolchain-pins.sh` validates its pins too when present.
 - **Dependency updates** — eslint 10.8.1 → 10.10.0, knip 6.32.2 → 6.35.1,
   tsx 4.23.12 → 4.23.13, typescript-eslint 8.67.0 → 8.70.0, fast-check
   4.9.0 → 4.10.0, @types/node 24.13.3 → 24.13.4, actions/cache v5 → v6,
