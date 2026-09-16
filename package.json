@@ -98,6 +98,7 @@
     "test:memory": "deno test --allow-read --allow-write --allow-env --v8-flags=--expose-gc tests/memory.test.ts",
     "test:extended": "deno test --allow-read --allow-write --allow-env --v8-flags=--expose-gc tests/extended-metadata.test.ts",
     "test:bun": "bun test tests/bun-integration.test.ts",
+    "test:cross-runtime": "./tests/cross-runtime/run.sh",
     "test:watch": "deno test --allow-read --allow-write --allow-env --v8-flags=--expose-gc --watch tests/",
     "test:coverage": "deno test --allow-read --allow-write --allow-env --coverage=coverage tests/ && deno coverage coverage",
     "test:coverage:lcov": "deno test --allow-read --allow-write --allow-env --coverage=coverage tests/ && deno coverage coverage --lcov --output=coverage/lcov.info",
@@ -158,6 +159,7 @@
     "eslint": "^10.10.0",
     "fast-check": "^4.10.0",
     "knip": "^6.35.1",
+    "tsx": "^4.23.13",
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.70.0"
   },

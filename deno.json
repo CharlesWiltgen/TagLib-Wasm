@@ -95,7 +95,8 @@
   },
   "test": {
     "exclude": [
-      "tests/bun-integration.test.ts"
+      "tests/bun-integration.test.ts",
+      "tests/cross-runtime/"
     ]
   },
   "tasks": {

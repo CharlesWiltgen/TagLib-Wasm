@@ -22,6 +22,7 @@
     "npm:eslint@^10.10.0": "10.10.0",
     "npm:fast-check@^4.10.0": "4.10.0",
     "npm:knip@^6.35.1": "6.35.1",
+    "npm:tsx@^4.23.13": "4.23.13",
     "npm:typescript-eslint@^8.70.0": "8.70.0_eslint@10.10.0_typescript@6.0.3",
     "npm:typescript@^6.0.3": "6.0.3",
     "npm:yaml@*": "2.9.0"
@@ -567,7 +568,7 @@
         "undici-types"
       ]
     },
-    "@typescript-eslint/eslint-plugin@8.70.0_@typescript-eslint+parser@8.70.0_eslint@10.10.0_typescript@6.0.3": {
+    "@typescript-eslint/eslint-plugin@8.70.0_@typescript-eslint+parser@8.70.0__eslint@10.10.0__typescript@6.0.3_eslint@10.10.0_typescript@6.0.3": {
       "integrity": "sha512-/v8HZt6RlyIZxB3ntehELOcUcfxKPVGWXnQdJuHRmzrqgF8nQypcC/oxGW+Ot4VGKDq81XugPKxx0n5PBtf9PA==",
       "dependencies": [
         "@eslint-community/regexpp",
@@ -895,6 +896,11 @@
       ],
       "bin": true
     },
+    "fsevents@2.3.3": {
+      "integrity": "sha512-5xoDfX+fL7faATnagmWPpbFtwh/R77WmMMqqHGS65C3vvB0YHrgF+B1YmZ3441tMj5n63k0212XNoJwzlhffQw==",
+      "os": ["darwin"],
+      "scripts": true
+    },
     "get-tsconfig@4.14.3": {
       "integrity": "sha512-++QEw4DIY7WGoukz+/+A/8dGYPT9l9yIadnmSgZ8Rjr3YVSVDipQSO9CdnJo9ePqFqUUqh+wk9uIaoiAwsiPkA==",
       "dependencies": [
@@ -1138,6 +1144,16 @@
     },
     "tslib@2.8.1": {
       "integrity": "sha512-oJFu94HQb+KVduSUQL7wnpmqnfmLsOA/nAh6b6EH0wCEoK0/mPeXU6c3wKDV83MkOuHPRHtSXKKU99IBazS/2w=="
+    },
+    "tsx@4.23.13": {
+      "integrity": "sha512-BL5MGkRln6aDYhb0xbQlEAGw743BaZYWdbWtdJOBriYJboKgUUYCadFp2/FpBBZquBC/ezNBn7wMMPx7FDZUDw==",
+      "dependencies": [
+        "esbuild"
+      ],
+      "optionalDependencies": [
+        "fsevents"
+      ],
+      "bin": true
     },
     "type-check@0.4.0": {
       "integrity": "sha512-XleUoc9uwGXqjWwXaUTZAmzMcFZ5858QA2vvx1Ur5xIcixXIP+8LnFDgRplU30us6teqdlskFfu+ae4K79Ooew==",
@@ -1659,6 +1675,7 @@
         "npm:eslint@^10.10.0",
         "npm:fast-check@^4.10.0",
         "npm:knip@^6.35.1",
+        "npm:tsx@^4.23.13",
         "npm:typescript-eslint@^8.70.0",
         "npm:typescript@^6.0.3"
       ]

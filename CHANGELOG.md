@@ -63,15 +63,29 @@
   source is now checked individually and named in the error
   (`binaryen (.github/workflows/ci.yml) — no pin found …`).
 - **Dead test scripts removed** — `test:all`, `test:node`, `test:local`,
-  `test:deno-quick`, `test:deno-imports`, `test:amusic` pointed at files that
-  no longer exist (`tests/index.test.ts` was deleted as an aggregator; the
-  rest were never tracked), and `test:multi-runtime` drove a harness whose
-  import target moved and whose WASI half referenced a deleted file.
-  Cross-runtime coverage lives in CI (OS matrix, Bun suite, publint/attw and
-  consumer import tests); `scripts/test-npm-package.sh` now derives its
-  required-file list from the manifest instead of a hardcoded list that had
-  gone stale (`dist/src/simple.js`), and still re-checks the loader-resolved
-  wasm artifacts.
+  `test:deno-quick`, `test:deno-imports` and `test:amusic` pointed at files
+  that no longer exist (`tests/index.test.ts` was deleted as an aggregator; the
+  rest were never tracked). `scripts/test-npm-package.sh` now derives its
+  required-file list from the packed manifest instead of a hardcoded list that
+  had gone stale (`dist/src/simple.js`), and still re-checks the
+  loader-resolved wasm artifacts.
+- **Cross-runtime smoke suite restored and made honest** — `test:multi-runtime`
+  drove a harness that could not pass: it generated a file importing
+  `./src/simple.ts` (the entry is `simple.ts`), its WASI half pointed at
+  `tests/cross-runtime-wasi.ts` (deleted in 72bcdaa), its Node leg required a
+  globally-installed `tsx` from a clean checkout, and it asserted nothing —
+  it printed values (one of them a field that no longer exists) and only
+  failed on a thrown exception, so it had been silently red. It is replaced by
+  `tests/cross-runtime/` — two dependency-free suites that run unmodified on
+  Deno, Bun and Node and assert real values: `simple-api.ts` (default backend,
+  three fixtures) and `backends.ts` (explicit `wasi` + `emscripten` matrix,
+  where a backend a runtime cannot load is reported as a **skip**, never a
+  pass). `npm run test:cross-runtime` drives all six cases; CI runs it in the
+  Package Compatibility job. `tsx` returns to devDependencies for the Node leg.
+  Its first run immediately caught something real: the WASI backend needs
+  `--experimental-wasm-exnref` on Node versions that still gate Wasm exception
+  handling (24.12 does, 24.21 does not), so the driver passes the flag only
+  when the runtime accepts it.
 - **Toolchain bumps** — emsdk 6.0.8 → 6.0.9, WASI SDK 33.0 → 34.0, Deno pin
   2.9.5 → 2.9.6 (CI workflows, `setup-dev-env.sh`, `setup-wasi-sdk.sh`), Bun
   CI pin 1.3.14 → 1.4.2, and both committed Wasm binaries rebuilt.

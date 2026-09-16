@@ -8,6 +8,7 @@
     "tests/**/*.test.ts",
     "tests/**/*.bench.ts",
     "src/**/*.test.ts",
+    "tests/cross-runtime/**/*.ts",
     "tests/test-files/_gen/make-bwf-fixtures.ts",
     "scripts/**/*.{ts,mjs,js}"
   ],
@@ -19,7 +20,8 @@
   ],
   "ignoreDependencies": [
     "@std/.*",
-    "npm"
+    "npm",
+    "tsx"
   ],
   "ignoreExportsUsedInFile": true,
   "ignoreIssues": {

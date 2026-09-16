@@ -574,6 +574,13 @@ jobs:
           name: embind-build
           path: .
 
+      - name: Cross-runtime smoke (Deno, Bun, Node × both backends)
+        # tests/cross-runtime/*.ts run unmodified under all three runtimes and
+        # assert real values for both wasm backends. A runtime that cannot load
+        # a backend is reported as a skip, never as a pass, and any failed
+        # check exits non-zero. Local entry point: npm run test:cross-runtime.
+        run: bash tests/cross-runtime/run.sh
+
       - name: NPM - publint
         run: npx publint
 
