@@ -7,6 +7,7 @@
     "src/runtime/unified-loader/index.ts",
     "tests/**/*.test.ts",
     "tests/**/*.bench.ts",
+    "src/**/*.test.ts",
     "tests/test-files/_gen/make-bwf-fixtures.ts",
     "scripts/**/*.{ts,mjs,js}"
   ],

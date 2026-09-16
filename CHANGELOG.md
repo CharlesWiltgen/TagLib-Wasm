@@ -50,6 +50,28 @@
 
 ### Internal
 
+- **CI parity tests ran Emscripten-only in the OS matrix** — the three test
+  jobs never materialized `dist/wasi/taglib-wasi.wasm`, which
+  `tests/backend-adapter.ts` gates its WASI instances on, so every
+  `forEachBackend` parity test silently skipped its WASI half there (run
+  35107130104 logged `MP4 codec mapping [emscripten]` and no `[wasi]`). The
+  matrix jobs now copy the committed binary into `dist/wasi/`, matching what
+  the SonarCloud job already did for the same reason.
+- **`check-toolchain-pins.sh` asserts every required source** — the empty-slot
+  filter that keeps `mise.toml` optional also meant a vanished lookup could
+  pass silently as long as one source still yielded a pin. Each required
+  source is now checked individually and named in the error
+  (`binaryen (.github/workflows/ci.yml) — no pin found …`).
+- **Dead test scripts removed** — `test:all`, `test:node`, `test:local`,
+  `test:deno-quick`, `test:deno-imports`, `test:amusic` pointed at files that
+  no longer exist (`tests/index.test.ts` was deleted as an aggregator; the
+  rest were never tracked), and `test:multi-runtime` drove a harness whose
+  import target moved and whose WASI half referenced a deleted file.
+  Cross-runtime coverage lives in CI (OS matrix, Bun suite, publint/attw and
+  consumer import tests); `scripts/test-npm-package.sh` now derives its
+  required-file list from the manifest instead of a hardcoded list that had
+  gone stale (`dist/src/simple.js`), and still re-checks the loader-resolved
+  wasm artifacts.
 - **Toolchain bumps** — emsdk 6.0.8 → 6.0.9, WASI SDK 33.0 → 34.0, Deno pin
   2.9.5 → 2.9.6 (CI workflows, `setup-dev-env.sh`, `setup-wasi-sdk.sh`), Bun
   CI pin 1.3.14 → 1.4.2, and both committed Wasm binaries rebuilt.

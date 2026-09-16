@@ -207,16 +207,39 @@ if (!nodeModulesPath) {
 
 const packagePath = join(nodeModulesPath, "taglib-wasm");
 
-// Check package structure
-const requiredFiles = [
-  "package.json",
-  "dist/index.js",
-  "dist/index.d.ts",
-  "dist/src/simple.js",
-  "dist/src/simple.d.ts",
+// Check package structure: every path package.json points at must exist in the
+// packed package. Derived from the manifest — a hardcoded list silently rotted
+// here (it still checked dist/src/simple.js long after the build moved entry
+// points to dist/ root, so this script failed for a year-old reason).
+const pkg = JSON.parse(
+  Deno.readTextFileSync(join(packagePath, "package.json")),
+);
+const requiredFiles = ["package.json"];
+const collect = (value: unknown): void => {
+  if (typeof value === "string") {
+    if (value.startsWith("./")) requiredFiles.push(value.slice(2));
+    return;
+  }
+  if (value && typeof value === "object") {
+    for (const item of Object.values(value as Record<string, unknown>)) {
+      collect(item);
+    }
+  }
+};
+collect(pkg.exports);
+for (const field of ["main", "module", "browser", "types"]) {
+  if (typeof pkg[field] === "string") collect(pkg[field]);
+}
+
+// Runtime artifacts the loaders resolve by relative URL rather than through the
+// manifest (src/runtime/module-loader.ts, wasi-host-loader.ts). They are not in
+// `exports`, so the derived check above cannot see them — keep them explicit.
+requiredFiles.push(
   "dist/taglib-web.wasm",
+  "dist/taglib-wasi.wasm",
   "dist/taglib-wrapper.js",
-];
+  "dist/taglib-wrapper.d.ts",
+);
 
 console.log("Checking package structure for Deno compatibility...");
 let allGood = true;

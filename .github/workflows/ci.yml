@@ -465,6 +465,18 @@ jobs:
           name: embind-build
           path: .
 
+      - name: Materialize the committed WASI binary for parity tests
+        # tests/backend-adapter.ts gates its WASI instances on
+        # dist/wasi/taglib-wasi.wasm (HAS_WASI). Without this copy every
+        # forEachBackend parity test in this matrix silently runs
+        # Emscripten-only — run 35107130104 logged `MP4 codec mapping
+        # [emscripten]` and no `[wasi]` twin. Default-backend tests were never
+        # affected (that path resolves build/taglib-wasi.wasm from the
+        # checkout). Same fix SonarCloud already carries in sonarcloud.yml.
+        run: |
+          mkdir -p dist/wasi
+          cp build/taglib-wasi.wasm dist/wasi/taglib-wasi.wasm
+
       - name: Run tests
         # tests/ and src/ both contain colocated unit tests (CLAUDE.md T-1);
         # the local gate runs both, so CI must too — a guard that does not

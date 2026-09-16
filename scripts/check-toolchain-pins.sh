@@ -29,6 +29,18 @@ fail() {
   exit 1
 }
 
+# A family with several sources must not pass just because ONE source still
+# yields a pin: the `printf '%s\n' ... | grep .` filters below drop empty
+# sources, so a lookup that stops matching would otherwise vanish silently.
+# Every required source is asserted individually; mise.toml stays optional
+# (gitignored, absent on CI).
+require_pin() {
+  local label="$1" value="$2"
+  if [ -z "$value" ]; then
+    fail "$label — no pin found (file moved, renamed, or format changed?)"
+  fi
+}
+
 # All declarations of one pin family must reduce to a single distinct value.
 check_family() {
   local name="$1" combined="$2"
@@ -55,6 +67,8 @@ emsdk_wf="$(grep -hA2 'mymindstorm/setup-emsdk' "${WF_FILES[@]}" \
   | grep -oE 'version: [0-9]+\.[0-9]+\.[0-9]+' | awk '{print $2}' || true)"
 emsdk_dev="$(grep -hoE 'emsdk (install|activate) [0-9]+\.[0-9]+\.[0-9]+' build/setup-dev-env.sh \
   | awk '{print $3}' || true)"
+require_pin "emsdk (workflows)" "$emsdk_wf"
+require_pin "emsdk (build/setup-dev-env.sh)" "$emsdk_dev"
 check_family "emsdk" "$emsdk_wf
 $emsdk_dev"
 
@@ -64,6 +78,9 @@ wasi_dev="$(grep -oE 'WASI_VERSION="[0-9]+\.[0-9]+"' build/setup-dev-env.sh \
   | head -1 | sed -E 's/.*"([0-9.]+)"/\1/' || true)"
 wasi_local="$(grep -oE 'WASI_SDK_VERSION_FULL="[0-9]+\.[0-9]+"' build/setup-wasi-sdk.sh \
   | head -1 | sed -E 's/.*"([0-9.]+)"/\1/' || true)"
+require_pin "wasi-sdk (.github/workflows/ci.yml)" "$wasi_ci"
+require_pin "wasi-sdk (build/setup-dev-env.sh)" "$wasi_dev"
+require_pin "wasi-sdk (build/setup-wasi-sdk.sh)" "$wasi_local"
 check_family "wasi-sdk" "$wasi_ci
 $wasi_dev
 $wasi_local"
@@ -83,10 +100,13 @@ fi
 
 bin_ci="$(grep -oE 'binaryen@[0-9]+\.[0-9]+\.[0-9]+' .github/workflows/ci.yml | sed 's/.*@//' || true)"
 bin_dev="$(grep -oE 'binaryen@[0-9]+\.[0-9]+\.[0-9]+' build/setup-dev-env.sh | sed 's/.*@//' || true)"
+require_pin "binaryen (.github/workflows/ci.yml)" "$bin_ci"
+require_pin "binaryen (build/setup-dev-env.sh)" "$bin_dev"
 check_family "binaryen" "$(printf '%s\n' "$bin_ci" "$bin_dev" "$bin_mise" | grep .)"
 
 deno_wf="$(grep -hoE 'deno-version: "[0-9]+\.[0-9]+\.[0-9]+"' "${WF_FILES[@]}" \
   | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' || true)"
+require_pin "deno (workflows)" "$deno_wf"
 check_family "deno" "$(printf '%s\n' "$deno_wf" "$deno_mise" | grep .)"
 
 echo "All toolchain pins agree."
