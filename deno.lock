@@ -17,10 +17,10 @@
     "jsr:@std/yaml@*": "1.2.0",
     "npm:@msgpack/msgpack@3.0.0": "3.0.0",
     "npm:@msgpack/msgpack@^3.1.3": "3.1.3",
-    "npm:@types/node@^24.13.4": "24.13.4",
+    "npm:@types/node@^24.13.5": "24.13.5",
     "npm:esbuild@~0.28.2": "0.28.2",
     "npm:eslint@^10.10.0": "10.10.0",
-    "npm:fast-check@^4.10.0": "4.10.0",
+    "npm:fast-check@^4.10.1": "4.10.1",
     "npm:knip@^6.35.1": "6.35.1",
     "npm:tsx@^4.23.13": "4.23.13",
     "npm:typescript-eslint@^8.70.0": "8.70.0_eslint@10.10.0_typescript@6.0.3",
@@ -562,13 +562,13 @@
     "@types/json-schema@7.0.15": {
       "integrity": "sha512-5+fP8P8MFNC+AyZCDxrB2pkZFPGzqQWUzpSeuuVLvm8VMcorNYavBqoFcxK8bQz4Qsbn4oUEEem4wDLfcysGHA=="
     },
-    "@types/node@24.13.4": {
-      "integrity": "sha512-YJ7EqCstVTzIr0fMr7qul/977en+pQHrfmuKIo6Zr9i75Be21dr3MovcfvGtyvi2HAUrRerWps5sMO9I7WaxDw==",
+    "@types/node@24.13.5": {
+      "integrity": "sha512-TXyindR+lBr22aJIdMQzCFHPHR6cR4js838mRDCSz5hOKWZvZwsXSSiXDmjRj4iJmgl+sR9O+1mkoVBSMadNug==",
       "dependencies": [
         "undici-types"
       ]
     },
-    "@typescript-eslint/eslint-plugin@8.70.0_@typescript-eslint+parser@8.70.0__eslint@10.10.0__typescript@6.0.3_eslint@10.10.0_typescript@6.0.3": {
+    "@typescript-eslint/eslint-plugin@8.70.0_@typescript-eslint+parser@8.70.0_eslint@10.10.0_typescript@6.0.3": {
       "integrity": "sha512-/v8HZt6RlyIZxB3ntehELOcUcfxKPVGWXnQdJuHRmzrqgF8nQypcC/oxGW+Ot4VGKDq81XugPKxx0n5PBtf9PA==",
       "dependencies": [
         "@eslint-community/regexpp",
@@ -834,8 +834,8 @@
     "esutils@2.0.3": {
       "integrity": "sha512-kVscqXk4OCp68SZ0dkgEKVi6/8ij300KBWTJq32P/dYeWTSwK41WyTxalN1eRmA5Z9UU/LX9D7FWSmV9SAYx6g=="
     },
-    "fast-check@4.10.0": {
-      "integrity": "sha512-hhqQL+IJllZi3aM4TKvmCj3bywLEcycNTTLZeLhA9ttMxBrCqM07q7Di4kl+j9EWSTXvJH1+EpIgsDbF/+8H5Q==",
+    "fast-check@4.10.1": {
+      "integrity": "sha512-sB5Vghiu8MyCyToHoBVGsT0baZg3sZWNIY+a6Ct2EDrQJlT4YdH6MC1BSLNe3kX1k5i5g0q1O52XFgcKK/rGHg==",
       "dependencies": [
         "pure-rand"
       ]
@@ -1665,15 +1665,15 @@
       "jsr:@std/path@^1.1.6",
       "jsr:@std/testing@^1.0.20",
       "npm:@msgpack/msgpack@^3.1.3",
-      "npm:fast-check@^4.10.0"
+      "npm:fast-check@^4.10.1"
     ],
     "packageJson": {
       "dependencies": [
         "npm:@msgpack/msgpack@^3.1.3",
-        "npm:@types/node@^24.13.4",
+        "npm:@types/node@^24.13.5",
         "npm:esbuild@~0.28.2",
         "npm:eslint@^10.10.0",
-        "npm:fast-check@^4.10.0",
+        "npm:fast-check@^4.10.1",
         "npm:knip@^6.35.1",
         "npm:tsx@^4.23.13",
         "npm:typescript-eslint@^8.70.0",
