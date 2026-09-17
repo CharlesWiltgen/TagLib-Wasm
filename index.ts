@@ -87,6 +87,7 @@ export {
   isValidAudioFile,
   readCoverArt,
   readFormat,
+  readMediaChecksum,
   readMetadata,
   readMetadataBatch,
   readPictureMetadata,
@@ -98,6 +99,12 @@ export {
   replacePictureByType,
   setBufferMode,
 } from "./src/simple/index.ts";
+export type {
+  ChecksumAlgorithm,
+  ChecksumSource,
+  MediaChecksum,
+  MediaChecksumOptions,
+} from "./src/taglib/audio-file-checksum.ts";
 
 // Property constants and utilities
 export {

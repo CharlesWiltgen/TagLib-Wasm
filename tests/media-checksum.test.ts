@@ -1,7 +1,8 @@
 /**
  * @fileoverview `mediaChecksum()` across both backends: tag-edit stability per
  * format, frame-edit sensitivity, FLAC's PCM digest, and the whole-file
- * fallback's honesty about what it hashed.
+ * fallback's honesty about what it hashed. The last group covers the Simple
+ * API, where a path and a buffer must describe the same file.
  */
 
 import {
@@ -23,6 +24,7 @@ import { mediaChecksum } from "../src/taglib/audio-file-checksum.ts";
 import { getPlatformIO } from "../src/runtime/platform-io.ts";
 import { MetadataError, UnsupportedFormatError } from "../src/errors.ts";
 import { TagLib } from "../src/taglib.ts";
+import { readMediaChecksum } from "../src/simple/index.ts";
 
 const CASES: Array<[string, string]> = [
   ["mp3", "tests/test-files/mp3/kiss-snippet.mp3"],
@@ -31,7 +33,7 @@ const CASES: Array<[string, string]> = [
   ["wav", "tests/test-files/wav/kiss-snippet.wav"],
 ];
 
-// The two fixtures the surface group opens by path. `basis: "pcm"` resolves the
+// The two fixtures the groups below open by path. `basis: "pcm"` resolves the
 // digest through the handle's *source*, so the handle has to be the thing that
 // supplies the bytes — on WASI a path handle holds none at all.
 const FLAC_PATH = "tests/test-files/flac/kiss-snippet.flac";
@@ -338,4 +340,23 @@ Deno.test("basis: pcm reads STREAMINFO past a metadata chain larger than the hea
   } finally {
     await Deno.remove(dir, { recursive: true }).catch(() => {});
   }
+});
+
+// The Simple API opens the file itself, so both input forms reach a handle that
+// describes the same bytes: the digest belongs to the file, not to the input
+// form, and that is what makes them agree.
+Deno.test("readMediaChecksum accepts a path and a buffer", async () => {
+  const byPath = await readMediaChecksum(MP3_PATH);
+  const byBuffer = await readMediaChecksum(Deno.readFileSync(MP3_PATH));
+  assertEquals(byPath.hex, byBuffer.hex);
+  assertEquals(byPath.source, "audio-payload");
+});
+
+// `basis: "pcm"` on the path form: the wrapper hands the open handle a path, so
+// this is the input form the digest's source rule has to survive.
+Deno.test("readMediaChecksum returns the FLAC PCM digest for basis: pcm", async () => {
+  const sum = await readMediaChecksum(FLAC_PATH, { basis: "pcm" });
+  assertEquals(sum.source, "flac-streaminfo-md5");
+  assertEquals(sum.algorithm, "md5");
+  assertEquals(sum.bytesHashed, 16);
 });

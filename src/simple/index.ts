@@ -38,6 +38,14 @@ export type {
   WriteTagUpdate,
 } from "./batch-operations.ts";
 
+export { readMediaChecksum } from "./checksum-operations.ts";
+export type {
+  ChecksumAlgorithm,
+  ChecksumSource,
+  MediaChecksum,
+  MediaChecksumOptions,
+} from "../taglib/audio-file-checksum.ts";
+
 export type {
   AudioProperties,
   ExtendedTag,
