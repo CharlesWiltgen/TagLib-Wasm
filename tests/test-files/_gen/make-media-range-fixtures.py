@@ -2,6 +2,11 @@
 """Fixtures for the media-checksum range walks (src/taglib/media-ranges.ts).
 
     python3 tests/test-files/_gen/make-media-range-fixtures.py
+    python3 tests/test-files/_gen/make-media-range-fixtures.py --large
+
+The first form writes every fixture; `--large` writes only the megabyte-scale
+`mp3/large-1_2MiB.mp3`, the fixture the partial-load source-equivalence test in
+tests/media-checksum.test.ts needs.
 
 Paths resolve from this script's own location (the `_gen` convention), so the
 fixtures land in tests/test-files/ wherever the checkout lives. Every fixture
@@ -16,6 +21,7 @@ chunk, which is where the walk's pad-byte rule is pinned.
 import hashlib
 import os
 import struct
+import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 FILES = os.path.join(HERE, "..")
@@ -28,6 +34,11 @@ WAV_DIR = os.path.join(FILES, "wav")
 # The untagged file every FLAC variant wraps: 245430 bytes whose two-block
 # metadata chain ends at 323, so the variants differ from it only by tag bytes.
 BASE_FLAC = os.path.join(FLAC_DIR, "kiss-snippet.flac")
+
+# The tagged MP3 `large-1_2MiB.mp3` repeats a frame of. Its 102 frames start at
+# 359 (the ID3v2.3 tag: 10-byte header + a 349-byte syncsafe size) and end at
+# 85226, which is where the file ends — so its last frame is the file's tail.
+BASE_MP3 = os.path.join(MP3_DIR, "kiss-snippet.mp3")
 
 
 def syncsafe(n: int) -> bytes:
@@ -81,6 +92,129 @@ def id3v1() -> bytes:
     tag = b"TAG" + title + artist + album + year + comment + b"\x00"
     assert len(tag) == 128, len(tag)
     return tag
+
+
+# The partial-load window `TagLib.open` splices around: a 1 MiB header window
+# plus a 128 KiB footer window (taglib-class.ts:133-135). A file at or below
+# their sum is read whole and never spliced, so `large-1_2MiB.mp3` has to exceed
+# it — which is the one property that fixture exists for.
+HEADER_WINDOW = 1024 * 1024
+FOOTER_WINDOW = 128 * 1024
+PARTIAL_WINDOW = HEADER_WINDOW + FOOTER_WINDOW
+
+# mpegFrameLength's tables (src/taglib/metadata-extent.ts, mirroring
+# mpegheader.cpp:236-264): kbps by version, layer and bitrate index; Hz by
+# version and sample-rate index. Rows are Layer I, II, III within a version.
+MPEG_BITRATES = (
+    (
+        (0, 32, 64, 96, 128, 160, 192, 224, 256, 288, 320, 352, 384, 416, 448, 0),
+        (0, 32, 48, 56, 64, 80, 96, 112, 128, 160, 192, 224, 256, 320, 384, 0),
+        (0, 32, 40, 48, 56, 64, 80, 96, 112, 128, 160, 192, 224, 256, 320, 0),
+    ),
+    (
+        (0, 32, 48, 56, 64, 80, 96, 112, 128, 144, 160, 176, 192, 224, 256, 0),
+        (0, 8, 16, 24, 32, 40, 48, 56, 64, 80, 96, 112, 128, 144, 160, 0),
+        (0, 8, 16, 24, 32, 40, 48, 56, 64, 80, 96, 112, 128, 144, 160, 0),
+    ),
+)
+MPEG_SAMPLE_RATES = (
+    (44100, 48000, 32000),  # MPEG-1
+    (22050, 24000, 16000),  # MPEG-2
+    (11025, 12000, 8000),  # MPEG-2.5
+)
+
+
+def id3v2_length(data: bytes) -> int:
+    """Bytes the ID3v2 tag at the head of `data` occupies: its ten-byte header
+    plus the syncsafe size (and the ten-byte footer when the flags promise one,
+    which is where `id3v2End` counts it too)."""
+    assert data[:3] == b"ID3", data[:3]
+    size = (data[6] << 21) | (data[7] << 14) | (data[8] << 7) | data[9]
+    return 10 + size + (10 if data[5] & 0x10 else 0)
+
+
+def mpeg_frame_length(data: bytes, at: int) -> int:
+    """Length of the MPEG audio frame whose header sits at `at`, or 0 when no
+    plausible header is there. A transcription of `mpegFrameLength`
+    (src/taglib/metadata-extent.ts), so the fixture finds its frame the way the
+    walk finds frames — a hardcoded 1044 would stop matching the file the day
+    the base changed, silently, and the fixture would stop partial-loading."""
+    if at + 4 > len(data):
+        return 0
+    if data[at] != 0xFF or (data[at + 1] & 0xE0) != 0xE0:
+        return 0
+    version = (data[at + 1] >> 3) & 0x03
+    layer = (data[at + 1] >> 1) & 0x03
+    if version == 0x01 or layer == 0x00:
+        return 0
+    bitrate_index = (data[at + 2] >> 4) & 0x0F
+    sample_rate_index = (data[at + 2] >> 2) & 0x03
+    if bitrate_index in (0x00, 0x0F) or sample_rate_index == 0x03:
+        return 0
+
+    mpeg1 = version == 0b11
+    layer_index = layer ^ 0b11  # 11=Layer I -> 0, 10=II -> 1, 01=III -> 2
+    bitrate = MPEG_BITRATES[0 if mpeg1 else 1][layer_index][bitrate_index]
+    sample_rate = MPEG_SAMPLE_RATES[
+        0 if mpeg1 else (1 if version == 0b10 else 2)
+    ][sample_rate_index]
+    if layer_index == 2:
+        samples = 1152 if mpeg1 else 576
+    elif layer_index == 1:
+        samples = 1152
+    else:
+        samples = 384
+    # C++ integer division truncates (mpegheader.cpp:236-264), and so does `//`.
+    length = samples * bitrate * 125 // sample_rate
+    if data[at + 2] & 0x02:
+        length += 4 if layer_index == 0 else 1
+    return length
+
+
+def last_frame(data: bytes) -> bytes:
+    """The last MPEG frame of `data`, walked from the first byte after an ID3v2
+    tag the way the range walk walks frames: the last frame is the one whose end
+    is EOF. Requires the audio to run to EOF — a trailing tag would make the
+    walk stop before it and this fixture's "ends exactly at the file's size"
+    premise would be false."""
+    at = id3v2_length(data) if data[:3] == b"ID3" else 0
+    frame = b""
+    while True:
+        length = mpeg_frame_length(data, at)
+        if length == 0:
+            break
+        frame = data[at : at + length]
+        at += length
+    assert frame, "no MPEG frame found"
+    assert at == len(data), (at, len(data))
+    return frame
+
+
+def synth_large_mp3() -> bytes:
+    """`kiss-snippet.mp3` with its last frame repeated until the file clears the
+    partial-load window, then an ID3v1 block. Measured: 349 + 10 = 359 bytes of
+    ID3v2.3 tag, 102 original frames, a 1044-byte last frame, so 1049 copies
+    (85226 + 1049*1044 + 128 = 1180510) clear the 1179648-byte window by 862.
+
+    Two properties are the whole point. The file is bigger than the window, so
+    `loadAudioData` splices a header+footer image out of a `File` input instead
+    of reading it whole; and the repeated bytes are real MPEG audio, so the
+    spliced-away middle is payload. A fixture that padded instead would leave the
+    payload walk with nothing to disagree about, and the source-equivalence test
+    (`tests/media-checksum.test.ts`) would pass while proving nothing.
+
+    The ID3v1 block is not decoration either: it is what makes the footer window
+    carry a trailer, so the splice has to clear BOTH gates rather than only the
+    header one."""
+    with open(BASE_MP3, "rb") as f:
+        base = f.read()
+    frame = last_frame(base)
+    assert len(frame) == 1044, len(frame)
+
+    copies = (PARTIAL_WINDOW - len(base) - len(id3v1())) // len(frame) + 1
+    out = base + frame * copies + id3v1()
+    assert len(out) - PARTIAL_WINDOW == 862, len(out) - PARTIAL_WINDOW
+    return out
 
 
 def mp4_atom(atom_type: bytes, body: bytes) -> bytes:
@@ -191,7 +325,27 @@ def write(path: str, data: bytes) -> None:
     print(f"{len(data):>9d}  {os.path.relpath(path, FILES)}")
 
 
-def main() -> None:
+def main(argv: list) -> None:
+    """Write the fixtures. `--large` writes ONLY `mp3/large-1_2MiB.mp3` — the
+    one fixture here that is a megabyte of repeated audio rather than a
+    hand-laid byte string — while no argument writes every one of them, which is
+    what a checkout missing a fixture needs."""
+    unknown = [arg for arg in argv if arg != "--large"]
+    if unknown:
+        raise SystemExit(
+            f"unknown argument(s): {' '.join(unknown)} — the only mode is --large"
+        )
+
+    if "--large" not in argv:
+        write_small_fixtures()
+
+    # 1180510 bytes: the only fixture big enough to make the loader splice a
+    # File input (see synth_large_mp3), and so the only one whose absence makes
+    # tests/media-checksum.test.ts's equivalence leg vacuous.
+    write(os.path.join(MP3_DIR, "large-1_2MiB.mp3"), synth_large_mp3())
+
+
+def write_small_fixtures() -> None:
     # Tags with no audio at all: a 20-byte ID3v2 tag (10-byte header + 10 bytes
     # of body) followed by the 128-byte ID3v1 block, 148 bytes total. The walk
     # must fall back here rather than hash a tail it cannot call audio.
@@ -241,4 +395,4 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    main(sys.argv[1:])

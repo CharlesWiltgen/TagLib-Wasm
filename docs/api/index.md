@@ -14,6 +14,7 @@ JavaScript/TypeScript.
   - [readFormat()](#readformat)
   - [isValidAudioFile()](#isvalidaudiofile)
   - [readMetadata()](#readmetadata)
+  - [readMediaChecksum()](#readmediachecksum)
   - [getTagLib()](#gettaglib)
   - [setBufferMode()](#setbuffermode)
   - [Batch Processing](#batch-processing)
@@ -358,6 +359,83 @@ interface FileMetadata {
 const { tags, properties, hasCoverArt } = await readMetadata("song.mp3");
 console.log(tags.title?.[0], properties?.duration, hasCoverArt);
 ```
+
+### readMediaChecksum()
+
+Checksum an audio file's media content — the bytes that ARE the audio, not the
+tags around them — so that a tag edit leaves the digest unchanged. For an
+already-open handle, the Full API exposes the same digest as
+`audioFile.mediaChecksum()`.
+
+```typescript
+function readMediaChecksum(
+  file: string | Uint8Array | ArrayBuffer | File,
+  options?: MediaChecksumOptions,
+): Promise<MediaChecksum>;
+```
+
+#### Parameters
+
+- `file`: File path (string), audio data (Uint8Array/ArrayBuffer), or File
+  object
+- `options`: `MediaChecksumOptions` — `{ basis?: "encoded" | "pcm" }`, defaulting
+  to `"encoded"`
+
+#### Returns
+
+Promise resolving to a `MediaChecksum`: the hex digest, the `algorithm` that
+produced it, what it covers (`source`, a `ChecksumSource`), and how many bytes
+went into it (`bytesHashed`). `ChecksumAlgorithm` is the name of the digest —
+either `"sha256"` or `"md5"`.
+
+##### Encoded vs PCM
+
+| `basis`               | `algorithm` | `source`                | What the digest covers                                                                                          | `bytesHashed`            |
+| --------------------- | ----------- | ----------------------- | --------------------------------------------------------------------------------------------------------------- | ------------------------ |
+| `"encoded"` (default) | `"sha256"`  | `"audio-payload"`       | the encoded media payload, over the ranges the format's walk delimits (MP3, AAC, FLAC, MP4/M4A, WAV)            | the payload's byte count |
+| `"encoded"` (default) | `"sha256"`  | `"file"`                | the whole file — a format with no payload rule (Ogg, WMA, …) or a walk that gave up on the bytes it was given   | the file's byte count    |
+| `"pcm"`               | `"md5"`     | `"flac-streaminfo-md5"` | FLAC's own STREAMINFO MD5: the digest of the _uncompressed_ stream, read out of the file's first metadata block | `16`                     |
+
+`basis: "pcm"` is FLAC-only and throws `UnsupportedFormatError` for any other
+format. Everything else is `basis: "encoded"`, the SHA-256 over the media
+payload as it is stored.
+
+##### The `source` semantics
+
+The **tag-stability guarantee holds only for `source: "audio-payload"`**: the
+digest covers the payload ranges the walk derived, so rewriting tags cannot move
+`hex`. Read the field whenever the digest is used as a fingerprint:
+
+- `"audio-payload"` — the encoded payload. `bytesHashed` is the payload's length:
+  the file minus the tags and container structure around it. That is the strong
+  guarantee — a tag edit cannot move `hex`, because the edited bytes are not in
+  the digest.
+- `"file"` — the whole file, when the payload could not be delimited. The weaker
+  guarantee is reported rather than hidden: a tag edit DOES move this hash, and
+  `bytesHashed` is the file's length.
+- `"flac-streaminfo-md5"` — FLAC's recorded digest of the uncompressed stream,
+  not a digest computed from the encoded bytes. It is not a general fingerprint
+  (nothing else can produce it), and it verifies the stream rather than the
+  container.
+
+#### Example
+
+```typescript
+import { readMediaChecksum } from "taglib-wasm/simple";
+
+const sum = await readMediaChecksum("song.mp3");
+console.log(sum.algorithm, sum.source, sum.bytesHashed, sum.hex);
+// "sha256" "audio-payload" 84867 "4ecbb458…"
+// 84867 of the file's 85226 bytes: the tag region is not in the digest.
+
+// FLAC's own digest of the uncompressed stream:
+const pcm = await readMediaChecksum("song.flac", { basis: "pcm" });
+// { source: "flac-streaminfo-md5", algorithm: "md5", bytesHashed: 16 }
+```
+
+A partial load does not weaken the digest: a `File` big enough for `TagLib.open`
+to splice a header+footer window is still checked as the file it came from, not
+as the window image.
 
 ### getTagLib()
 

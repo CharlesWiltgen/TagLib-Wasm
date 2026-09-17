@@ -34,9 +34,10 @@ and `tests/ogg-flavor-parity.test.ts`; regenerate with
 ### Media-checksum fixtures
 
 Built by `python3 tests/test-files/_gen/make-media-range-fixtures.py` and consumed
-by `tests/media-ranges.test.ts`. The tests also read TagLib's own test data
-(`lib/taglib/tests/data/{bladeenc.mp3,empty1s.aac,ape-id3v1.mp3}`) as the oracle
-for frame boundaries.
+by `tests/media-ranges.test.ts` — except `mp3/large-1_2MiB.mp3`, which
+`tests/media-checksum.test.ts` consumes. The tests also read TagLib's own test
+data (`lib/taglib/tests/data/{bladeenc.mp3,empty1s.aac,ape-id3v1.mp3}`) as the
+oracle for frame boundaries.
 
 | Fixture                                 | Layout                                                                                                                                                                                                       |
 | --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -49,6 +50,21 @@ for frame boundaries.
 | `mp4/synth-multi-mdat.mp4`              | 176 bytes, seven atoms: `ftyp` (24), `free` (16), `mdat` (32 contents), a 64-bit-size `mdat` (24 contents), an empty `mdat` (8), `moov` (24), `mdat` (16 contents) — three payload ranges, at 48, 96 and 160 |
 | `wav/synth-plain.wav`                   | 4140 bytes: `fmt` (16) then `data` (4096) — the untagged half of the matched pair, so its payload is at 44                                                                                                   |
 | `wav/synth-tags-before-data.wav`        | 4184 bytes: the same 4096-byte payload behind `LIST` (18) and `id3` (10) chunks — the payload is at 88                                                                                                       |
+| `mp3/large-1_2MiB.mp3`                  | 1180510 bytes: `mp3/kiss-snippet.mp3` with its 1044-byte last frame (at 84182) repeated 1049 times, then the 128-byte ID3v1 block — the one fixture a `File` input is spliced for                            |
+
+The last one is not a hand-laid byte string, so it has its own mode:
+`python3 tests/test-files/_gen/make-media-range-fixtures.py --large` builds only
+it, while the bare command builds every fixture. It is the fixture
+`tests/media-checksum.test.ts` needs for the spec's input-form equivalence — the
+File, `Uint8Array` and path routes must hash the same bytes — and on a small file
+those routes agree by construction because the loader never splices. At 1180510
+bytes it clears `TagLib.open`'s 1 MiB + 128 KiB partial-load window by 862 bytes,
+so a `File` input is spliced to a 1179648-byte header+footer image instead of
+read whole. The repeated bytes are real MPEG audio, not padding, so the
+spliced-away 862 bytes are payload; and the ID3v1 block puts a trailer in the
+footer window, so the splice has to clear the header gate and the trailer gate.
+An MP3 rather than a WAV because RIFF is not a container `metadataFitsInHeader`
+recognises, so a WAV of any size is never spliced.
 
 The five FLAC variants all wrap one 245430-byte stream, so the property they
 exist for is that the FLAC walk hashes their payload identically to the untagged

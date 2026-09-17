@@ -82,6 +82,7 @@ on a real divergence) over separate per-backend tests.
 | `setId3v2Frames`    |  ✓   |     ✓      |   ✓    | id3v2-frames.test.ts byte-identity round-trips                                                                                                   |
 | `removeId3v2Frames` |  ✓   |     ✓      |   ✓    | id3v2-frames.test.ts per-ID removal                                                                                                              |
 | `[Symbol.dispose]`  |  ✓   |     ✓      |   ✓    | strip-id3-flac (`using`)                                                                                                                         |
+| `mediaChecksum`     |  ✓   |     ✓      |   ✓    | media-checksum (`forEachBackend`): tag-edit stability, payload ranges, STREAMINFO digest, fallback honesty, partial load (`taglib-did`)          |
 
 ## Simple-API typed-surface parity suites
 

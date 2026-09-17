@@ -38,6 +38,7 @@ await applyTagsToFile("song.mp3", { title: "New Title", artist: "New Artist" });
 - **Scan directory?** → Folder API: `scanFolder("/music", { recursive: true })`
 - **PropertyMap / MusicBrainz / ReplayGain?** → Full API
 - **Cover art?** → Simple API: `readCoverArt()`, `applyCoverArt()`
+- **A stable fingerprint of the audio (survives tag edits)?** → Simple API: `readMediaChecksum()`
 - **Ratings?** → Full API: `audioFile.getRating()`, `audioFile.setRating(0.8)`
 - **Chapters?** → Full API: `audioFile.getChapters()`, `audioFile.setChapters([...])` (MP3 + MP4)
 - **Broadcast metadata (BWF `bext`/iXML)?** → Full API: `audioFile.getBext()` / `setBext(...)` / `getIxml()` / `setIxml(...)` (WAV + FLAC)
@@ -51,6 +52,7 @@ import {
   applyTags,
   applyTagsToFile,
   readCoverArt,
+  readMediaChecksum,
   readMetadataBatch,
   readProperties,
   readPropertiesBatch,
@@ -62,6 +64,23 @@ import {
 const tags = await readTags("song.mp3"); // { title?: string[], artist?: string[], ... }
 const props = await readProperties("song.mp3"); // { duration, bitrate, sampleRate, channels, codec, isLossless }
 const cover = await readCoverArt("song.mp3"); // Uint8Array | undefined
+
+// Media checksum: the encoded media payload's SHA-256 — the bytes that ARE the
+// audio, not the tags around them, so it survives a tag edit (both backends).
+const sum = await readMediaChecksum("song.mp3");
+// { algorithm: "sha256", hex, bytesHashed, source: "audio-payload" | "file" }
+// source: "audio-payload" is the strong guarantee: editing a tag leaves `hex`
+// unchanged. A format whose payload cannot be delimited answers the WHOLE FILE
+// with source: "file", where a tag edit does move the hash. basis: "pcm" asks
+// FLAC for its STREAMINFO MD5 instead ({ algorithm: "md5", source:
+// "flac-streaminfo-md5" }) and throws UnsupportedFormatError off FLAC.
+const pcm = await readMediaChecksum("song.flac", { basis: "pcm" });
+
+// The checksum types, from "taglib-wasm/simple" or "taglib-wasm" as a type-only
+// import: MediaChecksum (the discriminated result union), MediaChecksumOptions
+// ({ basis?: "encoded" | "pcm" }), ChecksumSource (MediaChecksum["source"]) and
+// ChecksumAlgorithm (MediaChecksum["algorithm"]) — so a consumer can hold the
+// literals without restating them.
 
 // Write
 await applyTagsToFile("song.mp3", { title: "New" }); // Writes to disk
@@ -192,6 +211,15 @@ props.bitrateMode; // "CBR" | "VBR" | "ABR" | undefined (MP3 only)
 audioFile.save(); // Returns boolean
 const buffer = audioFile.getFileBuffer(); // Get modified data (throws FileOperationError if WASI path-mode read-back fails — never returns empty on failure)
 
+// Media checksum: the same digest as the Simple API's readMediaChecksum(), from
+// an already-open handle. Returns `MediaChecksum` — { algorithm, hex,
+// bytesHashed, source }, where `source` is a `ChecksumSource`. The file's bytes
+// are what get hashed, never the handle's partial-load window image; pass
+// `MediaChecksumOptions` ({ basis: "pcm" }) for FLAC's STREAMINFO MD5, which
+// throws UnsupportedFormatError on anything else. `ChecksumAlgorithm` is the
+// digest name ("sha256" for the payload, "md5" for STREAMINFO).
+const sum = await audioFile.mediaChecksum(); // { algorithm: "sha256", hex, bytesHashed, source: "audio-payload" | "file" }
+
 // Convenience methods (open + edit + save + dispose in one call)
 await taglib.edit("song.mp3", (file) => {
   file.tag().setTitle("New");
@@ -274,7 +302,7 @@ RatingUtils.toPercent(normalized(0.8)); // 80
 ## Folder API Reference
 
 ```typescript
-import { scanFolder, findDuplicates, exportFolderMetadata } from "taglib-wasm";
+import { exportFolderMetadata, findDuplicates, scanFolder } from "taglib-wasm";
 // Batch writes live in the Simple API (writeTagsBatch / editTagsBatch), the
 // single batch-write convention; the Folder API's updateFolderTags was
 // removed in their favor.

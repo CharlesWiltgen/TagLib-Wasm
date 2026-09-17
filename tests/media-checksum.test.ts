@@ -6,6 +6,7 @@
  */
 
 import {
+  assert,
   assertEquals,
   assertExists,
   assertNotEquals,
@@ -155,8 +156,8 @@ forEachBackend("mediaChecksum", (adapter: BackendAdapter) => {
       assertEquals(pcm.source, "flac-streaminfo-md5");
       assertEquals(pcm.algorithm, "md5");
       assertEquals(pcm.bytesHashed, 16);
-      // The value comes from the file's own STREAMINFO block, read by the walk —
-      // not from the bytes the handle happens to hold.
+      // The value comes from the file's own STREAMINFO block, read by
+      // flacStreamInfoMd5 — not from the bytes the handle happens to hold.
       assertEquals(pcm.hex, flacStreamInfoMd5(Deno.readFileSync(path)));
 
       // Same file, encoded basis, through the same handle: the digest must equal
@@ -359,4 +360,76 @@ Deno.test("readMediaChecksum returns the FLAC PCM digest for basis: pcm", async 
   assertEquals(sum.source, "flac-streaminfo-md5");
   assertEquals(sum.algorithm, "md5");
   assertEquals(sum.bytesHashed, 16);
+});
+
+/**
+ * The one fixture large enough to make `TagLib.open` splice a header+footer
+ * image out of a `File` instead of reading it whole: the loader's window is
+ * 1 MiB + 128 KiB (taglib-class.ts:133-135) and this file clears it by 862
+ * bytes. Built by `make-media-range-fixtures.py --large`.
+ */
+const LARGE_PATH = "tests/test-files/mp3/large-1_2MiB.mp3";
+
+// The spec's item 3 — a File, a Uint8Array and a path must agree — asserted
+// where it can actually fail: on a fixture that splices. On a small file the
+// loader hands the handle the whole file and all three forms agree by
+// construction, which is a parity instance that cannot fail.
+Deno.test("a partial handle hashes the file, not its window image", async () => {
+  const full = Deno.readFileSync(LARGE_PATH);
+
+  const byBuffer = await readMediaChecksum(full);
+  assertEquals(byBuffer.source, "audio-payload");
+
+  // Only the backends this checkout can load: build/taglib-web.js and the WASI
+  // dist are build output, so an unconditional loop would die with a wasm-load
+  // error where a skip is what the checkout deserves — the convention the
+  // repo's own harness follows (tests/backend-adapter.ts exports these flags).
+  const backends = [
+    ...(HAS_WASI ? (["wasi"] as const) : []),
+    ...(HAS_EMSCRIPTEN ? (["emscripten"] as const) : []),
+  ];
+  assert(backends.length > 0, "no wasm backend available to test");
+
+  for (const forceWasmType of backends) {
+    const taglib = await TagLib.initialize({ forceWasmType });
+    // A File is what splices: `loadAudioData` cuts a header and a footer window
+    // for any File larger than them whose metadata provably fits inside.
+    const file = new File([full], "large.mp3");
+    using handle = await taglib.open(file);
+
+    const loaded = handle.getFileBuffer();
+    assert(
+      loaded.length < full.length,
+      `${forceWasmType}: fixture did not partial-load (${loaded.length} of ${full.length} bytes) — fix the fixture size or format, not the source rule`,
+    );
+
+    const byHandle = await handle.mediaChecksum();
+    assertEquals(byHandle.source, "audio-payload", `${forceWasmType}: source`);
+    assertEquals(
+      byHandle.hex,
+      byBuffer.hex,
+      `${forceWasmType}: File vs buffer`,
+    );
+
+    // The control: the image the handle holds must hash to something ELSE, or
+    // this test passes for the wrong reason — a source rule that returned
+    // `loaded` would satisfy every assertion above except this one.
+    const imageHash = [
+      ...new Uint8Array(
+        await crypto.subtle.digest("SHA-256", loaded as BufferSource),
+      ),
+    ].map((byte) => byte.toString(16).padStart(2, "0")).join("");
+    assertNotEquals(
+      imageHash,
+      byHandle.hex,
+      `${forceWasmType}: hashed the window image, not the file`,
+    );
+  }
+
+  // The third input form the spec's item 3 names.
+  assertEquals(
+    (await readMediaChecksum(LARGE_PATH)).hex,
+    byBuffer.hex,
+    "path vs buffer",
+  );
 });

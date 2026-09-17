@@ -2,6 +2,31 @@
 
 ## Unreleased
 
+### Added
+
+- **`mediaChecksum()` / `readMediaChecksum()` — a checksum of a file's MEDIA
+  payload** (taglib-did) — the hex digest of the bytes that are the audio, not
+  the tags around them, so it survives a tag edit. `audioFile.mediaChecksum()`
+  works on an open handle and `readMediaChecksum(file, options?)` is the Simple
+  API companion for a path, buffer or `File`. The result is the discriminated
+  `MediaChecksum` union (`{ algorithm, hex, bytesHashed, source }`), with
+  `MediaChecksumOptions` (`{ basis?: "encoded" | "pcm" }`) and the `ChecksumSource`
+  / `ChecksumAlgorithm` literal aliases exported from `taglib-wasm` and
+  `taglib-wasm/simple`.
+  By default the digest is SHA-256 over the payload ranges a per-format walk
+  derives — MP3 and ADTS/AAC frames, FLAC blocks, MP4/M4A top-level `mdat`s, WAV
+  `data` chunks — so rewriting tags cannot move it, and `bytesHashed` is the
+  payload's length rather than the file's. A format with no payload rule (Ogg,
+  WMA, …) or a walk that gives up answers a whole-file SHA-256 and reports
+  `source: "file"`, which is the honest weaker guarantee: a tag edit does move
+  that hash. `basis: "pcm"` returns FLAC's own STREAMINFO MD5 instead
+  (`source: "flac-streaminfo-md5"`, `algorithm: "md5"`, `bytesHashed: 16`) and
+  throws `UnsupportedFormatError` for any other format.
+  The digest describes the file, never the handle's memory: a partially loaded
+  `File` is read back from its source, so a 1.2 MiB MP3 that `TagLib.open`
+  splices into a header+footer window still hashes to the same value its path
+  and buffer do. Covered on both backends by `tests/media-checksum.test.ts`.
+
 ## 2.2.3
 
 ### Fixed
