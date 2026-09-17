@@ -43,15 +43,19 @@ forEachBackend("Input Validation", (adapter: BackendAdapter) => {
     assertEquals(threw, true, "tiny buffer should throw");
   });
 
-  it("should reject random bytes (not audio)", async () => {
-    const random = crypto.getRandomValues(new Uint8Array(1024));
+  it("should reject non-audio bytes (not audio)", async () => {
+    // Deterministic payload — see the twin fix in format-detection.test.ts:
+    // `crypto.getRandomValues` can randomly produce a real signature and
+    // legitimately open, which made this assertion flaky.
+    const notAudio = new Uint8Array(1024);
+    notAudio.set([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
     let threw = false;
     try {
-      await adapter.readTags(random, "mp3");
+      await adapter.readTags(notAudio, "mp3");
     } catch {
       threw = true;
     }
-    assertEquals(threw, true, "random bytes should throw");
+    assertEquals(threw, true, "non-audio bytes should throw");
   });
 
   it("should reject truncated file", async () => {

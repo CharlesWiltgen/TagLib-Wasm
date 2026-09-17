@@ -22,16 +22,16 @@ const FORMATS = ["mp3", "flac", "m4a"] as const;
 
 type WasmType = "wasi" | "emscripten";
 
-// In the GitHub workflows both artifacts are guaranteed (see
-// tests/backend-registration.test.ts), so the per-backend suites must run there
-// rather than quietly ignoring themselves when an artifact is missing
-// (taglib-qivb). GITHUB_ACTIONS rather than CI: other CI systems may set
-// CI=true on a checkout without built artifacts.
-const IN_CI = Deno.env.get("GITHUB_ACTIONS") === "true";
-
+// Gate on the artifacts themselves. Forcing these suites to run in CI via
+// GITHUB_ACTIONS would not make a missing artifact fail: TagLib.initialize
+// ({ forceWasmType: "wasi" }) resolves the committed build/taglib-wasi.wasm
+// (src/runtime/unified-loader/module-loading.ts), not the dist/wasi file HAS_WASI
+// checks — so the disjunct could only turn a skip into a green run. A missing
+// artifact is failed by tests/backend-registration.test.ts instead
+// (independent review, 2026-09-17).
 const BACKENDS: { kind: WasmType; available: boolean }[] = [
-  { kind: "wasi", available: HAS_WASI || IN_CI },
-  { kind: "emscripten", available: HAS_EMSCRIPTEN || IN_CI },
+  { kind: "wasi", available: HAS_WASI },
+  { kind: "emscripten", available: HAS_EMSCRIPTEN },
 ];
 
 for (const { kind, available } of BACKENDS) {
