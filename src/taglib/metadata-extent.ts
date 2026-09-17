@@ -14,6 +14,12 @@
  * asymmetric: return true ONLY when the metadata is provably contained. Anything
  * unrecognised, malformed, or unbounded answers false, which costs a full read
  * and never costs correctness.
+ *
+ * The container walkers themselves are exported (id3v2End, mpegFrameLength,
+ * flacAudioStart, flacMarkerOffset) because the media checksum walks the same
+ * containers to find a file's encoded-audio payload. One walker per container:
+ * a second copy of these rules could silently disagree with the one that
+ * decides whether a splice is safe.
  */
 
 /** Big-endian 32-bit read; callers must have bounds-checked `offset`. */
@@ -31,12 +37,20 @@ function startsWith(bytes: Uint8Array, magic: string, at = 0): boolean {
 }
 
 /**
- * End of an ID3v2 tag at offset 0. The size field is "syncsafe": seven bits per
- * byte, so the high bit can never produce a false frame sync. A footer, when the
- * flags say there is one, adds ten bytes that the size does not cover.
+ * End of an ID3v2 tag at offset 0, or undefined when there is none.
+ *
+ * The size field is "syncsafe": seven bits per byte, so the high bit can never
+ * produce a false frame sync. A footer, when the flags say there is one, adds
+ * ten bytes that the size does not cover.
+ *
+ * The `ID3` magic check is part of the contract, not a convenience: the size
+ * arithmetic reads a number out of any ten bytes, so a tagless buffer would
+ * otherwise report 22.8 million as the end of a tag it does not have. Callers
+ * that have already established the magic pay one comparison for it; callers
+ * that have not (the media checksum walks) need it.
  */
-function id3v2End(bytes: Uint8Array): number | undefined {
-  if (bytes.length < 10) return undefined;
+export function id3v2End(bytes: Uint8Array): number | undefined {
+  if (!startsWith(bytes, "ID3") || bytes.length < 10) return undefined;
   const size = (bytes[6] << 21) | (bytes[7] << 14) | (bytes[8] << 7) |
     bytes[9];
   const hasFooter = (bytes[5] & 0x10) !== 0;
@@ -66,6 +80,35 @@ function flacEnd(
     if (offset > limit) return offset;
     if (isLast) return offset;
   }
+}
+
+/**
+ * Offset of FLAC's `fLaC` stream marker — at 0, or just past a prepended ID3v2
+ * tag (TagLib supports exactly that, flacfile.cpp:90) — or undefined when
+ * neither is there. A caller that only wants STREAMINFO can seek straight to it
+ * instead of walking the metadata-block chain.
+ */
+export function flacMarkerOffset(bytes: Uint8Array): number | undefined {
+  const at = startsWith(bytes, "ID3") ? id3v2End(bytes) : 0;
+  if (at === undefined) return undefined;
+  return startsWith(bytes, "fLaC", at) ? at : undefined;
+}
+
+/**
+ * Offset of FLAC's first audio byte: the end of the metadata-block chain, past
+ * the optional ID3v2 tag.
+ *
+ * The chain is walked from block headers alone, so the result can exceed
+ * `bytes.length` when a block's declared length reaches past the buffer — that
+ * is the extent the chain implies, and the caller decides whether it holds
+ * enough of the file to believe it. A buffer too short to hold the next block
+ * header has no implied extent at all and answers undefined, as does one with
+ * no `fLaC` marker.
+ */
+export function flacAudioStart(bytes: Uint8Array): number | undefined {
+  const at = flacMarkerOffset(bytes);
+  if (at === undefined) return undefined;
+  return flacEnd(bytes, bytes.length, at);
 }
 
 /**
@@ -171,34 +214,35 @@ const MPEG_SAMPLE_RATES: readonly number[][] = [
 ];
 
 /**
- * True for a syntactically valid MPEG audio frame header whose frame CHAINS
- * into a consistent next frame: eleven sync bits, a non-reserved version and
- * layer, a bitrate index that is neither free (0) nor invalid (15), a
- * sample-rate index that is not reserved (3), and — mirroring MPEG::Header's
- * checkLength (mpegheader.cpp:330-357) — a header at offset + frameLength
- * matching on sync/version/layer/sample-rate (mask 0xfffe0c00). A frame that
- * cannot be verified this way (no next header, or an inconsistent one)
- * answers false: MPEG::File::findID3v2 keeps scanning for a tag in exactly
- * that case (mpegfile.cpp:530), and a wrong-`true` here authorises a splice
- * straight through a tag the probe did not see (taglib-rfwe).
+ * Length in bytes of the MPEG (Layer I/II/III) frame whose header sits at `at`,
+ * or 0 when `at` is not a plausible frame header.
+ *
+ * Plausibility is the header alone: eleven sync bits, a non-reserved version
+ * and layer, a bitrate index that is neither free (0) nor invalid (15), and a
+ * sample-rate index that is not reserved (3). Nothing here looks at what
+ * FOLLOWS the frame — a frame header at the very end of a file is as plausible
+ * as any other, which is what lets a walk reach the last frame. Callers that
+ * need confidence the bytes really are MPEG audio want isMpegFrameSync, which
+ * adds the next-header consistency check.
+ *
+ * The arithmetic mirrors mpegheader.cpp:236-264: bitrate/sample-rate tables
+ * plus the padding bit, and C++ integer division truncates.
  */
-function isMpegFrameSync(bytes: Uint8Array, at = 0): boolean {
-  if (bytes.length < at + 4) return false;
-  if (bytes[at] !== 0xFF || (bytes[at + 1] & 0xE0) !== 0xE0) return false;
+export function mpegFrameLength(bytes: Uint8Array, at: number): number {
+  if (bytes.length < at + 4) return 0;
+  if (bytes[at] !== 0xFF || (bytes[at + 1] & 0xE0) !== 0xE0) return 0;
   const version = (bytes[at + 1] >> 3) & 0x03;
   const layer = (bytes[at + 1] >> 1) & 0x03;
-  if (version === 0x01 || layer === 0x00) return false;
+  if (version === 0x01 || layer === 0x00) return 0;
   const bitrateIndex = (bytes[at + 2] >> 4) & 0x0F;
   const sampleRateIndex = (bytes[at + 2] >> 2) & 0x03;
   if (
     bitrateIndex === 0x00 || bitrateIndex === 0x0F ||
     sampleRateIndex === 0x03
   ) {
-    return false;
+    return 0;
   }
 
-  // Frame-length arithmetic (mpegheader.cpp:236-264): bitrate/sample-rate
-  // tables + padding bit, then require a consistent header at the next frame.
   const mpeg1 = version === 0b11;
   const layerIndex = layer ^ 0b11; // 11=Layer I → 0, 10=II → 1, 01=III → 2
   const bitrate = MPEG_BITRATES[mpeg1 ? 0 : 1][layerIndex][bitrateIndex];
@@ -210,9 +254,28 @@ function isMpegFrameSync(bytes: Uint8Array, at = 0): boolean {
     ? 1152
     : 384;
   // C++ integer division truncates (mpegheader.cpp:236-264); JS `/` is float,
-  // and a fractional frameLength would fail the buffer-length check below.
+  // and a fractional frame length would describe a frame no header can start at.
   let frameLength = Math.floor(samplesPerFrame * bitrate * 125 / sampleRate);
   if ((bytes[at + 2] & 0x02) !== 0) frameLength += layerIndex === 0 ? 4 : 1;
+  return frameLength === 0 ? 0 : frameLength;
+}
+
+/**
+ * True for a syntactically valid MPEG audio frame header whose frame CHAINS
+ * into a consistent next frame: mpegFrameLength finds one, and — mirroring
+ * MPEG::Header's checkLength (mpegheader.cpp:330-357) — a header at offset +
+ * frameLength matches on sync/version/layer/sample-rate (mask 0xfffe0c00). A
+ * frame that cannot be verified this way (no next header, or an inconsistent
+ * one) answers false: MPEG::File::findID3v2 keeps scanning for a tag in exactly
+ * that case (mpegfile.cpp:530), and a wrong-`true` here authorises a splice
+ * straight through a tag the probe did not see (taglib-rfwe).
+ *
+ * This is the loader's partial-load gate. The next-header requirement above is
+ * why it cannot serve a walk that must reach a file's last frame — see
+ * mpegFrameLength for that.
+ */
+function isMpegFrameSync(bytes: Uint8Array, at = 0): boolean {
+  const frameLength = mpegFrameLength(bytes, at);
   if (frameLength === 0) return false;
 
   const next = at + frameLength;
