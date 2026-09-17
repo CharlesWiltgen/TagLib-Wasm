@@ -2,11 +2,15 @@
 set -euo pipefail
 
 # Safe Release Script for TagLib-Wasm
-# This script ensures all tests pass and versions are synchronized before creating a release
+# Runs the gates, bumps and pushes the version, waits for CI on that commit, and
+# then dispatches the publish workflow. The tag and the GitHub release are
+# created by that workflow's finalize job, only after JSR, npm, and GitHub
+# Packages all carry the version (taglib-rkx0).
 #
 # Usage:
-#   deno task release          # Auto-increment patch version (0.0.1)
-#   deno task release 2.3.4    # Set specific version
+#   deno task release                    # Auto-increment patch version (0.0.1)
+#   deno task release 2.3.4              # Set specific version
+#   SKIP_PUBLISH_WATCH=1 deno task release   # Do not wait for the publish result
 
 # Colors for output
 RED='\033[0;31m'
@@ -279,8 +283,8 @@ wait_for_remote_ci() {
     print_success "Remote CI passed — safe to tag"
 }
 
-# Function to create tag and release
-create_release() {
+# Function to dispatch the publish workflow and report the outcome
+publish_release() {
     local version=$1
     local tag_name="v${version}"
 
@@ -320,52 +324,50 @@ create_release() {
         exit 1
     fi
 
-    # Create tag (only after CI has validated the commit)
-    print_step "Creating tag $tag_name..."
-    git tag -a "$tag_name" -m "Release version $version"
-    print_success "Tag $tag_name created"
+    # Hand the release to CI. The tag and the GitHub release are created by the
+    # publish workflow's finalize job, and only after every registry has the
+    # version (taglib-rkx0): tagging locally publishes a release that a failed
+    # publish leg then strands on some registries.
+    print_step "Dispatching the publish workflow for $version..."
+    if ! gh workflow run publish-everywhere.yml -f version="$version"; then
+        print_error "Could not dispatch the publish workflow"
+        print_warning "Dispatch it manually: gh workflow run publish-everywhere.yml -f version=$version"
+        exit 1
+    fi
 
-    # Push tag
-    print_step "Pushing tag to remote..."
-    git push origin "$tag_name"
-    print_success "Tag pushed to remote"
+    # Find the run we just queued: match the commit whose CI we waited on.
+    local commit_sha run_id=""
+    commit_sha=$(git rev-parse HEAD)
+    for _ in $(seq 1 12); do
+        run_id=$(gh run list --workflow=publish-everywhere.yml --limit 10 \
+            --json databaseId,headSha,event \
+            --jq "[.[] | select(.headSha == \"$commit_sha\" and .event == \"workflow_dispatch\")][0].databaseId // empty" 2>/dev/null || true)
+        [ -n "$run_id" ] && break
+        sleep 5
+    done
 
-    echo
-    print_success "🎉 Release $tag_name has been created!"
-    print_warning "The publish workflow will now run automatically."
-    print_warning "Monitor the workflow at: https://github.com/CharlesWiltgen/TagLib-Wasm/actions"
+    if [ -z "$run_id" ]; then
+        print_warning "Dispatched, but the run has not appeared yet."
+        print_warning "Monitor: https://github.com/CharlesWiltgen/TagLib-Wasm/actions/workflows/publish-everywhere.yml"
+        return 0
+    fi
 
-    # Create GitHub release if gh is available
-    if command -v gh &> /dev/null; then
-        print_step "Creating GitHub release..."
-        
-        # Get the previous tag for changelog
-        local prev_tag=$(git describe --tags --abbrev=0 "$tag_name^" 2>/dev/null || echo "")
-        local changelog_link=""
-        
-        if [[ -n "$prev_tag" ]]; then
-            changelog_link="**Full Changelog**: https://github.com/CharlesWiltgen/TagLib-Wasm/compare/${prev_tag}...${tag_name}"
-        fi
-        
-        # Mark pre-release versions appropriately
-        local release_flags="--latest"
-        if [[ "$version" == *-* ]]; then
-            release_flags="--prerelease"
-        fi
+    print_success "Publish run queued: https://github.com/CharlesWiltgen/TagLib-Wasm/actions/runs/$run_id"
+    print_warning "The workflow tags and releases v$version only after JSR, npm, and GitHub Packages all have it."
 
-        gh release create "$tag_name" \
-            --title "Release $tag_name" \
-            --notes "## What's Changed
+    if [ "${SKIP_PUBLISH_WATCH:-}" = "1" ]; then
+        print_warning "SKIP_PUBLISH_WATCH=1 — not waiting for the publish result"
+        return 0
+    fi
 
-- Version bump to $version
-
-$changelog_link" \
-            $release_flags
-            
-        print_success "GitHub release created"
+    print_step "Waiting for the publish result..."
+    if gh run watch "$run_id" --exit-status; then
+        echo
+        print_success "🎉 v$version published to JSR, npm, and GitHub Packages; tag and GitHub release created"
     else
-        print_warning "GitHub CLI (gh) not found. Create release manually at:"
-        print_warning "https://github.com/CharlesWiltgen/TagLib-Wasm/releases/new?tag=$tag_name"
+        print_error "Publish workflow failed — no tag was created, so nothing is half-released"
+        print_warning "Recover with: gh run rerun $run_id --failed"
+        exit 1
     fi
 }
 
@@ -439,8 +441,8 @@ main() {
     print_step "Running tests after version update..."
     run_tests
 
-    # Create release
-    create_release "$new_version"
+    # Publish: CI owns the tag and the GitHub release
+    publish_release "$new_version"
 }
 
 # Run main function

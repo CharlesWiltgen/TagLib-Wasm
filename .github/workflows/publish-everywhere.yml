@@ -21,9 +21,13 @@ concurrency:
 # 2. publish-jsr: Publish to JSR first (fail-fast if OIDC not working)
 # 3. publish-npm: Publish to NPM (only if JSR succeeds)
 # 4. publish-github: Publish to GitHub Packages (only if JSR and NPM succeed)
-# 5. finalize: Create tags/issues based on results
+# 5. finalize: On success, create the release tag + GitHub release (notes from
+#    CHANGELOG); on failure, write the failure summary with rollback commands.
+#    Tag/release creation lives here rather than in scripts/release-safe.sh so a
+#    failed publish leg cannot leave a released-but-unpublished version
+#    (taglib-rkx0).
 #
-# CI gate: release-safe.sh already waits for ci.yml to pass before tagging.
+# CI gate: release-safe.sh already waits for ci.yml to pass before dispatching.
 # The wait step here is belt-and-suspenders for the workflow_dispatch path and
 # for direct release edits — it uses scripts/wait-for-ci.sh with per-leg
 # classification so flaky Windows/macOS legs don't block a publish.
@@ -35,6 +39,9 @@ jobs:
     outputs:
       version: ${{ steps.version.outputs.version }}
       should-publish: ${{ steps.check.outputs.should-publish }}
+      # The commit this run builds and publishes; the finalize job tags exactly
+      # this SHA so the tag can never disagree with the published artifacts.
+      release-sha: ${{ github.sha }}
     steps:
       - uses: actions/checkout@v7
 
@@ -565,6 +572,10 @@ jobs:
       - uses: actions/checkout@v7
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
+          # Full history + tags: this job pushes the release tag and derives the
+          # compare link from the previous tag. (Default checkout is shallow and
+          # tag-less.)
+          fetch-depth: 0
 
       - name: Check publication status
         id: status
@@ -669,4 +680,76 @@ jobs:
             echo "2. Fix the underlying issue"
             echo "3. If any registries were published, follow rollback procedures above"
             echo "4. Re-run the workflow or publish a new patch version"
+            echo ""
+            echo "No tag or GitHub release was created for this version."
           } >> $GITHUB_STEP_SUMMARY
+
+      - name: Create and push release tag
+        # The tag is created HERE, not by scripts/release-safe.sh, and only once
+        # every registry has the version (taglib-rkx0): a locally created tag
+        # turns a failed publish leg into a released-but-unpublished version.
+        # It points at the commit this run built, so the tag and the published
+        # artifacts can never disagree even if main moves during the run.
+        if: steps.status.outputs.success == 'true'
+        env:
+          VERSION: ${{ needs.prepare-and-build.outputs.version }}
+          RELEASE_SHA: ${{ needs.prepare-and-build.outputs.release-sha }}
+        run: |
+          TAG="v${VERSION}"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          if git rev-parse -q --verify "refs/tags/${TAG}" >/dev/null; then
+            EXISTING=$(git rev-list -n 1 "${TAG}")
+            if [ "$EXISTING" != "$RELEASE_SHA" ]; then
+              # Informational, not fatal: everything is already published by the
+              # time this job runs, so refusing here cannot change the outcome.
+              echo "::warning title=${TAG} points elsewhere::Tag ${TAG} exists at ${EXISTING}, not at the published commit ${RELEASE_SHA} — leaving the tag untouched"
+            else
+              echo "Tag ${TAG} already exists at the published commit — leaving it in place"
+            fi
+          else
+            git tag -a "${TAG}" "${RELEASE_SHA}" -m "Release version ${VERSION}"
+            git push origin "refs/tags/${TAG}"
+            echo "Created and pushed tag ${TAG} at ${RELEASE_SHA}"
+          fi
+
+      - name: Publish GitHub release
+        # Notes come from the CHANGELOG section for this version. The previous
+        # flow had release-safe.sh create a generic "Version bump to X" body and
+        # relied on somebody editing it afterwards.
+        if: steps.status.outputs.success == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ needs.prepare-and-build.outputs.version }}
+        run: |
+          TAG="v${VERSION}"
+          NOTES=/tmp/release-notes.md
+
+          awk -v ver="$VERSION" '
+            index($0, "## " ver) == 1 { found = 1; next }
+            found && /^## / { exit }
+            found { print }
+          ' CHANGELOG.md > "$NOTES"
+
+          if [ ! -s "$NOTES" ]; then
+            echo "::warning::No CHANGELOG section for ${VERSION}; falling back to the compare link"
+            echo "Release ${TAG}." > "$NOTES"
+          fi
+
+          PREV=$(git describe --tags --abbrev=0 "${TAG}^" 2>/dev/null || echo "")
+          if [ -n "$PREV" ]; then
+            printf '\n**Full Changelog**: https://github.com/%s/compare/%s...%s\n' \
+              "${{ github.repository }}" "$PREV" "$TAG" >> "$NOTES"
+          fi
+
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "Release ${TAG} already exists — leaving it unchanged"
+            exit 0
+          fi
+
+          FLAGS="--latest"
+          case "$VERSION" in *-*) FLAGS="--prerelease" ;; esac
+
+          gh release create "$TAG" --title "Release ${TAG}" --notes-file "$NOTES" "$FLAGS"
+          echo "Published GitHub release ${TAG} with CHANGELOG notes"

@@ -327,21 +327,29 @@ deno task release 2.3.0    # explicit version
 ```
 
 `scripts/release-safe.sh` runs the gates, bumps the version, pushes the bump
-commit, **waits for CI to pass on that commit** (never tag an unvalidated
-commit), verifies the npm publish path (`scripts/check-publish-access.sh`), then
-creates the tag and publishes the GitHub release.
+commit, **waits for CI to pass on that commit**, verifies the npm publish path
+(`scripts/check-publish-access.sh`), and then dispatches
+`publish-everywhere.yml` and waits for the result.
 
-Publishing itself is a separate workflow: creating the release fires
-`publish-everywhere.yml` (`on: release: types: [published]`), which builds the
-package, publishes JSR → npm → GitHub Packages, and verifies the JSR and npm
-legs. Tagging alone publishes nothing — the release event is the trigger.
+That workflow builds the package, publishes JSR → npm → GitHub Packages, and —
+**only once every registry has the version** — creates the tag and the GitHub
+release, with notes taken from the CHANGELOG section for that version. Nothing
+is tagged before the release is real, so a failed publish leg cannot leave a
+released-but-unpublished version. The tag points at the commit the workflow
+built, not at whatever `main` happens to be when the run finishes.
+
+A manually created GitHub release still triggers the same workflow
+(`on: release: types: [published]`), which is the escape hatch if you need to
+publish from a release object someone else created. Use
+`SKIP_PUBLISH_WATCH=1 deno task release` to dispatch without waiting for the
+outcome.
 
 ### npm authentication
 
 There is no publish token. The npm leg uses OIDC trusted publishing, authorized
 by a per-package trusted-publisher entry that pins the repository **and the
 workflow filename**. If the entry is missing or names something else, the npm
-leg fails after the tag already exists. Check it before tagging:
+leg fails. Check it before releasing:
 
 ```bash
 scripts/check-publish-access.sh
@@ -349,12 +357,13 @@ scripts/check-publish-access.sh
 
 Reading trust configs needs `npm login --auth-type=web` plus a fresh browser 2FA
 approval, which is why this is a preflight step rather than a CI gate.
+`release-safe.sh` runs it automatically and refuses to continue on a definitive
+failure.
 
 ### Recovering a release
 
-`deno task release` creates the tag and the GitHub release before the registries
-are updated, so a failed publish leg can leave a released version that is not on
-every registry. Recover in this order:
+Nothing is tagged or released until every registry has the version, so a failure
+means a clean retry rather than a half-published version:
 
 1. **Partial publish** (some registries lack the version) — re-run the failed
    legs of the same run:
@@ -379,7 +388,7 @@ every registry. Recover in this order:
    stage-publish only, which refuses `npm publish`.
 
 3. A failed leg writes a failure summary (with rollback commands) to the run
-   summary and opens an issue.
+   summary and opens an issue, and no tag is created.
 
 Registry reads lag the publish: verify a version with the immutable endpoint
 (`https://registry.npmjs.org/taglib-wasm/<version>`), never `npm view` — the
