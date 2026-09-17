@@ -54,9 +54,13 @@ jobs:
       - name: Wait for CI tests to pass (flake-tolerant)
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        # release-safe.sh already waited locally; keep this gate short as a
-        # safety net for workflow_dispatch / direct release-edit paths.
-        run: bash scripts/wait-for-ci.sh "${{ github.sha }}" 180 15
+        # release-safe.sh already waited locally before tagging, so the
+        # release-event path finds CI finished here. The workflow_dispatch path
+        # (documented recovery, and how a failed leg is re-run) starts while CI
+        # on that commit is usually still in flight — the ci.yml matrix takes
+        # ~8 min, so a 180s budget guaranteed a timeout. Use the script's own
+        # default (900) and let the classification below tolerate flaky legs.
+        run: bash scripts/wait-for-ci.sh "${{ github.sha }}" 900 15
 
       - uses: actions/setup-node@v7
         with:
@@ -326,13 +330,25 @@ jobs:
             echo "tag=latest" >> $GITHUB_OUTPUT
           fi
 
+      - name: Confirm OIDC is available to this job
+        # id-token: write is required for the npm trusted-publishing exchange.
+        # Without it the CLI silently falls back to any configured token, which
+        # is how a dead NPM_TOKEN produced an identical-looking E404-on-PUT.
+        run: |
+          if [ -n "${ACTIONS_ID_TOKEN_REQUEST_URL:-}" ]; then
+            echo "OIDC request endpoint present — trusted publishing can exchange a token."
+          else
+            echo "::error::ACTIONS_ID_TOKEN_REQUEST_URL is unset — the job lacks 'id-token: write'."
+            exit 1
+          fi
+
       - name: Publish to NPM with retry
         id: publish
         env:
-          # npm prefers the OIDC exchange when it detects one (id-token: write
-          # above + the package's trusted-publisher entry), so this fallback is
-          # only used if OIDC is unavailable. Do not remove the permission.
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          # Deliberately NOT setting NODE_AUTH_TOKEN: npm prefers OIDC but the
+          # presence of a token can shadow it, and the stored secret is a
+          # revoked classic token anyway (taglib-gmgj). Auth here is the OIDC
+          # exchange against the package's trusted-publisher entry.
           NPM_TAG: ${{ steps.npm-tag.outputs.tag }}
         run: |
           MAX_ATTEMPTS=3
