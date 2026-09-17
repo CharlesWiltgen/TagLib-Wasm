@@ -342,34 +342,6 @@ jobs:
             exit 1
           fi
 
-      - name: Diagnose the trusted-publishing exchange
-        # Prints the registry's own answer for the OIDC exchange, which is the
-        # only place a trusted-publisher mismatch (wrong workflow, repo, or an
-        # 'Allowed actions' set that omits npm publish) becomes visible — npm
-        # otherwise falls back to no auth and reports a generic E404-on-PUT.
-        # Never prints token values: lengths and JSON keys only.
-        run: |
-          echo "node $(node --version) / npm $(npm --version)"
-          echo "id-token env: request=$([ -n "${ACTIONS_ID_TOKEN_REQUEST_TOKEN:-}" ] && echo present || echo MISSING)"
-          echo "npmrc authToken lines: $(grep -c '_authToken' "${NPM_CONFIG_USERCONFIG:-/dev/null}" 2>/dev/null || echo 0)"
-          sed -E 's/(_authToken=).*/\1***/' "${NPM_CONFIG_USERCONFIG:-/dev/null}" 2>/dev/null || true
-
-          JTI=$(curl -sS -H "Authorization: bearer ${ACTIONS_ID_TOKEN_REQUEST_TOKEN}" \
-            "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=npm:registry.npmjs.org" | jq -r '.value // empty')
-          echo "oidc jwt: ${#JTI} chars"
-          if [ -z "$JTI" ]; then echo "::warning::no OIDC jwt issued"; exit 0; fi
-
-          CODE=$(curl -sS -o /tmp/exchange.json -w '%{http_code}' -X POST \
-            -H "Authorization: bearer ${JTI}" \
-            "https://registry.npmjs.org/-/npm/v1/oidc/token/exchange/package/taglib-wasm")
-          echo "exchange HTTP ${CODE}"
-          if [ "$CODE" = "201" ]; then
-            echo "exchange OK; response keys: $(jq -r 'keys | join(",")' /tmp/exchange.json 2>/dev/null)"
-          else
-            echo "exchange FAILED; registry says:"
-            head -c 600 /tmp/exchange.json 2>/dev/null; echo
-          fi
-
       - name: Publish to NPM with retry
         id: publish
         env:
@@ -420,18 +392,25 @@ jobs:
       - name: Verify NPM publication
         run: |
           VERSION="${{ needs.prepare-and-build.outputs.version }}"
+          # Query the IMMUTABLE version endpoint, not the packument that
+          # `npm view pkg@ver` reads: the packument is CDN-cached, so a check
+          # seconds after a publish can serve a pre-publish document and report
+          # a false negative. Measured on 2.2.3 (2026-09-17): npm printed
+          # "+ taglib-wasm@2.2.3" and /taglib-wasm/2.2.3 answered 200 while
+          # `npm view` kept saying "not found" past the old 50s budget.
+          URL="https://registry.npmjs.org/taglib-wasm/$VERSION"
           sleep 10  # Give NPM time to propagate
 
-          for i in {1..5}; do
-            if npm view taglib-wasm@$VERSION version 2>/dev/null; then
+          for i in {1..12}; do
+            if [ "$(curl -s -o /dev/null -w '%{http_code}' "$URL")" = "200" ]; then
               echo "Successfully verified version $VERSION on NPM"
               exit 0
             fi
-            echo "Attempt $i: Version not found yet, waiting..."
+            echo "Attempt $i: version endpoint not ready, waiting..."
             sleep 10
           done
 
-          echo "Failed to verify NPM publication"
+          echo "Failed to verify NPM publication ($URL)"
           exit 1
 
   publish-github:
