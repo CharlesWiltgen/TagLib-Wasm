@@ -287,6 +287,9 @@ jobs:
     needs: [prepare-and-build, publish-jsr] # Now depends on JSR success
     if: needs.prepare-and-build.outputs.should-publish == 'true' && needs.publish-jsr.outputs.published == 'true'
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write # Required for OIDC (npm trusted publishing, taglib-gmgj)
     outputs:
       published: ${{ steps.publish.outputs.published }}
     steps:
@@ -326,6 +329,9 @@ jobs:
       - name: Publish to NPM with retry
         id: publish
         env:
+          # npm prefers the OIDC exchange when it detects one (id-token: write
+          # above + the package's trusted-publisher entry), so this fallback is
+          # only used if OIDC is unavailable. Do not remove the permission.
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
           NPM_TAG: ${{ steps.npm-tag.outputs.tag }}
         run: |
