@@ -342,6 +342,34 @@ jobs:
             exit 1
           fi
 
+      - name: Diagnose the trusted-publishing exchange
+        # Prints the registry's own answer for the OIDC exchange, which is the
+        # only place a trusted-publisher mismatch (wrong workflow, repo, or an
+        # 'Allowed actions' set that omits npm publish) becomes visible — npm
+        # otherwise falls back to no auth and reports a generic E404-on-PUT.
+        # Never prints token values: lengths and JSON keys only.
+        run: |
+          echo "node $(node --version) / npm $(npm --version)"
+          echo "id-token env: request=$([ -n "${ACTIONS_ID_TOKEN_REQUEST_TOKEN:-}" ] && echo present || echo MISSING)"
+          echo "npmrc authToken lines: $(grep -c '_authToken' "${NPM_CONFIG_USERCONFIG:-/dev/null}" 2>/dev/null || echo 0)"
+          sed -E 's/(_authToken=).*/\1***/' "${NPM_CONFIG_USERCONFIG:-/dev/null}" 2>/dev/null || true
+
+          JTI=$(curl -sS -H "Authorization: bearer ${ACTIONS_ID_TOKEN_REQUEST_TOKEN}" \
+            "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=npm:registry.npmjs.org" | jq -r '.value // empty')
+          echo "oidc jwt: ${#JTI} chars"
+          if [ -z "$JTI" ]; then echo "::warning::no OIDC jwt issued"; exit 0; fi
+
+          CODE=$(curl -sS -o /tmp/exchange.json -w '%{http_code}' -X POST \
+            -H "Authorization: bearer ${JTI}" \
+            "https://registry.npmjs.org/-/npm/v1/oidc/token/exchange/package/taglib-wasm")
+          echo "exchange HTTP ${CODE}"
+          if [ "$CODE" = "201" ]; then
+            echo "exchange OK; response keys: $(jq -r 'keys | join(",")' /tmp/exchange.json 2>/dev/null)"
+          else
+            echo "exchange FAILED; registry says:"
+            head -c 600 /tmp/exchange.json 2>/dev/null; echo
+          fi
+
       - name: Publish to NPM with retry
         id: publish
         env:
@@ -350,6 +378,9 @@ jobs:
           # revoked classic token anyway (taglib-gmgj). Auth here is the OIDC
           # exchange against the package's trusted-publisher entry.
           NPM_TAG: ${{ steps.npm-tag.outputs.tag }}
+          # Verbose output is only echoed when an attempt fails (see the retry
+          # loop), where it is the only record of npm's auth decision.
+          NPM_CONFIG_LOGLEVEL: verbose
         run: |
           MAX_ATTEMPTS=3
           RETRY_WAIT=30
