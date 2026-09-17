@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 2.2.3
+
 ### Fixed
 
 - **`getRecommendedConfig()` no longer selects an unloadable WASI backend**
