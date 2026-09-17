@@ -21,6 +21,7 @@ import { assertEquals } from "@std/assert";
 import { afterAll, beforeAll, it } from "@std/testing/bdd";
 import { join } from "@std/path";
 import { forEachBackend } from "./backend-adapter.ts";
+import { TagLib } from "../src/taglib.ts";
 
 const FIXTURE = join("tests", "test-files", "aac", "empty1s.aac");
 
@@ -43,3 +44,35 @@ forEachBackend("ADTS / raw AAC labels", (adapter) => {
     assertEquals(await adapter.readFormat(buffer, "aac"), "AAC");
   });
 });
+
+// The identity change has a blast radius beyond the labels: gates that keyed on
+// FileType "MP3" now see "AAC". Chapter writes were one of them — the guard
+// accepted only MP3/MP4, so setChapters (and clearTags, which calls it with [])
+// regressed to UnsupportedFormatError on .aac files on BOTH backends, where it
+// previously worked (found by independent review; verified against the pre-fix
+// binaries, where fmt read "MP3" and this same round-trip succeeded).
+for (const backend of ["wasi", "emscripten"] as const) {
+  it(`[${backend}] keeps chapter writes working on ADTS`, async () => {
+    const taglib = await TagLib.initialize({ forceWasmType: backend });
+    const file = await taglib.open(await Deno.readFile(FIXTURE));
+    let out: Uint8Array;
+    try {
+      assertEquals(file.getFormat(), "AAC");
+      file.setChapters([
+        { startTimeMs: 0, title: "A" },
+        { startTimeMs: 1000, title: "B" },
+      ]);
+      file.save();
+      out = file.getFileBuffer();
+    } finally {
+      file.dispose();
+    }
+
+    const reopened = await taglib.open(out);
+    try {
+      assertEquals(reopened.getChapters().map((c) => c.title), ["A", "B"]);
+    } finally {
+      reopened.dispose();
+    }
+  });
+}

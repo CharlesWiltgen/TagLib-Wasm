@@ -249,8 +249,11 @@ export class AudioFileImpl extends BaseAudioFileImpl implements AudioFile {
 
   setChapters(chapters: Chapter[], options?: SetChaptersOptions): void {
     const fmt = this.getFormat();
-    if (fmt !== "MP3" && fmt !== "MP4") {
-      throw new UnsupportedFormatError(fmt, ["MP3", "MP4"], {
+    // ADTS/raw AAC carries ID3v2 CHAP frames too (TagLib parses it through
+    // MPEG::File), so "AAC" is admitted alongside "MP3" — the twin of the
+    // assertMp3 widening in src/taglib/id3v2-frames.ts (taglib-v4n).
+    if (fmt !== "MP3" && fmt !== "AAC" && fmt !== "MP4") {
+      throw new UnsupportedFormatError(fmt, ["MP3", "AAC", "MP4"], {
         operation: "setChapters",
       });
     }

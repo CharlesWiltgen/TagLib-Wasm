@@ -214,7 +214,7 @@ export interface AudioProperties {
  *
  * After narrowing via `isFormat()`, optional fields that are guaranteed present
  * for a given format become required:
- * - MP3: `mpegVersion`, `mpegLayer`
+ * - MP3 / ADTS (`"AAC"`, raw .aac): `mpegVersion`, `mpegLayer`
  * - MP4/ASF: `isEncrypted`
  * - OPUS: `outputGainDb`
  * - APE/WV/TTA/MPC/SHN: `formatVersion`
@@ -227,7 +227,7 @@ export interface AudioProperties {
  * }
  * ```
  */
-export type TypedAudioProperties<F extends FileType> = F extends "MP3"
+export type TypedAudioProperties<F extends FileType> = F extends "MP3" | "AAC"
   ? AudioProperties & {
     readonly mpegVersion: number;
     readonly mpegLayer: number;
