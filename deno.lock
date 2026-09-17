@@ -21,7 +21,7 @@
     "npm:esbuild@~0.28.2": "0.28.2",
     "npm:eslint@^10.10.0": "10.10.0",
     "npm:fast-check@^4.10.1": "4.10.1",
-    "npm:knip@^6.35.1": "6.35.1",
+    "npm:knip@^6.36.0": "6.36.0",
     "npm:tsx@^4.23.13": "4.23.13",
     "npm:typescript-eslint@^8.70.0": "8.70.0_eslint@10.10.0_typescript@6.0.3",
     "npm:typescript@^6.0.3": "6.0.3",
@@ -962,8 +962,8 @@
         "@keyv/serialize"
       ]
     },
-    "knip@6.35.1": {
-      "integrity": "sha512-22wnEnv4do2fvoeJsxpFCG/MBxReNxoCVBccaCl7suUJsG+F0UvxI9ycxZ9YgtLHSSjrZl5tOas0JZ/R1vJ93g==",
+    "knip@6.36.0": {
+      "integrity": "sha512-DWETufDYX4UdaLeCK9gI5rfROanxVxbrsyEPzHFIrrn1H+W04f3XdQ6HPWMnA7O2u2VOKOLWt+EV23K/kb5jlA==",
       "dependencies": [
         "fdir",
         "formatly",
@@ -1674,7 +1674,7 @@
         "npm:esbuild@~0.28.2",
         "npm:eslint@^10.10.0",
         "npm:fast-check@^4.10.1",
-        "npm:knip@^6.35.1",
+        "npm:knip@^6.36.0",
         "npm:tsx@^4.23.13",
         "npm:typescript-eslint@^8.70.0",
         "npm:typescript@^6.0.3"
