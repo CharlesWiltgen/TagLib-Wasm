@@ -9,9 +9,11 @@ import { withAudioFile } from "./with-audio-file.ts";
  * Reads a checksum of an audio file's media content.
  *
  * The digest is of the *encoded media payload* — the bytes that are the audio,
- * not the tags around them — so it survives a tag edit. Formats whose payload
- * cannot be delimited answer the whole file instead and say so
- * (`source: "file"`), where a tag edit does move the hash.
+ * not the tags around them — so it survives a tag edit, with one boundary: an
+ * ID3v2 tag appended after a FLAC's audio is inside that payload, so editing it
+ * does move the hash. Formats whose payload cannot be delimited answer the
+ * whole file instead and say so (`source: "file"`), where a tag edit does move
+ * the hash.
  *
  * @param file - File path, Uint8Array, ArrayBuffer, or File object
  * @param options - `basis: "pcm"` asks for FLAC's STREAMINFO MD5, the digest of

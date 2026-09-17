@@ -104,9 +104,11 @@ export interface AudioFile {
 
   /**
    * SHA-256 of the file's encoded media payload — the bytes that are the audio,
-   * not the tags around them — so the digest survives a tag edit. Formats whose
-   * payload cannot be delimited answer the whole file instead and say so
-   * (`source: "file"`), where a tag edit does move the hash.
+   * not the tags around them — so the digest survives a tag edit, with one
+   * boundary: an ID3v2 tag appended after a FLAC's audio is inside the payload,
+   * so editing it does move the hash. Formats whose payload cannot be delimited
+   * answer the whole file instead and say so (`source: "file"`), where a tag
+   * edit does move the hash.
    *
    * Pass `{ basis: "pcm" }` for FLAC's STREAMINFO MD5 — the digest of the
    * *uncompressed* stream, read straight from the file's first metadata block.

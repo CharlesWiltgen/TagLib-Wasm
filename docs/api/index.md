@@ -363,9 +363,9 @@ console.log(tags.title?.[0], properties?.duration, hasCoverArt);
 ### readMediaChecksum()
 
 Checksum an audio file's media content — the bytes that ARE the audio, not the
-tags around them — so that a tag edit leaves the digest unchanged. For an
-already-open handle, the Full API exposes the same digest as
-`audioFile.mediaChecksum()`.
+tags around them — so that a tag edit leaves the digest unchanged, with one
+boundary case ([below](#the-source-semantics)). For an already-open handle, the
+Full API exposes the same digest as `audioFile.mediaChecksum()`.
 
 ```typescript
 function readMediaChecksum(
@@ -404,16 +404,16 @@ payload as it is stored.
 
 The **tag-stability guarantee holds only for `source: "audio-payload"`**: the
 digest covers the payload ranges the walk derived, so rewriting tags cannot move
-`hex`. One boundary case: a FLAC stream runs to its ID3v1 location, so an ID3v2
-tag appended after the audio is _inside_ the payload — editing that tag moves
-`hex` even though `source` is `"audio-payload"` (`walkFlac`'s rule, pinned by
-`tests/media-ranges.test.ts`). Read the field whenever the digest is used as a
-fingerprint:
+`hex` — with exactly one boundary case: a FLAC stream runs to its ID3v1
+location, so an ID3v2 tag appended after the audio is _inside_ the payload —
+editing that tag moves `hex` even though `source` is `"audio-payload"`
+(`walkFlac`'s rule, pinned by `tests/media-ranges.test.ts`). Read the field
+whenever the digest is used as a fingerprint:
 
 - `"audio-payload"` — the encoded payload. `bytesHashed` is the payload's length:
   the file minus the tags and container structure around it. That is the strong
   guarantee — a tag edit cannot move `hex`, because the edited bytes are not in
-  the digest.
+  the digest. The appended-ID3v2 case above is its only exception.
 - `"file"` — the whole file, when the payload could not be delimited. The weaker
   guarantee is reported rather than hidden: a tag edit DOES move this hash, and
   `bytesHashed` is the file's length.

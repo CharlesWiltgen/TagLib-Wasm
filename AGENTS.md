@@ -38,7 +38,8 @@ await applyTagsToFile("song.mp3", { title: "New Title", artist: "New Artist" });
 - **Scan directory?** → Folder API: `scanFolder("/music", { recursive: true })`
 - **PropertyMap / MusicBrainz / ReplayGain?** → Full API
 - **Cover art?** → Simple API: `readCoverArt()`, `applyCoverArt()`
-- **A stable fingerprint of the audio (survives tag edits)?** → Simple API: `readMediaChecksum()`
+- **A stable fingerprint of the audio (survives tag edits, with one FLAC
+  boundary)?** → Simple API: `readMediaChecksum()`
 - **Ratings?** → Full API: `audioFile.getRating()`, `audioFile.setRating(0.8)`
 - **Chapters?** → Full API: `audioFile.getChapters()`, `audioFile.setChapters([...])` (MP3 + MP4)
 - **Broadcast metadata (BWF `bext`/iXML)?** → Full API: `audioFile.getBext()` / `setBext(...)` / `getIxml()` / `setIxml(...)` (WAV + FLAC)
@@ -66,7 +67,8 @@ const props = await readProperties("song.mp3"); // { duration, bitrate, sampleRa
 const cover = await readCoverArt("song.mp3"); // Uint8Array | undefined
 
 // Media checksum: the encoded media payload's SHA-256 — the bytes that ARE the
-// audio, not the tags around them, so it survives a tag edit (both backends).
+// audio, not the tags around them, so it survives a tag edit (both backends),
+// except in one documented case — see below.
 const sum = await readMediaChecksum("song.mp3");
 // { algorithm: "sha256", hex, bytesHashed, source: "audio-payload" | "file" }
 // source: "audio-payload" is the strong guarantee: editing a tag leaves `hex`

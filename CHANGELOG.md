@@ -6,7 +6,8 @@
 
 - **`mediaChecksum()` / `readMediaChecksum()` — a checksum of a file's MEDIA
   payload** (taglib-did) — the hex digest of the bytes that are the audio, not
-  the tags around them, so it survives a tag edit. `audioFile.mediaChecksum()`
+  the tags around them, so it survives a tag edit, with one documented boundary
+  (below). `audioFile.mediaChecksum()`
   works on an open handle and `readMediaChecksum(file, options?)` is the Simple
   API companion for a path, buffer or `File`. The result is the discriminated
   `MediaChecksum` union (`{ algorithm, hex, bytesHashed, source }`), with
@@ -15,8 +16,10 @@
   `taglib-wasm/simple`.
   By default the digest is SHA-256 over the payload ranges a per-format walk
   derives — MP3 and ADTS/AAC frames, FLAC blocks, MP4/M4A top-level `mdat`s, WAV
-  `data` chunks — so rewriting tags cannot move it, and `bytesHashed` is the
-  payload's length rather than the file's. A format with no payload rule (Ogg,
+  `data` chunks — so rewriting tags cannot move it, with one measured boundary:
+  an ID3v2 tag appended after a FLAC's audio lies inside the payload it covers,
+  so editing that tag does move the digest. `bytesHashed` is the payload's
+  length rather than the file's. A format with no payload rule (Ogg,
   WMA, …) or a walk that gives up answers a whole-file SHA-256 and reports
   `source: "file"`, which is the honest weaker guarantee: a tag edit does move
   that hash. `basis: "pcm"` returns FLAC's own STREAMINFO MD5 instead
