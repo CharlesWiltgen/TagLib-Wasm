@@ -1,4 +1,9 @@
-import { id3v2End, mpegFrameLength } from "./metadata-extent.ts";
+import {
+  flacAudioStart,
+  flacMarkerOffset,
+  id3v2End,
+  mpegFrameLength,
+} from "./metadata-extent.ts";
 
 export interface ByteRange {
   offset: number;
@@ -95,10 +100,12 @@ function firstFrame(bytes: Uint8Array): number {
  * candidate that merely "fits inside" the payload is not the last frame, because
  * a false sync can sit within the last frame's own payload (measured on
  * kiss-snippet.mp3: an offer at 84558+72 inside the real frame ending at 85226).
- * Only a candidate ending EXACTLY at the payload end survives that rule, which is
- * the property this walk has by construction — so the reverse pass could never
- * change the answer, and would run in addition to the forward walk rather than
- * instead of it.
+ * The rule that survived is "stop on the first frame that would cross the
+ * boundary": the payload ends at the last frame that ends at or before it, so
+ * the walk can stop short of the boundary rather than land on it — on
+ * ape-id3v1.mp3 it ends at 8150 against a trim boundary of 8208. A reverse pass
+ * could never change that answer, and would run in addition to the forward walk
+ * rather than instead of it.
  */
 function forwardLastFrame(
   bytes: Uint8Array,
@@ -131,5 +138,58 @@ export function walkMpeg(bytes: Uint8Array): RangeWalk {
     ranges: [{ offset: from, length: last.start + last.length - from }],
     detail:
       `first=${from} last=${last.start}+${last.length} frames=${last.frames}`,
+  };
+}
+
+/** STREAMINFO is a FLAC file's first metadata block: the `fLaC` marker, a
+ * 4-byte block header, then its 34-byte payload, whose last 16 bytes are the
+ * MD5 of the *uncompressed* stream — the digest `basis: "pcm"` reports. */
+export function flacStreamInfoMd5(bytes: Uint8Array): string | undefined {
+  const marker = flacMarkerOffset(bytes);
+  if (marker === undefined) return undefined;
+  // Only trustworthy when the first block really is STREAMINFO (type 0, at
+  // least its 34 bytes). Otherwise these offsets land inside another block's
+  // bytes and the "digest" is 32 hex characters of somebody else's data.
+  const header = marker + 4;
+  if (header + 4 > bytes.length) return undefined;
+  if ((bytes[header] & 0x7f) !== 0) return undefined;
+  const blockLength = (bytes[header + 1] << 16) | (bytes[header + 2] << 8) |
+    bytes[header + 3];
+  if (blockLength < 34) return undefined;
+  const payload = header + 4;
+  if (payload + 34 > bytes.length) return undefined;
+  let hex = "";
+  for (const byte of bytes.subarray(payload + 18, payload + 34)) {
+    hex += byte.toString(16).padStart(2, "0");
+  }
+  return hex;
+}
+
+/**
+ * FLAC's encoded payload: the audio frames between the end of the metadata
+ * block chain and any appended ID3v1/APEv2 tag. Nothing inside a FLAC stream
+ * delimits the frames — the block chain's end is the start, and the stream runs
+ * to EOF — so the whole rule is the block walk plus the trailing-tag trim.
+ *
+ * `flacAudioStart` may legitimately answer past `bytes.length`, because a
+ * block's declared length can reach beyond the bytes in hand: that is the
+ * extent the chain *implies*, and hashing it would read nothing while claiming
+ * a payload. The `end <= start` guard is what refuses it.
+ */
+export function walkFlac(
+  bytes: Uint8Array,
+): RangeWalk & { streamInfoMd5?: string } {
+  const start = flacAudioStart(bytes);
+  if (start === undefined) return fallback("no fLaC marker");
+  const end = trailingTagStart(bytes);
+  if (end <= start) return fallback("no audio bytes");
+  const streamInfoMd5 = flacStreamInfoMd5(bytes);
+  return {
+    kind: "ranges",
+    ranges: [{ offset: start, length: end - start }],
+    detail: `audioStart=${start} end=${end}`,
+    // Absent, not undefined, when STREAMINFO could not be read — the repo's
+    // `exactOptionalPropertyTypes` contract (see audio-file-impl.ts).
+    ...(streamInfoMd5 !== undefined ? { streamInfoMd5 } : {}),
   };
 }
