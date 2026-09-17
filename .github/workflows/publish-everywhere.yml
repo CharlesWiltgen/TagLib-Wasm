@@ -381,9 +381,10 @@ jobs:
         id: publish
         env:
           # Deliberately NOT setting NODE_AUTH_TOKEN: npm prefers OIDC but the
-          # presence of a token can shadow it, and the stored secret is a
-          # revoked classic token anyway (taglib-gmgj). Auth here is the OIDC
-          # exchange against the package's trusted-publisher entry.
+          # presence of a token can shadow it, and the repository no longer
+          # holds an npm credential at all (NPM_TOKEN deleted 2026-09-17,
+          # taglib-gmgj). Auth here is the OIDC exchange against the package's
+          # trusted-publisher entry.
           NPM_TAG: ${{ steps.npm-tag.outputs.tag }}
           # Verbose output is only echoed when an attempt fails (see the retry
           # loop), where it is the only record of npm's auth decision.
