@@ -1,6 +1,6 @@
 ---
 name: taglib-wasm-preflight
-description: Use when preparing to release taglib-wasm to JSR and npm, before invoking `deno task release`, cutting a version tag, or accepting a user-supplied version number for a release
+description: Use when preparing to release taglib-wasm to JSR and npm, before invoking `deno task release`, or when accepting a user-supplied version number for a release
 ---
 
 # TagLib-Wasm Preflight
@@ -14,7 +14,7 @@ description: Use when preparing to release taglib-wasm to JSR and npm, before in
 ## When to Use
 
 - Before running `deno task release` or `deno task release <version>`
-- Before cutting any git tag matching `v*`
+- Before tagging by hand (normally unnecessary — the publish workflow's `finalize` job creates the `v*` tag, and only after every registry has the version)
 - **Especially when the user supplies a version number** — verify it before honoring it
 
 ## 1. Semver Decision
@@ -101,7 +101,8 @@ bd ready                       # any P0/P1 ready that should block?
 bd list --status=in_progress   # anything critical mid-flight?
 ```
 
-Tag only when the beads state reflects what you're shipping.
+Release only when the beads state reflects what you're shipping. (CI creates the
+tag, so there is no manual tagging step left to gate.)
 
 > **No `bd dolt push`.** This project uses local embedded Dolt with **no sync
 > remote** (see `.beads/config.yaml`). There is no beads push step — and do NOT
@@ -131,6 +132,6 @@ deno task release <version>    # or deno task release for auto-patch
 - Coverage dropped vs. last release with no explanation
 - Wasm size grew >5% with no identified cause
 - Submodule bump but `git status` shows clean `build/*.wasm` (not rebuilt)
-- "Let's use `release:quick` to skip these checks" — only valid if this preflight ran in the last hour and nothing changed
+- "Let's use `release:quick` to skip these checks" — it can't: since 2026-09-17 the task runs `release-safe.sh --skip-watch`, which runs this entire checklist and only skips waiting for the publish result
 
 All of these mean: pause, finish the checklist, then release.

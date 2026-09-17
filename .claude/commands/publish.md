@@ -8,9 +8,11 @@ with a clean tree in sync with origin — do not pipe `yes` past the branch
 prompt unexamined. If an argument supplies the version, use it; otherwise use
 the most recent preflight recommendation (run `/taglib-wasm-preflight` first
 if no classification exists yet). Then run the REQUIRED post-publish
-verification — `npm view taglib-wasm@<version> version` plus the
-both-backend instantiate check — and report completion only after npm
-confirms the version landed. Recover failures per the skill's failure table;
-a red `verify-jsr` is a corrupt shipped binary, never flake.
+verification — the immutable version endpoint
+(`https://registry.npmjs.org/taglib-wasm/<version>` must answer 200; `npm view`
+reads a CDN-cached packument and can lie for minutes), the `gh release view
+v<version>` confirmation, plus the both-backend instantiate check — and report
+completion only after both confirm. Recover failures per the skill's failure
+table; a red `verify-jsr` is a corrupt shipped binary, never flake.
 
 $ARGUMENTS
