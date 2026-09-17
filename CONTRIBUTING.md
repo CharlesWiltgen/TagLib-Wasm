@@ -322,8 +322,9 @@ git commit -m "chore: update TagLib to v2.2.1"
 Releases are cut from `main` with one command:
 
 ```bash
-deno task release          # auto-increment patch version
-deno task release 2.3.0    # explicit version
+deno task release              # auto-increment patch version
+deno task release 2.3.0        # explicit version
+deno task release:quick 2.3.0  # same gates and same flow, but do not wait for the result
 ```
 
 `scripts/release-safe.sh` runs the gates, bumps the version, pushes the bump
@@ -341,8 +342,8 @@ built, not at whatever `main` happens to be when the run finishes.
 A manually created GitHub release still triggers the same workflow
 (`on: release: types: [published]`), which is the escape hatch if you need to
 publish from a release object someone else created. Use
-`SKIP_PUBLISH_WATCH=1 deno task release` to dispatch without waiting for the
-outcome.
+`deno task release:quick <version>` (equivalent to `SKIP_PUBLISH_WATCH=1`) to
+dispatch without waiting — the gates and the publish flow are identical.
 
 ### npm authentication
 
@@ -388,7 +389,9 @@ means a clean retry rather than a half-published version:
    stage-publish only, which refuses `npm publish`.
 
 3. A failed leg writes a failure summary (with rollback commands) to the run
-   summary and opens an issue, and no tag is created.
+   summary, and no tag or release is created. A tag conflict — the version's tag
+   already exists at a different commit — also fails the run instead of
+   publishing a release for the wrong commit.
 
 Registry reads lag the publish: verify a version with the immutable endpoint
 (`https://registry.npmjs.org/taglib-wasm/<version>`), never `npm view` — the

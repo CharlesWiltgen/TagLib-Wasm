@@ -361,12 +361,23 @@ publish_release() {
     fi
 
     print_step "Waiting for the publish result..."
-    if gh run watch "$run_id" --exit-status; then
+    if ! gh run watch "$run_id" --exit-status; then
+        print_error "Publish workflow failed — no tag was created, so nothing is half-released"
+        print_warning "Recover with: gh run rerun $run_id --failed"
+        exit 1
+    fi
+
+    # A green run is not proof: the workflow's should-publish gate skips every
+    # publish job (and finalize) when npm already carries the version, and a
+    # skipped job does not fail a run. Verify the release object itself.
+    if gh release view "v$version" >/dev/null 2>&1; then
         echo
         print_success "🎉 v$version published to JSR, npm, and GitHub Packages; tag and GitHub release created"
     else
-        print_error "Publish workflow failed — no tag was created, so nothing is half-released"
-        print_warning "Recover with: gh run rerun $run_id --failed"
+        print_error "The run finished green but no GitHub release exists for v$version"
+        print_warning "That is what a fully skipped run looks like: the version is already on npm, so nothing was published."
+        print_warning "Run: https://github.com/CharlesWiltgen/TagLib-Wasm/actions/runs/$run_id"
+        print_warning "Check each registry, then re-run only the missing legs: gh run rerun $run_id --failed"
         exit 1
     fi
 }
@@ -376,6 +387,15 @@ main() {
     echo "🚀 TagLib-Wasm Safe Release Script"
     echo "=================================="
     echo
+
+    # --skip-watch: dispatch the publish workflow without waiting for the result.
+    # Exposed as `deno task release:quick`; every gate still runs (the old
+    # release:quick skipped them and then tagged before publishing, which is the
+    # 2.2.3 failure shape this script exists to prevent — review finding SEC-06).
+    if [[ "${1:-}" == "--skip-watch" ]]; then
+        SKIP_PUBLISH_WATCH=1
+        shift
+    fi
 
     # Get version argument or auto-increment
     local new_version=""

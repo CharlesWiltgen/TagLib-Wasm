@@ -70,12 +70,39 @@ fi
 
 if grep -qF "$WORKFLOW_FILE" <<<"$LIST_OUT"; then
   ok "trusted publisher: $WORKFLOW_FILE"
-  if grep -qiF "$REPOSITORY" <<<"$LIST_OUT"; then
+
+  # The registry matches repository AND workflow file, so a listing that shows
+  # this workflow for another repository is a definitive mismatch, not an
+  # unverifiable one (review findings SEC-08 / guards-docs 1). Each field is
+  # only trusted as evidence when the listing actually carries it, so an
+  # unrecognized npm output format warns rather than blocks.
+  if grep -qi 'repository' <<<"$LIST_OUT"; then
+    if ! grep -qiF "$REPOSITORY" <<<"$LIST_OUT"; then
+      bad "the trusted-publisher entry does not name $REPOSITORY"
+      sed 's/^/    /' <<<"$LIST_OUT"
+      remedy
+      exit 1
+    fi
     ok "repository: $REPOSITORY"
   else
-    warn "npm's listing does not show the repository — confirm it names $REPOSITORY"
-    sed 's/^/    /' <<<"$LIST_OUT"
+    warn "npm's listing shows no repository field — repository not verified"
   fi
+
+  # An entry created in the npm web UI defaults to stage-publish only, which
+  # refuses `npm publish` — the trap this script's own remedy text names
+  # (review finding guards-docs 2).
+  if grep -qi 'permissions' <<<"$LIST_OUT"; then
+    if ! grep -qF 'permissions: publish' <<<"$LIST_OUT"; then
+      bad "the entry does not grant publish (stage publish only) — npm publish would be refused"
+      sed 's/^/    /' <<<"$LIST_OUT"
+      remedy
+      exit 1
+    fi
+    ok "permissions: publish"
+  else
+    warn "npm's listing shows no permissions field — publish permission not verified"
+  fi
+
   printf 'npm publish path verified.\n'
   exit 0
 fi

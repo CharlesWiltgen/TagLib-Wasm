@@ -16,6 +16,11 @@ on:
         default: false
         type: boolean
 
+# Least privilege: every job here reads the repository (checkout, artifacts) and
+# writes only to the step summary. Review finding SEC-03.
+permissions:
+  contents: read
+
 jobs:
   lint:
     name: Lint & Format

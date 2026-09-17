@@ -10,6 +10,12 @@ on:
   release:
     types: [published]
 
+# Least privilege by default; jobs that need more declare it (id-token: write on
+# the OIDC publish legs, contents: write on finalize's tag push, packages: write
+# on the GitHub Packages leg). Review finding SEC-03.
+permissions:
+  contents: read
+
 # Prevent duplicate publish runs racing the same version (e.g., release event +
 # tag push, or two release edits in quick succession). One run per version wins.
 concurrency:
@@ -43,6 +49,20 @@ jobs:
       # this SHA so the tag can never disagree with the published artifacts.
       release-sha: ${{ github.sha }}
     steps:
+      - name: Refuse to publish from a non-main ref
+        # Review finding SEC-02: the npm trusted-publisher entry pins repository
+        # + workflow filename only, so without this gate any ref dispatchable by
+        # a write-access actor could mint publish credentials for unreviewed
+        # content. Fail loudly instead of skipping jobs silently.
+        if: github.event_name != 'release' && github.ref != 'refs/heads/main'
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          REF_NAME: ${{ github.ref }}
+        run: |
+          echo "::error::Refusing to publish from ${REF_NAME} (event: ${EVENT_NAME})."
+          echo "Publish runs from refs/heads/main or from a published release."
+          exit 1
+
       - uses: actions/checkout@v7
 
       - name: Init submodules with retry
@@ -89,13 +109,21 @@ jobs:
 
       - name: Determine version
         id: version
+        env:
+          # Passed through the environment, not interpolated into the script:
+          # GitHub substitutes ${{ }} before bash parses the text, so a crafted
+          # version input or tag name would otherwise be shell source in the job
+          # that builds what the OIDC publish legs push (review finding SEC-01).
+          EVENT_NAME: ${{ github.event_name }}
+          VERSION_INPUT: ${{ github.event.inputs.version }}
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
         run: |
-          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-            VERSION="${{ github.event.inputs.version }}"
-          elif [[ "${{ github.event_name }}" == "release" ]]; then
-            VERSION="${{ github.event.release.tag_name }}"
+          if [[ "$EVENT_NAME" == "workflow_dispatch" ]]; then
+            VERSION="$VERSION_INPUT"
+          elif [[ "$EVENT_NAME" == "release" ]]; then
+            VERSION="$RELEASE_TAG"
           else
-            echo "Unsupported event: ${{ github.event_name }}"
+            echo "Unsupported event: $EVENT_NAME"
             exit 1
           fi
 
@@ -428,6 +456,9 @@ jobs:
       publish-npm,
     ] # Depends on both JSR and NPM
     if: needs.prepare-and-build.outputs.should-publish == 'true' && needs.publish-jsr.outputs.published == 'true' && needs.publish-npm.outputs.published == 'true'
+    permissions:
+      contents: read
+      packages: write # Required to publish to npm.pkg.github.com (SEC-03)
     runs-on: ubuntu-latest
     outputs:
       published: ${{ steps.publish.outputs.published }}
@@ -562,12 +593,18 @@ jobs:
 
   finalize:
     name: Finalize Release
-    needs: [prepare-and-build, publish-jsr, publish-npm, publish-github]
+    needs: [
+      prepare-and-build,
+      publish-jsr,
+      verify-jsr,
+      publish-npm,
+      publish-github,
+    ] # verify-jsr is listed so a failed post-publish check cannot produce a
+    # tag/release (review findings SEC-04 / rkx0 review finding 2).
     if: always() && needs.prepare-and-build.outputs.should-publish == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: write # Required to create tags
-      issues: write # Required to create issues
     steps:
       - uses: actions/checkout@v7
         with:
@@ -579,33 +616,39 @@ jobs:
 
       - name: Check publication status
         id: status
+        env:
+          # Job results, not the publish steps' own `published` outputs: a leg
+          # whose verification step fails still wrote published=true, and no
+          # release may be created in that case (review finding SEC-04).
+          VERSION: ${{ needs.prepare-and-build.outputs.version }}
+          JSR_RESULT: ${{ needs.publish-jsr.result }}
+          VERIFY_JSR_RESULT: ${{ needs.verify-jsr.result }}
+          NPM_RESULT: ${{ needs.publish-npm.result }}
+          GITHUB_RESULT: ${{ needs.publish-github.result }}
         run: |
-          VERSION="${{ needs.prepare-and-build.outputs.version }}"
           SUCCESS=true
           FAILURES=""
 
-          if [ "${{ needs.publish-npm.outputs.published }}" != "true" ]; then
-            FAILURES="${FAILURES}NPM "
-            SUCCESS=false
-          fi
-
-          if [ "${{ needs.publish-github.outputs.published }}" != "true" ]; then
-            FAILURES="${FAILURES}GitHub "
-            SUCCESS=false
-          fi
-
-          if [ "${{ needs.publish-jsr.outputs.published }}" != "true" ]; then
-            FAILURES="${FAILURES}JSR "
-            SUCCESS=false
-          fi
+          for entry in \
+            "JSR:${JSR_RESULT}" \
+            "JSR verification:${VERIFY_JSR_RESULT}" \
+            "npm:${NPM_RESULT}" \
+            "GitHub Packages:${GITHUB_RESULT}"; do
+            name="${entry%%:*}"
+            result="${entry#*:}"
+            if [ "$result" != "success" ]; then
+              FAILURES="${FAILURES}${name}(${result:-skipped}) "
+              SUCCESS=false
+            fi
+          done
 
           echo "success=$SUCCESS" >> "$GITHUB_OUTPUT"
           echo "failures=$FAILURES" >> "$GITHUB_OUTPUT"
 
           if [ "$SUCCESS" = "true" ]; then
-            echo "✅ All publications successful for version $VERSION"
+            echo "✅ All publications and post-publish verifications succeeded for version ${VERSION}"
           else
-            echo "❌ Failed to publish to: $FAILURES"
+            echo "❌ Failed: ${FAILURES}"
           fi
 
       - name: Rollback NPM
@@ -702,12 +745,19 @@ jobs:
           if git rev-parse -q --verify "refs/tags/${TAG}" >/dev/null; then
             EXISTING=$(git rev-list -n 1 "${TAG}")
             if [ "$EXISTING" != "$RELEASE_SHA" ]; then
-              # Informational, not fatal: everything is already published by the
-              # time this job runs, so refusing here cannot change the outcome.
-              echo "::warning title=${TAG} points elsewhere::Tag ${TAG} exists at ${EXISTING}, not at the published commit ${RELEASE_SHA} — leaving the tag untouched"
-            else
-              echo "Tag ${TAG} already exists at the published commit — leaving it in place"
+              # Refuse rather than announce a release whose tag points at a
+              # different commit (review finding SEC-05). Failing here skips the
+              # release step below.
+              echo "::error::Tag ${TAG} exists at ${EXISTING}, not at the published commit ${RELEASE_SHA}"
+              {
+                echo "### ❌ Tag conflict for v${VERSION}"
+                echo ""
+                echo "Tag \`${TAG}\` already exists at \`${EXISTING}\`; this run published \`${RELEASE_SHA}\`."
+                echo "The registries carry ${VERSION}, but no GitHub release was created — resolve the tag by hand."
+              } >> "$GITHUB_STEP_SUMMARY"
+              exit 1
             fi
+            echo "Tag ${TAG} already exists at the published commit — leaving it in place"
           else
             git tag -a "${TAG}" "${RELEASE_SHA}" -m "Release version ${VERSION}"
             git push origin "refs/tags/${TAG}"
@@ -727,7 +777,9 @@ jobs:
           NOTES=/tmp/release-notes.md
 
           awk -v ver="$VERSION" '
-            index($0, "## " ver) == 1 { found = 1; next }
+            # Exact heading, or the heading followed by a space: "## 2.2.3" must
+            # not swallow "## 2.2.30" (review finding 3).
+            $0 == "## " ver || index($0, "## " ver " ") == 1 { found = 1; next }
             found && /^## / { exit }
             found { print }
           ' CHANGELOG.md > "$NOTES"

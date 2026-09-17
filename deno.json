@@ -125,7 +125,7 @@
     "version:check": "deno run --allow-read --allow-write scripts/sync-version.ts check",
     "bench": "deno bench --allow-read --allow-write --allow-env tests/wasi-vs-emscripten.bench.ts",
     "release": "./scripts/release-safe.sh",
-    "release:quick": "./scripts/release.sh"
+    "release:quick": "./scripts/release-safe.sh --skip-watch"
   },
   "imports": {
     "@std/assert": "jsr:@std/assert@^1.0.19",
