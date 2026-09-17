@@ -31,6 +31,15 @@ the Ogg reader with Vorbis/Opus. They are consumed by `tests/adts-label.test.ts`
 and `tests/ogg-flavor-parity.test.ts`; regenerate with
 `bash tests/test-files/_gen/make-codec-identity-fixtures.sh --regen`.
 
+### Media-checksum fixtures
+
+`mp3/tags-only.mp3` (148 bytes: a 20-byte ID3v2 tag plus the 128-byte ID3v1
+block, no audio frames) is built by
+`python3 tests/test-files/_gen/make-media-range-fixtures.py` and consumed by
+`tests/media-ranges.test.ts`. The tests also read TagLib's own test data
+(`lib/taglib/tests/data/{bladeenc.mp3,empty1s.aac,ape-id3v1.mp3}`) as the
+oracle for frame boundaries.
+
 ## Recommended Test Files
 
 ### MP3 Files (`mp3/`)
