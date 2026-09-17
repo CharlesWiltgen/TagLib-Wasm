@@ -132,6 +132,6 @@ deno task release <version>    # or deno task release for auto-patch
 - Coverage dropped vs. last release with no explanation
 - Wasm size grew >5% with no identified cause
 - Submodule bump but `git status` shows clean `build/*.wasm` (not rebuilt)
-- "Let's use `release:quick` to skip these checks" — it can't: since 2026-09-17 the task runs `release-safe.sh --skip-watch`, which runs this entire checklist and only skips waiting for the publish result
+- "Let's use `release:quick` to skip these checks" — it can't: since 2026-09-17 the task runs `release-safe.sh --skip-watch`, which runs the script's gates (tests, wasm freshness, package preflight) and only skips waiting for the publish result. It does **not** run this checklist, so the preflight still has to happen.
 
 All of these mean: pause, finish the checklist, then release.

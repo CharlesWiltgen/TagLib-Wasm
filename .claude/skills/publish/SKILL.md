@@ -8,8 +8,11 @@ description: Use when shipping a taglib-wasm release to JSR/npm/GitHub Packages 
 ## Overview
 
 **`release-safe.sh` dispatches the publish workflow; the workflow creates the
-tag and the GitHub release _last_, and only once every registry has the
-version.** (`.github/workflows/publish-everywhere.yml`, `finalize` job)
+tag and the GitHub release _last_, once JSR and npm are verified and all three
+publish legs succeeded.** (`.github/workflows/publish-everywhere.yml`, `finalize`
+job; GitHub Packages' own post-publish check is deliberately fail-soft — that
+registry can serve a stale packument, so it warns instead of failing a release
+that genuinely landed.)
 
 A pushed `v*` tag by itself publishes **nothing**. `on: release: [published]`
 is now a manual escape hatch — the workflow's own `gh release create` runs with
@@ -131,15 +134,15 @@ job and `finalize` while the run still concludes success.
 
 ## Failure Recovery
 
-| Symptom                                               | Cause                                                                              | Fix                                                                                                                                                                                                     |
-| ----------------------------------------------------- | ---------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Tag exists, nothing published                         | Tag from an earlier flow, or a manual tag                                          | `gh workflow run publish-everywhere.yml -f version=X`; publish the release if one exists as a draft                                                                                                     |
-| Workflow ran, published nothing                       | `should-publish=false` — version already on npm                                    | Expected idempotence. Nothing to do.                                                                                                                                                                    |
-| CI gate failed                                        | Required leg failed on the bump commit                                             | Bump commit is **already on main**; no tag was created. Fix forward, push, re-run the release.                                                                                                          |
-| `*.wasm is stale!`                                    | Committed binary ≠ fresh build                                                     | `git add build/*.wasm && git commit --amend --no-edit`, re-run                                                                                                                                          |
-| JSR published, npm failed                             | npm auth: trusted-publisher entry missing, for another repo, or stage-publish only | `scripts/check-publish-access.sh`, then `npm trust github taglib-wasm --file publish-everywhere.yml --repository CharlesWiltgen/TagLib-Wasm --allow-publish -y` (browser 2FA), then re-run — JSR no-ops |
-| `Tag vX exists at <sha>, not at the published commit` | A tag for this version already points elsewhere                                    | **No release was created.** Resolve the tag (delete or move it), then re-run `finalize`                                                                                                                 |
-| Bad version published                                 | —                                                                                  | **JSR cannot unpublish.** npm: `npm deprecate` (unpublish forces a 24h wait). Ship a patch.                                                                                                             |
+| Symptom                                               | Cause                                                                              | Fix                                                                                                                                                                                                                 |
+| ----------------------------------------------------- | ---------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Tag exists, nothing published                         | Tag from an earlier flow, or a manual tag                                          | If the tag points at the commit you are publishing, `gh workflow run publish-everywhere.yml -f version=X`; **if it points elsewhere, resolve the tag first** — `finalize` refuses a mismatch and creates no release |
+| Workflow ran, published nothing                       | `should-publish=false` — version already on npm                                    | Expected idempotence. Nothing to do.                                                                                                                                                                                |
+| CI gate failed                                        | Required leg failed on the bump commit                                             | Bump commit is **already on main**; no tag was created. Fix forward, push, re-run the release.                                                                                                                      |
+| `*.wasm is stale!`                                    | Committed binary ≠ fresh build                                                     | `git add build/*.wasm && git commit --amend --no-edit`, re-run                                                                                                                                                      |
+| JSR published, npm failed                             | npm auth: trusted-publisher entry missing, for another repo, or stage-publish only | `scripts/check-publish-access.sh`, then `npm trust github taglib-wasm --file publish-everywhere.yml --repository CharlesWiltgen/TagLib-Wasm --allow-publish -y` (browser 2FA), then re-run — JSR no-ops             |
+| `Tag vX exists at <sha>, not at the published commit` | A tag for this version already points elsewhere                                    | **No release was created.** Resolve the tag (delete or move it), then re-run `finalize`                                                                                                                             |
+| Bad version published                                 | —                                                                                  | **JSR cannot unpublish.** npm: `npm deprecate` (unpublish forces a 24h wait). Ship a patch.                                                                                                                         |
 
 ## Red Flags — STOP
 

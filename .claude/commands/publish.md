@@ -12,7 +12,7 @@ verification — the immutable version endpoint
 (`https://registry.npmjs.org/taglib-wasm/<version>` must answer 200; `npm view`
 reads a CDN-cached packument and can lie for minutes), the `gh release view
 v<version>` confirmation, plus the both-backend instantiate check — and report
-completion only after both confirm. Recover failures per the skill's failure
+completion only after all three confirm. Recover failures per the skill's failure
 table; a red `verify-jsr` is a corrupt shipped binary, never flake.
 
 $ARGUMENTS

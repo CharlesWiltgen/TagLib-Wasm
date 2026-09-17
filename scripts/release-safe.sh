@@ -362,8 +362,14 @@ publish_release() {
 
     print_step "Waiting for the publish result..."
     if ! gh run watch "$run_id" --exit-status; then
-        print_error "Publish workflow failed — no tag was created, so nothing is half-released"
-        print_warning "Recover with: gh run rerun $run_id --failed"
+        print_error "Publish workflow failed — no release was created"
+        print_warning "The run's step summary says which legs published. Note the two cases it covers:"
+        print_warning "  • a post-publish verification failure blocks the tag while a version may already"
+        print_warning "    be live on JSR and/or npm (nothing can un-publish those)"
+        print_warning "  • a tag conflict means a v$version tag already exists at another commit, so the"
+        print_warning "    registries may carry the version with no release to show for it"
+        print_warning "Read the summary, then either: gh run rerun $run_id --failed — or, for a tag"
+        print_warning "conflict, resolve the tag first; re-running alone would fail identically."
         exit 1
     fi
 
@@ -375,9 +381,11 @@ publish_release() {
         print_success "🎉 v$version published to JSR, npm, and GitHub Packages; tag and GitHub release created"
     else
         print_error "The run finished green but no GitHub release exists for v$version"
-        print_warning "That is what a fully skipped run looks like: the version is already on npm, so nothing was published."
+        print_warning "That is what a fully skipped run looks like: the version is already on npm, so"
+        print_warning "every publish leg and finalize were skipped (expected idempotence — nothing to do)."
+        print_warning "If some registry is actually missing the version, re-run only the failed legs:"
+        print_warning "  gh run rerun $run_id --failed   (in the fully-skipped case there are none to re-run)"
         print_warning "Run: https://github.com/CharlesWiltgen/TagLib-Wasm/actions/runs/$run_id"
-        print_warning "Check each registry, then re-run only the missing legs: gh run rerun $run_id --failed"
         exit 1
     fi
 }

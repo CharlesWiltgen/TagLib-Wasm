@@ -42,6 +42,9 @@ jobs:
   prepare-and-build:
     name: Prepare and Build
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read # the CI gate below reads workflow runs via `gh run list/view`
     outputs:
       version: ${{ steps.version.outputs.version }}
       should-publish: ${{ steps.check.outputs.should-publish }}
@@ -49,19 +52,39 @@ jobs:
       # this SHA so the tag can never disagree with the published artifacts.
       release-sha: ${{ github.sha }}
     steps:
-      - name: Refuse to publish from a non-main ref
-        # Review finding SEC-02: the npm trusted-publisher entry pins repository
-        # + workflow filename only, so without this gate any ref dispatchable by
-        # a write-access actor could mint publish credentials for unreviewed
-        # content. Fail loudly instead of skipping jobs silently.
-        if: github.event_name != 'release' && github.ref != 'refs/heads/main'
+      - name: Verify the ref being published is reviewable
+        # Review finding SEC-02. Limits this deliberately does NOT claim to fix:
+        # a write-access actor can dispatch a branch's copy of this file (the
+        # workflow definition is sourced from the dispatched ref) and can push
+        # to main directly — so this is accident-prevention and a narrower
+        # release route, not an authorization boundary. The boundary a workflow
+        # edit cannot defeat is a GitHub Environment with required reviewers,
+        # recorded in the npm trusted-publisher entry (taglib-80l8).
         env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           EVENT_NAME: ${{ github.event_name }}
           REF_NAME: ${{ github.ref }}
+          REPO: ${{ github.repository }}
+          SHA: ${{ github.sha }}
         run: |
-          echo "::error::Refusing to publish from ${REF_NAME} (event: ${EVENT_NAME})."
-          echo "Publish runs from refs/heads/main or from a published release."
-          exit 1
+          if [ "$EVENT_NAME" = "release" ]; then
+            # A hand-made release for an unreviewed branch commit must not
+            # publish: require the tagged commit to be on main.
+            STATUS=$(gh api "repos/${REPO}/compare/main...${SHA}" --jq .status 2>/dev/null || echo unknown)
+            case "$STATUS" in
+              behind | identical)
+                echo "Release commit ${SHA} is on main (compare status: ${STATUS})"
+                ;;
+              *)
+                echo "::error::Refusing to publish: release commit ${SHA} is not on main (compare status: ${STATUS})"
+                exit 1
+                ;;
+            esac
+          elif [ "$REF_NAME" != "refs/heads/main" ]; then
+            echo "::error::Refusing to publish from ${REF_NAME} (event: ${EVENT_NAME})."
+            echo "Publish runs from refs/heads/main, or from a published release whose commit is on main."
+            exit 1
+          fi
 
       - uses: actions/checkout@v7
 
@@ -386,8 +409,11 @@ jobs:
           # taglib-gmgj). Auth here is the OIDC exchange against the package's
           # trusted-publisher entry.
           NPM_TAG: ${{ steps.npm-tag.outputs.tag }}
-          # Verbose output is only echoed when an attempt fails (see the retry
-          # loop), where it is the only record of npm's auth decision.
+          # Verbose output is echoed with the rest of the attempt's output, so
+          # npm's auth decision appears in the log for both outcomes. Safe at
+          # this level: npm's OIDC helper logs fixed strings (never the token)
+          # and npm-registry-fetch logs method/status/URL without headers —
+          # verified against npm 11.19 (lib/utils/oidc.js, check-response.js).
           NPM_CONFIG_LOGLEVEL: verbose
         run: |
           MAX_ATTEMPTS=3

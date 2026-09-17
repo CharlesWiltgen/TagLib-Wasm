@@ -69,45 +69,77 @@ if grep -qi "No trust configurations found" <<<"$LIST_OUT"; then
 fi
 
 if grep -qF "$WORKFLOW_FILE" <<<"$LIST_OUT"; then
+  # npm prints one record per trusted publisher. Scope the field checks to the
+  # record that names OUR workflow file: checking the whole listing let an entry
+  # for a different repository or a stage-only entry vouch for ours (review
+  # finding: listing-wide checks false-pass).
+  local_record() {
+    awk -v wf="$WORKFLOW_FILE" '
+      /^(type|id):/ { if (block != "" && found) { print block; exit } block = ""; found = 0 }
+      { block = block $0 "\n" }
+      index($0, "file: " wf) == 1 { found = 1 }
+      END { if (block != "" && found) print block }
+    ' <<<"$LIST_OUT"
+  }
+  ENTRY=$(local_record)
+  INCOMPLETE=""
+
+  if [ -z "$ENTRY" ]; then
+    # No record names our workflow file. A listing that clearly carries entries
+    # is a definitive mismatch; unparseable output is not.
+    if grep -qiE '^[[:space:]]*(type|id|file|repository|permissions):' <<<"$LIST_OUT"; then
+      bad "trusted-publisher entries exist, but none names $WORKFLOW_FILE"
+      sed 's/^/    /' <<<"$LIST_OUT"
+      remedy
+      exit 1
+    fi
+    warn "npm's output does not look like a trust listing — not verified"
+    sed 's/^/    /' <<<"$LIST_OUT"
+    exit 0
+  fi
+
   ok "trusted publisher: $WORKFLOW_FILE"
 
-  # The registry matches repository AND workflow file, so a listing that shows
-  # this workflow for another repository is a definitive mismatch, not an
-  # unverifiable one (review findings SEC-08 / guards-docs 1). Each field is
-  # only trusted as evidence when the listing actually carries it, so an
-  # unrecognized npm output format warns rather than blocks.
-  if grep -qi 'repository' <<<"$LIST_OUT"; then
-    if ! grep -qiF "$REPOSITORY" <<<"$LIST_OUT"; then
-      bad "the trusted-publisher entry does not name $REPOSITORY"
-      sed 's/^/    /' <<<"$LIST_OUT"
+  # The registry matches repository AND workflow file, so a field that names a
+  # different repository is a definitive mismatch — but only when the listing
+  # actually carries the field (an unrecognized npm format must warn, not block).
+  if grep -qi 'repository' <<<"$ENTRY"; then
+    if ! grep -qiF "$REPOSITORY" <<<"$ENTRY"; then
+      bad "the $WORKFLOW_FILE entry does not name $REPOSITORY"
+      sed 's/^/    /' <<<"$ENTRY"
       remedy
       exit 1
     fi
     ok "repository: $REPOSITORY"
   else
-    warn "npm's listing shows no repository field — repository not verified"
+    warn "the $WORKFLOW_FILE entry shows no repository field — repository not verified"
+    INCOMPLETE=1
   fi
 
   # An entry created in the npm web UI defaults to stage-publish only, which
-  # refuses `npm publish` — the trap this script's own remedy text names
-  # (review finding guards-docs 2).
-  if grep -qi 'permissions' <<<"$LIST_OUT"; then
-    if ! grep -qF 'permissions: publish' <<<"$LIST_OUT"; then
-      bad "the entry does not grant publish (stage publish only) — npm publish would be refused"
-      sed 's/^/    /' <<<"$LIST_OUT"
+  # refuses `npm publish` — the trap this script's own remedy text names.
+  if grep -qi 'permissions' <<<"$ENTRY"; then
+    if ! grep -qF 'permissions: publish' <<<"$ENTRY"; then
+      bad "the $WORKFLOW_FILE entry does not grant publish (stage publish only) — npm publish would be refused"
+      sed 's/^/    /' <<<"$ENTRY"
       remedy
       exit 1
     fi
     ok "permissions: publish"
   else
-    warn "npm's listing shows no permissions field — publish permission not verified"
+    warn "the $WORKFLOW_FILE entry shows no permissions field — publish permission not verified"
+    INCOMPLETE=1
   fi
 
-  printf 'npm publish path verified.\n'
+  if [ -n "$INCOMPLETE" ]; then
+    printf 'npm publish path verified where npm reports it — see the warnings above.\n'
+  else
+    printf 'npm publish path verified.\n'
+  fi
   exit 0
 fi
 
-if grep -qF ".yml" <<<"$LIST_OUT"; then
+if grep -qiE '^[[:space:]]*(type|id|file|repository|permissions):' <<<"$LIST_OUT"; then
   bad "trusted-publisher entries exist, but none names $WORKFLOW_FILE"
   sed 's/^/    /' <<<"$LIST_OUT"
   remedy
