@@ -256,3 +256,85 @@ export function walkMp4(bytes: Uint8Array): RangeWalk {
   if (ranges.length === 0) return fallback("no non-empty mdat");
   return { kind: "ranges", ranges, detail: `${ranges.length} mdat(s)` };
 }
+
+/**
+ * WAV's payload: every non-empty `data` chunk's contents, payload only.
+ *
+ * The chunk list is the whole rule: a chunk is a 4-byte id, a 4-byte
+ * little-endian size that counts the payload but not the header, and that
+ * payload padded to an even length. Tag chunks (`LIST`, `id3 `, `bext`, `iXML`)
+ * are therefore skipped by construction rather than by name, and chunks that
+ * follow `data` cannot move or clip the range — which is the property the
+ * repo's `wav/kiss-snippet.wav` pins, `data` first and `LIST` + `id3 ` behind it.
+ *
+ * A chunk whose declared size reaches past the buffer is a fallback, not a
+ * clamp: hashing the bytes that survive would report a payload the file does not
+ * claim. That is also the truncated-file case.
+ */
+export function walkWav(bytes: Uint8Array): RangeWalk {
+  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  // RF64/BW64 is deliberately not accepted: its chunk sizes are 0xFFFFFFFF and
+  // the real values live in the `ds64` chunk (rifffile.cpp:351-370), so
+  // pretending to read one would either fall back on every real RF64 file or
+  // mis-size the range. The fallback it lands in is whole-file and honest.
+  if (text(bytes, 0, 4) !== "RIFF") return fallback("not RIFF");
+  if (text(bytes, 8, 4) !== "WAVE") return fallback("not WAVE");
+  const ranges: ByteRange[] = [];
+  let o = 12;
+  while (o + 8 <= bytes.length) {
+    const id = text(bytes, o, 4);
+    const size = view.getUint32(o + 4, true);
+    const dataStart = o + 8;
+    if (dataStart + size > bytes.length) return fallback(`truncated ${id}`);
+    if (id === "data" && size > 0) {
+      ranges.push({ offset: dataStart, length: size });
+    }
+    o = dataStart + size + (size % 2);
+  }
+  if (ranges.length === 0) return fallback("no data chunk");
+  return { kind: "ranges", ranges, detail: `${ranges.length} data chunk(s)` };
+}
+
+/**
+ * The per-format dispatch: the one entry point a consumer calls, and the one
+ * place a format-level fallback becomes a whole-file range.
+ *
+ * Consumers MUST dispatch on `kind`, never on `ranges.length`. The walks
+ * themselves answer a fallback with `ranges: []`, which this function replaces
+ * with the whole file — so after normalization there is no empty-ranges answer
+ * to detect, and a caller testing `ranges.length === 0` would read a fallback as
+ * a genuine payload and hash the whole file while claiming a range.
+ */
+export function mediaRanges(format: string, bytes: Uint8Array): RangeWalk {
+  // Normalize once, here: the AudioFile reports its format uppercase
+  // (audio-file-base.ts:101 → the detector's "MP3"/"FLAC"/"WAV"), while callers
+  // pass extensions ("mp3", "wav"). A case mismatch would land every one of them
+  // on the whole-file fallback — a silently weaker guarantee, not an error.
+  const walked = ((): RangeWalk => {
+    switch (format.toUpperCase()) {
+      case "MP3":
+      case "AAC":
+        return walkMpeg(bytes);
+      case "FLAC":
+        return walkFlac(bytes);
+      case "MP4":
+      case "M4A":
+        return walkMp4(bytes);
+      case "WAV":
+        return walkWav(bytes);
+      default:
+        return { kind: "fallback", ranges: [], detail: "format not covered" };
+    }
+  })();
+  // One place applies the file-level fallback: a format with no rule, or a walk
+  // that gave up, hashes the whole file — which is what makes source: "file"
+  // uniform with no special case at the call site.
+  if (walked.kind === "fallback") {
+    return {
+      kind: "fallback",
+      ranges: [{ offset: 0, length: bytes.length }],
+      detail: `${walked.detail} → whole file`,
+    };
+  }
+  return walked;
+}

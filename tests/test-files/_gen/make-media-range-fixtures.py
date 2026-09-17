@@ -9,12 +9,13 @@ is built by hand so the byte offsets the tests assert are known by
 construction; the only input that is not built here is `flac/kiss-snippet.flac`
 (the base stream the FLAC variants wrap). TagLib's own test data under
 lib/taglib/tests/data is read by tests/media-ranges.test.ts directly, never by
-this script.
-
-Later tasks in this series (the WAV walk) append their builders here.
+this script — as is `wav/bext-ixml.wav`, the one WAV fixture with an odd-sized
+chunk, which is where the walk's pad-byte rule is pinned.
 """
 
+import hashlib
 import os
+import struct
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 FILES = os.path.join(HERE, "..")
@@ -22,6 +23,7 @@ FILES = os.path.join(HERE, "..")
 MP3_DIR = os.path.join(FILES, "mp3")
 FLAC_DIR = os.path.join(FILES, "flac")
 MP4_DIR = os.path.join(FILES, "mp4")
+WAV_DIR = os.path.join(FILES, "wav")
 
 # The untagged file every FLAC variant wraps: 245430 bytes whose two-block
 # metadata chain ends at 323, so the variants differ from it only by tag bytes.
@@ -124,6 +126,64 @@ def synth_mp4() -> bytes:
     return out
 
 
+def wav_payload() -> bytes:
+    """The one payload both matched WAV fixtures carry, 4096 bytes. Shake-128
+    rather than a repeating pattern: the pair's property is that two files hash
+    the same payload, and a periodic filler would hide an offset error that is a
+    multiple of the period."""
+    return hashlib.shake_128(b"taglib-wasm wav payload").digest(4096)
+
+
+def wav_chunk(chunk_id: bytes, payload: bytes) -> bytes:
+    """A RIFF chunk: 4-character id, 4-byte little-endian payload size, then the
+    payload. No pad byte is written, which is why every size here is even — the
+    walk's padding rule (`o = dataStart + size + (size % 2)`) is exercised
+    instead by `bext-ixml.wav`, whose 629-byte `bext` chunk is real."""
+    assert len(chunk_id) == 4, chunk_id
+    assert len(payload) % 2 == 0, len(payload)
+    return chunk_id + len(payload).to_bytes(4, "little") + payload
+
+
+def wav(chunks: list) -> bytes:
+    """`RIFF` + a size that counts everything after it (`WAVE` included), then
+    `WAVE` and the chunks. The size field is written correctly even though the
+    walk trusts the buffer length instead: a fixture with a wrong one would be
+    malformed, and a reader that checks it (TagLib does) would reject the file."""
+    body = b"WAVE" + b"".join(chunks)
+    return b"RIFF" + len(body).to_bytes(4, "little") + body
+
+
+def wav_fmt_pcm16() -> bytes:
+    """The canonical 16-byte PCM `fmt ` payload: format 1, one channel,
+    44100 Hz, 16-bit — so the fixture is a WAV a real reader accepts rather than
+    a RIFF-shaped byte string."""
+    return struct.pack("<HHIIHH", 1, 1, 44100, 88200, 2, 16)
+
+
+def synth_wav_pair() -> tuple:
+    """The matched pair, differing only in where `data` sits. Both carry the
+    same 4096-byte payload, and the tagged one's two tag chunks sit between
+    `fmt ` and `data`: RIFF (12) + fmt (8+16) + LIST (8+18) + id3 (8+10) is what
+    puts its payload at 88, against the plain file's 44 — the offsets the tests
+    assert, and the reason the pair's hashes must still agree."""
+    fmt = wav_chunk(b"fmt ", wav_fmt_pcm16())
+    data = wav_chunk(b"data", wav_payload())
+    plain = wav([fmt, data])
+    # A LIST/INFO chunk holding one INAM sub-chunk: 4 + 4 + 4 + 6 = 18 bytes.
+    # An `id3 ` chunk holding an empty (10-byte, bodyless) ID3v2.4 tag — the same
+    # header-plus-no-body tag `id3v2` builds for the FLAC fixtures, so both tag
+    # chunks are well-formed rather than filler of the right size.
+    list_chunk = wav_chunk(
+        b"LIST", b"INFO" + b"INAM" + (6).to_bytes(4, "little") + b"synth\x00"
+    )
+    id3_chunk = wav_chunk(b"id3 ", id3v2(b""))
+    tagged = wav([fmt, list_chunk, id3_chunk, data])
+    # 12 + 24 + 8 + 4096, and 12 + 24 + 26 + 18 + 8 + 4096.
+    assert len(plain) == 4140, len(plain)
+    assert len(tagged) == 4184, len(tagged)
+    return plain, tagged
+
+
 def write(path: str, data: bytes) -> None:
     os.makedirs(os.path.dirname(path), exist_ok=True)
     with open(path, "wb") as f:
@@ -167,6 +227,17 @@ def main() -> None:
     # it hands the checksum, and the synthetic layout is what makes those
     # offsets (48, 96, 160) known by construction.
     write(os.path.join(MP4_DIR, "synth-multi-mdat.mp4"), synth_mp4())
+
+    # The WAV matched pair: one 4096-byte payload, and the tag chunks sit
+    # between `fmt ` and `data` in the tagged file, so its payload starts at 88
+    # against the plain file's 44. The test's assertion is that both hash the
+    # same bytes — and `walkWav` is what has to find that payload in both.
+    plain_wav, tagged_wav = synth_wav_pair()
+    write(os.path.join(WAV_DIR, "synth-plain.wav"), plain_wav)
+    write(
+        os.path.join(WAV_DIR, "synth-tags-before-data.wav"),
+        tagged_wav,
+    )
 
 
 if __name__ == "__main__":

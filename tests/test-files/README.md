@@ -47,6 +47,8 @@ for frame boundaries.
 | `flac/flac-appended-ape.flac`           | the same stream followed by a headerless APEv2 tag: the 32-byte footer alone, size field 32, header-present bit clear                                                                                        |
 | `flac/flac-both-tags.flac`              | the same stream followed by both trailing tag kinds, the ID3v1 block outermost                                                                                                                               |
 | `mp4/synth-multi-mdat.mp4`              | 176 bytes, seven atoms: `ftyp` (24), `free` (16), `mdat` (32 contents), a 64-bit-size `mdat` (24 contents), an empty `mdat` (8), `moov` (24), `mdat` (16 contents) — three payload ranges, at 48, 96 and 160 |
+| `wav/synth-plain.wav`                   | 4140 bytes: `fmt` (16) then `data` (4096) — the untagged half of the matched pair, so its payload is at 44                                                                                                   |
+| `wav/synth-tags-before-data.wav`        | 4184 bytes: the same 4096-byte payload behind `LIST` (18) and `id3` (10) chunks — the payload is at 88                                                                                                       |
 
 The five FLAC variants all wrap one 245430-byte stream, so the property they
 exist for is that the FLAC walk hashes their payload identically to the untagged
@@ -58,6 +60,15 @@ disagreement is the reason the fixture exists, not a defect in it.
 The MP4 fixture is the multi-`mdat` oracle, and its three ranges are what pin
 the 64-bit size path: an atom's size field counts its own header, 16 bytes of it
 in that form rather than 8, and a legal empty `mdat` contributes no range at all.
+
+The WAV pair is the same kind of oracle for a container whose payload moves: both
+files carry one 4096-byte `data` payload, and inserting the `LIST` + `id3`
+chunks moves it from 44 to 88. Their hashes agreeing is the property under test;
+the two offsets are the by-construction check that they agree over the payload
+rather than over, say, two identically-wrong ranges. Neither file has an
+odd-sized chunk, so the walk's pad-byte rule is pinned by `wav/bext-ixml.wav`
+instead: its 629-byte `bext` chunk sits after `data`, and a walk that ignored the
+pad byte would misalign and fall back.
 
 ## Recommended Test Files
 

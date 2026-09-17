@@ -2,10 +2,12 @@ import { assertEquals, assertStringIncludes } from "@std/assert";
 import type { ByteRange } from "../src/taglib/media-ranges.ts";
 import {
   flacStreamInfoMd5,
+  mediaRanges,
   trailingTagStart,
   walkFlac,
   walkMp4,
   walkMpeg,
+  walkWav,
 } from "../src/taglib/media-ranges.ts";
 
 // TagLib's own test data is the oracle: lib/taglib/tests/test_mpeg.cpp:138-139
@@ -215,4 +217,88 @@ Deno.test("MP4 atoms the walk cannot fully account for fall back", () => {
     assertEquals(walk.kind, "fallback", name);
     assertStringIncludes(walk.detail, reason, name);
   }
+});
+
+const WAV_DIR = "tests/test-files/wav";
+
+// 12-byte RIFF header, then the chunk list the generator builds: fmt (8+16),
+// LIST (8+18), id3 (8+10), data (8+4096) — so the payload starts at 88. The
+// offset is known by construction, which is what makes it an assertion rather
+// than a measurement.
+Deno.test("WAV payload is the data chunk, found past tag chunks", () => {
+  const bytes = Deno.readFileSync(`${WAV_DIR}/synth-tags-before-data.wav`);
+  assertEquals(walkWav(bytes).ranges, [{ offset: 88, length: 4096 }]);
+});
+
+Deno.test("inserting tag chunks before data does not change the payload hash", async () => {
+  // A matched pair from one 4096-byte payload: the plain synth has no tag
+  // chunks, the tagged one has LIST + id3 before data (payload at 88). Equal
+  // hashes are the guarantee; the two offsets are the check that the equality
+  // rests on the payload rather than on two identically-wrong walks (a walk that
+  // included the 8-byte `data` header would shift both files and still agree).
+  const plain = Deno.readFileSync(`${WAV_DIR}/synth-plain.wav`);
+  const tagged = Deno.readFileSync(`${WAV_DIR}/synth-tags-before-data.wav`);
+  const plainWalk = walkWav(plain);
+  const taggedWalk = walkWav(tagged);
+  assertEquals(plainWalk.ranges, [{ offset: 44, length: 4096 }]);
+  assertEquals(taggedWalk.ranges, [{ offset: 88, length: 4096 }]);
+  assertEquals(
+    await payloadHash(plain, plainWalk.ranges),
+    await payloadHash(tagged, taggedWalk.ranges),
+  );
+});
+
+Deno.test("chunks after data do not narrow the range", () => {
+  // The repo's own fixture carries LIST + id3 AFTER its 460708-byte data chunk.
+  // A walk that let a later chunk move or clip the answer would fail here.
+  const bytes = Deno.readFileSync(`${WAV_DIR}/kiss-snippet.wav`);
+  assertEquals(walkWav(bytes).ranges, [{ offset: 44, length: 460708 }]);
+});
+
+// The padding rule, and the only fixture that exercises it: `bext-ixml.wav`'s
+// `bext` chunk is 629 bytes — odd, so one pad byte precedes `iXML` — and it
+// sits after `data`. Without `+ (size % 2)` the walk reads that pad byte as a
+// chunk id, believes the misaligned size field, and falls back; every fixture
+// the generator builds has even-sized chunks, so nothing else pins this.
+Deno.test("an odd-sized chunk's pad byte is skipped", () => {
+  const bytes = Deno.readFileSync(`${WAV_DIR}/bext-ixml.wav`);
+  const walk = walkWav(bytes);
+  assertEquals(walk.kind, "ranges");
+  assertEquals(walk.ranges, [{ offset: 44, length: 3200 }]);
+});
+
+Deno.test("an RF64 container falls back rather than reading 32-bit sizes", () => {
+  // lib/taglib/tests/data/rf64.wav is RF64/BW64: its `data` size field reads
+  // 0xFFFFFFFF and the real lengths live in the `ds64` chunk, so a walk that
+  // accepted the magic would mis-size every range in the file. The 4-byte check
+  // is therefore the whole rule, and its fallback is honest (whole file).
+  const bytes = Deno.readFileSync(`${ORACLE_DIR}/rf64.wav`);
+  const walk = walkWav(bytes);
+  assertEquals(walk.kind, "fallback");
+  assertStringIncludes(walk.detail, "not RIFF");
+});
+
+Deno.test("uncovered formats fall back to the whole file", () => {
+  const bytes = new Uint8Array(64);
+  const walk = mediaRanges("OGG", bytes);
+  assertEquals(walk.kind, "fallback");
+  assertEquals(walk.ranges, [{ offset: 0, length: 64 }]);
+});
+
+Deno.test("the format key is case-insensitive", () => {
+  // Callers pass extensions ("mp3"); the AudioFile reports "MP3". Both must
+  // reach the walk — a fallback here still returns a checksum, just a weaker one.
+  const bytes = Deno.readFileSync(`${WAV_DIR}/kiss-snippet.wav`);
+  assertEquals(
+    mediaRanges("wav", bytes).ranges,
+    mediaRanges("WAV", bytes).ranges,
+  );
+  assertEquals(mediaRanges("wav", bytes).kind, "ranges");
+});
+
+Deno.test("a truncated container falls back to the whole file too", () => {
+  const bytes = Deno.readFileSync(`${WAV_DIR}/kiss-snippet.wav`).slice(0, 2000);
+  const walk = mediaRanges("WAV", bytes); // the data chunk claims more bytes than exist
+  assertEquals(walk.kind, "fallback");
+  assertEquals(walk.ranges, [{ offset: 0, length: 2000 }]);
 });
