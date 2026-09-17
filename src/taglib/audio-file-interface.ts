@@ -11,6 +11,10 @@ import type {
   UnsyncedLyrics,
 } from "../constants/complex-properties.ts";
 import type { MutableTag } from "./mutable-tag.ts";
+import type {
+  MediaChecksum,
+  MediaChecksumOptions,
+} from "./audio-file-checksum.ts";
 import type { FormatPropertyKey } from "../types/format-property-keys.ts";
 import type { NormalizedRating } from "../utils/rating.ts";
 
@@ -97,6 +101,21 @@ export interface AudioFile {
    * and cannot be read back — never returns an empty buffer on failure.
    */
   getFileBuffer(): Uint8Array;
+
+  /**
+   * SHA-256 of the file's encoded media payload — the bytes that are the audio,
+   * not the tags around them — so the digest survives a tag edit. Formats whose
+   * payload cannot be delimited answer the whole file instead and say so
+   * (`source: "file"`), where a tag edit does move the hash.
+   *
+   * Pass `{ basis: "pcm" }` for FLAC's STREAMINFO MD5 — the digest of the
+   * *uncompressed* stream, read straight from the file's first metadata block.
+   * Other formats throw {@link UnsupportedFormatError}.
+   *
+   * @throws {MetadataError} If the handle holds no file bytes and has no
+   * readable source (a partial handle that has already been saved).
+   */
+  mediaChecksum(options?: MediaChecksumOptions): Promise<MediaChecksum>;
 
   /**
    * Save all changes to a file on disk.

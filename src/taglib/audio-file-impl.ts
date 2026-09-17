@@ -32,6 +32,12 @@ import { normalized, type NormalizedRating } from "../utils/rating.ts";
 import { isDeno } from "../runtime/detector.ts";
 import type { AudioFile } from "./audio-file-interface.ts";
 import { BaseAudioFileImpl } from "./audio-file-base.ts";
+import {
+  type MediaChecksum,
+  mediaChecksum,
+  type MediaChecksumOptions,
+} from "./audio-file-checksum.ts";
+import { getPlatformIO } from "../runtime/platform-io.ts";
 import { saveViaFreshHandle } from "./save-reconstruct.ts";
 
 function sortChapters<T extends { startTimeMs: number }>(
@@ -71,6 +77,8 @@ export function readFileSync(path: string): Uint8Array {
  */
 export class AudioFileImpl extends BaseAudioFileImpl implements AudioFile {
   private pathModeBuffer: Uint8Array | null = null;
+  /** How the handle was loaded — `isPartiallyLoaded` is mutated by saveToFile(). */
+  private readonly partiallyLoadedAtConstruction: boolean;
 
   constructor(
     module: TagLibModule,
@@ -88,6 +96,7 @@ export class AudioFileImpl extends BaseAudioFileImpl implements AudioFile {
       isPartiallyLoaded,
       partialLoadOptions,
     );
+    this.partiallyLoadedAtConstruction = isPartiallyLoaded;
   }
 
   save(): boolean {
@@ -129,6 +138,33 @@ export class AudioFileImpl extends BaseAudioFileImpl implements AudioFile {
     throw new FileOperationError(
       "read",
       "No file data available: in-memory buffer is empty and no source path is set",
+    );
+  }
+
+  mediaChecksum(options?: MediaChecksumOptions): Promise<MediaChecksum> {
+    return mediaChecksum(
+      {
+        // The cheap, no-IO accessor — `getFileBuffer()` would read the whole
+        // file from disk in path mode (and cache it), which the source rule is
+        // about to read for itself.
+        bytes: this.handle.getBuffer(), // empty in path mode: the data is on disk
+        // Both optional fields are conditional: they are `undefined` far more
+        // often than not, and `exactOptionalPropertyTypes` refuses an explicit
+        // `undefined` on an optional property.
+        ...(this.sourcePath !== undefined ? { path: this.sourcePath } : {}),
+        // originalSource is the File when the caller passed one. A partial File
+        // has no path, so this is the only way back to the real bytes.
+        ...(this.originalSource instanceof Blob
+          ? { blob: this.originalSource }
+          : {}),
+        // Captured at construction, NOT this.isPartiallyLoaded: saveToFile() sets
+        // that flag false (and clears originalSource) while the handle still holds
+        // the spliced image, which would make the source rule hash the image.
+        partiallyLoaded: this.partiallyLoadedAtConstruction,
+      },
+      this.getFormat(),
+      getPlatformIO(),
+      options,
     );
   }
 

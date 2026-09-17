@@ -8,6 +8,12 @@
 import { describe, type it } from "@std/testing/bdd";
 import { resolve } from "@std/path";
 import type { AudioProperties } from "../src/types.ts";
+import { mediaChecksum } from "../src/taglib/audio-file-checksum.ts";
+import type {
+  MediaChecksum,
+  MediaChecksumOptions,
+} from "../src/taglib/audio-file-checksum.ts";
+import { getPlatformIO } from "../src/runtime/platform-io.ts";
 import type { Format } from "./shared-fixtures.ts";
 import {
   fileExists,
@@ -62,6 +68,15 @@ export interface BackendAdapter {
     tags: Partial<BasicTags>,
     ext: string,
   ): Promise<Uint8Array | null>;
+  /**
+   * `AudioFile.mediaChecksum()` over a buffer. `ext` is the caller's extension
+   * string — the module normalizes it, exactly as the walks' dispatch does.
+   */
+  mediaChecksum(
+    buffer: Uint8Array,
+    ext: string,
+    options?: MediaChecksumOptions,
+  ): Promise<MediaChecksum>;
   supportsFeature(feature: string): boolean;
 }
 
@@ -231,6 +246,21 @@ export class WasiBackendAdapter implements BackendAdapter {
     }
   }
 
+  async mediaChecksum(
+    buffer: Uint8Array,
+    ext: string,
+    options?: MediaChecksumOptions,
+  ): Promise<MediaChecksum> {
+    // The buffer is the whole file, so the handle image cannot be spliced —
+    // `partiallyLoaded: false` is a fact about this input, not a guess.
+    return await mediaChecksum(
+      { bytes: buffer, partiallyLoaded: false },
+      ext,
+      getPlatformIO(),
+      options,
+    );
+  }
+
   supportsFeature(feature: string): boolean {
     const supported = new Set([
       "basic-tags",
@@ -240,6 +270,7 @@ export class WasiBackendAdapter implements BackendAdapter {
       "pictures",
       "ratings",
       "extended-audio",
+      "media-checksum",
     ]);
     return supported.has(feature);
   }
@@ -393,6 +424,24 @@ export class EmscriptenBackendAdapter implements BackendAdapter {
     }
   }
 
+  async mediaChecksum(
+    buffer: Uint8Array,
+    ext: string,
+    options?: MediaChecksumOptions,
+  ): Promise<MediaChecksum> {
+    // Same route as the WASI adapter: the checksum is pure JS over the bytes,
+    // so there is no backend behaviour here to differ on. The backend-specific
+    // part — a handle that holds no bytes at all (WASI path mode) versus one
+    // holding the file — is covered by the AudioFile surface group in
+    // tests/media-checksum.test.ts, which opens this same fixture on both.
+    return await mediaChecksum(
+      { bytes: buffer, partiallyLoaded: false },
+      ext,
+      getPlatformIO(),
+      options,
+    );
+  }
+
   supportsFeature(feature: string): boolean {
     const supported = new Set([
       "basic-tags",
@@ -404,6 +453,7 @@ export class EmscriptenBackendAdapter implements BackendAdapter {
       "extended-metadata",
       "codec-detection",
       "partial-loading",
+      "media-checksum",
     ]);
     return supported.has(feature);
   }
