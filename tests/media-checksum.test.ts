@@ -12,7 +12,12 @@ import {
 } from "@std/assert";
 import { afterAll, beforeAll, it } from "@std/testing/bdd";
 import { resolve } from "@std/path";
-import { type BackendAdapter, forEachBackend } from "./backend-adapter.ts";
+import {
+  type BackendAdapter,
+  forEachBackend,
+  HAS_EMSCRIPTEN,
+  HAS_WASI,
+} from "./backend-adapter.ts";
 import { flacStreamInfoMd5, walkWav } from "../src/taglib/media-ranges.ts";
 import { mediaChecksum } from "../src/taglib/audio-file-checksum.ts";
 import { getPlatformIO } from "../src/runtime/platform-io.ts";
@@ -224,5 +229,113 @@ Deno.test("the source rule prefers the file over the handle's image", async () =
     );
   } finally {
     await Deno.remove(path).catch(() => {});
+  }
+});
+
+/** The digest the synthesized fixture's STREAMINFO block carries. */
+const PCM_DIGEST_HEX = "42434445464748494a4b4c4d4e4f5051";
+
+const be32 = (value: number): number[] => [
+  (value >>> 24) & 0xff,
+  (value >>> 16) & 0xff,
+  (value >>> 8) & 0xff,
+  value & 0xff,
+];
+
+function flacBlock(
+  type: number,
+  isLast: boolean,
+  payload: number[],
+): Uint8Array {
+  const out = new Uint8Array(4 + payload.length);
+  out[0] = (isLast ? 0x80 : 0x00) | type;
+  out[1] = (payload.length >>> 16) & 0xff;
+  out[2] = (payload.length >>> 8) & 0xff;
+  out[3] = payload.length & 0xff;
+  out.set(payload, 4);
+  return out;
+}
+
+/**
+ * `fLaC`, a STREAMINFO block carrying `PCM_DIGEST_HEX`, an 80 KiB cover picture,
+ * then a frame sync: a metadata chain whose implied end runs well past the
+ * 64 KiB window a path-mode handle reads. Cover art of this size is ordinary.
+ */
+function flacWithOversizedMetadata(): Uint8Array {
+  const streamInfo = new Array<number>(34).fill(0);
+  // The digest sits at payload bytes 18..33 — where the digest lives, and
+  // inside the window whatever the rest of the chain declares.
+  for (let i = 0; i < 16; i++) streamInfo[18 + i] = 0x42 + i;
+
+  const mime = [...new TextEncoder().encode("image/jpeg")];
+  const picture = [
+    0x00,
+    0x00,
+    0x00,
+    0x03, // picture type 3 — front cover
+    ...be32(mime.length),
+    ...mime,
+    ...be32(0), // empty description
+    ...be32(0),
+    ...be32(0),
+    ...be32(0),
+    ...be32(0), // width, height, depth, colours
+    ...be32(80 * 1024),
+    ...new Array<number>(80 * 1024).fill(0x5a),
+  ];
+
+  const parts = [
+    new TextEncoder().encode("fLaC"),
+    flacBlock(0, false, streamInfo),
+    flacBlock(6, true, picture),
+    new Uint8Array([0xff, 0xf8, 0x69, 0x18, 0x00, 0x00]),
+  ];
+  const out = new Uint8Array(
+    parts.reduce((n, part) => n + part.length, 0),
+  );
+  let at = 0;
+  for (const part of parts) {
+    out.set(part, at);
+    at += part.length;
+  }
+  return out;
+}
+
+// The PCM digest comes from FLAC's first metadata block, so it must not depend
+// on a range walk of whatever bytes the handle holds: a path-mode handle holds
+// none, and the module reads a 64 KiB window instead. A cover picture larger
+// than that window makes the metadata chain's *implied* end run past the bytes
+// in hand, which is where a walk gives up — even though STREAMINFO, the only
+// block the digest needs, is inside the window.
+Deno.test("basis: pcm reads STREAMINFO past a metadata chain larger than the header window", async () => {
+  const dir = await Deno.makeTempDir();
+  const path = resolve(dir, "oversized-metadata.flac");
+  const backends = [
+    ...(HAS_WASI ? (["wasi"] as const) : []),
+    ...(HAS_EMSCRIPTEN ? (["emscripten"] as const) : []),
+  ];
+  try {
+    const fixture = flacWithOversizedMetadata();
+    assertEquals(
+      fixture.length > 65536,
+      true,
+      "fixture must exceed the window",
+    );
+    await Deno.writeFile(path, fixture);
+
+    for (const backend of backends) {
+      const taglib = await TagLib.initialize({ forceWasmType: backend });
+      const file = await taglib.open(path);
+      try {
+        const pcm = await file.mediaChecksum({ basis: "pcm" });
+        assertEquals(pcm.source, "flac-streaminfo-md5", backend);
+        assertEquals(pcm.hex, PCM_DIGEST_HEX, backend);
+        assertEquals(pcm.bytesHashed, 16, backend);
+      } finally {
+        file.dispose();
+      }
+    }
+  } finally {
+    await Deno.remove(dir, { recursive: true }).catch(() => {});
   }
 });

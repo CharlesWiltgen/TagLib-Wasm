@@ -5,7 +5,7 @@
  * source rule below (what actually gets hashed) is stated exactly once.
  */
 
-import { mediaRanges, walkFlac } from "./media-ranges.ts";
+import { flacStreamInfoMd5, mediaRanges } from "./media-ranges.ts";
 import type { ByteRange } from "./media-ranges.ts";
 import type { PlatformIO } from "../runtime/platform-io.ts";
 import { MetadataError, UnsupportedFormatError } from "../errors.ts";
@@ -88,7 +88,6 @@ async function fileBytes(
   throw new MetadataError(
     "read",
     "the handle holds no file bytes and has no readable source; a partial handle that has been saved drops its source — checksum the saved path instead",
-    "mediaChecksum",
   );
 }
 
@@ -101,14 +100,17 @@ function joinRanges(
   ranges: ByteRange[],
 ): Uint8Array<ArrayBuffer> {
   const total = ranges.reduce((n, r) => n + r.length, 0);
-  // The walks reject ranges past the end of the buffer; this is the backstop
-  // that stops a future walk from hashing zero padding while bytesHashed counts
-  // it, on a value labelled source: "audio-payload".
-  if (total > bytes.length) {
+  const overrun = ranges.find((r) => r.offset + r.length > bytes.length);
+  // Two bounds, one guard: the walked total can exceed the buffer, and a single
+  // range can run past its end while the total still fits — `subarray` clamps
+  // that one silently, which would hash zero padding and count it in
+  // `bytesHashed` on a value labelled source: "audio-payload".
+  if (overrun || total > bytes.length) {
     throw new MetadataError(
       "read",
-      `range walk overran the buffer (${total} > ${bytes.length})`,
-      "mediaChecksum",
+      `range walk overran the buffer (${
+        overrun ? `range ${overrun.offset}+${overrun.length}` : `${total} bytes`
+      } past the ${bytes.length}-byte buffer)`,
     );
   }
   const out = new Uint8Array(total);
@@ -143,12 +145,19 @@ export async function mediaChecksum(
       : source.path && io.readPartial
       ? await io.readPartial(source.path, STREAMINFO_WINDOW, 0)
       : await fileBytes(source, io);
-    const md5 = walkFlac(bytes).streamInfoMd5;
+    // STREAMINFO is a FLAC's *first* metadata block, so read it directly — the
+    // walk is wrong here, and not merely wasteful: `walkFlac` ends the stream at
+    // the metadata chain's implied end, and `flacEnd` answers an offset past the
+    // bytes in hand rather than giving up (metadata-extent.ts:78-81). A chain
+    // larger than the window just read — a cover picture is enough — therefore
+    // reads as "no audio bytes" and falls back with no digest, even though the
+    // 16 bytes it wants are inside the window. `flacStreamInfoMd5` seeks
+    // straight to the marker and first block, which is all the digest needs.
+    const md5 = flacStreamInfoMd5(bytes);
     if (md5 === undefined) {
       throw new MetadataError(
         "read",
         "STREAMINFO digest unavailable",
-        "mediaChecksum",
       );
     }
     return {
