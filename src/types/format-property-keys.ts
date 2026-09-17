@@ -13,8 +13,8 @@ export type TagFormat = "ID3v2" | "MP4" | "Vorbis" | "WAV";
 // union, meaning all property keys are accepted. This is intentional: these
 // formats use tag systems not yet modeled here, so we stay permissive rather
 // than blocking valid operations.
-export type FileTypeToTagFormat<F extends FileType> = F extends "MP3" | "AIFF"
-  ? "ID3v2"
+export type FileTypeToTagFormat<F extends FileType> = F extends
+  "MP3" | "AAC" | "AIFF" ? "ID3v2"
   : F extends "MP4" ? "MP4"
   : F extends "FLAC" | "OGG" | "OPUS" | "OggFLAC" | "SPEEX" | "MATROSKA"
     ? "Vorbis"

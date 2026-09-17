@@ -71,8 +71,16 @@ ExtendedAudioInfo get_extended_audio_info(
                 }
             }
         }
-        info.codec = "MP3";
-        info.container = "MP3";
+        // ADTS (raw .aac) also parses through MPEG::File (MPEG::Header::isADTS,
+        // mpegheader.cpp) — label the stream, not the file class. Twin of the
+        // check in build/taglib_embind.cpp — keep in sync.
+        if (props && props->isADTS()) {
+            info.codec = "AAC";
+            info.container = "ADTS";
+        } else {
+            info.codec = "MP3";
+            info.container = "MP3";
+        }
         return info;
     }
 

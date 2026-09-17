@@ -397,8 +397,9 @@ is non-deterministic — explicit disposal is still the contract (taglib-t4sn).
 WASI path mode (Deno/Node.js with file paths) uses ~1-2MB regardless of file size.
 Buffer mode (browsers, or when passing Uint8Array) uses ~2x file size.
 
-**Supported formats**: MP3 (ID3v1/v2), MP4/M4A, FLAC, OGG Vorbis, WAV (incl. RF64/
-BW64), Opus, APE, MPC, WavPack, TrueAudio, Matroska/WebM. Auto-detected from content.
+**Supported formats**: MP3 (ID3v1/v2), ADTS/raw AAC, MP4/M4A, FLAC, OGG (Vorbis,
+FLAC, Speex), WAV (incl. RF64/BW64), Opus, APE, MPC, WavPack, TrueAudio,
+Matroska/WebM. Auto-detected from content.
 
 **Tag mapping**: All format-specific tag names normalized to camelCase via `properties()`.
 Example: ID3v2 `TPE2` / Vorbis `ALBUMARTIST` / iTunes `aART` → `albumArtist`.

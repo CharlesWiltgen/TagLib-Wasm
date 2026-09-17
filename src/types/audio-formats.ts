@@ -46,6 +46,7 @@ export function isNamedAudioInput(
  */
 export type FileType =
   | "MP3"
+  | "AAC" // ADTS / raw AAC stream (parsed through MPEG::File)
   | "MP4"
   | "FLAC"
   | "OGG"
@@ -83,6 +84,7 @@ export type FileType =
  */
 export type ContainerFormat =
   | "MP3" // MPEG Layer 3 (container and codec)
+  | "ADTS" // Audio Data Transport Stream (raw AAC; parsed through MPEG::File)
   | "MP4" // ISO Base Media File Format (includes .m4a files)
   | "FLAC" // Free Lossless Audio Codec (container and codec)
   | "OGG" // Ogg container (can contain Vorbis, Opus, FLAC, Speex)

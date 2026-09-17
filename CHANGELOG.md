@@ -27,6 +27,21 @@
   stream). The gate now requires the Ogg container, matching WASI; guarded by
   a both-backend case in `tests/opus-output-gain.test.ts`, observed failing on
   Emscripten before the fix.
+- **ADTS / raw AAC is no longer labelled MP3** (taglib-v4n) — TagLib parses
+  ADTS through `MPEG::File`, and both shims hardcoded codec/container `"MP3"`
+  for that class, so properties of an `.aac` file claimed MP3 and `getFormat()`
+  returned `"MP3"`. Codec and container now come from
+  `MPEG::Properties::isADTS()` (`"AAC"` / `"ADTS"`), `FileType` gains `"AAC"`,
+  `ContainerFormat` gains `"ADTS"`, and `getId3v2Frames()` /
+  `setId3v2Frames()` accept `"AAC"` (ADTS carries ID3v2 too). Guarded by
+  `tests/adts-label.test.ts`, observed failing on both backends before the fix.
+- **Ogg FLAC and Speex report container `"OGG"` on Emscripten** (taglib-irp8) —
+  the Embind `containerFormat()`, `codec()`, and `getFormat()` knew only
+  `Ogg::Vorbis` and `Ogg::Opus`, so FLAC-in-Ogg and Speex fell through to
+  `"unknown"` while the WASI shim already mapped all four Ogg branches.
+  Emscripten now matches (codec `"FLAC"`/`"Speex"`; container and format
+  `"OGG"`). WASI is the baseline for this defect — only the Emscripten
+  instances could fail. Guarded by `tests/ogg-flavor-parity.test.ts`.
 
 ### Changed
 

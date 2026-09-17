@@ -21,6 +21,8 @@
 #include <vorbisproperties.h>
 #include <opusfile.h>
 #include <opusproperties.h>
+#include <oggflacfile.h>
+#include <speexfile.h>
 #include <wavfile.h>
 #include <wavproperties.h>
 #include <aifffile.h>
@@ -247,8 +249,13 @@ public:
                     return "unknown";
             }
         }
-        // MP3 files
+        // MP3 files. ADTS (raw .aac) is parsed by MPEG::File too, so the codec
+        // comes from the stream header, not the file class (taglib-v4n).
         else if (dynamic_cast<TagLib::MPEG::File*>(file)) {
+            if (TagLib::MPEG::Properties* mpegProps =
+                    dynamic_cast<TagLib::MPEG::Properties*>(props)) {
+                if (mpegProps->isADTS()) return "AAC";
+            }
             return "MP3";
         }
         // FLAC files
@@ -262,6 +269,14 @@ public:
         // OGG Opus files
         else if (dynamic_cast<TagLib::Ogg::Opus::File*>(file)) {
             return "Opus";
+        }
+        // OGG FLAC / Speex: twin of the WASI shim's Ogg branches
+        // (src/capi/taglib_audio_props.cpp) — keep both backends in sync.
+        else if (dynamic_cast<TagLib::Ogg::FLAC::File*>(file)) {
+            return "FLAC";
+        }
+        else if (dynamic_cast<TagLib::Ogg::Speex::File*>(file)) {
+            return "Speex";
         }
         // WAV files
         else if (TagLib::RIFF::WAV::File* wavFile = dynamic_cast<TagLib::RIFF::WAV::File*>(file)) {
@@ -412,7 +427,12 @@ public:
         if (!file) return "unknown";
         
         // Detect container format based on file type
-        if (dynamic_cast<TagLib::MPEG::File*>(file)) {
+        if (TagLib::MPEG::File* mpegFile = dynamic_cast<TagLib::MPEG::File*>(file)) {
+            // ADTS (raw .aac) rides in MPEG::File but is its own container.
+            if (TagLib::MPEG::Properties* mpegProps =
+                    dynamic_cast<TagLib::MPEG::Properties*>(mpegFile->audioProperties())) {
+                if (mpegProps->isADTS()) return "ADTS";
+            }
             return "MP3";
         }
         else if (dynamic_cast<TagLib::MP4::File*>(file)) {
@@ -422,7 +442,9 @@ public:
             return "FLAC";
         }
         else if (dynamic_cast<TagLib::Ogg::Vorbis::File*>(file) ||
-                 dynamic_cast<TagLib::Ogg::Opus::File*>(file)) {
+                 dynamic_cast<TagLib::Ogg::Opus::File*>(file) ||
+                 dynamic_cast<TagLib::Ogg::FLAC::File*>(file) ||
+                 dynamic_cast<TagLib::Ogg::Speex::File*>(file)) {
             return "OGG";
         }
         else if (dynamic_cast<TagLib::RIFF::WAV::File*>(file)) {
@@ -716,11 +738,22 @@ public:
         if (!fileRef || !fileRef->file()) return "unknown";
         
         TagLib::File* f = fileRef->file();
-        if (dynamic_cast<TagLib::MPEG::File*>(f)) return "MP3";
+        if (TagLib::MPEG::File* mpegFile = dynamic_cast<TagLib::MPEG::File*>(f)) {
+            // ADTS (raw .aac) shares MPEG::File; report the stream identity,
+            // matching the WASI adapter's container-derived format (taglib-v4n).
+            if (TagLib::MPEG::Properties* mpegProps =
+                    dynamic_cast<TagLib::MPEG::Properties*>(mpegFile->audioProperties())) {
+                if (mpegProps->isADTS()) return "AAC";
+            }
+            return "MP3";
+        }
         if (dynamic_cast<TagLib::MP4::File*>(f)) return "MP4";
         if (dynamic_cast<TagLib::FLAC::File*>(f)) return "FLAC";
         if (dynamic_cast<TagLib::Ogg::Vorbis::File*>(f)) return "OGG";
         if (dynamic_cast<TagLib::Ogg::Opus::File*>(f)) return "OPUS";
+        // Ogg FLAC / Speex are OGG to the WASI adapter too (taglib-irp8).
+        if (dynamic_cast<TagLib::Ogg::FLAC::File*>(f)) return "OGG";
+        if (dynamic_cast<TagLib::Ogg::Speex::File*>(f)) return "OGG";
         if (dynamic_cast<TagLib::RIFF::WAV::File*>(f)) return "WAV";
         if (dynamic_cast<TagLib::RIFF::AIFF::File*>(f)) return "AIFF";
         if (dynamic_cast<TagLib::WavPack::File*>(f)) return "WV";

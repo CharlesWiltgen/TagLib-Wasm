@@ -13,12 +13,23 @@ test-files/
 ├── wav/           # WAV files (some with INFO tags)
 ├── mp4/           # MP4/M4A files with iTunes-style metadata
 ├── opus/          # Opus files (Ogg container)
-├── oga/           # OGA files (Ogg Vorbis, .oga extension alias)
+├── oga/           # Ogg files: Vorbis (.oga alias) + FLAC-in-Ogg
+├── aac/           # ADTS / raw AAC streams
+├── speex/         # Ogg Speex
 ├── wv/            # WavPack lossless audio
 ├── tta/           # TrueAudio lossless audio
 ├── wma/           # Windows Media Audio (ASF container)
 └── README.md      # This file
 ```
+
+### Codec-identity fixtures
+
+`aac/empty1s.aac`, `oga/kiss-snippet-flac.oga`, and `speex/kiss-snippet.spx`
+guard that the reported codec/container/format come from the audio STREAM, not
+the TagLib file class — ADTS shares `MPEG::File` with MP3, and FLAC/Speex share
+the Ogg reader with Vorbis/Opus. They are consumed by `tests/adts-label.test.ts`
+and `tests/ogg-flavor-parity.test.ts`; regenerate with
+`bash tests/test-files/_gen/make-codec-identity-fixtures.sh --regen`.
 
 ## Recommended Test Files
 

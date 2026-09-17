@@ -37,51 +37,51 @@ on a real divergence) over separate per-backend tests.
 
 ## Coverage matrix
 
-| Method              | WASI | Emscripten | Paired | Where                                                                                                           |
-| ------------------- | :--: | :--------: | :----: | --------------------------------------------------------------------------------------------------------------- |
-| `getFormat`         |  ✓   |     ✓      |   ✓    | format-detection, id3-format-detection (`forEachBackend`)                                                       |
-| `isFormat`          |  ✓   |     ✓      |   ✓    | format-narrowing `[wasi]`/`[emscripten]`                                                                        |
-| `isValid`           |  ✓   |     ✓      |   —    | wasi-host (wasi) + taglib.test (emscripten); unpaired                                                           |
-| `isMP4`             |  ✓   |     ✓      |   ✓    | mp4-items isMP4 parity (`[${backend}]` loop)                                                                    |
-| `properties`        |  ✓   |     ✓      |   ✓    | cross-backend-parity, tag-roundtrip-property, property-raw-values (qpl, yc1x)                                   |
-| `getProperty`       |  ✓   |     ✓      |   ✓    | format-narrowing (typed); remap fallback for MP4 atom keys (bnhl)                                               |
-| `setProperty`       |  ✓   |     ✓      |   ✓    | wasi-adapter-unit + extended-metadata                                                                           |
-| `removeProperty`    |  ✓   |     ✓      |   ✓    | property-raw-values (qyw2; empty-string clearing contract, buffer mode)                                         |
-| `setProperties`     |  ✓   |     ✓      |   ✓    | audio-file-save (REPLACE vs MERGE); property-raw-values (qpl); mp4 casing (bnhl)                                |
-| `audioProperties`   |  ✓   |     ✓      |   ✓    | audio-properties (`forEachBackend`); mp4-codec (extended codec enum, both backends)                             |
-| `tag()` read        |  ✓   |     ✓      |   ✓    | basic-tags (`forEachBackend`)                                                                                   |
-| `tag()` write       |  ✓   |     ✓      |   ✓    | basic-tags, BackendAdapter.writeTags; setTrack keeps the total (eq3)                                            |
-| `save`              |  ✓   |     ✓      |   ✓    | audio-file-save, all `forEachBackend` suites; MPEG ID3v1 sync must not delete a TRCK/TDRC narrowing to 0 (9m0w) |
-| `getFileBuffer`     |  ✓   |     ✓      |   ✓    | audio-file-save loops both; 0sv read-failure throws (WASI) vs in-memory (EM)                                    |
-| `saveToFile`        |  ✓   |     ✓      |   —    | backend-specific paths: EM full-load (0iq) + EM partial + WASI save-as                                          |
-| `getPictures`       |  ✓   |     ✓      |   ✓    | audio-file-save nc5 loops both; MP4 covr→FrontCover (cvr, WASI boundary maps missing pictureType for MP4)       |
-| `setPictures`       |  ✓   |     ✓      |   ✓    | picture-api 1dr loops both (replace round-trip)                                                                 |
-| `addPicture`        |  ✓   |     ✓      |   ✓    | audio-file-save nc5 loops both                                                                                  |
-| `removePictures`    |  ✓   |     ✓      |   ✓    | audio-file-save nc5 (clearTags) loops both                                                                      |
-| `getRatings`        |  ✓   |     ✓      |   ✓    | nc5 + cross-backend-parity readRatingCount                                                                      |
-| `setRatings`        |  ✓   |     ✓      |   ✓    | audio-file-save nc5 loops both                                                                                  |
-| `getRating`         |  ✓   |     ✓      |   ✓    | rating-api 86z loops both                                                                                       |
-| `setRating`         |  ✓   |     ✓      |   ✓    | rating-api 86z loops both                                                                                       |
-| `getLyrics`         |  ✓   |     ✓      |   ✓    | audio-file-save loops both                                                                                      |
-| `setLyrics`         |  ✓   |     ✓      |   ✓    | audio-file-save loops both                                                                                      |
-| `getChapters`       |  ✓   |     ✓      |   ✓    | chapters loops both                                                                                             |
-| `setChapters`       |  ✓   |     ✓      |   ✓    | chapters loops both                                                                                             |
-| `getBext`           |  ✓   |     ✓      |   ✓    | bwf loops both                                                                                                  |
-| `setBext`           |  ✓   |     ✓      |   ✓    | bwf loops both                                                                                                  |
-| `getBextData`       |  ✓   |     ✓      |   ✓    | bwf loops both                                                                                                  |
-| `setBextData`       |  ✓   |     ✓      |   ✓    | bwf loops both                                                                                                  |
-| `getIxml`           |  ✓   |     ✓      |   ✓    | bwf loops both                                                                                                  |
-| `setIxml`           |  ✓   |     ✓      |   ✓    | bwf loops both                                                                                                  |
-| `getMP4Item`        |  ✓   |     ✓      |   ✓    | mp4-items loops both: freeform, standard + int-pair atoms (uj2b); foreign-mean round-trip (5ibr)                |
-| `setMP4Item`        |  ✓   |     ✓      |   ✓    | mp4-items: arbitrary names on file bytes (bnhl); item types (uj2b)                                              |
-| `removeMP4Item`     |  ✓   |     ✓      |   ✓    | mp4-items loops both: freeform + standard atoms (0piv)                                                          |
-| `hasId3Tags`        |  ✓   |     ✓      |   ✓    | strip-id3-flac loops both                                                                                       |
-| `stripId3Tags`      |  ✓   |     ✓      |   ✓    | strip-id3-flac loops both                                                                                       |
-| `dispose`           |  ✓   |     ✓      |   ✓    | ubiquitous (try/finally)                                                                                        |
-| `getId3v2Frames`    |  ✓   |     ✓      |   ✓    | id3v2-frames.test.ts seed-then-assert loop                                                                      |
-| `setId3v2Frames`    |  ✓   |     ✓      |   ✓    | id3v2-frames.test.ts byte-identity round-trips                                                                  |
-| `removeId3v2Frames` |  ✓   |     ✓      |   ✓    | id3v2-frames.test.ts per-ID removal                                                                             |
-| `[Symbol.dispose]`  |  ✓   |     ✓      |   ✓    | strip-id3-flac (`using`)                                                                                        |
+| Method              | WASI | Emscripten | Paired | Where                                                                                                                                            |
+| ------------------- | :--: | :--------: | :----: | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `getFormat`         |  ✓   |     ✓      |   ✓    | format-detection, id3-format-detection (`forEachBackend`)                                                                                        |
+| `isFormat`          |  ✓   |     ✓      |   ✓    | format-narrowing `[wasi]`/`[emscripten]`                                                                                                         |
+| `isValid`           |  ✓   |     ✓      |   —    | wasi-host (wasi) + taglib.test (emscripten); unpaired                                                                                            |
+| `isMP4`             |  ✓   |     ✓      |   ✓    | mp4-items isMP4 parity (`[${backend}]` loop)                                                                                                     |
+| `properties`        |  ✓   |     ✓      |   ✓    | cross-backend-parity, tag-roundtrip-property, property-raw-values (qpl, yc1x)                                                                    |
+| `getProperty`       |  ✓   |     ✓      |   ✓    | format-narrowing (typed); remap fallback for MP4 atom keys (bnhl)                                                                                |
+| `setProperty`       |  ✓   |     ✓      |   ✓    | wasi-adapter-unit + extended-metadata                                                                                                            |
+| `removeProperty`    |  ✓   |     ✓      |   ✓    | property-raw-values (qyw2; empty-string clearing contract, buffer mode)                                                                          |
+| `setProperties`     |  ✓   |     ✓      |   ✓    | audio-file-save (REPLACE vs MERGE); property-raw-values (qpl); mp4 casing (bnhl)                                                                 |
+| `audioProperties`   |  ✓   |     ✓      |   ✓    | audio-properties (`forEachBackend`); mp4-codec (extended codec enum, both backends); adts-label (ADTS ≠ MP3); ogg-flavor-parity (Ogg FLAC/Speex) |
+| `tag()` read        |  ✓   |     ✓      |   ✓    | basic-tags (`forEachBackend`)                                                                                                                    |
+| `tag()` write       |  ✓   |     ✓      |   ✓    | basic-tags, BackendAdapter.writeTags; setTrack keeps the total (eq3)                                                                             |
+| `save`              |  ✓   |     ✓      |   ✓    | audio-file-save, all `forEachBackend` suites; MPEG ID3v1 sync must not delete a TRCK/TDRC narrowing to 0 (9m0w)                                  |
+| `getFileBuffer`     |  ✓   |     ✓      |   ✓    | audio-file-save loops both; 0sv read-failure throws (WASI) vs in-memory (EM)                                                                     |
+| `saveToFile`        |  ✓   |     ✓      |   —    | backend-specific paths: EM full-load (0iq) + EM partial + WASI save-as                                                                           |
+| `getPictures`       |  ✓   |     ✓      |   ✓    | audio-file-save nc5 loops both; MP4 covr→FrontCover (cvr, WASI boundary maps missing pictureType for MP4)                                        |
+| `setPictures`       |  ✓   |     ✓      |   ✓    | picture-api 1dr loops both (replace round-trip)                                                                                                  |
+| `addPicture`        |  ✓   |     ✓      |   ✓    | audio-file-save nc5 loops both                                                                                                                   |
+| `removePictures`    |  ✓   |     ✓      |   ✓    | audio-file-save nc5 (clearTags) loops both                                                                                                       |
+| `getRatings`        |  ✓   |     ✓      |   ✓    | nc5 + cross-backend-parity readRatingCount                                                                                                       |
+| `setRatings`        |  ✓   |     ✓      |   ✓    | audio-file-save nc5 loops both                                                                                                                   |
+| `getRating`         |  ✓   |     ✓      |   ✓    | rating-api 86z loops both                                                                                                                        |
+| `setRating`         |  ✓   |     ✓      |   ✓    | rating-api 86z loops both                                                                                                                        |
+| `getLyrics`         |  ✓   |     ✓      |   ✓    | audio-file-save loops both                                                                                                                       |
+| `setLyrics`         |  ✓   |     ✓      |   ✓    | audio-file-save loops both                                                                                                                       |
+| `getChapters`       |  ✓   |     ✓      |   ✓    | chapters loops both                                                                                                                              |
+| `setChapters`       |  ✓   |     ✓      |   ✓    | chapters loops both                                                                                                                              |
+| `getBext`           |  ✓   |     ✓      |   ✓    | bwf loops both                                                                                                                                   |
+| `setBext`           |  ✓   |     ✓      |   ✓    | bwf loops both                                                                                                                                   |
+| `getBextData`       |  ✓   |     ✓      |   ✓    | bwf loops both                                                                                                                                   |
+| `setBextData`       |  ✓   |     ✓      |   ✓    | bwf loops both                                                                                                                                   |
+| `getIxml`           |  ✓   |     ✓      |   ✓    | bwf loops both                                                                                                                                   |
+| `setIxml`           |  ✓   |     ✓      |   ✓    | bwf loops both                                                                                                                                   |
+| `getMP4Item`        |  ✓   |     ✓      |   ✓    | mp4-items loops both: freeform, standard + int-pair atoms (uj2b); foreign-mean round-trip (5ibr)                                                 |
+| `setMP4Item`        |  ✓   |     ✓      |   ✓    | mp4-items: arbitrary names on file bytes (bnhl); item types (uj2b)                                                                               |
+| `removeMP4Item`     |  ✓   |     ✓      |   ✓    | mp4-items loops both: freeform + standard atoms (0piv)                                                                                           |
+| `hasId3Tags`        |  ✓   |     ✓      |   ✓    | strip-id3-flac loops both                                                                                                                        |
+| `stripId3Tags`      |  ✓   |     ✓      |   ✓    | strip-id3-flac loops both                                                                                                                        |
+| `dispose`           |  ✓   |     ✓      |   ✓    | ubiquitous (try/finally)                                                                                                                         |
+| `getId3v2Frames`    |  ✓   |     ✓      |   ✓    | id3v2-frames.test.ts seed-then-assert loop                                                                                                       |
+| `setId3v2Frames`    |  ✓   |     ✓      |   ✓    | id3v2-frames.test.ts byte-identity round-trips                                                                                                   |
+| `removeId3v2Frames` |  ✓   |     ✓      |   ✓    | id3v2-frames.test.ts per-ID removal                                                                                                              |
+| `[Symbol.dispose]`  |  ✓   |     ✓      |   ✓    | strip-id3-flac (`using`)                                                                                                                         |
 
 ## Simple-API typed-surface parity suites
 

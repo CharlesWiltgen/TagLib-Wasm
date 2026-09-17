@@ -14,6 +14,7 @@ import type {
 
 const CONTAINER_TO_FORMAT: Record<string, string> = {
   MP3: "MP3",
+  ADTS: "AAC",
   MP4: "MP4",
   FLAC: "FLAC",
   OGG: "OGG",
