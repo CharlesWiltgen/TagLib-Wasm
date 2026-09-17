@@ -193,3 +193,66 @@ export function walkFlac(
     ...(streamInfoMd5 !== undefined ? { streamInfoMd5 } : {}),
   };
 }
+
+/** Length of the atom starting at `o`, or `undefined` when its size field is
+ * malformed. `size === 0` runs to end of file (8-byte header); `size === 1`
+ * means the real length is the 64-bit value after the type. */
+function atomLength(
+  bytes: Uint8Array,
+  view: DataView,
+  o: number,
+): { length: number; headerSize: number } | undefined {
+  const size = view.getUint32(o, false);
+  if (size === 0) return { length: bytes.length - o, headerSize: 8 };
+  if (size === 1) {
+    if (o + 16 > bytes.length) return undefined;
+    const big = view.getBigUint64(o + 8, false);
+    if (big > BigInt(Number.MAX_SAFE_INTEGER)) return undefined;
+    return { length: Number(big), headerSize: 16 };
+  }
+  return { length: size, headerSize: 8 };
+}
+
+/**
+ * MP4's payload: the contents of every non-empty top-level `mdat`, in file
+ * order — a fragmented file spreads its audio over several, and a rewritten one
+ * may carry an empty `mdat`, which is legal and contributes nothing. The header
+ * is excluded, and it is 16 bytes rather than 8 when the size took the 64-bit
+ * form.
+ *
+ * Deliberately not `metadata-extent.ts`'s atom walk: that one looks for `moov`
+ * to size the partial-load gate, so it bails on any size below 8 and has no
+ * 64-bit path. The checksum's rules differ — `size === 0` runs to EOF, a 64-bit
+ * size is legal, and anything the walk cannot fully account for is a fallback —
+ * so the two contracts stay apart rather than share an abstraction.
+ *
+ * Those fallbacks are the point. A range that runs past the buffer would hash
+ * zero padding while `bytesHashed` counts it as payload, and bytes no atom
+ * accounts for are not something this walk may call audio.
+ */
+export function walkMp4(bytes: Uint8Array): RangeWalk {
+  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  const ranges: ByteRange[] = [];
+  let o = 0;
+  while (o + 8 <= bytes.length) {
+    const type = text(bytes, o + 4, 4);
+    const atom = atomLength(bytes, view, o);
+    if (atom === undefined) return fallback(`malformed ${type} size`);
+    if (atom.length < atom.headerSize) {
+      return fallback(`malformed ${type} size`);
+    }
+    if (o + atom.length > bytes.length) return fallback(`oversized ${type}`);
+    if (type === "mdat" && atom.length > atom.headerSize) {
+      ranges.push({
+        offset: o + atom.headerSize,
+        length: atom.length - atom.headerSize,
+      });
+    }
+    // A size of 0 already answered "to end of file" in atomLength, so this
+    // lands on bytes.length and ends the loop.
+    o += atom.length;
+  }
+  if (o !== bytes.length) return fallback("trailing bytes after the last atom");
+  if (ranges.length === 0) return fallback("no non-empty mdat");
+  return { kind: "ranges", ranges, detail: `${ranges.length} mdat(s)` };
+}

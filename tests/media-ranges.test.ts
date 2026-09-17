@@ -1,9 +1,10 @@
-import { assertEquals } from "@std/assert";
+import { assertEquals, assertStringIncludes } from "@std/assert";
 import type { ByteRange } from "../src/taglib/media-ranges.ts";
 import {
   flacStreamInfoMd5,
   trailingTagStart,
   walkFlac,
+  walkMp4,
   walkMpeg,
 } from "../src/taglib/media-ranges.ts";
 
@@ -107,4 +108,111 @@ Deno.test("FLAC STREAMINFO digest matches metaflac", () => {
   const bytes = Deno.readFileSync(`${FLAC_DIR}/kiss-snippet.flac`);
   // Verified against `metaflac --show-md5sum` during the spike:
   assertEquals(flacStreamInfoMd5(bytes), "ee39b52b9ee2fa1058ebce88297351a9");
+});
+
+const MP4_DIR = "tests/test-files/mp4";
+
+Deno.test("MP4 payload is every non-empty top-level mdat, header excluded", () => {
+  const bytes = Deno.readFileSync(`${MP4_DIR}/synth-multi-mdat.mp4`);
+  // The generator writes seven atoms in this order: ftyp (whole 24), free
+  // (whole 16), mdat (32 contents), a 64-bit-size mdat (24 contents), an empty
+  // mdat (whole 8), moov (whole 24), mdat (16 contents). An atom's size field
+  // counts its header, so the first mdat's contents start at 40 + 8, the 64-bit
+  // one's at 80 + 16, and the last one's at 152 + 8 — while the empty mdat at
+  // 120..128 contributes nothing.
+  assertEquals(walkMp4(bytes).ranges, [
+    { offset: 48, length: 32 },
+    { offset: 96, length: 24 },
+    { offset: 160, length: 16 },
+  ]);
+});
+
+Deno.test("a real m4a's single mdat is found at its measured offset", () => {
+  // Measured during the spike on the repo's own fixture, and re-measured off
+  // the atom headers before this test was written: ftyp(32) free(8) mdat(2696)
+  // moov(685), so the one mdat's contents start at 48 and run 2688 bytes.
+  const bytes = Deno.readFileSync(`${MP4_DIR}/ac3.m4a`);
+  assertEquals(walkMp4(bytes).ranges, [{ offset: 48, length: 2688 }]);
+});
+
+/** A top-level atom: big-endian size, 4-char type, then `body`. */
+function atom(
+  size: number,
+  type: string,
+  body = new Uint8Array(0),
+): Uint8Array {
+  const bytes = new Uint8Array(8 + body.length);
+  new DataView(bytes.buffer).setUint32(0, size, false);
+  bytes.set(new TextEncoder().encode(type), 4);
+  bytes.set(body, 8);
+  return bytes;
+}
+
+Deno.test("a size-0 mdat runs to end of file", () => {
+  // ftyp (16 bytes) then a 16-byte mdat whose size field is 0: the atom's
+  // declared length is everything left, so its contents are the 8 payload bytes
+  // after the header.
+  const bytes = new Uint8Array([
+    ...atom(16, "ftyp", new Uint8Array(8)),
+    ...atom(0, "mdat", new Uint8Array(8).fill(7)),
+  ]);
+  assertEquals(walkMp4(bytes).ranges, [{ offset: 24, length: 8 }]);
+});
+
+// Every way the walk can lose track of the byte stream, each one breaking a
+// single rule of an otherwise valid file. The stakes are shared: a range that
+// ran past the buffer would hash zero padding while bytesHashed counted it as
+// payload, and bytes no atom accounts for are not something this walk may call
+// audio.
+//
+// `kind` alone does not discriminate all of these — a walk that loses track
+// ends short of EOF too, so the trailing-bytes check shadows several of the
+// earlier ones — so each case pins the reason its fallback reports as well.
+// That reason is part of the walk's returned contract: the caller threads it
+// into its own detail (`"${walked.detail} → whole file"`) rather than inventing
+// a message of its own.
+Deno.test("MP4 atoms the walk cannot fully account for fall back", () => {
+  const synth = Deno.readFileSync(`${MP4_DIR}/synth-multi-mdat.mp4`);
+  const patch32 = (at: number, size: number): Uint8Array => {
+    const copy = synth.slice();
+    new DataView(copy.buffer).setUint32(at, size, false);
+    return copy;
+  };
+  const patch64 = (at: number, size: bigint): Uint8Array => {
+    const copy = synth.slice();
+    new DataView(copy.buffer).setBigUint64(at, size, false);
+    return copy;
+  };
+  const cases: Array<[string, Uint8Array, string]> = [
+    // The first mdat's size field (40 at offset 40) claims 65535 bytes.
+    ["a size running past the buffer", patch32(40, 0xFFFF), "oversized"],
+    // 4 bytes is less than the 8-byte header that size is meant to include.
+    ["a size below its own header", patch32(40, 4), "malformed"],
+    // The 64-bit mdat at 80 keeps its size-1 marker while the 16 bytes that
+    // marker promises are not there: the buffer ends mid-header.
+    ["a truncated 64-bit header", synth.slice(0, 90), "malformed"],
+    // A 64-bit size no float64 can hold exactly, so reading it would round the
+    // atom's length rather than report it.
+    [
+      "a 64-bit size past the safe range",
+      patch64(88, 2n ** 53n + 1n),
+      "malformed",
+    ],
+    // Four bytes after the last atom, which ends at 176.
+    ["trailing bytes", new Uint8Array([...synth, 0, 0, 0, 0]), "trailing"],
+    // ftyp + moov and no mdat: a "ranges" answer here would hash nothing.
+    [
+      "no mdat at all",
+      new Uint8Array([
+        ...atom(16, "ftyp", new Uint8Array(8)),
+        ...atom(8, "moov"),
+      ]),
+      "no non-empty mdat",
+    ],
+  ];
+  for (const [name, bytes, reason] of cases) {
+    const walk = walkMp4(bytes);
+    assertEquals(walk.kind, "fallback", name);
+    assertStringIncludes(walk.detail, reason, name);
+  }
 });
