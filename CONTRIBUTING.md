@@ -317,6 +317,75 @@ git add lib/taglib
 git commit -m "chore: update TagLib to v2.2.1"
 ```
 
+## 🚀 Releasing
+
+Releases are cut from `main` with one command:
+
+```bash
+deno task release          # auto-increment patch version
+deno task release 2.3.0    # explicit version
+```
+
+`scripts/release-safe.sh` runs the gates, bumps the version, pushes the bump
+commit, **waits for CI to pass on that commit** (never tag an unvalidated
+commit), verifies the npm publish path (`scripts/check-publish-access.sh`), then
+creates the tag and publishes the GitHub release.
+
+Publishing itself is a separate workflow: creating the release fires
+`publish-everywhere.yml` (`on: release: types: [published]`), which builds the
+package, publishes JSR → npm → GitHub Packages, and verifies the JSR and npm
+legs. Tagging alone publishes nothing — the release event is the trigger.
+
+### npm authentication
+
+There is no publish token. The npm leg uses OIDC trusted publishing, authorized
+by a per-package trusted-publisher entry that pins the repository **and the
+workflow filename**. If the entry is missing or names something else, the npm
+leg fails after the tag already exists. Check it before tagging:
+
+```bash
+scripts/check-publish-access.sh
+```
+
+Reading trust configs needs `npm login --auth-type=web` plus a fresh browser 2FA
+approval, which is why this is a preflight step rather than a CI gate.
+
+### Recovering a release
+
+`deno task release` creates the tag and the GitHub release before the registries
+are updated, so a failed publish leg can leave a released version that is not on
+every registry. Recover in this order:
+
+1. **Partial publish** (some registries lack the version) — re-run the failed
+   legs of the same run:
+
+   ```bash
+   gh run rerun <run-id> --failed
+   ```
+
+   A re-run keeps the original `should-publish` decision, so it still runs even
+   though the version is already live on npm. A _fresh_ dispatch would skip every
+   publish leg — the workflow turns itself off when npm already has the version.
+
+2. **Missing or mismatched trusted publisher** — create the entry, then re-run:
+
+   ```bash
+   npm login --auth-type=web
+   npm trust github taglib-wasm --file publish-everywhere.yml \
+     --repository CharlesWiltgen/TagLib-Wasm --allow-publish -y
+   ```
+
+   `--allow-publish` matters: entries created in the npm web UI default to
+   stage-publish only, which refuses `npm publish`.
+
+3. A failed leg writes a failure summary (with rollback commands) to the run
+   summary and opens an issue.
+
+Registry reads lag the publish: verify a version with the immutable endpoint
+(`https://registry.npmjs.org/taglib-wasm/<version>`), never `npm view` — the
+packument is CDN-cached and can answer "not found" for minutes after a
+successful publish.
+
 ## ❓ Questions?
 
 - Open a discussion on GitHub

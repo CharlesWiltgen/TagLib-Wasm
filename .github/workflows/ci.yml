@@ -70,6 +70,22 @@ jobs:
         # run in CI is decoration — the same rule as the ast-grep step above.
         run: deno task docs:coverage
 
+      - name: Lint GitHub Actions workflows
+        # The release path lives entirely in .github/workflows/*, and nothing
+        # else validates it: a malformed workflow dies at GitHub's parser with
+        # no step-level detail, and workflow edits are made far more often than
+        # they are exercised. This catches that class — invalid YAML, unknown
+        # contexts, bad expressions, wrong step shape.
+        #
+        # shellcheck is off because actionlint fails on shellcheck findings even
+        # at info level, and the repo has pre-existing info-level nits in run:
+        # blocks (SC2086/SC2016/SC2012). Turning it on is tracked as its own
+        # task: clean the findings, then flip this to true.
+        uses: raven-actions/actionlint@v2.2.0
+        with:
+          version: 1.7.12
+          shellcheck: false
+
       - name: Verify no unused exports or dependencies (knip)
         # Local-only gate made mandatory: dead exports and orphaned deps rot
         # silently otherwise. knip is pinned in devDependencies and the task

@@ -308,6 +308,18 @@ create_release() {
     # Block until remote CI passes on this commit. Never tag an unvalidated commit.
     wait_for_remote_ci
 
+    # Verify the npm publish path before tagging. A missing or mismatched
+    # trusted-publisher entry fails the npm leg of publish-everywhere.yml AFTER
+    # the tag and GitHub release exist (2.2.3, taglib-ljh6). An unverifiable
+    # check (no npm session, or the 2FA prompt) warns and continues.
+    local script_dir
+    script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    print_step "Verifying the npm publish path..."
+    if ! bash "${script_dir}/check-publish-access.sh"; then
+        print_error "npm publish path is broken — fix it before tagging"
+        exit 1
+    fi
+
     # Create tag (only after CI has validated the commit)
     print_step "Creating tag $tag_name..."
     git tag -a "$tag_name" -m "Release version $version"
