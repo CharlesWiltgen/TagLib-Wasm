@@ -421,6 +421,23 @@ Deno.test("readMediaChecksum accepts a path and a buffer", async () => {
   assertEquals(byPath.source, "audio-payload");
 });
 
+// A caller's own bytes can sit on a SharedArrayBuffer, and the WASI handle
+// stores that view verbatim — so the single-range fast path, which returns a
+// `subarray` of the caller's buffer, can hand Web Crypto a shared-buffer view
+// it refuses. FLAC walks one range, so it reaches that path. The hash must be
+// the same one the ArrayBuffer-backed copy produces, not a TypeError.
+Deno.test("a SharedArrayBuffer-backed input hashes like an ordinary buffer", async () => {
+  const full = Deno.readFileSync(FLAC_PATH);
+  const sab = new Uint8Array(new SharedArrayBuffer(full.length));
+  sab.set(full);
+
+  const bySab = await readMediaChecksum(sab);
+  const byArrayBuffer = await readMediaChecksum(full);
+  assertEquals(bySab.hex, byArrayBuffer.hex);
+  assertEquals(bySab.bytesHashed, byArrayBuffer.bytesHashed);
+  assertEquals(bySab.source, "audio-payload");
+});
+
 // `basis: "pcm"` on the path form: the wrapper hands the open handle a path, so
 // this is the input form the digest's source rule has to survive.
 Deno.test("readMediaChecksum returns the FLAC PCM digest for basis: pcm", async () => {

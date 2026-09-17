@@ -106,6 +106,23 @@ Deno.test("the FLAC walk starts after the block chain and ends at EOF", () => {
   assertEquals(walkFlac(bytes).ranges, [{ offset: 323, length: 245107 }]);
 });
 
+// A boundary of the guarantee, pinned so a change to it is visible: an
+// appended ID3v2 tag is INSIDE the payload, unlike ID3v1/APEv2. TagLib ends a
+// FLAC stream at its ID3v1 location (flacfile.cpp:595-599), and an appended
+// ID3v2 is not at that location — it is part of the stream by the same rule,
+// and this feature's ground truth is TagLib. Exclude it and this test tells you
+// the trim changed; include it and editing that tag moves the hash.
+Deno.test("an appended ID3v2 tag stays inside the FLAC payload", () => {
+  const bytes = Deno.readFileSync(`${FLAC_DIR}/kiss-snippet.flac`);
+  // A 20-byte ID3v2.4 header with a syncsafe size of 10 and no frames.
+  const tag = [0x49, 0x44, 0x33, 0x04, 0x00, 0x00, 0, 0, 0, 10];
+  const appended = new Uint8Array(bytes.length + 20);
+  appended.set(bytes);
+  appended.set(tag, bytes.length);
+  // The base ends at 323 + 245107; the tag pushes the end out by all 20 bytes.
+  assertEquals(walkFlac(appended).ranges, [{ offset: 323, length: 245127 }]);
+});
+
 Deno.test("FLAC STREAMINFO digest matches metaflac", () => {
   const bytes = Deno.readFileSync(`${FLAC_DIR}/kiss-snippet.flac`);
   // Verified against `metaflac --show-md5sum` during the spike:

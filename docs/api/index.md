@@ -404,7 +404,11 @@ payload as it is stored.
 
 The **tag-stability guarantee holds only for `source: "audio-payload"`**: the
 digest covers the payload ranges the walk derived, so rewriting tags cannot move
-`hex`. Read the field whenever the digest is used as a fingerprint:
+`hex`. One boundary case: a FLAC stream runs to its ID3v1 location, so an ID3v2
+tag appended after the audio is _inside_ the payload — editing that tag moves
+`hex` even though `source` is `"audio-payload"` (`walkFlac`'s rule, pinned by
+`tests/media-ranges.test.ts`). Read the field whenever the digest is used as a
+fingerprint:
 
 - `"audio-payload"` — the encoded payload. `bytesHashed` is the payload's length:
   the file minus the tags and container structure around it. That is the strong

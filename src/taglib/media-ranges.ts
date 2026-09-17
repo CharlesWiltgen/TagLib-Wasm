@@ -75,15 +75,23 @@ export function trailingTagStart(
   }
 }
 
+/** How far past the scan's start the MPEG first-frame hunt will look. A file
+ * whose audio does not start within this window is not one whose offsets this
+ * walk may vouch for, and an unbounded hunt turns a junk buffer into a
+ * quadratic scan. That bound is also why an MP3 with a large APEv2 tag *in
+ * front of* the audio falls back rather than guessing: `id3v2End` skips only
+ * ID3v2 (measured: a 70 KiB front area puts the first frame past the window and
+ * the walk falls back, while a 1 KiB one is found normally). */
+const MPEG_SCAN_LIMIT = 65536;
+
 /**
- * First frame: skip ID3v2, then require two consecutive plausible frames.
- * The scan is bounded to 64 KiB past the tag: a file whose audio does not
- * start there is not one whose offsets this walk may vouch for, and an
- * unbounded hunt turns a junk buffer into a quadratic scan.
+ * First frame: skip ID3v2, then require two consecutive plausible frames. The
+ * hunt is bounded to `MPEG_SCAN_LIMIT` past the scan's start so a junk buffer
+ * cannot turn into a quadratic scan.
  */
 function firstFrame(bytes: Uint8Array): number {
   const from = id3v2End(bytes) ?? 0;
-  const limit = Math.min(bytes.length - 6, from + 65536);
+  const limit = Math.min(bytes.length - 6, from + MPEG_SCAN_LIMIT);
   for (let o = from; o < limit; o++) {
     const len = frameLengthAt(bytes, o);
     if (len > 0 && frameLengthAt(bytes, o + len) > 0) return o;
@@ -167,9 +175,14 @@ export function flacStreamInfoMd5(bytes: Uint8Array): string | undefined {
 
 /**
  * FLAC's encoded payload: the audio frames between the end of the metadata
- * block chain and any appended ID3v1/APEv2 tag. Nothing inside a FLAC stream
- * delimits the frames — the block chain's end is the start, and the stream runs
- * to EOF — so the whole rule is the block walk plus the trailing-tag trim.
+ * block chain and an appended ID3v1/APEv2 tag. An appended ID3v2 is *inside*
+ * the payload: TagLib ends a FLAC stream at its ID3v1 location
+ * (`flacfile.cpp:595-599`), and a tag not at that location is stream by the
+ * same rule — TagLib is this feature's ground truth, so the boundary is pinned
+ * by `tests/media-ranges.test.ts`, not "fixed" here. Nothing inside a FLAC
+ * stream delimits the frames — the block chain's end is the start, and the
+ * stream runs to EOF — so the whole rule is the block walk plus the
+ * trailing-tag trim.
  *
  * `flacAudioStart` may legitimately answer past `bytes.length`, because a
  * block's declared length can reach beyond the bytes in hand: that is the
@@ -180,9 +193,7 @@ export function flacStreamInfoMd5(bytes: Uint8Array): string | undefined {
  * is not a digest carrier, and the PCM basis reads the digest with
  * `flacStreamInfoMd5` directly. A second, unread path to the same value rots.
  */
-export function walkFlac(
-  bytes: Uint8Array,
-): RangeWalk {
+export function walkFlac(bytes: Uint8Array): RangeWalk {
   const start = flacAudioStart(bytes);
   if (start === undefined) return fallback("no fLaC marker");
   const end = trailingTagStart(bytes);

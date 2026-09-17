@@ -121,15 +121,16 @@ function joinRanges(
   // range past the end silently, which is exactly what that guard refuses.
   if (ranges.length === 1) {
     const only = ranges[0];
-    // The cast is the BufferSource rule, not a copy: `subarray` carries the
-    // source's buffer type, while every source a checksum reads — a file, a
-    // Blob's arrayBuffer(), a handle's own buffer — is ArrayBuffer-backed, and
-    // so is the allocation below (`ensureArrayBufferBacked`,
-    // web-utils/dom-integration.ts, is the same narrowing for the Blob
-    // constructor).
-    return bytes.subarray(only.offset, only.offset + only.length) as Uint8Array<
-      ArrayBuffer
-    >;
+    // The view is used only when its buffer really is an `ArrayBuffer`: Web
+    // Crypto takes a `BufferSource`, and a view on a shared buffer is not one
+    // (`crypto.subtle.digest` throws "Argument 1 is a view on a
+    // SharedArrayBuffer"). A caller can open a file from its own bytes, and
+    // those bytes may sit on a `SharedArrayBuffer` the handle stores verbatim —
+    // so this is a runtime test, not the cast it once was.
+    const view = bytes.subarray(only.offset, only.offset + only.length);
+    return view.buffer instanceof ArrayBuffer
+      ? (view as Uint8Array<ArrayBuffer>)
+      : new Uint8Array(view);
   }
   const out = new Uint8Array(total);
   let at = 0;

@@ -70,10 +70,12 @@ const cover = await readCoverArt("song.mp3"); // Uint8Array | undefined
 const sum = await readMediaChecksum("song.mp3");
 // { algorithm: "sha256", hex, bytesHashed, source: "audio-payload" | "file" }
 // source: "audio-payload" is the strong guarantee: editing a tag leaves `hex`
-// unchanged. A format whose payload cannot be delimited answers the WHOLE FILE
-// with source: "file", where a tag edit does move the hash. basis: "pcm" asks
-// FLAC for its STREAMINFO MD5 instead ({ algorithm: "md5", source:
-// "flac-streaminfo-md5" }) and throws UnsupportedFormatError off FLAC.
+// unchanged — with one boundary: an ID3v2 tag appended after a FLAC's audio is
+// inside its payload, so editing THAT tag moves `hex`. A format whose payload
+// cannot be delimited answers the WHOLE FILE with source: "file", where a tag
+// edit does move the hash. basis: "pcm" asks FLAC for its STREAMINFO MD5
+// instead ({ algorithm: "md5", source: "flac-streaminfo-md5" }) and throws
+// UnsupportedFormatError off FLAC.
 const pcm = await readMediaChecksum("song.flac", { basis: "pcm" });
 
 // The checksum types, from "taglib-wasm/simple" or "taglib-wasm" as a type-only
