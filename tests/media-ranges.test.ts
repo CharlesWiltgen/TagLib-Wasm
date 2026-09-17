@@ -30,13 +30,17 @@ Deno.test("a tags-only file falls back instead of hashing a tail", () => {
 });
 
 // Two facts about one file. The trim finds the APEv2 + ID3v1 tags (start 8208 =
-// 8419 − 128-byte ID3v1 − 83-byte APE tag), while the payload range ends at the
-// last frame's end, 8150 — exactly TagLib's asserted lastFrameOffset()==0x1FD6
-// plus its frameLength() (lib/taglib/tests/test_mpeg.cpp:289-295). The 58 bytes
-// between the frame end and the tag start are not frame data, so they are
-// deliberately not hashed. This file also exercises the forward walk: no
-// candidate ends exactly at the payload end, so the backward scan rejects and
-// the forward result is the one used.
+// 8419 − 128-byte ID3v1 − 83-byte APE tag), while the payload range ends at
+// 8150 — which is TagLib's asserted lastFrameOffset()==0x1FD6 itself
+// (lib/taglib/tests/test_mpeg.cpp:289-295 asserts that offset alone): TagLib's
+// lastFrameOffset() is already an exclusive end (mpegfile.cpp:443-455 →
+// previousFrameOffset returns position + i + frameLength()). That differs from
+// bladeenc.mp3 and empty1s.aac, whose successor-less last frame is pinned as
+// lastFrameOffset() + frameLength() (:135-137 → 28213 + 209, :165-171 → 136 +
+// 11), because there the asserted offset is the successor-less last frame's own
+// start — the test constructs an MPEG::Header at it to read that length. The 58
+// bytes between the frame end and the tag start are not frame data, so they are
+// deliberately not hashed.
 Deno.test("APEv2 + ID3v1 trailers are excluded from the range", () => {
   const bytes = Deno.readFileSync(`${ORACLE_DIR}/ape-id3v1.mp3`);
   assertEquals(trailingTagStart(bytes), 8208);

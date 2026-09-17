@@ -50,7 +50,9 @@ export function trailingTagStart(
   end = bytes.length,
 ): number {
   const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
-  let at = end;
+  // `view` spans exactly `bytes`, so an `end` past the buffer would make the
+  // APEv2 reads below throw while the ID3v1 subarray path silently clamps.
+  let at = Math.max(0, Math.min(end, bytes.length));
   for (;;) {
     if (at >= 128 && text(bytes, at - 128, 3) === "TAG") {
       at -= 128;
@@ -84,7 +86,20 @@ function firstFrame(bytes: Uint8Array): number {
   return -1;
 }
 
-/** Forward walk: the correct answer, O(frames). */
+/**
+ * Forward walk from the first frame to the last: the authority for where the
+ * payload ends, O(frames).
+ *
+ * There is deliberately no backward scan to cross-check it. The spike used one
+ * to derive the boundary rule — a reverse scan is O(payload) per file, and a
+ * candidate that merely "fits inside" the payload is not the last frame, because
+ * a false sync can sit within the last frame's own payload (measured on
+ * kiss-snippet.mp3: an offer at 84558+72 inside the real frame ending at 85226).
+ * Only a candidate ending EXACTLY at the payload end survives that rule, which is
+ * the property this walk has by construction — so the reverse pass could never
+ * change the answer, and would run in addition to the forward walk rather than
+ * instead of it.
+ */
 function forwardLastFrame(
   bytes: Uint8Array,
   from: number,
@@ -105,38 +120,16 @@ function forwardLastFrame(
   return { start, length, frames };
 }
 
-/**
- * Backward scan: fast path. A candidate must be plausible AND end exactly at the
- * payload end — accepting merely "fits inside" finds false syncs within the last
- * frame's payload (measured on kiss-snippet.mp3: an offer at 84558+72 inside the
- * real frame ending at 85226).
- */
-function backwardLastFrame(
-  bytes: Uint8Array,
-  from: number,
-  end: number,
-): { start: number; length: number } {
-  for (let o = end - 6; o >= from; o--) {
-    const len = frameLengthAt(bytes, o);
-    if (len > 0 && o + len === end) return { start: o, length: len };
-  }
-  return { start: -1, length: 0 };
-}
-
 export function walkMpeg(bytes: Uint8Array): RangeWalk {
   const from = firstFrame(bytes);
   if (from < 0) return fallback("no valid first frame");
   const end = trailingTagStart(bytes);
-  const fwd = forwardLastFrame(bytes, from, end);
-  if (fwd.start < 0) return fallback("no valid frames");
-  const bwd = backwardLastFrame(bytes, from, end);
-  const fast = fwd.start === bwd.start && fwd.length === bwd.length;
+  const last = forwardLastFrame(bytes, from, end);
+  if (last.start < 0) return fallback("no valid frames");
   return {
     kind: "ranges",
-    ranges: [{ offset: from, length: fwd.start + fwd.length - from }],
+    ranges: [{ offset: from, length: last.start + last.length - from }],
     detail:
-      `first=${from} last=${fwd.start}+${fwd.length} frames=${fwd.frames} ${
-        fast ? "fast" : "forward"
-      }`,
+      `first=${from} last=${last.start}+${last.length} frames=${last.frames}`,
   };
 }
