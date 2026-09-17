@@ -56,7 +56,8 @@ interface ChecksumHandleSource {
 
 /** The header window a path-mode handle reads for `basis: "pcm"`: STREAMINFO is
  * a FLAC file's first metadata block, so nothing else in a 16-byte digest's
- * worth of work needs reading. */
+ * worth of work needs reading — unless the tag in front of it is larger than
+ * this, which is why a window without a digest falls back to the whole file. */
 const STREAMINFO_WINDOW = 65536;
 
 /**
@@ -113,6 +114,23 @@ function joinRanges(
       } past the ${bytes.length}-byte buffer)`,
     );
   }
+  // One range is already a contiguous view of the buffer — the whole-file
+  // fallback, every single-`mdat` MP4, and MP3/FLAC/WAV, which walk one range —
+  // so it is hashed where it lies instead of copying the file a second time.
+  // The overrun guard above must stay in front of this: `subarray` clamps a
+  // range past the end silently, which is exactly what that guard refuses.
+  if (ranges.length === 1) {
+    const only = ranges[0];
+    // The cast is the BufferSource rule, not a copy: `subarray` carries the
+    // source's buffer type, while every source a checksum reads — a file, a
+    // Blob's arrayBuffer(), a handle's own buffer — is ArrayBuffer-backed, and
+    // so is the allocation below (`ensureArrayBufferBacked`,
+    // web-utils/dom-integration.ts, is the same narrowing for the Blob
+    // constructor).
+    return bytes.subarray(only.offset, only.offset + only.length) as Uint8Array<
+      ArrayBuffer
+    >;
+  }
   const out = new Uint8Array(total);
   let at = 0;
   for (const r of ranges) {
@@ -137,23 +155,34 @@ export async function mediaChecksum(
         operation: "media checksum (basis: pcm)",
       });
     }
-    // STREAMINFO sits at the very start of the file, so a partial image already
-    // carries it; a handle with no bytes at all (WASI path mode) reads a header
-    // window — never the file, since the digest is 16 bytes.
-    const bytes = source.bytes.length > 0
+    // STREAMINFO sits at the very start of the *file*, so a partial image (which
+    // always begins at offset 0) already carries it. A handle with no bytes at
+    // all (WASI path mode) reads a header window first — never the file, since
+    // the digest is 16 bytes.
+    const windowed = source.bytes.length > 0
       ? source.bytes
       : source.path && io.readPartial
       ? await io.readPartial(source.path, STREAMINFO_WINDOW, 0)
-      : await fileBytes(source, io);
-    // STREAMINFO is a FLAC's *first* metadata block, so read it directly — the
-    // walk is wrong here, and not merely wasteful: `walkFlac` ends the stream at
-    // the metadata chain's implied end, and `flacEnd` answers an offset past the
-    // bytes in hand rather than giving up (metadata-extent.ts:78-81). A chain
-    // larger than the window just read — a cover picture is enough — therefore
-    // reads as "no audio bytes" and falls back with no digest, even though the
-    // 16 bytes it wants are inside the window. `flacStreamInfoMd5` seeks
-    // straight to the marker and first block, which is all the digest needs.
-    const md5 = flacStreamInfoMd5(bytes);
+      : undefined;
+    // `flacStreamInfoMd5`, not `walkFlac`: the digest wants the marker and the
+    // first block, while the walk ends the stream at the metadata chain's
+    // implied end, and `flacEnd` answers an offset past the bytes in hand rather
+    // than giving up (metadata-extent.ts:78-81). A chain larger than the window
+    // just read — a cover picture is enough — therefore walks as "no audio
+    // bytes" and carries no digest, even though the 16 bytes it wants are inside
+    // that window. Seeking straight to the marker and the first block is all the
+    // digest needs.
+    //
+    // A window that carries no digest therefore means the *marker* is out of
+    // reach, not that the file has none: a prepended ID3v2 tag larger than the
+    // window puts it there (a tag with cover art routinely does), so read the
+    // source and try again instead of failing a file whose digest is present.
+    // The source is not re-read when the window already WAS the source — the
+    // caller's own bytes are the file.
+    let md5 = windowed === undefined ? undefined : flacStreamInfoMd5(windowed);
+    if (md5 === undefined && windowed !== source.bytes) {
+      md5 = flacStreamInfoMd5(await fileBytes(source, io));
+    }
     if (md5 === undefined) {
       throw new MetadataError(
         "read",

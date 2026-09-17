@@ -11,11 +11,12 @@ tests/media-checksum.test.ts needs.
 Paths resolve from this script's own location (the `_gen` convention), so the
 fixtures land in tests/test-files/ wherever the checkout lives. Every fixture
 is built by hand so the byte offsets the tests assert are known by
-construction; the only input that is not built here is `flac/kiss-snippet.flac`
-(the base stream the FLAC variants wrap). TagLib's own test data under
-lib/taglib/tests/data is read by tests/media-ranges.test.ts directly, never by
-this script — as is `wav/bext-ixml.wav`, the one WAV fixture with an odd-sized
-chunk, which is where the walk's pad-byte rule is pinned.
+construction; the only inputs that are not built here are
+`flac/kiss-snippet.flac` (the base stream the FLAC variants wrap) and
+`mp3/kiss-snippet.mp3` (the frame `--large` repeats). TagLib's own test data
+under lib/taglib/tests/data is read by tests/media-ranges.test.ts directly,
+never by this script — as is `wav/bext-ixml.wav`, the one WAV fixture with an
+odd-sized chunk, which is where the walk's pad-byte rule is pinned.
 """
 
 import hashlib

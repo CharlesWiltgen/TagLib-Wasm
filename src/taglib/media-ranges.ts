@@ -175,22 +175,22 @@ export function flacStreamInfoMd5(bytes: Uint8Array): string | undefined {
  * block's declared length can reach beyond the bytes in hand: that is the
  * extent the chain *implies*, and hashing it would read nothing while claiming
  * a payload. The `end <= start` guard is what refuses it.
+ *
+ * The walk deliberately does **not** carry the STREAMINFO digest: a range result
+ * is not a digest carrier, and the PCM basis reads the digest with
+ * `flacStreamInfoMd5` directly. A second, unread path to the same value rots.
  */
 export function walkFlac(
   bytes: Uint8Array,
-): RangeWalk & { streamInfoMd5?: string } {
+): RangeWalk {
   const start = flacAudioStart(bytes);
   if (start === undefined) return fallback("no fLaC marker");
   const end = trailingTagStart(bytes);
   if (end <= start) return fallback("no audio bytes");
-  const streamInfoMd5 = flacStreamInfoMd5(bytes);
   return {
     kind: "ranges",
     ranges: [{ offset: start, length: end - start }],
     detail: `audioStart=${start} end=${end}`,
-    // Absent, not undefined, when STREAMINFO could not be read — the repo's
-    // `exactOptionalPropertyTypes` contract (see audio-file-impl.ts).
-    ...(streamInfoMd5 !== undefined ? { streamInfoMd5 } : {}),
   };
 }
 

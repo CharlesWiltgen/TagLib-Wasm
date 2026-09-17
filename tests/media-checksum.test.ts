@@ -343,6 +343,74 @@ Deno.test("basis: pcm reads STREAMINFO past a metadata chain larger than the hea
   }
 });
 
+/** ID3v2's syncsafe integer: 28 bits, seven per byte. */
+const syncsafe = (value: number): number[] => [
+  (value >> 21) & 0x7f,
+  (value >> 14) & 0x7f,
+  (value >> 7) & 0x7f,
+  value & 0x7f,
+];
+
+/**
+ * A FLAC's own bytes behind a 70,000-byte ID3v2.4 tag: the tag alone is larger
+ * than the 64 KiB window a path-mode handle reads, so the `fLaC` marker sits past
+ * everything the window can reach. A tag that size is routine once it carries
+ * cover art.
+ */
+function flacBehindLargeId3v2(flac: Uint8Array): Uint8Array {
+  const tagLength = 70_000;
+  const out = new Uint8Array(tagLength + flac.length);
+  // "ID3", version 2.4, no flags, then the size of what follows the 10-byte
+  // header — here all padding.
+  out.set([0x49, 0x44, 0x33, 0x04, 0x00, 0x00, ...syncsafe(tagLength - 10)], 0);
+  out.set(flac, tagLength);
+  return out;
+}
+
+// The window is a *header* window, so a tag prepended to the file can push the
+// marker out of it — a shape the oversized-*metadata* test above cannot see,
+// since there the marker is at offset 0 and only the chain after it is large.
+// STREAMINFO is present either way, so the digest must come from a whole-source
+// read rather than fail the file.
+Deno.test("basis: pcm reads STREAMINFO past a prepended tag larger than the header window", async () => {
+  const dir = await Deno.makeTempDir();
+  const path = resolve(dir, "large-id3v2.flac");
+  const backends = [
+    ...(HAS_WASI ? (["wasi"] as const) : []),
+    ...(HAS_EMSCRIPTEN ? (["emscripten"] as const) : []),
+  ];
+  try {
+    const flac = Deno.readFileSync(FLAC_PATH);
+    const fixture = flacBehindLargeId3v2(flac);
+    assertEquals(
+      fixture.length > 65536,
+      true,
+      "fixture must exceed the window",
+    );
+    await Deno.writeFile(path, fixture);
+
+    // The digest the untagged fixture answers: the prepended tag is not audio,
+    // so it must not move the digest.
+    const expected = flacStreamInfoMd5(flac);
+    assertExists(expected);
+
+    for (const backend of backends) {
+      const taglib = await TagLib.initialize({ forceWasmType: backend });
+      const file = await taglib.open(path);
+      try {
+        const pcm = await file.mediaChecksum({ basis: "pcm" });
+        assertEquals(pcm.source, "flac-streaminfo-md5", backend);
+        assertEquals(pcm.hex, expected, backend);
+        assertEquals(pcm.bytesHashed, 16, backend);
+      } finally {
+        file.dispose();
+      }
+    }
+  } finally {
+    await Deno.remove(dir, { recursive: true }).catch(() => {});
+  }
+});
+
 // The Simple API opens the file itself, so both input forms reach a handle that
 // describes the same bytes: the digest belongs to the file, not to the input
 // form, and that is what makes them agree.
