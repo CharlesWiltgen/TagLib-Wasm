@@ -32,9 +32,12 @@
   for that class, so properties of an `.aac` file claimed MP3 and `getFormat()`
   returned `"MP3"`. Codec and container now come from
   `MPEG::Properties::isADTS()` (`"AAC"` / `"ADTS"`), `FileType` gains `"AAC"`,
-  `ContainerFormat` gains `"ADTS"`, and `getId3v2Frames()` /
-  `setId3v2Frames()` accept `"AAC"` (ADTS carries ID3v2 too). Guarded by
-  `tests/adts-label.test.ts`, observed failing on both backends before the fix.
+  `ContainerFormat` gains `"ADTS"`, and the MP3-only gates accept it too —
+  `getId3v2Frames()` / `setId3v2Frames()`, `setChapters()` (and therefore
+  `clearTags()`), plus the `mpegVersion`/`mpegLayer` narrowing on
+  `TypedAudioProperties`, since ADTS carries ID3v2 through the same
+  `MPEG::File`. Guarded by `tests/adts-label.test.ts`, observed failing on both
+  backends before the fix.
 - **Ogg FLAC and Speex report container `"OGG"` on Emscripten** (taglib-irp8) —
   the Embind `containerFormat()`, `codec()`, and `getFormat()` knew only
   `Ogg::Vorbis` and `Ogg::Opus`, so FLAC-in-Ogg and Speex fell through to
