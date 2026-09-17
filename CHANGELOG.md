@@ -50,6 +50,23 @@
 
 ### Internal
 
+- **CI can no longer lose a backend silently** — the parity suites gate
+  themselves on artifact existence (`HAS_WASI` / `HAS_EMSCRIPTEN`) and ignored
+  themselves when one was missing, which is how the WASI half of every
+  `forEachBackend` test stayed dark in the OS matrix for months (taglib-qivb).
+  `tests/cross-backend-parity.test.ts` and `tests/date-roundtrip.test.ts` now
+  skip only outside GitHub Actions, and the new
+  `tests/backend-registration.test.ts` fails in CI when either artifact is
+  missing or a backend cannot load — naming the workflow step that provides it.
+  Locally both remain skips, so a fresh clone is unaffected; the predicate is
+  `GITHUB_ACTIONS` rather than `CI` because other CI systems (and agent
+  harnesses) set `CI=true` on checkouts with no built artifacts.
+- **`tests/test-files/_gen/make-gnre-first-mp4.py`** — builds the MP4 that
+  reproduces `taglib-lna2` (numeric `gnre` before the string `©gen`), where a
+  read-modify-write collapses the string genre (`"Rock & Roll"` → `"Rock"`).
+  Re-verified against the pinned TagLib 2.3.2 on both backends. It is a
+  reproducer, not a fixture: no test consumes its output, because pinning the
+  current behavior would freeze the defect.
 - **CI parity tests ran Emscripten-only in the OS matrix** — the three test
   jobs never materialized `dist/wasi/taglib-wasi.wasm`, which
   `tests/backend-adapter.ts` gates its WASI instances on, so every

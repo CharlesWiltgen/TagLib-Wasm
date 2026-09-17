@@ -18,7 +18,14 @@ import {
 } from "./backend-adapter.ts";
 import { type Format, FORMATS } from "./shared-fixtures.ts";
 
-const SKIP = !HAS_WASI || !HAS_EMSCRIPTEN;
+// Missing artifacts are a legitimate skip on a fresh clone, but the GitHub
+// workflows materialize both (see ci.yml and tests/backend-registration.ts):
+// ignoring the parity suite there is how the WASI half went dark for months
+// (taglib-qivb), so under GITHUB_ACTIONS it must run and fail loudly instead.
+// Keyed on GITHUB_ACTIONS rather than CI because other CI systems (and agent
+// harnesses) may set CI=true on a checkout without built artifacts.
+const IN_CI = Deno.env.get("GITHUB_ACTIONS") === "true";
+const SKIP = (!HAS_WASI || !HAS_EMSCRIPTEN) && !IN_CI;
 
 describe({ name: "Cross-Backend Parity", ignore: SKIP }, () => {
   const wasi = new WasiBackendAdapter();

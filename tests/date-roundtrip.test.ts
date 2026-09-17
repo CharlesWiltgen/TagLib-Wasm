@@ -22,9 +22,16 @@ const FORMATS = ["mp3", "flac", "m4a"] as const;
 
 type WasmType = "wasi" | "emscripten";
 
+// In the GitHub workflows both artifacts are guaranteed (see
+// tests/backend-registration.ts), so the per-backend suites must run there
+// rather than quietly ignoring themselves when an artifact is missing
+// (taglib-qivb). GITHUB_ACTIONS rather than CI: other CI systems may set
+// CI=true on a checkout without built artifacts.
+const IN_CI = Deno.env.get("GITHUB_ACTIONS") === "true";
+
 const BACKENDS: { kind: WasmType; available: boolean }[] = [
-  { kind: "wasi", available: HAS_WASI },
-  { kind: "emscripten", available: HAS_EMSCRIPTEN },
+  { kind: "wasi", available: HAS_WASI || IN_CI },
+  { kind: "emscripten", available: HAS_EMSCRIPTEN || IN_CI },
 ];
 
 for (const { kind, available } of BACKENDS) {
