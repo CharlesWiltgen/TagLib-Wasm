@@ -999,13 +999,29 @@ Returns the detected file type:
 ```typescript
 type FileType =
   | "MP3"
+  | "AAC" // ADTS / raw AAC stream
   | "MP4"
   | "FLAC"
   | "OGG"
+  | "OPUS"
   | "WAV"
   | "AIFF"
   | "ASF"
-  | "UNKNOWN";
+  | "APE"
+  | "DSF"
+  | "DSDIFF"
+  | "WV"
+  | "MPC"
+  | "TTA"
+  | "SHN"
+  | "MOD"
+  | "S3M"
+  | "IT"
+  | "XM"
+  | "OggFLAC"
+  | "SPEEX"
+  | "MATROSKA"
+  | "unknown";
 ```
 
 #### Property Methods
@@ -1633,13 +1649,29 @@ Call `dispose()` manually only when `using` is not available.
 ```typescript
 type FileType =
   | "MP3"
+  | "AAC" // ADTS / raw AAC stream
   | "MP4"
   | "FLAC"
   | "OGG"
+  | "OPUS"
   | "WAV"
   | "AIFF"
   | "ASF"
-  | "UNKNOWN";
+  | "APE"
+  | "DSF"
+  | "DSDIFF"
+  | "WV"
+  | "MPC"
+  | "TTA"
+  | "SHN"
+  | "MOD"
+  | "S3M"
+  | "IT"
+  | "XM"
+  | "OggFLAC"
+  | "SPEEX"
+  | "MATROSKA"
+  | "unknown";
 ```
 
 #### TagLibModule

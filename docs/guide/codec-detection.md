@@ -61,10 +61,11 @@ The `containerFormat` field returns:
 - `"MP4"` - ISO Base Media File Format (includes .m4a files)
 - `"OGG"` - Ogg container
 - `"MP3"` - MPEG Layer 3
+- `"ADTS"` - Audio Data Transport Stream (raw AAC, `.aac`)
 - `"FLAC"` - Free Lossless Audio Codec
 - `"WAV"` - RIFF WAVE format
 - `"AIFF"` - Audio Interchange File Format
-- `"UNKNOWN"` - Format could not be determined
+- `"unknown"` - Format could not be determined
 
 ## Codec Detection
 
@@ -72,8 +73,9 @@ The `codec` field returns a string identifying the audio codec:
 
 - **MP4/M4A files**: `"AAC"`, `"ALAC"`, `"AC-3"`, `"E-AC-3"`, `"DTS"`, `"FLAC"`, `"Opus"`, or `"unknown"` (a sample entry TagLib cannot classify)
 - **MP3 files**: `"MP3"`
+- **ADTS / raw AAC files** (`.aac`): `"AAC"`
 - **FLAC files**: `"FLAC"`
-- **OGG files**: `"Vorbis"` or `"Opus"`
+- **OGG files**: `"Vorbis"`, `"Opus"`, `"FLAC"` (FLAC-in-Ogg), or `"Speex"`
 - **WAV files**: `"PCM"`, `"IEEE Float"`, or `"WAV"` (for other codecs)
 - **AIFF files**: `"PCM"`
 - **Unclassified**: `"unknown"`

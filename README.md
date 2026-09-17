@@ -444,9 +444,11 @@ Supported formats:
 `taglib-wasm` is designed to support all formats supported by TagLib:
 
 - **.mp3** – ID3v2 and ID3v1 tags
+- **.aac** – ADTS / raw AAC streams (ID3v2 metadata, read through the MPEG reader)
 - **.m4a/.mp4** – MPEG-4/AAC metadata for AAC and Apple Lossless audio
 - **.flac** – Vorbis comments and audio properties (plus BWF `bext`/iXML)
-- **.ogg** – Ogg Vorbis format with full metadata support
+- **.ogg** – Ogg container: Vorbis with full metadata support, plus FLAC-in-Ogg
+  and Speex
 - **.wav** – INFO chunk metadata, plus BWF `bext` and iXML
 - **Additional formats** – Opus, APE, MPC, WavPack, TrueAudio, AIFF, WMA, and
   more
