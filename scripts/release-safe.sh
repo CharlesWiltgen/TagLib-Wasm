@@ -280,7 +280,7 @@ wait_for_remote_ci() {
         print_warning "Fix the failures, push another commit, and re-run the release."
         exit 1
     fi
-    print_success "Remote CI passed — safe to tag"
+    print_success "Remote CI passed — safe to publish"
 }
 
 # Function to dispatch the publish workflow and report the outcome
