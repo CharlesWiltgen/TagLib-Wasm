@@ -19,7 +19,7 @@ import {
 import { type Format, FORMATS } from "./shared-fixtures.ts";
 
 // Missing artifacts are a legitimate skip on a fresh clone, but the GitHub
-// workflows materialize both (see ci.yml and tests/backend-registration.ts):
+// workflows materialize both (see ci.yml and tests/backend-registration.test.ts):
 // ignoring the parity suite there is how the WASI half went dark for months
 // (taglib-qivb), so under GITHUB_ACTIONS it must run and fail loudly instead.
 // Keyed on GITHUB_ACTIONS rather than CI because other CI systems (and agent

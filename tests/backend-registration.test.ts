@@ -13,14 +13,14 @@
  * binary into dist/wasi/, so CI was green while asserting one backend).
  *
  * This test therefore runs ONLY in CI, and fails loudly there. It also proves
- * each backend *loads* (not merely that a file exists), so a corrupt or
- * mismatched artifact cannot hide behind `fileExists`.
+ * each backend *loads* (not merely that a file exists), by driving the adapters
+ * themselves — so a corrupt or mismatched artifact cannot hide behind
+ * `fileExists`.
  */
 
 import { assert, assertEquals } from "@std/assert";
 import { getAdapters, HAS_EMSCRIPTEN, HAS_WASI } from "./backend-adapter.ts";
 import { FIXTURE_PATH } from "./shared-fixtures.ts";
-import { TagLib } from "../src/taglib.ts";
 
 // GITHUB_ACTIONS, not CI: these artifacts are guaranteed by this repo's
 // workflows, whereas other CI systems (and agent harnesses) may set CI=true on
@@ -47,14 +47,22 @@ Deno.test({
     ]);
 
     const buffer = await Deno.readFile(FIXTURE_PATH.mp3);
-    for (const backend of ["wasi", "emscripten"] as const) {
-      const taglib = await TagLib.initialize({ forceWasmType: backend });
-      using file = await taglib.open(new Uint8Array(buffer));
-      assertEquals(
-        file.tag().title,
-        "Kiss",
-        `${backend} loaded but could not read the fixture`,
-      );
+    // Load through the adapters, not TagLib.initialize: the adapters read the
+    // very artifacts asserted above (dist/wasi/taglib-wasi.wasm and the
+    // wrapper), whereas forceWasmType resolves build/*.wasm — so a corrupt
+    // dist artifact could otherwise satisfy every assertion here.
+    for (const adapter of getAdapters()) {
+      await adapter.init();
+      try {
+        const tags = await adapter.readTags(buffer, "mp3");
+        assertEquals(
+          tags.title,
+          "Kiss",
+          `${adapter.kind} loaded but could not read the fixture`,
+        );
+      } finally {
+        await adapter.dispose();
+      }
     }
   },
 });

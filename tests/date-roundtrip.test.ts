@@ -23,7 +23,7 @@ const FORMATS = ["mp3", "flac", "m4a"] as const;
 type WasmType = "wasi" | "emscripten";
 
 // In the GitHub workflows both artifacts are guaranteed (see
-// tests/backend-registration.ts), so the per-backend suites must run there
+// tests/backend-registration.test.ts), so the per-backend suites must run there
 // rather than quietly ignoring themselves when an artifact is missing
 // (taglib-qivb). GITHUB_ACTIONS rather than CI: other CI systems may set
 // CI=true on a checkout without built artifacts.
