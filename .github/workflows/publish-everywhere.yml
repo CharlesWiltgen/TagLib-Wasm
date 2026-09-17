@@ -108,7 +108,7 @@ jobs:
             exit 1
           fi
 
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "Version: $VERSION"
 
       - name: Check if should publish
@@ -123,7 +123,7 @@ jobs:
             SHOULD_PUBLISH="false"
           fi
 
-          echo "should-publish=$SHOULD_PUBLISH" >> $GITHUB_OUTPUT
+          echo "should-publish=$SHOULD_PUBLISH" >> "$GITHUB_OUTPUT"
 
       - name: Sync versions across files
         if: steps.check.outputs.should-publish == 'true'
@@ -332,9 +332,9 @@ jobs:
         run: |
           VERSION="${{ needs.prepare-and-build.outputs.version }}"
           if [[ "$VERSION" == *-* ]]; then
-            echo "tag=beta" >> $GITHUB_OUTPUT
+            echo "tag=beta" >> "$GITHUB_OUTPUT"
           else
-            echo "tag=latest" >> $GITHUB_OUTPUT
+            echo "tag=latest" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Confirm OIDC is available to this job
@@ -477,9 +477,9 @@ jobs:
         run: |
           VERSION="${{ needs.prepare-and-build.outputs.version }}"
           if [[ "$VERSION" == *-* ]]; then
-            echo "tag=beta" >> $GITHUB_OUTPUT
+            echo "tag=beta" >> "$GITHUB_OUTPUT"
           else
-            echo "tag=latest" >> $GITHUB_OUTPUT
+            echo "tag=latest" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Publish to GitHub with retry
@@ -599,8 +599,8 @@ jobs:
             SUCCESS=false
           fi
 
-          echo "success=$SUCCESS" >> $GITHUB_OUTPUT
-          echo "failures=$FAILURES" >> $GITHUB_OUTPUT
+          echo "success=$SUCCESS" >> "$GITHUB_OUTPUT"
+          echo "failures=$FAILURES" >> "$GITHUB_OUTPUT"
 
           if [ "$SUCCESS" = "true" ]; then
             echo "✅ All publications successful for version $VERSION"
@@ -682,7 +682,7 @@ jobs:
             echo "4. Re-run the workflow or publish a new patch version"
             echo ""
             echo "No tag or GitHub release was created for this version."
-          } >> $GITHUB_STEP_SUMMARY
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Create and push release tag
         # The tag is created HERE, not by scripts/release-safe.sh, and only once
