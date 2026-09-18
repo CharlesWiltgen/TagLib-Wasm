@@ -9,11 +9,16 @@
  * with a blank line before each config. Both defects this file keeps out were
  * mismatches against that parser:
  *
- * - A package can hold several records naming the same workflow file, and the
+ * - A package may hold several records naming the same workflow file, and the
  *   guard judged only the first: a stale record (another repository, or stage
  *   publish only) reported "definitively broken" and aborted the release even
  *   when a later record was the one the registry would authorize, so the verdict
- *   depended on the registry's listing order (review finding 1).
+ *   depended on the registry's listing order (review finding 1). npm's own
+ *   statements disagree on the count — its man page says "the registry only
+ *   supports one configuration per package", its docs allow up to 10 and its API
+ *   takes a list with per-config ids — so the guard judges every record that
+ *   names the file: the defensive reading, and the only correct one if several
+ *   are allowed.
  * - `npm trust list` also prints JSON (`--json`, or a `json=true` npm config) and
  *   honours neither `file:` nor `permissions: publish` there. The guard read no
  *   record, warned "not a trust listing" and exited 0 — permission to tag a

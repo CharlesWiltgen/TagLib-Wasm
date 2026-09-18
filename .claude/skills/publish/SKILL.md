@@ -145,9 +145,15 @@ environment as soon as a workflow references one, and an auto-created one has
   (`required_reviewers` must appear in `protection_rules`).
   `scripts/release-safe.sh` reads exactly that and announces the pause.
 
-**2. Record it on the npm side.** Trust entries cannot be edited in place
-(`npm help trust`: "Existing trusted publisher connections cannot be changed"),
-so this is list → revoke → recreate. Flags verified against
+**2. Record it on the npm side.** An existing connection's fields are fixed:
+the npm docs are explicit that "Existing trusted publisher connections cannot be
+changed … To change them, delete the connection and create a new one", so this
+is list → revoke → recreate. The revoke is not hygiene — whether a package may
+hold one record or several (npm 11.19.0's man page says "the registry only
+supports one configuration per package" and that a second one errors; the npm
+docs allow up to 10 and the registry API takes a list of configs each with its
+own id), a surviving record **without** the environment would authorize the OIDC
+exchange on its own and silently defeat the gate. Flags verified against
 `npm trust github --help` on npm 11.19 (`--env` is the alias of
 `--environment`):
 

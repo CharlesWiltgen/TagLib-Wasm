@@ -71,13 +71,19 @@ EOF
 
 # Every record in npm's listing that names OUR workflow file, one after another.
 # npm prints one record per trusted-publisher config — `type:` and `id:` first,
-# `permissions:` last, records separated by a blank line — and a package can hold
-# several records for the same workflow file. The verdict is theirs together, not
-# the first record's: judging only the first made the outcome depend on the
-# registry's listing order (review finding 1: a stale record for our file — another
-# repository, or stage-only — reported a definitive mismatch and aborted the
-# release at scripts/release-safe.sh:322 even when a later record was the one the
-# registry would authorize).
+# `permissions:` last, records separated by a blank line — and its own statements
+# disagree about how many a package may hold: npm 11.19.0's man page says "the
+# registry only supports one configuration per package" and that creating a
+# second errors, while the published npm docs allow up to 10 per package and the
+# registry's API reference takes a list of configs, each with its own `id`, plus
+# a delete-by-config-uuid endpoint (its client renders a list too:
+# `Array.isArray(body) ? body : [body]` in npm/lib/trust-cmd.js). Judging every
+# record is therefore the defensive reading — correct if only one is ever allowed,
+# and the only correct one if several are — and it is what makes the verdict
+# independent of listing order (review finding 1: a stale record for our file —
+# another repository, or stage-only — reported a definitive mismatch and aborted
+# the release at scripts/release-safe.sh:322 even when a later record was the one
+# the registry would authorize).
 #
 # The block boundary is the identity line rather than the blank line: npm's
 # warnings share this stream, so a blank line can fall inside a record, while a
