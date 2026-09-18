@@ -24,6 +24,15 @@
   extension aliases files actually use, and its contents are pinned by
   `tests/errors-utilities.test.ts`. taglib-uat8 covers what happens when one of
   those formats is opened: not every backend reads all of them the same way.
+- **MP4 files carrying a numeric `gnre` before a differing string `©gen` now
+  read and preserve the string** (taglib-lna2) — TagLib folds `gnre` into the
+  `©gen` item and keeps whichever atom parses first, so such files read the
+  ID3v1 table name ('Rock' where `©gen` says 'Rock & Roll') and any save
+  re-rendered `©gen` from it — a title-only edit silently collapsed the string.
+  The string now wins on genuine disagreement, resolved at file open on both
+  backends; a `gnre`-only file still reads the table name, and an explicit
+  `setGenre` still wins. iTunes-written files (`©gen` first) are unaffected.
+  Pinned on both backends by `tests/mp4-genre-precedence.test.ts`.
 
 ### Added
 
