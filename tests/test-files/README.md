@@ -85,11 +85,12 @@ the two offsets are the by-construction check that they agree over the payload
 rather than over, say, two identically-wrong ranges. Neither file has an
 odd-sized chunk, so the walk's pad-byte rule is pinned by `wav/bext-ixml.wav`
 instead: its 629-byte `bext` chunk sits after `data`, and a walk that ignored the
-pad byte would misalign and fall back. Every WAV fixture but one carries exactly
-one non-empty `data` chunk, so `wav/synth-multi-data.wav` is what pins the rule
-that _every_ non-empty chunk contributes, in chunk order — it leads with an empty
-`data`, which a walk taking the first chunk unconditionally would answer with a
-zero-length range.
+pad byte would misalign and fall back. Every other WAV the suite reads — the
+repo's fixtures and TagLib's own `lib/taglib/tests/data` — carries at most one
+non-empty `data` chunk, so `wav/synth-multi-data.wav`, the only one with two, is
+what pins the rule that _every_ non-empty chunk contributes, in chunk order; it
+leads with an empty `data`, which a walk taking the first chunk unconditionally
+would answer with a zero-length range.
 
 ## Recommended Test Files
 

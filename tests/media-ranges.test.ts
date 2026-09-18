@@ -272,13 +272,16 @@ Deno.test("chunks after data do not narrow the range", () => {
   assertEquals(walkWav(bytes).ranges, [{ offset: 44, length: 460708 }]);
 });
 
-// The multi-`data` rule, and the only fixture that can see it: every other WAV
-// here and in the repo holds exactly one non-empty `data` chunk, so a walk that
-// kept only the first (or only the last) would pass them all. The rule is every
-// non-empty chunk's contents in chunk order — the empty chunk, which sits
-// FIRST, contributes nothing. The by-hand concatenation below is what makes the
-// assertion the join as well as the walk: a walk that answered both ranges but
-// joined them out of order would still fail it.
+// The multi-`data` rule, and the only fixture that can see it: this is the only
+// WAV with more than one non-empty `data` chunk — every other WAV the repo tests
+// against, here and upstream in lib/taglib/tests/data, has exactly one or none —
+// so a walk that kept only the first (or only the last) would pass them all. The
+// rule is every non-empty chunk's contents in chunk order, and the empty chunk
+// sits FIRST, so a walk that took the first `data` without checking its size
+// would answer a zero-length range. The by-hand concatenation below is what
+// makes the assertion the join as well as the walk: a walk that answered both
+// ranges but joined them out of order would still fail it.
+
 Deno.test("WAV payload is every non-empty data chunk, in chunk order", async () => {
   const bytes = Deno.readFileSync(`${WAV_DIR}/synth-multi-data.wav`);
   const walk = walkWav(bytes);

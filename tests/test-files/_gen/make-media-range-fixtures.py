@@ -321,9 +321,12 @@ def synth_wav_pair() -> tuple:
 
 def synth_multi_data_wav() -> bytes:
     """The multi-`data` oracle: RIFF (12) + fmt (8+16) + an EMPTY `data` (8+0)
-    + `data` (8+16) + `data` (8+8). Every other WAV fixture here and in the
-    repo holds exactly one non-empty `data` chunk, so a walk that kept only the
-    first, or only the last, would pass all of them.
+    + `data` (8+16) + `data` (8+8). The only fixture with more than one
+    non-empty `data` chunk — every other WAV here and upstream in
+    lib/taglib/tests/data has exactly one, or none at all
+    (`zero-size-chunk.wav`, `segfault.wav`) — which is what makes it the sole
+    oracle for the multi-chunk rule: a walk that kept only the first, or only
+    the last, would pass every other WAV the repo tests against.
 
     The rule is every non-empty `data` chunk's contents in chunk order, which
     puts the ranges at 52 (16 bytes) and 76 (8 bytes) — the offsets
