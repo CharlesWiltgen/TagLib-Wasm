@@ -52,8 +52,8 @@ npm install taglib-wasm
 ```
 
 > **Note:** Requires Node.js v24 or higher (the Active LTS line) for WASI and
-> WebAssembly exception handling support. To consume the package as TypeScript
-> source (e.g., via `tsx`), see the
+> WebAssembly exception handling support. To consume the package as TypeScript source
+> (e.g., via `tsx`), see the
 > [installation guide](https://charleswiltgen.github.io/TagLib-Wasm/guide/installation.html).
 
 ### Deno
@@ -118,8 +118,8 @@ const taglib = await TagLib.initialize({ wasmBinary });
 ```
 
 Supplying `wasmBinary` selects the Emscripten backend (the bytes above are
-`taglib-web.wasm`, its artifact). The WASI backend loads from a filesystem path
-or URL instead — use `wasmUrl` with it.
+`taglib-web.wasm`, its artifact). The WASI backend loads from a filesystem
+path or URL instead — use `wasmUrl` with it.
 
 ## Quick Start
 
@@ -241,8 +241,8 @@ console.log(`${singles.length} singles, ${unmatched.length} unmatched`);
 ```
 
 The disc-folder grammar (`discFolderInfo`) and the pure `groupAlbums` core are
-Wasm-free — import them from the dedicated subpath in browser/UI contexts (no
-TagLib runtime is loaded):
+Wasm-free — import them from the dedicated subpath in browser/UI contexts
+(no TagLib runtime is loaded):
 
 ```typescript
 import { discFolderInfo, groupAlbums } from "taglib-wasm/disc-folder";
@@ -284,8 +284,7 @@ file.setRating(0.8);
 file.save();
 ```
 
-See the
-[Track Ratings Guide](https://charleswiltgen.github.io/TagLib-Wasm/guide/ratings.html)
+See the [Track Ratings Guide](https://charleswiltgen.github.io/TagLib-Wasm/guide/ratings.html)
 for RatingUtils API and cross-format conversion details.
 
 ### Working with Chapters
@@ -341,11 +340,11 @@ file.save();
 
 `getBext()` / `setBext()` (WAV and FLAC only) parse and serialize the BWF
 Broadcast Audio Extension chunk; `getBextData()` / `setBextData()` expose the
-raw chunk bytes for vendor extensions or malformed chunks, and
-`setBextData(null)` removes the chunk. iXML is passed through verbatim as a
-string (`setIxml(null)` removes it). The `bext` v2 loudness fields are EBU
-R128-style measurements, distinct from ReplayGain tags. `bwf.decodeBext` /
-`bwf.encodeBext` are also exported for working with raw `bext` bytes directly.
+raw chunk bytes for vendor extensions or malformed chunks, and `setBextData(null)`
+removes the chunk. iXML is passed through verbatim as a string
+(`setIxml(null)` removes it). The `bext` v2 loudness fields are EBU R128-style
+measurements, distinct from ReplayGain tags. `bwf.decodeBext` / `bwf.encodeBext`
+are also exported for working with raw `bext` bytes directly.
 
 ### Raw ID3v2 Frames (Escape Hatch)
 
@@ -365,12 +364,12 @@ file.save();
 
 `data` is the frame body without the 10-byte header; the caller owns the body
 encoding. Bytes round-trip verbatim for frames TagLib does not model. For
-TagLib-modeled IDs (`TIT2`, `APIC`, …): typed getters see a raw write only after
-save+reload; bytes may be normalized by later saves after that reload; and raw
-reads reflect persisted state plus pending raw writes — not pending typed edits
-(backend-dependent). A typed write to the same ID as an existing raw write is
-silently ignored until that raw frame is removed or the file is saved and
-reloaded — raw writes always win within a save. Frames with
+TagLib-modeled IDs (`TIT2`, `APIC`, …): typed getters see a raw write only
+after save+reload; bytes may be normalized by later saves after that reload;
+and raw reads reflect persisted state plus pending raw writes — not pending
+typed edits (backend-dependent). A typed write to the same ID as an existing
+raw write is silently ignored until that raw frame is removed or the file is
+saved and reloaded — raw writes always win within a save. Frames with
 compression/encryption flags are not supported for write (writes emit zero
 flags). `flags` exists on the returned frames for forward compatibility, but
 reads never populate it today — TagLib always blanks header flags when
@@ -403,14 +402,12 @@ always `0`.
 
 Container format vs Codec:
 
-- **Container format** – How audio data and metadata are packaged (e.g., MP4,
-  OGG)
+- **Container format** – How audio data and metadata are packaged (e.g., MP4, OGG)
 - **Codec** – How audio is compressed/encoded (e.g., AAC, Vorbis)
 
 Supported formats:
 
-- **MP4 container** (.mp4, .m4a) – Can contain AAC, ALAC, AC-3, E-AC-3, DTS,
-  FLAC, or Opus
+- **MP4 container** (.mp4, .m4a) – Can contain AAC, ALAC, AC-3, E-AC-3, DTS, FLAC, or Opus
 - **OGG container** (.ogg) – Can contain Vorbis, Opus, FLAC, or Speex
 - **MP3** – Both container and codec (lossy)
 - **FLAC** – Both container and codec (lossless)
@@ -447,8 +444,7 @@ Supported formats:
 `taglib-wasm` is designed to support all formats supported by TagLib:
 
 - **.mp3** – ID3v2 and ID3v1 tags
-- **.aac** – ADTS / raw AAC streams (ID3v2 metadata, read through the MPEG
-  reader)
+- **.aac** – ADTS / raw AAC streams (ID3v2 metadata, read through the MPEG reader)
 - **.m4a/.mp4** – MPEG-4/AAC metadata for AAC and Apple Lossless audio
 - **.flac** – Vorbis comments and audio properties (plus BWF `bext`/iXML)
 - **.ogg** – Ogg container: Vorbis with full metadata support, plus FLAC-in-Ogg
@@ -461,8 +457,7 @@ Supported formats:
 
 ### Batch Processing for Multiple Files
 
-When processing multiple audio files, use the optimized batch APIs for better
-performance:
+When processing multiple audio files, use the optimized batch APIs for better performance:
 
 ```typescript
 import { readMetadataBatch, readTagsBatch } from "taglib-wasm/simple";
@@ -518,8 +513,7 @@ await file.saveToFile(); // Full file loaded only here
 
 ### Runtime Optimization Tiers
 
-taglib-wasm auto-selects the fastest available backend — no configuration
-needed:
+taglib-wasm auto-selects the fastest available backend — no configuration needed:
 
 | Environment              | Backend           | How it works                                           | Performance |
 | ------------------------ | ----------------- | ------------------------------------------------------ | ----------- |
@@ -532,52 +526,78 @@ On Node.js, Deno, and Bun you get WASI automatically — nothing to configure.
 
 Importing the barrel (`taglib-wasm`) does **not** pull in the Folder or Web API:
 every bundler tested here tree-shakes to leaf granularity. Measured on
-taglib-wasm 2.2.3 from a packed tarball (`npm pack`), minified ES2022 ESM
-bundles with esbuild 0.28.2, rollup 4.63.3, vite 8.3.0, and webpack 5.111.1 on
-Node 24.21.0. Figures are minified JavaScript bytes — the ~700 KB Wasm binary is
-loaded at runtime and is not part of the bundle in any scenario below.
+taglib-wasm 2.2.3 installed from a packed tarball (`npm pack` →
+`npm install <tarball>`), minified ES2022 ESM bundles on Node 24.21.0. Figures
+are minified JavaScript bytes — the ~700 KB Wasm binary is loaded at runtime and
+is not part of the bundle in any scenario below.
 
-| Consumer app (nothing else imported)                 | esbuild¹ | rollup¹ | vite¹   | webpack² | esbuild³ | rollup³ |
-| ---------------------------------------------------- | -------- | ------- | ------- | -------- | -------- | ------- |
-| `import { TagLib } from "taglib-wasm"`               | 81,885   | 78,267  | 84,694  | 56,071   | 144,779  | 134,037 |
-| `import { getTagLib } from "taglib-wasm/simple"`     | 81,158   | 78,374  | 83,973  | 56,176   | 145,770  | 134,438 |
-| `import { scanFolder } from "taglib-wasm/folder"`    | 143,164  | 137,800 | 145,818 | —²       | 149,119  | 137,800 |
-| `import { pictureToDataURL } from "taglib-wasm/web"` | 205      | 210     | 923     | —²       | 205      | 210     |
+Each row is a one-file app whose whole body is that import plus the call the row
+names, keeping the imported function reachable (`globalThis.__app = { … }`).
+Exact invocations, so the table can be reproduced:
 
-The first two rows also call `TagLib.initialize()` / `getTagLib()` at top level.
+- **esbuild 0.28.2** — `esbuild <app> --bundle --minify --format=esm
+  --target=es2022 --platform=browser --external=module` for the browser column;
+  the same with `--platform=node` and no `--external` for the Node column.
+- **rollup 4.63.3** — `input: <app>`, plugins `@rollup/plugin-node-resolve`
+  (`{ browser: true, exportConditions: ["browser", "default"] }` for the browser
+  column, default options for the Node column) and `@rollup/plugin-terser`,
+  output `{ format: "esm", inlineDynamicImports: true }`.
+- **vite 8.3.0** — a real app build: `index.html` plus a
+  `<script type="module">` pointing at the entry, `build.minify: "esbuild"`,
+  `target: "es2022"`. Vite builds for the browser.
+- **webpack 5.111.1** — `mode: "production"`, `target: "web"`,
+  `externals: { module: "module" }`. `target: "web"` alone fails on the
+  `import("module")` inside `dist/taglib-wrapper.js`.
 
-¹ browser `exports` condition. ² webpack (`target: "web"`) cannot build the
-`./folder` and `./web` rows: neither subpath has a `browser` condition, so
-webpack resolves the Node-oriented graph and fails on `node:fs` / `node:buffer`
-and the Wasm `new URL`. ³ Node `exports` condition.
+| Consumer app                            | esbuild (browser)¹ | rollup (browser)¹ | vite (app) | webpack (web)² | esbuild (Node)³ | rollup (Node)³ |
+| --------------------------------------- | ------------------ | ----------------- | ---------- | -------------- | --------------- | -------------- |
+| `taglib-wasm` — `TagLib.initialize()`   | 81,991             | 78,374            | 84,802     | 57,141         | 145,056         | 134,312        |
+| `taglib-wasm/simple` — `getTagLib()`    | 81,279             | 78,495            | 84,094     | 57,260         | 146,047         | 134,713        |
+| `taglib-wasm/folder` — `scanFolder`⁴    | —                  | 138,075⁴          | 146,094⁴   | —              | 149,396         | 138,075        |
+| `taglib-wasm/web` — `pictureToDataURL`⁴ | —                  | 210⁴              | 923⁴       | —              | 205             | 210            |
+
+¹ the `browser` `exports` condition. ² `target: "web"`. ³ the Node `exports`
+condition. ⁴ Node-only entry — see below.
+
+**`./folder` and `./web` are Node-only today.** Neither subpath declares a
+`browser` export condition, so a browser-targeted build resolves the
+Node-oriented graph: esbuild `--platform=browser` fails with `Could not resolve
+"node:fs/promises"`, and webpack `target: "web"` fails with four errors
+(`./taglib-web.wasm`, `node:fs`, `node:fs/promises`, `node:buffer`). Vite and
+rollup reach a bundle only by shimming or resolving those Node modules, and what
+they produce for those rows is that same Node-oriented graph — vite also emits
+both `taglib-web.wasm` and `taglib-wasi.wasm` for them. `./rating` and
+`./disc-folder` are pure JavaScript and unaffected. In a browser, take the same
+APIs from `taglib-wasm` or `taglib-wasm/simple`, whose `browser` condition
+selects the browser build.
 
 **The barrel is not a tax.** Adding an API to an import that already loads the
 engine costs only that API. Against the `taglib-wasm` row above (esbuild, Node
-condition): adding `scanFolder` costs **4,377 bytes** and adding
+column): adding `scanFolder` costs **4,377 bytes** and adding
 `pictureToDataURL` costs **187 bytes**, because neither drags in the rest of the
 Folder or Web module tree.
 
 **Entry-point choice is not a size lever.** `taglib-wasm` and
-`taglib-wasm/simple` are within ~1 KB of each other for the same work (`simple`
-is marginally larger: its `getTagLib()` reaches the full `TagLib` class through
-a dynamic import). Pick by API surface, not by size. The lever that does matter
-is the `browser` export condition — a browser-targeted bundle is ~82 KB where a
-Node-targeted one is ~145 KB.
+`taglib-wasm/simple` differ by less than 1 KB in either direction — in a browser
+bundle `simple` is 712 bytes _smaller_, on Node 991 bytes _larger_, because
+`getTagLib()` reaches the full `TagLib` class through a dynamic import. Pick by
+API surface. The lever that does matter is the `browser` export condition: a
+browser-targeted bundle is ~82 KB where a Node-targeted one is ~145 KB.
 
 **`"sideEffects": false`** is set in `package.json`, so a bundler may drop any
 module whose exports go unused. Before that field, importers of the sub-entries
-paid ~17 KB for property-metadata tables kept only because module-level
-initialisation looked impure; now they do not:
+paid ~17 KB for property-metadata tables that were kept only because module-level
+table building looked impure; those bundles are now a few hundred bytes or less.
+Measured with esbuild `--platform=node`, rollup with default `node-resolve`
+options, and vite's app build — the combination under which all four apps build
+under every bundler:
 
-| Consumer app                                    | esbuild off → on | rollup off → on | vite off → on   |
-| ----------------------------------------------- | ---------------- | --------------- | --------------- |
-| `import "taglib-wasm/web"` (uses nothing)       | 17,198 → 21      | 16,329 → 21     | 17,348 → 731    |
-| `import "taglib-wasm/folder"` (uses nothing)    | 17,430 → 21      | 16,380 → 21     | 17,689 → 731    |
-| `pictureToDataURL` from `taglib-wasm/web`       | 17,361 → 184     | 16,497 → 189    | 17,519 → 902    |
-| `import { TagLib } from "taglib-wasm"` (unused) | 81,859 → 81,859  | 78,241 → 78,241 | 83,401 → 83,401 |
-
-The last row is the expected no-op: the engine and loader are genuinely reached,
-so nothing about them is shaken away.
+| Consumer app                                                   | esbuild off → on  | rollup off → on   | vite off → on   |
+| -------------------------------------------------------------- | ----------------- | ----------------- | --------------- |
+| `import "taglib-wasm/web"` (uses nothing)                      | 17,198 → 21       | 16,329 → 21       | 17,348 → 731    |
+| `import "taglib-wasm/folder"` (uses nothing)                   | 17,430 → 21       | 16,380 → 21       | 17,689 → 731    |
+| `pictureToDataURL` from `taglib-wasm/web`                      | 17,361 → 184      | 16,497 → 189      | 17,519 → 902    |
+| `import { TagLib } from "taglib-wasm"`, referenced by `typeof` | 145,596 → 145,030 | 134,337 → 134,286 | 84,278 → 84,278 |
 
 ## Runtime Compatibility
 
@@ -609,8 +629,8 @@ for details on our code of conduct and the process for submitting pull requests.
 This project uses dual licensing:
 
 - **TypeScript/JavaScript code** – MIT License (see [LICENSE](LICENSE))
-- **WebAssembly binaries (taglib-web.wasm, taglib-wasi.wasm)** –
-  LGPL-2.1-or-later (inherited from TagLib)
+- **WebAssembly binaries (taglib-web.wasm, taglib-wasi.wasm)** – LGPL-2.1-or-later
+  (inherited from TagLib)
 
 The TagLib library is dual-licensed under LGPL/MPL. When compiled to
 WebAssembly, the resulting binary must comply with LGPL requirements. This
@@ -626,5 +646,4 @@ For details, see [lib/taglib/COPYING.LGPL](lib/taglib/COPYING.LGPL)
 
 - [TagLib](https://taglib.org/) – Excellent audio metadata library
 - [Emscripten](https://emscripten.org/) – WebAssembly compilation toolchain
-- [WASI](https://wasi.dev/) – WebAssembly System Interface for server-side
-  runtimes
+- [WASI](https://wasi.dev/) – WebAssembly System Interface for server-side runtimes

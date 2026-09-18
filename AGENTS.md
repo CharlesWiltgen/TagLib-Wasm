@@ -419,8 +419,9 @@ import {
 The barrel is tree-shaken to leaf granularity by esbuild, rollup, vite, and
 webpack — importing `TagLib` does not pull in the Folder or Web API, and
 `index` vs `simple` is not a size lever (both are ~82 KB in a browser bundle,
-~145 KB in a Node bundle). `"sideEffects": false` is set. Measured numbers and
-the method: README § "Bundle Size and Tree-Shaking".
+~145 KB in a Node bundle; `./folder` and `./web` are Node-only in a browser
+build). `"sideEffects": false` is set. Measured numbers, the exact bundler
+invocations, and the method: README § "Bundle Size and Tree-Shaking".
 
 ## Key Behaviors
 
