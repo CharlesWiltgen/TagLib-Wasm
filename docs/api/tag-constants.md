@@ -77,8 +77,8 @@ const id3v2Properties = getPropertiesByFormat("ID3v2");
 const vorbisProperties = getPropertiesByFormat("Vorbis");
 ```
 
-See the [tag-constants.ts example](../../examples/common/tag-constants.ts) for a
-complete demonstration.
+See the complete example in
+[`examples/common/tag-constants.ts`](https://github.com/CharlesWiltgen/TagLib-Wasm/blob/main/examples/common/tag-constants.ts).
 
 ## Standard Property Names
 

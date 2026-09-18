@@ -45,7 +45,6 @@ const ALLOWLIST = new Set<string>([
   "PropertyValue", // conditional type resolving a key's value type
   "TagFormat", // internal tag-system discriminator
   "VariantMap", // Record<string, unknown> escape hatch
-  "isDenoCompiled", // internal runtime-detection guard
   "isNamedAudioInput", // internal NamedAudioInput type guard
 ]);
 

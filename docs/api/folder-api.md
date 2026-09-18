@@ -179,9 +179,28 @@ const result = await writeTagsBatch([
 });
 ```
 
-The mutator-callback variant `editTagsBatch(files, mutator, options)` opens each
-file, applies `mutator(audioFile, path)` (the path it was opened from — no order
-coupling), and saves — same options and result contract.
+The mutator-callback variant opens each file, applies `mutator(audioFile, path)`
+(the path it was opened from — no order coupling), and saves:
+
+```typescript
+function editTagsBatch(
+  files: string[],
+  mutator: (audioFile: AudioFile, path: string) => void,
+  options?: BatchOptions,
+): Promise<BatchResult<void>>;
+```
+
+**Parameters:**
+
+- `files` - Paths on disk to open, mutate, and save in place
+- `mutator` - Called once per file with the open `AudioFile` and the `path` it
+  was opened from; changes are saved automatically after it returns. The pair is
+  a per-invocation contract, so a precomputed per-path plan needs no order
+  coupling (a one-argument mutator keeps working)
+- `options` - Same options as `writeTagsBatch()`
+
+**Returns:** Same contract as `writeTagsBatch()` — per-file `ok`/`error` items
+in input order plus `duration`; a failed file is left in its pre-write state.
 
 ### findDuplicates()
 

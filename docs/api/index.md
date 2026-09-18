@@ -40,9 +40,11 @@ JavaScript/TypeScript.
 
 ## Simple API
 
-The Simple API provides the easiest way to read and write audio metadata. All
-functions accept file paths (string), buffers (Uint8Array), ArrayBuffers, or
-File objects.
+The Simple API provides the easiest way to read and write audio metadata. Every
+function takes an [`AudioFileInput`](#audiofileinput) — a file path (string),
+buffers (Uint8Array/ArrayBuffer), a browser `File`, or a
+[`NamedAudioInput`](#namedaudioinput): a buffer paired with a name, so batch
+results can be correlated back to their source.
 
 ### readTags()
 
@@ -50,14 +52,20 @@ Read metadata tags from an audio file.
 
 ```typescript
 function readTags(
-  input: string | Uint8Array | ArrayBuffer | File,
+  input: AudioFileInput,
+  options?: { includeProperties?: string[] },
 ): Promise<ExtendedTag>;
 ```
 
 #### Parameters
 
-- `input`: File path (string), audio data (Uint8Array/ArrayBuffer), or File
-  object
+- `input`: An [`AudioFileInput`](#audiofileinput) — file path (string), audio
+  data (Uint8Array/ArrayBuffer), browser `File`, or `NamedAudioInput`
+- `options`: Optional read options. `includeProperties` names raw WIRE keys
+  (e.g. `"CATALOGNUMBER"`) outside the modeled typed set; matching values
+  surface in `extraProperties` under their exact wire names. Absent keys are
+  omitted, not empty arrays — and read-only: `applyTags()` never writes them
+  back.
 
 #### Returns
 
@@ -105,15 +113,15 @@ Apply metadata tags to an audio file and return the modified buffer.
 
 ```typescript
 function applyTags(
-  input: string | Uint8Array | ArrayBuffer | File,
+  input: AudioFileInput,
   tags: Partial<TagInput>,
 ): Promise<Uint8Array>;
 ```
 
 #### Parameters
 
-- `input`: File path (string), audio data (Uint8Array/ArrayBuffer), or File
-  object
+- `input`: An [`AudioFileInput`](#audiofileinput) — file path (string), audio
+  data (Uint8Array/ArrayBuffer), browser `File`, or `NamedAudioInput`
 - `tags`: Object containing tags to apply (partial update supported, type
   `Partial<TagInput>`)
 
@@ -189,14 +197,14 @@ Read audio properties from a file.
 
 ```typescript
 function readProperties(
-  input: string | Uint8Array | ArrayBuffer | File,
+  input: AudioFileInput,
 ): Promise<AudioProperties>;
 ```
 
 #### Parameters
 
-- `input`: File path (string), audio data (Uint8Array/ArrayBuffer), or File
-  object
+- `input`: An [`AudioFileInput`](#audiofileinput) — file path (string), audio
+  data (Uint8Array/ArrayBuffer), browser `File`, or `NamedAudioInput`
 
 #### Returns
 
@@ -204,16 +212,29 @@ Promise resolving to an `AudioProperties` object:
 
 ```typescript
 interface AudioProperties {
-  duration: number; // Duration in seconds
-  bitrate: number; // Bitrate in kbps
-  sampleRate: number; // Sample rate in Hz
-  channels: number; // Number of channels (1=mono, 2=stereo)
-  bitsPerSample?: number; // Bit depth (e.g., 16, 24)
-  codec?: string; // Audio codec (e.g., "AAC", "ALAC", "MP3", "FLAC", "PCM", "Vorbis")
-  containerFormat?: string; // Container format (e.g., "MP4", "OGG", "MP3", "FLAC")
-  isLossless?: boolean; // True for lossless/uncompressed formats
+  readonly duration: number; // Duration in seconds
+  readonly bitrate: number; // Bitrate in kb/s
+  readonly sampleRate: number; // Sample rate in Hz
+  readonly channels: number; // Number of audio channels
+  readonly bitsPerSample: number; // 0 if not applicable or unknown
+  readonly codec: AudioCodec; // Audio codec (e.g., "AAC", "ALAC", "MP3", "FLAC", "PCM")
+  readonly containerFormat: ContainerFormat; // Container format (e.g., "MP4", "OGG", "MP3", "FLAC")
+  readonly isLossless: boolean; // True for lossless/uncompressed formats
+
+  // Format-specific extras, absent when not meaningful for the format
+  readonly durationMs?: number; // Duration in milliseconds (more precise than `duration`)
+  readonly mpegVersion?: number; // MPEG version (1 or 2, MP3 only)
+  readonly mpegLayer?: number; // MPEG layer (1, 2, or 3, MP3 only)
+  readonly isEncrypted?: boolean; // DRM-encrypted (MP4, ASF)
+  readonly formatVersion?: number; // Format-specific version number (APE, WavPack, TTA, …)
+  readonly bitrateMode?: BitrateMode; // Bitrate mode (MP3 only)
+  readonly outputGainDb?: number; // OpusHead output gain in decibels (Opus only)
 }
 ```
+
+Format-narrowed variants are described by
+[`TypedAudioProperties`](#typedaudioproperties) — e.g. an MP3 gains required
+`mpegVersion`/`mpegLayer` after `file.isFormat("MP3")`.
 
 #### Example
 
@@ -244,14 +265,14 @@ stripped content.
 
 ```typescript
 function clearTags(
-  file: string | Uint8Array | ArrayBuffer | File,
+  file: AudioFileInput,
 ): Promise<Uint8Array>;
 ```
 
 #### Parameters
 
-- `file`: File path (string), audio data (Uint8Array/ArrayBuffer), or File
-  object
+- `file`: An [`AudioFileInput`](#audiofileinput) — file path (string), audio
+  data (Uint8Array/ArrayBuffer), browser `File`, or `NamedAudioInput`
 
 #### Returns
 
@@ -271,14 +292,14 @@ Detect the audio format of a file.
 
 ```typescript
 function readFormat(
-  file: string | Uint8Array | ArrayBuffer | File,
+  file: AudioFileInput,
 ): Promise<FileType | undefined>;
 ```
 
 #### Parameters
 
-- `file`: File path (string), audio data (Uint8Array/ArrayBuffer), or File
-  object
+- `file`: An [`AudioFileInput`](#audiofileinput) — file path (string), audio
+  data (Uint8Array/ArrayBuffer), browser `File`, or `NamedAudioInput`
 
 #### Returns
 
@@ -301,14 +322,14 @@ returns `false` on any error, so it is safe to call on untrusted input.
 
 ```typescript
 function isValidAudioFile(
-  file: string | Uint8Array | ArrayBuffer | File,
+  file: AudioFileInput,
 ): Promise<boolean>;
 ```
 
 #### Parameters
 
-- `file`: File path (string), audio data (Uint8Array/ArrayBuffer), or File
-  object
+- `file`: An [`AudioFileInput`](#audiofileinput) — file path (string), audio
+  data (Uint8Array/ArrayBuffer), browser `File`, or `NamedAudioInput`
 
 #### Returns
 
@@ -331,14 +352,18 @@ presence, and audio dynamics — in one call. Single-file companion to
 
 ```typescript
 function readMetadata(
-  file: string | Uint8Array | ArrayBuffer | File,
+  file: AudioFileInput,
+  options?: { includeProperties?: string[] },
 ): Promise<FileMetadata>;
 ```
 
 #### Parameters
 
-- `file`: File path (string), audio data (Uint8Array/ArrayBuffer), or File
-  object
+- `file`: An [`AudioFileInput`](#audiofileinput) — file path (string), audio
+  data (Uint8Array/ArrayBuffer), browser `File`, or `NamedAudioInput`
+- `options`: Optional read options; `includeProperties` (WIRE keys) surfaces raw
+  values in `tags.extraProperties`, with the same semantics as
+  [`readTags()`](#readtags)
 
 #### Returns
 
@@ -369,15 +394,15 @@ Full API exposes the same digest as `audioFile.mediaChecksum()`.
 
 ```typescript
 function readMediaChecksum(
-  file: string | Uint8Array | ArrayBuffer | File,
+  file: AudioFileInput,
   options?: MediaChecksumOptions,
 ): Promise<MediaChecksum>;
 ```
 
 #### Parameters
 
-- `file`: File path (string), audio data (Uint8Array/ArrayBuffer), or File
-  object
+- `file`: An [`AudioFileInput`](#audiofileinput) — file path (string), audio
+  data (Uint8Array/ArrayBuffer), browser `File`, or `NamedAudioInput`
 - `options`: `MediaChecksumOptions` — `{ basis?: "encoded" | "pcm" }`, defaulting
   to `"encoded"`
 
@@ -559,6 +584,13 @@ interface BatchOptions {
   onProgress?: (processed: number, total: number, currentFile: string) => void;
   /** AbortSignal to cancel the batch operation between chunks */
   signal?: AbortSignal;
+  /**
+   * Raw WIRE keys (e.g. "CATALOGNUMBER") to surface per item under
+   * `extraProperties`, for keys outside the modeled typed set. The PropertyMap
+   * is already fetched per file, so this costs no extra opens. Absent keys are
+   * omitted, not empty arrays.
+   */
+  includeProperties?: string[];
 }
 ```
 
@@ -585,7 +617,7 @@ Read tags from multiple files efficiently.
 
 ```typescript
 function readTagsBatch(
-  files: Array<string | Uint8Array | ArrayBuffer | File>,
+  files: AudioFileInput[],
   options?: BatchOptions,
 ): Promise<BatchResult<ExtendedTag>>;
 ```
@@ -619,9 +651,9 @@ Read audio properties from multiple files efficiently.
 
 ```typescript
 function readPropertiesBatch(
-  files: Array<string | Uint8Array | ArrayBuffer | File>,
+  files: AudioFileInput[],
   options?: BatchOptions,
-): Promise<BatchResult<AudioProperties | null>>;
+): Promise<BatchResult<AudioProperties | undefined>>;
 ```
 
 #### Example
@@ -646,7 +678,7 @@ getting complete metadata.
 
 ```typescript
 function readMetadataBatch(
-  files: Array<string | Uint8Array | ArrayBuffer | File>,
+  files: AudioFileInput[],
   options?: BatchOptions,
 ): Promise<
   BatchResult<{
@@ -781,8 +813,30 @@ const updated = result.items.filter((i) => i.status === "ok").length;
 console.log(`Updated ${updated} files`);
 ```
 
-Mutator-callback variant: `editTagsBatch(files, mutator, options)` — opens each
-file, applies `mutator(audioFile, path)` (the path it was opened from), saves.
+Mutator-callback variant `editTagsBatch()` — opens each file, applies
+`mutator(audioFile, path)`, saves:
+
+```typescript
+function editTagsBatch(
+  files: string[],
+  mutator: (audioFile: AudioFile, path: string) => void,
+  options?: BatchOptions,
+): Promise<BatchResult<void>>;
+```
+
+#### Parameters
+
+- `files`: Paths on disk to open, mutate, and save in place
+- `mutator`: Called once per file with the open `AudioFile` and the `path` it
+  was opened from; changes are saved automatically after it returns. The pair is
+  a per-invocation contract, so a precomputed per-path plan needs no order
+  coupling (a one-argument mutator keeps working)
+- `options`: Same options as `writeTagsBatch()`
+
+#### Returns
+
+Promise with per-file `ok`/`error` items in input order plus `duration` — the
+same result and atomicity contract as `writeTagsBatch()`.
 
 ### findDuplicates()
 
@@ -1017,7 +1071,7 @@ edit(path: string, fn: (file: AudioFile) => void | Promise<void>): Promise<void>
 
 ```typescript
 edit(
-  input: Uint8Array | ArrayBuffer | File,
+  input: Uint8Array | ArrayBuffer | File | NamedAudioInput,
   fn: (file: AudioFile) => void | Promise<void>,
 ): Promise<Uint8Array>
 ```
@@ -1172,21 +1226,30 @@ type FileType =
 Get audio properties (duration, bitrate, sample rate, etc.).
 
 ```typescript
-audioProperties(): AudioProperties | null
+audioProperties(): AudioProperties | undefined
 ```
 
-Returns `AudioProperties` object or `null` if unavailable:
+Returns `AudioProperties` object or `undefined` if unavailable:
 
 ```typescript
 interface AudioProperties {
-  duration: number; // Duration in seconds
-  bitrate: number; // Bitrate in kbps
-  sampleRate: number; // Sample rate in Hz
-  channels: number; // Number of channels
-  bitsPerSample?: number; // Bits per sample (optional)
-  codec?: string; // Audio codec (e.g., "AAC", "ALAC", "MP3", "FLAC", "PCM")
-  containerFormat?: string; // Container format (e.g., "MP4", "OGG", "MP3", "FLAC")
-  isLossless?: boolean; // True for lossless/uncompressed formats
+  readonly duration: number; // Duration in seconds
+  readonly bitrate: number; // Bitrate in kb/s
+  readonly sampleRate: number; // Sample rate in Hz
+  readonly channels: number; // Number of audio channels
+  readonly bitsPerSample: number; // 0 if not applicable or unknown
+  readonly codec: AudioCodec; // Audio codec (e.g., "AAC", "ALAC", "MP3", "FLAC", "PCM")
+  readonly containerFormat: ContainerFormat; // Container format (e.g., "MP4", "OGG", "MP3", "FLAC")
+  readonly isLossless: boolean; // True for lossless/uncompressed formats
+
+  // Format-specific extras, absent when not meaningful for the format
+  readonly durationMs?: number; // Duration in milliseconds (more precise than `duration`)
+  readonly mpegVersion?: number; // MPEG version (1 or 2, MP3 only)
+  readonly mpegLayer?: number; // MPEG layer (1, 2, or 3, MP3 only)
+  readonly isEncrypted?: boolean; // DRM-encrypted (MP4, ASF)
+  readonly formatVersion?: number; // Format-specific version number (APE, WavPack, TTA, …)
+  readonly bitrateMode?: BitrateMode; // Bitrate mode (MP3 only)
+  readonly outputGainDb?: number; // OpusHead output gain in decibels (Opus only)
 }
 ```
 
@@ -1194,7 +1257,8 @@ When the file is narrowed to a specific format (`file.isFormat("OPUS")`), extra
 format-specific fields appear. For Opus, that is `outputGainDb` — the OpusHead
 output gain in decibels (RFC 7845). Players apply it unconditionally; it is
 separate from, and stacks with, ReplayGain / R128 tags, and is almost always
-`0`.
+`0`. See [`TypedAudioProperties`](#typedaudioproperties) for the full per-format
+map.
 
 ##### tag()
 
@@ -1204,19 +1268,20 @@ Get the tag object for reading/writing basic metadata.
 tag(): MutableTag
 ```
 
-Returns a `MutableTag` object with getters and setters for metadata fields:
+Returns a `MutableTag` object with getters and setters for metadata fields. Each
+read field is `undefined` when the tag does not carry it:
 
 ```typescript
 interface MutableTag {
-  // Read properties
-  title: string;
-  artist: string;
-  album: string;
-  comment: string;
-  genre: string;
-  year: number;
-  date?: string; // Full release date (e.g. "1975-10-31"), the lossless companion to `year`. Same underlying tag at higher precision.
-  track: number;
+  // Read properties (readonly; undefined when absent)
+  readonly title: string | undefined;
+  readonly artist: string | undefined;
+  readonly album: string | undefined;
+  readonly comment: string | undefined;
+  readonly genre: string | undefined;
+  readonly year: number | undefined;
+  readonly date: string | undefined; // Full release date (e.g. "1975-10-31"), the lossless companion to `year`. Same underlying tag at higher precision.
+  readonly track: number | undefined;
 
   // Write methods (chainable)
   setTitle(value: string): MutableTag;
@@ -1252,9 +1317,10 @@ properties(): PropertyMap
 Returns:
 
 ```typescript
-interface PropertyMap {
-  [key: string]: string[];
-}
+type PropertyMap =
+  // Modeled keys (from PROPERTIES) are optional and autocompleted
+  & { [K in PropertyKey]?: string[] }
+  & { [key: string]: string[] | undefined };
 ```
 
 ##### setProperties()
@@ -1327,10 +1393,10 @@ Returns an array of `Picture` objects:
 
 ```typescript
 interface Picture {
-  mimeType: string;
-  data: Uint8Array;
-  type: string;
-  description?: string;
+  readonly mimeType: string;
+  readonly data: Uint8Array;
+  readonly type: PictureType;
+  readonly description?: string;
 }
 ```
 
@@ -1996,6 +2062,7 @@ container may hold `AAC` or `ALAC`.
 ```typescript
 type ContainerFormat =
   | "MP3"
+  | "ADTS"
   | "MP4"
   | "FLAC"
   | "OGG"
