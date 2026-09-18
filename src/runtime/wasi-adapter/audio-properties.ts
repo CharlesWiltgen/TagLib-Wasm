@@ -26,6 +26,18 @@ const CONTAINER_TO_FORMAT: Record<string, string> = {
   Matroska: "MATROSKA",
 };
 
+/**
+ * Formats inside the Ogg container. The container alone is not enough: three
+ * of the four codecs TagLib reads there are declared FileType members of their
+ * own ("OPUS", "OggFLAC", "SPEEX"), so Ogg Vorbis is the only flavour that
+ * stays "OGG" (taglib-f6a3). Keyed by the snapshot's codec value.
+ */
+const OGG_CODEC_TO_FORMAT: Record<string, string> = {
+  Opus: "OPUS",
+  FLAC: "OggFLAC",
+  Speex: "SPEEX",
+};
+
 /** The audio-properties block of the C++ snapshot, null when absent. */
 export function getAudioProperties(
   tagData: Record<string, unknown> | null,
@@ -59,7 +71,10 @@ export function getAudioProperties(
   };
 }
 
-/** OGG codec sniffing: "OpusHead" in the first page payload, else OGG. */
+/**
+ * OGG codec sniffing from the first page payload: "OpusHead" (Opus),
+ * 0x7F"FLAC" (FLAC-in-Ogg), "Speex   " (Speex), else Ogg Vorbis ("OGG").
+ */
 export function detectOggCodec(fileData: Uint8Array): string {
   if (fileData.length < 37) return "OGG";
   // OGG page header: "OggS" at 0, then header_type(1), granule(8),
@@ -69,11 +84,18 @@ export function detectOggCodec(fileData: Uint8Array): string {
   if (segCount === undefined) return "OGG";
   const payloadStart = 27 + segCount;
   if (fileData.length < payloadStart + 8) return "OGG";
+  const sig = fileData.slice(payloadStart, payloadStart + 8);
   // Opus: payload starts with "OpusHead"
-  const sig = String.fromCharCode(
-    ...fileData.slice(payloadStart, payloadStart + 8),
-  );
-  if (sig === "OpusHead") return "OPUS";
+  const text = String.fromCharCode(...sig);
+  if (text === "OpusHead") return "OPUS";
+  // FLAC-in-Ogg: the mapping header starts with 0x7F "FLAC" (the native
+  // "fLaC" stream marker follows the mapping version).
+  if (
+    sig[0] === 0x7F && sig[1] === 0x46 && sig[2] === 0x4C &&
+    sig[3] === 0x41 && sig[4] === 0x43
+  ) return "OggFLAC";
+  // Speex: the 5-char name padded to the 8-byte comment-header signature.
+  if (text === "Speex   ") return "SPEEX";
   return "OGG";
 }
 
@@ -89,7 +111,9 @@ export function getFormat(
   const container = tagData?.containerFormat as string | undefined;
   if (container) {
     const codec = tagData?.codec as string | undefined;
-    if (container === "OGG" && codec === "Opus") return "OPUS";
+    if (container === "OGG" && codec && OGG_CODEC_TO_FORMAT[codec]) {
+      return OGG_CODEC_TO_FORMAT[codec];
+    }
     if (CONTAINER_TO_FORMAT[container]) return CONTAINER_TO_FORMAT[container];
   }
 

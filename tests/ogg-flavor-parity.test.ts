@@ -1,24 +1,27 @@
 /// <reference lib="deno.ns" />
 
 /**
- * @fileoverview Ogg flavors beyond Vorbis/Opus: FLAC-in-Ogg and Speex.
+ * @fileoverview Ogg flavors: getFormat() distinguishes Vorbis, FLAC, Speex and
+ * Opus inside the Ogg container.
  *
- * The WASI shim maps all four Ogg branches to container "OGG" and reports the
- * codec (src/capi/taglib_audio_props.cpp:146-159). The Emscripten binding knew
- * only Ogg::Vorbis and Ogg::Opus, so FLAC-in-Ogg and Speex fell through to
- * "unknown" for both codec and container (taglib-irp8).
+ * `FileType` declares "OGG" (Vorbis), "OggFLAC" and "SPEEX" as distinct
+ * members (src/types/audio-formats.ts), but both backends reported "OGG" for
+ * FLAC-in-Ogg and Speex, making the two declared members unreachable and an
+ * Ogg FLAC file indistinguishable from Ogg Vorbis through `getFormat()`
+ * (taglib-f6a3).
  *
- * Backend instances: the Emscripten instance is the defect. The WASI instance
- * is a BASELINE asserting cross-backend agreement — it already passed before
- * the fix, so it cannot fail on this defect.
+ * The WASI shim reports container "OGG" with codec "FLAC"/"Speex" for those
+ * branches (src/capi/taglib_audio_props.cpp:146-159); the Emscripten binding
+ * maps TagLib::Ogg::FLAC::File / Ogg::Speex::File to the OGG file type
+ * (build/taglib_embind.cpp, post-35c7621). The fix derives the file type from
+ * the reported codec on WASI and splits the container mapping on Emscripten.
  *
  * Fixtures are 2s of kiss-snippet run through ffmpeg + flac --ogg / speexenc;
  * regenerate with `tests/test-files/_gen/make-codec-identity-fixtures.sh`.
  *
- * Observed failing against the pre-fix binaries (2026-09-17): the Emscripten
- * instances read container "unknown" (with codec and format "unknown") for both
- * fixtures under the committed build/taglib-web.wasm (sha256 149ab5d1…). The
- * WASI baseline passed under the committed build/taglib-wasi.wasm (3a33b89d…).
+ * Observed failing against the pre-fix sources/binaries (2026-09-18): both
+ * backends returned "OGG" for kiss-snippet-flac.oga and kiss-snippet.spx — see
+ * the ticket's recorded output.
  */
 
 import { assertEquals } from "@std/assert";
@@ -28,17 +31,34 @@ import { forEachBackend } from "./backend-adapter.ts";
 
 const FIXTURE_DIR = join("tests", "test-files");
 
+/** One case per Ogg sub-codec, all four sharing the OGG container. */
 const CASES = [
+  {
+    file: join("ogg", "kiss-snippet.ogg"),
+    ext: "ogg",
+    format: "OGG",
+    codec: "Vorbis",
+    isLossless: false,
+  },
   {
     file: join("oga", "kiss-snippet-flac.oga"),
     ext: "oga",
+    format: "OggFLAC",
     codec: "FLAC",
     isLossless: true,
   },
   {
     file: join("speex", "kiss-snippet.spx"),
     ext: "spx",
+    format: "SPEEX",
     codec: "Speex",
+    isLossless: false,
+  },
+  {
+    file: join("opus", "kiss-snippet.opus"),
+    ext: "opus",
+    format: "OPUS",
+    codec: "Opus",
     isLossless: false,
   },
 ] as const;
@@ -52,8 +72,8 @@ forEachBackend("Ogg flavor labels", (adapter) => {
     await adapter.dispose();
   });
 
-  for (const { file, ext, codec, isLossless } of CASES) {
-    it(`reports ${codec} in an Ogg container for ${file}`, async () => {
+  for (const { file, ext, format, codec, isLossless } of CASES) {
+    it(`reports ${format} for ${file}`, async () => {
       const buffer = await Deno.readFile(join(FIXTURE_DIR, file));
 
       const props = await adapter.readExtendedAudioProperties(buffer, ext);
@@ -61,7 +81,7 @@ forEachBackend("Ogg flavor labels", (adapter) => {
       assertEquals(props.codec, codec);
       assertEquals(props.isLossless, isLossless);
 
-      assertEquals(await adapter.readFormat(buffer, ext), "OGG");
+      assertEquals(await adapter.readFormat(buffer, ext), format);
     });
   }
 });

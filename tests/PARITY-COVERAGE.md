@@ -39,7 +39,7 @@ on a real divergence) over separate per-backend tests.
 
 | Method              | WASI | Emscripten | Paired | Where                                                                                                                                            |
 | ------------------- | :--: | :--------: | :----: | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `getFormat`         |  ✓   |     ✓      |   ✓    | format-detection, id3-format-detection (`forEachBackend`)                                                                                        |
+| `getFormat`         |  ✓   |     ✓      |   ✓    | format-detection, id3-format-detection (`forEachBackend`); ogg-flavor-parity (Vorbis/FLAC/Speex/Opus all four Ogg flavours)                      |
 | `isFormat`          |  ✓   |     ✓      |   ✓    | format-narrowing `[wasi]`/`[emscripten]`                                                                                                         |
 | `isValid`           |  ✓   |     ✓      |   —    | wasi-host (wasi) + taglib.test (emscripten); unpaired                                                                                            |
 | `isMP4`             |  ✓   |     ✓      |   ✓    | mp4-items isMP4 parity (`[${backend}]` loop)                                                                                                     |

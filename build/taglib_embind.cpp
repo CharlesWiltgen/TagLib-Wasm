@@ -751,9 +751,11 @@ public:
         if (dynamic_cast<TagLib::FLAC::File*>(f)) return "FLAC";
         if (dynamic_cast<TagLib::Ogg::Vorbis::File*>(f)) return "OGG";
         if (dynamic_cast<TagLib::Ogg::Opus::File*>(f)) return "OPUS";
-        // Ogg FLAC / Speex are OGG to the WASI adapter too (taglib-irp8).
-        if (dynamic_cast<TagLib::Ogg::FLAC::File*>(f)) return "OGG";
-        if (dynamic_cast<TagLib::Ogg::Speex::File*>(f)) return "OGG";
+        // FLAC-in-Ogg and Speex carry their own declared FileType members
+        // (taglib-f6a3); Ogg Vorbis alone stays "OGG". Twin of the WASI
+        // adapter's codec-derived mapping (audio-properties.ts).
+        if (dynamic_cast<TagLib::Ogg::FLAC::File*>(f)) return "OggFLAC";
+        if (dynamic_cast<TagLib::Ogg::Speex::File*>(f)) return "SPEEX";
         if (dynamic_cast<TagLib::RIFF::WAV::File*>(f)) return "WAV";
         if (dynamic_cast<TagLib::RIFF::AIFF::File*>(f)) return "AIFF";
         if (dynamic_cast<TagLib::WavPack::File*>(f)) return "WV";
