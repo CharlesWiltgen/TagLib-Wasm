@@ -51,20 +51,7 @@
   The digest describes the file, never the handle's memory: a partially loaded
   `File` is read back from its source, so a 1.2 MiB MP3 that `TagLib.open`
   splices into a header+footer window still hashes to the same value its path
-  buffer do. Covered on both backends by `tests/media-checksum.test.ts`.
-- **Tree-shakeable to leaf granularity, and now measured** (taglib-m9k) —
-  `package.json` sets `"sideEffects": false`. Measured on a packed tarball with
-  esbuild 0.28.2, rollup 4.63.3, vite 8.3.0 and webpack 5.111.1: an app that
-  imports only `TagLib` and calls `TagLib.initialize()` pays for the engine and
-  its loader, never for the Folder or Web API — adding `scanFolder` to that same
-  import costs 4,377 bytes (esbuild, Node condition) and adding
-  `pictureToDataURL` costs 187. `taglib-wasm` and `taglib-wasm/simple` land
-  within ~1 KB of each other, so the entry point is not a size lever; which
-  `exports` condition the bundler picks is (~82 KB browser, ~145 KB Node).
-  Without the side-effect hint, bundlers kept ~17 KB of property-metadata tables
-  for sub-entry imports (`./web`, `./folder`) that only looked impure; those
-  bundles are now a few hundred bytes or less. Table, method and versions:
-  README § "Bundle Size and Tree-Shaking".
+  and buffer do. Covered on both backends by `tests/media-checksum.test.ts`.
 
 ### Documentation
 
@@ -75,8 +62,11 @@
   It includes the measured MP3 re-mux caveat (rewriting the Xing/Info
   encoder-header frame is a payload change, so the digest moves without the
   decoded audio changing), the 64 KiB first-frame scan bound, and the FLAC
-  appended-ID3v2 boundary. Every row traces to a walk in
-  `src/taglib/media-ranges.ts` and a pin in `tests/media-checksum-corpus.test.ts`.
+  appended-ID3v2 boundary. Every shape row traces to a walk in
+  `src/taglib/media-ranges.ts` and a pin in `tests/media-checksum-corpus.test.ts`;
+  the last row is `TagLib.open`'s measured error surface rather than a walk — a
+  path is opened and gets the honest whole-file fallback, a buffer is refused
+  before the walk, and the failure differs by input kind and by backend.
 
 ## 2.2.3
 
