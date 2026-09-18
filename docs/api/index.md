@@ -452,7 +452,8 @@ nothing it fails the same way whatever the input form and whichever backend: a
 zero-length input or junk bytes throw `InvalidFormatError`, a path that is not
 there throws `FileOperationError`, and none of them reports a `source`.
 
-**One asymmetry survives, and it is the one to guard against treating a digest as
+**One asymmetry survives — on WASI only; Emscripten reads a path as a buffer, so the
+two forms agree there — and it is the one to guard against treating a digest as
 evidence.** A **buffer** (`Uint8Array`, `ArrayBuffer`, `File`) is refused by
 content. A **path** is opened first, and its file class is chosen by extension —
 so a path whose bytes the parse reads _something_ out of can still answer a

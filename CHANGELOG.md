@@ -71,9 +71,10 @@
   `Uint8Array`/`ArrayBuffer`/`File`, on both backends. `source: "file"` still
   answers for formats with no walk and for a walk that gives up, and a file
   whose head is unreadable but whose audio TagLib does read (an MP3 behind a
-  large APEv2 tag) still opens. **One asymmetry remains, by construction:** a
-  path resolves its file class by extension before anything reads the bytes, so
-  a corrupt file the parse still reads something out of (upstream's
+  large APEv2 tag) still opens. **One asymmetry remains on WASI, by
+  construction** (Emscripten reads a path as a buffer, so the two forms agree
+  there): a path resolves its file class by extension before anything reads the
+  bytes, so a corrupt file the parse still reads something out of (upstream's
   `garbage.mp3`, junk named `.mpc`) answers a digest by path where the identical
   bytes as a buffer throw. That set is pinned in
   `tests/checksum-input-contract.test.ts` (`PATH_ACCEPTS_WHILE_BUFFER_REFUSES`),
