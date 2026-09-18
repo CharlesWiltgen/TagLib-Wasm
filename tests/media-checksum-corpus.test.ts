@@ -657,6 +657,8 @@ Deno.test("a 70 KiB APEv2 tag in front falls back to the whole file", async () =
 // digests must be equal while the files are not: this is the FLAC walk's only
 // *cross-file* anchor here, and it is what fails if the range ever widens into
 // the metadata chain — the padding would be digested, and the two would diverge.
+// The limit of that inference: a range that swallowed only bytes the two files
+// share (the `fLaC` marker and STREAMINFO) would still pass.
 Deno.test("two flac files that differ only in padding hash the same payload", async () => {
   await withTempDir(async (dir) => {
     const flac = Deno.readFileSync(FLAC);
@@ -761,10 +763,11 @@ Deno.test("a byte flipped inside a WAV's bext/iXML chunk leaves the digest alone
       at += 8 + size + (size % 2);
     }
     assert(chunkAt > 0, "fixture carries no bext/iXML chunk");
-    // Five bytes in: past the 4-byte `bext` time-reference and inside the chunk
-    // the size field declares. A shorter chunk means this case is mutating
-    // something other than what it claims (`iXML` is text, so it clears this by
-    // a wide margin), and that must fail rather than pass silently.
+    // Five bytes into the payload: inside the chunk's 256-byte Description field
+    // (the time reference is at payload offset 338) and inside the size the
+    // chunk declares. A shorter chunk means this case is mutating something
+    // other than what it claims (`iXML` is text, so it clears this by a wide
+    // margin), and that must fail rather than pass silently.
     assert(
       chunkSize > 5,
       `${chunkId} chunk declares ${chunkSize} bytes: too small to mutate inside it`,
