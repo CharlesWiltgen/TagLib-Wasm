@@ -186,6 +186,18 @@ const CASES: Case[] = [
     includes: ["no record naming " + WORKFLOW_FILE + " grants publish"],
   },
   {
+    // Both fields the verdict needs are in this listing, but no single record
+    // carries both: record 1 has our repository and no publish permission,
+    // record 2 has publish and another repository. Judging the listing as one
+    // block would find both and pass — the cross-record vouching the guard's
+    // comment and this file's docstring both promise cannot happen.
+    name:
+      "fields split across records: our repository staged, another's publish",
+    listing: staged("1") + stale("2"),
+    code: 1,
+    includes: ["no record naming " + WORKFLOW_FILE + " grants publish"],
+  },
+  {
     name: "record naming our file with no repository or permissions field",
     listing: record({ id: "1", file: WORKFLOW_FILE }),
     code: 0,

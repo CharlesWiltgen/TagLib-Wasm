@@ -11,7 +11,10 @@
 # Reading trust configs needs an authenticated npm session plus a fresh browser
 # 2FA approval, so this cannot run unattended in CI. Exit codes:
 #   0  verified, or unverifiable (no session / 2FA prompt) — caller may proceed
-#   1  definitively broken — caller must not tag
+#   1  definitively broken — caller must not tag. Also used when the listing
+#      cannot be judged at all (the JSON shape, despite the mode pin below):
+#      fail-closed, because a warning there is how a wrong config passes as an
+#      unchecked one.
 #
 # Usage: scripts/check-publish-access.sh
 #
