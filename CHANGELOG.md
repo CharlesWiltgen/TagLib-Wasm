@@ -2,6 +2,29 @@
 
 ## Unreleased
 
+### Fixed
+
+- **`getFormat()` now returns `"OggFLAC"` and `"SPEEX"`** (taglib-f6a3) — both
+  were declared `FileType` members that neither backend could produce:
+  FLAC-in-Ogg and Speex both answered `"OGG"`, so those two members were dead
+  vocabulary and an Ogg FLAC file was indistinguishable from Ogg Vorbis
+  through `getFormat()` (they differed only in `audioProperties().codec`).
+  WASI now derives the file type from the snapshot's codec for the Ogg
+  container and the magic-byte path sniffs the two signatures; the Emscripten
+  binding splits `Ogg::FLAC`/`Ogg::Speex` out of its `"OGG"` arm. The
+  container stays `"OGG"` for all four flavours, `"OGG"` still means Ogg
+  Vorbis, and Opus is unchanged — so a consumer that branches on `"OGG"` needs
+  to know these two are now distinct. Pinned on both backends by
+  `tests/ogg-flavor-parity.test.ts`.
+- **`SUPPORTED_FORMATS` is complete, and the `UnsupportedFormatError` default
+  message with it** (taglib-o04l) — the constant listed 7 formats while the
+  library reads ~24, so an unsupported-format error read as exhaustive while
+  omitting Opus, AAC, APE, WavPack, TrueAudio and the rest. It now carries
+  every `FileType` member except `"unknown"`, keeping the `M4A`/`MKA`
+  extension aliases files actually use, and its contents are pinned by
+  `tests/errors-utilities.test.ts`. taglib-uat8 covers what happens when one of
+  those formats is opened: not every backend reads all of them the same way.
+
 ### Added
 
 - **`mediaChecksum()` / `readMediaChecksum()` — a checksum of a file's MEDIA

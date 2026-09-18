@@ -206,6 +206,28 @@ describe("WasiFileHandle", () => {
     assertEquals(fh.getFormat(), "OGG");
   });
 
+  // The magic-byte path (buffer mode with no container snapshot) tells the Ogg
+  // flavours apart from the first page's payload signature; the stub above
+  // returns an empty snapshot, so getFormat() here never sees a codec.
+  for (
+    const [codec, sig] of [
+      ["OGG", [0x01, 0x76, 0x6F, 0x72, 0x62, 0x69, 0x73, 0x00]], // \x01vorbis
+      ["OggFLAC", [0x7F, 0x46, 0x4C, 0x41, 0x43, 0x01, 0x00, 0x00]], // \x7fFLAC
+      ["SPEEX", [0x53, 0x70, 0x65, 0x65, 0x78, 0x20, 0x20, 0x20]], // "Speex   "
+      ["OPUS", [0x4F, 0x70, 0x75, 0x73, 0x48, 0x65, 0x61, 0x64]], // "OpusHead"
+    ] as const
+  ) {
+    it(`should detect ${codec} from the first Ogg page's payload`, () => {
+      const mock = createMockWasiModule();
+      mock.tl_read_tags = stubTlReadTags(mock);
+
+      const adapter = new WasiToTagLibAdapter(mock);
+      const fh = adapter.createFileHandle();
+      fh.loadFromBuffer(oggPageWithSignature(sig));
+      assertEquals(fh.getFormat(), codec);
+    });
+  }
+
   it("should detect MP4 by ftyp box", () => {
     const mock = createMockWasiModule();
     mock.tl_read_tags = stubTlReadTags(mock);
@@ -697,6 +719,19 @@ describe("writeTagsToWasm", () => {
 });
 
 // --- Test helpers ---
+
+/**
+ * A minimal first Ogg page (BOS flag, one segment) whose payload starts with
+ * `sig`, padded one byte past the 37-byte floor `detectOggCodec` requires.
+ */
+function oggPageWithSignature(sig: readonly number[]): Uint8Array {
+  const page = new Uint8Array(28 + sig.length + 1);
+  page.set([0x4F, 0x67, 0x67, 0x53, 0x00, 0x02], 0); // "OggS", version 0, BOS
+  page[26] = 1; // one segment
+  page[27] = sig.length + 1; // its length
+  page.set(sig, 28);
+  return page;
+}
 
 function createMockWasiModule(): any {
   const memory = new WebAssembly.Memory({ initial: 1 });
