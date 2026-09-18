@@ -283,6 +283,42 @@ wait_for_remote_ci() {
     print_success "Remote CI passed — safe to publish"
 }
 
+# A GitHub Environment with required reviewers pauses the publish run at the job
+# that references it. The run has not failed — it is waiting for a human — and
+# `gh run watch` below waits with it for as long as that takes (it has no timeout
+# of its own), so without this notice the pause is indistinguishable from a hung
+# job. Announced before the wait *and* before the --skip-watch early return, since
+# that is the path where nobody is watching the run at all.
+#
+# Both helpers are silent no-ops when there is no gate: the probe is a single
+# read-only API call (read access suffices) and a warning about an approval that
+# does not exist is how real warnings get ignored.
+release_environment_rules() {
+    # Protection-rule types on the 'release' environment, comma-joined. Empty when
+    # the environment does not exist yet, carries no rules, or the API is
+    # unreadable — each of which means "no approval gate to announce".
+    gh api "repos/CharlesWiltgen/TagLib-Wasm/environments" \
+        --jq '[.environments[] | select(.name == "release") | .protection_rules[].type] | join(",")' \
+        2>/dev/null || true
+}
+
+# Print what the approval pause looks like and how to clear it. $1 is the run id;
+# $2 is the rules string from release_environment_rules, passed in so the caller
+# probes once and reuses the answer.
+announce_approval_gate() {
+    local run_id=$1
+    [[ "${2:-}" == *required_reviewers* ]] || return 0
+
+    print_warning "The 'release' environment requires a reviewer: the run pauses before it publishes"
+    print_warning "anything to npm until someone approves that deployment. A pause is not a failure."
+    print_warning "Approve in the UI: https://github.com/CharlesWiltgen/TagLib-Wasm/actions/runs/$run_id"
+    print_warning "  (the approval names the workflow, ref and commit — check they are the intended release)"
+    print_warning "Or from the terminal (a required reviewer's own credentials; taken from the REST docs):"
+    print_warning "  gh api repos/CharlesWiltgen/TagLib-Wasm/actions/runs/$run_id/pending_deployments"
+    print_warning "  gh api -X POST repos/CharlesWiltgen/TagLib-Wasm/actions/runs/$run_id/pending_deployments \\"
+    print_warning "    --input - <<< '{\"environment_ids\":[<id from the GET above>],\"state\":\"approved\",\"comment\":\"approved\"}'"
+}
+
 # Function to dispatch the publish workflow and report the outcome
 publish_release() {
     local version=$1
@@ -355,8 +391,16 @@ publish_release() {
     print_success "Publish run queued: https://github.com/CharlesWiltgen/TagLib-Wasm/actions/runs/$run_id"
     print_warning "The workflow tags and releases v$version only after JSR, npm, and GitHub Packages all have it."
 
+    local gate_rules
+    gate_rules=$(release_environment_rules)
+    announce_approval_gate "$run_id" "$gate_rules"
+
     if [ "${SKIP_PUBLISH_WATCH:-}" = "1" ]; then
         print_warning "SKIP_PUBLISH_WATCH=1 — not waiting for the publish result"
+        if [[ "$gate_rules" == *required_reviewers* ]]; then
+            print_warning "That run still needs its deployment approved before the npm leg can publish;"
+            print_warning "nothing here will wait for it, and the release sits where it is until someone does."
+        fi
         return 0
     fi
 
