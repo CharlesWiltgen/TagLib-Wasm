@@ -77,7 +77,7 @@ file.setChapters(chapters, { mp4ChapterStyle: "both" });
 | `"nero"`                | a Nero `chpl` atom        | ffmpeg, foobar2000, MP4Box                    | ignored by Apple devices; **max 255 chapters**                                    |
 | `"both"`                | both of the above         | everything                                    | with >255 chapters the QuickTime track gets all, the Nero atom gets the first 255 |
 
-The structure(s) you don't select are removed, so the file ends up with exactly
+The structures you don't select are removed, so the file ends up with exactly
 what you asked for. `mp4ChapterStyle` is ignored for MP3 (which always writes
 ID3v2 `CHAP` frames).
 

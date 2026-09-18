@@ -2,7 +2,7 @@
 
 This guide covers the fastest and most efficient methods for processing album folders with TagLib-Wasm.
 
-## 🚀 Quick Start: Process Album in 5 Seconds
+## 🚀 Quick Start: Process an Album in One Batch
 
 ```typescript
 import { readMetadataBatch } from "taglib-wasm/simple";
@@ -10,12 +10,12 @@ import { readdir } from "fs/promises";
 import { join } from "path";
 
 async function processAlbum(albumPath: string) {
-  // Get all audio files
-  const files = await readdir(albumPath);
+  // Get all audio files (recursive, so CD1/CD2 subfolders are included)
+  const files = await readdir(albumPath, { recursive: true });
   const audioFiles = files
     .filter((f) => /\.(mp3|flac|m4a|ogg)$/i.test(f))
     .map((f) => join(albumPath, f))
-    .sort(); // Ensure track order
+    .sort(); // Lexicographic by path — track order comes from the tags
 
   // Process all tracks in parallel (10-20x faster than sequential)
   const result = await readMetadataBatch(audioFiles, {
@@ -25,18 +25,23 @@ async function processAlbum(albumPath: string) {
   return result;
 }
 
-// Process a 20-track album in ~5 seconds instead of ~100 seconds!
 const album = await processAlbum("/music/Pink Floyd - The Wall");
 ```
 
 ## Performance Comparison
 
-| Method                          | Time for 20 tracks | Speed          |
-| ------------------------------- | ------------------ | -------------- |
-| Sequential `readTags()`         | ~100 seconds       | 1x (baseline)  |
-| **Batch `readTagsBatch()`**     | **~5 seconds**     | **20x faster** |
-| **Batch `readMetadataBatch()`** | **~6 seconds**     | **17x faster** |
-| Folder API `scanFolder()`       | ~10 seconds        | 10x faster     |
+Batch reading runs a bounded pool of workers over the file list, so wall-clock
+time tracks the slowest file instead of the sum of all of them. The speedup over
+reading tracks one at a time is consistently **10-20x**; the exact figure depends
+on disk speed, file count, and format. Measure your own album before tuning
+`concurrency`:
+
+| Method                          | Relative speed | Notes                                    |
+| ------------------------------- | -------------- | ---------------------------------------- |
+| Sequential `readTags()`         | 1x (baseline)  | one file at a time                       |
+| **Batch `readTagsBatch()`**     | **10-20x**     | tags only                                |
+| **Batch `readMetadataBatch()`** | **10-20x**     | tags, properties, and cover-art presence |
+| Folder API `scanFolder()`       | ~10x           | recursive walk, fixed concurrency of 4   |
 
 ## Complete Album Analysis
 
@@ -73,12 +78,12 @@ interface TrackInfo {
 }
 
 async function analyzeAlbum(albumPath: string): Promise<AlbumAnalysis> {
-  // Get all audio files
-  const files = await readdir(albumPath);
+  // Get all audio files, including multi-disc CD1/CD2 subfolders
+  const files = await readdir(albumPath, { recursive: true });
   const audioFiles = files
     .filter((f) => /\.(mp3|flac|m4a|ogg)$/i.test(f))
     .map((f) => join(albumPath, f))
-    .sort();
+    .sort(); // Lexicographic by path; tracks are re-sorted by tag below
 
   if (audioFiles.length === 0) {
     throw new Error("No audio files found in directory");
@@ -201,7 +206,9 @@ async function checkAlbumCompleteness(albumPath: string) {
     missingReplayGain: [],
   };
 
-  for (const { path, data } of result.items) {
+  for (const item of result.items) {
+    if (item.status !== "ok") continue; // narrow the ok/error union
+    const { path, data } = item;
     const filename = basename(path);
 
     if (!data.tags.title?.[0]) issues.missingTitles.push(filename);
@@ -284,12 +291,12 @@ await updateAlbumMetadata("/music/Album", {
 
 ```typescript
 import { applyCoverArt, readMetadataBatch } from "taglib-wasm/simple";
-import { readFile } from "fs/promises";
+import { readFile, writeFile } from "fs/promises";
 
 async function addAlbumArt(albumPath: string, artworkPath: string) {
   const files = await getAudioFiles(albumPath);
   const artworkData = await readFile(artworkPath);
-  const mimeType = getMimeType(artworkPath); // e.g., "image/jpeg"
+  const mimeType = getMimeType(artworkPath); // see Helper Functions below
 
   // Check which files need artwork
   const metadata = await readMetadataBatch(files, { concurrency: 8 });
@@ -326,6 +333,8 @@ async function addAlbumArt(albumPath: string, artworkPath: string) {
 ### 4. Generate Album Report
 
 ```typescript
+// Needs `writeFile` from "fs/promises"; analyzeAlbum() and formatDuration() are
+// defined above.
 async function generateAlbumReport(albumPath: string): Promise<string> {
   const analysis = await analyzeAlbum(albumPath);
 
@@ -474,7 +483,7 @@ async function safeAlbumProcess(albumPath: string) {
   } catch (error) {
     return {
       success: false,
-      error: error.message,
+      error: error instanceof Error ? error.message : String(error),
     };
   }
 }
@@ -483,9 +492,9 @@ async function safeAlbumProcess(albumPath: string) {
 ## Helper Functions
 
 ```typescript
-// Get all audio files from a directory
+// Get all audio files from a directory, including CD1/CD2 subfolders
 async function getAudioFiles(dirPath: string): Promise<string[]> {
-  const files = await readdir(dirPath);
+  const files = await readdir(dirPath, { recursive: true });
   return files
     .filter((f) => /\.(mp3|flac|m4a|ogg|opus|wav)$/i.test(f))
     .map((f) => join(dirPath, f))
@@ -494,8 +503,8 @@ async function getAudioFiles(dirPath: string): Promise<string[]> {
 
 // Detect MIME type from file extension
 function getMimeType(filePath: string): string {
-  const ext = filePath.toLowerCase().split(".").pop();
-  const mimeTypes = {
+  const ext = filePath.toLowerCase().split(".").pop() ?? "";
+  const mimeTypes: Record<string, string> = {
     "jpg": "image/jpeg",
     "jpeg": "image/jpeg",
     "png": "image/png",
@@ -506,3 +515,10 @@ function getMimeType(filePath: string): string {
   return mimeTypes[ext] || "image/jpeg";
 }
 ```
+
+## Next Steps
+
+- [Folder Operations](./folder-operations.md) — `scanFolder()` walks an album
+  directory for you, and `scanForAlbums()` groups tracks into albums and discs
+- [Cover Art](./cover-art.md) — read, replace, remove, and export the embedded
+  pictures this guide only counts

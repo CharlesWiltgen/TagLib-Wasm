@@ -1,7 +1,6 @@
 # WebAssembly Streaming Compilation
 
-TagLib-Wasm automatically leverages WebAssembly streaming APIs for optimal
-performance when loading from network sources.
+TagLib-Wasm uses WebAssembly streaming APIs when it loads a network source.
 
 ## How It Works
 
@@ -64,6 +63,10 @@ const ownCdnTaglib = await TagLib.initialize({
 });
 ```
 
+> **Production:** pin an exact version (`taglib-wasm@2.2.3`) rather than
+> `@latest`, so a new release can't swap the Wasm under a running deployment.
+> See [Deno Compile → Tips for Production](./deno-compile.md#tips-for-production).
+
 ### 2. Ensure Proper Server Headers
 
 For optimal streaming, ensure your server returns:
@@ -83,7 +86,8 @@ const taglib = await TagLib.initialize({
     "https://cdn.jsdelivr.net/npm/taglib-wasm@latest/dist/taglib-web.wasm",
 });
 console.timeEnd("TagLib initialization");
-// Typical: 200-400ms with streaming, 400-800ms without
+// The first call includes the Wasm download; the second is served from cache.
+// Compare cold with warm on your own machine and network — see the note below.
 ```
 
 ## When Streaming Isn't Used
@@ -101,14 +105,17 @@ begins.
 
 ## Performance Comparison
 
-| Loading Method  | Typical Time | Memory Peak | Streaming Used |
-| --------------- | ------------ | ----------- | -------------- |
-| CDN URL         | 200-400ms    | ~5MB        | ✅ Yes         |
-| Local File      | 100-200ms    | ~10MB       | ❌ No          |
-| Embedded Binary | 150-250ms    | ~10MB       | ❌ No          |
-| ArrayBuffer     | 300-500ms    | ~10MB       | ❌ No          |
+| Loading Method  | Source     | Streaming Used | What streaming buys                                  |
+| --------------- | ---------- | -------------- | ---------------------------------------------------- |
+| CDN URL         | network    | ✅ Yes         | the ~700 KB download is compiled as it arrives       |
+| Local File      | filesystem | ❌ No          | nothing — the file is read, then compiled            |
+| Embedded Binary | app binary | ❌ No          | nothing — the bytes are in the binary, then compiled |
+| ArrayBuffer     | caller     | ❌ No          | nothing — you already hold the bytes                 |
 
-_Times measured on modern hardware with fast internet connection_
+Startup time depends on the machine, the ~700 KB Wasm download, and network
+latency, so measure instead of extrapolating: run the `console.time` block above
+twice, once cold (empty HTTP cache) and once warm, on your target hardware and
+connection.
 
 ## Technical Details
 
@@ -129,5 +136,10 @@ if (!binary && typeof WebAssembly.instantiateStreaming == "function") {
 }
 ```
 
-This means you get streaming benefits automatically without any configuration
-needed!
+This means streaming happens automatically, with no configuration.
+
+## Next Steps
+
+- [Memory Management](../concepts/memory-management.md) — how the Wasm heap is
+  sized, and when `using` or `dispose()` releases a file's memory
+- [Performance Guide](../concepts/performance.md) — tuning beyond startup

@@ -289,21 +289,34 @@ const WASM_URL = Deno.env.get("TAGLIB_WASM_URL") ||
 
 ## Comparison Table
 
-| Method         | Offline Support | Binary Size | Implementation Complexity | Best For                   |
-| -------------- | --------------- | ----------- | ------------------------- | -------------------------- |
-| CDN Loading    | ❌              | Small       | Simple                    | Online tools, web services |
-| Auto Embedding | ✅              | +500KB      | Medium                    | CLI tools, offline apps    |
-| Manual Control | ✅              | +500KB      | Complex                   | Custom requirements        |
+One row per method, in the order they appear above:
+
+| Method                                            | Offline Support  | Binary Size | Complexity | Best For                     |
+| ------------------------------------------------- | ---------------- | ----------- | ---------- | ---------------------------- |
+| 1. Auto-Detection (`TagLib.initialize()`)         | ✅ when embedded | +500KB      | Simple     | Most compiled binaries       |
+| 2. CDN Loading (`wasmUrl`)                        | ❌               | Small       | Simple     | Online tools, web services   |
+| 3. Explicit Helper (`initializeForDenoCompile()`) | ✅ when embedded | +500KB      | Medium     | A custom embedded Wasm path  |
+| 4. Manual Control (`wasmBinary`)                  | ✅ when embedded | +500KB      | Complex    | A custom resolution strategy |
+
+Methods 1 and 3 both load an embedded Wasm — they differ only in whether you
+call `TagLib.initialize()` or `initializeForDenoCompile()` with your own path.
+Method 4 reimplements the same strategies by hand.
 
 ## Best Practices
 
-1. **Use TypeScript**: Leverage type safety for better development experience
-2. **Handle Errors**: Always wrap initialization in try-catch blocks
-3. **Provide Feedback**: Show loading status to users
-4. **Test Both Modes**: Ensure your app works in both development and compiled
-   modes
-5. **Document Dependencies**: Make it clear if your tool requires internet
-   access
+1. **Embed the Wasm for offline support** — compile with
+   `--include taglib-web.wasm`, or run `prepareWasmForEmbedding()` in a build
+   step. Without an embedded Wasm, a compiled binary falls back to a CDN fetch
+   and fails with no network.
+2. **Resolve the embedded file through `deno-compile://`** — inside a compiled
+   binary `Deno.mainModule` is a `deno-compile://` URL, so resolve the Wasm
+   relative to it (see [Path Resolution](#3-path-resolution)) rather than to your
+   source tree.
+3. **Expect a missing embedded Wasm** — `TagLib.initialize()` warns and falls
+   back to the CDN when it can't resolve the file. A build that forgot
+   `--include` still runs, but only online.
+4. **Handle an unreachable CDN** — a CDN-only binary that runs offline fails at
+   initialization. Surface that error; the library stays uninitialized.
 
 ## Common Issues and Solutions
 
@@ -337,6 +350,3 @@ Complete working examples are available in the repository:
 - **Use your own CDN**: Host the WASM file on your infrastructure for
   reliability
 - **Version pinning**: Use specific versions instead of `@latest` for stability
-- **Progress indicators**: Show download progress when fetching from CDN
-- **Graceful degradation**: Provide meaningful error messages when
-  initialization fails

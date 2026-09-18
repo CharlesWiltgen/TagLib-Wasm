@@ -40,7 +40,7 @@ you handle yourself:
 const tags = await readTags(audioData);
 
 // Write returns a new buffer (buffer in, buffer out)
-const modified = await applyTags(audioData, { title: "New Title" });
+const written = await applyTags(audioData, { title: "New Title" });
 
 // edit() with a buffer returns the modified Uint8Array
 const modified = await taglib.edit(audioData, (file) => {
@@ -48,9 +48,12 @@ const modified = await taglib.edit(audioData, (file) => {
 });
 ```
 
-::: tip Both modes work everywhere Filesystem platforms can also accept buffers.
-This is useful for processing in-memory data on Node.js/Deno/Bun without
-touching disk. :::
+::: tip Both modes work everywhere
+
+Filesystem platforms can also accept buffers. This is useful for processing
+in-memory data on Node.js/Deno/Bun without touching disk.
+
+:::
 
 ## Deno
 
@@ -136,8 +139,11 @@ a.click();
 URL.revokeObjectURL(url);
 ```
 
-::: tip Bundler required TagLib-Wasm uses ES modules. Use Vite, Webpack, Parcel,
-or another bundler that can resolve `taglib-wasm` and serve the `.wasm` file.
+::: tip Bundler required
+
+TagLib-Wasm uses ES modules. Use Vite, Webpack, Parcel, or another bundler that
+can resolve `taglib-wasm` and serve the `.wasm` file.
+
 :::
 
 ## Web Workers
@@ -152,7 +158,12 @@ and has broader browser support. Choose whichever fits your architecture.
 
 ### SharedWorker (`shared-worker.ts`)
 
+The file needs the WebWorker lib — `/// <reference lib="webworker" />` types
+`self` as `SharedWorkerGlobalScope` and provides `connect`:
+
 ```typescript
+/// <reference lib="webworker" />
+
 import { TagLib } from "taglib-wasm";
 
 const taglib = await TagLib.initialize();
@@ -207,12 +218,16 @@ input?.addEventListener("change", async () => {
 
 ::: warning Limitations
 
-- **Emscripten backend only** — WASI and filesystem paths are not available in
-  workers
+- **Emscripten backend only** — the WASI backend and filesystem paths are not
+  available in workers
 - **Buffer-only** — pass audio data as `ArrayBuffer` or `Uint8Array`
+- **Worker detection works today** — dedicated and shared workers both report
+  the `"worker"` environment (any `WorkerGlobalScope`), so the buffer API is the
+  same as the browser's
+- **Transfer lists are caller-managed** — the library hands back buffers;
+  whether `postMessage()` copies or transfers them is up to your code
 - **SharedWorker browser support varies** —
   [check compatibility](https://caniuse.com/sharedworkers)
-- Full Web Worker support (dedicated workers, transferable buffers) is planned
 
 :::
 
@@ -254,7 +269,7 @@ configuration.
 
 > **Note:** Electron's main process is Node.js. TagLib-Wasm works via the
 > Node.js WASI path — there is no Electron-specific runtime detection or
-> testing. Keep TagLib-Wasm in the main process and expose metadata through IPC.
+> testing.
 
 Electron spans both categories. The **main process** has filesystem access; the
 **renderer process** does not (unless `nodeIntegration` is enabled, which is

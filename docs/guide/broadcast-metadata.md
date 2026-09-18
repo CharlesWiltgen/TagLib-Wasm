@@ -114,9 +114,9 @@ const bytes = bwf.encodeBext({
 });
 ```
 
-`decodeBext()` returns `undefined` only if the input is shorter than 348 bytes
-(can't even read the `Version` field); shorter-than-full v0/v1 chunks parse into
-a partial struct based on the declared version and available length.
+`decodeBext()` returns `undefined` when the input is shorter than 348 bytes —
+the minimum needed to read the `Version` field. A chunk truncated after that
+point parses into a partial struct sized by the declared version.
 
 ## `bext` loudness vs. ReplayGain
 

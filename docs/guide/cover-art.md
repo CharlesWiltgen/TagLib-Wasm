@@ -1,16 +1,17 @@
 # Working with Cover Art
 
-TagLib-Wasm provides comprehensive support for reading, writing, and managing
-embedded pictures in audio files with both basic and advanced APIs.
+TagLib-Wasm reads, writes, replaces, exports, and removes embedded pictures in
+audio files. The Simple API covers the common cases; the `AudioFile` picture
+methods and the standalone helpers below cover per-type management.
 
 ## Quick Cover Art Operations
 
-The Simple API provides the easiest way to work with cover art:
+The Simple API reads and writes the primary cover art:
 
 ```typescript
 import { applyCoverArt, readCoverArt } from "taglib-wasm/simple";
 
-// Extract primary cover art (super simple!)
+// Extract the primary cover art
 const coverData = await readCoverArt("song.mp3");
 if (coverData) {
   await Deno.writeFile("cover.jpg", coverData);
@@ -23,12 +24,12 @@ const modifiedBuffer = await applyCoverArt("song.mp3", imageData, "image/jpeg");
 
 ## File I/O Helpers
 
-Convenient utilities for common cover art operations:
+Import, export, and copy cover art by file path:
 
 ```typescript
 import { copyCoverArt, exportCoverArt, importCoverArt } from "taglib-wasm";
 
-// Export cover art to file (one-liner!)
+// Export cover art to a file
 await exportCoverArt("song.mp3", "cover.jpg");
 
 // Import cover art from file (modifies audio file in place)
@@ -40,7 +41,8 @@ await copyCoverArt("source.mp3", "target.mp3");
 
 ## Browser/Canvas Integration
 
-Special utilities for web applications:
+These helpers work with DOM elements — `<img>`, `<canvas>`, and
+`<input type="file">`:
 
 ```typescript
 import { pictureToDataURL, setCoverArtFromCanvas } from "taglib-wasm/web";
@@ -184,6 +186,10 @@ await updateAlbumArt("album.mp3", "new-cover.jpg");
 ```
 
 ## Picture & Cover Art API
+
+Canonical signatures for the `AudioFile` picture methods live in the
+[API Reference](/api/#picture-cover-art-methods); this section documents the
+standalone helpers.
 
 Lower-level building blocks behind the cover-art helpers above. Functions are
 grouped by where they run: most work everywhere, the **canvas helpers** are
