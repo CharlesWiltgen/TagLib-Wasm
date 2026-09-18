@@ -50,6 +50,7 @@ const JUNK_MPEG_SYNC = Uint8Array.from([
 
 await Deno.writeFile(`${TEMP_DIR}/empty.mp3`, new Uint8Array(0));
 await Deno.writeFile(`${TEMP_DIR}/empty.bin`, new Uint8Array(0));
+await Deno.writeFile(`${TEMP_DIR}/empty.mpc`, new Uint8Array(0));
 await Deno.writeFile(`${TEMP_DIR}/junk.mp3`, JUNK);
 await Deno.writeFile(`${TEMP_DIR}/junk.bin`, JUNK);
 await Deno.writeFile(`${TEMP_DIR}/junk.txt`, JUNK);
@@ -108,6 +109,14 @@ const UNREADABLE: Array<
   [
     "zero-length path (.bin)",
     (dir) => `${dir}/empty.bin`,
+    "throw:INVALID_FORMAT",
+  ],
+  [
+    // The extension whose parser claims a property for zero bytes: an empty
+    // `.mpc` reported sampleRate 44100 and duration 97391, so the content
+    // signals cannot be the authority for a zero-byte file.
+    "zero-length path (.mpc)",
+    (dir) => `${dir}/empty.mpc`,
     "throw:INVALID_FORMAT",
   ],
   ["junk Uint8Array", () => JUNK, "throw:INVALID_FORMAT"],
@@ -641,4 +650,61 @@ describe("a path outside every preopen", () => {
       );
     },
   );
+});
+
+/**
+ * Zero bytes are refused whatever the extension asks for: the parsers that claim
+ * a property for an empty file (MPC does) are the reason this is a size test
+ * rather than a content test. Every extension the corpora carry, on both
+ * backends.
+ */
+const FORMAT_EXTENSIONS = [
+  "mp3",
+  "mp2",
+  "aac",
+  "m4a",
+  "m4b",
+  "mp4",
+  "flac",
+  "wav",
+  "aif",
+  "aiff",
+  "aifc",
+  "ogg",
+  "oga",
+  "opus",
+  "spx",
+  "wma",
+  "asf",
+  "ape",
+  "wv",
+  "tta",
+  "mpc",
+  "shn",
+  "mka",
+  "mkv",
+  "webm",
+  "mod",
+  "s3m",
+  "it",
+  "xm",
+  "dsf",
+  "dff",
+];
+
+describe("zero bytes, extension sweep", () => {
+  for (const backend of BACKENDS) {
+    it(`[${backend.id}] refuses a zero-byte file for every extension`, async () => {
+      backend.enable();
+      for (const ext of FORMAT_EXTENSIONS) {
+        const path = `${TEMP_DIR}/sweep-empty.${ext}`;
+        await Deno.writeFile(path, new Uint8Array(0));
+        assertEquals(
+          await outcome(() => readMediaChecksum(path)),
+          "throw:INVALID_FORMAT",
+          `${backend.id}: empty .${ext} by path`,
+        );
+      }
+    });
+  }
 });

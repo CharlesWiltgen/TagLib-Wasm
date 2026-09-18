@@ -77,9 +77,10 @@ export interface PathOpenHost {
  *
  * Every failure the caller can act on is distinct: `FileOperationError` for a
  * path the host does not have (what the buffer form's own stat answers, so a
- * typo reads the same on both backends), `InvalidFormatError` for content the
- * boundary could not resolve as audio, and the wasm-level errors unchanged.
- * Either content signal above suffices; both saying nothing is a refusal.
+ * typo reads the same on both backends), `InvalidFormatError` for a zero-byte
+ * file (see below) and for content the boundary could not resolve as audio, and
+ * the wasm-level errors unchanged. Either content signal above suffices; both
+ * saying nothing is a refusal.
  *
  * The returned handle is the library-owned one (the WASI brand asserted here,
  * the WASI equivalent of `wrapEmbindHandle`), destroyed on any failure — the
@@ -90,31 +91,32 @@ export async function openAudioPath(
   wasiPath: string,
   displayPath: string,
 ): Promise<WasmFileHandle> {
+  // Two answers are decided before the boundary opens anything, because they are
+  // not judgements about content: a path the host does not have is a file
+  // operation, and a zero-byte file is never audio — the buffer form refuses one
+  // whatever its bytes, and MPEG/MPC/… parse a property out of *nothing* when the
+  // extension asks them to (a 0-byte `.mpc` reported `sampleRate: 44100`,
+  // `duration: 97391` before this check, so the content signals below cannot be
+  // the authority for it).
+  const hostPath = backend.hostModule.hostPathFor(wasiPath);
+  if (hostPath === undefined) {
+    // No preopen covers this path, so the host cannot reach it at all: there is
+    // nothing to read and nothing to recognise.
+    throw new FileOperationError(
+      "read",
+      "The path is outside the WASI preopens this host was created with",
+      displayPath,
+    );
+  }
+  if (await getFileSize(hostPath) === 0) {
+    throw new InvalidFormatError(
+      `The file is empty. Path: ${displayPath}`,
+    );
+  }
+
   const handle = backend.createFileHandle() as WasmFileHandle;
   try {
-    let loaded: boolean;
-    try {
-      loaded = handle.loadFromPath!(wasiPath);
-    } catch (error) {
-      // The boundary does not separate "nothing at this path" from "this is not
-      // audio": a path the host does not have is a file operation, and anything
-      // else is content it could not resolve (the code→class rule in wasm-io.ts
-      // is what raised the error we are holding).
-      if (!(error instanceof InvalidFormatError)) throw error;
-      const hostPath = backend.hostModule.hostPathFor(wasiPath);
-      if (hostPath === undefined) {
-        // No preopen covers this path, so the host cannot reach it at all:
-        // there is nothing to read and nothing to recognise. That is a file
-        // operation, the same answer as a file that is not there.
-        throw new FileOperationError(
-          "read",
-          "The path is outside the WASI preopens this host was created with",
-          displayPath,
-        );
-      }
-      await getFileSize(hostPath);
-      throw error;
-    }
+    const loaded = handle.loadFromPath!(wasiPath);
     if (!loaded) {
       throw new InvalidFormatError(
         `Failed to load audio file. Path: ${displayPath}`,
