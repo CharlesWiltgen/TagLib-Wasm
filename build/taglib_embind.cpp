@@ -35,10 +35,16 @@
 #include <asfproperties.h>
 #include <apefile.h>
 #include <apeproperties.h>
+#include <dsffile.h>
+#include <dsdifffile.h>
 #include <mpcfile.h>
 #include <mpcproperties.h>
 #include <shortenfile.h>
 #include <shortenproperties.h>
+#include <modfile.h>
+#include <s3mfile.h>
+#include <itfile.h>
+#include <xmfile.h>
 #include <matroskafile.h>
 #include <id3v2tag.h>
 #include <id3v2synchdata.h>
@@ -638,9 +644,11 @@ public:
                 length, reinterpret_cast<uint8_t*>(buf.data())));
             memoryView.call<void>("set", jsBuffer);
 
-            char header[12] = {};
-            unsigned int headerLen = length < 12u ? length : 12u;
-            memcpy(header, buf.data(), headerLen);
+            // Sniffed while `buf` still owns its bytes: VectorStream takes
+            // ownership of the storage below, and the tracker signatures need
+            // most of the file (S3M's "SCRM" sits at 44, MOD's tag at 1080), so
+            // a fixed 12-byte header is not enough to see them.
+            const std::string format = detectFormat(buf.data(), buf.size());
 
             stream = std::make_unique<VectorStream>(std::move(buf));
             stream->seek(0, TagLib::IOStream::Beginning);
@@ -660,8 +668,15 @@ public:
             // If FileRef failed, try specific file types based on format detection.
             // Owned locally only until FileRef takes over below — see the
             // taglib-f5hp note on the member declarations.
+            //
+            // The tracker modules are reachable ONLY here: this stream has no
+            // name, so FileRef's extension route cannot fire, and upstream
+            // FileRef::detectByContent has no TAGLIB_WITH_MOD branch (nor does
+            // Mod/S3M/IT/XM expose isSupported()), so content detection can
+            // never resolve them (taglib-uat8). Twin of the WASI shim, which
+            // sniffs and constructs them in src/capi/taglib_boundary.c and
+            // src/capi/taglib_shim.cpp.
             stream->seek(0, TagLib::IOStream::Beginning);
-            std::string format = detectFormat(std::string(header, headerLen));
             std::unique_ptr<TagLib::File> detected;
 
             if (format == "mp3") {
@@ -678,6 +693,14 @@ public:
                 detected.reset(new TagLib::RIFF::AIFF::File(stream.get()));
             } else if (format == "matroska") {
                 detected.reset(new TagLib::Matroska::File(stream.get()));
+            } else if (format == "mod") {
+                detected.reset(new TagLib::Mod::File(stream.get()));
+            } else if (format == "s3m") {
+                detected.reset(new TagLib::S3M::File(stream.get()));
+            } else if (format == "it") {
+                detected.reset(new TagLib::IT::File(stream.get()));
+            } else if (format == "xm") {
+                detected.reset(new TagLib::XM::File(stream.get()));
             }
 
             if (detected && detected->isValid()) {
@@ -768,6 +791,19 @@ public:
         if (dynamic_cast<TagLib::WavPack::File*>(f)) return "WV";
         if (dynamic_cast<TagLib::TrueAudio::File*>(f)) return "TTA";
         if (dynamic_cast<TagLib::ASF::File*>(f)) return "ASF";
+        // Twin of the WASI adapter's CONTAINER_TO_FORMAT table
+        // (src/runtime/wasi-adapter/audio-properties.ts) — every container the
+        // snapshot can name resolves to the same declared FileType on either
+        // backend, "Shorten" -> "SHN" included (taglib-uat8).
+        if (dynamic_cast<TagLib::APE::File*>(f)) return "APE";
+        if (dynamic_cast<TagLib::DSF::File*>(f)) return "DSF";
+        if (dynamic_cast<TagLib::DSDIFF::File*>(f)) return "DSDIFF";
+        if (dynamic_cast<TagLib::MPC::File*>(f)) return "MPC";
+        if (dynamic_cast<TagLib::Shorten::File*>(f)) return "SHN";
+        if (dynamic_cast<TagLib::Mod::File*>(f)) return "MOD";
+        if (dynamic_cast<TagLib::S3M::File*>(f)) return "S3M";
+        if (dynamic_cast<TagLib::IT::File*>(f)) return "IT";
+        if (dynamic_cast<TagLib::XM::File*>(f)) return "XM";
         if (dynamic_cast<TagLib::Matroska::File*>(f)) return "MATROSKA";
 
         return "unknown";
@@ -974,46 +1010,78 @@ public:
     }
     
 private:
-    std::string detectFormat(const std::string& data) const {
-        if (data.size() < 12) return "unknown";
-        
-        const char* d = data.data();
+    // Signature sniffing over the caller's raw buffer. Takes a view rather than
+    // a std::string so the deep signatures cost no copy — the tracker tags sit
+    // at offset 44 (S3M) and 1080 (MOD), well past a 12-byte header read.
+    std::string detectFormat(const char* d, size_t size) const {
+        if (size < 12) return "unknown";
         
         // MP3 - Look for ID3 header or MPEG sync
-        if (data.size() >= 3 && (memcmp(d, "ID3", 3) == 0 || 
-            (data.size() >= 2 && (unsigned char)d[0] == 0xFF && ((unsigned char)d[1] & 0xE0) == 0xE0))) {
+        if (size >= 3 && (memcmp(d, "ID3", 3) == 0 || 
+            (size >= 2 && (unsigned char)d[0] == 0xFF && ((unsigned char)d[1] & 0xE0) == 0xE0))) {
             return "mp3";
         }
         
         // MP4/M4A - Look for ftyp box
-        if (data.size() >= 12 && memcmp(d + 4, "ftyp", 4) == 0) {
+        if (size >= 12 && memcmp(d + 4, "ftyp", 4) == 0) {
             return "mp4";
         }
         
         // FLAC - Look for fLaC signature
-        if (data.size() >= 4 && memcmp(d, "fLaC", 4) == 0) {
+        if (size >= 4 && memcmp(d, "fLaC", 4) == 0) {
             return "flac";
         }
         
         // OGG - Look for OggS signature
-        if (data.size() >= 4 && memcmp(d, "OggS", 4) == 0) {
+        if (size >= 4 && memcmp(d, "OggS", 4) == 0) {
             return "ogg";
         }
         
         // WAV - Look for RIFF header
-        if (data.size() >= 12 && memcmp(d, "RIFF", 4) == 0 && memcmp(d + 8, "WAVE", 4) == 0) {
+        if (size >= 12 && memcmp(d, "RIFF", 4) == 0 && memcmp(d + 8, "WAVE", 4) == 0) {
             return "wav";
         }
         
         // AIFF - Look for FORM header
-        if (data.size() >= 12 && memcmp(d, "FORM", 4) == 0 && memcmp(d + 8, "AIFF", 4) == 0) {
+        if (size >= 12 && memcmp(d, "FORM", 4) == 0 && memcmp(d + 8, "AIFF", 4) == 0) {
             return "aiff";
         }
 
         // Matroska/WebM - EBML signature
-        if (data.size() >= 4 && (unsigned char)d[0] == 0x1A && (unsigned char)d[1] == 0x45 &&
+        if (size >= 4 && (unsigned char)d[0] == 0x1A && (unsigned char)d[1] == 0x45 &&
             (unsigned char)d[2] == 0xDF && (unsigned char)d[3] == 0xA3) {
             return "matroska";
+        }
+
+        // Tracker modules. Byte-for-byte the same signatures the WASI shim's
+        // sniffer uses (src/capi/taglib_boundary.c, detect_format_at) so both
+        // backends accept the same files; order matters only for MOD, whose
+        // 1080-byte offset is the deepest check (taglib-uat8).
+
+        // IT (Impulse Tracker): "IMPM"
+        if (size >= 4 && memcmp(d, "IMPM", 4) == 0) {
+            return "it";
+        }
+
+        // XM (Extended Module): "Extended Module: " header
+        if (size >= 17 && memcmp(d, "Extended Module:", 16) == 0) {
+            return "xm";
+        }
+
+        // S3M (Scream Tracker 3): "SCRM" at offset 44
+        if (size >= 48 && memcmp(d + 44, "SCRM", 4) == 0) {
+            return "s3m";
+        }
+
+        // MOD (ProTracker): channel tag at offset 1080
+        if (size >= 1084) {
+            const char* sig = d + 1080;
+            if (memcmp(sig, "M.K.", 4) == 0 || memcmp(sig, "M!K!", 4) == 0 ||
+                memcmp(sig, "FLT4", 4) == 0 || memcmp(sig, "FLT8", 4) == 0 ||
+                memcmp(sig, "4CHN", 4) == 0 || memcmp(sig, "6CHN", 4) == 0 ||
+                memcmp(sig, "8CHN", 4) == 0) {
+                return "mod";
+            }
         }
 
         return "unknown";

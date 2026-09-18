@@ -4,13 +4,35 @@
 
 import { assertEquals, assertExists } from "@std/assert";
 import { afterAll, beforeAll, type describe, it } from "@std/testing/bdd";
+import type { FileType } from "../src/types.ts";
 import {
   type BackendAdapter,
   extForFormat,
   forEachBackend,
   readFixture,
 } from "./backend-adapter.ts";
-import { type Format, FORMATS } from "./shared-fixtures.ts";
+import { fileExists, type Format, FORMATS } from "./shared-fixtures.ts";
+
+/**
+ * `FileType` members whose only reachable fixture is upstream TagLib's own test
+ * corpus (`lib/taglib/tests/data/`) — nothing in `tests/test-files/` covers
+ * them, which is why their `getFormat()` reachability went unexercised. The
+ * expected value is the declaration spelling from `src/types/audio-formats.ts`,
+ * not the container string the snapshot carries: WASI maps the latter to the
+ * former and answered "unknown" for every one of these nine while
+ * `CONTAINER_TO_FORMAT` had no key for them (taglib-uat8).
+ */
+const NICHE_FORMATS: ReadonlyArray<{ format: FileType; path: string }> = [
+  { format: "APE", path: "lib/taglib/tests/data/mac-399.ape" },
+  { format: "DSF", path: "lib/taglib/tests/data/empty10ms.dsf" },
+  { format: "DSDIFF", path: "lib/taglib/tests/data/empty10ms.dff" },
+  { format: "MPC", path: "lib/taglib/tests/data/click.mpc" },
+  { format: "SHN", path: "lib/taglib/tests/data/2sec-silence.shn" },
+  { format: "MOD", path: "lib/taglib/tests/data/test.mod" },
+  { format: "S3M", path: "lib/taglib/tests/data/test.s3m" },
+  { format: "IT", path: "lib/taglib/tests/data/test.it" },
+  { format: "XM", path: "lib/taglib/tests/data/test.xm" },
+];
 
 forEachBackend("Format Detection", (adapter: BackendAdapter) => {
   beforeAll(async () => {
@@ -68,4 +90,23 @@ forEachBackend("Format Detection", (adapter: BackendAdapter) => {
     }
     assertEquals(threw, true, "tiny buffer should throw");
   });
+});
+
+forEachBackend("Niche Format Detection", (adapter: BackendAdapter) => {
+  beforeAll(async () => {
+    await adapter.init();
+  });
+
+  afterAll(async () => {
+    await adapter.dispose();
+  });
+
+  for (const { format, path } of NICHE_FORMATS) {
+    it(`should report ${format} for ${path.split("/").pop()}`, async () => {
+      if (!fileExists(path)) return;
+      const buffer = await Deno.readFile(path);
+      const ext = path.slice(path.lastIndexOf(".") + 1);
+      assertEquals(await adapter.readFormat(buffer, ext), format);
+    });
+  }
 });

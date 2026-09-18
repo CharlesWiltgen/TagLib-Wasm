@@ -12,6 +12,14 @@ import type {
   ContainerFormat,
 } from "../../types.ts";
 
+/**
+ * Container string (from the C++ snapshot) to declared `FileType`. Every
+ * `ContainerFormat` member has a key here except "unknown"; where the two
+ * unions differ in spelling, this table carries the translation — "Shorten"
+ * (container) is "SHN" (FileType). A container with no key falls through to
+ * the magic-byte sniff and then to "unknown", so a missing key silently
+ * degrades `getFormat()` on the WASI backend only (taglib-uat8).
+ */
 const CONTAINER_TO_FORMAT: Record<string, string> = {
   MP3: "MP3",
   ADTS: "AAC",
@@ -20,9 +28,18 @@ const CONTAINER_TO_FORMAT: Record<string, string> = {
   OGG: "OGG",
   WAV: "WAV",
   AIFF: "AIFF",
-  WavPack: "WV",
-  TTA: "TTA",
   ASF: "ASF",
+  APE: "APE",
+  DSF: "DSF",
+  DSDIFF: "DSDIFF",
+  WavPack: "WV",
+  MPC: "MPC",
+  TTA: "TTA",
+  Shorten: "SHN",
+  MOD: "MOD",
+  S3M: "S3M",
+  IT: "IT",
+  XM: "XM",
   Matroska: "MATROSKA",
 };
 
