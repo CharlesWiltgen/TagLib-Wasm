@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 2.3.0
+
 ### Fixed
 
 - **`getFormat()` now returns `"OggFLAC"` and `"SPEEX"`** (taglib-f6a3) — both
