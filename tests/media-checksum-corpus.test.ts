@@ -19,15 +19,15 @@
  *    systems this repo's writers never produce (hand-written ID3v2.4 and 2.3,
  *    the extended header, the unsynchronisation flag, Lyrics3v2 + ID3v1, APEv2
  *    appended and prepended), an MP4 `free` atom spliced before the first
- *    `mdat`, a byte flipped inside a WAV's non-`data` chunk, and the whole-file
- *    fallback's honesty.
+ *    `mdat`, a byte flipped inside a WAV's non-`data` chunk, two FLACs that
+ *    differ only in padding, and the whole-file fallback's honesty.
  * 2. Tool-guarded — files written by one tool and re-tagged by another, which is
  *    where a producer's own invariants stop holding. Tools: `lame`, `ffmpeg`,
- *    `flac`, `metaflac`. CI's ubuntu-latest ships ffmpeg; the others are
- *    optional, so each case skips when its tool is absent, and the skip reason
- *    is folded into the test's name. They also need `--allow-run`, which
- *    `deno task test` does not grant: under the standard gate the tool class
- *    skips, and the on-demand invocation is
+ *    `flac`, `metaflac`. These are **local-only by design**: every workflow runs
+ *    `deno test` with `--allow-read --allow-write --allow-env` and none grants
+ *    `--allow-run` (.github/workflows/ci.yml, sonarcloud.yml), so the tool class
+ *    skips in CI and under `deno task test` — with the reason folded into the
+ *    test's name. The on-demand invocation, which runs all of them:
  *    `deno test --allow-read --allow-write --allow-env --allow-run tests/media-checksum-corpus.test.ts`.
  *
  * Every generated artifact lives in a `Deno.makeTempDir()` directory removed in
@@ -45,6 +45,7 @@ const M4A = "tests/test-files/mp4/kiss-snippet.m4a";
 const WAV = "tests/test-files/wav/kiss-snippet.wav";
 const OGG = "tests/test-files/ogg/kiss-snippet.ogg";
 const BEXT_WAV = "tests/test-files/wav/bext-ixml.wav";
+const FLAC = "tests/test-files/flac/kiss-snippet.flac";
 
 /** Hex SHA-256 of some bytes: what `source: "file"` promises, and what a payload
  * digest must equal when the payload is one this test derived itself. */
@@ -132,6 +133,29 @@ function apev2Blob(itemBytes: number): Uint8Array {
   return concat(header, item, header);
 }
 
+/** A FLAC with an extra PADDING block of `paddingBytes` zeros spliced in behind
+ * STREAMINFO: the same frames, at a different offset. It is *not* marked last —
+ * whatever block followed STREAMINFO still is. */
+function flacWithPadding(flac: Uint8Array, paddingBytes: number): Uint8Array {
+  // "fLaC" is bytes 0-3, so the first block's header is at 4: one flags/type
+  // byte, then a 24-bit length.
+  const streamInfoLength = (flac[5] << 16) | (flac[6] << 8) | flac[7];
+  const header = new Uint8Array(4);
+  header.set([
+    0x01, // PADDING, last-block flag clear
+    (paddingBytes >> 16) & 0xff,
+    (paddingBytes >> 8) & 0xff,
+    paddingBytes & 0xff,
+  ]);
+  const afterStreamInfo = 8 + streamInfoLength;
+  return concat(
+    flac.subarray(0, afterStreamInfo),
+    header,
+    new Uint8Array(paddingBytes),
+    flac.subarray(afterStreamInfo),
+  );
+}
+
 /** The bytes the digest claims to cover: the walk's ranges, concatenated. A
  * fallback here is a mis-built case, not a valid answer. */
 function payloadBytes(format: string, bytes: Uint8Array): Uint8Array {
@@ -182,9 +206,12 @@ async function assertPayloadIdentity(
   assertEquals(digest.hex, await sha256Hex(payload), `${label}: hex`);
 }
 
-/** The input-form contract, asserted on a file large enough to partial-load: a
- * path, the same bytes, and a File must describe one file — the `File` form must
- * not become the handle's window image. */
+/** The input-form contract: a path, the same bytes, and a File must describe one
+ * file. Called on real multi-minute encodes — of which only the flac here is
+ * large enough (2.3 MB) for the loader's 1 MiB + 128 KiB partition to split the
+ * `File` form into a header+footer window image; the mp3 (0.7 MB) and an m4a
+ * whose `moov` sits at EOF (1.6 MB) stay whole. The contract asserted is the
+ * same one either way. */
 async function assertInputFormsAgree(
   path: string,
   format: string,
@@ -238,39 +265,57 @@ async function writeTemp(
   return path;
 }
 
-/** A synchronous PATH walk — `Deno.Command` would need the very permission this
- * check exists to avoid asking for. */
-function onPath(tool: string): boolean {
-  const names = Deno.build.os === "windows"
-    ? [`${tool}.exe`, `${tool}.cmd`]
-    : [tool];
-  const dirs = (Deno.env.get("PATH") ?? "").split(
-    Deno.build.os === "windows" ? ";" : ":",
-  );
-  for (const dir of dirs) {
-    if (dir.length === 0) continue;
-    for (const name of names) {
-      try {
-        if (Deno.statSync(resolve(dir, name)).isFile) return true;
-      } catch {
-        // Not in this directory; continuing the walk is the point.
+/** Why the tool class cannot run here, or `undefined` when it can. Three gates,
+ * each with its own reason, because a missing *permission* must not read as a
+ * tool that is not installed — and must never fail the file instead of skipping
+ * it: `--allow-env` is what makes the PATH readable, `--allow-read` is what makes
+ * the entries stat-able, and `deno task test` grants neither `--allow-run` nor
+ * anything the tool class needs. */
+function toolSkipReason(tools: string[]): string | undefined {
+  let path: string | undefined;
+  try {
+    path = Deno.env.get("PATH");
+  } catch {
+    return "cannot read PATH (needs --allow-env)";
+  }
+  if (path === undefined || path.length === 0) return "PATH is unset";
+  const dirs = path.split(Deno.build.os === "windows" ? ";" : ":");
+  let unreadable = false;
+  const missing = tools.filter((tool) => {
+    const names = Deno.build.os === "windows"
+      ? [`${tool}.exe`, `${tool}.cmd`]
+      : [tool];
+    for (const dir of dirs) {
+      for (const name of names) {
+        try {
+          if (Deno.statSync(resolve(dir, name)).isFile) return false;
+        } catch (error) {
+          // A stat that never got to look is not a "not found". Deno answers a
+          // missing read grant with `NotCapable`, which is *not* a
+          // `PermissionDenied`.
+          if (
+            error instanceof Deno.errors.NotCapable ||
+            error instanceof Deno.errors.PermissionDenied
+          ) {
+            unreadable = true;
+          }
+        }
       }
     }
+    return true;
+  });
+  if (missing.length > 0) {
+    return unreadable
+      ? `cannot search PATH (needs --allow-read): ${missing.join(", ")}`
+      : `not on PATH: ${missing.join(", ")}`;
   }
-  return false;
-}
-
-/** Why this case cannot run here, or `undefined` when it can. Two gates: every
- * tool must be on PATH, and this invocation must hold `--allow-run` for it —
- * `deno task test` grants read/write/env only, so a case that spawned a tool
- * there would fail on permission instead of skipping. */
-function toolSkipReason(tools: string[]): string | undefined {
-  const missing = tools.filter((tool) => !onPath(tool));
-  if (missing.length > 0) return `not on PATH: ${missing.join(", ")}`;
-  const ungranted = tools.filter((tool) =>
-    Deno.permissions.querySync({ name: "run", command: tool }).state !==
-      "granted"
-  );
+  const ungranted = tools.filter((tool) => {
+    const names = Deno.build.os === "windows" ? [tool, `${tool}.exe`] : [tool];
+    return !names.some((name) =>
+      Deno.permissions.querySync({ name: "run", command: name }).state ===
+        "granted"
+    );
+  });
   if (ungranted.length > 0) {
     return `--allow-run not granted for: ${ungranted.join(", ")}`;
   }
@@ -311,6 +356,57 @@ async function run(tool: string, args: string[]): Promise<void> {
       }`,
     );
   }
+}
+
+/** `/a/b.mp3` -> `/a/b.out.mp3`: a rewrite target with the same extension, so
+ * ffmpeg's muxer selection does not change with the edit. */
+function siblingPath(path: string, infix: string): string {
+  const dot = path.lastIndexOf(".");
+  return `${path.slice(0, dot)}${infix}${path.slice(dot)}`;
+}
+
+/** Re-encodes `path` in place with `flags` and one changed tag: the tool edit the
+ * corpus measures. Whatever bytes this ffmpeg build writes are beside the point —
+ * the assertions compare the digest against the payload, not against a value. */
+async function ffmpegRetag(
+  path: string,
+  flags: string[],
+  metadata: string,
+): Promise<void> {
+  const out = siblingPath(path, ".retagged");
+  await run("ffmpeg", [
+    "-hide_banner",
+    "-loglevel",
+    "error",
+    "-y",
+    "-i",
+    path,
+    "-c",
+    "copy",
+    ...flags,
+    "-metadata",
+    metadata,
+    out,
+  ]);
+  await Deno.rename(out, path);
+}
+
+/** A 180 s 440 Hz sine, written by ffmpeg: the source for the real multi-minute
+ * encodes below. */
+async function makeSineWav(dir: string): Promise<string> {
+  const path = resolve(dir, "long.wav");
+  await run("ffmpeg", [
+    "-hide_banner",
+    "-loglevel",
+    "error",
+    "-y",
+    "-f",
+    "lavfi",
+    "-i",
+    "sine=frequency=440:duration=180",
+    path,
+  ]);
+  return path;
 }
 
 /** The corpus's core tool assertion: the edit must move the digest if and only
@@ -556,6 +652,41 @@ Deno.test("a 70 KiB APEv2 tag in front falls back to the whole file", async () =
   });
 });
 
+// Shape guarded: two FLACs whose frames are the same bytes at different offsets,
+// because only the size of a spliced-in PADDING block differs. The payload
+// digests must be equal while the files are not: this is the FLAC walk's only
+// *cross-file* anchor here, and it is what fails if the range ever widens into
+// the metadata chain — the padding would be digested, and the two would diverge.
+Deno.test("two flac files that differ only in padding hash the same payload", async () => {
+  await withTempDir(async (dir) => {
+    const flac = Deno.readFileSync(FLAC);
+    assertEquals(flac[4] & 0x7f, 0, "fixture must lead with STREAMINFO");
+    const small = flacWithPadding(flac, 4096);
+    const large = flacWithPadding(flac, 65_536);
+    const smallPath = await writeTemp(dir, "pad-4k.flac", small);
+    const largePath = await writeTemp(dir, "pad-64k.flac", large);
+    const a = await readMediaChecksum(smallPath);
+    const b = await readMediaChecksum(largePath);
+    await assertPayloadIdentity("4 KiB padding", "FLAC", small, a);
+    await assertPayloadIdentity("64 KiB padding", "FLAC", large, b);
+    assertEquals(
+      b.hex,
+      a.hex,
+      "the frames are the same bytes, so the payload digests must be equal",
+    );
+    assertEquals(
+      b.bytesHashed,
+      a.bytesHashed,
+      "bytesHashed must be the frames",
+    );
+    assertNotEquals(
+      await sha256Hex(large),
+      await sha256Hex(small),
+      "the two files must differ outside the payload",
+    );
+  });
+});
+
 // Shape guarded: a filler atom no TagLib writer emits, spliced before the first
 // `mdat` — ffmpeg's own +faststart output carries one, so this is a real shape,
 // and the mdat *contents* are untouched: same payload, same digest.
@@ -608,26 +739,38 @@ Deno.test("an MP4 `free` atom before the first mdat leaves the digest alone", as
 
 // Shape guarded: a byte flipped inside a non-`data` chunk (bext/iXML) of a real
 // BWF fixture — the chunk list, not a name list, is what keeps it out of the
-// payload.
+// payload. The flip offset is asserted to be inside that chunk's declared
+// payload, so the case cannot pass by mutating the next chunk's header instead.
 Deno.test("a byte flipped inside a WAV's bext/iXML chunk leaves the digest alone", async () => {
   await withTempDir(async (dir) => {
     const bytes = Deno.readFileSync(BEXT_WAV);
     const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
     let at = 12;
     let chunkAt = -1;
+    let chunkSize = 0;
+    let chunkId = "";
     while (at + 8 <= bytes.length) {
       const id = new TextDecoder().decode(bytes.subarray(at, at + 4));
       const size = view.getUint32(at + 4, true);
       if (id === "bext" || id === "iXML") {
         chunkAt = at + 8;
+        chunkSize = size;
+        chunkId = id;
         break;
       }
       at += 8 + size + (size % 2);
     }
     assert(chunkAt > 0, "fixture carries no bext/iXML chunk");
+    // Five bytes in: past the 4-byte `bext` time-reference and inside the chunk
+    // the size field declares. A shorter chunk means this case is mutating
+    // something other than what it claims (`iXML` is text, so it clears this by
+    // a wide margin), and that must fail rather than pass silently.
+    assert(
+      chunkSize > 5,
+      `${chunkId} chunk declares ${chunkSize} bytes: too small to mutate inside it`,
+    );
     const mutated = bytes.slice();
     mutated[chunkAt + 4] ^= 0xff;
-    assert(mutated[chunkAt + 4] !== bytes[chunkAt + 4], "mutation must land");
     const before = await readMediaChecksum(BEXT_WAV);
     const after = await readMediaChecksum(
       await writeTemp(dir, "bext-mutated.wav", mutated),
@@ -650,22 +793,12 @@ Deno.test("an Ogg file answers the whole file and says so", async () => {
 });
 
 // Shape guarded: the input form must not change the answer — the digest belongs
-// to the file, not to how it was handed over.
+// to the file, not to how it was handed over. Small file, so nothing splices:
+// this is the contract itself, on a file that carries a tag.
 Deno.test("path, buffer and File describe the same file", async () => {
   await withTempDir(async (dir) => {
-    const bytes = Deno.readFileSync(MP3);
-    const path = await writeTemp(dir, "forms.mp3", bytes);
-    const byPath = await readMediaChecksum(path);
-    const byBuffer = await readMediaChecksum(bytes);
-    const byFile = await readMediaChecksum(new File([bytes], "forms.mp3"));
-    assertEquals(byBuffer.hex, byPath.hex, "buffer vs path");
-    assertEquals(byFile.hex, byPath.hex, "File vs path");
-    assertEquals(
-      byFile.bytesHashed,
-      byPath.bytesHashed,
-      "File vs path: bytesHashed",
-    );
-    assertEquals(byBuffer.source, byPath.source, "buffer vs path: source");
+    const path = await writeTemp(dir, "forms.mp3", Deno.readFileSync(MP3));
+    await assertInputFormsAgree(path, "MP3", "forms mp3");
   });
 });
 
@@ -698,23 +831,7 @@ toolTest(
         "lame CBR ffmpeg re-tag",
         "MP3",
         path,
-        async () => {
-          const out = `${path}.out.mp3`;
-          await run("ffmpeg", [
-            "-hide_banner",
-            "-loglevel",
-            "error",
-            "-y",
-            "-i",
-            path,
-            "-c",
-            "copy",
-            "-metadata",
-            "album=Retag",
-            out,
-          ]);
-          await Deno.rename(out, path);
-        },
+        () => ffmpegRetag(path, [], "album=Retag"),
       );
     });
   },
@@ -744,23 +861,7 @@ toolTest(
         "lame VBR ffmpeg re-tag",
         "MP3",
         path,
-        async () => {
-          const out = `${path}.out.mp3`;
-          await run("ffmpeg", [
-            "-hide_banner",
-            "-loglevel",
-            "error",
-            "-y",
-            "-i",
-            path,
-            "-c",
-            "copy",
-            "-metadata",
-            "album=Retag",
-            out,
-          ]);
-          await Deno.rename(out, path);
-        },
+        () => ffmpegRetag(path, [], "album=Retag"),
       );
     });
   },
@@ -768,7 +869,8 @@ toolTest(
 
 // Shape guarded: the flac CLI's own container decisions (seektable, 8 KiB
 // padding) around a metaflac tag edit — the block chain moves, the frames do
-// not, so the digest must not either.
+// not, so the digest must not either. The boundary this walk is anchored on
+// cross-file lives in the always-runs padding case above.
 toolTest(
   "flac CLI with a seektable and padding: metaflac tag edits don't move the digest",
   ["flac", "metaflac"],
@@ -791,9 +893,7 @@ toolTest(
         "flac metaflac re-tag",
         "FLAC",
         path,
-        async () => {
-          await run("metaflac", ["--set-tag=TITLE=Retag", path]);
-        },
+        () => run("metaflac", ["--set-tag=TITLE=Retag", path]),
       );
     });
   },
@@ -822,23 +922,7 @@ toolTest("ffmpeg m4a remux (-c copy)", ["ffmpeg"], async () => {
       "m4a remux",
       "MP4",
       path,
-      async () => {
-        const out = `${path}.out.m4a`;
-        await run("ffmpeg", [
-          "-hide_banner",
-          "-loglevel",
-          "error",
-          "-y",
-          "-i",
-          path,
-          "-c",
-          "copy",
-          "-metadata",
-          "album=Retag",
-          out,
-        ]);
-        await Deno.rename(out, path);
-      },
+      () => ffmpegRetag(path, [], "album=Retag"),
     );
   });
 });
@@ -848,7 +932,7 @@ toolTest("ffmpeg m4a remux (-c copy)", ["ffmpeg"], async () => {
 toolTest("ffmpeg m4a +faststart (moov before mdat)", ["ffmpeg"], async () => {
   await withTempDir(async (dir) => {
     const path = resolve(dir, "faststart.m4a");
-    const movflags = ["-movflags", "+faststart"];
+    const flags = ["-movflags", "+faststart"];
     await run("ffmpeg", [
       "-hide_banner",
       "-loglevel",
@@ -858,7 +942,7 @@ toolTest("ffmpeg m4a +faststart (moov before mdat)", ["ffmpeg"], async () => {
       M4A,
       "-c",
       "copy",
-      ...movflags,
+      ...flags,
       path,
     ]);
     await assertDigestFollowsPayload(
@@ -866,24 +950,7 @@ toolTest("ffmpeg m4a +faststart (moov before mdat)", ["ffmpeg"], async () => {
       "m4a faststart",
       "MP4",
       path,
-      async () => {
-        const out = `${path}.out.m4a`;
-        await run("ffmpeg", [
-          "-hide_banner",
-          "-loglevel",
-          "error",
-          "-y",
-          "-i",
-          path,
-          "-c",
-          "copy",
-          ...movflags,
-          "-metadata",
-          "title=Retag",
-          out,
-        ]);
-        await Deno.rename(out, path);
-      },
+      () => ffmpegRetag(path, flags, "title=Retag"),
     );
   });
 });
@@ -896,7 +963,7 @@ toolTest(
   async () => {
     await withTempDir(async (dir) => {
       const path = resolve(dir, "fragmented.m4a");
-      const movflags = ["-movflags", "frag_keyframe+empty_moov"];
+      const flags = ["-movflags", "frag_keyframe+empty_moov"];
       await run("ffmpeg", [
         "-hide_banner",
         "-loglevel",
@@ -906,7 +973,7 @@ toolTest(
         M4A,
         "-c",
         "copy",
-        ...movflags,
+        ...flags,
         path,
       ]);
       await assertDigestFollowsPayload(
@@ -914,24 +981,7 @@ toolTest(
         "m4a fragmented",
         "MP4",
         path,
-        async () => {
-          const out = `${path}.out.m4a`;
-          await run("ffmpeg", [
-            "-hide_banner",
-            "-loglevel",
-            "error",
-            "-y",
-            "-i",
-            path,
-            "-c",
-            "copy",
-            ...movflags,
-            "-metadata",
-            "title=Retag",
-            out,
-          ]);
-          await Deno.rename(out, path);
-        },
+        () => ffmpegRetag(path, flags, "title=Retag"),
       );
     });
   },
@@ -960,23 +1010,7 @@ toolTest("ffmpeg WAV LIST/INFO tags", ["ffmpeg"], async () => {
       "wav LIST/INFO",
       "WAV",
       path,
-      async () => {
-        const out = `${path}.out.wav`;
-        await run("ffmpeg", [
-          "-hide_banner",
-          "-loglevel",
-          "error",
-          "-y",
-          "-i",
-          path,
-          "-c",
-          "copy",
-          "-metadata",
-          "album=Retag",
-          out,
-        ]);
-        await Deno.rename(out, path);
-      },
+      () => ffmpegRetag(path, [], "album=Retag"),
     );
   });
 });
@@ -1051,54 +1085,39 @@ toolTest("ffmpeg's mp2 output has no tag, so the whole file is payload", [
   });
 });
 
-// Shape guarded: a real multi-minute encode, where the `File` input is large
-// enough to partial-load — the window image must not become the thing hashed.
+// Shape guarded: a real multi-minute encode — 0.7 MB, below the loader's
+// partition threshold, so the three input forms agree without anything splicing.
 toolTest("a real 3-minute lame MP3: path == buffer == File", [
   "lame",
   "ffmpeg",
 ], async () => {
   await withTempDir(async (dir) => {
-    const wav = resolve(dir, "long.wav");
-    await run("ffmpeg", [
-      "-hide_banner",
-      "-loglevel",
-      "error",
-      "-y",
-      "-f",
-      "lavfi",
-      "-i",
-      "sine=frequency=440:duration=180",
-      wav,
-    ]);
+    const wav = await makeSineWav(dir);
     const path = resolve(dir, "long.mp3");
     await run("lame", ["--quiet", "-V", "4", "--tt", "Long", wav, path]);
     await assertInputFormsAgree(path, "MP3", "long mp3");
   });
 });
 
+// Shape guarded: the same, at 2.3 MB — measured to be the one case here whose
+// `File` form really does partition (the handle's image is the 1,179,648-byte
+// header+footer window), so this is where "the digest belongs to the file" is
+// asserted on a partial handle.
 toolTest("a real 3-minute flac: path == buffer == File", [
   "flac",
   "ffmpeg",
 ], async () => {
   await withTempDir(async (dir) => {
-    const wav = resolve(dir, "long.wav");
-    await run("ffmpeg", [
-      "-hide_banner",
-      "-loglevel",
-      "error",
-      "-y",
-      "-f",
-      "lavfi",
-      "-i",
-      "sine=frequency=440:duration=180",
-      wav,
-    ]);
+    const wav = await makeSineWav(dir);
     const path = resolve(dir, "long.flac");
     await run("flac", ["--silent", "--force", "--best", "-o", path, wav]);
     await assertInputFormsAgree(path, "FLAC", "long flac");
   });
 });
 
+// Shape guarded: a real 1.6 MB m4a that does *not* partition (measured: a plain
+// `-c:a aac` leaves `moov` at EOF, past the header window) — a large foreign
+// encode where all three forms must still agree.
 toolTest(
   "a real 3-minute m4a: path == buffer == File",
   ["ffmpeg"],
