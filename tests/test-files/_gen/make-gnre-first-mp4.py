@@ -1,31 +1,34 @@
 #!/usr/bin/env python3
 """Build an MP4 whose ilst carries a numeric `gnre` atom relative to the string ©gen.
 
-Reproducer for taglib-lna2 (MP4 genre precedence / fidelity loss), re-verified
-against the pinned TagLib 2.3.2 on 2026-09-16 with a valid ©gen text atom
-(flags=1, locale=0 — a swapped pair makes the item invalid and it disappears at
-parse, which silently invalidates the experiment):
+Fixture generator for taglib-lna2 (MP4 genre precedence / fidelity loss),
+re-verified against the pinned TagLib 2.3.2 on 2026-09-16 with a valid ©gen text
+atom (flags=1, locale=0 — a swapped pair makes the item invalid and it
+disappears at parse, which silently invalidates the experiment):
 
   omit   -> ©gen only ("Rock & Roll")      readTags().genre -> ["Rock & Roll"]
+  only   -> gnre only (no ©gen)            readTags().genre -> ["Rock"]
   before -> gnre, then ©gen                readTags().genre -> ["Rock"]
   after  -> ©gen, then gnre                readTags().genre -> ["Rock & Roll"]
 
-That is the first-wins signature: whichever atom parses first is kept, so a
-gnre-first file loses the string genre. A no-op read-modify-write on the
-`before` file then rewrites ©gen on disk from "Rock & Roll" to "Rock" on both
-backends; `readTags` -> `applyTags` does the same.
+`before`/`after` are the first-wins signature: whichever atom parses first is
+kept, so a gnre-first file loses the string genre. `omit` is the control that
+proves ©gen parses on its own; `only` is the fallback arm — the ID3v1 table
+name is the only genre there is, and the fix must not change it.
 
 Upstream cause: MP4::ItemFactory folds gnre into the ©gen item
 (mp4itemfactory.cpp parseGnre -> ID3v1::genre(idx - 1)) and
 MP4::Tag::addItem is first-wins (mp4tag.cpp), so the second atom is discarded
-at parse time.
+at parse time. The fix is ours, not upstream's: src/capi/taglib_mp4_genre.h
+resolves the precedence at file open on both backends, and
+tests/mp4-genre-precedence.test.ts consumes these four fixtures — regenerate
+them with this script, never by hand:
 
-NOT a test-fixture generator: no test consumes its output, because pinning the
-current behavior in a test would freeze the defect. It exists so whoever picks
-up taglib-lna2 (needs an upstream TagLib patch) has a runnable starting point.
-
-    python3 tests/test-files/_gen/make-gnre-first-mp4.py OUT [before|after|omit]
-    (default: before; use omit as the control that proves ©gen parses)
+    python3 tests/test-files/_gen/make-gnre-first-mp4.py tests/test-files/mp4/genre-gnre-before.m4a
+    python3 tests/test-files/_gen/make-gnre-first-mp4.py tests/test-files/mp4/genre-gnre-after.m4a  after
+    python3 tests/test-files/_gen/make-gnre-first-mp4.py tests/test-files/mp4/genre-gnre-omit.m4a   omit
+    python3 tests/test-files/_gen/make-gnre-first-mp4.py tests/test-files/mp4/genre-gnre-only.m4a   only
+    (order defaults to before)
 
 Layout note: the source fixture keeps moov LAST (ftyp, free, mdat, moov), so
 growing moov does not shift mdat and no stco fixups are needed. Rebuilding a
@@ -96,15 +99,18 @@ def main(out_path, order="before"):
     #    parseGnre reads the payload without a flags check (mp4itemfactory.cpp).
     if order != "omit":
         gnre = (b"gnre", box(b"data", struct.pack(">II", 0, 0) + GNRE_VALUE))
-        if order == "before":
+        if order in ("before", "only"):
             new_items.append(gnre)
-    # 2. the string genre, with a value the 8-bit table cannot represent.
+    # 2. the string genre, with a value the 8-bit table cannot represent —
+    #    dropped entirely in `only` mode, which leaves gnre as the sole genre.
     #    Text atoms MUST carry flags=1 (UTF-8) in the FIRST word with locale 0
     #    in the second: TagLib's parseText only accepts data whose flags equal
     #    its expectedFlags (1), so a swapped pair makes the item invalid and
     #    the genre silently disappears — which is not the experiment.
     for name, payload in items:
         if name == b"\xa9gen":
+            if order == "only":
+                continue
             new_items.append(
                 (name, box(b"data", struct.pack(">II", 1, 0) + GEN_STRING))
             )
@@ -126,16 +132,20 @@ def main(out_path, order="before"):
 
     out = data[:moov_at] + box(b"moov", new_moov)
     open(out_path, "wb").write(out)
-    where = {"before": "before", "after": "after", "omit": "omitted from"}[order]
-    print(
-        f"wrote {out_path}: gnre(->Rock) {where} ©gen('Rock & Roll'), "
-        f"{len(out)} bytes"
-    )
+    if order == "only":
+        print(f"wrote {out_path}: gnre(->Rock) only, no ©gen, {len(out)} bytes")
+    else:
+        where = {"before": "before", "after": "after", "omit": "omitted from"}
+        print(
+            f"wrote {out_path}: gnre(->Rock) {where[order]} "
+            f"©gen('Rock & Roll'), {len(out)} bytes"
+        )
 
 
 if __name__ == "__main__":
     if len(sys.argv) not in (2, 3) or (
-        len(sys.argv) == 3 and sys.argv[2] not in ("before", "after", "omit")
+        len(sys.argv) == 3
+        and sys.argv[2] not in ("before", "after", "omit", "only")
     ):
         sys.exit(__doc__)
     main(sys.argv[1], sys.argv[2] if len(sys.argv) == 3 else "before")

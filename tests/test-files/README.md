@@ -31,6 +31,24 @@ the Ogg reader with Vorbis/Opus. They are consumed by `tests/adts-label.test.ts`
 and `tests/ogg-flavor-parity.test.ts`; regenerate with
 `bash tests/test-files/_gen/make-codec-identity-fixtures.sh --regen`.
 
+### MP4 genre-precedence fixtures
+
+`mp4/genre-gnre-{before,after,omit,only}.m4a` are `mp4/kiss-snippet.m4a` with one
+`ilst` edit: a numeric `gnre` atom (ID3v1 index 18 → "Rock") placed on either
+side of a differing string `©gen` ("Rock & Roll"), dropped (`omit`, the control
+that proves `©gen` parses on its own), or left as the only genre (`only`, the
+fallback arm). Whichever atom TagLib parses first wins, which is the fidelity
+loss `src/capi/taglib_mp4_genre.h` resolves; all four are consumed by
+`tests/mp4-genre-precedence.test.ts`. Generate them with the committed
+reproducer — never by hand:
+
+```
+python3 tests/test-files/_gen/make-gnre-first-mp4.py tests/test-files/mp4/genre-gnre-before.m4a
+python3 tests/test-files/_gen/make-gnre-first-mp4.py tests/test-files/mp4/genre-gnre-after.m4a  after
+python3 tests/test-files/_gen/make-gnre-first-mp4.py tests/test-files/mp4/genre-gnre-omit.m4a   omit
+python3 tests/test-files/_gen/make-gnre-first-mp4.py tests/test-files/mp4/genre-gnre-only.m4a   only
+```
+
 ### Media-checksum fixtures
 
 Built by `python3 tests/test-files/_gen/make-media-range-fixtures.py` and consumed

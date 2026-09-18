@@ -43,15 +43,15 @@ on a real divergence) over separate per-backend tests.
 | `isFormat`          |  ✓   |     ✓      |   ✓    | format-narrowing `[wasi]`/`[emscripten]`                                                                                                         |
 | `isValid`           |  ✓   |     ✓      |   —    | wasi-host (wasi) + taglib.test (emscripten); unpaired                                                                                            |
 | `isMP4`             |  ✓   |     ✓      |   ✓    | mp4-items isMP4 parity (`[${backend}]` loop)                                                                                                     |
-| `properties`        |  ✓   |     ✓      |   ✓    | cross-backend-parity, tag-roundtrip-property, property-raw-values (qpl, yc1x)                                                                    |
+| `properties`        |  ✓   |     ✓      |   ✓    | cross-backend-parity, tag-roundtrip-property, property-raw-values (qpl, yc1x); MP4 genre precedence (lna2)                                       |
 | `getProperty`       |  ✓   |     ✓      |   ✓    | format-narrowing (typed); remap fallback for MP4 atom keys (bnhl)                                                                                |
 | `setProperty`       |  ✓   |     ✓      |   ✓    | wasi-adapter-unit + extended-metadata                                                                                                            |
 | `removeProperty`    |  ✓   |     ✓      |   ✓    | property-raw-values (qyw2; empty-string clearing contract, buffer mode)                                                                          |
 | `setProperties`     |  ✓   |     ✓      |   ✓    | audio-file-save (REPLACE vs MERGE); property-raw-values (qpl); mp4 casing (bnhl)                                                                 |
 | `audioProperties`   |  ✓   |     ✓      |   ✓    | audio-properties (`forEachBackend`); mp4-codec (extended codec enum, both backends); adts-label (ADTS ≠ MP3); ogg-flavor-parity (Ogg FLAC/Speex) |
-| `tag()` read        |  ✓   |     ✓      |   ✓    | basic-tags (`forEachBackend`)                                                                                                                    |
-| `tag()` write       |  ✓   |     ✓      |   ✓    | basic-tags, BackendAdapter.writeTags; setTrack keeps the total (eq3)                                                                             |
-| `save`              |  ✓   |     ✓      |   ✓    | audio-file-save, all `forEachBackend` suites; MPEG ID3v1 sync must not delete a TRCK/TDRC narrowing to 0 (9m0w)                                  |
+| `tag()` read        |  ✓   |     ✓      |   ✓    | basic-tags (`forEachBackend`); MP4 genre precedence, gnre vs ©gen (lna2)                                                                         |
+| `tag()` write       |  ✓   |     ✓      |   ✓    | basic-tags, BackendAdapter.writeTags; setTrack keeps the total (eq3); MP4 setGenre wins (lna2)                                                   |
+| `save`              |  ✓   |     ✓      |   ✓    | audio-file-save, all `forEachBackend` suites; MPEG ID3v1 sync must not delete a TRCK/TDRC narrowing to 0 (9m0w); MP4 genre precedence (lna2)     |
 | `getFileBuffer`     |  ✓   |     ✓      |   ✓    | audio-file-save loops both; 0sv read-failure throws (WASI) vs in-memory (EM)                                                                     |
 | `saveToFile`        |  ✓   |     ✓      |   —    | backend-specific paths: EM full-load (0iq) + EM partial + WASI save-as                                                                           |
 | `getPictures`       |  ✓   |     ✓      |   ✓    | audio-file-save nc5 loops both; MP4 covr→FrontCover (cvr, WASI boundary maps missing pictureType for MP4)                                        |
@@ -72,7 +72,7 @@ on a real divergence) over separate per-backend tests.
 | `setBextData`       |  ✓   |     ✓      |   ✓    | bwf loops both                                                                                                                                   |
 | `getIxml`           |  ✓   |     ✓      |   ✓    | bwf loops both                                                                                                                                   |
 | `setIxml`           |  ✓   |     ✓      |   ✓    | bwf loops both                                                                                                                                   |
-| `getMP4Item`        |  ✓   |     ✓      |   ✓    | mp4-items loops both: freeform, standard + int-pair atoms (uj2b); foreign-mean round-trip (5ibr)                                                 |
+| `getMP4Item`        |  ✓   |     ✓      |   ✓    | mp4-items loops both: freeform, standard + int-pair atoms (uj2b); foreign-mean round-trip (5ibr); ©gen precedence (lna2)                         |
 | `setMP4Item`        |  ✓   |     ✓      |   ✓    | mp4-items: arbitrary names on file bytes (bnhl); item types (uj2b)                                                                               |
 | `removeMP4Item`     |  ✓   |     ✓      |   ✓    | mp4-items loops both: freeform + standard atoms (0piv)                                                                                           |
 | `hasId3Tags`        |  ✓   |     ✓      |   ✓    | strip-id3-flac loops both                                                                                                                        |

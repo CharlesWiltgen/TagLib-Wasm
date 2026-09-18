@@ -23,6 +23,7 @@
 #include "taglib_asf_multi_value.h"
 #include "taglib_asf_properties.h"
 #include "taglib_mp4_advisory.h"
+#include "taglib_mp4_genre.h"
 #include "core/taglib_msgpack.h"
 #include "core/taglib_core.h"
 
@@ -424,12 +425,17 @@ static tl_error_code read_from_buffer(const uint8_t* buf, size_t len,
         std::unique_ptr<TagLib::File> file(create_file_for_format(format, &stream));
 
         if (file && file->isValid()) {
+            // MP4 genre precedence: the string ©gen beats a preceding gnre
+            // (taglib-lna2). Reads and the write model share this snapshot, so
+            // normalizing at open covers both halves.
+            taglib_wasm::resolve_mp4_genre_precedence(file.get());
             return encode_file_to_msgpack(file.get(), out_buf, out_size);
         }
 
         file.reset();
         TagLib::FileRef ref(&stream);
         if (ref.isNull()) return TL_ERROR_PARSE_FAILED;
+        taglib_wasm::resolve_mp4_genre_precedence(ref.file());
         return encode_file_to_msgpack(ref.file(), out_buf, out_size);
     } catch (...) {
         return TL_ERROR_PARSE_FAILED;
@@ -442,6 +448,9 @@ static tl_error_code read_from_path(const char* path,
         TagLib::FileRef ref(path);
         if (ref.isNull()) return TL_ERROR_IO_READ;
 
+        // Same rule in path mode (no bytes held by the TS layer here, which is
+        // why the fix lives in this boundary rather than above it).
+        taglib_wasm::resolve_mp4_genre_precedence(ref.file());
         return encode_file_to_msgpack(ref.file(), out_buf, out_size);
     } catch (...) {
         return TL_ERROR_PARSE_FAILED;

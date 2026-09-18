@@ -55,6 +55,7 @@
 #include "../src/capi/taglib_asf_multi_value.h"
 #include "../src/capi/taglib_asf_properties.h"
 #include "../src/capi/taglib_mp4_advisory.h"
+#include "../src/capi/taglib_mp4_genre.h"
 #include <memory>
 #include <string>
 #include <set>
@@ -648,6 +649,11 @@ public:
             fileRef = std::make_unique<TagLib::FileRef>(stream.get());
             
             if (!fileRef->isNull() && fileRef->file() && fileRef->file()->isValid()) {
+                // MP4 genre precedence: the string ©gen beats a preceding gnre
+                // (taglib-lna2). The in-memory tag is this backend's write
+                // model, so resolving it at load fixes tag().genre,
+                // properties(), getMP4Item("©gen") and save() at once.
+                taglib_wasm::resolve_mp4_genre_precedence(fileRef->file());
                 return true;
             }
             
@@ -678,6 +684,7 @@ public:
                 // release(), not get(): FileRef deletes what it is handed, so
                 // letting `detected` keep ownership too would free it twice.
                 fileRef = std::make_unique<TagLib::FileRef>(detected.release());
+                taglib_wasm::resolve_mp4_genre_precedence(fileRef->file());
                 return !fileRef->isNull();
             }
 
