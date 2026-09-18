@@ -361,6 +361,14 @@ approval, which is why this is a preflight step rather than a CI gate.
 `release-safe.sh` runs it automatically and refuses to continue on a definitive
 failure.
 
+That entry currently pins the repository and workflow filename only. A GitHub
+Environment with required reviewers — which would make an _approved_ publish,
+rather than repository write access, the thing that grants publish rights — is
+prepared but **not landed**; `.claude/skills/publish/SKILL.md` § "Release
+Approval Gate" carries the three-step sequence, the npm-side command, and why it
+is gated. When it lands, every `npm trust github` command here and in the
+recovery section below needs `--env release` added.
+
 ### Recovering a release
 
 Nothing is tagged or released until every registry has the version, so a failure

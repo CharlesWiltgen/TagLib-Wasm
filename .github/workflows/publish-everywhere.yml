@@ -593,10 +593,36 @@ jobs:
         #   GET /repos/{o}/{r}/packages     -> 404  (not usable here)
         # so presence of the version in the packument is the check.
         #
-        # Best-effort by design: unlike npmjs.org, this registry's packument can
-        # serve a stale document right after a publish, and a verification step
-        # that fails after a genuinely successful publish is worse than a loud
-        # warning (the lesson from the npm leg's first fix).
+        # The REST packages API was re-investigated 2026-09-18 (taglib-80l8)
+        # looking for a cache-immune check, and it is not reachable from here:
+        #
+        #   * /users/{username}/packages/npm/{name}/versions (the user-owned
+        #     listing; an org/repo equivalent would not apply to a user-owned
+        #     package) needs the `read:packages` scope. Measured 403 —
+        #     "You need at least read:packages scope to list packages" — with
+        #     the repository token; with a name it cannot resolve it answers
+        #     404, so unauthorized and absent are indistinguishable.
+        #   * The REST docs state Packages management "must authenticate using a
+        #     personal access token (classic)" with read:packages, and no
+        #     packages endpoint lists GITHUB_TOKEN or a GitHub App token as
+        #     supported. Using it would mean re-adding a long-lived PAT — the
+        #     credential class this workflow was rebuilt to remove.
+        #   * /repos/{owner}/{repo}/packages no longer exists in the published
+        #     packages API at all (404 measured; zero occurrences in
+        #     https://docs.github.com/en/rest/packages/packages.md).
+        #   * Anonymous registry reads are rejected (401 for the packument,
+        #     403 for a tarball path — measured), i.e. auth is required even
+        #     for a public package, and the registry exposes no per-version
+        #     route (405), so the packument is the only observable a
+        #     GITHUB_TOKEN can make.
+        #
+        # Best-effort is therefore the ceiling, not an unfinished first pass:
+        # unlike npmjs.org, this registry's packument can serve a stale document
+        # right after a publish, and a verification step that fails after a
+        # genuinely successful publish is worse than a loud warning (the lesson
+        # from the npm leg's first fix). The definitive check waits on a
+        # read:packages-capable credential, which this design deliberately does
+        # not have.
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
