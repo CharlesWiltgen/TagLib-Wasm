@@ -99,33 +99,24 @@ export class TagLib {
 
     // WASI path-based I/O: skip buffer loading entirely
     if (typeof actualInput === "string" && this.module.isWasi) {
-      // WASI's raw handle IS the library-owned handle — brand asserted here,
-      // the WASI equivalent of wrapEmbindHandle (taglib-0te).
-      const fileHandle = this.module.createFileHandle() as WasmFileHandle;
-      try {
-        const fh = fileHandle as { loadFromPath?: (p: string) => boolean };
-        if (fh.loadFromPath) {
-          // Normalize path for WASI virtual filesystem
-          const wasiPath = toWasiPath(actualInput);
-          const success = fh.loadFromPath(wasiPath);
-          if (!success) {
-            throw new InvalidFormatError(
-              `Failed to load audio file. Path: ${actualInput}`,
-            );
-          }
-          return new AudioFileImpl(
-            this.module,
-            fileHandle,
-            sourcePath,
-            actualInput,
-            false,
-          );
-        }
-      } catch (error) {
-        if (typeof fileHandle.destroy === "function") {
-          fileHandle.destroy();
-        }
-        throw error;
+      const wasiPath = toWasiPath(actualInput);
+      // The content check lives with the WASI host that resolves the path,
+      // because a path open is decided by the extension before anything reads
+      // the bytes and the boundary's MPEG::File calls any bytes valid — see
+      // src/runtime/wasi-adapter/path-open.ts (taglib-j9ld). A backend without
+      // this member takes the buffer route below.
+      if (this.module.loadAudioPath) {
+        const fileHandle = await this.module.loadAudioPath(
+          wasiPath,
+          actualInput,
+        );
+        return new AudioFileImpl(
+          this.module,
+          fileHandle,
+          sourcePath,
+          actualInput,
+          false,
+        );
       }
     }
 

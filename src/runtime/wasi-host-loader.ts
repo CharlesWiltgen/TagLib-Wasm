@@ -13,7 +13,7 @@ import {
 import type { FileSystemProvider } from "./wasi-fs-provider.ts";
 import type { WasiModule } from "./wasmer-sdk-loader/types.ts";
 import { TagLibError } from "../errors/base.ts";
-import { fileUrlToPath } from "../utils/path.ts";
+import { fileUrlToPath, hostPathForPreopens } from "../utils/path.ts";
 import { isDeno } from "./detector.ts";
 
 export interface WasiHostLoaderConfig {
@@ -95,7 +95,7 @@ export async function loadWasiHost(
     (instance.exports._initialize as () => void)();
   }
 
-  return createWasiModuleFromInstance(instance, memory, wasiImports);
+  return createWasiModuleFromInstance(instance, memory, wasiImports, preopens);
 }
 
 async function loadWasmBinary(
@@ -125,6 +125,7 @@ function createWasiModuleFromInstance(
   instance: WebAssembly.Instance,
   memory: WebAssembly.Memory,
   wasiImports: WasiImportDisposable,
+  preopens: Record<string, string>,
 ): WasiModule & Disposable {
   const exports = instance.exports;
 
@@ -171,6 +172,12 @@ function createWasiModuleFromInstance(
         o: number,
         os: number,
       ) => number)(pathPtr, bufPtr, len, tagsPtr, tagsSz, outPtr, outSzPtr),
+    tl_detect_format: (bufPtr, len) =>
+      (exports.tl_detect_format as (b: number, l: number) => number)(
+        bufPtr,
+        len,
+      ),
+    hostPathFor: (wasiPath) => hostPathForPreopens(wasiPath, preopens),
     tl_get_last_error: () => (exports.tl_get_last_error as () => number)(),
     tl_get_last_error_code: () =>
       (exports.tl_get_last_error_code as () => number)(),

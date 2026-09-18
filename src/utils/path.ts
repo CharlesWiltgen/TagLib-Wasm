@@ -27,3 +27,40 @@ export function joinPath(...segments: string[]): string {
     .join("/")
     .replaceAll(/\/+/g, "/");
 }
+
+/**
+ * The host path behind a WASI path, given the preopen map the guest was started
+ * with (`WasiHostLoaderConfig.preopens`): the inverse of the virtual-path
+ * mapping the host resolves `path_open` through, and the only way host-side code
+ * can read the same file the guest reads. On Windows the map is the drive list
+ * (`{"/C": "C:\\"}`), so `/C/music/a.mp3` is `C:\music\a.mp3`; on POSIX it is
+ * the identity (`{"/": "/"}`).
+ *
+ * Returns undefined for a path no preopen covers — the guest cannot open that
+ * path either, so there is nothing on the host side to read.
+ */
+export function hostPathForPreopens(
+  wasiPath: string,
+  preopens: Record<string, string>,
+): string | undefined {
+  let best:
+    | { realPath: string; rest: string; prefixLength: number }
+    | undefined;
+  for (const [virtualPath, realPath] of Object.entries(preopens)) {
+    const prefix = virtualPath.replace(/\/+$/, "");
+    if (wasiPath === prefix) {
+      return realPath;
+    }
+    if (!wasiPath.startsWith(`${prefix}/`)) continue;
+    // The longest virtual prefix wins, so a preopen nested inside another (a
+    // root plus one directory) cannot be shadowed by the shorter of the two.
+    if (best && prefix.length <= best.prefixLength) continue;
+    best = {
+      realPath,
+      rest: wasiPath.slice(prefix.length + 1),
+      prefixLength: prefix.length,
+    };
+  }
+  if (!best) return undefined;
+  return joinPath(best.realPath, best.rest);
+}

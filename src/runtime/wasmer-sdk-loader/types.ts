@@ -49,6 +49,21 @@ export interface WasiModule {
     outSizePtr: number,
   ): number;
 
+  /**
+   * The boundary's content detector (`src/capi/taglib_boundary.c`), the one the
+   * buffer open runs before it picks a file class: a `tl_format` value, or
+   * `TL_FORMAT_AUTO` (0) when the bytes are not a container it knows.
+   */
+  tl_detect_format(bufPtr: number, len: number): number;
+
+  /**
+   * The host path behind a WASI path, resolved through the preopens this host
+   * was created with, or undefined when no preopen covers it. Host-side code
+   * cannot otherwise read a file the guest reads (`utils/path.ts` carries the
+   * rule); the path content gate is the only caller.
+   */
+  hostPathFor(wasiPath: string): string | undefined;
+
   // Error handling (returns pointer to error string)
   tl_get_last_error(): number;
   tl_get_last_error_code(): number;

@@ -5,11 +5,12 @@
  * providing Emscripten-compatible memory access and string operations.
  */
 
-import type { FileHandle, TagLibModule } from "../../wasm.ts";
+import type { FileHandle, TagLibModule, WasmFileHandle } from "../../wasm.ts";
 import type { WasiModule } from "../wasmer-sdk-loader/types.ts";
 import { WasmerExecutionError } from "../wasmer-sdk-loader/types.ts";
 import { MemoryError } from "../../errors/classes.ts";
 import { WasiFileHandle } from "./file-handle.ts";
+import { openAudioPath } from "./path-open.ts";
 
 export class WasiToTagLibAdapter implements TagLibModule {
   private readonly wasi: WasiModule;
@@ -108,6 +109,27 @@ export class WasiToTagLibAdapter implements TagLibModule {
 
   createFileHandle(): FileHandle {
     return new WasiFileHandle(this.wasi);
+  }
+
+  /**
+   * The WASI host module this adapter wraps. Path mode's content gate
+   * (taglib-j9ld) needs the host's own detector and its WASI→host path
+   * resolution, neither of which belongs on the shared `TagLibModule` surface
+   * every backend implements.
+   */
+  get hostModule(): WasiModule {
+    return this.wasi;
+  }
+
+  /**
+   * The gated path open: `WasiFileHandle.loadFromPath` plus the content check a
+   * path needs where a buffer would be refused outright (see `path-open.ts`).
+   */
+  loadAudioPath(
+    wasiPath: string,
+    displayPath: string,
+  ): Promise<WasmFileHandle> {
+    return openAudioPath(this, wasiPath, displayPath);
   }
 
   version(): string {

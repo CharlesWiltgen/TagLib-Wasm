@@ -178,6 +178,19 @@ export interface TagLibModule extends Omit<EmscriptenModule, "then"> {
 
   /** @internal WASI adapter: returns TagLib version (e.g. "2.2.1") */
   version?(): string;
+
+  /**
+   * @internal WASI path mode: load an audio file by path, refusing content the
+   * boundary opened only because its extension named a format. A path resolves
+   * by extension first and upstream's `MPEG::File` calls any bytes valid, so the
+   * open alone cannot say whether anything was there, where a buffer of the same
+   * bytes is refused (taglib-j9ld). Absent on Emscripten, which reads a path into
+   * memory and validates it as a buffer.
+   */
+  loadAudioPath?(
+    wasiPath: string,
+    displayPath: string,
+  ): Promise<WasmFileHandle>;
 }
 
 export interface WasmModule extends EmscriptenModule {
