@@ -50,9 +50,13 @@ export {
 } from "./src/errors.ts";
 export type { TagLibErrorCode } from "./src/errors.ts";
 
-// Deno compile support (initializeForDenoCompile, isDenoCompiled,
-// prepareWasmForEmbedding) is Node/Deno-only: it resolves Deno.mainModule and
-// file URLs to embed a Wasm binary in a compiled binary. No browser analogue.
+// Deno compile support. The embedding helpers (initializeForDenoCompile,
+// prepareWasmForEmbedding) resolve Deno.mainModule and file URLs to embed a Wasm
+// binary in a compiled binary — no browser analogue. `isDenoCompiled` is the
+// probe under them: it reads `typeof Deno` and nothing else, so in a browser it
+// answers `false` without touching Deno, and modules that branch on it must be
+// able to import it here.
+export { isDenoCompiled } from "./src/runtime/deno-detect.ts";
 
 // Simple API
 export {

@@ -64,6 +64,12 @@ const CLASSIFICATION: Record<
     because:
       "pure grouping over a FolderScanResult, runtime-agnostic by contract",
   },
+  isDenoCompiled: {
+    where: "browser",
+    because: "reads `typeof Deno` and returns false where Deno is absent; " +
+      "deno-detect.ts has no imports (the embedding helpers that do " +
+      "Deno I/O — initializeForDenoCompile, prepareWasmForEmbedding — stay out)",
+  },
   copyCoverArt: {
     where: "node-only",
     because: "writes the target audio file to a path (utils/write.ts)",
@@ -103,10 +109,6 @@ const CLASSIFICATION: Record<
   initializeForDenoCompile: {
     where: "node-only",
     because: "Deno-compiled-binary bootstrap (Deno.mainModule, file URLs)",
-  },
-  isDenoCompiled: {
-    where: "node-only",
-    because: "Deno runtime detection (src/runtime/deno-detect.ts)",
   },
   loadPictureFromFile: {
     where: "node-only",
@@ -360,6 +362,7 @@ Deno.test("browser barrel exports every browser-capable Node export, and nothing
   assertEquals(typeof browserEntry.groupAlbums, "function");
   assertEquals(browserEntry.discFolderInfo("CD1")?.number, 1);
   assertEquals(browserEntry.discFolderInfo("Greatest Hits"), undefined);
+  assertEquals(typeof browserEntry.isDenoCompiled(), "boolean");
 });
 
 Deno.test("the browser barrel's declared surface matches the shipped runtime surface", async () => {
@@ -488,6 +491,7 @@ Deno.test("browser entries reach no Node-only module and no undeclared dependenc
       "src/bwf/bext.ts",
       "src/folder-api/folder-disc.ts",
       "src/folder-api/album-grouping.ts",
+      "src/runtime/deno-detect.ts",
     ]
   ) {
     assert(

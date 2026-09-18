@@ -107,6 +107,14 @@ See the
 [complete Deno compile guide](https://charleswiltgen.github.io/TagLib-Wasm/guide/deno-compile.html)
 for more options including CDN loading.
 
+`prepareWasmForEmbedding` and `initializeForDenoCompile` resolve a Deno main
+module and file paths, so they belong to the Node/Deno entry: they are absent
+from the `browser` condition, and a browser-targeted build reports them as
+missing exports — the section below, "Bundle Size and Tree-Shaking", shows how
+to get that as a TypeScript error instead of a bundler error. `isDenoCompiled`,
+the `typeof Deno` probe under them, is exported by both: in a browser it answers
+`false`.
+
 For manual control:
 
 ```typescript
@@ -588,7 +596,7 @@ either target. In a browser, scan on a server and post the result; the pure
 **`./web` builds for the browser.** It declares a `browser` condition, so a
 browser-targeted build resolves an Emscripten-only build of that entry and pulls
 **`taglib-web.wasm` alone** — measured with the vite invocation above on
-`pictureToDataURL` from `taglib-wasm/web`: one 702,100-byte Wasm asset where the
+`pictureToDataURL` from `taglib-wasm/web`: one 703,477-byte Wasm asset where the
 Node-oriented graph emitted both `taglib-web.wasm` and `taglib-wasi.wasm`
 (1.4 MB of assets for a call that needs neither engine), and a 6,289-byte
 JavaScript bundle where the shimmed Node graph produced 17,461 bytes. Note the
@@ -638,10 +646,12 @@ Folder or Web module tree.
 aligning its export surface with the Node barrel's added the pure
 `bwf` / `groupAlbums` / `discFolderInfo` exports to it. A browser consumer that
 imports none of them pays **350 bytes** more than before (measured on
-`import { TagLib }`, same toolchain, pre- and post-change entries): the `bwf`
-namespace object's top-level export table is not droppable even when unused.
-Nothing else moved — the Folder and Web APIs are still reached only when
-imported, and the Node entries are unchanged.
+`import { TagLib }`, one toolchain and one snapshot, pre- and post-change
+entries): **56 bytes** for the `bwf` namespace object's top-level export table
+and **294 bytes** for the `discFolderInfo`/`groupAlbums` re-export entries —
+neither is droppable when unused. Nothing else moved: `isDenoCompiled`, a plain
+function, shakes away completely, the Folder and Web APIs are still reached only
+when imported, and the Node entries are unchanged.
 
 **Entry-point choice is not a size lever.** `taglib-wasm` and
 `taglib-wasm/simple` differ by less than 1 KB in either direction — in a browser
