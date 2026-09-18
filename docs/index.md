@@ -15,10 +15,10 @@ hero:
 
 features:
   - title: Universal Compatibility
-    details: Works seamlessly with Deno, Node.js, Bun, web browsers, and Cloudflare Workers
+    details: Works with Deno, Node.js, Bun, web browsers, and Cloudflare Workers
   - title: TypeScript First
-    details: Complete type definitions and modern async API for excellent developer experience
-  - title: All Audio Formats
+    details: Complete type definitions and a modern async API
+  - title: Every Common Format
     details: Supports MP3, FLAC, MP4/M4A, OGG, WAV and many more formats via TagLib
   - title: Format Abstraction
     details: Automatic tag mapping handles format-specific differences transparently
@@ -74,5 +74,5 @@ solutions were either:
 - **Incomplete** (missing write support or advanced features)
 - **Unmaintained** (dormant projects)
 
-TagLib-Wasm solves these problems by bringing the power of TagLib – the
-industry-standard C++ audio metadata library – to JavaScript via WebAssembly.
+TagLib-Wasm solves these problems by bringing TagLib, the industry-standard C++
+audio metadata library, to JavaScript via WebAssembly.

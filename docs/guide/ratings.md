@@ -1,6 +1,9 @@
 # Working with Track Ratings
 
-TagLib-Wasm provides a unified API for reading and writing track ratings that works consistently across all audio formats.
+TagLib-Wasm provides one API for reading and writing track ratings, normalized to
+a 0.0-1.0 scale: MP3 (ID3v2 POPM) and FLAC/OGG (Vorbis `RATING`) convert
+losslessly at the five star values, while MP4/M4A support varies by player and
+tagger — see [Format-Specific Notes](#format-specific-notes).
 
 ## Quick Start
 

@@ -94,7 +94,13 @@ console.log(`Heap: ${(heapUsed / 1024 / 1024).toFixed(1)}MB`);
 
 ## Memory Limits
 
-- **Wasm Heap Limit**: 1GB (configurable at build time)
+- **WASI backend** (Deno, Node.js, Bun): 16 MiB initial, 2 GiB maximum — the
+  module declares these (`--initial-memory=16777216`, `--max-memory=2147483648`
+  in `build/build-wasi.sh`) and they are not settable at runtime
+- **Emscripten backend** (browsers, Web Workers, Cloudflare Workers, plain
+  Node.js): memory growth enabled with a 4 GiB ceiling (`-s ALLOW_MEMORY_GROWTH=1
+  -s MAXIMUM_MEMORY=4GB` in `build/build-wasm.sh`)
+- **Cloudflare Workers**: 128 MB per request, the platform's own cap
 - **Recommended Max File Size**: ~300MB
 - **Concurrent Files**: Depends on total size
 

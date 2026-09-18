@@ -1,27 +1,36 @@
 # Folder Operations Guide
 
-The folder API provides efficient batch operations for processing multiple audio
-files, scanning directories, and managing music collections. This API is perfect
-for building music library managers, duplicate finders, and batch metadata
-editors.
+The folder API scans directories, reads metadata in batches, and finds duplicate
+tracks — the pieces a music library manager, duplicate finder, or bulk metadata
+editor is built from.
 
 ## Overview
 
-The folder API is available through a dedicated import path:
+Import these functions from `taglib-wasm`, or from the Node-only
+`taglib-wasm/folder` entry that exists so a browser bundle cannot silently
+resolve a filesystem graph ([Import Paths](./installation.md#import-paths)
+compares every entry):
 
 ```typescript
-import { findDuplicates, scanFolder } from "taglib-wasm";
+import { findDuplicates, scanFolder } from "taglib-wasm/folder";
 import { writeTagsBatch } from "taglib-wasm/simple"; // batch writes
 ```
 
-::: tip Runtime Support Folder operations require filesystem access and are
-available in:
+::: tip Runtime Support
+
+`scanFolder()`, `findDuplicates()`, and `exportFolderMetadata()` walk a
+filesystem, so they need a runtime that has one:
 
 - ✅ Deno
 - ✅ Node.js
 - ✅ Bun
 - ❌ Browsers (no filesystem access)
-- ❌ Cloudflare Workers (no filesystem access) :::
+- ❌ Cloudflare Workers (no filesystem access)
+
+`groupAlbums()` and `discFolderInfo()` are pure functions over a scan result and
+run anywhere, browsers included.
+
+:::
 
 ## Scanning Folders
 
@@ -335,16 +344,16 @@ if (errors.length > 0) {
 1. **Start with small directories** when testing to understand performance
    characteristics
 2. **Use progress callbacks** for user feedback on long operations
-3. **Handle errors gracefully** - some files may be corrupted or inaccessible
+3. **Expect per-file failures** — a corrupted or unreadable file is reported as
+   an `error` item in the results array instead of thrown, so check
+   `result.items.filter((i) => i.status === "error")`
 4. **Consider memory usage** when processing large collections
-5. **Use appropriate concurrency** based on your system resources
+5. **Pick concurrency by storage**: around 12 for an SSD, 6 for an HDD, 4 for a
+   network drive (see [Album Processing](./album-processing.md)). `scanFolder()`
+   deliberately stays at 4 internally; reach for `readTagsBatch()` or
+   `readMetadataBatch()` when you need to tune it
 6. **Filter by extensions** to avoid processing non-audio files
 7. **Export metadata regularly** for backup and analysis
-
-## API Reference
-
-For detailed API documentation, see the
-[Folder API Reference](/api/folder-api.html).
 
 ## Album Grouping
 
@@ -395,3 +404,8 @@ Options (`scanForAlbums` takes `FolderScanOptions` plus
 folder disc evidence, `flatDiscPrefixes` toggles filename-prefix parsing,
 `folderFallback` toggles folder-based grouping of untagged files, `scanRoot`
 pins the scanned directory (a bare `CD1/` directly under it is unmatched).
+
+## API Reference
+
+For detailed API documentation, see the
+[Folder API Reference](/api/folder-api.html).

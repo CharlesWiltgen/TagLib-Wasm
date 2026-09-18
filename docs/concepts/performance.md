@@ -742,15 +742,16 @@ self.onmessage = async (e) => {
 import { Worker } from "worker_threads";
 import { createReadStream } from "fs";
 import { pipeline } from "stream/promises";
+import type { Readable } from "stream";
 
 // Use streams for large files
 async function processLargeFile(path: string) {
   const chunks: Buffer[] = [];
-  const stream = createReadStream(path);
+  const stream: Readable = createReadStream(path);
 
-  stream.on("data", (chunk) => chunks.push(chunk));
-  await new Promise((resolve, reject) => {
-    stream.on("end", resolve);
+  stream.on("data", (chunk: Buffer) => chunks.push(chunk));
+  await new Promise<void>((resolve, reject) => {
+    stream.on("end", () => resolve());
     stream.on("error", reject);
   });
 

@@ -23,6 +23,8 @@ bun examples/common/basic-usage.ts
 
 - `common/` - Runtime-agnostic examples
 - `browser/` - Browser-specific examples
-- `node/` - Node.js examples
 - `bun/` - Bun examples
 - `deno/` - Deno examples
+- `deno-compile/` - Deno compiled-binary examples
+- `*.ts` (top level) - Standalone scripts over the repo source; run with
+  `deno run`

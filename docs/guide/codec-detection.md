@@ -1,12 +1,13 @@
-# Audio Container and Codec Detection in TagLib-Wasm
+# Audio Container and Codec Detection
 
-As of v0.3.20, TagLib-Wasm provides codec detection and lossless audio
-detection capabilities. As of v0.4.0, container format detection has been
-added to differentiate between container formats and compressed media formats.
+`AudioProperties` answers two separate questions about a file: which **container
+format** it is (how the audio and its metadata are packaged — MP4, OGG, WAV) and
+which **codec** the audio inside uses (how it is encoded — AAC, Vorbis, PCM). It
+also reports whether that codec is lossless.
 
-## New AudioProperties Fields
+## AudioProperties Fields
 
-The `AudioProperties` interface now includes these additional fields:
+The `AudioProperties` interface carries these fields:
 
 ```typescript
 interface AudioProperties {
@@ -56,16 +57,34 @@ Some formats like MP3 and FLAC are both container and codec, while others like M
 
 ## Container Format Detection
 
-The `containerFormat` field returns:
+The `containerFormat` field returns one of the 21 `ContainerFormat` members —
+the 20 containers below, plus `"unknown"` when the format could not be
+determined:
 
-- `"MP4"` - ISO Base Media File Format (includes .m4a files)
-- `"OGG"` - Ogg container
-- `"MP3"` - MPEG Layer 3
+- `"MP3"` - MPEG Layer 3 (container and codec)
 - `"ADTS"` - Audio Data Transport Stream (raw AAC, `.aac`)
-- `"FLAC"` - Free Lossless Audio Codec
+- `"MP4"` - ISO Base Media File Format (includes .m4a files)
+- `"FLAC"` - Free Lossless Audio Codec (container and codec)
+- `"OGG"` - Ogg container (Vorbis, Opus, FLAC, Speex)
 - `"WAV"` - RIFF WAVE format
 - `"AIFF"` - Audio Interchange File Format
-- `"unknown"` - Format could not be determined
+- `"ASF"` - Advanced Systems Format (WMA/WMV)
+- `"APE"` - Monkey's Audio container
+- `"DSF"` - DSD Stream File
+- `"DSDIFF"` - DSD Interchange File Format
+- `"WavPack"` - WavPack container
+- `"MPC"` - Musepack container
+- `"TTA"` - TrueAudio container
+- `"Shorten"` - Shorten container
+- `"MOD"` - ProTracker module
+- `"S3M"` - Scream Tracker 3 module
+- `"IT"` - Impulse Tracker module
+- `"XM"` - Extended module
+- `"Matroska"` - Matroska container (MKA, MKV, WebM)
+
+Watch the spelling split: `ContainerFormat` uses `"WavPack"`, `"Shorten"` and
+`"Matroska"`, while `getFormat()` and `SUPPORTED_FORMATS` use the `FileType`
+literals `"WV"`, `"SHN"` and `"MATROSKA"` for the same three formats.
 
 ## Codec Detection
 
@@ -76,7 +95,11 @@ The `codec` field returns a string identifying the audio codec:
 - **ADTS / raw AAC files** (`.aac`): `"AAC"`
 - **FLAC files**: `"FLAC"`
 - **OGG files**: `"Vorbis"`, `"Opus"`, `"FLAC"` (FLAC-in-Ogg), or `"Speex"`
-- **WAV files**: `"PCM"`, `"IEEE Float"`, or `"WAV"` (for other codecs)
+- **WAV files**: `"PCM"` (format 1), `"IEEEFloat"` (format 3), or `"WAV"` for
+  other codecs — note the three-way answer is Emscripten-only. The WASI shim
+  reports `"PCM"` for every WAV regardless of its format chunk, so a
+  floating-point WAV is indistinguishable from integer PCM there
+  (taglib-e2cg).
 - **AIFF files**: `"PCM"`
 - **Unclassified**: `"unknown"`
 
@@ -126,4 +149,12 @@ if (props) {
 - Codec detection leverages TagLib's native properties classes
 - M4A files are identified as MP4 containers (ISOBMFF) since M4A is just a file extension convention
 - Bits per sample is only available for formats that support it (FLAC, WAV, AIFF, MP4)
-- The Workers API (Cloudflare Workers compatibility mode) returns default values for these fields
+- The two backends do not describe every format alike. On the Emscripten
+  backend — browsers, Web Workers, and Cloudflare Workers — the sniffer only
+  places the containers it recognizes, so nine of the formats the library reads
+  (APE, DSF, DSDIFF, MPC, SHN, MOD, S3M, IT, XM) report `"unknown"` for both
+  `containerFormat` and `codec`, with `isLossless` `false`, `bitsPerSample` `0`,
+  and `bitrateMode` `undefined`. Their tags, duration, bitrate, sample rate, and
+  channel count all load, and `getFormat()` names the format. The WASI backend
+  (Deno, Node.js, Bun) resolves the container and codec for all nine
+  (taglib-uat8).

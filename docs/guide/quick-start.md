@@ -197,9 +197,11 @@ const audioData = new Uint8Array(await audioFile.arrayBuffer());
 const taglib = await TagLib.initialize();
 using file = await taglib.open(audioData);
 
-// Display metadata
-document.getElementById("title").textContent = file.tag().title;
-document.getElementById("artist").textContent = file.tag().artist;
+// Display metadata (title/artist are `string | undefined`)
+const titleEl = document.getElementById("title");
+if (titleEl) titleEl.textContent = file.tag().title ?? "";
+const artistEl = document.getElementById("artist");
+if (artistEl) artistEl.textContent = file.tag().artist ?? "";
 ```
 
 ### Cloudflare Workers
@@ -231,7 +233,7 @@ export default {
 
 ## Error Handling
 
-Always handle potential errors:
+Handle errors:
 
 ```typescript
 try {

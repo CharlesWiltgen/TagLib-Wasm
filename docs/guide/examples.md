@@ -1,7 +1,7 @@
 # Examples
 
-This guide provides an overview of all TagLib-Wasm examples and how to run them
-across different JavaScript runtimes.
+This guide lists every TagLib-Wasm example and shows how to run it in each
+JavaScript runtime.
 
 ## Example Categories
 
@@ -27,8 +27,9 @@ demonstrate core functionality:
 
 - **[browser/](https://github.com/CharlesWiltgen/TagLib-Wasm/tree/main/examples/browser)** -
   Browser-specific implementations
-- **[node/](https://github.com/CharlesWiltgen/TagLib-Wasm/tree/main/examples/node)** -
-  Node.js-specific patterns
+- **[top-level scripts](https://github.com/CharlesWiltgen/TagLib-Wasm/tree/main/examples)** -
+  Standalone scripts over the repository source (`batch-performance.ts`,
+  `folder-operations.ts`, `partial-loading.ts`), run with `deno run`
 - **[bun/](https://github.com/CharlesWiltgen/TagLib-Wasm/tree/main/examples/bun)** -
   Bun runtime examples
 - **[deno/](https://github.com/CharlesWiltgen/TagLib-Wasm/tree/main/examples/deno)** -
@@ -45,7 +46,7 @@ First, ensure you have TagLib-Wasm installed:
 npm install taglib-wasm
 
 # Deno
-import { TagLib } from "npm:taglib-wasm";
+deno add npm:taglib-wasm
 ```
 
 ### Running Common Examples
