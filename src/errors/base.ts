@@ -1,13 +1,39 @@
 /**
- * List of audio formats supported by TagLib-Wasm
+ * List of audio formats supported by TagLib-Wasm.
+ *
+ * The prose source of truth is the README's "Supported Formats" section; this
+ * list carries every `FileType` member except `"unknown"` (src/types/audio-
+ * formats.ts), plus the extension aliases files actually carry ("M4A", "MKA")
+ * — ASF is the container of the WMA flavour the README names.
+ *
+ * Public contract: the default `supportedFormats` on `UnsupportedFormatError`
+ * (src/errors/classes.ts), and part of that error's message.
  */
 export const SUPPORTED_FORMATS = [
   "MP3",
+  "AAC",
   "MP4",
   "M4A",
   "FLAC",
   "OGG",
+  "OPUS",
+  "OggFLAC",
+  "SPEEX",
   "WAV",
+  "AIFF",
+  "ASF",
+  "APE",
+  "DSF",
+  "DSDIFF",
+  "WV",
+  "MPC",
+  "TTA",
+  "SHN",
+  "MOD",
+  "S3M",
+  "IT",
+  "XM",
+  "MATROSKA",
   "MKA",
 ] as const;
 

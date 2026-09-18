@@ -2,7 +2,11 @@
  * @fileoverview Tests for error type guards and utility functions in errors.ts
  */
 
-import { assertEquals, assertInstanceOf } from "@std/assert";
+import {
+  assertEquals,
+  assertInstanceOf,
+  assertStringIncludes,
+} from "@std/assert";
 import { describe, it } from "@std/testing/bdd";
 import {
   EnvironmentError,
@@ -17,6 +21,7 @@ import {
   isUnsupportedFormatError,
   MemoryError,
   MetadataError,
+  SUPPORTED_FORMATS,
   TagLibError,
   TagLibInitializationError,
   UnsupportedFormatError,
@@ -85,20 +90,12 @@ describe("Error Classes", () => {
 
     assertEquals(error.name, "UnsupportedFormatError");
     assertEquals(error.code, "UNSUPPORTED_FORMAT");
-    assertEquals(
-      error.message,
-      "Unsupported audio format: WMA. Supported formats: MP3, MP4, M4A, FLAC, OGG, WAV, MKA",
-    );
     assertEquals(error.format, "WMA");
-    assertEquals(error.supportedFormats, [
-      "MP3",
-      "MP4",
-      "M4A",
-      "FLAC",
-      "OGG",
-      "WAV",
-      "MKA",
-    ]);
+    // The default is the public SUPPORTED_FORMATS constant; that constant's
+    // own contents are pinned below.
+    assertEquals(error.supportedFormats, SUPPORTED_FORMATS);
+    assertStringIncludes(error.message, "Unsupported audio format: WMA.");
+    assertStringIncludes(error.message, SUPPORTED_FORMATS.join(", "));
 
     const error2 = new UnsupportedFormatError("APE", ["MP3", "FLAC"]);
     assertEquals(
@@ -108,6 +105,42 @@ describe("Error Classes", () => {
 
     assertInstanceOf(error, TagLibError);
     assertInstanceOf(error, UnsupportedFormatError);
+  });
+
+  it("SUPPORTED_FORMATS - names every format the library reads", () => {
+    // Prose source: README "Supported Formats" (the section corrected in
+    // 159e0da), which names MP3/AAC/M4A/MP4/FLAC/OGG (Vorbis, FLAC-in-Ogg,
+    // Speex)/WAV plus Opus, APE, MPC, WavPack, TrueAudio, AIFF, WMA and — for
+    // the rest — FileType itself (src/types/audio-formats.ts). Every FileType
+    // member except "unknown" appears, under either its FileType spelling or
+    // the extension alias users' files carry.
+    assertEquals(SUPPORTED_FORMATS, [
+      "MP3",
+      "AAC",
+      "MP4",
+      "M4A",
+      "FLAC",
+      "OGG",
+      "OPUS",
+      "OggFLAC",
+      "SPEEX",
+      "WAV",
+      "AIFF",
+      "ASF",
+      "APE",
+      "DSF",
+      "DSDIFF",
+      "WV",
+      "MPC",
+      "TTA",
+      "SHN",
+      "MOD",
+      "S3M",
+      "IT",
+      "XM",
+      "MATROSKA",
+      "MKA",
+    ]);
   });
 
   it("FileOperationError - file operation errors", () => {
