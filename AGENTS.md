@@ -419,9 +419,14 @@ import {
 The barrel is tree-shaken to leaf granularity by esbuild, rollup, vite, and
 webpack — importing `TagLib` does not pull in the Folder or Web API, and
 `index` vs `simple` is not a size lever (both are ~82 KB in a browser bundle,
-~145 KB in a Node bundle; `./folder` and `./web` are Node-only in a browser
-build). `"sideEffects": false` is set. Measured numbers, the exact bundler
-invocations, and the method: README § "Bundle Size and Tree-Shaking".
+~145 KB in a Node bundle). `./folder` is Node-only in a browser build (it walks
+a filesystem; a loud build error is the contract); `./web` has its own `browser`
+condition and builds there, resolving `taglib-web.wasm` alone. The browser
+entries (`index.browser.ts`, `simple.browser.ts`, `web.browser.ts`) must export
+every browser-capable Node export and no others — `tests/browser-entry-surface.test.ts`
+holds the classification. `"sideEffects": false` is set. Measured numbers, the
+exact bundler invocations, and the method: README § "Bundle Size and
+Tree-Shaking".
 
 ## Key Behaviors
 

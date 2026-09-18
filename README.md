@@ -248,6 +248,16 @@ Wasm-free — import them from the dedicated subpath in browser/UI contexts
 import { discFolderInfo, groupAlbums } from "taglib-wasm/disc-folder";
 ```
 
+`scanFolder`, `scanForAlbums`, `findDuplicates` and `exportFolderMetadata` read
+and write a filesystem, so they are **Node/Deno/Bun-only**, and so is the
+`taglib-wasm/folder` subpath that exports them: it declares no `browser`
+`exports` condition, which makes a browser-targeted build fail loudly (esbuild:
+`Could not resolve "node:fs/promises"`). That failure is deliberate — a browser
+stub that threw at runtime would move the same mistake from build time to the
+first call in production. In a browser, scan on a server and post the result:
+`groupAlbums` and `discFolderInfo` are exported from both `taglib-wasm` and
+`taglib-wasm/disc-folder` and run anywhere.
+
 ### Working with Cover Art
 
 ```typescript
@@ -529,15 +539,18 @@ every bundler tested here tree-shakes to leaf granularity. Measured on
 taglib-wasm 2.2.3 installed from a packed tarball (`npm pack` →
 `npm install <tarball>`), minified ES2022 ESM bundles on Node 24.21.0. Figures
 are minified JavaScript bytes — the ~700 KB Wasm binary is loaded at runtime and
-is not part of the bundle in any scenario below.
+is not part of the bundle in any scenario below. The `./web` figures further down
+were re-measured with the same invocations after that subpath gained a `browser`
+condition.
 
 Each row is a one-file app whose whole body is that import plus the call the row
 names, keeping the imported function reachable (`globalThis.__app = { … }`).
 Exact invocations, so the table can be reproduced:
 
 - **esbuild 0.28.2** — `esbuild <app> --bundle --minify --format=esm
-  --target=es2022 --platform=browser --external=module` for the browser column;
+  --target=es2022 --platform=browser --external:module` for the browser column;
   the same with `--platform=node` and no `--external` for the Node column.
+  (`--external` takes a colon, not `=`.)
 - **rollup 4.63.3** — `input: <app>`, plugins `@rollup/plugin-node-resolve`
   (`{ browser: true, exportConditions: ["browser", "default"] }` for the browser
   column, default options for the Node column) and `@rollup/plugin-terser`,
@@ -549,33 +562,86 @@ Exact invocations, so the table can be reproduced:
   `externals: { module: "module" }`. `target: "web"` alone fails on the
   `import("module")` inside `dist/taglib-wrapper.js`.
 
-| Consumer app                            | esbuild (browser)¹ | rollup (browser)¹ | vite (app) | webpack (web)² | esbuild (Node)³ | rollup (Node)³ |
-| --------------------------------------- | ------------------ | ----------------- | ---------- | -------------- | --------------- | -------------- |
-| `taglib-wasm` — `TagLib.initialize()`   | 81,991             | 78,374            | 84,802     | 57,141         | 145,056         | 134,312        |
-| `taglib-wasm/simple` — `getTagLib()`    | 81,279             | 78,495            | 84,094     | 57,260         | 146,047         | 134,713        |
-| `taglib-wasm/folder` — `scanFolder`⁴    | —                  | 138,075⁴          | 146,094⁴   | —              | 149,396         | 138,075        |
-| `taglib-wasm/web` — `pictureToDataURL`⁴ | —                  | 210⁴              | 923⁴       | —              | 205             | 210            |
+| Consumer app                          | esbuild (browser)¹ | rollup (browser)¹ | vite (app) | webpack (web)² | esbuild (Node)³ | rollup (Node)³ |
+| ------------------------------------- | ------------------ | ----------------- | ---------- | -------------- | --------------- | -------------- |
+| `taglib-wasm` — `TagLib.initialize()` | 81,991             | 78,374            | 84,802     | 57,141         | 145,056         | 134,312        |
+| `taglib-wasm/simple` — `getTagLib()`  | 81,279             | 78,495            | 84,094     | 57,260         | 146,047         | 134,713        |
+| `taglib-wasm/folder` — `scanFolder`⁴  | —                  | 138,075⁴          | 146,094⁴   | —              | 149,396         | 138,075        |
 
 ¹ the `browser` `exports` condition. ² `target: "web"`. ³ the Node `exports`
 condition. ⁴ Node-only entry — see below.
 
-**`./folder` and `./web` are Node-only today.** Neither subpath declares a
-`browser` export condition, so a browser-targeted build resolves the
-Node-oriented graph: esbuild `--platform=browser` fails with `Could not resolve
-"node:fs/promises"`, and webpack `target: "web"` fails with four errors
-(`./taglib-web.wasm`, `node:fs`, `node:fs/promises`, `node:buffer`). Vite and
-rollup reach a bundle only by shimming or resolving those Node modules, and what
-they produce for those rows is that same Node-oriented graph — vite also emits
-both `taglib-web.wasm` and `taglib-wasi.wasm` for them. `./rating` and
-`./disc-folder` are pure JavaScript and unaffected. In a browser, take the same
-APIs from `taglib-wasm` or `taglib-wasm/simple`, whose `browser` condition
-selects the browser build.
+**`./folder` is Node-only.** The subpath declares no `browser` export condition
+because `scanFolder` and friends read and write a filesystem, so a
+browser-targeted build resolves the Node-oriented graph and fails: esbuild
+`--platform=browser` reports `Could not resolve "node:fs/promises"`, and webpack
+`target: "web"` fails with four errors (`./taglib-web.wasm`, `node:fs`,
+`node:fs/promises`, `node:buffer`). That outcome is the design: a build error
+beats a stub that throws on the first call in production. If the same cells were
+reachable they would come from shimming Node builtins into a bundle that cannot
+work — which is exactly what vite and rollup did before the condition was
+declared. `./rating` and `./disc-folder` are pure JavaScript and build for
+either target. In a browser, scan on a server and post the result; the pure
+`groupAlbums` / `discFolderInfo` half is exported from `taglib-wasm` and
+`taglib-wasm/disc-folder` and runs anywhere.
+
+**`./web` builds for the browser.** It declares a `browser` condition, so a
+browser-targeted build resolves an Emscripten-only build of that entry and pulls
+**`taglib-web.wasm` alone** — measured with the vite invocation above on
+`pictureToDataURL` from `taglib-wasm/web`: one 702,100-byte Wasm asset where the
+Node-oriented graph emitted both `taglib-web.wasm` and `taglib-wasi.wasm`
+(1.4 MB of assets for a call that needs neither engine), and a 6,289-byte
+JavaScript bundle where the shimmed Node graph produced 17,461 bytes. Note the
+browser build is a pre-bundled file like `index.browser.js`, so it does not
+tree-shake to a leaf the way the Node files do: the same call costs 80,959 bytes
+in the browser column against 205 bytes on Node, and importing any pure helper
+from the barrel costs ~82 KB there too. That granularity is a property of the
+pre-bundled browser entries, not of this subpath.
+
+**TypeScript resolves the same condition.** A browser consumer gets the matching
+type surface only if TypeScript is told about it — in `tsconfig.json`:
+
+```json
+{
+  "compilerOptions": {
+    "moduleResolution": "bundler",
+    "customConditions": ["browser"]
+  }
+}
+```
+
+With that condition, `dist/index.browser.d.ts` is the declaration file used, so
+`import { scanFolder } from "taglib-wasm"` is a compile error naming the missing
+export (`TS2305: Module '"taglib-wasm"' has no exported member 'scanFolder'`)
+instead of a bundler error — and importing `bwf`, `groupAlbums`,
+`discFolderInfo`, or any type (including `FolderScanResult`) compiles. Without
+`customConditions`, TypeScript reads the Node declarations from
+`dist/index.d.ts` while the bundler still ships `dist/index.browser.js`; that
+mismatch is what produced the original silent failure.
+
+**Bundler interop.** `dist/taglib-wrapper.js` — the Emscripten glue — contains a
+dynamic `import("module")`, and browser targets have no such builtin, so the two
+targets need one line each: esbuild `--external:module`, webpack
+`externals: { module: "module" }` (webpack `target: "web"` alone fails on it).
+Rollup needs nothing extra; vite externalizes it for the browser with a warning.
+The `browser` condition itself is resolved by default by esbuild
+(`--platform=browser`), vite, and webpack (`target: "web"`); rollup needs
+`nodeResolve({ browser: true, exportConditions: ["browser", "default"] })`.
 
 **The barrel is not a tax.** Adding an API to an import that already loads the
 engine costs only that API. Against the `taglib-wasm` row above (esbuild, Node
 column): adding `scanFolder` costs **4,377 bytes** and adding
 `pictureToDataURL` costs **187 bytes**, because neither drags in the rest of the
 Folder or Web module tree.
+
+**The browser barrel's residue.** The browser entry is a pre-bundled file, and
+aligning its export surface with the Node barrel's added the pure
+`bwf` / `groupAlbums` / `discFolderInfo` exports to it. A browser consumer that
+imports none of them pays **350 bytes** more than before (measured on
+`import { TagLib }`, same toolchain, pre- and post-change entries): the `bwf`
+namespace object's top-level export table is not droppable even when unused.
+Nothing else moved — the Folder and Web APIs are still reached only when
+imported, and the Node entries are unchanged.
 
 **Entry-point choice is not a size lever.** `taglib-wasm` and
 `taglib-wasm/simple` differ by less than 1 KB in either direction — in a browser

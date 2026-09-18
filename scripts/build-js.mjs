@@ -127,6 +127,7 @@ const rootEntryFiles = [
 const browserEntryFiles = [
   "index.browser.ts",
   "simple.browser.ts",
+  "web.browser.ts",
 ];
 
 try {

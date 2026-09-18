@@ -37,8 +37,14 @@
       "default": "./dist/disc-folder.js"
     },
     "./web": {
-      "types": "./dist/web.d.ts",
-      "default": "./dist/web.js"
+      "browser": {
+        "types": "./dist/web.browser.d.ts",
+        "default": "./dist/web.browser.js"
+      },
+      "default": {
+        "types": "./dist/web.d.ts",
+        "default": "./dist/web.js"
+      }
     },
     "./rating": {
       "types": "./dist/rating.d.ts",
@@ -75,6 +81,7 @@
     "folder.ts",
     "disc-folder.ts",
     "web.ts",
+    "web.browser.ts",
     "rating.ts",
     "src/**/*.ts",
     "!src/**/*.test.ts",
