@@ -105,7 +105,11 @@ function joinRanges(
   // Two bounds, one guard: the walked total can exceed the buffer, and a single
   // range can run past its end while the total still fits — `subarray` clamps
   // that one silently, which would hash zero padding and count it in
-  // `bytesHashed` on a value labelled source: "audio-payload".
+  // `bytesHashed` on a value labelled source: "audio-payload". Every walk
+  // validates before returning its ranges, so no walk reachable today can trip
+  // this, which is also why no test covers it (that would take a test-only
+  // export); it exists so a walk added later fails loudly here instead of
+  // hashing padding.
   if (overrun || total > bytes.length) {
     throw new MetadataError(
       "read",

@@ -20,9 +20,15 @@ import {
   HAS_EMSCRIPTEN,
   HAS_WASI,
 } from "./backend-adapter.ts";
-import { flacStreamInfoMd5, walkWav } from "../src/taglib/media-ranges.ts";
+import {
+  flacStreamInfoMd5,
+  mediaRanges,
+  walkWav,
+} from "../src/taglib/media-ranges.ts";
+import type { ByteRange } from "../src/taglib/media-ranges.ts";
 import { mediaChecksum } from "../src/taglib/audio-file-checksum.ts";
 import { getPlatformIO } from "../src/runtime/platform-io.ts";
+import type { PlatformIO } from "../src/runtime/platform-io.ts";
 import { MetadataError, UnsupportedFormatError } from "../src/errors.ts";
 import { TagLib } from "../src/taglib.ts";
 import { readMediaChecksum } from "../src/simple/index.ts";
@@ -39,6 +45,29 @@ const CASES: Array<[string, string]> = [
 // supplies the bytes — on WASI a path handle holds none at all.
 const FLAC_PATH = "tests/test-files/flac/kiss-snippet.flac";
 const MP3_PATH = "tests/test-files/mp3/kiss-snippet.mp3";
+
+/** Hex SHA-256 of a byte string: what this file's assertions compare in. */
+async function sha256Hex(bytes: Uint8Array): Promise<string> {
+  const digest = await crypto.subtle.digest("SHA-256", bytes as BufferSource);
+  return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+}
+
+/** `sha256Hex` over a walk's ranges, joined by hand — the test-side statement of
+ * what hashing some *other* bytes would produce, without the module's private
+ * `joinRanges`. */
+async function hashRanges(
+  bytes: Uint8Array,
+  ranges: ByteRange[],
+): Promise<string> {
+  const payload = new Uint8Array(ranges.reduce((n, r) => n + r.length, 0));
+  let at = 0;
+  for (const r of ranges) {
+    payload.set(bytes.subarray(r.offset, r.offset + r.length), at);
+    at += r.length;
+  }
+  return await sha256Hex(payload);
+}
 
 forEachBackend("mediaChecksum", (adapter: BackendAdapter) => {
   beforeAll(async () => {
@@ -105,6 +134,38 @@ forEachBackend("mediaChecksum", (adapter: BackendAdapter) => {
       () => adapter.mediaChecksum(mp3, "mp3", { basis: "pcm" }),
       UnsupportedFormatError,
     );
+  });
+
+  // The docs page's reworded guarantee: FLAC's STREAMINFO MD5 digests the
+  // *uncompressed* stream, so it is tag-stable in exactly the way the encoded
+  // payload is — a tag write must not move it, and only `source: "file"` is the
+  // weaker promise. That is this test's whole claim; a tag write that DID move
+  // the digest would mean TagLib re-encoded the stream on save, i.e. the doc
+  // would be wrong rather than this test.
+  it("keeps FLAC's STREAMINFO digest across a tag edit", async () => {
+    const flac = Deno.readFileSync(FLAC_PATH);
+    const before = await adapter.mediaChecksum(flac, "flac", { basis: "pcm" });
+    assertEquals(before.source, "flac-streaminfo-md5");
+    const edited = await adapter.writeTags(
+      flac,
+      { title: "Checksum Spike" },
+      "flac",
+    );
+    assertExists(edited, "flac: writeTags returned null");
+    // Not decoration: if the write returned the input bytes (or dropped the
+    // tag), the stability assertion below would hold for the wrong reason.
+    assertEquals(
+      (await adapter.readTags(edited, "flac")).title,
+      "Checksum Spike",
+      "the tag edit must actually have landed",
+    );
+    const after = await adapter.mediaChecksum(edited, "flac", { basis: "pcm" });
+    assertEquals(
+      after.hex,
+      before.hex,
+      "a tag edit must not move the STREAMINFO digest",
+    );
+    assertEquals(after.bytesHashed, 16);
   });
 
   it("falls back to a whole-file hash, and the fallback is honest about it", async () => {
@@ -233,6 +294,54 @@ Deno.test("the source rule prefers the file over the handle's image", async () =
   } finally {
     await Deno.remove(path).catch(() => {});
   }
+});
+
+// Several ranges, through the digest. `walkMp4`'s rules are pinned in
+// tests/media-ranges.test.ts, but nothing there goes from more than one range to
+// a *digest*, so an implementation that dropped, reordered or padded a range
+// would have passed every test in this repo. Module-level rather than in the
+// adapter block above: the fixture is a synthetic container that `TagLib.open()`
+// may not accept, while `mediaChecksum` reads bytes it is handed without opening
+// anything — the gap is the join, not the walk.
+Deno.test("several payload ranges join in order into one digest", async () => {
+  const bytes = Deno.readFileSync("tests/test-files/mp4/synth-multi-mdat.mp4");
+  const walk = mediaRanges("MP4", bytes);
+  assertEquals(walk.kind, "ranges");
+  assertEquals(walk.ranges, [
+    { offset: 48, length: 32 },
+    { offset: 96, length: 24 },
+    { offset: 160, length: 16 },
+  ]);
+
+  // The expected payload, laid out by hand in walk order — explicit `subarray`
+  // calls, never anything the module exports, so the expectation cannot inherit
+  // the bug it is meant to catch.
+  const expected = new Uint8Array(72);
+  expected.set(bytes.subarray(48, 48 + 32), 0);
+  expected.set(bytes.subarray(96, 96 + 24), 32);
+  expected.set(bytes.subarray(160, 160 + 16), 56);
+
+  // A call whose sources are in hand with no path, no blob and no partial flag
+  // must not touch IO at all: the stub throwing on either read is the
+  // assertion, and it is cast because the interface's other members are
+  // unreachable from here.
+  const io = {
+    readFile: () => {
+      throw new Error("in-hand sources must not read the file");
+    },
+    readPartial: () => {
+      throw new Error("in-hand sources must not read a window");
+    },
+  } as unknown as PlatformIO;
+
+  const sum = await mediaChecksum(
+    { bytes, partiallyLoaded: false },
+    "MP4",
+    io,
+  );
+  assertEquals(sum.source, "audio-payload");
+  assertEquals(sum.bytesHashed, 72);
+  assertEquals(sum.hex, await sha256Hex(expected));
 });
 
 /** The digest the synthesized fixture's STREAMINFO block carries. */
@@ -496,18 +605,17 @@ Deno.test("a partial handle hashes the file, not its window image", async () => 
       `${forceWasmType}: File vs buffer`,
     );
 
-    // The control: the image the handle holds must hash to something ELSE, or
-    // this test passes for the wrong reason — a source rule that returned
-    // `loaded` would satisfy every assertion above except this one.
-    const imageHash = [
-      ...new Uint8Array(
-        await crypto.subtle.digest("SHA-256", loaded as BufferSource),
-      ),
-    ].map((byte) => byte.toString(16).padStart(2, "0")).join("");
+    // The control: the ranges derived from the *image the handle holds*, hashed
+    // over that image, must land somewhere else. That is the subtler wrong
+    // implementation — deriving ranges from the in-hand bytes instead of the
+    // file — which is what a whole-image hash cannot catch: the image is a
+    // spliced header+footer, so a correct implementation's digest can only
+    // coincide with it by accident (and on this fixture it does not).
+    const imageWalk = mediaRanges("MP3", loaded);
     assertNotEquals(
-      imageHash,
+      await hashRanges(loaded, imageWalk.ranges),
       byHandle.hex,
-      `${forceWasmType}: hashed the window image, not the file`,
+      `${forceWasmType}: derived the ranges from the window image, not the file`,
     );
   }
 

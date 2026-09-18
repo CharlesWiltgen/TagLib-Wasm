@@ -402,13 +402,16 @@ payload as it is stored.
 
 ##### The `source` semantics
 
-The **tag-stability guarantee holds only for `source: "audio-payload"`**: the
-digest covers the payload ranges the walk derived, so rewriting tags cannot move
-`hex` — with exactly one boundary case: a FLAC stream runs to its ID3v1
-location, so an ID3v2 tag appended after the audio is _inside_ the payload —
-editing that tag moves `hex` even though `source` is `"audio-payload"`
-(`walkFlac`'s rule, pinned by `tests/media-ranges.test.ts`). Read the field
-whenever the digest is used as a fingerprint:
+The **tag-stability guarantee holds for both digest kinds — every `source`
+except `"file"`**: `"audio-payload"` covers the payload ranges the walk derived,
+and `"flac-streaminfo-md5"` is a digest of the _uncompressed_ stream rather than
+of the container bytes around it, so rewriting tags cannot move either `hex`.
+`source: "file"` is the weaker guarantee. One boundary case applies to
+`"audio-payload"`: a FLAC stream runs to its ID3v1 location, so an ID3v2 tag
+appended after the audio is _inside_ the payload — editing that tag moves `hex`
+even though `source` is `"audio-payload"` (`walkFlac`'s rule, pinned by
+`tests/media-ranges.test.ts`). Read the field whenever the digest is used as a
+fingerprint:
 
 - `"audio-payload"` — the encoded payload. `bytesHashed` is the payload's length:
   the file minus the tags and container structure around it. That is the strong
@@ -420,7 +423,8 @@ whenever the digest is used as a fingerprint:
 - `"flac-streaminfo-md5"` — FLAC's recorded digest of the uncompressed stream,
   not a digest computed from the encoded bytes. It is not a general fingerprint
   (nothing else can produce it), and it verifies the stream rather than the
-  container.
+  container. Being a digest of the stream, it carries the same tag-stability: a
+  tag edit cannot move `hex`.
 
 #### Example
 

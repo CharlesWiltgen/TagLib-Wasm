@@ -50,6 +50,7 @@ oracle for frame boundaries.
 | `mp4/synth-multi-mdat.mp4`              | 176 bytes, seven atoms: `ftyp` (24), `free` (16), `mdat` (32 contents), a 64-bit-size `mdat` (24 contents), an empty `mdat` (8), `moov` (24), `mdat` (16 contents) — three payload ranges, at 48, 96 and 160 |
 | `wav/synth-plain.wav`                   | 4140 bytes: `fmt` (16) then `data` (4096) — the untagged half of the matched pair, so its payload is at 44                                                                                                   |
 | `wav/synth-tags-before-data.wav`        | 4184 bytes: the same 4096-byte payload behind `LIST` (18) and `id3` (10) chunks — the payload is at 88                                                                                                       |
+| `wav/synth-multi-data.wav`              | 84 bytes: `fmt` (16) then an EMPTY `data` (0), `data` (16) and `data` (8) — two payload ranges, at 52 and 76, with the empty chunk first                                                                     |
 | `mp3/large-1_2MiB.mp3`                  | 1180510 bytes: `mp3/kiss-snippet.mp3` with its 1044-byte last frame (at 84182) repeated 1049 times, then the 128-byte ID3v1 block — the one fixture a `File` input is spliced for                            |
 
 The last one is not a hand-laid byte string, so it has its own mode:
@@ -84,7 +85,11 @@ the two offsets are the by-construction check that they agree over the payload
 rather than over, say, two identically-wrong ranges. Neither file has an
 odd-sized chunk, so the walk's pad-byte rule is pinned by `wav/bext-ixml.wav`
 instead: its 629-byte `bext` chunk sits after `data`, and a walk that ignored the
-pad byte would misalign and fall back.
+pad byte would misalign and fall back. Every WAV fixture but one carries exactly
+one non-empty `data` chunk, so `wav/synth-multi-data.wav` is what pins the rule
+that _every_ non-empty chunk contributes, in chunk order — it leads with an empty
+`data`, which a walk taking the first chunk unconditionally would answer with a
+zero-length range.
 
 ## Recommended Test Files
 

@@ -319,6 +319,33 @@ def synth_wav_pair() -> tuple:
     return plain, tagged
 
 
+def synth_multi_data_wav() -> bytes:
+    """The multi-`data` oracle: RIFF (12) + fmt (8+16) + an EMPTY `data` (8+0)
+    + `data` (8+16) + `data` (8+8). Every other WAV fixture here and in the
+    repo holds exactly one non-empty `data` chunk, so a walk that kept only the
+    first, or only the last, would pass all of them.
+
+    The rule is every non-empty `data` chunk's contents in chunk order, which
+    puts the ranges at 52 (16 bytes) and 76 (8 bytes) — the offsets
+    tests/media-ranges.test.ts asserts. The empty chunk sits FIRST on purpose: a
+    walk that took the first `data` without checking its size would answer a
+    zero-length range instead of skipping to the second. The two payloads differ
+    in length and contents so a range that mixed them up cannot hash equal."""
+    fmt = wav_chunk(b"fmt ", wav_fmt_pcm16())
+    empty = wav_chunk(b"data", b"")
+    first = wav_chunk(
+        b"data", hashlib.shake_128(b"taglib-wasm multi-data one").digest(16)
+    )
+    second = wav_chunk(
+        b"data", hashlib.shake_128(b"taglib-wasm multi-data two").digest(8)
+    )
+    out = wav([fmt, empty, first, second])
+    # 12 + 24 + 8 + 24 + 16: RIFF header, `fmt `, the empty chunk, then the two
+    # payload chunks. These are the byte offsets the test's ranges rest on.
+    assert len(out) == 84, len(out)
+    return out
+
+
 def write(path: str, data: bytes) -> None:
     os.makedirs(os.path.dirname(path), exist_ok=True)
     with open(path, "wb") as f:
@@ -393,6 +420,11 @@ def write_small_fixtures() -> None:
         os.path.join(WAV_DIR, "synth-tags-before-data.wav"),
         tagged_wav,
     )
+
+    # The multi-`data` oracle: two non-empty `data` chunks with an empty one
+    # first, so the walk's "every non-empty chunk, in order" rule is pinned by
+    # a fixture rather than by the single-`data` files that cannot see it.
+    write(os.path.join(WAV_DIR, "synth-multi-data.wav"), synth_multi_data_wav())
 
 
 if __name__ == "__main__":

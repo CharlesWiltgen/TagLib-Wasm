@@ -272,6 +272,30 @@ Deno.test("chunks after data do not narrow the range", () => {
   assertEquals(walkWav(bytes).ranges, [{ offset: 44, length: 460708 }]);
 });
 
+// The multi-`data` rule, and the only fixture that can see it: every other WAV
+// here and in the repo holds exactly one non-empty `data` chunk, so a walk that
+// kept only the first (or only the last) would pass them all. The rule is every
+// non-empty chunk's contents in chunk order — the empty chunk, which sits
+// FIRST, contributes nothing. The by-hand concatenation below is what makes the
+// assertion the join as well as the walk: a walk that answered both ranges but
+// joined them out of order would still fail it.
+Deno.test("WAV payload is every non-empty data chunk, in chunk order", async () => {
+  const bytes = Deno.readFileSync(`${WAV_DIR}/synth-multi-data.wav`);
+  const walk = walkWav(bytes);
+  assertEquals(walk.kind, "ranges");
+  assertEquals(walk.ranges, [
+    { offset: 52, length: 16 },
+    { offset: 76, length: 8 },
+  ]);
+  const joined = new Uint8Array(24);
+  joined.set(bytes.subarray(52, 52 + 16), 0);
+  joined.set(bytes.subarray(76, 76 + 8), 16);
+  assertEquals(
+    await payloadHash(bytes, walk.ranges),
+    await payloadHash(joined, [{ offset: 0, length: joined.length }]),
+  );
+});
+
 // The padding rule, and the only fixture that exercises it: `bext-ixml.wav`'s
 // `bext` chunk is 629 bytes — odd, so one pad byte precedes `iXML` — and it
 // sits after `data`. Without `+ (size % 2)` the walk reads that pad byte as a
