@@ -77,7 +77,9 @@ const sum = await readMediaChecksum("song.mp3");
 // cannot be delimited answers the WHOLE FILE with source: "file", where a tag
 // edit does move the hash. basis: "pcm" asks FLAC for its STREAMINFO MD5
 // instead ({ algorithm: "md5", source: "flac-streaminfo-md5" }) and throws
-// UnsupportedFormatError off FLAC.
+// UnsupportedFormatError off FLAC. Per-format shape table (which files get
+// which source, incl. the MP3 re-mux caveat and the 64 KiB scan bound):
+// docs/api/index.md § "Which container shapes get which `source`".
 const pcm = await readMediaChecksum("song.flac", { basis: "pcm" });
 
 // The checksum types, from "taglib-wasm/simple" or "taglib-wasm" as a type-only

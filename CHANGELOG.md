@@ -28,7 +28,19 @@
   The digest describes the file, never the handle's memory: a partially loaded
   `File` is read back from its source, so a 1.2 MiB MP3 that `TagLib.open`
   splices into a header+footer window still hashes to the same value its path
-  and buffer do. Covered on both backends by `tests/media-checksum.test.ts`.
+  buffer do. Covered on both backends by `tests/media-checksum.test.ts`.
+
+### Documentation
+
+- **Which container shapes get which `source`** (taglib-bj96) —
+  `docs/api/index.md` now carries a per-format table (MP3/AAC, MP4/M4A, FLAC,
+  WAV, the fallback containers, RF64/BW64, and tagless MPEG) naming the shapes
+  whose digest is tag-stable and the shapes that fall back to `source: "file"`.
+  It includes the measured MP3 re-mux caveat (rewriting the Xing/Info
+  encoder-header frame is a payload change, so the digest moves without the
+  decoded audio changing), the 64 KiB first-frame scan bound, and the FLAC
+  appended-ID3v2 boundary. Every row traces to a walk in
+  `src/taglib/media-ranges.ts` and a pin in `tests/media-checksum-corpus.test.ts`.
 
 ## 2.2.3
 

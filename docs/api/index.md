@@ -378,8 +378,8 @@ function readMediaChecksum(
 
 - `file`: File path (string), audio data (Uint8Array/ArrayBuffer), or File
   object
-- `options`: `MediaChecksumOptions` — `{ basis?: "encoded" | "pcm" }`, defaulting
-  to `"encoded"`
+- `options`: `MediaChecksumOptions` — `{ basis?: "encoded" | "pcm" }`,
+  defaulting to `"encoded"`
 
 #### Returns
 
@@ -413,10 +413,10 @@ even though `source` is `"audio-payload"` (`walkFlac`'s rule, pinned by
 `tests/media-ranges.test.ts`). Read the field whenever the digest is used as a
 fingerprint:
 
-- `"audio-payload"` — the encoded payload. `bytesHashed` is the payload's length:
-  the file minus the tags and container structure around it. That is the strong
-  guarantee — a tag edit cannot move `hex`, because the edited bytes are not in
-  the digest. The appended-ID3v2 case above is its only exception.
+- `"audio-payload"` — the encoded payload. `bytesHashed` is the payload's
+  length: the file minus the tags and container structure around it. That is the
+  strong guarantee — a tag edit cannot move `hex`, because the edited bytes are
+  not in the digest. The appended-ID3v2 case above is its only exception.
 - `"file"` — the whole file, when the payload could not be delimited. The weaker
   guarantee is reported rather than hidden: a tag edit DOES move this hash, and
   `bytesHashed` is the file's length.
@@ -425,6 +425,34 @@ fingerprint:
   (nothing else can produce it), and it verifies the stream rather than the
   container. Being a digest of the stream, it carries the same tag-stability: a
   tag edit cannot move `hex`.
+
+##### Which container shapes get which `source`
+
+`source` is per file, not per format: the walk decides, and a shape it cannot
+vouch for falls back. Which shape your file is in is therefore what the label
+tells you:
+
+| Format and shapes                                                    | `source`        | In the digest                                                                                                                                                                                                                                                                              | Falls back to `source: "file"` when                                                                                                                           |
+| -------------------------------------------------------------------- | --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **MP3 / AAC**                                                        | `audio-payload` | the frames, first to last. Ahead of them: ID3v2.3/.4 (plain, extended header, unsynchronised) is skipped; behind them: Lyrics3v2, ID3v1 and APEv2 are trimmed. The Xing/Info encoder-header frame is **inside** — a re-mux that rewrites it moves `hex` without changing the decoded audio | the walk finds no first frame within 64 KiB of the scan start (an APEv2 tag larger than that in front of the audio), or no frames it can vouch for after that |
+| **MP4 / M4A**                                                        | `audio-payload` | the contents of every non-empty top-level `mdat`, in file order. A `free` atom before the first `mdat`, a `moov` at EOF, and fragmented `moof`/`mdat` layouts are all outside it                                                                                                           | an atom size is malformed or oversized, bytes are left that no atom accounts for, or there is no non-empty `mdat`                                             |
+| **FLAC**                                                             | `audio-payload` | the frames between the end of the metadata block chain (STREAMINFO, Vorbis comments, padding, seektable) and an appended ID3v1/APEv2 tail. **Boundary:** an ID3v2 tag appended after the audio is _inside_ the payload, so editing it moves `hex`                                          | there is no `fLaC` marker, or the block chain's declared extent leaves no audio bytes                                                                         |
+| **WAV**                                                              | `audio-payload` | every non-empty `data` chunk's contents. Every other chunk — `bext`, `iXML`, `LIST`-INFO, an embedded ID3v2 — is outside, whether it sits before or after `data`                                                                                                                           | the file is not `RIFF`/`WAVE`, or a chunk's declared size reaches past the buffer (a truncated file)                                                          |
+| **Ogg, AIFF, Matroska, WavPack, Opus**                               | `file`          | the whole file; no payload rule exists for these containers yet                                                                                                                                                                                                                            | always                                                                                                                                                        |
+| **RF64 / BW64**                                                      | `file`          | the whole file, by decision: its chunk sizes are `0xFFFFFFFF` and the real values live in `ds64`                                                                                                                                                                                           | always (the `RIFF` magic is deliberately not accepted)                                                                                                        |
+| **MPEG audio carrying no tag at all** (for example ffmpeg's `mp2`)   | `audio-payload` | the whole file — there is no tag for the walk to exclude, so `hex` equals `sha256(file)` while the label stays the stronger one. Expected, not a bug                                                                                                                                       | —                                                                                                                                                             |
+| **An input TagLib cannot identify** (a zero-byte buffer, junk bytes) | —               | nothing: `readMediaChecksum` rejects it in `TagLib.open` with `InvalidFormatError` before any walk runs                                                                                                                                                                                    | —                                                                                                                                                             |
+
+For `source: "file"` the digest is tag-sensitive by definition: a tag edit
+legitimately moves `hex`, and `bytesHashed` is the whole file. The "tag edits do
+not move the digest" promise is a promise about `"audio-payload"` only.
+
+<!-- Walk trace (rows above): src/taglib/media-ranges.ts — `walkMpeg` (ID3v2 skip,
+     64 KiB MPEG_SCAN_LIMIT, trailing-tag trim), `walkMp4` (per-mdat),
+     `walkFlac` (block chain + trailing-tag trim), `walkWav` (per-data-chunk),
+     and `mediaRanges`' dispatch, whose default is the `file` fallback. Shape
+     pins: tests/media-checksum-corpus.test.ts; the FLAC boundary is also pinned
+     by tests/media-ranges.test.ts. -->
 
 #### Example
 
@@ -2055,11 +2083,11 @@ type TagLibErrorCode =
 
 #### TagName
 
-Removed in 2.0.0 — `Tags`, `TagName`, `getAllTagNames()`, and
-`isValidTagName()` were deleted (CHANGELOG 2.0.0 Breaking). They were a
-strict subset of the `PROPERTIES` family; migrate by renaming:
-`getAllTagNames()` → `getAllPropertyKeys()`, `isValidTagName(k)` →
-`isValidProperty(k)`, `TagName` → `PropertyKey`. See [Tag Name Constants](/api/tag-constants) and §Tag Validation.
+Removed in 2.0.0 — `Tags`, `TagName`, `getAllTagNames()`, and `isValidTagName()`
+were deleted (CHANGELOG 2.0.0 Breaking). They were a strict subset of the
+`PROPERTIES` family; migrate by renaming: `getAllTagNames()` →
+`getAllPropertyKeys()`, `isValidTagName(k)` → `isValidProperty(k)`, `TagName` →
+`PropertyKey`. See [Tag Name Constants](/api/tag-constants) and §Tag Validation.
 
 #### PropertyMetadata
 
