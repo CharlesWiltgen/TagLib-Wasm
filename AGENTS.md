@@ -416,6 +416,12 @@ import {
 } from "taglib-wasm";
 ```
 
+The barrel is tree-shaken to leaf granularity by esbuild, rollup, vite, and
+webpack — importing `TagLib` does not pull in the Folder or Web API, and
+`index` vs `simple` is not a size lever (both are ~82 KB in a browser bundle,
+~145 KB in a Node bundle). `"sideEffects": false` is set. Measured numbers and
+the method: README § "Bundle Size and Tree-Shaking".
+
 ## Key Behaviors
 
 **Runtime auto-detection**: WASI backend for Deno/Node.js (seek-based filesystem I/O).
