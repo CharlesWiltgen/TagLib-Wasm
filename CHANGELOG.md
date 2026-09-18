@@ -33,6 +33,61 @@
   backends; a `gnre`-only file still reads the table name, and an explicit
   `setGenre` still wins. iTunes-written files (`©gen` first) are unaffected.
   Pinned on both backends by `tests/mp4-genre-precedence.test.ts`.
+- **The browser barrel exports the browser-safe half of the Node barrel, and the
+  rest is a compile error instead of a bundler error** (taglib-kgni) —
+  `dist/index.browser.js` shipped 19 runtime exports fewer than `dist/index.js`,
+  so `import { scanFolder } from "taglib-wasm"` failed a browser-targeted build
+  (esbuild `No matching export in dist/index.browser.js`, rollup, vite
+  `MISSING_EXPORT`) while the same import compiled on Node, and the browser
+  barrel's types were missing 20 type-only names besides. The four that can run
+  in a browser — `bwf`, `groupAlbums`, `discFolderInfo`, and `isDenoCompiled`
+  (a pure predicate that answers `false` where `Deno` is undefined) — are now
+  exported from it, and its type surface matches the Node barrel's exactly, so a
+  type such as `FolderScanResult`, `Chapter` or `Id3v2Frame` still compiles for
+  a browser consumer. The fifteen that cannot — `scanFolder`, `scanForAlbums`,
+  `findDuplicates`, `exportFolderMetadata`, `copyCoverArt`, `importCoverArt`,
+  `importPictureWithType`, `exportCoverArt`, `exportPictureByType`,
+  `exportAllPictures`, `findCoverArtFiles`, `loadPictureFromFile`,
+  `savePictureToFile`, `initializeForDenoCompile`, `prepareWasmForEmbedding` —
+  read or write a filesystem path and stay out; with the `browser` `exports`
+  condition resolved, TypeScript reads `dist/index.browser.d.ts` and reports
+  `TS2305: Module '"taglib-wasm"' has no exported member 'scanFolder'`, naming
+  the export, once `"customConditions": ["browser"]` is set (documented in the
+  README). `taglib-wasm/web` also gained a real `browser` condition: a webpack
+  `target: "web"` or esbuild `--platform=browser` build of it failed, and vite
+  emitted both wasm engines (1.4 MB of assets) for a `pictureToDataURL` call
+  that needs neither — a browser build now pulls `taglib-web.wasm` alone.
+  `taglib-wasm/folder` stays intentionally Node-only: it walks a filesystem, and
+  a loud build failure is better than a stub that throws at runtime.
+  `tests/browser-entry-surface.test.ts` pins the classification, the type
+  parity, and each browser entry's runtime graph.
+- **`readMediaChecksum()` and `TagLib.open()` answer the same error for the same
+  unreadable input across input forms and backends** (taglib-j9ld). On WASI a
+  zero-length input and a path with an unrecognized extension threw
+  `WasmMemoryError`, and a corrupt file opened by path answered a whole-file
+  checksum instead of an error. Now a zero-length input and junk bytes throw
+  `InvalidFormatError`, and a path that is not there throws
+  `FileOperationError` — the classes the same bytes earn as a
+  `Uint8Array`/`ArrayBuffer`/`File`, on both backends. `source: "file"` still
+  answers for formats with no walk and for a walk that gives up, and a file
+  whose head is unreadable but whose audio TagLib does read (an MP3 behind a
+  large APEv2 tag) still opens. **One asymmetry remains, by construction:** a
+  path resolves its file class by extension before anything reads the bytes, so
+  a corrupt file the parse still reads something out of (upstream's
+  `garbage.mp3`, junk named `.mpc`) answers a digest by path where the identical
+  bytes as a buffer throw. That set is pinned in
+  `tests/checksum-input-contract.test.ts` (`PATH_ACCEPTS_WHILE_BUFFER_REFUSES`),
+  and the docs section says so.
+- **Every format the library lists now answers `getFormat()` on both backends**
+  (taglib-uat8) — WASI's `CONTAINER_TO_FORMAT` had no keys for APE, DSF, DSDIFF,
+  MPC, SHN and the tracker modules (MOD/S3M/IT/XM), and Emscripten's own sniffer
+  read only a 12-byte prefix, so the modules could not be opened at all there.
+  Both now report the declared `FileType` literals; on Emscripten the sniffer
+  gained the tracker signatures (S3M's at offset 44, MOD's at 1080) and the
+  matching construction branches. Pinned per fixture on both backends by
+  `tests/format-detection.test.ts`. Still true on Emscripten:
+  `audioProperties().containerFormat` / `.codec` remain `"unknown"` for the nine
+  formats the sniffer cannot place.
 
 ### Added
 

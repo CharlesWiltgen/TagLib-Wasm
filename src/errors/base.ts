@@ -10,10 +10,11 @@
  * (src/errors/classes.ts), and part of that error's message.
  *
  * This is the formats the library can read, not a promise that both backends
- * read all of them identically. Measured today (taglib-uat8): on Emscripten the
- * tracker modules (MOD/S3M/IT/XM) throw `InvalidFormatError`, and on WASI
- * `getFormat()` answers `"unknown"` for those four plus APE, DSF, DSDIFF, MPC
- * and SHN, whose tags and properties still load.
+ * describe all of them identically. Measured 2026-09-18 (taglib-uat8):
+ * `getFormat()` answers every member on both backends, but on Emscripten
+ * `audioProperties().containerFormat` / `.codec` still report `"unknown"` for
+ * the formats the embind sniffer cannot place (APE, DSF, DSDIFF, MPC, SHN,
+ * MOD, S3M, IT, XM); their tags and the rest of their properties load.
  */
 export const SUPPORTED_FORMATS = [
   "MP3",
