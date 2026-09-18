@@ -15,15 +15,18 @@
  * checksum's `source` says what was hashed, not whether the file was good.
  */
 
-import { assertEquals } from "@std/assert";
+import { assertEquals, assertRejects } from "@std/assert";
 import { afterAll, describe, it } from "@std/testing/bdd";
 import { resolve } from "@std/path";
 import type { AudioFileInput } from "../src/types.ts";
+import type { WasmModule } from "../src/wasm.ts";
 import type { AudioFile } from "../src/taglib/index.ts";
 import type { TagLibError } from "../src/errors.ts";
 import { readMediaChecksum, setBufferMode } from "../src/simple/index.ts";
 import { TagLib } from "../src/taglib.ts";
 import { loadUnifiedTagLibModule } from "../src/runtime/unified-loader/index.ts";
+import { FileOperationError, InvalidFormatError } from "../src/errors.ts";
+import { HAS_WASI } from "./backend-adapter.ts";
 
 const TEMP_DIR = await Deno.makeTempDir({ prefix: "taglib-j9ld-" });
 
@@ -598,4 +601,44 @@ describe("degenerate heads", () => {
       );
     }
   });
+});
+
+/**
+ * A path no preopen covers — the shape of a Windows drive letter the host did
+ * not map. The host cannot reach it at all, so it fails as a file operation,
+ * like a path that is not there; a path *inside* a preopen is still refused for
+ * its content. Built through the loader and adapter rather than the default
+ * backend, because only a custom preopen map can produce this namespace.
+ */
+describe("a path outside every preopen", () => {
+  it(
+    "[wasi] fails as a file operation, like a path that is not there",
+    { ignore: !HAS_WASI },
+    async () => {
+      const { loadWasiHost } = await import(
+        "../src/runtime/wasi-host-loader.ts"
+      );
+      const { WasiToTagLibAdapter } = await import(
+        "../src/runtime/wasi-adapter/adapter.ts"
+      );
+      using wasi = await loadWasiHost({
+        wasmPath: resolve("dist/wasi/taglib-wasi.wasm"),
+        preopens: { "/mapped": TEMP_DIR },
+      });
+      const adapter = new WasiToTagLibAdapter(wasi);
+      (adapter as { isWasi?: boolean }).isWasi = true;
+      const instance = new TagLib(adapter as unknown as WasmModule);
+
+      await assertRejects(
+        () => instance.open("/outside/nothing.mp3"),
+        FileOperationError,
+        "outside the WASI preopens",
+      );
+      await assertRejects(
+        () => instance.open("/mapped/junk.mp3"),
+        InvalidFormatError,
+        "corrupted or in an unsupported format",
+      );
+    },
+  );
 });

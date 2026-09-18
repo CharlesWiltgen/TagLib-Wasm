@@ -44,7 +44,10 @@
 
 import type { FileHandle, WasmFileHandle } from "../../wasm.ts";
 import type { WasiModule } from "../wasmer-sdk-loader/types.ts";
-import { InvalidFormatError } from "../../errors/classes.ts";
+import {
+  FileOperationError,
+  InvalidFormatError,
+} from "../../errors/classes.ts";
 import { getFileSize, readPartialFileData } from "../../utils/file.ts";
 import { readTagsFromWasm } from "./wasm-io.ts";
 
@@ -99,7 +102,17 @@ export async function openAudioPath(
       // is what raised the error we are holding).
       if (!(error instanceof InvalidFormatError)) throw error;
       const hostPath = backend.hostModule.hostPathFor(wasiPath);
-      if (hostPath !== undefined) await getFileSize(hostPath);
+      if (hostPath === undefined) {
+        // No preopen covers this path, so the host cannot reach it at all:
+        // there is nothing to read and nothing to recognise. That is a file
+        // operation, the same answer as a file that is not there.
+        throw new FileOperationError(
+          "read",
+          "The path is outside the WASI preopens this host was created with",
+          displayPath,
+        );
+      }
+      await getFileSize(hostPath);
       throw error;
     }
     if (!loaded) {

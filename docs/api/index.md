@@ -441,24 +441,35 @@ tells you:
 | **Ogg, AIFF, Matroska, WavPack, Opus**                                          | `file`          | the whole file; no payload rule exists for these containers yet                                                                                                                                                                                                                            | always                                                                                                                                                        |
 | **RF64 / BW64**                                                                 | `file`          | the whole file, by decision: its chunk sizes are `0xFFFFFFFF` and the real values live in `ds64`                                                                                                                                                                                           | always (the `RIFF` magic is deliberately not accepted)                                                                                                        |
 | **MPEG audio carrying no tag at all** (for example ffmpeg's `mp2`)              | `audio-payload` | the whole file — there is no tag for the walk to exclude, so `hex` equals `sha256(file)` while the label stays the stronger one. Expected, not a bug                                                                                                                                       | —                                                                                                                                                             |
-| **An input TagLib cannot read** (a zero-byte input, junk bytes, a missing path) | —               | nothing is reported: the call throws, with the class the input earns and no `source`                                                                                                                                                                                                       | —                                                                                                                                                             |
+| **An input TagLib cannot read** (a zero-byte input, junk bytes, a missing path) | —               | nothing is reported: the call throws, with the class the input earns and no `source` — but see the path caveat below                                                                                                                                                                       | —                                                                                                                                                             |
 
 For `source: "file"` the digest is tag-sensitive by definition: a tag edit
 legitimately moves `hex`, and `bytesHashed` is the whole file. The "tag edits do
 not move the digest" promise is a promise about `"audio-payload"` only.
 
-An input TagLib cannot read throws before the walk runs, with the same class
-whatever the input kind, the input form, or the backend: `InvalidFormatError` for
-a zero-length input or junk bytes, and `FileOperationError` for a path that is
-not there. None of them reports a `source`.
+An input TagLib cannot read fails by content, and for everything that is simply
+nothing it fails the same way whatever the input form and whichever backend: a
+zero-length input or junk bytes throw `InvalidFormatError`, a path that is not
+there throws `FileOperationError`, and none of them reports a `source`.
 
-The input form does not change the verdict. A **buffer** (`Uint8Array`,
-`ArrayBuffer`, `File`) is refused by content; a **path** is opened, and then its
-_content_ decides — the parse must have read an audio property, or the head must
-be content a detector recognises. So `empty.mp3` and a junk `.mp3` are refused
-exactly as the same bytes are as a buffer, whatever the extension says, and a
-file whose head is unreadable but whose audio TagLib does read (an MP3 behind a
-large APEv2 tag, say) is still accepted.
+**One asymmetry survives, and it is the one to guard against treating a digest as
+evidence.** A **buffer** (`Uint8Array`, `ArrayBuffer`, `File`) is refused by
+content. A **path** is opened first, and its file class is chosen by extension —
+so a path whose bytes the parse reads _something_ out of can still answer a
+digest where the identical bytes as a buffer throw. Upstream's corrupt
+`garbage.mp3` answers `source: "audio-payload"` by path and throws as a buffer,
+and a junk file named `.mpc` answers `source: "file"` by path; the set measured in
+this repository's and upstream's corpora is pinned by
+`PATH_ACCEPTS_WHILE_BUFFER_REFUSES` in `tests/checksum-input-contract.test.ts`,
+and property-yielding junk in general behaves this way. Read "the call throws" as
+a promise about zero-length, unrecognizable and missing inputs — not as "no
+corrupt file on disk can answer a digest".
+
+What a path _is_ refused for is being nothing at all: the parse must have read an
+audio property, or the head must be content a detector recognises. So `empty.mp3`
+and a junk `.mp3` are refused whatever the extension says, exactly as the same
+bytes are as a buffer, and a file whose head is unreadable but whose audio TagLib
+does read (an MP3 behind a large APEv2 tag, say) still opens.
 
 <!-- Walk trace (rows above): src/taglib/media-ranges.ts — `walkMpeg` (ID3v2 skip,
      64 KiB MPEG_SCAN_LIMIT, trailing-tag trim), `walkMp4` (per-mdat),
