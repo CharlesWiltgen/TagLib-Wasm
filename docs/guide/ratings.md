@@ -236,3 +236,10 @@ for (let i = 0; i < files.length; i++) {
 
 - Rating support varies by player/tagger
 - Some use custom atoms, others use iTunes-style metadata
+
+## Next Steps
+
+- [Tag Name Constants](/api/tag-constants) — the format-agnostic property keys
+  and the per-format mapping table behind the RATING and POPM fields above
+- [API Reference](/api/) — the full `AudioFile` surface, including
+  `getRatings()` for files that carry more than one rating

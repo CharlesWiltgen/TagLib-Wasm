@@ -405,7 +405,9 @@ folder disc evidence, `flatDiscPrefixes` toggles filename-prefix parsing,
 `folderFallback` toggles folder-based grouping of untagged files, `scanRoot`
 pins the scanned directory (a bare `CD1/` directly under it is unmatched).
 
-## API Reference
+## Next Steps
 
-For detailed API documentation, see the
-[Folder API Reference](/api/folder-api.html).
+- [Album Processing](./album-processing.md) — batch workflows that pair a folder
+  scan with metadata updates
+- [Folder API Reference](/api/folder-api) — every function signature for the
+  scans, duplicate groups, and album grouping above

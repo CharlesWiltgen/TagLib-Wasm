@@ -69,6 +69,10 @@ export default defineConfig({
             { text: "Examples", link: "/guide/examples" },
             { text: "Codec Detection", link: "/guide/codec-detection" },
             { text: "Album Processing", link: "/guide/album-processing" },
+            {
+              text: "Performance & Streaming",
+              link: "/guide/performance-streaming",
+            },
           ],
         },
         {
@@ -80,10 +84,6 @@ export default defineConfig({
             },
             { text: "Memory Management", link: "/concepts/memory-management" },
             { text: "Performance", link: "/concepts/performance" },
-            {
-              text: "Performance & Streaming",
-              link: "/guide/performance-streaming",
-            },
             { text: "Error Handling", link: "/concepts/error-handling" },
           ],
         },

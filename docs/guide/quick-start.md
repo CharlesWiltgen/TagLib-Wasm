@@ -164,72 +164,10 @@ file.setProperties({
 
 ## Platform Examples
 
-### Node.js
-
-```typescript
-import { TagLib } from "taglib-wasm";
-import { readFile, writeFile } from "fs/promises";
-
-const taglib = await TagLib.initialize();
-const audioData = await readFile("input.mp3");
-using file = await taglib.open(new Uint8Array(audioData));
-
-file.tag().setTitle("Node.js Title");
-file.save();
-
-// Get updated buffer after saving
-const updatedData = file.getFileBuffer();
-await writeFile("output.mp3", updatedData);
-```
-
-### Browser
-
-```typescript
-import { TagLib } from "taglib-wasm";
-
-// From file input
-const fileInput = document.querySelector(
-  'input[type="file"]',
-) as HTMLInputElement;
-const audioFile = fileInput.files![0];
-const audioData = new Uint8Array(await audioFile.arrayBuffer());
-
-const taglib = await TagLib.initialize();
-using file = await taglib.open(audioData);
-
-// Display metadata (title/artist are `string | undefined`)
-const titleEl = document.getElementById("title");
-if (titleEl) titleEl.textContent = file.tag().title ?? "";
-const artistEl = document.getElementById("artist");
-if (artistEl) artistEl.textContent = file.tag().artist ?? "";
-```
-
-### Cloudflare Workers
-
-```typescript
-import { TagLib } from "taglib-wasm";
-
-export default {
-  async fetch(request: Request): Promise<Response> {
-    if (request.method === "POST") {
-      const taglib = await TagLib.initialize();
-
-      const audioData = new Uint8Array(await request.arrayBuffer());
-      using file = await taglib.open(audioData);
-
-      const metadata = {
-        title: file.tag().title,
-        artist: file.tag().artist,
-        duration: file.audioProperties().duration,
-      };
-
-      return Response.json({ success: true, metadata });
-    }
-
-    return new Response("Send POST with audio file", { status: 400 });
-  },
-};
-```
+The API is identical on every runtime — only file access differs. The
+[Platform Guide](./platform-examples.md) has a worked example for each: Node.js,
+Deno and Bun, the browser's File API plus the download step, Web Workers, and
+Cloudflare Workers with its buffer-only and memory constraints.
 
 ## Error Handling
 

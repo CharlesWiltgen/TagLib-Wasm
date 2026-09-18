@@ -158,3 +158,11 @@ if (props) {
   channel count all load, and `getFormat()` names the format. The WASI backend
   (Deno, Node.js, Bun) resolves the container and codec for all nine
   (taglib-uat8).
+
+## Next Steps
+
+- [Implementation Guide](/advanced/implementation) — why the two backends can
+  answer differently: Embind reads the buffer directly, while the WASI C shim
+  serializes a MessagePack snapshot
+- [Runtime Compatibility](/concepts/runtime-compatibility) — which backend each
+  platform gets, and how to force one with `forceWasmType`
