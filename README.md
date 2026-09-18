@@ -37,9 +37,10 @@ TagLib-Wasm is the **universal tagging library for TypeScript/JavaScript**
   zero-padded `"03"` is preserved, and MP4 freeform atoms keep their exact
   casing and vendor `mean`, so other tools still recognise them
 - **Zero dependencies** – Self-contained Wasm bundle
-- **Tested** – 448 tests across all formats, with cross-backend parity coverage
-- **Two API styles** – Use the "Simple" API (3 functions), or the full "Core"
-  API for more advanced applications
+- **Tested** – Cross-backend parity coverage across the supported formats
+- **Two API styles** – Use the "Simple" API for one-shot reads and writes, batch
+  helpers, cover art, and checksums, or the full "Core" API for more advanced
+  applications
 - **Batch folder operations** – Scan directories, process multiple files, find
   duplicates, and export metadata catalogs
 
@@ -445,8 +446,16 @@ Supported formats:
 ### Guides
 
 - [API Reference](https://charleswiltgen.github.io/TagLib-Wasm/api/)
+- [Folder API](https://charleswiltgen.github.io/TagLib-Wasm/api/folder-api.html)
+- [Property Map](https://charleswiltgen.github.io/TagLib-Wasm/api/property-map.html)
+- [Tag Name Constants](https://charleswiltgen.github.io/TagLib-Wasm/api/tag-constants.html)
 - [Performance Guide](https://charleswiltgen.github.io/TagLib-Wasm/concepts/performance.html)
+- [Memory Management](https://charleswiltgen.github.io/TagLib-Wasm/concepts/memory-management.html)
+- [Runtime Compatibility](https://charleswiltgen.github.io/TagLib-Wasm/concepts/runtime-compatibility.html)
 - [Album Processing Guide](https://charleswiltgen.github.io/TagLib-Wasm/guide/album-processing.html)
+- [Folder Operations](https://charleswiltgen.github.io/TagLib-Wasm/guide/folder-operations.html)
+- [Codec Detection](https://charleswiltgen.github.io/TagLib-Wasm/guide/codec-detection.html)
+- [Deno Compile](https://charleswiltgen.github.io/TagLib-Wasm/guide/deno-compile.html)
 - [Platform Examples](https://charleswiltgen.github.io/TagLib-Wasm/guide/platform-examples.html)
 - [Working with Cover Art](https://charleswiltgen.github.io/TagLib-Wasm/guide/cover-art.html)
 - [Track Ratings](https://charleswiltgen.github.io/TagLib-Wasm/guide/ratings.html)
@@ -459,7 +468,9 @@ Supported formats:
 
 ## Supported Formats
 
-`taglib-wasm` is designed to support all formats supported by TagLib:
+`taglib-wasm` is designed to support all formats supported by TagLib. The
+authoritative list is the [`SUPPORTED_FORMATS`](src/errors/base.ts) constant
+(the names `getFormat()` answers):
 
 - **.mp3** – ID3v2 and ID3v1 tags
 - **.aac** – ADTS / raw AAC streams (ID3v2 metadata, read through the MPEG reader)
@@ -468,8 +479,15 @@ Supported formats:
 - **.ogg** – Ogg container: Vorbis with full metadata support, plus FLAC-in-Ogg
   and Speex
 - **.wav** – INFO chunk metadata, plus BWF `bext` and iXML
-- **Additional formats** – Opus, APE, MPC, WavPack, TrueAudio, AIFF, WMA, and
-  more
+- **Additional formats** – Opus, AIFF (`.aiff`/`.aif`), WMA (`.wma`, the ASF
+  container), APE, WavPack (`.wv`), Musepack (`.mpc`), TrueAudio (`.tta`), DSD
+  (`.dsf`/`.dff`), Shorten (`.shn`), the tracker modules
+  (`.mod`/`.s3m`/`.it`/`.xm`), and Matroska (`.mka`/`.mkv`/`.webm`)
+
+These open and report their format on both backends. One difference remains: on
+Emscripten, `audioProperties().containerFormat` and `.codec` still report
+`"unknown"` for the formats its sniffer cannot place (APE, DSF, DSDIFF, MPC,
+SHN, and the tracker modules) — their tags and remaining properties load.
 
 ## Performance and Best Practices
 
@@ -533,12 +551,14 @@ await file.saveToFile(); // Full file loaded only here
 
 taglib-wasm auto-selects the fastest available backend — no configuration needed:
 
-| Environment              | Backend           | How it works                                           | Performance |
-| ------------------------ | ----------------- | ------------------------------------------------------ | ----------- |
-| **Node.js / Deno / Bun** | WASI (auto)       | Seek-based filesystem I/O; reads only headers and tags | Fastest     |
-| **Browsers / Workers**   | Emscripten (auto) | Entire file loaded into memory as buffer               | Baseline    |
+| Environment              | Backend           | How it works                                                                                             | Performance |
+| ------------------------ | ----------------- | -------------------------------------------------------------------------------------------------------- | ----------- |
+| **Node.js / Deno / Bun** | WASI (auto)       | Seek-based filesystem I/O; reads only headers and tags                                                   | Fastest     |
+| **Browsers / Workers**   | Emscripten (auto) | Buffer-based: the whole file by default, or a header/footer window for a `File` with `{ partial: true }` | Baseline    |
 
 On Node.js, Deno, and Bun you get WASI automatically — nothing to configure.
+Partial loading (`{ partial: true }`) works on both paths; see the
+[Performance Guide](https://charleswiltgen.github.io/TagLib-Wasm/concepts/performance.html#smart-partial-loading).
 
 ### Bundle Size and Tree-Shaking
 
@@ -690,8 +710,11 @@ under every bundler:
 
 ## Known Limitations
 
-- **Memory Usage (browsers)** – In browser environments, entire files are loaded
-  into memory. On Node.js/Deno, WASI reads only headers and tags from disk.
+- **Memory Usage (browsers)** – By default, browser environments load the entire
+  file into memory; with `{ partial: true }` a `File` reads only the
+  header/footer window through `File.slice()`, falling back to the whole file
+  when the metadata overruns that window. On Node.js/Deno, WASI reads only
+  headers and tags from disk. See the [Performance Guide](https://charleswiltgen.github.io/TagLib-Wasm/concepts/performance.html#smart-partial-loading).
 - **Concurrent Access** – Not thread-safe (JavaScript single-threaded nature
   mitigates this)
 
@@ -716,7 +739,10 @@ means:
 - If you modify the TagLib C++ code, you must share those changes
 - You must provide a way for users to relink with a modified TagLib
 
-For details, see [lib/taglib/COPYING.LGPL](lib/taglib/COPYING.LGPL)
+For details, see [TagLib's COPYING.LGPL](https://github.com/taglib/taglib/blob/master/COPYING.LGPL)
+— this repository vendors TagLib as a git submodule at `lib/taglib`, so that
+path belongs to the submodule and is not part of this tree (the npm package
+ships `LICENSE` only).
 
 ## Acknowledgments
 

@@ -149,6 +149,15 @@
   path is opened and gets the honest whole-file fallback, a buffer is refused
   before the walk, and the failure differs by input kind and by backend.
 
+### Internal
+
+- **Releases publish through CI on an OIDC-attested path** — npm trusted
+  publishing replaces `NPM_TOKEN` behind a pre-publish OIDC guard; the tag and
+  GitHub release are created by `publish-everywhere.yml` only after all three
+  registries carry the version, and `release:quick` routes through the same
+  `scripts/release-safe.sh` gates with the publish watch skipped
+  (`--skip-watch`).
+
 ## 2.2.3
 
 ### Fixed
