@@ -23,7 +23,7 @@ REQUIRED_JOBS=(
     "Lint & Format"
     "Build (Embind)"
     "Test (C API C++ unit tests)"
-    "Test (ubuntu-latest)"
+    "Test (ubuntu-24.04)"
     "Build (WASI)"
     "Test (WASI)"
     "Package Compatibility"

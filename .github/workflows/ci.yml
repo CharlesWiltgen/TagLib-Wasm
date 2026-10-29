@@ -24,7 +24,7 @@ permissions:
 jobs:
   lint:
     name: Lint & Format
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
         with:
@@ -145,7 +145,7 @@ jobs:
 
   bundle:
     name: Bundle (fast)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
 
@@ -203,7 +203,7 @@ jobs:
 
   test-capi-cpp:
     name: Test (C API C++ unit tests)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
         with:
@@ -214,7 +214,7 @@ jobs:
 
   build-embind:
     name: Build (Embind)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
         with:
@@ -321,7 +321,7 @@ jobs:
 
   build-wasi:
     name: Build (WASI)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     if: ${{ !inputs.skip_wasi }}
     env:
       # Single source for the SDK version in this job: cache path/key and the
@@ -387,7 +387,7 @@ jobs:
         # it keyed on.
         run: |
           npm install -g binaryen@132.0.0
-          # ninja-build ships on ubuntu-latest images; apt is only a fallback
+          # ninja-build ships on ubuntu-24.04 images; apt is only a fallback
           # so a runner-image change never hard-fails on a package fetch.
           if ! command -v ninja >/dev/null 2>&1; then
             sudo apt-get install -y ninja-build
@@ -462,7 +462,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
+        os: [ubuntu-24.04, macos-latest, windows-latest]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v7
@@ -515,7 +515,7 @@ jobs:
         run: pnpm exec vp test --coverage
 
       - name: Upload coverage reports
-        if: matrix.os == 'ubuntu-latest'
+        if: matrix.os == 'ubuntu-24.04'
         uses: actions/upload-artifact@v7
         with:
           name: coverage-lcov
@@ -526,7 +526,7 @@ jobs:
   test-wasi:
     name: Test (WASI)
     needs: build-wasi
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
         with:
@@ -584,7 +584,7 @@ jobs:
   package-compat:
     name: Package Compatibility
     needs: build-embind
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
         with:
@@ -770,7 +770,7 @@ jobs:
   size-report:
     name: Size Report
     needs: [build-wasi]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     if: always()
     steps:
       - uses: actions/checkout@v7
@@ -831,7 +831,7 @@ jobs:
         package-compat,
         size-report,
       ]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     if: always()
     steps:
       - name: Check results

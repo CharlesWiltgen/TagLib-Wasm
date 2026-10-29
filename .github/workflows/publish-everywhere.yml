@@ -64,7 +64,7 @@ concurrency:
 jobs:
   prepare-and-build:
     name: Prepare and Build
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
       actions: read # the CI gate below reads workflow runs via `gh run list/view`
@@ -321,7 +321,7 @@ jobs:
     name: Publish to JSR
     needs: prepare-and-build
     if: needs.prepare-and-build.outputs.should-publish == 'true'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
       id-token: write # Required for OIDC authentication to JSR
@@ -399,7 +399,7 @@ jobs:
     # budget and reporting a misleading failure (finalize already blocks the
     # tag either way).
     if: needs.prepare-and-build.outputs.should-publish == 'true' && needs.publish-jsr.result == 'success'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: denoland/setup-deno@v2
         with:
@@ -424,7 +424,7 @@ jobs:
     name: Publish to NPM
     needs: [prepare-and-build, publish-jsr] # Depends on JSR success (fail-fast)
     if: needs.prepare-and-build.outputs.should-publish == 'true' && needs.publish-jsr.outputs.published == 'true'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
       id-token: write # Required for OIDC (npm trusted publishing, taglib-gmgj)
@@ -608,7 +608,7 @@ jobs:
     permissions:
       contents: read
       packages: write # Required to publish to npm.pkg.github.com (SEC-03)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     outputs:
       published: ${{ steps.publish.outputs.published }}
     steps:
@@ -818,7 +818,7 @@ jobs:
     # SEC-04 / rkx0 review finding 2, and verify-jsr so a failed post-publish
     # check cannot produce one either).
     if: always() && needs.prepare-and-build.outputs.should-publish == 'true'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       contents: write # Required to create tags
     steps:
