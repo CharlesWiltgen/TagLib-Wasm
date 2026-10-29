@@ -16,6 +16,11 @@
 #              (WASI_VERSION), build/setup-wasi-sdk.sh (WASI_SDK_VERSION_FULL)
 #   binaryen — .github/workflows/ci.yml, build/setup-dev-env.sh (binaryen@),
 #              and mise.toml (npm:binaryen) when that local file exists
+#   deno     — .github/workflows/{ci,publish-everywhere,sonarcloud}.yml
+#              (deno-version:); every workflow is scanned, so a new file
+#              declaring a second version also fails
+#   bun      — .github/workflows/{ci,sonarcloud}.yml (bun-version:), with the
+#              same every-workflow scan
 
 set -euo pipefail
 
@@ -102,5 +107,38 @@ bin_dev="$(grep -oE 'binaryen@[0-9]+\.[0-9]+\.[0-9]+' build/setup-dev-env.sh | s
 require_pin "binaryen (.github/workflows/ci.yml)" "$bin_ci"
 require_pin "binaryen (build/setup-dev-env.sh)" "$bin_dev"
 check_family "binaryen" "$(printf '%s\n' "$bin_ci" "$bin_dev" "$bin_mise" | grep .)"
+
+# deno / bun — the runtime pins the test legs depend on. Deno is declared in
+# ci.yml, publish-everywhere.yml (four legs) and sonarcloud.yml; Bun in ci.yml
+# and sonarcloud.yml. A one-file bump would run the weekly Sonar job on a
+# different runtime than main CI, so every workflow is scanned into the family
+# (a new file with a second version fails) while each known file is asserted
+# individually (a file losing its pin cannot vanish into the family check).
+pin_values() { # file, key
+  grep -oE "$2:[[:space:]]*\"?[0-9]+\.[0-9]+\.[0-9]+" "$1" 2>/dev/null \
+    | sed -E "s/.*:[[:space:]]*\"?//" || true
+}
+
+WF_ALL=(.github/workflows/*.yml)
+deno_wf_files=(.github/workflows/ci.yml .github/workflows/publish-everywhere.yml .github/workflows/sonarcloud.yml)
+bun_wf_files=(.github/workflows/ci.yml .github/workflows/sonarcloud.yml)
+
+deno_all=""
+for f in "${WF_ALL[@]}"; do
+  deno_all+="$(pin_values "$f" deno-version)"$'\n'
+done
+for f in "${deno_wf_files[@]}"; do
+  require_pin "deno-version ($f)" "$(pin_values "$f" deno-version)"
+done
+check_family "deno-version" "$(printf '%s\n' "$deno_all" | grep . || true)"
+
+bun_all=""
+for f in "${WF_ALL[@]}"; do
+  bun_all+="$(pin_values "$f" bun-version)"$'\n'
+done
+for f in "${bun_wf_files[@]}"; do
+  require_pin "bun-version ($f)" "$(pin_values "$f" bun-version)"
+done
+check_family "bun-version" "$(printf '%s\n' "$bun_all" | grep . || true)"
 
 echo "All toolchain pins agree."
