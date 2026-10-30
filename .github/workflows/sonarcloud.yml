@@ -4,20 +4,19 @@ on:
   # Fast feedback: a push to main re-analyses so the gate verdict tracks the
   # merged tree within minutes instead of up to a week (the 2026-10-12 failure
   # stayed red for nine days under the weekly-only schedule). The paths mirror
-  # what the analysis actually reads — sonar.sources is src,index.ts,simple.ts,
-  # and the coverage feed comes from tests/, vite.config.ts, and the merge
-  # script. The weekly run stays as the safety net for changes that reach the
-  # analysis without touching an analyzed file (dependency bumps, toolchain
-  # moves).
+  # what the analysis reads — sonar.sources is src, sonar.typescript.tsconfigPath
+  # points the TypeScript frontend at tsconfig.json, and the coverage feed comes
+  # from tests/, vite.config.ts, and the merge script. The weekly run stays as
+  # the safety net for changes that reach the analysis without touching an
+  # analyzed file (dependency bumps, toolchain moves).
   push:
     branches: [main]
     paths:
       - "src/**"
       - "tests/**"
-      - "index.ts"
-      - "simple.ts"
       - "scripts/merge-lcov.mjs"
       - "vite.config.ts"
+      - "tsconfig.json"
       - "package.json"
       - "pnpm-lock.yaml"
       - "sonar-project.properties"
