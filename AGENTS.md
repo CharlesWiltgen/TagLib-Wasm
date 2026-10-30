@@ -608,7 +608,7 @@ project with its own lockfile (`docs/pnpm-lock.yaml`).
 pnpm install              # Install dependencies (required before any `vp` command)
 pnpm run check:all        # EVERY gate, in one command (see the note below)
 pnpm exec vp check        # Format + lint gates (oxlint, type-aware rules)
-pnpm exec vp test         # Tests (Vitest): 104 files across tests/ and src/
+pnpm exec vp test         # Tests (Vitest): 105 files across tests/ and src/
 pnpm exec tsc --noEmit -p tsconfig.check.json   # Type gate (includes tests/)
 pnpm exec tsc --noEmit -p tsconfig.examples.json # Examples type gate
 pnpm run check:examples   # Examples gate: resolution, run, working-tree guard
@@ -671,7 +671,7 @@ and a same-day rerun. `retention-days` is an `upload-artifact` input, not a
 workflow-level key — at the top level GitHub fails the workflow's validation
 run with no jobs and no logs, which reads as an unexplained red X.
 
-**One test suite.** `pnpm exec vp test` covers all 104 test files under `tests/`
+**One test suite.** `pnpm exec vp test` covers all 105 test files under `tests/`
 and `src/`. The only exclusions are `tests/bun-integration.test.ts` (registered
 with `bun:test`, run via `pnpm run test:bun`), `tests/cross-runtime/**` (run
 under three runtimes via `tests/cross-runtime/run.sh`) and `tests/deno-*.test.ts`

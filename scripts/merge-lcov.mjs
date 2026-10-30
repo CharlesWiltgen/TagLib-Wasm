@@ -10,6 +10,15 @@
  * SonarCloud's lines-to-cover to modules the primary run never measured
  * (observed 3,353 -> 9,009 lines).
  *
+ * Branch records (BRDA) follow the same scope rule: a secondary report may
+ * raise the taken count of a branch the primary recorded, and nothing else.
+ * A branch the primary never recorded is not created, for the same reason a
+ * zero-hit line is not — it would add branches-found no primary run measured.
+ * BRF/BRH are recomputed from the merged BRDA set so the record stays
+ * self-consistent. Secondary-only adopted files contribute line data only:
+ * every line being covered still permits unhit branches, which would lower
+ * branch coverage with data the primary never measured.
+ *
  * Fails when no secondary hit matches the primary, so a path-normalization
  * break cannot silently publish pre-merge coverage.
  *
@@ -75,6 +84,22 @@ function daEntries(block) {
   return entries;
 }
 
+// BRDA:<line>,<block>,<branch>,<taken> — `taken` is a hit count or "-" for a
+// block that never executed (zero taken, but distinguishable in the record).
+function brdaEntry(line) {
+  const [ln, block, branch, taken] = line.slice(5).split(",");
+  return { key: `${ln},${block},${branch}`, taken };
+}
+
+// "-" stays only when neither report executed the branch; otherwise the larger
+// numeric count wins and "-" counts as zero.
+function maxTaken(a, b) {
+  if (a === "-" && b === "-") return "-";
+  const left = a === "-" ? 0 : Number(a);
+  const right = b === "-" ? 0 : Number(b);
+  return String(Math.max(left, right));
+}
+
 // The primary report defines the scope for the files it contains.
 const primary = readBlocks(primaryPath);
 const primaryFiles = new Set(primary.map((block) => block.sf));
@@ -83,6 +108,22 @@ for (const block of primary) {
   for (const [ln, count] of daEntries(block)) {
     hits.set(`${block.sf}:${ln}`, count);
   }
+}
+
+// Branch scope per file: the branch keys the primary recorded, and their taken
+// counts as they are merged forward.
+const branches = new Map();
+for (const block of primary) {
+  const record = branches.get(block.sf) ?? new Map();
+  for (const line of block.lines) {
+    if (!line.startsWith("BRDA:")) continue;
+    const { key, taken } = brdaEntry(line);
+    // Same SF twice is legal lcov: merge the records rather than letting the
+    // later one drop the earlier one's branch keys.
+    const previous = record.get(key);
+    record.set(key, previous === undefined ? taken : maxTaken(previous, taken));
+  }
+  branches.set(block.sf, record);
 }
 
 // Secondary-only files are adopted only when fully covered.
@@ -109,6 +150,16 @@ for (const path of secondaryPaths) {
       matched++;
       hits.set(key, Math.max(hits.get(key), count));
     }
+
+    const branchRecord = branches.get(block.sf);
+    if (!branchRecord) continue;
+    for (const line of block.lines) {
+      if (!line.startsWith("BRDA:")) continue;
+      const { key, taken } = brdaEntry(line);
+      if (!branchRecord.has(key)) continue;
+      matched++;
+      branchRecord.set(key, maxTaken(branchRecord.get(key), taken));
+    }
   }
 }
 
@@ -131,12 +182,31 @@ for (const block of primary) {
     if (count > 0) lh++;
   }
 
+  // Recompute the branch totals from the merged records, but only for a block
+  // that actually carries BRDA: a record with BRF/BRH and no BRDA (a report
+  // shape this script does not produce) keeps its own numbers.
+  const branchRecord = branches.get(block.sf);
+  const hasBranches = (branchRecord?.size ?? 0) > 0;
+  let brf = 0;
+  let brh = 0;
+  if (hasBranches) {
+    for (const taken of branchRecord.values()) {
+      brf++;
+      if (taken !== "-" && Number(taken) > 0) brh++;
+    }
+  }
+
   out.push(`SF:${block.sf}`);
   let da = 0;
   for (const line of block.lines) {
     if (line.startsWith("LF:")) out.push(`LF:${lf}`);
     else if (line.startsWith("LH:")) out.push(`LH:${lh}`);
     else if (line.startsWith("DA:")) out.push(daLines[da++]);
+    else if (hasBranches && line.startsWith("BRDA:")) {
+      const { key, taken } = brdaEntry(line);
+      out.push(`BRDA:${key},${branchRecord.get(key) ?? taken}`);
+    } else if (hasBranches && line.startsWith("BRF:")) out.push(`BRF:${brf}`);
+    else if (hasBranches && line.startsWith("BRH:")) out.push(`BRH:${brh}`);
     else out.push(line);
   }
 }

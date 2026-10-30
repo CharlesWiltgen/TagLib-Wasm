@@ -107,6 +107,10 @@ report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 
 # Coverage reports
 coverage
+# The Sonar recipe's native-runtime legs (deno test --coverage=..., bun
+# --coverage-dir=...); untracked and, unlike coverage/, not caught above.
+coverage-deno
+coverage-bun
 *.lcov
 .nyc_output
 

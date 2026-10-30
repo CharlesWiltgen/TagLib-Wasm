@@ -135,7 +135,7 @@ entry base to the repo root and nests everything under `dist/src/`.
 ### Running Tests
 
 ```bash
-# Tests (Vitest): 104 files across tests/ and src/
+# Tests (Vitest): 105 files across tests/ and src/
 pnpm exec vp test
 
 # Watch mode
