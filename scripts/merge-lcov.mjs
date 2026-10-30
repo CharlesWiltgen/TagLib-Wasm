@@ -182,19 +182,21 @@ for (const block of primary) {
     if (count > 0) lh++;
   }
 
-  // Recompute the branch totals from the merged records, but only for a block
-  // that actually carries BRDA: a record with BRF/BRH and no BRDA (a report
-  // shape this script does not produce) keeps its own numbers.
+  // Branch totals are per record, like LF/LH above. A file may legally appear
+  // in several primary records, and a record must describe only its own BRDA
+  // lines — a file-wide total would double the denominator for any summing
+  // consumer (lcov --add-tracefile), the inflation this script exists to avoid.
   const branchRecord = branches.get(block.sf);
-  const hasBranches = (branchRecord?.size ?? 0) > 0;
   let brf = 0;
   let brh = 0;
-  if (hasBranches) {
-    for (const taken of branchRecord.values()) {
-      brf++;
-      if (taken !== "-" && Number(taken) > 0) brh++;
-    }
+  for (const line of block.lines) {
+    if (!line.startsWith("BRDA:")) continue;
+    const { key } = brdaEntry(line);
+    const taken = branchRecord.get(key) ?? "-";
+    brf++;
+    if (taken !== "-" && Number(taken) > 0) brh++;
   }
+  const hasBranches = brf > 0;
 
   out.push(`SF:${block.sf}`);
   let da = 0;

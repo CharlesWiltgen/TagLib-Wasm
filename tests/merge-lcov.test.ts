@@ -256,7 +256,9 @@ describe(
           "BRDA:10,0,0,0",
           "BRDA:10,0,1,-",
           "BRDA:10,1,0,-",
-          "BRF:3",
+          // Stale on purpose: only a recompute from the merged BRDA set can
+          // produce BRF:3, so a passthrough of this value fails the assertion.
+          "BRF:9",
           "BRH:0",
           "LF:1",
           "LH:1",
@@ -317,8 +319,36 @@ describe(
       expect(merged).toContain("BRDA:1,0,0,9");
       // ...and the second record's branch survives the merge.
       expect(merged).toContain("BRDA:2,0,0,3");
+      // Each record totals only its own branch, so a summing consumer sees 2
+      // found branches, not 4 from a file-wide count repeated per record.
+      expect(merged.match(/^BRF:1$/gm)?.length).toStrictEqual(2);
+      expect(merged).not.toContain("BRF:2");
       // A missing key must never reach the output as a placeholder.
       expect(merged).not.toContain("undefined");
+    });
+
+    it("never lowers a hit the primary already recorded", async () => {
+      const { code, merged } = await runMerge(() => ({
+        primary: record("src/a.ts", [
+          "DA:1,5",
+          "BRDA:1,0,0,4",
+          "BRF:1",
+          "BRH:1",
+          "LF:1",
+          "LH:1",
+        ]),
+        // A stale runtime reports the same line and branch as unhit. Merging
+        // with max is what keeps the primary's evidence; an overwrite silently
+        // withdraws coverage that was measured.
+        secondary: [record("src/a.ts", ["DA:1,0", "BRDA:1,0,0,0"])],
+      }));
+
+      expect(code).toStrictEqual(0);
+      const a = parseRecords(merged).get("src/a.ts");
+      expect(a).toBeDefined();
+      expect(a).toContain("DA:1,5");
+      expect(a).toContain("BRDA:1,0,0,4");
+      expect(a).toContain("BRH:1");
     });
 
     it("keeps adopted secondary-only files line-only (no BRDA, no BRF/BRH)", async () => {
