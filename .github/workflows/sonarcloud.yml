@@ -1,9 +1,37 @@
 name: SonarCloud Analysis
 
 on:
+  # Fast feedback: a push to main re-analyses so the gate verdict tracks the
+  # merged tree within minutes instead of up to a week (the 2026-10-12 failure
+  # stayed red for nine days under the weekly-only schedule). The paths mirror
+  # what the analysis actually reads — sonar.sources is src,index.ts,simple.ts,
+  # and the coverage feed comes from tests/, vite.config.ts, and the merge
+  # script. The weekly run stays as the safety net for changes that reach the
+  # analysis without touching an analyzed file (dependency bumps, toolchain
+  # moves).
+  push:
+    branches: [main]
+    paths:
+      - "src/**"
+      - "tests/**"
+      - "index.ts"
+      - "simple.ts"
+      - "scripts/merge-lcov.mjs"
+      - "vite.config.ts"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - "sonar-project.properties"
+      - ".github/workflows/sonarcloud.yml"
   schedule:
     - cron: "0 6 * * 1" # Weekly on Monday at 6am UTC
   workflow_dispatch: # Manual trigger
+
+# A newer push supersedes an in-flight scan: the gate only needs to speak for
+# main's current tree. Cancellation is the trade — a superseded scan leaves no
+# verdict — which is why the weekly run does not depend on push volume.
+concurrency:
+  group: sonar-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   sonarcloud:
@@ -126,8 +154,14 @@ jobs:
           # Coverage is the union of the three runtime legs: Vitest (Node),
           # Deno, and Bun, merged by scripts/merge-lcov.mjs. The native legs
           # cover the providers that the Node run cannot execute.
+          #
+          # qualitygate.wait makes the job fail when a gate condition fails.
+          # Without it a red gate left CI green — the 2026-10-12 failure was
+          # visible only on the SonarCloud dashboard — so "green CI" said
+          # nothing about the gate.
           args: >
             -Dsonar.projectVersion=${{ steps.pkg_version.outputs.version }}
             -Dsonar.javascript.lcov.reportPaths=coverage/merged-lcov.info
             -Dsonar.typescript.lcov.reportPaths=coverage/merged-lcov.info
             -Dsonar.testExecutionReportPaths=sonar-report.xml
+            -Dsonar.qualitygate.wait=true
