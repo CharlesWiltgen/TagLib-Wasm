@@ -139,8 +139,8 @@ missing export (`TS2305`). The pure helpers that do run in a browser
 ### Bundler Interop
 
 `dist/taglib-wrapper.js`, the Emscripten glue, contains a dynamic
-`import("node:module")` that browser targets have no builtin for, so two bundlers
-need one line each: esbuild `--external:node:module`, and webpack
+`import("module")` that browser targets have no builtin for, so two bundlers
+need one line each: esbuild `--external:module`, and webpack
 `externals: { module: "module" }` (webpack `target: "web"` alone fails on it).
 Rollup needs nothing extra, and vite externalizes it for the browser with a
 warning.
