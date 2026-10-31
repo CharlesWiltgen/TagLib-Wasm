@@ -20,10 +20,12 @@
  */
 
 import { describe, expect, it } from "vite-plus/test";
-import { readFile } from "node:fs/promises";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { TagLib } from "../src/taglib.ts";
 import { remapKeysFromTagLib } from "../src/constants/properties.ts";
-import { applyTags, readTags } from "../src/simple/index.ts";
+import { applyTags, readTags, writeTagsBatch } from "../src/simple/index.ts";
 import { mapPropertiesToExtendedTag } from "../src/utils/tag-mapping.ts";
 import { FIXTURE_PATH } from "./shared-fixtures.ts";
 
@@ -285,6 +287,64 @@ describe("write normalization (taglib-7ru2)", () => {
       expect(file.getProperty("totalTracks")?.[0]).toStrictEqual("12");
       file.dispose();
     });
+  }
+});
+
+describe("typed write canonicalizes a legacy APEv2-named comment", () => {
+  // Consumer flow: a source FLAC carries the APEv2-style names an older tool
+  // wrote. A typed batch write must leave ONE canonical field, not a
+  // duplicate — no direct raw property write/clear is needed.
+  const CASES = [
+    {
+      legacy: "MUSICBRAINZ_ALBUMTYPE",
+      typed: "releaseType",
+      canonical: "RELEASETYPE",
+      value: "Album",
+    },
+    {
+      legacy: "MUSICBRAINZ_ALBUMSTATUS",
+      typed: "releaseStatus",
+      canonical: "RELEASESTATUS",
+      value: "Official",
+    },
+  ] as const;
+
+  for (const backend of BACKENDS) {
+    for (const { legacy, typed, canonical, value } of CASES) {
+      it(`[${backend}] ${legacy} disappears after a typed ${typed} write`, async () => {
+        const dir = await mkdtemp(join(tmpdir(), "taglib-alias-"));
+        try {
+          const path = join(dir, "legacy.flac");
+          const src = patchFlacComments(
+            new Uint8Array(await readFile(FIXTURE_PATH.flac)),
+            [[legacy, value]],
+            [],
+          );
+          await writeFile(path, src);
+          await TagLib.initialize({ forceWasmType: backend });
+          const tags =
+            typed === "releaseType"
+              ? { releaseType: [value] }
+              : { releaseStatus: [value] };
+          const result = await writeTagsBatch([{ path, tags }], {
+            concurrency: 1,
+          });
+          expect(result.items[0].status).toStrictEqual("ok");
+
+          const buf = new Uint8Array(await readFile(path));
+          const text = new TextDecoder().decode(buf);
+          expect(text.includes(legacy), `${legacy} should be gone`).toBe(false);
+          expect(text.includes(canonical), `${canonical} expected`).toBe(true);
+
+          const readBack = await readTags(buf);
+          expect((readBack as Record<string, unknown>)[typed]).toStrictEqual([
+            value,
+          ]);
+        } finally {
+          await rm(dir, { recursive: true, force: true });
+        }
+      });
+    }
   }
 });
 
