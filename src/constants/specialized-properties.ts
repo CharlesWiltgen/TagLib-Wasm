@@ -90,6 +90,25 @@ export const SPECIALIZED_PROPERTIES = {
       mp4: "----:com.apple.iTunes:MusicBrainz Album Release Country",
     },
   },
+  releaseStatus: {
+    key: "RELEASESTATUS",
+    description:
+      "Release status (official, promotion, bootleg, ...). TagLib 2.3.2 translates the RELEASESTATUS key per format: ID3v2 TXXX 'MUSICBRAINZ ALBUM STATUS' (TagLib's description casing), MP4 freeform atom 'MusicBrainz Album Status', APEv2 MUSICBRAINZ_ALBUMSTATUS, ASF 'MusicBrainz/Album Status', Vorbis/Matroska raw RELEASESTATUS",
+    type: "string" as const,
+    supportedFormats: [
+      "ID3v2",
+      "MP4",
+      "Vorbis",
+      "APE",
+      "ASF",
+      "Matroska",
+    ] as const,
+    mappings: {
+      id3v2: { frame: "TXXX", description: "MusicBrainz Album Status" },
+      vorbis: "RELEASESTATUS",
+      mp4: "----:com.apple.iTunes:MusicBrainz Album Status",
+    },
+  },
   itunesAdvisory: {
     key: "ITUNESADVISORY",
     description:

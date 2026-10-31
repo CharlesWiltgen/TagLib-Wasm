@@ -100,12 +100,23 @@ Object.values(PROPERTIES).forEach((prop) => {
 
 ### MusicBrainz Fields
 
-| Field                | MP3 (ID3v2)                                    | FLAC/OGG (Vorbis)            | MP4/M4A (Atoms)                                      |
-| -------------------- | ---------------------------------------------- | ---------------------------- | ---------------------------------------------------- |
-| **Track ID**         | `UFID` frame: `"http://musicbrainz.org"`       | `MUSICBRAINZ_TRACKID`        | `----:com.apple.iTunes:MusicBrainz Track Id`         |
-| **Release ID**       | `TXXX` frame: `"MusicBrainz Album Id"`         | `MUSICBRAINZ_ALBUMID`        | `----:com.apple.iTunes:MusicBrainz Album Id`         |
-| **Artist ID**        | `TXXX` frame: `"MusicBrainz Artist Id"`        | `MUSICBRAINZ_ARTISTID`       | `----:com.apple.iTunes:MusicBrainz Artist Id`        |
-| **Release Group ID** | `TXXX` frame: `"MusicBrainz Release Group Id"` | `MUSICBRAINZ_RELEASEGROUPID` | `----:com.apple.iTunes:MusicBrainz Release Group Id` |
+| Field                | MP3 (ID3v2)                                         | FLAC/OGG (Vorbis)            | MP4/M4A (Atoms)                                           |
+| -------------------- | --------------------------------------------------- | ---------------------------- | --------------------------------------------------------- |
+| **Track ID**         | `UFID` frame: `"http://musicbrainz.org"`            | `MUSICBRAINZ_TRACKID`        | `----:com.apple.iTunes:MusicBrainz Track Id`              |
+| **Release ID**       | `TXXX` frame: `"MusicBrainz Album Id"`              | `MUSICBRAINZ_ALBUMID`        | `----:com.apple.iTunes:MusicBrainz Album Id`              |
+| **Artist ID**        | `TXXX` frame: `"MusicBrainz Artist Id"`             | `MUSICBRAINZ_ARTISTID`       | `----:com.apple.iTunes:MusicBrainz Artist Id`             |
+| **Release Group ID** | `TXXX` frame: `"MusicBrainz Release Group Id"`      | `MUSICBRAINZ_RELEASEGROUPID` | `----:com.apple.iTunes:MusicBrainz Release Group Id`      |
+| **Release Type**     | `TXXX` frame: `"MUSICBRAINZ ALBUM TYPE"`            | `RELEASETYPE`                | `----:com.apple.iTunes:MusicBrainz Album Type`            |
+| **Release Status**   | `TXXX` frame: `"MUSICBRAINZ ALBUM STATUS"`          | `RELEASESTATUS`              | `----:com.apple.iTunes:MusicBrainz Album Status`          |
+| **Release Country**  | `TXXX` frame: `"MUSICBRAINZ ALBUM RELEASE COUNTRY"` | `RELEASECOUNTRY`             | `----:com.apple.iTunes:MusicBrainz Album Release Country` |
+
+The three release fields are typed on `ExtendedTag` (`releaseType`,
+`releaseStatus`, `releaseCountry`); writing the camelCase name reaches the
+canonical TagLib key and TagLib picks the container's storage. On APEv2 the
+names are `MUSICBRAINZ_ALBUMTYPE`, `MUSICBRAINZ_ALBUMSTATUS` and
+`RELEASECOUNTRY`; writing the MUSICBRAINZ_-prefixed APEv2 spellings on FLAC or
+MP4 is a mistake — the write aliases normalize them to the canonical key, so
+prefer the typed names and let TagLib translate.
 
 ### Extended Fields
 

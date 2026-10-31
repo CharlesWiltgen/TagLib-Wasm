@@ -291,6 +291,11 @@ export const METADATA_MAPPINGS: Record<
     vorbis: "RELEASECOUNTRY",
     mp4: "----:com.apple.iTunes:MusicBrainz Album Release Country",
   },
+  releaseStatus: {
+    id3v2: { frame: "TXXX", description: "MUSICBRAINZ ALBUM STATUS" },
+    vorbis: "RELEASESTATUS",
+    mp4: "----:com.apple.iTunes:MusicBrainz Album Status",
+  },
   itunesAdvisory: {
     id3v2: { frame: "TXXX", description: "ITUNESADVISORY" },
     vorbis: "ITUNESADVISORY",

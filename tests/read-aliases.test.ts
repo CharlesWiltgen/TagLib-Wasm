@@ -7,6 +7,7 @@
  *   UPC/EAN/GTIN              -> barcode
  *   TOTALTRACKS/TOTALDISCS    -> totalTracks/totalDiscs
  *   MUSICBRAINZ_ALBUMTYPE     -> releaseType
+ *   MUSICBRAINZ_ALBUMSTATUS   -> releaseStatus
  *   CONTENTADVISORY/EXPLICIT  -> itunesAdvisory
  *   DATE then YEAR as fallback (typed surface only; YEAR stays raw on
  *   properties() so raw round-trips are byte-stable)
@@ -120,6 +121,7 @@ function legacyFlac(): Promise<Uint8Array> {
         ["TOTALTRACKS", "12"],
         ["CONTENTADVISORY", "1"],
         ["MUSICBRAINZ_ALBUMTYPE", "EP"],
+        ["MUSICBRAINZ_ALBUMSTATUS", "Official"],
       ],
       [],
     );
@@ -153,6 +155,8 @@ describe("alias resolution units (taglib-7ru2)", () => {
       TOTALDISCS: ["2"],
       MUSICBRAINZ_ALBUMTYPE: ["EP"],
       "MusicBrainz Album Type": ["EP"],
+      MUSICBRAINZ_ALBUMSTATUS: ["Official"],
+      "MusicBrainz Album Status": ["Official"],
       CONTENTADVISORY: ["1"],
     });
     expect(mapped.albumArtist).toStrictEqual(["VA"]);
@@ -161,6 +165,7 @@ describe("alias resolution units (taglib-7ru2)", () => {
     expect(mapped.totalTracks).toStrictEqual(["12"]);
     expect(mapped.totalDiscs).toStrictEqual(["2"]);
     expect(mapped.releaseType).toStrictEqual(["EP"]);
+    expect(mapped.releaseStatus).toStrictEqual(["Official"]);
     expect(mapped.itunesAdvisory).toStrictEqual(["1"]);
     // EXPLICIT resolves to the same group.
     expect(
@@ -214,6 +219,7 @@ describe("legacy-name FLAC read on both backends (taglib-7ru2)", () => {
       expect(tag.totalTracks).toStrictEqual(12);
       expect(tag.itunesAdvisory).toStrictEqual(["1"]);
       expect(tag.releaseType).toStrictEqual(["EP"]);
+      expect(tag.releaseStatus).toStrictEqual(["Official"]);
       expect(tag.year).toStrictEqual(1986); // from DATE=1986-03-25
       file.dispose();
     });
@@ -227,6 +233,8 @@ describe("legacy-name FLAC read on both backends (taglib-7ru2)", () => {
       expect(props.totalTracks).toStrictEqual(["12"]);
       expect(props.itunesAdvisory).toStrictEqual(["1"]);
       expect(props.releaseType).toStrictEqual(["EP"]);
+      expect(props["MUSICBRAINZ_ALBUMSTATUS"]).toStrictEqual(undefined);
+      expect(props.releaseStatus).toStrictEqual(["Official"]);
       expect(props["ALBUM ARTIST"]).toStrictEqual(undefined);
       file.dispose();
     });

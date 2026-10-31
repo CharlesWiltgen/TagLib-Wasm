@@ -118,6 +118,8 @@ export interface TagInput {
   readonly releaseType?: string | string[];
   /** Release country (ISO 3166-1 code, e.g. "US"); multi-value allowed */
   readonly releaseCountry?: string | string[];
+  /** Release status (official, promotion, bootleg, ...); multi-value allowed */
+  readonly releaseStatus?: string | string[];
   /** Content advisory in the ITUNESADVISORY convention ('1' = explicit, '2' = clean, '0' = unspecified) */
   readonly itunesAdvisory?: string | string[];
   /**
@@ -198,6 +200,8 @@ export interface ExtendedTag extends Tag {
   readonly releaseType?: string[];
   /** Release country (ISO 3166-1 code, e.g. "US"); multi-value */
   readonly releaseCountry?: string[];
+  /** Release status (official, promotion, bootleg, ...); multi-value */
+  readonly releaseStatus?: string[];
   /** Content advisory in the ITUNESADVISORY convention ('1' = explicit, '2' = clean, '0' = unspecified) */
   readonly itunesAdvisory?: string[];
   /**

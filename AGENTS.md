@@ -156,6 +156,9 @@ interface Tag {
 //   releaseCountry: string[]  — ISO 3166-1 release country (TXXX
 //     "MUSICBRAINZ ALBUM RELEASE COUNTRY" / MP4 freeform / APEv2 raw / ASF /
 //     WAV ICNT / Vorbis+Matroska raw)
+//   releaseStatus: string[]  — release status (official, promotion, bootleg, ...);
+//     stored per format (TXXX "MUSICBRAINZ ALBUM STATUS" / freeform / APEv2
+//     MUSICBRAINZ_ALBUMSTATUS / ASF "MusicBrainz/Album Status" / Vorbis+Matroska raw)
 //   acoustidFingerprint, acoustidId: string[]
 //   replayGainTrackGain, replayGainTrackPeak: string[]
 //   replayGainAlbumGain, replayGainAlbumPeak: string[]
@@ -450,7 +453,8 @@ Example: ID3v2 `TPE2` / Vorbis `ALBUMARTIST` / iTunes `aART` → `albumArtist`.
 **Read-side aliases**: legacy wire names resolve to the canonical
 property — `ALBUM ARTIST`/`ALBUM_ARTIST`→albumArtist, `ORGANIZATION`/`PUBLISHER`→label,
 `UPC`/`EAN`/`GTIN`→barcode, `TOTALTRACKS`→totalTracks, `TOTALDISCS`→totalDiscs,
-`MUSICBRAINZ_ALBUMTYPE`→releaseType, `CONTENTADVISORY`/`EXPLICIT`→itunesAdvisory.
+`MUSICBRAINZ_ALBUMTYPE`→releaseType, `MUSICBRAINZ_ALBUMSTATUS`→releaseStatus,
+`CONTENTADVISORY`/`EXPLICIT`→itunesAdvisory.
 **Content advisory**: typed `advisory: "explicit" | "clean" | "unspecified"`
 on `readTags()`/`applyTags()` — wire values `ITUNESADVISORY` "1"/"2"/"0". On MP4 the
 value lives in the native `rtng` atom (0/1/2), bridged in C++ on both backends; other
