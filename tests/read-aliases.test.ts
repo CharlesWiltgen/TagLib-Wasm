@@ -348,6 +348,47 @@ describe("typed write canonicalizes a legacy APEv2-named comment", () => {
   }
 });
 
+describe("typed write replaces a pre-existing RELEASETYPE value", () => {
+  // The reported symptom: a FLAC source whose legacy comment reads
+  // RELEASETYPE=Compilation must come back with only the new value. This is
+  // the disk writer; applyTags(path) intentionally returns bytes and never
+  // touches the file, so a caller using it sees the old field survive.
+  for (const backend of BACKENDS) {
+    it(`[${backend}] Compilation is replaced and the APEv2 duplicate removed`, async () => {
+      const dir = await mkdtemp(join(tmpdir(), "taglib-alias-"));
+      try {
+        const path = join(dir, "legacy.flac");
+        const src = patchFlacComments(
+          new Uint8Array(await readFile(FIXTURE_PATH.flac)),
+          [
+            ["RELEASETYPE", "Compilation"],
+            ["MUSICBRAINZ_ALBUMTYPE", "Compilation"],
+          ],
+          [],
+        );
+        await writeFile(path, src);
+        await TagLib.initialize({ forceWasmType: backend });
+        const result = await writeTagsBatch(
+          [{ path, tags: { releaseType: ["Album"] } }],
+          { concurrency: 1 },
+        );
+        expect(result.items[0].status).toStrictEqual("ok");
+
+        const buf = new Uint8Array(await readFile(path));
+        const text = new TextDecoder().decode(buf);
+        expect(text.includes("RELEASETYPE=Album")).toBe(true);
+        expect(text.includes("RELEASETYPE=Compilation")).toBe(false);
+        expect(text.includes("MUSICBRAINZ_ALBUMTYPE")).toBe(false);
+
+        const tags = await readTags(buf);
+        expect(tags.releaseType).toStrictEqual(["Album"]);
+      } finally {
+        await rm(dir, { recursive: true, force: true });
+      }
+    });
+  }
+});
+
 describe("typed round-trip with legacy names (taglib-7ru2)", () => {
   it("readTags -> applyTags preserves resolved values and canonicalizes YEAR", async () => {
     const src = await yearOnlyFlac();
