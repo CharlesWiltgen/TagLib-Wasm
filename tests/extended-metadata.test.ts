@@ -122,10 +122,14 @@ describe("Extended Metadata", () => {
     file.dispose();
 
     const file2 = await taglib.open(savedBuffer);
-    expect(file2.getProperty("TRACKNUMBER")?.[0]).toStrictEqual("3");
-    expect(file2.getProperty("TRACKTOTAL")?.[0]).toStrictEqual("12");
-    expect(file2.getProperty("DISCNUMBER")?.[0]).toStrictEqual("1");
-    expect(file2.getProperty("DISCTOTAL")?.[0]).toStrictEqual("2");
+    // MP4 trkn/disk store the number and total in ONE atom, so a separate
+    // TRACKTOTAL/DISCTOTAL must be folded into the pair before TagLib writes
+    // it. The old expectations ("3" + "12") pinned the Emscripten-only bug
+    // that left the total in a non-standard freeform atom.
+    expect(file2.getProperty("TRACKNUMBER")?.[0]).toStrictEqual("3/12");
+    expect(file2.getProperty("TRACKTOTAL")?.[0]).toStrictEqual(undefined);
+    expect(file2.getProperty("DISCNUMBER")?.[0]).toStrictEqual("1/2");
+    expect(file2.getProperty("DISCTOTAL")?.[0]).toStrictEqual(undefined);
     file2.dispose();
   });
 
@@ -144,10 +148,14 @@ describe("Extended Metadata", () => {
     file.dispose();
 
     const file2 = await taglib.open(savedBuffer);
-    expect(file2.getProperty("TRACKNUMBER")?.[0]).toStrictEqual("7");
-    expect(file2.getProperty("TRACKTOTAL")?.[0]).toStrictEqual("15");
-    expect(file2.getProperty("DISCNUMBER")?.[0]).toStrictEqual("2");
-    expect(file2.getProperty("DISCTOTAL")?.[0]).toStrictEqual("3");
+    // ID3v2 TRCK/TPOS store the number and total in ONE frame, so a separate
+    // TRACKTOTAL/DISCTOTAL must be folded into the pair before TagLib writes
+    // it. The old expectations ("7" + "15") pinned the Emscripten-only bug
+    // that left the total in a non-standard TXXX frame.
+    expect(file2.getProperty("TRACKNUMBER")?.[0]).toStrictEqual("7/15");
+    expect(file2.getProperty("TRACKTOTAL")?.[0]).toStrictEqual(undefined);
+    expect(file2.getProperty("DISCNUMBER")?.[0]).toStrictEqual("2/3");
+    expect(file2.getProperty("DISCTOTAL")?.[0]).toStrictEqual(undefined);
     file2.dispose();
   });
 

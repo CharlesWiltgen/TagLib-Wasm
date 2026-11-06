@@ -58,6 +58,7 @@
 #include "../src/capi/formats/taglib_lame.h"
 #include "../src/capi/taglib_mp4_atoms.h"
 #include "../src/capi/taglib_id3_duplicate.h"
+#include "../src/capi/taglib_intpair.h"
 #include "../src/capi/taglib_asf_multi_value.h"
 #include "../src/capi/taglib_asf_properties.h"
 #include "../src/capi/taglib_mp4_advisory.h"
@@ -874,6 +875,15 @@ public:
             }
         }
 
+        // Fold a caller's separate TRACKTOTAL/DISCTOTAL into the number field
+        // for formats that store the pair in one atom/frame (MP4 trkn/disk,
+        // ID3v2 TRCK/TPOS). The WASI shim does the same before its write;
+        // without it TagLib stores the total in a non-standard freeform atom /
+        // TXXX frame that ordinary players do not read.
+        if (taglib_wasm::uses_intpair_format(fileRef->file())) {
+            taglib_wasm::merge_intpair_properties(propMap);
+        }
+
         // Snapshot the real freeform atom names off the file BEFORE the
         // PropertyMap write mangles their casing, add the ones JS is creating,
         // and repair afterwards (taglib-bnhl).
@@ -923,6 +933,13 @@ public:
         TagLib::StringList values;
         values.append(TagLib::String(value, TagLib::String::UTF8));
         properties[TagLib::String(key, TagLib::String::UTF8)] = values;
+
+        // Same fold as setProperties: a single TRACKTOTAL/DISCTOTAL write must
+        // land inside trkn/disk (or TRCK/TPOS), not in a separate freeform
+        // atom/frame.
+        if (taglib_wasm::uses_intpair_format(fileRef->file())) {
+            taglib_wasm::merge_intpair_properties(properties);
+        }
 
         // See setProperties: capture before, restore after (taglib-bnhl), and
         // withdraw the merged-comment frame the write materialises (taglib-o3sl).

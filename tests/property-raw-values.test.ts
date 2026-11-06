@@ -23,6 +23,7 @@ import {
   readTags,
 } from "../src/simple/tag-operations.ts";
 import { FIXTURE_PATH } from "./shared-fixtures.ts";
+import { mergeTagUpdates } from "../src/utils/tag-mapping.ts";
 import type { AudioFile } from "../src/taglib/audio-file-interface.ts";
 
 const BACKENDS = ["wasi", "emscripten"] as const;
@@ -1280,42 +1281,128 @@ describe("track and disc totals land in the standard on-disk field", () => {
   // or ordinary players show no total.
   for (const format of ["mp3", "m4a"] as const) {
     it(`stores a separate track/disc total in the combined field [${format}]`, async () => {
-      const path = await tempCopy(format);
+      for (const writer of BACKENDS) {
+        const path = await tempCopy(format);
+        try {
+          const file = await taglibs[writer].open(path);
+          try {
+            mergeTagUpdates(file, {
+              track: 3,
+              totalTracks: 12,
+              discNumber: 1,
+              totalDiscs: 2,
+            });
+            file.save();
+            await writeFile(path, file.getFileBuffer());
+          } finally {
+            file.dispose();
+          }
+
+          for (const reader of BACKENDS) {
+            const reopened = await taglibs[reader].open(path);
+            try {
+              const props = reopened.properties() as Record<string, string[]>;
+              expect(
+                props.trackNumber,
+                `${reader} reading a file written by ${writer}: the track total is not in the combined field`,
+              ).toStrictEqual(["3/12"]);
+              expect(
+                props.discNumber,
+                `${reader} reading a file written by ${writer}: the disc total is not in the combined field`,
+              ).toStrictEqual(["1/2"]);
+              // And not ALSO stashed in a separate tag.
+              expect(props.totalTracks).toStrictEqual(undefined);
+              expect(props.totalDiscs).toStrictEqual(undefined);
+            } finally {
+              reopened.dispose();
+            }
+          }
+        } finally {
+          await rm(path).catch(() => {});
+        }
+      }
+    });
+
+    it(`folds a separate setProperty total write [${format}]`, async () => {
+      for (const writer of BACKENDS) {
+        const path = await tempCopy(format);
+        try {
+          const file = await taglibs[writer].open(path);
+          try {
+            file.setProperty("TRACKNUMBER", "3");
+            file.setProperty("TRACKTOTAL", "12");
+            file.setProperty("DISCNUMBER", "1");
+            file.setProperty("DISCTOTAL", "2");
+            file.save();
+            await writeFile(path, file.getFileBuffer());
+          } finally {
+            file.dispose();
+          }
+
+          for (const reader of BACKENDS) {
+            expect(
+              await readProperty(reader, path, "trackNumber"),
+              `${reader} reading a file written by ${writer}`,
+            ).toStrictEqual(["3/12"]);
+            expect(
+              await readProperty(reader, path, "discNumber"),
+              `${reader} reading a file written by ${writer}`,
+            ).toStrictEqual(["1/2"]);
+            expect(
+              await readProperty(reader, path, "totalTracks"),
+            ).toStrictEqual(undefined);
+            expect(
+              await readProperty(reader, path, "totalDiscs"),
+            ).toStrictEqual(undefined);
+          }
+        } finally {
+          await rm(path).catch(() => {});
+        }
+      }
+    });
+  }
+
+  it("does not fold totals where the number and total are separate fields [flac]", async () => {
+    for (const writer of BACKENDS) {
+      const path = await tempCopy("flac");
       try {
-        await writeFile(
-          path,
-          await applyTags(path, {
+        const file = await taglibs[writer].open(path);
+        try {
+          mergeTagUpdates(file, {
             track: 3,
             totalTracks: 12,
             discNumber: 1,
             totalDiscs: 2,
-          }),
-        );
+          });
+          file.save();
+          await writeFile(path, file.getFileBuffer());
+        } finally {
+          file.dispose();
+        }
 
         for (const reader of BACKENDS) {
-          const file = await taglibs[reader].open(path);
-          try {
-            const props = file.properties() as Record<string, string[]>;
-            expect(
-              props.trackNumber,
-              `${reader}: the track total is not in the combined field`,
-            ).toStrictEqual(["3/12"]);
-            expect(
-              props.discNumber,
-              `${reader}: the disc total is not in the combined field`,
-            ).toStrictEqual(["1/2"]);
-            // And not ALSO stashed in a separate tag.
-            expect(props.totalTracks).toStrictEqual(undefined);
-            expect(props.totalDiscs).toStrictEqual(undefined);
-          } finally {
-            file.dispose();
-          }
+          expect(
+            await readProperty(reader, path, "trackNumber"),
+            `${reader} reading a file written by ${writer}: FLAC track`,
+          ).toStrictEqual(["3"]);
+          expect(
+            await readProperty(reader, path, "totalTracks"),
+            `${reader} reading a file written by ${writer}: FLAC track total`,
+          ).toStrictEqual(["12"]);
+          expect(
+            await readProperty(reader, path, "discNumber"),
+            `${reader} reading a file written by ${writer}: FLAC disc`,
+          ).toStrictEqual(["1"]);
+          expect(
+            await readProperty(reader, path, "totalDiscs"),
+            `${reader} reading a file written by ${writer}: FLAC disc total`,
+          ).toStrictEqual(["2"]);
         }
       } finally {
         await rm(path).catch(() => {});
       }
-    });
-  }
+    }
+  });
 
   it("applyTags({track}) preserves an existing total, like tag().setTrack() [mp3]", async () => {
     // The two write surfaces expressed the same intent and produced different

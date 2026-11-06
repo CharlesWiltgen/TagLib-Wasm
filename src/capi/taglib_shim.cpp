@@ -24,6 +24,7 @@
 #include "taglib_asf_properties.h"
 #include "taglib_mp4_advisory.h"
 #include "taglib_mp4_genre.h"
+#include "taglib_intpair.h"
 #include "core/taglib_msgpack.h"
 #include "core/taglib_core.h"
 
@@ -142,7 +143,8 @@ static void write_mpack_string(mpack_writer_t* w, const TagLib::String& s) {
     mpack_write_str(w, utf8.c_str(), static_cast<uint32_t>(utf8.size()));
 }
 
-// NOTE: there is deliberately no int-pair split/merge here any more.
+// NOTE: there is deliberately no int-pair SPLIT here any more. (The
+// write-side fold lives in taglib_intpair.h and runs before the save.)
 //
 // The shim used to rewrite an "n/total" TRACKNUMBER into TRACKNUMBER + TRACKTOTAL
 // on read for MPEG/MP4 and merge it back on write. Emscripten never did, so the
@@ -155,50 +157,6 @@ static void write_mpack_string(mpack_writer_t* w, const TagLib::String& s) {
 // construction rather than by us keeping two transformations in sync. Narrowing
 // a pair into number + total is the typed surface's job and happens in
 // src/utils/tag-mapping.ts, where it is additive and cannot destroy the raw value.
-
-static bool uses_intpair_format(TagLib::File* file) {
-    return dynamic_cast<TagLib::MP4::File*>(file) ||
-           dynamic_cast<TagLib::MPEG::File*>(file);
-}
-
-/*!
- * Fold a separate TRACKTOTAL/DISCTOTAL into the number field for formats that
- * store the pair in ONE field: ID3v2 TRCK/TPOS and MP4 trkn/disk.
- *
- * This is the WRITE side only, and it is not the inverse of a read-side split —
- * there is deliberately no split any more, because the raw string is canonical
- * and splitting it made the two backends disagree (taglib-asg). What this does is
- * decide where a caller's SEPARATE number and total get stored. Without it they
- * land in a non-standard TXXX:TRACKTOTAL frame or a freeform TRACKTOTAL atom that
- * ordinary players and Apple Music do not read, so the total silently disappears
- * from every consumer's view.
- *
- * Skipped when the number already carries a "/": the caller supplied the pair
- * themselves and it is authoritative, so we must not append a second total.
- */
-static void merge_intpair_properties(TagLib::PropertyMap& propMap) {
-    auto mergePair = [&propMap](const char* numberKey, const char* totalKey) {
-        auto totalIt = propMap.find(totalKey);
-        if (totalIt == propMap.end() || totalIt->second.isEmpty()) return;
-
-        TagLib::String number = "0";
-        auto numIt = propMap.find(numberKey);
-        if (numIt != propMap.end() && !numIt->second.isEmpty()) {
-            number = numIt->second.front();
-            // Already a pair — the raw value wins and the separate total is
-            // redundant rather than additional.
-            if (number.find("/") != -1) {
-                propMap.erase(totalKey);
-                return;
-            }
-        }
-        propMap[numberKey] =
-            TagLib::StringList(number + "/" + totalIt->second.front());
-        propMap.erase(totalKey);
-    };
-    mergePair("TRACKNUMBER", "TRACKTOTAL");
-    mergePair("DISCNUMBER", "DISCTOTAL");
-}
 
 static tl_error_code encode_file_to_msgpack(TagLib::File* file,
                                             uint8_t** out_buf, size_t* out_size) {
@@ -882,8 +840,8 @@ static tl_error_code write_to_path(const char* path,
         TagLib::FileRef ref(path);
         if (ref.isNull() || !ref.tag()) return TL_ERROR_IO_WRITE;
 
-        if (uses_intpair_format(ref.file())) {
-            merge_intpair_properties(propMap);
+        if (taglib_wasm::uses_intpair_format(ref.file())) {
+            taglib_wasm::merge_intpair_properties(propMap);
         }
         // Snapshot the real freeform atom names off the file BEFORE the
         // PropertyMap write mangles their casing, add the names JS is creating,
@@ -945,8 +903,8 @@ static tl_error_code write_to_buffer(const uint8_t* buf, size_t len,
             f = ref_fallback.file();
         }
 
-        if (uses_intpair_format(f)) {
-            merge_intpair_properties(propMap);
+        if (taglib_wasm::uses_intpair_format(f)) {
+            taglib_wasm::merge_intpair_properties(propMap);
         }
         // See write_to_path: capture before, restore after (taglib-bnhl).
         auto mp4_names = capture_mp4_freeform_names(f);
