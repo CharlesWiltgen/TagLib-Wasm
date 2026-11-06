@@ -164,6 +164,38 @@ These are the well-known property names defined in TagLib's PropertyMap
 | `ACOUSTID_FINGERPRINT`       | AcoustID audio fingerprint data |
 | `MUSICIP_PUID`               | MusicIP PUID (deprecated)       |
 
+### Disambiguation and Version Data
+
+MusicBrainz keeps two strings apart:
+
+- **ETI (extra title information)** is part of the printed title; keep it in the
+  title, typically in parentheses.
+- The **disambiguation comment** is not part of the name. There is no
+  `DISAMBIGUATION` field in ID3v2 or MP4; the de facto tag is the standard
+  `COMMENT` field, which is what [Picard](https://picard-docs.musicbrainz.org/en/latest/variables/tags_basic.html)
+  populates: ID3v2 `COMM` / MP4 `©cmt` / Vorbis `COMMENT` / WAV `ICMT`.
+  TagLib-Wasm exposes it as the typed `comment` field. It is the same field as a
+  user comment, so an app that also stores free text there must decide how to
+  combine them.
+
+- **Vorbis `VERSION`** is the nearest formal field for version/remix info: it
+  "may be used to differentiate multiple versions of the same track title"
+  ([Xiph Vorbis comment](https://xiph.org/vorbis/doc/v-comment.html)). ID3v2 and
+  MP4 have no native `VERSION` frame or atom. TagLib-Wasm exposes the raw
+  `VERSION` property on the PropertyMap surface; it is stored as
+  `TXXX:VERSION` on ID3v2, `----:com.apple.iTunes:VERSION` on MP4, and
+  `VERSION=` on Vorbis. `readTags({ includeProperties: ["VERSION"] })` returns
+  it in `extraProperties`.
+
+- Stores often put edition text in the **album title** (e.g. `Purple Rain
+  (Deluxe Expanded Edition) [2015 Paisley Park Remaster]`); that is display
+  policy, not a separate tag.
+
+TagLib-Wasm deliberately adds no typed `disambiguation` field. Such a field
+would have to alias `COMMENT` (shadowing the existing `comment` field) or
+invent a nonstandard freeform key. Mapping MusicBrainz data to `COMMENT`,
+`VERSION`, or the album title is app policy.
+
 ### Podcast Properties
 
 | Property Name     | Description                    |
