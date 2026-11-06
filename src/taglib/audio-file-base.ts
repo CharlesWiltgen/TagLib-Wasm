@@ -131,7 +131,14 @@ export abstract class BaseAudioFileImpl {
         // the canonical wire key on write, matching the read-side resolution
         // (taglib-7ru2): fromTagLibKey maps alias -> camel, toTagLibKey maps
         // camel -> canonical wire. Canonical keys round-trip unchanged.
-        translated[toTagLibKey(fromTagLibKey(key))] = values;
+        const wireKey = toTagLibKey(fromTagLibKey(key));
+        // An empty total is the documented clear, not a value. Normalizing it
+        // to [] keeps TagLib's int-pair fold from turning TRACKNUMBER "3" +
+        // TRACKTOTAL [""] into "3/" (Emscripten) instead of "3" (WASI).
+        const emptyTotal =
+          (wireKey === "TRACKTOTAL" || wireKey === "DISCTOTAL") &&
+          values.every((v) => v === "");
+        translated[wireKey] = emptyTotal ? [] : values;
       }
     }
     // Lyrics is owned by get/setLyrics(), not the properties() surface; when a
@@ -184,6 +191,31 @@ export abstract class BaseAudioFileImpl {
     // Alias wire keys normalize to canonical, matching setProperties
     // (taglib-7ru2).
     const wireKey = toTagLibKey(fromTagLibKey(key));
+    // An empty total is a clear, not an "n/" value. Route it through the map
+    // so the int-pair fold never sees a one-element [""] list (Emscripten
+    // appended the empty string and produced "3/"; WASI dropped it).
+    if ((wireKey === "TRACKTOTAL" || wireKey === "DISCTOTAL") && value === "") {
+      const rest = { ...this.handle.getProperties() };
+      if (this.module.isWasi) rest[wireKey] = [];
+      else delete rest[wireKey];
+      this.handle.setProperties(rest);
+      return;
+    }
+    // A bare number write on an int-pair field keeps an existing total,
+    // matching tag().setTrack() and applyTags({track}) (taglib-eq3). A raw
+    // "n/total" and an empty clear still win. Emscripten folds the total
+    // eagerly, so without this, setting the total before the number lost it
+    // where WASI's save-time fold kept it.
+    let nextValue = value;
+    if (
+      (wireKey === "TRACKNUMBER" || wireKey === "DISCNUMBER") &&
+      nextValue !== "" &&
+      !nextValue.includes("/")
+    ) {
+      const existing = this.handle.getProperty(wireKey);
+      const slash = existing.indexOf("/");
+      if (slash !== -1) nextValue = `${nextValue}${existing.slice(slash)}`;
+    }
     // Same atom-name channel setProperties uses: without it, a property backed by
     // a mixed-case MP4 freeform atom is written under TagLib's upper-cased name
     // on BOTH backends (taglib-bnhl). setProperty has no property-map to carry
@@ -227,7 +259,7 @@ export abstract class BaseAudioFileImpl {
       });
       return;
     }
-    this.handle.setProperty(wireKey, value);
+    this.handle.setProperty(wireKey, nextValue);
   }
 
   /**

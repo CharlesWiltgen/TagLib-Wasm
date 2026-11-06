@@ -1360,6 +1360,154 @@ describe("track and disc totals land in the standard on-disk field", () => {
         }
       }
     });
+
+    it(`treats an empty total write as a clear [${format}]`, async () => {
+      for (const writer of BACKENDS) {
+        const path = await tempCopy(format);
+        try {
+          const seed = await taglibs[writer].open(path);
+          try {
+            seed.setProperty("TRACKNUMBER", "3");
+            seed.save();
+            await writeFile(path, seed.getFileBuffer());
+          } finally {
+            seed.dispose();
+          }
+
+          const file = await taglibs[writer].open(path);
+          try {
+            file.removeProperty("TRACKTOTAL");
+            file.save();
+            await writeFile(path, file.getFileBuffer());
+          } finally {
+            file.dispose();
+          }
+          for (const reader of BACKENDS) {
+            expect(
+              await readProperty(reader, path, "trackNumber"),
+              `${reader} reading a file written by ${writer}: empty total must not become "3/"`,
+            ).toStrictEqual(["3"]);
+            expect(
+              await readProperty(reader, path, "totalTracks"),
+            ).toStrictEqual(undefined);
+          }
+
+          // The same clear expressed as an empty string list.
+          const file2 = await taglibs[writer].open(path);
+          try {
+            file2.setProperties({ TRACKNUMBER: ["4"], TRACKTOTAL: [""] });
+            file2.save();
+            await writeFile(path, file2.getFileBuffer());
+          } finally {
+            file2.dispose();
+          }
+          for (const reader of BACKENDS) {
+            expect(
+              await readProperty(reader, path, "trackNumber"),
+              `${reader} reading a file written by ${writer}: empty total list`,
+            ).toStrictEqual(["4"]);
+          }
+        } finally {
+          await rm(path).catch(() => {});
+        }
+      }
+    });
+
+    it(`keeps an existing total when only the number is set [${format}]`, async () => {
+      for (const writer of BACKENDS) {
+        const path = await tempCopy(format);
+        try {
+          const seed = await taglibs[writer].open(path);
+          try {
+            seed.setProperty("TRACKNUMBER", "3/12");
+            seed.setProperty("DISCNUMBER", "1/2");
+            seed.save();
+            await writeFile(path, seed.getFileBuffer());
+          } finally {
+            seed.dispose();
+          }
+
+          const file = await taglibs[writer].open(path);
+          try {
+            file.setProperty("TRACKNUMBER", "5");
+            file.setProperty("DISCNUMBER", "2");
+            file.save();
+            await writeFile(path, file.getFileBuffer());
+          } finally {
+            file.dispose();
+          }
+          for (const reader of BACKENDS) {
+            expect(
+              await readProperty(reader, path, "trackNumber"),
+              `${reader} reading a file written by ${writer}: track total lost`,
+            ).toStrictEqual(["5/12"]);
+            expect(
+              await readProperty(reader, path, "discNumber"),
+              `${reader} reading a file written by ${writer}: disc total lost`,
+            ).toStrictEqual(["2/2"]);
+          }
+
+          // Reverse order: a total written before its number must survive too.
+          const fresh = await tempCopy(format);
+          try {
+            const f = await taglibs[writer].open(fresh);
+            try {
+              f.setProperty("TRACKTOTAL", "12");
+              f.setProperty("TRACKNUMBER", "3");
+              f.setProperty("DISCTOTAL", "2");
+              f.setProperty("DISCNUMBER", "1");
+              f.save();
+              await writeFile(fresh, f.getFileBuffer());
+            } finally {
+              f.dispose();
+            }
+            for (const reader of BACKENDS) {
+              expect(
+                await readProperty(reader, fresh, "trackNumber"),
+                `${reader} reading a file written by ${writer}: total-before-number`,
+              ).toStrictEqual(["3/12"]);
+              expect(
+                await readProperty(reader, fresh, "discNumber"),
+                `${reader} reading a file written by ${writer}: disc total-before-number`,
+              ).toStrictEqual(["1/2"]);
+            }
+          } finally {
+            await rm(fresh).catch(() => {});
+          }
+        } finally {
+          await rm(path).catch(() => {});
+        }
+      }
+    });
+
+    it(`keeps a raw pair over a separate total [${format}]`, async () => {
+      for (const writer of BACKENDS) {
+        const path = await tempCopy(format);
+        try {
+          const file = await taglibs[writer].open(path);
+          try {
+            file.setProperty("TRACKNUMBER", "3/12");
+            file.setProperty("TRACKTOTAL", "20");
+            file.save();
+            await writeFile(path, file.getFileBuffer());
+          } finally {
+            file.dispose();
+          }
+          for (const reader of BACKENDS) {
+            expect(
+              await readProperty(reader, path, "trackNumber"),
+              `${reader} reading a file written by ${writer}: raw pair lost`,
+            ).toStrictEqual(["3/12"]);
+            expect(
+              await readProperty(reader, path, "totalTracks"),
+              `${reader} reading a file written by ${writer}: separate total survived`,
+            ).toStrictEqual(undefined);
+          }
+        } finally {
+          await rm(path).catch(() => {});
+        }
+      }
+    });
   }
 
   it("does not fold totals where the number and total are separate fields [flac]", async () => {
