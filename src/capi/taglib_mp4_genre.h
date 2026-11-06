@@ -40,7 +40,7 @@
  *
  * Load-time is sufficient on BOTH backends, verified rather than assumed:
  *   - WASI: the MessagePack snapshot this hand-out encodes is also the write
- *     model (src/runtime/wasi-adapter/handle-state.ts save() -> taglib_shim.cpp
+ *     model (src/runtime/wasi-adapter/handle-state.ts save() -> taglib_write.cpp
  *     apply_propmap -> setProperties), so a corrected item rides the save for
  *     free — tl_write_tags, both from buffer and from path.
  *   - Emscripten: the in-memory tag IS the model every write renders from

@@ -676,7 +676,7 @@ public:
             // Mod/S3M/IT/XM expose isSupported()), so content detection can
             // never resolve them (taglib-uat8). Twin of the WASI shim, which
             // sniffs and constructs them in src/capi/taglib_boundary.c and
-            // src/capi/taglib_shim.cpp.
+            // src/capi/taglib_shim_common.cpp.
             stream->seek(0, TagLib::IOStream::Beginning);
             std::unique_ptr<TagLib::File> detected;
 
@@ -727,14 +727,14 @@ public:
         // ASF multi-value attributes are rotated by TagLib's render+parse
         // (ECDO/MLO split); right-rotate before render, restore after save
         // (taglib-ilrg). Inert for every other format. Twin of
-        // save_preserving_id3() in src/capi/taglib_shim.cpp.
+        // save_preserving_id3() in src/capi/taglib_write.cpp.
         taglib_wasm::ASFMultiValueRotationGuard asfGuard(fileRef->file());
         auto* mpegFile = dynamic_cast<TagLib::MPEG::File*>(fileRef->file());
         if (!mpegFile) return fileRef->save();
 
         // Two separate reasons to suppress MPEG::File's default Duplicate sync,
         // handled in this order because they are not interchangeable — see
-        // save_preserving_id3() in src/capi/taglib_shim.cpp, the WASI twin.
+        // save_preserving_id3() in src/capi/taglib_write.cpp, the WASI twin.
         bool skipTagLibDuplicate = !rawMappedFrameIds.empty();  // taglib-b67
         if (!skipTagLibDuplicate &&
             taglib_wasm::id3_duplicate_would_destroy(mpegFile)) {

@@ -208,7 +208,9 @@ echo "Linking C API with TagLib and MessagePack..."
 # Compile C API sources - Minimal version (no memory pooling for now)
 CAPI_SOURCES=(
     "$SRC_DIR/taglib_boundary.c"           # Pure C boundary (no exceptions) - WASI exports
-    "$SRC_DIR/taglib_shim.cpp"            # Tiny C++ shim with Wasm EH - TagLib exception boundary
+    "$SRC_DIR/taglib_shim_common.cpp"     # Shared PropertyMap field map + file factory
+    "$SRC_DIR/taglib_read.cpp"            # Read half: TagLib -> MessagePack snapshot
+    "$SRC_DIR/taglib_write.cpp"           # Write half: MessagePack -> TagLib save
     "$SRC_DIR/taglib_pictures.cpp"        # C++ picture encode/decode via complexProperties
     "$SRC_DIR/taglib_ratings.cpp"         # C++ rating encode/decode via format-specific APIs
     "$SRC_DIR/taglib_chapters.cpp"        # C++ chapter encode/decode via ID3v2 CHAP frames
@@ -234,7 +236,9 @@ for src in "${CAPI_SOURCES[@]}"; do
             --sysroot="$WASI_SDK_PATH/share/wasi-sysroot" \
             -I"$SRC_DIR" -I"$MPACK_DIR/src" \
             -O3 -fwasm-exceptions -c -o "$BUILD_DIR/$obj_name"
-    elif [[ "$(basename "$src")" == "taglib_shim.cpp" ]] || \
+    elif [[ "$(basename "$src")" == "taglib_shim_common.cpp" ]] || \
+         [[ "$(basename "$src")" == "taglib_read.cpp" ]] || \
+         [[ "$(basename "$src")" == "taglib_write.cpp" ]] || \
          [[ "$(basename "$src")" == "taglib_pictures.cpp" ]] || \
          [[ "$(basename "$src")" == "taglib_ratings.cpp" ]] || \
          [[ "$(basename "$src")" == "taglib_chapters.cpp" ]] || \

@@ -23,7 +23,7 @@ tl_error_code read_id3v2_frames_to_msgpack(
 // lists do NOT set it, since after removeFrames no raw frame is at risk and
 // normal ID3v1/ID3v2 duplication is desired. The caller must skip the
 // default Duplicate save mode when this comes back true (see
-// taglib_shim.cpp write_to_path/write_to_buffer).
+// taglib_write.cpp write_to_path/write_to_buffer).
 tl_error_code apply_id3v2_frames_from_msgpack(
     TagLib::File* file, const uint8_t* data, size_t len,
     bool* out_needs_no_duplicate = nullptr);

@@ -696,7 +696,8 @@ pins the file set a publish ships).
 Two Wasm backends: **Emscripten** (browsers) and **WASI** (Deno/Node.js).
 Auto-selected at runtime. Both wrap TagLib 2.3.2 C++ via a C boundary layer.
 
-Key files: `build/taglib_embind.cpp` (Emscripten), `src/capi/taglib_shim.cpp` (WASI),
+Key files: `build/taglib_embind.cpp` (Emscripten), `src/capi/taglib_read.cpp` +
+`src/capi/taglib_write.cpp` (WASI halves, shared `taglib_shim_common.cpp`),
 `src/capi/core/taglib_boundary.c` (C boundary), `src/taglib.ts` (core TS API).
 
 Dependencies are git submodules: `lib/taglib`, `lib/mpack`. (The C
@@ -749,7 +750,7 @@ written against one silently misbehaves on the other.
   reporting in-memory payload to on-disk block presence, so a read between
   `setBext()` and `save()` now answers differently.
 - **Asymmetric write paths.** WASI's `apply_propmap`
-  (`src/capi/taglib_shim.cpp:548-560`) calls `setProperties()` _and then_
+  (`src/capi/taglib_write.cpp`) calls `setProperties()` _and then_
   writes `TITLE`/`ARTIST`/`ALBUM` again through `file->tag()`. The Embind path
   writes only through the tag. On files carrying two tag types, a double-write
   through a `TagUnion` can reach tags the other backend never touches.

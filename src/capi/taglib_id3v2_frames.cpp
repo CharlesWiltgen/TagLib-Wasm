@@ -230,7 +230,7 @@ tl_error_code apply_id3v2_frames_from_msgpack(
 }
 
 // C entry for taglib_boundary.c — opens the file itself (FileRef handles
-// both path and in-memory stream modes), so taglib_shim.cpp stays untouched
+// both path and in-memory stream modes), so taglib_write.cpp stays untouched
 // on the read side.
 extern "C" tl_error_code taglib_read_id3v2_frames_shim(
     const char* path, const uint8_t* buf, size_t len,

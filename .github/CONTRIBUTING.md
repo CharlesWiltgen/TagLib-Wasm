@@ -124,7 +124,7 @@ entry base to the repo root and nests everything under `dist/src/`.
 ### Key Files
 
 - `build/taglib_embind.cpp` - Emscripten C++ wrapper using Embind
-- `src/capi/taglib_shim.cpp` - WASI C++ shim (FileRef-based)
+- `src/capi/taglib_read.cpp` / `src/capi/taglib_write.cpp` - WASI C++ shim halves (shared `taglib_shim_common.cpp`)
 - `src/capi/core/taglib_boundary.c` - Pure C WASI exports
 - `src/taglib.ts` - Core TypeScript API
 - `src/simple.ts` - Simple API entry point
@@ -263,10 +263,10 @@ chore: update TagLib to v2.1.1
 
 The project has two Wasm backends:
 
-| Backend    | Script                           | Used by           | C++ entry point            |
-| ---------- | -------------------------------- | ----------------- | -------------------------- |
-| Emscripten | `pnpm run build:wasm:emscripten` | Browsers, Workers | `build/taglib_embind.cpp`  |
-| WASI       | `pnpm run build:wasm:wasi`       | Deno, Node.js     | `src/capi/taglib_shim.cpp` |
+| Backend    | Script                           | Used by           | C++ entry point                                 |
+| ---------- | -------------------------------- | ----------------- | ----------------------------------------------- |
+| Emscripten | `pnpm run build:wasm:emscripten` | Browsers, Workers | `build/taglib_embind.cpp`                       |
+| WASI       | `pnpm run build:wasm:wasi`       | Deno, Node.js     | `src/capi/taglib_read.cpp` + `taglib_write.cpp` |
 
 After C++ changes, rebuild the affected backend and test thoroughly.
 

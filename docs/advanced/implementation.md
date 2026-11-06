@@ -40,8 +40,9 @@ File path (JS) → WASI fd_read/fd_seek syscalls → FileRef(path) → TagLib �
 
 Key components:
 
-- **`src/capi/taglib_shim.cpp`** – C++ shim using FileRef for both path I/O
-  and buffer I/O (`FileRef(IOStream*)`)
+- **`src/capi/taglib_read.cpp` / `src/capi/taglib_write.cpp`** – C++ shim
+  halves using FileRef for both path I/O and buffer I/O
+  (`FileRef(IOStream*)`); shared tables live in `taglib_shim_common.cpp`
 - **`src/capi/taglib_boundary.c`** – Pure C WASI exports (no exceptions)
 - **`src/capi/taglib_msgpack.c`** – MessagePack encoding via mpack
 - **`src/runtime/wasi-host.ts`** – WASI P1 syscall implementation for Deno

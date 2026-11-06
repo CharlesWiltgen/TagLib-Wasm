@@ -272,7 +272,8 @@ These are wins available regardless of which option is chosen:
   what crosses the boundary, in which direction, and what guarantees apply,
   eliminates a large class of contributor confusion.
 - **Schema for the MessagePack protocol.** Today it's implicit between
-  `taglib_shim.cpp` and `src/msgpack/encoder.ts` / `decoder.ts`. A Markdown
+  `taglib_read.cpp` / `taglib_write.cpp` and `src/msgpack/encoder.ts` /
+  `decoder.ts`. A Markdown
   schema (or even a TypeScript type narrowing) would make the contract
   enforceable.
 
