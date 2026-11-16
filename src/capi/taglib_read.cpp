@@ -8,6 +8,7 @@
 
 #include "taglib_shim.h"
 #include "taglib_shim_common.h"
+#include "core/vector_stream.h"
 #include "taglib_pictures.h"
 #include "taglib_ratings.h"
 #include "taglib_chapters.h"
@@ -29,7 +30,6 @@
 #include <tag.h>
 #include <tpropertymap.h>
 #include <tbytevector.h>
-#include <tbytevectorstream.h>
 #include <tfilestream.h>
 #include <audioproperties.h>
 #include <mpegfile.h>
@@ -271,9 +271,8 @@ static tl_error_code read_from_buffer(const uint8_t* buf, size_t len,
                                       tl_format format,
                                       uint8_t** out_buf, size_t* out_size) {
     try {
-        TagLib::ByteVector bv(reinterpret_cast<const char*>(buf),
-                              static_cast<unsigned int>(len));
-        TagLib::ByteVectorStream stream(bv);
+        taglib_wasm::VectorStream stream(reinterpret_cast<const char*>(buf),
+                                         static_cast<unsigned int>(len));
 
         if (format == TL_FORMAT_AUTO) {
             format = tl_detect_format(buf, len);

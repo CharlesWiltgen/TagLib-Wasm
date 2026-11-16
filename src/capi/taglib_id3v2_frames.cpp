@@ -1,10 +1,10 @@
 #include "taglib_id3v2_frames.h"
 #include "taglib_shim.h"
+#include "core/vector_stream.h"
 
 #include <tfile.h>
 #include <fileref.h>
 #include <tbytevector.h>
-#include <tbytevectorstream.h>
 #include <mpeg/mpegfile.h>
 #include <mpeg/id3v2/id3v2tag.h>
 #include <mpeg/id3v2/id3v2frame.h>
@@ -244,9 +244,8 @@ extern "C" tl_error_code taglib_read_id3v2_frames_shim(
                 ref.file(), id_filter, out_buf, out_size);
         }
         if (!buf || len == 0) return TL_ERROR_INVALID_INPUT;
-        TagLib::ByteVector bv(reinterpret_cast<const char*>(buf),
-                              static_cast<unsigned int>(len));
-        TagLib::ByteVectorStream stream(bv);
+        taglib_wasm::VectorStream stream(reinterpret_cast<const char*>(buf),
+                                         static_cast<unsigned int>(len));
         TagLib::FileRef ref(&stream);
         if (ref.isNull()) return TL_ERROR_PARSE_FAILED;
         return read_id3v2_frames_to_msgpack(

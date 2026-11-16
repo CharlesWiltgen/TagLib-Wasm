@@ -8,6 +8,7 @@
 
 #include "taglib_shim.h"
 #include "taglib_shim_common.h"
+#include "core/vector_stream.h"
 #include "taglib_pictures.h"
 #include "taglib_ratings.h"
 #include "taglib_chapters.h"
@@ -29,7 +30,6 @@
 #include <tag.h>
 #include <tpropertymap.h>
 #include <tbytevector.h>
-#include <tbytevectorstream.h>
 #include <tfilestream.h>
 #include <audioproperties.h>
 #include <mpegfile.h>
@@ -536,9 +536,8 @@ static tl_error_code write_to_buffer(const uint8_t* buf, size_t len,
         tl_error_code rc = decode_msgpack_to_propmap(tags_msgpack, tags_msgpack_len, propMap);
         if (rc != TL_SUCCESS) return rc;
 
-        TagLib::ByteVectorStream stream(
-            TagLib::ByteVector(reinterpret_cast<const char*>(buf),
-                               static_cast<unsigned int>(len)));
+        taglib_wasm::VectorStream stream(reinterpret_cast<const char*>(buf),
+                                         static_cast<unsigned int>(len));
 
         tl_format format = tl_detect_format(buf, len);
         std::unique_ptr<TagLib::File> file(create_file_for_format(format, &stream));
@@ -580,11 +579,10 @@ static tl_error_code write_to_buffer(const uint8_t* buf, size_t len,
 
         if (!save_preserving_id3(f, needs_no_duplicate)) return TL_ERROR_IO_WRITE;
 
-        const TagLib::ByteVector* result = stream.data();
-        *out_size = result->size();
-        *out_buf = (uint8_t*)malloc(result->size());
+        *out_size = stream.bufSize();
+        *out_buf = (uint8_t*)malloc(stream.bufSize());
         if (!*out_buf) return TL_ERROR_MEMORY_ALLOCATION;
-        memcpy(*out_buf, result->data(), result->size());
+        memcpy(*out_buf, stream.bufData(), stream.bufSize());
         return TL_SUCCESS;
     } catch (...) {
         return TL_ERROR_PARSE_FAILED;
