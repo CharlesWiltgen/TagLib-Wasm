@@ -131,12 +131,47 @@ export function getMP4FreeformItems(
   return Array.isArray(raw) ? (raw as RawMP4FreeformItem[]) : [];
 }
 
+/**
+ * Keep the property slots a typed list owns in sync with it. Without this a
+ * typed write only wins on the save that applies the directive; the stale
+ * property slot is what the next save ships (taglib-gja review).
+ */
+function syncFreeformPropertySlots(
+  tagData: Record<string, unknown> | null,
+  oldItems: readonly RawMP4FreeformItem[],
+  newItems: readonly RawMP4FreeformItem[],
+): Record<string, unknown> {
+  const next: Record<string, unknown> = { ...tagData };
+  const clearSlot = (name: string) => {
+    const upper = name.toUpperCase();
+    delete next[upper];
+    delete next[fromTagLibKey(upper)];
+  };
+  for (const item of oldItems) clearSlot(item.name);
+  for (const item of newItems) {
+    clearSlot(item.name);
+    // Only UTF-8 is representable in the PropertyMap; binary/typed values
+    // ride the directive alone.
+    if (item.type === 1) {
+      next[fromTagLibKey(item.name.toUpperCase())] = [
+        new TextDecoder().decode(item.value),
+      ];
+    }
+  }
+  return next;
+}
+
 /** Stage a full replacement of the typed freeform channel. */
 export function setMP4FreeformItems(
   tagData: Record<string, unknown> | null,
   items: readonly RawMP4FreeformItem[],
 ): Record<string, unknown> {
-  return { ...tagData, _mp4Freeform: items, _mp4FreeformDirty: true };
+  const next = syncFreeformPropertySlots(
+    tagData,
+    getMP4FreeformItems(tagData),
+    items,
+  );
+  return { ...next, _mp4Freeform: items, _mp4FreeformDirty: true };
 }
 
 /** Clear the write directive after a successful save (idempotent). */
@@ -145,6 +180,16 @@ export function clearMP4FreeformDirty(
 ): Record<string, unknown> {
   if (!tagData || tagData._mp4FreeformDirty === undefined) {
     return tagData ?? {};
+  }
+  // A non-UTF-8 item has no PropertyMap representation, so keeping the
+  // directive is what prevents the next save from replacing it with the
+  // (necessarily absent or lossy) property slot.
+  const items = tagData._mp4Freeform;
+  if (
+    Array.isArray(items) &&
+    items.some((item) => (item as RawMP4FreeformItem).type !== 1)
+  ) {
+    return tagData;
   }
   const next = { ...tagData };
   delete next._mp4FreeformDirty;

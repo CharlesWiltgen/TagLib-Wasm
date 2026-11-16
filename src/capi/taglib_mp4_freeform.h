@@ -11,11 +11,14 @@
 #include <mp4atom.h>
 #include <mp4file.h>
 #include <mp4item.h>
+#include <mp4itemfactory.h>
 #include <mp4tag.h>
 #include <tbytevectorlist.h>
+#include <tpropertymap.h>
 #include <tstringlist.h>
 
 #include <algorithm>
+#include <cctype>
 #include <cstdint>
 #include <string>
 #include <utility>
@@ -171,23 +174,93 @@ inline std::vector<MP4FreeformSnapshot> capture_mp4_freeform_items(
     return items;
 }
 
-/** Re-add freeform items a PropertyMap write erased (exact names). */
+/** PropertyMap key TagLib derives from a freeform atom's bare name. */
+inline TagLib::String mp4_freeform_property_key(const TagLib::String& atom) {
+    const std::string name = atom.to8Bit(true);
+    const size_t sep = name.rfind(':');
+    std::string bare =
+        (sep == std::string::npos) ? name : name.substr(sep + 1);
+    for (char& ch : bare) {
+        ch = static_cast<char>(std::toupper(static_cast<unsigned char>(ch)));
+    }
+    return TagLib::String(bare, TagLib::String::UTF8);
+}
+
+/**
+ * Whether the caller's map mentions a freeform atom's property, and whether it
+ * supplied a non-empty value. The map key is either the bare atom name
+ * uppercased (TagLib-Wasm's raw key for iTunNORM/vendor names) or TagLib's
+ * mapped property key (MUSICBRAINZ_TRACKID, MOOD, ...).
+ */
+inline bool freeform_property_written(
+    const TagLib::PropertyMap& incoming,
+    const TagLib::String& atom,
+    bool& wrote_non_empty) {
+    wrote_non_empty = false;
+    auto consider = [&](const TagLib::String& key) {
+        if (key.isEmpty() || !incoming.contains(key)) return;
+        if (!incoming[key].isEmpty()) wrote_non_empty = true;
+    };
+    consider(mp4_freeform_property_key(atom));
+    consider(TagLib::MP4::ItemFactory::instance()->propertyKeyForName(
+        atom.data(TagLib::String::UTF8)));
+    return incoming.contains(mp4_freeform_property_key(atom)) ||
+           incoming.contains(TagLib::MP4::ItemFactory::instance()
+                                 ->propertyKeyForName(
+                                     atom.data(TagLib::String::UTF8)));
+}
+
+/**
+ * Reconcile freeform items after a PropertyMap write.
+ *
+ * A StringList atom is property-backed: the caller's map can represent it, so
+ * a missing atom (clear or replace-style write) and any existing same-type
+ * item are authoritative. A binary/typed atom cannot ride the PropertyMap:
+ * restore it when the write erased it or replaced it with a lossy StringList
+ * twin, unless the caller wrote a non-empty value for its property — then the
+ * explicit write is authoritative and the restored twin must not clobber it.
+ */
 inline void restore_mp4_freeform_items(
     TagLib::File* file,
-    const std::vector<MP4FreeformSnapshot>& items) {
+    const std::vector<MP4FreeformSnapshot>& items,
+    const TagLib::PropertyMap& incoming) {
     auto* mp4 = dynamic_cast<TagLib::MP4::File*>(file);
     if (!mp4 || !mp4->tag()) return;
     auto* tag = mp4->tag();
     for (const auto& snapshot : items) {
-        if (!tag->itemMap().contains(snapshot.atom)) {
-            tag->setItem(snapshot.atom, snapshot.item);
+        const std::string atom_name = snapshot.atom.to8Bit(true);
+        const bool apple_freeform =
+            atom_name.rfind("----:com.apple.iTunes:", 0) == 0;
+        const bool property_backed =
+            apple_freeform &&
+            snapshot.item.type() == TagLib::MP4::Item::Type::StringList;
+        bool caller_wrote = false;
+        freeform_property_written(incoming, snapshot.atom, caller_wrote);
+
+        if (property_backed) {
+            // The PropertyMap is authoritative for Apple StringList atoms.
+            // TagLib's own erase pass misses atoms whose property key differs
+            // from the atom name (iTunNORM, unknown vendor names), so remove
+            // explicitly when the caller cleared or dropped the key.
+            if (!caller_wrote) {
+                tag->removeItem(snapshot.atom);
+            }
             continue;
         }
-        // A PropertyMap write materialises freeform items as StringList twins.
-        // For a binary/typed atom that shape is a lossy replacement, so the
-        // captured typed item wins on a type mismatch (taglib-gja).
+
+        // A binary/typed atom cannot ride the PropertyMap, and a foreign-mean
+        // text atom is outside TagLib's one known namespace: preserve either
+        // when the write erased it or replaced it with a lossy StringList twin,
+        // unless the caller explicitly wrote a value for its bare-name
+        // property. That explicit write is authoritative.
+        if (!tag->itemMap().contains(snapshot.atom)) {
+            if (!caller_wrote) {
+                tag->setItem(snapshot.atom, snapshot.item);
+            }
+            continue;
+        }
         const auto current = tag->item(snapshot.atom);
-        if (current.type() != snapshot.item.type()) {
+        if (current.type() != snapshot.item.type() && !caller_wrote) {
             tag->setItem(snapshot.atom, snapshot.item);
         }
     }

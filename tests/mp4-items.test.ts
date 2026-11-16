@@ -14,6 +14,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { expect, it } from "vite-plus/test";
 import { TagLib } from "../src/taglib.ts";
+import { clearTags } from "../src/simple.ts";
 import type { MP4FreeformItem } from "../src/types.ts";
 import { MetadataError, UnsupportedFormatError } from "../src/errors.ts";
 import { FIXTURE_PATH } from "./shared-fixtures.ts";
@@ -1034,6 +1035,231 @@ for (const backend of BACKENDS) {
             mean: "com.apple.iTunes",
             name: "X",
             type: "utf8",
+            value: new Uint8Array([1]),
+          },
+        ]),
+      ).toThrow(MetadataError);
+    } finally {
+      file.dispose();
+    }
+  });
+
+  it(`[${backend}] clearTags clears a property-backed freeform atom (taglib-gja review)`, async () => {
+    const tl = await TagLib.initialize({ forceWasmType: backend });
+    const source = new Uint8Array(await readFile(FIXTURE_PATH.m4a));
+    const seeded = await tl.open(source);
+    try {
+      seeded.setMP4FreeformItems([
+        {
+          mean: "com.apple.iTunes",
+          name: "iTunNORM",
+          type: "utf8",
+          value: "clear-me-12345",
+        },
+      ]);
+      seeded.save();
+      const cleared = await clearTags(seeded.getFileBuffer());
+
+      const reopened = await tl.open(cleared);
+      try {
+        expect(
+          reopened.getMP4FreeformItems().filter((i) => i.name === "iTunNORM"),
+          `${backend}: clearTags left the freeform item`,
+        ).toStrictEqual([]);
+        expect(
+          (reopened.properties() as Record<string, unknown>).appleSoundCheck,
+          `${backend}: clearTags left the property slot`,
+        ).toBeUndefined();
+      } finally {
+        reopened.dispose();
+      }
+    } finally {
+      seeded.dispose();
+    }
+  });
+
+  if (backend === "emscripten") {
+    it(`[${backend}] replace-style setProperties clears a text freeform atom (taglib-gja review)`, async () => {
+      const tl = await TagLib.initialize({ forceWasmType: backend });
+      const source = new Uint8Array(await readFile(FIXTURE_PATH.m4a));
+      const seeded = await tl.open(source);
+      try {
+        seeded.setMP4FreeformItems([
+          {
+            mean: "com.apple.iTunes",
+            name: "MOOD",
+            type: "utf8",
+            value: "Clear Me",
+          },
+        ]);
+        seeded.save();
+        const file = await tl.open(seeded.getFileBuffer());
+        try {
+          file.setProperties({ title: ["Replace Style"] });
+          file.save();
+          const reopened = await tl.open(file.getFileBuffer());
+          try {
+            expect(
+              reopened.getMP4FreeformItems().filter((i) => i.name === "MOOD"),
+              `${backend}: replace-style setProperties kept the freeform item`,
+            ).toStrictEqual([]);
+          } finally {
+            reopened.dispose();
+          }
+        } finally {
+          file.dispose();
+        }
+      } finally {
+        seeded.dispose();
+      }
+    });
+  }
+
+  it(`[${backend}] a property write over a binary freeform atom wins (taglib-gja review)`, async () => {
+    const tl = await TagLib.initialize({ forceWasmType: backend });
+    const source = new Uint8Array(await readFile(FIXTURE_PATH.m4a));
+    const seeded = await tl.open(source);
+    try {
+      seeded.setMP4FreeformItems([
+        {
+          mean: "com.apple.iTunes",
+          name: "MOOD",
+          type: "jpeg",
+          value: new Uint8Array([1, 2, 3]),
+        },
+      ]);
+      seeded.save();
+
+      const file = await tl.open(seeded.getFileBuffer());
+      try {
+        file.setProperty("MOOD", "Happy");
+        file.save();
+        const reopened = await tl.open(file.getFileBuffer());
+        try {
+          expect(
+            reopened.getMP4FreeformItems().map((i) => ({
+              name: i.name,
+              type: i.type,
+              value: i.value,
+            })),
+            `${backend}: the explicit property write did not replace the binary atom`,
+          ).toStrictEqual([{ name: "MOOD", type: "utf8", value: "Happy" }]);
+          expect(
+            (reopened.properties() as Record<string, unknown>).mood,
+            `${backend}: the property slot is missing the explicit value`,
+          ).toStrictEqual(["Happy"]);
+        } finally {
+          reopened.dispose();
+        }
+      } finally {
+        file.dispose();
+      }
+    } finally {
+      seeded.dispose();
+    }
+  });
+
+  it(`[${backend}] a typed text update is stable across two saves (taglib-gja review)`, async () => {
+    const tl = await TagLib.initialize({ forceWasmType: backend });
+    const source = new Uint8Array(await readFile(FIXTURE_PATH.m4a));
+    const seeded = await tl.open(source);
+    try {
+      seeded.setMP4FreeformItems([
+        {
+          mean: "com.apple.iTunes",
+          name: "MOOD",
+          type: "utf8",
+          value: "Old",
+        },
+      ]);
+      seeded.save();
+
+      const file = await tl.open(seeded.getFileBuffer());
+      try {
+        file.setMP4FreeformItems([
+          {
+            mean: "com.apple.iTunes",
+            name: "MOOD",
+            type: "utf8",
+            value: "New",
+          },
+        ]);
+        expect(
+          (file.properties() as Record<string, unknown>).mood,
+          `${backend}: staged property slot is stale`,
+        ).toStrictEqual(["New"]);
+        file.save();
+        file.save();
+
+        const reopened = await tl.open(file.getFileBuffer());
+        try {
+          expect(
+            reopened.getMP4FreeformItems().map((i) => ({
+              name: i.name,
+              type: i.type,
+              value: i.value,
+            })),
+            `${backend}: the second save reverted the typed value`,
+          ).toStrictEqual([{ name: "MOOD", type: "utf8", value: "New" }]);
+          expect(
+            (reopened.properties() as Record<string, unknown>).mood,
+            `${backend}: the second save reverted the property slot`,
+          ).toStrictEqual(["New"]);
+        } finally {
+          reopened.dispose();
+        }
+      } finally {
+        file.dispose();
+      }
+    } finally {
+      seeded.dispose();
+    }
+  });
+
+  it(`[${backend}] saveToFile carries staged typed freeform items (taglib-gja review)`, async () => {
+    const tl = await TagLib.initialize({ forceWasmType: backend });
+    const source = new Uint8Array(await readFile(FIXTURE_PATH.m4a));
+    const target = tempFile(".m4a");
+    try {
+      const file = await tl.open(source);
+      try {
+        file.setMP4FreeformItems(FREEFORM_ITEMS);
+        await file.saveToFile(target);
+      } finally {
+        file.dispose();
+      }
+      const reopened = await tl.open(target);
+      try {
+        expect(
+          freeformGroups(reopened.getMP4FreeformItems()),
+          `${backend}: saveToFile dropped the staged typed items`,
+        ).toStrictEqual(freeformGroups(FREEFORM_ITEMS));
+      } finally {
+        reopened.dispose();
+      }
+    } finally {
+      await rm(target, { force: true });
+    }
+  });
+
+  it(`[${backend}] mixed types for one freeform atom are rejected (taglib-gja review)`, async () => {
+    const tl = await TagLib.initialize({ forceWasmType: backend });
+    const file = await tl.open(
+      new Uint8Array(await readFile(FIXTURE_PATH.m4a)),
+    );
+    try {
+      expect(() =>
+        file.setMP4FreeformItems([
+          {
+            mean: "com.apple.iTunes",
+            name: "Mixed",
+            type: "utf8",
+            value: "text",
+          },
+          {
+            mean: "com.apple.iTunes",
+            name: "Mixed",
+            type: "jpeg",
             value: new Uint8Array([1]),
           },
         ]),

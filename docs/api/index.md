@@ -1691,6 +1691,21 @@ removeMP4Item(key: string): void
 
 - Error if not an MP4 file
 
+##### Example
+
+```typescript
+if (file.isMP4()) {
+  // Get Apple Sound Check data
+  const soundCheck = file.getMP4Item("iTunNORM");
+
+  // Set custom metadata
+  file.setMP4Item("----:com.apple.iTunes:MyCustomField", "Custom Value");
+
+  // Remove metadata
+  file.removeMP4Item("----:com.apple.iTunes:UnwantedField");
+}
+```
+
 ##### getMP4FreeformItems()
 
 Read every MP4 freeform (`----:mean:name`) item with its AtomDataType and raw
@@ -1732,7 +1747,13 @@ One item is returned per data value, so a multi-value atom repeats
 
 Replace all freeform items. Entries with the same `mean`, `name`, and `type`
 are grouped into one atom; an empty array clears every freeform item. Standard
-MP4 atoms are unaffected.
+MP4 atoms are unaffected. A single atom cannot mix types; a mixed list throws
+`MetadataError`.
+
+Because the PropertyMap cannot represent binary or typed values, a text-only
+clear such as `clearTags()` removes the UTF-8 freeform items but leaves
+binary/typed atoms in place. Use `setMP4FreeformItems([])` to clear every
+freeform item.
 
 ```typescript
 setMP4FreeformItems(items: readonly MP4FreeformItem[]): void
@@ -1760,21 +1781,6 @@ file.setMP4FreeformItems([
 - Error if not an MP4 file
 - `MetadataError` for an empty/colon-containing mean or name, an out-of-range
   integer, or a value shape that does not match the type
-
-##### Example
-
-```typescript
-if (file.isMP4()) {
-  // Get Apple Sound Check data
-  const soundCheck = file.getMP4Item("iTunNORM");
-
-  // Set custom metadata
-  file.setMP4Item("----:com.apple.iTunes:MyCustomField", "Custom Value");
-
-  // Remove metadata
-  file.removeMP4Item("----:com.apple.iTunes:UnwantedField");
-}
-```
 
 #### AcoustID Integration
 

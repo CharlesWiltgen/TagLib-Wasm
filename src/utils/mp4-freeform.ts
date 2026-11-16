@@ -124,6 +124,28 @@ function decodeFreeformValue(
   return new Uint8Array(bytes);
 }
 
+/**
+ * Reject a list that gives one `mean`/`name` atom values of different types.
+ * TagLib stores one AtomDataType per item, so a mixed list would silently drop
+ * all but the first group when the setter groups equal types (taglib-gja review).
+ */
+export function validateFreeformItems(items: readonly MP4FreeformItem[]): void {
+  const types = new Map<string, string>();
+  for (const item of items) {
+    const atom = `${item.mean}\u0000${item.name}`;
+    const signature =
+      item.type === "other" ? `other:${item.typeCode ?? "missing"}` : item.type;
+    const previous = types.get(atom);
+    if (previous !== undefined && previous !== signature) {
+      throw new MetadataError(
+        "write",
+        `MP4 freeform atom "${item.mean}:${item.name}" cannot mix types "${previous}" and "${signature}"`,
+      );
+    }
+    types.set(atom, signature);
+  }
+}
+
 /** Public item -> raw FileHandle entry. */
 export function toRawFreeformItem(item: MP4FreeformItem): RawMP4FreeformItem {
   validateAtomPart("mean", item.mean);

@@ -9,6 +9,7 @@ import type {
 import {
   fromRawFreeformItem,
   toRawFreeformItem,
+  validateFreeformItems,
 } from "../utils/mp4-freeform.ts";
 import {
   fromTagLibKey,
@@ -346,6 +347,7 @@ export abstract class BaseAudioFileImpl {
         "MP4 freeform items are unavailable on this backend",
       );
     }
+    validateFreeformItems(items);
     this.handle.setMP4FreeformItems(items.map(toRawFreeformItem));
   }
 

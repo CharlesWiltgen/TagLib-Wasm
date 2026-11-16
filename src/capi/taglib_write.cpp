@@ -289,7 +289,7 @@ static void apply_propmap(TagLib::File* file, const TagLib::PropertyMap& propMap
     // TagLib ignores untranslated keys for ASF (asftag.cpp:394); write them
     // as real attributes so nothing is silently dropped (taglib-984r).
     const TagLib::PropertyMap ignored = file->setProperties(effective);
-    taglib_wasm::restore_mp4_freeform_items(file, freeformGuard);
+    taglib_wasm::restore_mp4_freeform_items(file, freeformGuard, effective);
     taglib_wasm::apply_asf_properties(file, effective, ignored);
 
     TagLib::Tag* tag = file->tag();

@@ -822,7 +822,7 @@ public:
         const TagLib::PropertyMap ignored = fileRef->file()->setProperties(effective);
         taglib_wasm::apply_asf_properties(fileRef->file(), effective, ignored);
         restore_mp4_freeform_names(fileRef->file(), captured);
-        taglib_wasm::restore_mp4_freeform_items(fileRef->file(), freeformItems);
+        taglib_wasm::restore_mp4_freeform_items(fileRef->file(), freeformItems, effective);
         taglib_wasm::apply_id3v2_comment_guard(fileRef->file(), commentGuard);
     }
     
@@ -879,7 +879,7 @@ public:
             fileRef->file()->setProperties(effective);
         taglib_wasm::apply_asf_properties(fileRef->file(), effective, ignored);
         restore_mp4_freeform_names(fileRef->file(), captured);
-        taglib_wasm::restore_mp4_freeform_items(fileRef->file(), freeformItems);
+        taglib_wasm::restore_mp4_freeform_items(fileRef->file(), freeformItems, effective);
         taglib_wasm::apply_id3v2_comment_guard(fileRef->file(), commentGuard);
     }
     
