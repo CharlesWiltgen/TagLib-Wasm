@@ -41,6 +41,10 @@ export const INTERNAL_KEYS = new Set([
   // Foreign-mean MP4 atom names to delete at save (taglib-65nm): a write-time
   // directive, never a property.
   "_mp4ItemRemovals",
+  // Typed MP4 freeform values (taglib-gja): raw entries, never properties.
+  "_mp4Freeform",
+  // Explicit typed-freeform replacement requested by setMP4FreeformItems.
+  "_mp4FreeformDirty",
 ]);
 
 /**

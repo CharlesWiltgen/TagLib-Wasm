@@ -327,3 +327,59 @@ export interface ExtendedTag extends Tag {
 export type PropertyMap = { [K in PropertyKey]?: string[] } & {
   [key: string]: string[] | undefined;
 };
+
+/**
+ * MP4 freeform (`----:mean:name`) data-type names exposed by TagLib-Wasm.
+ *
+ * `utf8` values are strings; `integer` values are numbers; every other type is
+ * raw bytes (`Uint8Array`) because `utf16`/`implicit` are not self-describing
+ * and `jpeg`/`png`/`bmp` are binary. `other` carries the raw AtomDataType in
+ * {@link MP4FreeformItem.typeCode}.
+ */
+export type MP4FreeformType =
+  | "implicit"
+  | "utf8"
+  | "utf16"
+  | "jpeg"
+  | "png"
+  | "integer"
+  | "bmp"
+  | "undefined"
+  | "other";
+
+/**
+ * One MP4 freeform data value.
+ *
+ * Freeform atoms store `mean` + `name` + one or more typed data values. A
+ * multi-value atom is returned as one item per value (duplicate mean/name);
+ * {@link AudioFile.setMP4FreeformItems} groups equal mean/name/type entries
+ * back into one atom. Standard MP4 atoms are not freeform; use
+ * `properties()`/`getMP4Item()` for those.
+ */
+export interface MP4FreeformItem {
+  /** Freeform mean, e.g. "com.apple.iTunes". */
+  readonly mean: string;
+  /** Freeform name, exact case, e.g. "Acoustid Fingerprint". */
+  readonly name: string;
+  /** Data type; see {@link MP4FreeformType}. */
+  readonly type: MP4FreeformType;
+  /** Raw AtomDataType code; present and required when `type` is "other". */
+  readonly typeCode?: number;
+  /**
+   * One data value: a string for `utf8`; a number for a 4-byte `integer`;
+   * raw bytes for every other type (including `utf16` and `implicit`).
+   */
+  readonly value: string | number | Uint8Array;
+}
+
+/**
+ * Raw freeform entry crossing the FileHandle boundary: one value as bytes and
+ * its numeric AtomDataType.
+ * @internal
+ */
+export interface RawMP4FreeformItem {
+  readonly mean: string;
+  readonly name: string;
+  readonly type: number;
+  readonly value: Uint8Array;
+}

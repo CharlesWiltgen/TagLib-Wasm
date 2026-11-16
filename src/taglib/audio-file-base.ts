@@ -2,9 +2,14 @@ import type { TagLibModule, WasmFileHandle } from "../wasm.ts";
 import type {
   AudioProperties,
   FileType,
+  MP4FreeformItem,
   OpenOptions,
   PropertyMap,
 } from "../types.ts";
+import {
+  fromRawFreeformItem,
+  toRawFreeformItem,
+} from "../utils/mp4-freeform.ts";
 import {
   fromTagLibKey,
   mp4AtomWireKey,
@@ -316,6 +321,32 @@ export abstract class BaseAudioFileImpl {
       throw new UnsupportedFormatError(this.getFormat(), ["MP4", "M4A"]);
     }
     this.handle.removeMP4Item(key);
+  }
+
+  getMP4FreeformItems(): MP4FreeformItem[] {
+    if (!this.isMP4()) {
+      throw new UnsupportedFormatError(this.getFormat(), ["MP4", "M4A"]);
+    }
+    if (!this.handle.getMP4FreeformItems) {
+      throw new MetadataError(
+        "read",
+        "MP4 freeform items are unavailable on this backend",
+      );
+    }
+    return this.handle.getMP4FreeformItems().map(fromRawFreeformItem);
+  }
+
+  setMP4FreeformItems(items: readonly MP4FreeformItem[]): void {
+    if (!this.isMP4()) {
+      throw new UnsupportedFormatError(this.getFormat(), ["MP4", "M4A"]);
+    }
+    if (!this.handle.setMP4FreeformItems) {
+      throw new MetadataError(
+        "write",
+        "MP4 freeform items are unavailable on this backend",
+      );
+    }
+    this.handle.setMP4FreeformItems(items.map(toRawFreeformItem));
   }
 
   isValid(): boolean {

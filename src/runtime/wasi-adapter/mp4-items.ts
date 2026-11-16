@@ -6,6 +6,7 @@
  */
 
 import { fromTagLibKey, mp4AtomWireKey } from "../../constants/properties.ts";
+import type { RawMP4FreeformItem } from "../../types/tags.ts";
 import { mirrorForRawKey, stringifyScalar } from "../../utils/mirror-fields.ts";
 import { getProperty, setProperty } from "./property-surface.ts";
 
@@ -122,6 +123,34 @@ export function setMp4ItemRemovals(
   };
 }
 
+/** Typed MP4 freeform entries carried by the snapshot (taglib-gja). */
+export function getMP4FreeformItems(
+  tagData: Record<string, unknown> | null,
+): RawMP4FreeformItem[] {
+  const raw = tagData?._mp4Freeform;
+  return Array.isArray(raw) ? (raw as RawMP4FreeformItem[]) : [];
+}
+
+/** Stage a full replacement of the typed freeform channel. */
+export function setMP4FreeformItems(
+  tagData: Record<string, unknown> | null,
+  items: readonly RawMP4FreeformItem[],
+): Record<string, unknown> {
+  return { ...tagData, _mp4Freeform: items, _mp4FreeformDirty: true };
+}
+
+/** Clear the write directive after a successful save (idempotent). */
+export function clearMP4FreeformDirty(
+  tagData: Record<string, unknown> | null,
+): Record<string, unknown> {
+  if (!tagData || tagData._mp4FreeformDirty === undefined) {
+    return tagData ?? {};
+  }
+  const next = { ...tagData };
+  delete next._mp4FreeformDirty;
+  return next;
+}
+
 /** Remove an MP4 item; returns the next snapshot record (null on no-op). */
 export function removeMP4Item(
   tagData: Record<string, unknown> | null,
@@ -135,6 +164,20 @@ export function removeMP4Item(
     // record the exact atom name for the C++ save to removeItem() (the
     // PropertyMap erase pass cannot express foreign atoms, taglib-65nm).
     delete next[key];
+    const sep = key.indexOf(":", 5);
+    if (sep !== -1) {
+      const mean = key.slice(5, sep);
+      const name = key.slice(sep + 1);
+      const freeform = next._mp4Freeform as RawMP4FreeformItem[] | undefined;
+      if (freeform !== undefined) {
+        const kept = freeform.filter(
+          (entry) => entry.mean !== mean || entry.name !== name,
+        );
+        if (kept.length !== freeform.length) {
+          next = { ...next, _mp4Freeform: kept };
+        }
+      }
+    }
     next = registerMp4ItemRemoval(next, key);
   }
   // "trkn" now resolves to TRACKNUMBER, so the numeric mirror IS reachable

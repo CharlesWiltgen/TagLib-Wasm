@@ -14,6 +14,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { expect, it } from "vite-plus/test";
 import { TagLib } from "../src/taglib.ts";
+import type { MP4FreeformItem } from "../src/types.ts";
+import { MetadataError, UnsupportedFormatError } from "../src/errors.ts";
 import { FIXTURE_PATH } from "./shared-fixtures.ts";
 
 const BACKENDS = ["wasi", "emscripten"] as const;
@@ -806,6 +808,238 @@ for (const backend of BACKENDS) {
       ).toStrictEqual(undefined);
     } finally {
       reopened.dispose();
+    }
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Typed MP4 freeform items (taglib-gja)
+// ---------------------------------------------------------------------------
+
+const FREEFORM_ITEMS: MP4FreeformItem[] = [
+  {
+    mean: "com.apple.iTunes",
+    name: "Test Text",
+    type: "utf8",
+    value: "héllo",
+  },
+  {
+    mean: "com.apple.iTunes",
+    name: "Test Binary",
+    type: "jpeg",
+    value: new Uint8Array([0xff, 0xd8, 0xff, 0x00, 0x01]),
+  },
+  {
+    mean: "com.apple.iTunes",
+    name: "Test Implicit",
+    type: "implicit",
+    value: new Uint8Array([0, 1, 2, 0xff]),
+  },
+  {
+    mean: "com.apple.iTunes",
+    name: "Test Utf16",
+    type: "utf16",
+    value: new Uint8Array([0xff, 0xfe, 0x41, 0x00]),
+  },
+  {
+    mean: "com.apple.iTunes",
+    name: "Test Int",
+    type: "integer",
+    value: -123456,
+  },
+  {
+    mean: "com.apple.iTunes",
+    name: "Test Other",
+    type: "other",
+    typeCode: 99,
+    value: new Uint8Array([9, 8, 7]),
+  },
+  {
+    mean: "com.apple.iTunes",
+    name: "Test Multi",
+    type: "utf8",
+    value: "one",
+  },
+  {
+    mean: "com.apple.iTunes",
+    name: "Test Multi",
+    type: "utf8",
+    value: "two",
+  },
+];
+
+/** Group one-item-per-value results by atom/type; values keep their order. */
+function freeformGroups(items: readonly MP4FreeformItem[]): unknown[] {
+  const groups = new Map<
+    string,
+    {
+      type: MP4FreeformItem["type"];
+      typeCode?: number | undefined;
+      values: unknown[];
+    }
+  >();
+  for (const item of items) {
+    const key = `${item.mean}\u0000${item.name}\u0000${item.type}\u0000${
+      item.typeCode ?? ""
+    }`;
+    const value =
+      item.value instanceof Uint8Array ? Array.from(item.value) : item.value;
+    const group = groups.get(key);
+    if (group === undefined) {
+      groups.set(key, {
+        type: item.type,
+        typeCode: item.typeCode,
+        values: [value],
+      });
+    } else {
+      group.values.push(value);
+    }
+  }
+  return [...groups.entries()].sort(([a], [b]) => a.localeCompare(b));
+}
+
+for (const backend of BACKENDS) {
+  it(`[${backend}] typed freeform items round-trip through save (taglib-gja)`, async () => {
+    const tl = await TagLib.initialize({ forceWasmType: backend });
+    const file = await tl.open(
+      new Uint8Array(await readFile(FIXTURE_PATH.m4a)),
+    );
+    try {
+      file.setMP4FreeformItems(FREEFORM_ITEMS);
+      expect(
+        freeformGroups(file.getMP4FreeformItems()),
+        `${backend}: staged reads disagree`,
+      ).toStrictEqual(freeformGroups(FREEFORM_ITEMS));
+
+      file.save();
+      const buf = file.getFileBuffer();
+      for (const reader of BACKENDS) {
+        const readerTl = await TagLib.initialize({ forceWasmType: reader });
+        const reopened = await readerTl.open(new Uint8Array(buf));
+        try {
+          expect(
+            freeformGroups(reopened.getMP4FreeformItems()),
+            `${reader} reading a file written by ${backend}`,
+          ).toStrictEqual(freeformGroups(FREEFORM_ITEMS));
+        } finally {
+          reopened.dispose();
+        }
+      }
+    } finally {
+      file.dispose();
+    }
+  });
+
+  it(`[${backend}] freeform items survive a property-map write (taglib-gja)`, async () => {
+    const tl = await TagLib.initialize({ forceWasmType: backend });
+    const file = await tl.open(
+      new Uint8Array(await readFile(FIXTURE_PATH.m4a)),
+    );
+    try {
+      file.setMP4FreeformItems(FREEFORM_ITEMS);
+      file.save();
+      const withItems = file.getFileBuffer();
+
+      const reopened = await tl.open(withItems);
+      try {
+        const props = reopened.properties() as Record<string, string[]>;
+        reopened.setProperties({ ...props, title: ["Freeform Survivor"] });
+        reopened.save();
+        const afterEdit = reopened.getFileBuffer();
+
+        const again = await tl.open(afterEdit);
+        try {
+          expect(
+            freeformGroups(again.getMP4FreeformItems()),
+            `${backend}: property write dropped freeform items`,
+          ).toStrictEqual(freeformGroups(FREEFORM_ITEMS));
+        } finally {
+          again.dispose();
+        }
+      } finally {
+        reopened.dispose();
+      }
+    } finally {
+      file.dispose();
+    }
+  });
+
+  it(`[${backend}] setMP4FreeformItems([]) clears every freeform item (taglib-gja)`, async () => {
+    const tl = await TagLib.initialize({ forceWasmType: backend });
+    const file = await tl.open(
+      new Uint8Array(await readFile(FIXTURE_PATH.m4a)),
+    );
+    try {
+      file.setMP4FreeformItems(FREEFORM_ITEMS);
+      file.save();
+      const withItems = file.getFileBuffer();
+
+      const reopened = await tl.open(withItems);
+      try {
+        reopened.setMP4FreeformItems([]);
+        reopened.save();
+        const cleared = reopened.getFileBuffer();
+
+        const again = await tl.open(cleared);
+        try {
+          expect(
+            again.getMP4FreeformItems(),
+            `${backend}: freeform items survived an explicit clear`,
+          ).toStrictEqual([]);
+        } finally {
+          again.dispose();
+        }
+      } finally {
+        reopened.dispose();
+      }
+    } finally {
+      file.dispose();
+    }
+  });
+
+  it(`[${backend}] freeform methods reject non-MP4 files (taglib-gja)`, async () => {
+    const tl = await TagLib.initialize({ forceWasmType: backend });
+    const file = await tl.open(
+      new Uint8Array(await readFile(FIXTURE_PATH.mp3)),
+    );
+    try {
+      expect(() => file.getMP4FreeformItems()).toThrow(UnsupportedFormatError);
+      expect(() => file.setMP4FreeformItems([])).toThrow(
+        UnsupportedFormatError,
+      );
+    } finally {
+      file.dispose();
+    }
+  });
+
+  it(`[${backend}] freeform setters validate mean/name/type/value (taglib-gja)`, async () => {
+    const tl = await TagLib.initialize({ forceWasmType: backend });
+    const file = await tl.open(
+      new Uint8Array(await readFile(FIXTURE_PATH.m4a)),
+    );
+    try {
+      expect(() =>
+        file.setMP4FreeformItems([
+          { mean: "a:b", name: "X", type: "utf8", value: "x" },
+        ]),
+      ).toThrow(MetadataError);
+      expect(() =>
+        file.setMP4FreeformItems([
+          { mean: "com.apple.iTunes", name: "X", type: "integer", value: 1.5 },
+        ]),
+      ).toThrow(MetadataError);
+      expect(() =>
+        file.setMP4FreeformItems([
+          {
+            mean: "com.apple.iTunes",
+            name: "X",
+            type: "utf8",
+            value: new Uint8Array([1]),
+          },
+        ]),
+      ).toThrow(MetadataError);
+    } finally {
+      file.dispose();
     }
   });
 }

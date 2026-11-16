@@ -7,7 +7,7 @@
  */
 
 import type { FileHandle, RawLyrics, WasmFileHandle } from "../wasm.ts";
-import type { BasicTagData } from "../types/tags.ts";
+import type { BasicTagData, RawMP4FreeformItem } from "../types/tags.ts";
 import type {
   AudioCodec,
   AudioProperties,
@@ -61,6 +61,8 @@ interface EmbindAudioPropertiesWrapper {
 export interface EmbindFileHandle {
   getTag(): EmbindTagWrapper;
   getAudioProperties(): EmbindAudioPropertiesWrapper | null;
+  getMP4FreeformItems(): RawMP4FreeformItem[];
+  setMP4FreeformItems(items: readonly RawMP4FreeformItem[]): void;
   [key: string]: unknown;
 }
 
@@ -194,6 +196,12 @@ export function wrapEmbindHandle(raw: EmbindFileHandle): WasmFileHandle {
     setMp4ItemRemovals(removals: string[]): void {
       const handle = raw as unknown as { removeMP4Item(name: string): void };
       for (const name of removals) handle.removeMP4Item(name);
+    },
+    getMP4FreeformItems(): RawMP4FreeformItem[] {
+      return raw.getMP4FreeformItems();
+    },
+    setMP4FreeformItems(items: readonly RawMP4FreeformItem[]): void {
+      raw.setMP4FreeformItems(items);
     },
     getAudioProperties(): AudioProperties | null {
       const pw = raw.getAudioProperties();

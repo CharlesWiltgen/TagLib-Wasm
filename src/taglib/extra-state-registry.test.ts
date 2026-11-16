@@ -15,6 +15,9 @@ const CONTROL_KEYS = new Set([
   // EXTRA_FIELDS entry. The reconstruct in save-reconstruct.ts recomputes it,
   // which is what stops saveToFile() silently reverting atom casing.
   "_mp4ItemNames",
+  // Direction bit for _mp4Freeform, recomputed whenever the typed setter runs;
+  // the list itself is the carried state (taglib-gja).
+  "_mp4FreeformDirty",
 ]);
 
 it("extra-state registry covers every passthrough data field", () => {

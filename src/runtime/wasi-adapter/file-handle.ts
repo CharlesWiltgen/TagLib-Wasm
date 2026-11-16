@@ -7,7 +7,7 @@ import type {
   RawLyrics,
   RawPicture,
 } from "../../wasm.ts";
-import type { BasicTagData } from "../../types/tags.ts";
+import type { BasicTagData, RawMP4FreeformItem } from "../../types/tags.ts";
 import type { AudioProperties } from "../../types.ts";
 import type { WasiModule } from "../wasmer-sdk-loader/types.ts";
 import { WasmerExecutionError } from "../wasmer-sdk-loader/types.ts";
@@ -135,6 +135,16 @@ export class WasiFileHandle implements FileHandle {
   removeMP4Item(key: string): void {
     this.checkNotDestroyed();
     this.state.tagData = mp4.removeMP4Item(this.state.tagData, key);
+  }
+
+  getMP4FreeformItems(): RawMP4FreeformItem[] {
+    this.checkNotDestroyed();
+    return mp4.getMP4FreeformItems(this.state.tagData);
+  }
+
+  setMP4FreeformItems(items: readonly RawMP4FreeformItem[]): void {
+    this.checkNotDestroyed();
+    this.state.tagData = mp4.setMP4FreeformItems(this.state.tagData, items);
   }
 
   getPictures(): RawPicture[] {

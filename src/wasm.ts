@@ -2,6 +2,8 @@
  * @fileoverview WebAssembly module interface types for Emscripten
  */
 
+import type { RawMP4FreeformItem } from "./types/tags.ts";
+
 /** Raw picture with numeric type as received from/sent to C++ boundary */
 export interface RawPicture {
   mimeType: string;
@@ -103,6 +105,8 @@ export interface FileHandle {
   getMP4Item(key: string): string;
   setMP4Item(key: string, value: string): void;
   removeMP4Item(key: string): void;
+  getMP4FreeformItems?(): RawMP4FreeformItem[];
+  setMP4FreeformItems?(items: readonly RawMP4FreeformItem[]): void;
   getTagData(): import("./types/tags.ts").BasicTagData;
   setTagData(data: Partial<import("./types/tags.ts").BasicTagData>): void;
   getAudioProperties(): import("./types.ts").AudioProperties | null;

@@ -57,6 +57,7 @@
 #include <xiphcomment.h>
 #include "../src/capi/formats/taglib_lame.h"
 #include "../src/capi/taglib_mp4_atoms.h"
+#include "../src/capi/taglib_mp4_freeform.h"
 #include "../src/capi/taglib_id3_duplicate.h"
 #include "../src/capi/taglib_intpair.h"
 #include "../src/capi/taglib_asf_multi_value.h"
@@ -509,6 +510,23 @@ static const std::set<std::string> ID3V1_MAPPED_FRAME_IDS = {
     "TIT2", "TPE1", "TALB", "COMM", "TCON", "TDRC", "TRCK",
 };
 
+// Typed MP4 freeform values cross Embind as raw bytes (taglib-gja).
+static val mp4_freeform_bytes_to_val(const std::string& bytes) {
+    if (bytes.empty()) return val::global("Uint8Array").new_(0);
+    val view = val(emscripten::typed_memory_view(
+        bytes.size(), reinterpret_cast<const uint8_t*>(bytes.data())));
+    return view.call<val>("slice");
+}
+
+static std::string mp4_freeform_val_to_bytes(const val& value) {
+    if (value.isUndefined() || value.isNull()) return {};
+    std::vector<uint8_t> bytes =
+        emscripten::convertJSArrayToNumberVector<uint8_t>(
+            val::global("Uint8Array").call<val>("from", value));
+    return std::string(reinterpret_cast<const char*>(bytes.data()),
+                       bytes.size());
+}
+
 // Helper class to manage stream lifetime
 class FileHandle {
 private:
@@ -797,9 +815,14 @@ public:
         // setProperties the effective map (taglib-an30).
         const TagLib::PropertyMap effective =
             taglib_wasm::normalize_advisory_write(fileRef->file(), propMap);
+        // Capture AFTER normalize: an advisory clear removes its freeform atom
+        // directly, and that removal must not be undone by the restore.
+        auto freeformItems =
+            taglib_wasm::capture_mp4_freeform_items(fileRef->file());
         const TagLib::PropertyMap ignored = fileRef->file()->setProperties(effective);
         taglib_wasm::apply_asf_properties(fileRef->file(), effective, ignored);
         restore_mp4_freeform_names(fileRef->file(), captured);
+        taglib_wasm::restore_mp4_freeform_items(fileRef->file(), freeformItems);
         taglib_wasm::apply_id3v2_comment_guard(fileRef->file(), commentGuard);
     }
     
@@ -846,6 +869,8 @@ public:
             taglib_wasm::capture_id3v2_comment_guard(fileRef->file());
         const TagLib::PropertyMap effective =
             taglib_wasm::normalize_advisory_write(fileRef->file(), properties);
+        auto freeformItems =
+            taglib_wasm::capture_mp4_freeform_items(fileRef->file());
         // ASF: untranslated keys (merged above) return as ignoredProps and
         // must be written as real attributes, exactly like setProperties —
         // without this, setProperty on a WMA silently drops them (review
@@ -854,6 +879,7 @@ public:
             fileRef->file()->setProperties(effective);
         taglib_wasm::apply_asf_properties(fileRef->file(), effective, ignored);
         restore_mp4_freeform_names(fileRef->file(), captured);
+        taglib_wasm::restore_mp4_freeform_items(fileRef->file(), freeformItems);
         taglib_wasm::apply_id3v2_comment_guard(fileRef->file(), commentGuard);
     }
     
@@ -922,6 +948,43 @@ public:
         if (tag->contains(tagKey)) {
             tag->removeItem(tagKey);
         }
+    }
+
+    // Typed freeform atoms (taglib-gja): values are raw bytes on the boundary;
+    // the adapter converts them to/from string/number/Uint8Array by type.
+    val getMP4FreeformItems() const {
+        val items = val::array();
+        if (!fileRef || !fileRef->file()) return items;
+        const auto entries =
+            taglib_wasm::collect_mp4_freeform_entries(fileRef->file());
+        int index = 0;
+        for (const auto& entry : entries) {
+            val item = val::object();
+            item.set("mean", entry.mean);
+            item.set("name", entry.name);
+            item.set("type", entry.type);
+            item.set("value", mp4_freeform_bytes_to_val(entry.value));
+            items.set(index++, item);
+        }
+        return items;
+    }
+
+    void setMP4FreeformItems(const val& items) {
+        if (!fileRef || !fileRef->file()) return;
+        std::vector<taglib_wasm::MP4FreeformEntry> entries;
+        if (items.isArray()) {
+            int count = items["length"].as<int>();
+            for (int i = 0; i < count; i++) {
+                val item = items[i];
+                taglib_wasm::MP4FreeformEntry entry;
+                entry.mean = item["mean"].as<std::string>();
+                entry.name = item["name"].as<std::string>();
+                entry.type = item["type"].as<int>();
+                entry.value = mp4_freeform_val_to_bytes(item["value"]);
+                entries.push_back(std::move(entry));
+            }
+        }
+        taglib_wasm::apply_mp4_freeform_entries(fileRef->file(), entries);
     }
     
 private:
@@ -1827,6 +1890,8 @@ EMSCRIPTEN_BINDINGS(taglib) {
         .function("getMP4Item", &FileHandle::getMP4Item)
         .function("setMP4Item", &FileHandle::setMP4Item)
         .function("removeMP4Item", &FileHandle::removeMP4Item)
+        .function("getMP4FreeformItems", &FileHandle::getMP4FreeformItems)
+        .function("setMP4FreeformItems", &FileHandle::setMP4FreeformItems)
         .function("getTag", &FileHandle::getTag)
         .function("getAudioProperties", &FileHandle::getAudioProperties)
         .function("getBuffer", &FileHandle::getBuffer)

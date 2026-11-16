@@ -1,6 +1,7 @@
 import type {
   AudioProperties,
   FileType,
+  MP4FreeformItem,
   Picture,
   PropertyMap,
 } from "../types.ts";
@@ -91,6 +92,25 @@ export interface AudioFile {
 
   /** Remove an MP4-specific metadata item. */
   removeMP4Item(key: string): void;
+
+  /**
+   * Read MP4 freeform (`----:mean:name`) items with their AtomDataType and raw
+   * value. One item per data value; a multi-value atom repeats mean/name.
+   * Returns an empty array when the file has no freeform items.
+   *
+   * @throws {UnsupportedFormatError} When the file is not MP4/M4A
+   */
+  getMP4FreeformItems(): MP4FreeformItem[];
+
+  /**
+   * Replace every MP4 freeform item. Equal mean/name/type entries are grouped
+   * into one atom; an empty array clears them all. Standard MP4 atoms are
+   * unaffected.
+   *
+   * @throws {UnsupportedFormatError} When the file is not MP4/M4A
+   * @throws {MetadataError} When an item is malformed
+   */
+  setMP4FreeformItems(items: readonly MP4FreeformItem[]): void;
 
   /** Save all changes to the in-memory buffer. */
   save(): boolean;

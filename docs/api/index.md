@@ -1691,6 +1691,76 @@ removeMP4Item(key: string): void
 
 - Error if not an MP4 file
 
+##### getMP4FreeformItems()
+
+Read every MP4 freeform (`----:mean:name`) item with its AtomDataType and raw
+value. This is the lossless path for binary freeform atoms (for example an
+Acoustid fingerprint) that `properties()` would coerce to text.
+
+```typescript
+getMP4FreeformItems(): MP4FreeformItem[]
+
+interface MP4FreeformItem {
+  mean: string;
+  name: string;
+  type:
+    | "implicit"
+    | "utf8"
+    | "utf16"
+    | "jpeg"
+    | "png"
+    | "integer"
+    | "bmp"
+    | "undefined"
+    | "other";
+  typeCode?: number; // present for "other"
+  value: string | number | Uint8Array;
+}
+```
+
+The `type` field is the `MP4FreeformType` union shown above; `value` is a
+string for `utf8`, a number for a 4-byte `integer`, and raw bytes for every
+other type (including `utf16` and `implicit`, which are not self-describing).
+One item is returned per data value, so a multi-value atom repeats
+`mean`/`name`.
+
+##### Throws
+
+- Error if not an MP4 file
+
+##### setMP4FreeformItems()
+
+Replace all freeform items. Entries with the same `mean`, `name`, and `type`
+are grouped into one atom; an empty array clears every freeform item. Standard
+MP4 atoms are unaffected.
+
+```typescript
+setMP4FreeformItems(items: readonly MP4FreeformItem[]): void
+```
+
+```typescript
+file.setMP4FreeformItems([
+  {
+    mean: "com.apple.iTunes",
+    name: "Acoustid Fingerprint",
+    type: "implicit",
+    value: fingerprintBytes, // Uint8Array, byte-exact
+  },
+  {
+    mean: "com.apple.iTunes",
+    name: "MyCounter",
+    type: "integer",
+    value: 42,
+  },
+]);
+```
+
+##### Throws
+
+- Error if not an MP4 file
+- `MetadataError` for an empty/colon-containing mean or name, an out-of-range
+  integer, or a value shape that does not match the type
+
 ##### Example
 
 ```typescript

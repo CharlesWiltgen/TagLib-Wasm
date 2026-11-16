@@ -17,6 +17,7 @@
 #include "taglib_id3v2_frames.h"
 #include "taglib_audio_props.h"
 #include "taglib_mp4_atoms.h"
+#include "taglib_mp4_freeform.h"
 #include "taglib_id3_duplicate.h"
 #include "taglib_asf_multi_value.h"
 #include "taglib_asf_properties.h"
@@ -110,6 +111,11 @@ static tl_error_code encode_file_to_msgpack(TagLib::File* file,
     // names — the PropertyMap cannot carry them at all (taglib-5ibr).
     const auto foreign_items = collect_mp4_foreign_items(file);
     count += static_cast<uint32_t>(foreign_items.size());
+
+    // Typed freeform values (taglib-gja): one reserved key carrying all values
+    // with their raw bytes + AtomDataType, so binary atoms survive a save.
+    const auto freeform_entries = taglib_wasm::collect_mp4_freeform_entries(file);
+    if (!freeform_entries.empty()) count++;
 
     uint32_t pic_count = count_pictures(file);
     if (pic_count > 0) count++;  // "pictures" key + array
@@ -214,6 +220,28 @@ static tl_error_code encode_file_to_msgpack(TagLib::File* file,
             }
             mpack_finish_array(&writer);
         }
+    }
+
+    if (!freeform_entries.empty()) {
+        mpack_write_cstr(&writer, "_mp4Freeform");
+        mpack_start_array(
+            &writer, static_cast<uint32_t>(freeform_entries.size()));
+        for (const auto& entry : freeform_entries) {
+            mpack_start_map(&writer, 4);
+            mpack_write_cstr(&writer, "mean");
+            write_mpack_string(
+                &writer, TagLib::String(entry.mean, TagLib::String::UTF8));
+            mpack_write_cstr(&writer, "name");
+            write_mpack_string(
+                &writer, TagLib::String(entry.name, TagLib::String::UTF8));
+            mpack_write_cstr(&writer, "type");
+            mpack_write_uint(&writer, static_cast<uint32_t>(entry.type));
+            mpack_write_cstr(&writer, "value");
+            mpack_write_bin(&writer, entry.value.data(),
+                            static_cast<uint32_t>(entry.value.size()));
+            mpack_finish_map(&writer);
+        }
+        mpack_finish_array(&writer);
     }
 
     for (const auto& mirror : mirrors) {

@@ -31,6 +31,9 @@ export const PASSTHROUGH_KEYS = new Set([
   "_mp4ItemNames",
   // Foreign-mean MP4 atom names to delete at save (taglib-65nm).
   "_mp4ItemRemovals",
+  // Typed MP4 freeform values (taglib-gja) — raw entries, not properties.
+  "_mp4Freeform",
+  "_mp4FreeformDirty",
 ]);
 
 const MSGPACK_ENCODE_OPTIONS: EncoderOptions = {

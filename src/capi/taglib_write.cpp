@@ -17,6 +17,7 @@
 #include "taglib_id3v2_frames.h"
 #include "taglib_audio_props.h"
 #include "taglib_mp4_atoms.h"
+#include "taglib_mp4_freeform.h"
 #include "taglib_id3_duplicate.h"
 #include "taglib_asf_multi_value.h"
 #include "taglib_asf_properties.h"
@@ -269,7 +270,6 @@ static void apply_propmap(TagLib::File* file, const TagLib::PropertyMap& propMap
     // the comment, whose merged value must not materialise as a second ID3v2
     // frame (taglib-o3sl).
     const auto commentGuard = taglib_wasm::capture_id3v2_comment_guard(file);
-
     // Prior properties are read ONLY when an incoming value is empty — see
     // echoesPriorEmpty below. file->properties() walks every frame allocating
     // a String/StringList per frame, so build it lazily on the first empty
@@ -281,10 +281,15 @@ static void apply_propmap(TagLib::File* file, const TagLib::PropertyMap& propMap
     // generic path clear any freeform atom) (taglib-an30).
     const TagLib::PropertyMap effective =
         taglib_wasm::normalize_advisory_write(file, propMap);
+    // Capture AFTER normalize: an advisory clear removes its freeform atom
+    // directly, and that removal must not be undone by the restore.
+    const auto freeformGuard =
+        taglib_wasm::capture_mp4_freeform_items(file);
 
     // TagLib ignores untranslated keys for ASF (asftag.cpp:394); write them
     // as real attributes so nothing is silently dropped (taglib-984r).
     const TagLib::PropertyMap ignored = file->setProperties(effective);
+    taglib_wasm::restore_mp4_freeform_items(file, freeformGuard);
     taglib_wasm::apply_asf_properties(file, effective, ignored);
 
     TagLib::Tag* tag = file->tag();
@@ -448,6 +453,118 @@ static std::vector<std::string> read_mp4_item_removals(const uint8_t* data, size
 }
 
 /*!
+ * Typed freeform values from the snapshot (`_mp4Freeform`), one entry per data
+ * value. \a apply is true only when `_mp4FreeformDirty` accompanied the list:
+ * a plain read snapshot carries the list for `getMP4FreeformItems()` but must
+ * not replace items that a property-map write just updated (taglib-gja).
+ */
+static std::vector<taglib_wasm::MP4FreeformEntry>
+read_mp4_freeform_entries(const uint8_t* data, size_t len, bool* apply) {
+    std::vector<taglib_wasm::MP4FreeformEntry> entries;
+    *apply = false;
+    bool dirty = false;
+    bool saw_list = false;
+    mpack_reader_t reader;
+    mpack_reader_init_data(&reader, reinterpret_cast<const char*>(data), len);
+    uint32_t map_count = mpack_expect_map(&reader);
+    if (mpack_reader_error(&reader) != mpack_ok) {
+        mpack_reader_destroy(&reader);
+        return entries;
+    }
+
+    for (uint32_t i = 0; i < map_count; i++) {
+        uint32_t klen = mpack_expect_str(&reader);
+        if (mpack_reader_error(&reader) != mpack_ok) break;
+        char key[64];
+        if (klen >= sizeof(key)) {
+            mpack_skip_bytes(&reader, klen);
+            mpack_done_str(&reader);
+            if (mpack_reader_error(&reader) != mpack_ok) break;
+            mpack_discard(&reader);
+            continue;
+        }
+        mpack_read_bytes(&reader, key, klen);
+        mpack_done_str(&reader);
+        if (mpack_reader_error(&reader) != mpack_ok) break;
+        key[klen] = '\0';
+
+        if (strcmp(key, "_mp4FreeformDirty") == 0) {
+            dirty = mpack_expect_bool(&reader);
+            if (mpack_reader_error(&reader) != mpack_ok) break;
+            continue;
+        }
+        if (strcmp(key, "_mp4Freeform") != 0) {
+            mpack_discard(&reader);
+            continue;
+        }
+
+        saw_list = true;
+        uint32_t count = mpack_expect_array(&reader);
+        if (mpack_reader_error(&reader) != mpack_ok) break;
+        auto read_string = [&reader](std::string& out) -> bool {
+            uint32_t n = mpack_expect_str(&reader);
+            if (mpack_reader_error(&reader) != mpack_ok) return false;
+            out.assign(n, '\0');
+            if (n > 0) mpack_read_bytes(&reader, out.data(), n);
+            mpack_done_str(&reader);
+            return mpack_reader_error(&reader) == mpack_ok;
+        };
+
+        for (uint32_t j = 0; j < count; j++) {
+            uint32_t fields = mpack_expect_map(&reader);
+            if (mpack_reader_error(&reader) != mpack_ok) break;
+            taglib_wasm::MP4FreeformEntry entry;
+            for (uint32_t k = 0; k < fields; k++) {
+                uint32_t flen = mpack_expect_str(&reader);
+                if (mpack_reader_error(&reader) != mpack_ok) break;
+                char field[32];
+                if (flen >= sizeof(field)) {
+                    mpack_skip_bytes(&reader, flen);
+                    mpack_done_str(&reader);
+                    if (mpack_reader_error(&reader) != mpack_ok) break;
+                    mpack_discard(&reader);
+                    continue;
+                }
+                mpack_read_bytes(&reader, field, flen);
+                mpack_done_str(&reader);
+                if (mpack_reader_error(&reader) != mpack_ok) break;
+                field[flen] = '\0';
+
+                if (strcmp(field, "mean") == 0) {
+                    if (!read_string(entry.mean)) break;
+                } else if (strcmp(field, "name") == 0) {
+                    if (!read_string(entry.name)) break;
+                } else if (strcmp(field, "type") == 0) {
+                    entry.type = static_cast<int>(mpack_expect_u32(&reader));
+                } else if (strcmp(field, "value") == 0) {
+                    uint32_t n = mpack_expect_bin(&reader);
+                    if (mpack_reader_error(&reader) != mpack_ok) break;
+                    entry.value.assign(n, '\0');
+                    if (n > 0) {
+                        mpack_read_bytes(&reader, entry.value.data(), n);
+                    }
+                    mpack_done_bin(&reader);
+                } else {
+                    mpack_discard(&reader);
+                }
+                if (mpack_reader_error(&reader) != mpack_ok) break;
+            }
+            mpack_done_map(&reader);
+            if (mpack_reader_error(&reader) != mpack_ok) break;
+            if (!entry.name.empty()) entries.push_back(std::move(entry));
+        }
+        mpack_done_array(&reader);
+        if (mpack_reader_error(&reader) != mpack_ok) break;
+    }
+
+    mpack_done_map(&reader);
+    *apply = dirty && saw_list &&
+             mpack_reader_error(&reader) == mpack_ok;
+    mpack_reader_destroy(&reader);
+    return entries;
+}
+
+/*!
  * Save `file`, keeping MPEG's ID3v1<->ID3v2 sync from destroying tag data.
  *
  * Two distinct cases need the DoNotDuplicate save mode, and they are NOT
@@ -508,6 +625,12 @@ static tl_error_code write_to_path(const char* path,
                                                        tags_msgpack_len));
         apply_propmap(ref.file(), propMap);
         restore_mp4_freeform_names(ref.file(), mp4_names);
+        bool freeform_apply = false;
+        auto freeform_entries = read_mp4_freeform_entries(
+            tags_msgpack, tags_msgpack_len, &freeform_apply);
+        if (freeform_apply) {
+            taglib_wasm::apply_mp4_freeform_entries(ref.file(), freeform_entries);
+        }
         apply_pictures_from_msgpack(ref.file(), tags_msgpack, tags_msgpack_len);
         apply_ratings_from_msgpack(ref.file(), tags_msgpack, tags_msgpack_len);
         apply_chapters_from_msgpack(ref.file(), tags_msgpack, tags_msgpack_len);
@@ -566,6 +689,12 @@ static tl_error_code write_to_buffer(const uint8_t* buf, size_t len,
                                                           tags_msgpack_len));
         apply_propmap(f, propMap);
         restore_mp4_freeform_names(f, mp4_names);
+        bool freeform_apply = false;
+        auto freeform_entries = read_mp4_freeform_entries(
+            tags_msgpack, tags_msgpack_len, &freeform_apply);
+        if (freeform_apply) {
+            taglib_wasm::apply_mp4_freeform_entries(f, freeform_entries);
+        }
         apply_pictures_from_msgpack(f, tags_msgpack, tags_msgpack_len);
         apply_ratings_from_msgpack(f, tags_msgpack, tags_msgpack_len);
         apply_chapters_from_msgpack(f, tags_msgpack, tags_msgpack_len);

@@ -182,6 +182,8 @@ export type {
   ExtendedTag,
   FieldMapping,
   FileType,
+  MP4FreeformItem,
+  MP4FreeformType,
   NamedAudioInput,
   OpenOptions,
   Picture,

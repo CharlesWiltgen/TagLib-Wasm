@@ -7,6 +7,7 @@
  * dropped on save (the taglib-upg class of bug).
  */
 import type { FileHandle, RawChapter } from "../wasm.ts";
+import type { RawMP4FreeformItem } from "../types/tags.ts";
 
 type ExtraField = {
   /** Stable name, used by the test-net coverage check. */
@@ -28,6 +29,18 @@ function chapterStyle(chapters: readonly RawChapter[]): string {
   // MP3) MP4 default.
   const s = chapters[0]?.source;
   return s === "nero" || s === "both" ? s : "quicktime";
+}
+
+/** Order-independent signature of a raw freeform list (byte-exact). */
+function freeformSignature(items: readonly RawMP4FreeformItem[]): string {
+  return items
+    .map(
+      (item) =>
+        `${item.mean}\u0000${item.name}\u0000${item.type}\u0000` +
+        Array.from(item.value).join(","),
+    )
+    .sort()
+    .join("\n");
 }
 
 export const EXTRA_FIELDS: readonly ExtraField[] = [
@@ -73,6 +86,24 @@ export const EXTRA_FIELDS: readonly ExtraField[] = [
       const v = source.getIxml();
       if (v !== undefined) target.setIxml(v);
       else if (complete) target.setIxml(null);
+    },
+  },
+  {
+    name: "_mp4Freeform",
+    copy(target, source, complete) {
+      // Typed MP4 freeform items (taglib-gja): editable state carried in the
+      // WASI snapshot, applied by the Embind adapter directly. A reconstruct
+      // must carry them or a save-as drops every binary atom.
+      const items = source.getMP4FreeformItems?.();
+      if (items === undefined) return;
+      if (!complete && items.length === 0) return;
+      // The read snapshot is not a dirty list: a property write may have
+      // updated a freeform-backed atom without touching this copy. Copy only
+      // when it differs from the fresh handle's own snapshot, or a reconstruct
+      // would replace the property write with the stale read state.
+      const targetItems = target.getMP4FreeformItems?.() ?? [];
+      if (freeformSignature(items) === freeformSignature(targetItems)) return;
+      target.setMP4FreeformItems?.(items);
     },
   },
   {
