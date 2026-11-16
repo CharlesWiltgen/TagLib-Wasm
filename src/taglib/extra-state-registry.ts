@@ -39,7 +39,7 @@ function freeformSignature(items: readonly RawMP4FreeformItem[]): string {
         `${item.mean}\u0000${item.name}\u0000${item.type}\u0000` +
         Array.from(item.value).join(","),
     )
-    .sort()
+    .sort((a, b) => a.localeCompare(b))
     .join("\n");
 }
 
