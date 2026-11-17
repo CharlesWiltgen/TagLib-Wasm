@@ -164,3 +164,35 @@ jobs:
             -Dsonar.typescript.lcov.reportPaths=coverage/merged-lcov.info
             -Dsonar.testExecutionReportPaths=sonar-report.xml
             -Dsonar.qualitygate.wait=true
+
+      - name: Sonar quality gate summary
+        if: always()
+        # qualitygate.wait fails the job, but its log only links the dashboard.
+        # Surface the failing condition and any new-code bugs/vulnerabilities in
+        # the run summary so the next action is visible from GitHub.
+        run: |
+          set -euo pipefail
+          api="https://sonarcloud.io/api"
+          params="projectKey=CharlesWiltgen_taglib-wasm&branch=main"
+          status_json=$(curl -sf "$api/qualitygates/project_status?$params") || {
+            echo "Sonar quality gate summary unavailable." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          }
+          status=$(jq -r '.projectStatus.status' <<<"$status_json")
+          echo "## SonarCloud quality gate: $status" >> "$GITHUB_STEP_SUMMARY"
+          jq -r '.projectStatus.conditions[]
+            | select(.status != "OK")
+            | "- **\(.metricKey)**: \(.actualValue) (threshold \(.comparator) \(.errorThreshold))"' \
+            <<<"$status_json" >> "$GITHUB_STEP_SUMMARY"
+          issues_json=$(curl -sf "$api/issues/search?componentKeys=CharlesWiltgen_taglib-wasm&branch=main&resolved=false&inNewCodePeriod=true&types=BUG,VULNERABILITY&ps=10") || true
+          if [ -n "${issues_json:-}" ]; then
+            total=$(jq -r '.total // 0' <<<"$issues_json")
+          else
+            total=0
+          fi
+          if [ "$total" != "0" ]; then
+            echo "### New-code bugs/vulnerabilities" >> "$GITHUB_STEP_SUMMARY"
+            jq -r '.issues[]
+              | "- \(.rule) \(.component | split(":")[1]):\(.line // "?") — \(.message)"' \
+              <<<"$issues_json" >> "$GITHUB_STEP_SUMMARY"
+          fi

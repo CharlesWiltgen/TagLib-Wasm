@@ -351,6 +351,26 @@ describe(
       expect(a).toContain("BRH:1");
     });
 
+    it("merges duplicate primary DA records by max, not last-wins", async () => {
+      const { code, merged } = await runMerge(() => ({
+        primary: [
+          // Same SF twice is legal lcov. The earlier record measured line 1
+          // five times; the later one reports it unhit. A last-wins seed would
+          // emit 0 and withdraw coverage the primary itself recorded.
+          record("src/a.ts", ["DA:1,5", "DA:2,0", "LF:2", "LH:1"]),
+          record("src/a.ts", ["DA:1,0", "LF:1", "LH:0"]),
+        ].join("\n"),
+        // A lower secondary hit must not lower the seeded max either.
+        secondary: [record("src/a.ts", ["DA:1,0"])],
+      }));
+
+      expect(code).toStrictEqual(0);
+      // Both output records carry the seeded max; the later zero never wins.
+      expect(merged.match(/^DA:1,5$/gm)?.length).toStrictEqual(2);
+      expect(merged).not.toContain("DA:1,0");
+      expect(merged).toContain("DA:2,0");
+    });
+
     it("keeps adopted secondary-only files line-only (no BRDA, no BRF/BRH)", async () => {
       const { code, merged } = await runMerge(() => ({
         primary: record("src/a.ts", ["DA:1,0", "LF:1", "LH:0"]),

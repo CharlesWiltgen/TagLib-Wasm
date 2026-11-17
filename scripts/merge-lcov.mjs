@@ -106,7 +106,10 @@ const primaryFiles = new Set(primary.map((block) => block.sf));
 const hits = new Map();
 for (const block of primary) {
   for (const [ln, count] of daEntries(block)) {
-    hits.set(`${block.sf}:${ln}`, count);
+    const key = `${block.sf}:${ln}`;
+    // Same SF/DA twice is legal lcov: merge by max, not last-wins, so an
+    // earlier measured hit cannot be overwritten by a later zero.
+    hits.set(key, Math.max(hits.get(key) ?? 0, count));
   }
 }
 
