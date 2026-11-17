@@ -217,6 +217,42 @@ const MPEG_SAMPLE_RATES: readonly number[][] = [
   [11025, 12000, 8000], // MPEG-2.5
 ];
 
+type MpegFrameHeader = {
+  mpeg1: boolean;
+  layerIndex: number;
+  bitrateIndex: number;
+  sampleRateIndex: number;
+  sampleRateTable: number;
+};
+
+/** Parse and validate the four header bytes; undefined when implausible. */
+function parseMpegFrameHeader(
+  bytes: Uint8Array,
+  at: number,
+): MpegFrameHeader | undefined {
+  if (bytes.length < at + 4) return undefined;
+  if (bytes[at] !== 0xff || (bytes[at + 1] & 0xe0) !== 0xe0) return undefined;
+  const version = (bytes[at + 1] >> 3) & 0x03;
+  const layer = (bytes[at + 1] >> 1) & 0x03;
+  if (version === 0x01 || layer === 0x00) return undefined;
+  const bitrateIndex = (bytes[at + 2] >> 4) & 0x0f;
+  const sampleRateIndex = (bytes[at + 2] >> 2) & 0x03;
+  if (
+    bitrateIndex === 0x00 ||
+    bitrateIndex === 0x0f ||
+    sampleRateIndex === 0x03
+  ) {
+    return undefined;
+  }
+  return {
+    mpeg1: version === 0b11,
+    layerIndex: layer ^ 0b11, // 11=Layer I → 0, 10=II → 1, 01=III → 2
+    bitrateIndex,
+    sampleRateIndex,
+    sampleRateTable: version === 0b11 ? 0 : version === 0b10 ? 1 : 2,
+  };
+}
+
 /**
  * Length in bytes of the MPEG (Layer I/II/III) frame whose header sits at `at`,
  * or 0 when `at` is not a plausible frame header.
@@ -233,25 +269,11 @@ const MPEG_SAMPLE_RATES: readonly number[][] = [
  * plus the padding bit, and C++ integer division truncates.
  */
 export function mpegFrameLength(bytes: Uint8Array, at: number): number {
-  if (bytes.length < at + 4) return 0;
-  if (bytes[at] !== 0xff || (bytes[at + 1] & 0xe0) !== 0xe0) return 0;
-  const version = (bytes[at + 1] >> 3) & 0x03;
-  const layer = (bytes[at + 1] >> 1) & 0x03;
-  if (version === 0x01 || layer === 0x00) return 0;
-  const bitrateIndex = (bytes[at + 2] >> 4) & 0x0f;
-  const sampleRateIndex = (bytes[at + 2] >> 2) & 0x03;
-  if (
-    bitrateIndex === 0x00 ||
-    bitrateIndex === 0x0f ||
-    sampleRateIndex === 0x03
-  ) {
-    return 0;
-  }
-
-  const mpeg1 = version === 0b11;
-  const layerIndex = layer ^ 0b11; // 11=Layer I → 0, 10=II → 1, 01=III → 2
+  const header = parseMpegFrameHeader(bytes, at);
+  if (!header) return 0;
+  const { mpeg1, layerIndex, bitrateIndex, sampleRateIndex, sampleRateTable } =
+    header;
   const bitrate = MPEG_BITRATES[mpeg1 ? 0 : 1][layerIndex][bitrateIndex];
-  const sampleRateTable = mpeg1 ? 0 : version === 0b10 ? 1 : 2;
   const sampleRate = MPEG_SAMPLE_RATES[sampleRateTable][sampleRateIndex];
   const samplesPerFrame =
     layerIndex === 2 ? (mpeg1 ? 1152 : 576) : layerIndex === 1 ? 1152 : 384;
