@@ -331,6 +331,36 @@ function containerEnd(
 }
 
 /**
+ * Metadata extent when an ID3v2 tag starts the buffer, or undefined when the
+ * tag's own extent (or the container behind it) cannot be proven.
+ */
+function id3MetadataEnd(header: Uint8Array, limit: number): number | undefined {
+  const tagEnd = id3v2End(header);
+  if (tagEnd === undefined) return undefined;
+  // An ID3v2 tag may PRECEDE another container's own metadata — TagLib
+  // supports exactly that for FLAC (flacfile.cpp:90). Judging by the ID3v2
+  // extent alone would authorise a splice straight through the Xiph comment,
+  // and a 37-byte prefix was measured flipping the verdict on a 2 MB FLAC.
+  if (tagEnd > limit) return tagEnd;
+  const behind = containerEnd(header, tagEnd, limit);
+  if (behind === undefined) return undefined;
+  return behind === null ? tagEnd : behind;
+}
+
+/** Metadata extent for a non-ID3v2 header, or undefined when unprovable. */
+function headerMetadataEnd(
+  header: Uint8Array,
+  limit: number,
+): number | undefined {
+  if (startsWith(header, "ID3")) return id3MetadataEnd(header, limit);
+  const container = containerEnd(header, 0, limit);
+  if (container !== null) return container;
+  // No ID3v2 and no container: an MPEG frame here means the header window
+  // holds no metadata at all, so nothing in it can be truncated.
+  return isMpegFrameSync(header) ? 0 : undefined;
+}
+
+/**
  * True only when the metadata of `header` provably ends within `limit` bytes.
  *
  * `header` is the start of the file and may be shorter than `limit`; anything
@@ -344,38 +374,27 @@ export function metadataFitsInHeader(
   header: Uint8Array,
   limit: number,
 ): boolean {
-  let end: number | undefined;
-
-  if (startsWith(header, "ID3")) {
-    const tagEnd = id3v2End(header);
-    if (tagEnd === undefined) return false;
-    end = tagEnd;
-    // An ID3v2 tag may PRECEDE another container's own metadata — TagLib
-    // supports exactly that for FLAC (flacfile.cpp:90). Judging by the ID3v2
-    // extent alone would authorise a splice straight through the Xiph comment,
-    // and a 37-byte prefix was measured flipping the verdict on a 2 MB FLAC.
-    if (tagEnd <= limit) {
-      const behind = containerEnd(header, tagEnd, limit);
-      if (behind === undefined) return false;
-      if (behind !== null) end = behind;
-    }
-  } else {
-    const container = containerEnd(header, 0, limit);
-    if (container === null) {
-      // No ID3v2 and no container: an MPEG frame here means the header window
-      // holds no metadata at all, so nothing in it can be truncated.
-      end = isMpegFrameSync(header) ? 0 : undefined;
-    } else {
-      end = container;
-    }
-  }
-
+  const end = headerMetadataEnd(header, limit);
   // Every probe reports an extent it did not necessarily SEE — it reads only
   // structural fields. Refusing to vouch for bytes outside the buffer keeps the
   // "provable" contract honest, and stops a future short-read optimisation from
   // silently reopening this whole defect class.
   if (end === undefined || end > header.length) return false;
   return end <= limit;
+}
+
+/** APE tag size at `at`, or undefined when no APE footer starts there. */
+function apeFooterSize(tail: Uint8Array, at: number): number | undefined {
+  if (at < 0 || !startsWith(tail, "APETAGEX", at)) return undefined;
+  // Bytes 12..16 of the footer: tag size in little-endian, covering the footer
+  // and all items but not the optional 32-byte header.
+  return (
+    (tail[at + 12] |
+      (tail[at + 13] << 8) |
+      (tail[at + 14] << 16) |
+      (tail[at + 15] << 24)) >>>
+    0
+  );
 }
 
 /**
@@ -398,16 +417,8 @@ export function trailerFitsInFooter(
   // Refuse to vouch for bytes not supplied, mirroring the header side's guard.
   if (tail.length < Math.min(footerSize, 32)) return false;
   for (const offsetFromEnd of [32, 32 + 128]) {
-    const at = tail.length - offsetFromEnd;
-    if (at < 0 || !startsWith(tail, "APETAGEX", at)) continue;
-    // Bytes 12..16 of the footer: tag size in little-endian, covering the
-    // footer and all items but not the optional 32-byte header.
-    const size =
-      (tail[at + 12] |
-        (tail[at + 13] << 8) |
-        (tail[at + 14] << 16) |
-        (tail[at + 15] << 24)) >>>
-      0;
+    const size = apeFooterSize(tail, tail.length - offsetFromEnd);
+    if (size === undefined) continue;
     // At the second position the tag is followed by a 128-byte ID3v1 block, so
     // it ends that much earlier and needs that much more of the window. Omitting
     // this left a 96-byte band where an APE tag was spliced and read as audio.

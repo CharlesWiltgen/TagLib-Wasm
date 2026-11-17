@@ -36,21 +36,11 @@ const NUMERIC_FIELDS = new Set([
   "bpm",
 ]);
 
-/**
- * Build a complete ExtendedTag from an open file: the text PropertyMap PLUS the
- * structured fields that ride their own accessors (pictures, ratings, lyrics,
- * chapters, bext/bextData, ixml). readTags and the batch readers share this so
- * the structured ExtendedTag fields are actually populated, not just declared
- * (taglib-0co). Each field is included only when present, mirroring how
- * {@link mapPropertiesToExtendedTag} omits absent text properties.
- */
-export function readExtendedTag(
+/** Attach the structured fields that ride their own accessors. */
+function attachStructuredFields(
   audioFile: AudioFile,
-  includeProperties?: string[],
-): ExtendedTag {
-  const props = audioFile.properties();
-  const tag = mapPropertiesToExtendedTag(props) as Record<string, unknown>;
-
+  tag: Record<string, unknown>,
+): void {
   const pictures = audioFile.getPictures();
   if (pictures.length > 0) tag.pictures = pictures;
   const ratings = audioFile.getRatings();
@@ -66,26 +56,48 @@ export function readExtendedTag(
   if (bextData !== undefined) tag.bextData = bextData;
   const ixml = audioFile.getIxml();
   if (ixml !== undefined) tag.ixml = ixml;
+}
 
-  // Raw wire-key extras (taglib-3s1f): the PropertyMap is already in hand
-  // (WASI: open-time snapshot; Emscripten: built once), so this is a filter,
-  // not extra work. Lookup mirrors getProperty's normalization — modeled keys
-  // appear in the remapped map under their camelCase name, unmodeled keys
-  // under their verbatim wire name. Absent keys and empty strings are
-  // omitted, never empty arrays.
-  if (includeProperties !== undefined && includeProperties.length > 0) {
-    const extraProperties: Record<string, string[]> = {};
-    for (const wireKey of includeProperties) {
-      const values = props[fromTagLibKey(wireKey)]?.filter((v) => v !== "");
-      if (values !== undefined && values.length > 0) {
-        extraProperties[wireKey] = values;
-      }
-    }
-    if (Object.keys(extraProperties).length > 0) {
-      tag.extraProperties = extraProperties;
+/**
+ * Copy caller-requested raw wire keys from the PropertyMap. Lookup mirrors
+ * getProperty's normalization — modeled keys appear under their camelCase name,
+ * unmodeled keys under their verbatim wire name. Absent keys and empty strings
+ * are omitted, never empty arrays.
+ */
+function attachExtraProperties(
+  props: PropertyMap,
+  tag: Record<string, unknown>,
+  includeProperties?: string[],
+): void {
+  if (includeProperties === undefined || includeProperties.length === 0) return;
+  const extraProperties: Record<string, string[]> = {};
+  for (const wireKey of includeProperties) {
+    const values = props[fromTagLibKey(wireKey)]?.filter((v) => v !== "");
+    if (values !== undefined && values.length > 0) {
+      extraProperties[wireKey] = values;
     }
   }
+  if (Object.keys(extraProperties).length > 0) {
+    tag.extraProperties = extraProperties;
+  }
+}
 
+/**
+ * Build a complete ExtendedTag from an open file: the text PropertyMap PLUS the
+ * structured fields that ride their own accessors (pictures, ratings, lyrics,
+ * chapters, bext/bextData, ixml). readTags and the batch readers share this so
+ * the structured ExtendedTag fields are actually populated, not just declared
+ * (taglib-0co). Each field is included only when present, mirroring how
+ * {@link mapPropertiesToExtendedTag} omits absent text properties.
+ */
+export function readExtendedTag(
+  audioFile: AudioFile,
+  includeProperties?: string[],
+): ExtendedTag {
+  const props = audioFile.properties();
+  const tag = mapPropertiesToExtendedTag(props) as Record<string, unknown>;
+  attachStructuredFields(audioFile, tag);
+  attachExtraProperties(props, tag, includeProperties);
   return tag;
 }
 

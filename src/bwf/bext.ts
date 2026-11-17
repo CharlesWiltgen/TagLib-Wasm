@@ -70,6 +70,31 @@ function hexToBytes(hex: string, outLen: number): Uint8Array {
   return out;
 }
 
+type LoudnessField =
+  | "loudnessValueDb"
+  | "loudnessRangeDb"
+  | "maxTruePeakLevelDbtp"
+  | "maxMomentaryLoudnessDb"
+  | "maxShortTermLoudnessDb";
+
+const LOUDNESS_FIELDS: ReadonlyArray<readonly [LoudnessField, number]> = [
+  ["loudnessValueDb", 0],
+  ["loudnessRangeDb", 2],
+  ["maxTruePeakLevelDbtp", 4],
+  ["maxMomentaryLoudnessDb", 6],
+  ["maxShortTermLoudnessDb", 8],
+];
+
+/** Decode the v2 loudness block; absent Int16 sentinels stay absent. */
+function decodeLoudnessFields(dv: DataView): Partial<BroadcastAudioExtension> {
+  const result: Partial<BroadcastAudioExtension> = {};
+  for (const [field, offset] of LOUDNESS_FIELDS) {
+    const value = loudnessFromRaw(dv.getInt16(LOUDNESS_OFFSET + offset, true));
+    if (value !== undefined) result[field] = value;
+  }
+  return result;
+}
+
 /**
  * Parse a raw `bext` chunk. Returns `undefined` only if `bytes` is shorter than
  * 348 (cannot even read the `Version` field). Optional fields are populated per
@@ -107,16 +132,7 @@ export function decodeBext(
     );
   }
   if (version >= 2 && bytes.length >= LOUDNESS_OFFSET + 10) {
-    const lv = loudnessFromRaw(dv.getInt16(LOUDNESS_OFFSET, true));
-    const lr = loudnessFromRaw(dv.getInt16(LOUDNESS_OFFSET + 2, true));
-    const mtp = loudnessFromRaw(dv.getInt16(LOUDNESS_OFFSET + 4, true));
-    const mml = loudnessFromRaw(dv.getInt16(LOUDNESS_OFFSET + 6, true));
-    const msl = loudnessFromRaw(dv.getInt16(LOUDNESS_OFFSET + 8, true));
-    if (lv !== undefined) result.loudnessValueDb = lv;
-    if (lr !== undefined) result.loudnessRangeDb = lr;
-    if (mtp !== undefined) result.maxTruePeakLevelDbtp = mtp;
-    if (mml !== undefined) result.maxMomentaryLoudnessDb = mml;
-    if (msl !== undefined) result.maxShortTermLoudnessDb = msl;
+    Object.assign(result, decodeLoudnessFields(dv));
   }
   return result;
 }

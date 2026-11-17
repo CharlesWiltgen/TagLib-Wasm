@@ -145,60 +145,67 @@ function joinRanges(
   return out;
 }
 
+/** FLAC STREAMINFO MD5 (`basis: "pcm"`), the only format that supports it. */
+async function pcmChecksum(
+  source: ChecksumHandleSource,
+  format: string,
+  io: PlatformIO,
+): Promise<MediaChecksum> {
+  // Case-insensitive like `mediaRanges`: the AudioFile reports "FLAC" while
+  // callers pass the extension ("flac"), and a case-sensitive compare here
+  // would reject a FLAC file the walks handle without complaint.
+  if (format.toUpperCase() !== "FLAC") {
+    throw new UnsupportedFormatError(format, ["FLAC"], {
+      operation: "media checksum (basis: pcm)",
+    });
+  }
+  // STREAMINFO sits at the very start of the *file*, so a partial image (which
+  // always begins at offset 0) already carries it. A handle with no bytes at
+  // all (WASI path mode) reads a header window first — never the file, since
+  // the digest is 16 bytes.
+  const windowed =
+    source.bytes.length > 0
+      ? source.bytes
+      : source.path && io.readPartial
+        ? await io.readPartial(source.path, STREAMINFO_WINDOW, 0)
+        : undefined;
+  // `flacStreamInfoMd5`, not `walkFlac`: the digest wants the marker and the
+  // first block, while the walk ends the stream at the metadata chain's
+  // implied end, and `flacEnd` answers an offset past the bytes in hand rather
+  // than giving up (metadata-extent.ts:78-81). A chain larger than the window
+  // just read — a cover picture is enough — therefore walks as "no audio
+  // bytes" and carries no digest, even though the 16 bytes it wants are inside
+  // that window. Seeking straight to the marker and the first block is all the
+  // digest needs.
+  //
+  // A window that carries no digest therefore means the *marker* is out of
+  // reach, not that the file has none: a prepended ID3v2 tag larger than the
+  // window puts it there (a tag with cover art routinely does), so read the
+  // source and try again instead of failing a file whose digest is present.
+  // The source is not re-read when the window already WAS the source — the
+  // caller's own bytes are the file.
+  let md5 = windowed === undefined ? undefined : flacStreamInfoMd5(windowed);
+  if (md5 === undefined && windowed !== source.bytes) {
+    md5 = flacStreamInfoMd5(await fileBytes(source, io));
+  }
+  if (md5 === undefined) {
+    throw new MetadataError("read", "STREAMINFO digest unavailable");
+  }
+  return {
+    source: "flac-streaminfo-md5",
+    algorithm: "md5",
+    hex: md5,
+    bytesHashed: 16,
+  };
+}
+
 export async function mediaChecksum(
   source: ChecksumHandleSource,
   format: string,
   io: PlatformIO,
   options: MediaChecksumOptions = {},
 ): Promise<MediaChecksum> {
-  if (options.basis === "pcm") {
-    // Case-insensitive like `mediaRanges`: the AudioFile reports "FLAC" while
-    // callers pass the extension ("flac"), and a case-sensitive compare here
-    // would reject a FLAC file the walks handle without complaint.
-    if (format.toUpperCase() !== "FLAC") {
-      throw new UnsupportedFormatError(format, ["FLAC"], {
-        operation: "media checksum (basis: pcm)",
-      });
-    }
-    // STREAMINFO sits at the very start of the *file*, so a partial image (which
-    // always begins at offset 0) already carries it. A handle with no bytes at
-    // all (WASI path mode) reads a header window first — never the file, since
-    // the digest is 16 bytes.
-    const windowed =
-      source.bytes.length > 0
-        ? source.bytes
-        : source.path && io.readPartial
-          ? await io.readPartial(source.path, STREAMINFO_WINDOW, 0)
-          : undefined;
-    // `flacStreamInfoMd5`, not `walkFlac`: the digest wants the marker and the
-    // first block, while the walk ends the stream at the metadata chain's
-    // implied end, and `flacEnd` answers an offset past the bytes in hand rather
-    // than giving up (metadata-extent.ts:78-81). A chain larger than the window
-    // just read — a cover picture is enough — therefore walks as "no audio
-    // bytes" and carries no digest, even though the 16 bytes it wants are inside
-    // that window. Seeking straight to the marker and the first block is all the
-    // digest needs.
-    //
-    // A window that carries no digest therefore means the *marker* is out of
-    // reach, not that the file has none: a prepended ID3v2 tag larger than the
-    // window puts it there (a tag with cover art routinely does), so read the
-    // source and try again instead of failing a file whose digest is present.
-    // The source is not re-read when the window already WAS the source — the
-    // caller's own bytes are the file.
-    let md5 = windowed === undefined ? undefined : flacStreamInfoMd5(windowed);
-    if (md5 === undefined && windowed !== source.bytes) {
-      md5 = flacStreamInfoMd5(await fileBytes(source, io));
-    }
-    if (md5 === undefined) {
-      throw new MetadataError("read", "STREAMINFO digest unavailable");
-    }
-    return {
-      source: "flac-streaminfo-md5",
-      algorithm: "md5",
-      hex: md5,
-      bytesHashed: 16,
-    };
-  }
+  if (options.basis === "pcm") return pcmChecksum(source, format, io);
 
   const bytes = await fileBytes(source, io);
   // A fallback already carries the whole file as one range, so this is also the

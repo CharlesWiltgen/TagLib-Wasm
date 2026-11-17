@@ -51,11 +51,15 @@ import { checkNodeVersion } from "./detector.ts";
  * @note Most users should use `TagLib.initialize()` instead,
  * which handles module loading automatically.
  */
-export async function loadTagLibModule(
-  options?: LoadTagLibOptions,
-): Promise<TagLibModule> {
-  const g = globalThis as Record<string, unknown>;
-  const nodeVersion = (g.process as any)?.versions?.node as string | undefined;
+/** Validate backend/version preconditions before loading. */
+function validateLoadPreconditions(options?: LoadTagLibOptions): void {
+  // Browsers have no `process`; Node's global type is not available in the
+  // browser build, so model the optional field explicitly.
+  const runtime = globalThis as {
+    process?: { versions?: { node?: unknown } };
+  };
+  const node = runtime.process?.versions?.node;
+  const nodeVersion = typeof node === "string" ? node : undefined;
   const versionError = checkNodeVersion(nodeVersion);
   if (versionError) {
     throw new EnvironmentError("Node.js", versionError, "WASI support");
@@ -78,32 +82,32 @@ export async function loadTagLibModule(
       });
     }
   }
+}
 
-  if (
-    !options?.wasmBinary &&
-    !options?.wasmUrl &&
-    !options?.forceWasmType &&
-    isDenoCompiled()
-  ) {
-    const wasmBinary = await tryLoadEmbeddedWasm();
-    if (!wasmBinary) {
-      console.warn(
-        "[TagLib] Deno compile detected but embedded Wasm not found. " +
-          "Include taglib-web.wasm with: deno compile --include taglib-web.wasm",
-      );
-    }
-    return loadBufferModeTagLibModule({
-      ...options,
-      forceWasmType: "emscripten",
-      ...(wasmBinary ? { wasmBinary } : {}),
-    });
+/** Deno compile: load the embedded Wasm, or warn and use the default path. */
+async function loadDenoCompiled(
+  options?: LoadTagLibOptions,
+): Promise<TagLibModule> {
+  const wasmBinary = await tryLoadEmbeddedWasm();
+  if (!wasmBinary) {
+    console.warn(
+      "[TagLib] Deno compile detected but embedded Wasm not found. " +
+        "Include taglib-web.wasm with: deno compile --include taglib-web.wasm",
+    );
   }
+  return loadBufferModeTagLibModule({
+    ...options,
+    forceWasmType: "emscripten",
+    ...(wasmBinary ? { wasmBinary } : {}),
+  });
+}
 
-  if (options?.forceWasmType === "emscripten") {
-    return loadBufferModeTagLibModule(options);
-  }
-
+/** Unified loader with auto-mode fallback; an explicit WASI choice throws. */
+async function loadUnified(options?: LoadTagLibOptions): Promise<TagLibModule> {
   try {
+    // Lazy on purpose: the unified loader pulls the Wasm loader graph, and
+    // auto mode must be able to fall back to buffer mode when that import
+    // fails. A static import would turn the fallback into an init failure.
     const { loadUnifiedTagLibModule } =
       await import("./unified-loader/index.ts");
     return await loadUnifiedTagLibModule({
@@ -134,6 +138,27 @@ export async function loadTagLibModule(
     );
     return loadBufferModeTagLibModule(options || {});
   }
+}
+
+export async function loadTagLibModule(
+  options?: LoadTagLibOptions,
+): Promise<TagLibModule> {
+  validateLoadPreconditions(options);
+
+  if (
+    !options?.wasmBinary &&
+    !options?.wasmUrl &&
+    !options?.forceWasmType &&
+    isDenoCompiled()
+  ) {
+    return loadDenoCompiled(options);
+  }
+
+  if (options?.forceWasmType === "emscripten") {
+    return loadBufferModeTagLibModule(options);
+  }
+
+  return loadUnified(options);
 }
 
 /**

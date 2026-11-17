@@ -56,6 +56,30 @@ export function setBasicTagData(
   return merged;
 }
 
+/**
+ * Convert a snapshot value to property strings. Undefined means the value is
+ * not representable: objects (including arrays of none) and empty arrays are
+ * absent. An empty array is the cleared-state marker (itunesAdvisory's rtng
+ * removal signal, taglib-an30); the surface shows cleared fields as absent,
+ * matching Emscripten.
+ */
+function propertyValues(value: unknown): string[] | undefined {
+  if (Array.isArray(value)) {
+    return value.length === 0 ? undefined : value.map(String);
+  }
+  if (typeof value === "object") return undefined;
+  if (
+    typeof value === "string" ||
+    typeof value === "number" ||
+    typeof value === "boolean" ||
+    typeof value === "bigint" ||
+    typeof value === "symbol"
+  ) {
+    return [String(value)];
+  }
+  return undefined;
+}
+
 /** The property map over the snapshot, excluding audio/internal keys. */
 export function getProperties(
   tagData: Record<string, unknown> | null,
@@ -78,24 +102,9 @@ export function getProperties(
     if (value === undefined || value === null) continue;
     if (value === 0 || value === "") continue;
 
-    const propKey = toTagLibKey(key);
-    if (Array.isArray(value)) {
-      // An empty array is the cleared-state marker (itunesAdvisory's rtng
-      // removal signal, taglib-an30); the surface shows cleared fields as
-      // absent, matching Emscripten.
-      if (value.length === 0) continue;
-      result[propKey] = value.map(String);
-    } else if (typeof value === "object") {
-      continue;
-    } else if (
-      typeof value === "string" ||
-      typeof value === "number" ||
-      typeof value === "boolean" ||
-      typeof value === "bigint" ||
-      typeof value === "symbol"
-    ) {
-      result[propKey] = [String(value)];
-    }
+    const values = propertyValues(value);
+    if (values === undefined) continue;
+    result[toTagLibKey(key)] = values;
   }
 
   return result;

@@ -197,75 +197,97 @@ export abstract class BaseAudioFileImpl {
     // Alias wire keys normalize to canonical, matching setProperties
     // (taglib-7ru2).
     const wireKey = toTagLibKey(fromTagLibKey(key));
-    // An empty total is a clear, not an "n/" value. Route it through the map
-    // so the int-pair fold never sees a one-element [""] list (Emscripten
-    // appended the empty string and produced "3/"; WASI dropped it).
     if ((wireKey === "TRACKTOTAL" || wireKey === "DISCTOTAL") && value === "") {
-      const rest = { ...this.handle.getProperties() };
-      if (this.module.isWasi) rest[wireKey] = [];
-      else delete rest[wireKey];
-      this.handle.setProperties(rest);
+      this.clearTotal(wireKey);
       return;
     }
-    // A bare number write on an int-pair field keeps an existing total,
-    // matching tag().setTrack() and applyTags({track}) (taglib-eq3). A raw
-    // "n/total" and an empty clear still win. Emscripten folds the total
-    // eagerly, so without this, setting the total before the number lost it
-    // where WASI's save-time fold kept it.
-    let nextValue = value;
-    if (
-      (wireKey === "TRACKNUMBER" || wireKey === "DISCNUMBER") &&
-      nextValue !== "" &&
-      !nextValue.includes("/")
-    ) {
-      const existing = this.handle.getProperty(wireKey);
-      const slash = existing.indexOf("/");
-      if (slash !== -1) nextValue = `${nextValue}${existing.slice(slash)}`;
-    }
-    // Same atom-name channel setProperties uses: without it, a property backed by
-    // a mixed-case MP4 freeform atom is written under TagLib's upper-cased name
-    // on BOTH backends (taglib-bnhl). setProperty has no property-map to carry
-    // the reserved key, so it goes through the dedicated handle call.
+    const nextValue = this.preserveIntPairTotal(wireKey, value);
+    // Same atom-name channel setProperties uses: without it, a property backed
+    // by a mixed-case MP4 freeform atom is written under TagLib's upper-cased
+    // name on BOTH backends (taglib-bnhl). setProperty has no property-map to
+    // carry the reserved key, so it goes through the dedicated handle call.
     const atomNames = mp4FreeformAtomNames([wireKey]);
     if (atomNames.length > 0 && this.isMP4()) {
-      // Clearing contract (taglib-qyw2): an empty value must REMOVE the item.
-      // The PropertyMap erase pass computes freeform item names from the
-      // property table (upper-cased "ITUNNORM") and misses the restored
-      // exact-case atom on disk (taglib-bnhl), so the exact name is queued
-      // through the deletion directive (taglib-65nm) — consumed by the WASI
-      // shim before apply_propmap, applied immediately by the Embind proxy.
-      // What the propmap itself carries then differs per backend:
-      //  - WASI (merge model): [wireKey]: [] — the merge DELETES the key from
-      //    tagData (absent keys are untouched), so the wire no longer carries
-      //    the value that would re-create the atom.
-      //  - Embind (replace model): the key must be ABSENT from the map — an
-      //    empty-list entry would re-create the item in setProperties' write
-      //    pass after the directive removed it.
-      if (value === "") {
-        const prior = this.handle.getMp4ItemRemovals?.() ?? [];
-        this.handle.setMp4ItemRemovals?.([
-          ...new Set([...prior, ...atomNames]),
-        ]);
-        if (this.module.isWasi) {
-          this.handle.setProperties({
-            ...this.handle.getProperties(),
-            [wireKey]: [],
-          });
-        } else {
-          const rest = { ...this.handle.getProperties() };
-          delete rest[wireKey];
-          this.handle.setProperties(rest);
-        }
-        return;
-      }
-      this.handle.setProperties({
-        ...this.handle.getProperties(),
-        [wireKey]: [value],
-        [MP4_ITEM_NAMES_KEY]: atomNames,
-      });
+      this.writeMp4FreeformProperty(wireKey, value, atomNames);
       return;
     }
     this.handle.setProperty(wireKey, nextValue);
+  }
+
+  /**
+   * An empty total is a clear, not an "n/" value. Route it through the map so
+   * the int-pair fold never sees a one-element [""] list (Emscripten appended
+   * the empty string and produced "3/"; WASI dropped it).
+   */
+  private clearTotal(wireKey: string): void {
+    const rest = { ...this.handle.getProperties() };
+    if (this.module.isWasi) rest[wireKey] = [];
+    else delete rest[wireKey];
+    this.handle.setProperties(rest);
+  }
+
+  /**
+   * A bare number write on an int-pair field keeps an existing total, matching
+   * tag().setTrack() and applyTags({track}) (taglib-eq3). A raw "n/total" and
+   * an empty clear still win. Emscripten folds the total eagerly, so without
+   * this, setting the total before the number lost it where WASI's save-time
+   * fold kept it.
+   */
+  private preserveIntPairTotal(wireKey: string, value: string): string {
+    if (
+      (wireKey !== "TRACKNUMBER" && wireKey !== "DISCNUMBER") ||
+      value === "" ||
+      value.includes("/")
+    ) {
+      return value;
+    }
+    const existing = this.handle.getProperty(wireKey);
+    const slash = existing.indexOf("/");
+    return slash === -1 ? value : `${value}${existing.slice(slash)}`;
+  }
+
+  /**
+   * Write a property backed by an exact-case MP4 freeform atom.
+   *
+   * Clearing contract (taglib-qyw2): an empty value must REMOVE the item. The
+   * PropertyMap erase pass computes freeform item names from the property table
+   * (upper-cased "ITUNNORM") and misses the restored exact-case atom on disk
+   * (taglib-bnhl), so the exact name is queued through the deletion directive
+   * (taglib-65nm) — consumed by the WASI shim before apply_propmap, applied
+   * immediately by the Embind proxy. What the propmap itself carries then
+   * differs per backend:
+   *  - WASI (merge model): [wireKey]: [] — the merge DELETES the key from
+   *    tagData (absent keys are untouched), so the wire no longer carries the
+   *    value that would re-create the atom.
+   *  - Embind (replace model): the key must be ABSENT from the map — an
+   *    empty-list entry would re-create the item in setProperties' write pass
+   *    after the directive removed it.
+   */
+  private writeMp4FreeformProperty(
+    wireKey: string,
+    value: string,
+    atomNames: readonly string[],
+  ): void {
+    if (value === "") {
+      const prior = this.handle.getMp4ItemRemovals?.() ?? [];
+      this.handle.setMp4ItemRemovals?.([...new Set([...prior, ...atomNames])]);
+      if (this.module.isWasi) {
+        this.handle.setProperties({
+          ...this.handle.getProperties(),
+          [wireKey]: [],
+        });
+      } else {
+        const rest = { ...this.handle.getProperties() };
+        delete rest[wireKey];
+        this.handle.setProperties(rest);
+      }
+      return;
+    }
+    this.handle.setProperties({
+      ...this.handle.getProperties(),
+      [wireKey]: [value],
+      [MP4_ITEM_NAMES_KEY]: [...atomNames],
+    });
   }
 
   /**
