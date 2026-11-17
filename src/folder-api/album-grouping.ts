@@ -89,6 +89,23 @@ function buildTree(okItems: OkItem[]): Map<string, DirNode> {
 }
 
 /**
+ * Resolve a disc name's confidence from its parse and sibling evidence.
+ * Undefined means the name is not a disc. Gated names (title-word markers,
+ * side letters, bonus, bare) keep low confidence even when corroborated;
+ * everything else upgrades to high.
+ */
+function resolveDiscConfidence(
+  parse: DiscParse,
+  corroboratedBySiblings: boolean,
+): DiscConfidence | undefined {
+  if (parse.gated) return corroboratedBySiblings ? "low" : undefined;
+  if (parse.kind === "bonus" || parse.kind === "bare") {
+    return corroboratedBySiblings ? baseConfidence(parse) : undefined;
+  }
+  return corroboratedBySiblings ? "high" : baseConfidence(parse);
+}
+
+/**
  * Step 3: folder disc recognition per directory containing audio, with
  * sibling corroboration. Exact names are discs outright (word/roman at low
  * confidence). Embedded and volume names are discs at medium, upgraded to
@@ -110,17 +127,11 @@ function confirmDiscs(
     const siblings = [...tree.keys()].filter(
       (d) => d !== dir && dirname(d) === dirname(dir),
     );
-    const corroboratedBySiblings = corroborated(parse, siblings);
-    // Gated names (title-word markers, side letters, bonus, bare) keep low
-    // confidence even when corroborated; everything else upgrades to high.
-    let confidence = parse.gated ? "low" : baseConfidence(parse);
-    if (parse.gated) {
-      if (!corroboratedBySiblings) continue;
-    } else if (parse.kind === "bonus" || parse.kind === "bare") {
-      if (!corroboratedBySiblings) continue;
-    } else if (corroboratedBySiblings) {
-      confidence = "high";
-    }
+    const confidence = resolveDiscConfidence(
+      parse,
+      corroborated(parse, siblings),
+    );
+    if (confidence === undefined) continue;
     if (CONFIDENCE_RANK[confidence] < minRank) continue;
     confirmedDiscs.set(dir, { parse, confidence });
   }

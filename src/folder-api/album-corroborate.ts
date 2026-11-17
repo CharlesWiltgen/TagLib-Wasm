@@ -18,38 +18,54 @@ export const CONFIDENCE_RANK: Record<DiscConfidence, number> = {
   high: 2,
 };
 
+type SiblingFacts = {
+  hasExact: boolean;
+  hasNumbered: boolean;
+  numberedCount: number;
+  hasSideLetter: boolean;
+};
+
+function summarizeSiblings(siblings: string[]): SiblingFacts {
+  const facts: SiblingFacts = {
+    hasExact: false,
+    hasNumbered: false,
+    numberedCount: 0,
+    hasSideLetter: false,
+  };
+  for (const sibling of siblings) {
+    const parsed = parseDiscName(basename(sibling));
+    if (!parsed) continue;
+    if (!parsed.gated && parsed.kind === "exact") facts.hasExact = true;
+    if (parsed.number !== undefined) {
+      facts.hasNumbered = true;
+      facts.numberedCount++;
+    }
+    if (parsed.sideLetter) facts.hasSideLetter = true;
+  }
+  return facts;
+}
+
 export function corroborated(parse: DiscParse, siblings: string[]): boolean {
   if (!parse.gated && parse.kind === "exact") return true;
   if (siblings.length === 0) return false;
 
-  const siblingParses = siblings
-    .map((s) => parseDiscName(basename(s)))
-    .filter((p): p is DiscParse => p !== undefined);
-  const hasExactSibling = siblingParses.some(
-    (p) => !p.gated && p.kind === "exact",
-  );
-  const hasNumberedSibling = siblingParses.some((p) => p.number !== undefined);
+  const facts = summarizeSiblings(siblings);
 
-  if (parse.number !== undefined && hasNumberedSibling) return true;
-  if (!parse.gated && parse.kind === "embedded" && hasExactSibling) return true;
-  if (!parse.gated && parse.kind === "volume" && hasNumberedSibling) {
+  if (parse.number !== undefined && facts.hasNumbered) return true;
+  if (!parse.gated && parse.kind === "embedded" && facts.hasExact) return true;
+  if (!parse.gated && parse.kind === "volume" && facts.hasNumbered) {
     return true;
   }
 
   // Side-letter tokens corroborate each other ("CD D" + "CD E").
-  if (parse.sideLetter) {
-    return siblingParses.some((p) => p.sideLetter);
-  }
+  if (parse.sideLetter) return facts.hasSideLetter;
 
   // Title-less set rules (low tier): bare numbers/letters or bonus names
   // accompanying at least two numbered siblings, or a numbered sibling of
   // their own kind.
   if (parse.kind === "bonus" || parse.kind === "bare") {
-    const numberedCount = siblingParses.filter(
-      (p) => p.number !== undefined,
-    ).length;
-    if (numberedCount >= 2) return true;
-    if (parse.number !== undefined && hasNumberedSibling) return true;
+    if (facts.numberedCount >= 2) return true;
+    if (parse.number !== undefined && facts.hasNumbered) return true;
   }
 
   return false;
