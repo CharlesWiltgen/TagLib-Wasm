@@ -61,11 +61,10 @@ export function corroborated(parse: DiscParse, siblings: string[]): boolean {
   if (parse.sideLetter) return facts.hasSideLetter;
 
   // Title-less set rules (low tier): bare numbers/letters or bonus names
-  // accompanying at least two numbered siblings, or a numbered sibling of
-  // their own kind.
+  // accompanying at least two numbered siblings. A numbered sibling of their
+  // own kind was handled by the `parse.number` check above.
   if (parse.kind === "bonus" || parse.kind === "bare") {
-    if (facts.numberedCount >= 2) return true;
-    if (parse.number !== undefined && facts.hasNumbered) return true;
+    return facts.numberedCount >= 2;
   }
 
   return false;

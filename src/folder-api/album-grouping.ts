@@ -139,10 +139,22 @@ function confirmDiscs(
 }
 
 /**
+ * Separated forms are explicit. A compact-only set must be plausible: every
+ * distinct prefix within 1..N where N = the distinct count (101+201 split;
+ * 101+102 stay one disc; 101+301 do not split).
+ */
+function flatSetIsPlausible(
+  forms: ReadonlySet<string>,
+  distinct: readonly number[],
+): boolean {
+  const allCompact = forms.size === 1 && forms.has("compact");
+  if (!allCompact) return true;
+  return distinct.every((d) => d >= 1 && d <= distinct.length);
+}
+
+/**
  * Step 4: flat filename prefixes — subdivide a directory's files into discs
  * when two or more distinct prefixes appear. Never inside a disc folder.
- * Separated forms are explicit; compact-only sets must be plausible (each
- * distinct prefix within 1..N, N = distinct count).
  */
 function flatSubdivisions(
   tree: Map<string, DirNode>,
@@ -164,14 +176,7 @@ function flatSubdivisions(
     }
     if (byFile.size < 2) continue;
     const distinct = [...new Set(byFile.values())].sort((a, b) => a - b);
-    // Separated forms are explicit. A compact-only set must be plausible:
-    // every distinct prefix within 1..N where N = the distinct count
-    // (101+201 split; 101+102 stay one disc; 101+301 do not split).
-    const allCompact = forms.size === 1 && forms.has("compact");
-    const plausible = allCompact
-      ? distinct.every((d) => d >= 1 && d <= distinct.length)
-      : true;
-    if (plausible) flat.set(dir, byFile);
+    if (flatSetIsPlausible(forms, distinct)) flat.set(dir, byFile);
   }
   return flat;
 }
