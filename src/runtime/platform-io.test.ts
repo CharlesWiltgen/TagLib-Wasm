@@ -112,7 +112,9 @@ describe("getPlatformIO", () => {
           entries.push(entry);
         }
 
-        const names = entries.map((e) => e.name).sort();
+        const names = entries
+          .map((e) => e.name)
+          .sort((a, b) => a.localeCompare(b));
         expect(names).toEqual(["a.txt", "subdir"]);
 
         const fileEntry = entries.find((e) => e.name === "a.txt")!;

@@ -35,7 +35,7 @@ it("extra-state registry covers every passthrough data field", () => {
 
   // No stray registry entries either — keeps the two in lock-step.
   expect(
-    [...registered].sort(),
+    [...registered].sort((a, b) => a.localeCompare(b)),
     "EXTRA_FIELDS and PASSTHROUGH_KEYS (minus control keys) have diverged",
-  ).toStrictEqual(dataKeys.sort());
+  ).toStrictEqual(dataKeys.sort((a, b) => a.localeCompare(b)));
 });

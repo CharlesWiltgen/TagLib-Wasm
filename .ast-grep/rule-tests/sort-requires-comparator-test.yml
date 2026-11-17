@@ -1,0 +1,13 @@
+id: sort-requires-comparator
+valid:
+  # Explicit string ordering.
+  - "names.sort((a, b) => a.localeCompare(b));"
+  # Explicit numeric ordering.
+  - "counts.toSorted((a, b) => a - b);"
+  # Any comparator is enough; the rule only cares that one is present.
+  - "items.sort(compare);"
+  - "items.toSorted(compare);"
+invalid:
+  # The Sonar S2871 shape: default string coercion.
+  - "names.sort();"
+  - "counts.toSorted();"
