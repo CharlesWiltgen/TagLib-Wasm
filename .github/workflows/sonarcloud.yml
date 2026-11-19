@@ -48,6 +48,9 @@ jobs:
         uses: actions/checkout@v7
         with:
           fetch-depth: 0
+          # The Vitest fixtures live under lib/taglib/tests/data; the analysis
+          # itself excludes lib/, but the coverage feed needs the tests green.
+          submodules: recursive
 
       - name: Setup pnpm
         # Version comes from packageManager in package.json — pnpm/action-setup
