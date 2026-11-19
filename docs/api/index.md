@@ -1085,10 +1085,7 @@ edit(
 ```typescript
 // Edit a file on disk (in place)
 await taglib.edit("song.mp3", (file) => {
-  const tag = file.tag();
-  tag.setTitle("New Title");
-  tag.setArtist("New Artist");
-  tag.setYear(2025);
+  file.tag().setTitle("New Title").setArtist("New Artist").setYear(2025);
 });
 
 // Edit a buffer and get modified data back
@@ -1291,8 +1288,11 @@ interface MutableTag {
 ```typescript
 const tag = file.tag();
 console.log(tag.title); // Read
-tag.setTitle("New Title"); // Write
+tag.setTitle("New Title").setArtist("New Artist"); // Write (chainable)
 ```
+
+Every setter returns the same `MutableTag`, so writes can be chained. `save()` is
+not part of the chain: it is the terminal operation on the open `AudioFile`.
 
 #### Property Map Methods
 
@@ -1882,8 +1882,7 @@ changes.
 
 ```typescript
 using file = await taglib.open("song.mp3");
-file.tag().setTitle("New Title");
-file.tag().setArtist("New Artist");
+file.tag().setTitle("New Title").setArtist("New Artist");
 await file.saveToFile("song-updated.mp3");
 ```
 
@@ -2598,12 +2597,13 @@ async function processAudioFile(filePath: string) {
   console.log("Format:", file.getFormat());
   console.log("Properties:", file.audioProperties());
 
-  // Update metadata
-  const tag = file.tag();
-  tag.setTitle("New Title");
-  tag.setArtist("New Artist");
-  tag.setAlbum("New Album");
-  tag.setYear(2024);
+  // Update metadata (setters chain)
+  file
+    .tag()
+    .setTitle("New Title")
+    .setArtist("New Artist")
+    .setAlbum("New Album")
+    .setYear(2024);
 
   // Add extended metadata using properties
   file.setProperties({

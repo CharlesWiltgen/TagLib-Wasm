@@ -196,10 +196,8 @@ const taglib = await TagLib.initialize();
 // Load audio file (automatically cleaned up when scope exits)
 using file = await taglib.open("song.mp3");
 
-// Read and update metadata
-const tag = file.tag();
-tag.setTitle("New Title");
-tag.setArtist("New Artist");
+// Update metadata (setters chain)
+file.tag().setTitle("New Title").setArtist("New Artist");
 
 // Save changes
 file.save();

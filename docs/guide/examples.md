@@ -105,9 +105,8 @@ const tag = file.tag();
 console.log(`Title: ${tag.title}`);
 console.log(`Artist: ${tag.artist}`);
 
-// Modify tags
-tag.setTitle("New Title");
-tag.setArtist("New Artist");
+// Modify tags (setters chain)
+tag.setTitle("New Title").setArtist("New Artist");
 
 // Save changes
 file.save();

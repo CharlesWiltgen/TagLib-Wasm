@@ -98,10 +98,8 @@ console.log(`Codec: ${props.codec}`);
 console.log(`Lossless: ${props.isLossless}`);
 console.log(`Bits per sample: ${props.bitsPerSample}`);
 
-// Update metadata
-const tag = file.tag();
-tag.setTitle("New Title");
-tag.setArtist("New Artist");
+// Update metadata (setters chain)
+file.tag().setTitle("New Title").setArtist("New Artist");
 
 // Save changes
 const success = file.save();

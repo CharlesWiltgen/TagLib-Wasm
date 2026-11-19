@@ -196,10 +196,8 @@ tag.date; // Full release date (e.g. "1975-10-31"), the lossless companion to `y
 tag.track;
 tag.genre;
 
-// Write tags (setter methods, not property assignment)
-tag.setTitle("New");
-tag.setArtist("New");
-tag.setAlbum("New");
+// Write tags (setter methods, not property assignment; they chain)
+tag.setTitle("New").setArtist("New").setAlbum("New");
 tag.setYear(2024);
 tag.setDate("1975-10-31"); // `year` resyncs to the leading year. `setDate("")` clears both date and year.
 tag.setTrack(5);
