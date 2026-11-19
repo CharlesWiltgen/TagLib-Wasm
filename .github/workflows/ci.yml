@@ -33,7 +33,7 @@ jobs:
       - name: Setup pnpm
         # Version comes from packageManager in package.json — pnpm/action-setup
         # reads it, so there is no version here to drift out of sync.
-        uses: pnpm/action-setup@v6
+        uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6
 
       - uses: actions/setup-node@v7
         with:
@@ -152,7 +152,7 @@ jobs:
       - name: Setup pnpm
         # Version comes from packageManager in package.json — pnpm/action-setup
         # reads it, so there is no version here to drift out of sync.
-        uses: pnpm/action-setup@v6
+        uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6
 
       - uses: actions/setup-node@v7
         with:
@@ -223,7 +223,7 @@ jobs:
       - name: Setup pnpm
         # Version comes from packageManager in package.json — pnpm/action-setup
         # reads it, so there is no version here to drift out of sync.
-        uses: pnpm/action-setup@v6
+        uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6
 
       - uses: actions/setup-node@v7
         with:
@@ -237,7 +237,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Install Emscripten
-        uses: mymindstorm/setup-emsdk@v16
+        uses: mymindstorm/setup-emsdk@4528d102f7230f0e7b276855c01ea1159be0e984 # v16
         with:
           version: 6.0.12
 
@@ -358,7 +358,7 @@ jobs:
             # Retry: GitHub release downloads from hosted runners occasionally
             # 429/503; a transient fetch failure must not red the pipeline.
             for attempt in 1 2 3; do
-              if curl -fL --retry 3 --retry-delay 5 --retry-all-errors -o wasi-sdk.tar.gz "$WASI_URL" \
+              if curl --proto '=https' --tlsv1.2 -fL --retry 3 --retry-delay 5 --retry-all-errors -o wasi-sdk.tar.gz "$WASI_URL" \
                   && tar xf wasi-sdk.tar.gz; then
                 rm -f wasi-sdk.tar.gz
                 break
@@ -386,7 +386,7 @@ jobs:
         # pnpm's. The job's former ~/.npm cache step went with the npm lockfile
         # it keyed on.
         run: |
-          npm install -g binaryen@132.0.0
+          npm install -g --ignore-scripts binaryen@132.0.0
           # ninja-build ships on ubuntu-24.04 images; apt is only a fallback
           # so a runner-image change never hard-fails on a package fetch.
           if ! command -v ninja >/dev/null 2>&1; then
@@ -472,7 +472,7 @@ jobs:
       - name: Setup pnpm
         # Version comes from packageManager in package.json — pnpm/action-setup
         # reads it, so there is no version here to drift out of sync.
-        uses: pnpm/action-setup@v6
+        uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6
 
       - uses: actions/setup-node@v7
         with:
@@ -535,7 +535,7 @@ jobs:
       - name: Setup pnpm
         # Version comes from packageManager in package.json — pnpm/action-setup
         # reads it, so there is no version here to drift out of sync.
-        uses: pnpm/action-setup@v6
+        uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6
 
       - uses: actions/setup-node@v7
         with:
@@ -593,7 +593,7 @@ jobs:
       - name: Setup pnpm
         # Version comes from packageManager in package.json — pnpm/action-setup
         # reads it, so there is no version here to drift out of sync.
-        uses: pnpm/action-setup@v6
+        uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6
 
       - uses: actions/setup-node@v7
         with:
@@ -604,14 +604,14 @@ jobs:
           cache: pnpm
 
       - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
         with:
           # Pinned: "latest" resolves via the oven-sh/bun refs/tags API on
           # every run, which 503s intermittently from Actions runners
           bun-version: 1.4.2
 
       - name: Setup Deno
-        uses: denoland/setup-deno@v2
+        uses: denoland/setup-deno@22d081ff2d3a40755e97629de92e3bcbfa7cf2ed # v2
         with:
           # Quoted so YAML keeps it a string. Deno is a supported consumer
           # runtime; the cross-runtime smoke below exercises it like Bun/Node.

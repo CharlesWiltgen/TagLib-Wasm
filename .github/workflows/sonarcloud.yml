@@ -55,7 +55,7 @@ jobs:
       - name: Setup pnpm
         # Version comes from packageManager in package.json — pnpm/action-setup
         # reads it, so there is no version here to drift out of sync.
-        uses: pnpm/action-setup@v6
+        uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6
 
       - uses: actions/setup-node@v7
         with:
@@ -66,14 +66,14 @@ jobs:
           cache: pnpm
 
       - name: Setup Deno
-        uses: denoland/setup-deno@v2
+        uses: denoland/setup-deno@22d081ff2d3a40755e97629de92e3bcbfa7cf2ed # v2
         with:
           # Pinned like ci.yml's cross-runtime job. Deno is a supported
           # consumer runtime, and the coverage leg below runs its test files.
           deno-version: "2.9.6"
 
       - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
         with:
           # Pinned: "latest" resolves via the oven-sh/bun refs/tags API on
           # every run, which 503s intermittently from Actions runners.
