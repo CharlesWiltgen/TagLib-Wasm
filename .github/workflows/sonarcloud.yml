@@ -20,7 +20,7 @@ on:
       - "package.json"
       - "pnpm-lock.yaml"
       - "sonar-project.properties"
-      - ".github/workflows/sonarcloud.yml"
+      - ".github/workflows/**"
   schedule:
     - cron: "0 6 * * 1" # Weekly on Monday at 6am UTC
   workflow_dispatch: # Manual trigger
@@ -48,7 +48,6 @@ jobs:
         uses: actions/checkout@v7
         with:
           fetch-depth: 0
-          submodules: recursive
 
       - name: Setup pnpm
         # Version comes from packageManager in package.json — pnpm/action-setup
