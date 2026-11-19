@@ -1,0 +1,40 @@
+name: Action Pin Drift
+
+on:
+  schedule:
+    - cron: "0 6 1 * *" # monthly, 1st at 06:00 UTC
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Check action pins
+        id: check
+        continue-on-error: true
+        run: bash scripts/check-action-pins.sh > drift.txt 2>&1
+
+      - name: Report drift
+        if: steps.check.outcome == 'failure'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          title="Action pin drift"
+          body=$(cat drift.txt)
+          existing=$(gh issue list --state open --search "in:title \"$title\"" \
+            --json number -q '.[0].number' || true)
+          if [ -n "${existing:-}" ]; then
+            gh issue comment "$existing" --body "$body"
+          else
+            gh issue create --title "$title" --body "$body"
+          fi
+
+      - name: Show report
+        if: always()
+        run: cat drift.txt

@@ -136,6 +136,7 @@
     "lint:ast": "bash -c 'command -v ast-grep >/dev/null 2>&1 || { echo \"ast-grep not installed — skipping structural rules\"; exit 0; }; ast-grep test && ast-grep scan'",
     "test:sonar": "SONAR_REPORT=1 vp test --coverage",
     "check:examples": "pnpm exec tsx scripts/check-examples.ts",
+    "check:pins": "bash scripts/check-action-pins.sh",
     "check:all": "pnpm exec vp check && pnpm run lint:ast && pnpm run docs:coverage && pnpm run knip && pnpm run knip:strict && pnpm exec tsc --noEmit -p tsconfig.check.json && pnpm exec tsc --noEmit -p tsconfig.examples.json && pnpm exec vp test && pnpm run check:examples && pnpm run build:js && pnpm run postbuild && node scripts/smoke-dist.mjs && node scripts/check-dist-resolution.mjs && node scripts/check-disc-folder.mjs && bash scripts/check-toolchain-pins.sh",
     "test": "vp test",
     "test:bun": "bun test tests/bun-integration.test.ts",

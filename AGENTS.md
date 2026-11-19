@@ -639,6 +639,12 @@ subset (format + lint).
 `pnpm exec vp test` is a **Vite+ built-in**, not the `test` script; use
 `pnpm test` (short for the script) to run the script itself.
 
+**Action pins.** Third-party GitHub Actions are pinned to full commit SHAs
+(Sonar S7637). `pnpm run check:pins` compares each pin with the ref in its
+`# vX` comment; `.github/workflows/check-action-pins.yml` runs it monthly and
+opens an issue titled "Action pin drift" when a pin is stale. Update pins
+deliberately and keep the comment in sync.
+
 `pnpm run build:ts` builds the shippable bundles. Run it before pushing: it
 catches bundler-resolution breaks — e.g. a JSR import that isn't an npm
 dependency — that pass the test suite but break the published package.
