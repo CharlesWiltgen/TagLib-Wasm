@@ -18,6 +18,17 @@ import { mergeTagUpdates } from "../utils/tag-mapping.ts";
 import { VERSION } from "../version.ts";
 import { type EmbindFileHandle, wrapEmbindHandle } from "./embind-adapter.ts";
 
+/** Drop trailing `/` or `\` separators without an end-anchored regex (S8786). */
+function trimTrailingSeparators(p: string): string {
+  let end = p.length;
+  while (end > 0) {
+    const c = p.charAt(end - 1);
+    if (c !== "/" && c !== "\\") break;
+    end--;
+  }
+  return p.slice(0, end);
+}
+
 function toWasiPath(osPath: string): string {
   // Reject UNC paths (\\server\share\...) — not supported in WASI
   if (osPath.startsWith("\\\\") || osPath.startsWith("//")) {
@@ -36,13 +47,7 @@ function toWasiPath(osPath: string): string {
       ? Deno.cwd()
       : (g.process as { cwd(): string })?.cwd?.();
     if (cwd) {
-      let end = cwd.length;
-      while (end > 0) {
-        const c = cwd.charAt(end - 1);
-        if (c !== "/" && c !== "\\") break;
-        end--;
-      }
-      p = cwd.slice(0, end) + "/" + p;
+      p = trimTrailingSeparators(cwd) + "/" + p;
     }
   }
 
