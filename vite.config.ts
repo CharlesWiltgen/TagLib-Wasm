@@ -42,6 +42,13 @@ function browserRedirect(): TsdownPlugin {
   return {
     name: "taglib-browser-redirect",
     resolveId(source, importer) {
+      // The Emscripten glue is a separate artifact copied to dist/, never
+      // bundled. Externalise it with its final emitted specifier so the
+      // browser entries do not depend on scripts/fix-imports.js to repair a
+      // build/-shaped path (and so minified template-literal quotes stay valid).
+      if (source.endsWith("taglib-wrapper.js")) {
+        return { id: "./taglib-wrapper.js", external: true };
+      }
       if (
         source.endsWith("module-loader.ts") &&
         importer &&
@@ -55,6 +62,11 @@ function browserRedirect(): TsdownPlugin {
       if (source.endsWith("platform-io.ts")) return "\0taglib:platform-io-stub";
       if (source.endsWith("node-fs.ts")) return "\0taglib:node-fs-stub";
       return null;
+    },
+    renderChunk(code) {
+      // rolldown emits //#region banners outside the comments filter; they
+      // carry no code and leak internal source paths into the published bundle.
+      return code.replace(/^\/\/#region .*\r?\n/gm, "");
     },
     load(id) {
       if (id === "\0taglib:platform-io-stub") return PLATFORM_IO_BROWSER_STUB;
@@ -424,7 +436,7 @@ export default defineConfig({
       fixedExtension: false,
       dts: false,
       clean: false,
-      deps: { neverBundle: [/taglib-wrapper\.js$/] },
+      minify: { compress: false, mangle: false },
       outputOptions: { codeSplitting: false, comments: BROWSER_COMMENTS },
       plugins: [browserRedirect()],
     },
@@ -438,7 +450,7 @@ export default defineConfig({
       fixedExtension: false,
       dts: false,
       clean: false,
-      deps: { neverBundle: [/taglib-wrapper\.js$/] },
+      minify: { compress: false, mangle: false },
       outputOptions: { codeSplitting: false, comments: BROWSER_COMMENTS },
       plugins: [browserRedirect()],
     },
@@ -452,7 +464,7 @@ export default defineConfig({
       fixedExtension: false,
       dts: false,
       clean: false,
-      deps: { neverBundle: [/taglib-wrapper\.js$/] },
+      minify: { compress: false, mangle: false },
       outputOptions: { codeSplitting: false, comments: BROWSER_COMMENTS },
       plugins: [browserRedirect()],
     },
