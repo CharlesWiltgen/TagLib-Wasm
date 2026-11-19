@@ -4,7 +4,7 @@ on:
   # Fast feedback: a push to main re-analyses so the gate verdict tracks the
   # merged tree within minutes instead of up to a week (the 2026-10-12 failure
   # stayed red for nine days under the weekly-only schedule). The paths mirror
-  # what the analysis reads — sonar.sources is src, sonar.typescript.tsconfigPath
+  # what the analysis reads — sonar.sources is src, sonar.typescript.tsconfigPaths
   # points the TypeScript frontend at tsconfig.json, and the coverage feed comes
   # from tests/, vite.config.ts, and the merge script. The weekly run stays as
   # the safety net for changes that reach the analysis without touching an
@@ -25,6 +25,11 @@ on:
     - cron: "0 6 * * 1" # Weekly on Monday at 6am UTC
   workflow_dispatch: # Manual trigger
 
+# Least privilege: the scan reads the repository and uploads results; the
+# SonarCloud GitHub app decorates commits with its own installation token.
+permissions:
+  contents: read
+
 # A newer push supersedes an in-flight scan: the gate only needs to speak for
 # main's current tree. Cancellation is the trade — a superseded scan leaves no
 # verdict — which is why the weekly run does not depend on push volume.
@@ -36,6 +41,7 @@ jobs:
   sonarcloud:
     name: SonarCloud Analysis
     runs-on: ubuntu-24.04
+    timeout-minutes: 30
 
     steps:
       - name: Checkout code
