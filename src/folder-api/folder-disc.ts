@@ -65,7 +65,7 @@ function romanToInt(s: string): number {
   let prev = 0;
   for (let i = s.length - 1; i >= 0; i--) {
     const v = values[s[i]];
-    if (v === undefined) return NaN;
+    if (v === undefined) return Number.NaN;
     total += v < prev ? -v : v;
     prev = v;
   }
@@ -73,7 +73,7 @@ function romanToInt(s: string): number {
 }
 
 function parseNumberToken(token: string): number | undefined {
-  if (/^\d+$/.test(token)) return parseInt(token, 10);
+  if (/^\d+$/.test(token)) return Number.parseInt(token, 10);
   const word = WORD_NUMBERS[token.toLowerCase()];
   if (word) return word;
   const roman = romanToInt(token.toLowerCase());
@@ -86,6 +86,20 @@ const SEP = String.raw`[\s._#-]*`;
 // Non-digit tokens need a right word boundary: without it, "Recordings 1"
 // matched "record" + the first letter of "ings" (2026-08-04 report).
 const NUM = String.raw`(?:\d+|(?:[ivxlcdm]+|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|[a-z])(?![a-z]))`;
+
+/**
+ * Drop trailing `chars` and whitespace with a scan instead of an end-anchored
+ * quantified class, which Sonar flags for super-linear backtracking (S8786).
+ */
+function trimTrailingChars(s: string, chars: string): string {
+  let end = s.length;
+  while (end > 0) {
+    const c = s.charAt(end - 1);
+    if (!chars.includes(c) && !/\s/.test(c)) break;
+    end--;
+  }
+  return s.slice(0, end);
+}
 
 /**
  * Parse a directory name as a disc folder. Returns undefined for non-disc
@@ -102,13 +116,10 @@ export function parseDiscName(name: string): DiscParse | undefined {
     // "record" + "ings"), so "Help 1", "Abcd1", "Scalp 1", "Recordings 1"
     // and "The Complete Recordings (41 Tracks)" are never LP 1 / CD 1 /
     // record discs.
-    const left = String.raw`(?:^|[^a-z0-9])`;
-    const esc = marker.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    const re = new RegExp(
-      left + String.raw`(${esc})(?![a-z])${SEP}(${NUM})`,
-      "i",
-    );
-    const m = trimmed.match(re);
+    const left = "(?:^|[^a-z0-9])";
+    const esc = marker.replace(/[.*+?^${}()|[\]\\]/g, String.raw`\$&`);
+    const re = new RegExp(left + `(${esc})(?![a-z])${SEP}(${NUM})`, "i");
+    const m = re.exec(trimmed);
     if (!m) continue;
 
     // A single-letter token ("CD D", "CD A") is a side label, not a number —
@@ -125,23 +136,23 @@ export function parseDiscName(name: string): DiscParse | undefined {
     const isGated = GATED_MARKER_SET.has(marker.toLowerCase()) || sideLetter;
 
     // Title text = everything before the marker's first character.
-    const markerStart = m.index! + m[1].length - marker.length;
+    const markerStart = m.index + m[1].length - marker.length;
     const rawPrefix = trimmed.slice(0, markerStart).trim();
     const title =
-      rawPrefix.replace(/[()[\]]/g, "").replace(/[\s._#-]+$/, "") || undefined;
+      trimTrailingChars(rawPrefix.replace(/[()[\]]/g, ""), "._#-") || undefined;
     const isExact = title === undefined;
 
     // Trailing text after the number becomes the disc title.
-    const after = trimmed.slice(m.index! + m[0].length).trim();
+    const after = trimmed.slice(m.index + m[0].length).trim();
     const discTitle =
-      after
-        .replace(/^[()[\],:;\-–—\s]+/, "")
-        .replace(/[)\]\[,:;\-–—\s]+$/, "")
-        .trim() || undefined;
+      trimTrailingChars(
+        after.replace(/^[()[\],:;\-–—\s]+/, ""),
+        "])[,:;-–—",
+      ).trim() || undefined;
 
     // "of N" total from "CD 1 of 2".
-    const ofMatch = after.trim().match(/^of\s+(\d+)\b/i);
-    const total = ofMatch ? parseInt(ofMatch[1], 10) : undefined;
+    const ofMatch = /^of\s+(\d+)\b/i.exec(after.trim());
+    const total = ofMatch ? Number.parseInt(ofMatch[1], 10) : undefined;
 
     return {
       kind: isExact ? "exact" : "embedded",
@@ -156,14 +167,13 @@ export function parseDiscName(name: string): DiscParse | undefined {
   }
 
   // Volume / Part (medium).
-  const volume = trimmed.match(
-    /^(?:volume|vol\.?|part|pt\.?)\s*(\d+)(?:\s*of\s*(\d+))?$/i,
-  );
+  const volume =
+    /^(?:volume|vol\.?|part|pt\.?)\s*(\d+)(?:\s*of\s*(\d+))?$/i.exec(trimmed);
   if (volume) {
     return {
       kind: "volume",
-      number: parseInt(volume[1], 10),
-      total: volume[2] ? parseInt(volume[2], 10) : undefined,
+      number: Number.parseInt(volume[1], 10),
+      total: volume[2] ? Number.parseInt(volume[2], 10) : undefined,
       title: undefined,
       discTitle: undefined,
       gated: false,
@@ -190,7 +200,7 @@ export function parseDiscName(name: string): DiscParse | undefined {
   if (/^(?:\d+|v\d+|p\d+|[ab])$/i.test(trimmed)) {
     return {
       kind: "bare",
-      number: /^\d+$/i.test(trimmed) ? parseInt(trimmed, 10) : undefined,
+      number: /^\d+$/i.test(trimmed) ? Number.parseInt(trimmed, 10) : undefined,
       total: undefined,
       title: undefined,
       discTitle: undefined,

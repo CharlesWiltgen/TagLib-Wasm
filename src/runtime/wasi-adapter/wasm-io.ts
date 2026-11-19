@@ -6,11 +6,7 @@
  */
 
 import type { WasiModule } from "../wasmer-sdk-loader/types.ts";
-import {
-  WasmArena,
-  type WasmExports,
-  WasmMemoryError,
-} from "../wasi-memory.ts";
+import { WasmArena, WasmMemoryError } from "../wasi-memory.ts";
 import {
   FileOperationError,
   InvalidFormatError,

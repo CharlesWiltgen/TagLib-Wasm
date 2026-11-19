@@ -27,7 +27,7 @@ function readFixedString(
   const max = Math.min(offset + len, bytes.length);
   while (end < max && bytes[end] !== 0) end++;
   let s = "";
-  for (let i = offset; i < end; i++) s += String.fromCharCode(bytes[i]);
+  for (let i = offset; i < end; i++) s += String.fromCodePoint(bytes[i]);
   return s;
 }
 
@@ -38,7 +38,8 @@ function writeFixedString(
   value: string,
 ): void {
   for (let i = 0; i < len; i++) {
-    bytes[offset + i] = i < value.length ? value.charCodeAt(i) & 0xff : 0;
+    bytes[offset + i] =
+      i < value.length ? (value.codePointAt(i) ?? 0) & 0xff : 0;
   }
 }
 
@@ -65,7 +66,7 @@ function hexToBytes(hex: string, outLen: number): Uint8Array {
   const out = new Uint8Array(outLen);
   for (let i = 0; i + 1 < clean.length + 1 && i / 2 < outLen; i += 2) {
     const pair = clean.slice(i, i + 2);
-    if (pair.length === 2) out[i / 2] = parseInt(pair, 16);
+    if (pair.length === 2) out[i / 2] = Number.parseInt(pair, 16);
   }
   return out;
 }
@@ -155,13 +156,16 @@ export function encodeBext(b: BroadcastAudioExtension): Uint8Array {
     b.maxTruePeakLevelDbtp !== undefined ||
     b.maxMomentaryLoudnessDb !== undefined ||
     b.maxShortTermLoudnessDb !== undefined;
-  const version = Number.isInteger(b.version)
-    ? b.version
-    : hasLoudness
-      ? 2
-      : b.umid
-        ? 1
-        : 0;
+  let version: number;
+  if (Number.isInteger(b.version)) {
+    version = b.version;
+  } else if (hasLoudness) {
+    version = 2;
+  } else if (b.umid) {
+    version = 1;
+  } else {
+    version = 0;
+  }
   writeFixedString(bytes, 0, 256, b.description ?? "");
   writeFixedString(bytes, 256, 32, b.originator ?? "");
   writeFixedString(bytes, 288, 32, b.originatorReference ?? "");

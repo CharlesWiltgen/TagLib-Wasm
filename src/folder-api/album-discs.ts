@@ -46,7 +46,6 @@ export function assembleDiscs(
     }
 
     const discs = new Map<string, AlbumDisc>();
-    const order: string[] = [];
     const noEvidenceItems: AlbumGroupItem[] = [];
     for (const item of acc.items) {
       const evidence = acc.evidence.get(item.path);
@@ -69,7 +68,6 @@ export function assembleDiscs(
           items: [],
         };
         discs.set(discKey, disc);
-        order.push(discKey);
       }
       disc.items.push(item);
     }
@@ -96,7 +94,6 @@ export function assembleDiscs(
             items: [],
           };
           discs.set(key, disc);
-          order.push(key);
         }
         disc.items.push(...noEvidenceItems);
       }
@@ -140,8 +137,8 @@ export function assembleDiscs(
 
     // Step 7: sort.
     const sortedDiscs = [...discs.values()].sort((a, b) => {
-      const an = a.discNumber === undefined ? -1 : a.discNumber;
-      const bn = b.discNumber === undefined ? -1 : b.discNumber;
+      const an = a.discNumber ?? -1;
+      const bn = b.discNumber ?? -1;
       if (an !== bn) return an - bn;
       return (a.folderDiscTitle ?? "").localeCompare(b.folderDiscTitle ?? "");
     });

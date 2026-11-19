@@ -163,12 +163,12 @@ async function pcmChecksum(
   // always begins at offset 0) already carries it. A handle with no bytes at
   // all (WASI path mode) reads a header window first — never the file, since
   // the digest is 16 bytes.
-  const windowed =
-    source.bytes.length > 0
-      ? source.bytes
-      : source.path && io.readPartial
-        ? await io.readPartial(source.path, STREAMINFO_WINDOW, 0)
-        : undefined;
+  let windowed: Uint8Array | undefined;
+  if (source.bytes.length > 0) {
+    windowed = source.bytes;
+  } else if (source.path && io.readPartial) {
+    windowed = await io.readPartial(source.path, STREAMINFO_WINDOW, 0);
+  }
   // `flacStreamInfoMd5`, not `walkFlac`: the digest wants the marker and the
   // first block, while the walk ends the stream at the metadata chain's
   // implied end, and `flacEnd` answers an offset past the bytes in hand rather

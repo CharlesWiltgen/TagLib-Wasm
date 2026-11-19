@@ -36,7 +36,7 @@ function be32(b: Uint8Array, offset: number): number {
 function startsWith(bytes: Uint8Array, magic: string, at = 0): boolean {
   if (bytes.length < at + magic.length) return false;
   for (let i = 0; i < magic.length; i++) {
-    if (bytes[at + i] !== magic.charCodeAt(i)) return false;
+    if (bytes[at + i] !== magic.codePointAt(i)) return false;
   }
   return true;
 }
@@ -131,7 +131,7 @@ function mp4MoovEnd(
   const readable = Math.min(bytes.length, limit);
   while (offset + 8 <= readable) {
     const size = be32(bytes, offset);
-    const type = String.fromCharCode(
+    const type = String.fromCodePoint(
       bytes[offset + 4],
       bytes[offset + 5],
       bytes[offset + 6],
@@ -244,12 +244,15 @@ function parseMpegFrameHeader(
   ) {
     return undefined;
   }
+  let sampleRateTable = 2;
+  if (version === 0b11) sampleRateTable = 0;
+  else if (version === 0b10) sampleRateTable = 1;
   return {
     mpeg1: version === 0b11,
     layerIndex: layer ^ 0b11, // 11=Layer I → 0, 10=II → 1, 01=III → 2
     bitrateIndex,
     sampleRateIndex,
-    sampleRateTable: version === 0b11 ? 0 : version === 0b10 ? 1 : 2,
+    sampleRateTable,
   };
 }
 
@@ -275,8 +278,10 @@ export function mpegFrameLength(bytes: Uint8Array, at: number): number {
     header;
   const bitrate = MPEG_BITRATES[mpeg1 ? 0 : 1][layerIndex][bitrateIndex];
   const sampleRate = MPEG_SAMPLE_RATES[sampleRateTable][sampleRateIndex];
-  const samplesPerFrame =
-    layerIndex === 2 ? (mpeg1 ? 1152 : 576) : layerIndex === 1 ? 1152 : 384;
+  let samplesPerFrame: number;
+  if (layerIndex === 2) samplesPerFrame = mpeg1 ? 1152 : 576;
+  else if (layerIndex === 1) samplesPerFrame = 1152;
+  else samplesPerFrame = 384;
   // C++ integer division truncates (mpegheader.cpp:236-264); JS `/` is float,
   // and a fractional frame length would describe a frame no header can start at.
   let frameLength = Math.floor((samplesPerFrame * bitrate * 125) / sampleRate);
@@ -366,7 +371,7 @@ function id3MetadataEnd(header: Uint8Array, limit: number): number | undefined {
   if (tagEnd > limit) return tagEnd;
   const behind = containerEnd(header, tagEnd, limit);
   if (behind === undefined) return undefined;
-  return behind === null ? tagEnd : behind;
+  return behind ?? tagEnd;
 }
 
 /** Metadata extent for a non-ID3v2 header, or undefined when unprovable. */

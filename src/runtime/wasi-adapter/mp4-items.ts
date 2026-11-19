@@ -178,7 +178,7 @@ export function setMP4FreeformItems(
 export function clearMP4FreeformDirty(
   tagData: Record<string, unknown> | null,
 ): Record<string, unknown> {
-  if (!tagData || tagData._mp4FreeformDirty === undefined) {
+  if (tagData?._mp4FreeformDirty === undefined) {
     return tagData ?? {};
   }
   // A non-UTF-8 item has no PropertyMap representation, so keeping the

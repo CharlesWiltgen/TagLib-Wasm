@@ -200,7 +200,7 @@ export function buildAlbumIdentity(
   // group when normalized titles match and the tag-keyed files live under the
   // folder group's album directory (its title source — the parent that hosts
   // the disc folders). The tag key and source "tags" win.
-  for (const [key, acc] of [...albums]) {
+  for (const [key, acc] of albums) {
     if (acc.source === "tags") continue;
     for (const other of albums.values()) {
       if (other === acc || other.source !== "tags") continue;

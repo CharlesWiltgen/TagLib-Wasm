@@ -91,10 +91,12 @@ function createNodeIO(): PlatformIO {
   let bufCache: NodeBuffer | undefined;
 
   async function getFs(): Promise<NodeFs> {
-    return (fsCache ??= await import("node:fs/promises"));
+    fsCache ??= await import("node:fs/promises");
+    return fsCache;
   }
   async function getBuf(): Promise<NodeBuffer> {
-    return (bufCache ??= await import("node:buffer"));
+    bufCache ??= await import("node:buffer");
+    return bufCache;
   }
 
   return {

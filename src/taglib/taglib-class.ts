@@ -5,13 +5,16 @@ import {
   isNamedAudioInput,
   type NamedAudioInput,
 } from "../types/audio-formats.ts";
-import { InvalidFormatError, TagLibInitializationError } from "../errors.ts";
+import {
+  FileOperationError,
+  InvalidFormatError,
+  TagLibInitializationError,
+} from "../errors.ts";
 import { isDeno } from "../runtime/detector.ts";
 import type { AudioFile } from "./audio-file-interface.ts";
 import { AudioFileImpl } from "./audio-file-impl.ts";
 import { loadAudioData } from "./load-audio-data.ts";
 import { mergeTagUpdates } from "../utils/tag-mapping.ts";
-import { FileOperationError } from "../errors.ts";
 import { VERSION } from "../version.ts";
 import { type EmbindFileHandle, wrapEmbindHandle } from "./embind-adapter.ts";
 
@@ -33,19 +36,25 @@ function toWasiPath(osPath: string): string {
       ? Deno.cwd()
       : (g.process as { cwd(): string })?.cwd?.();
     if (cwd) {
-      p = cwd.replace(/[/\\]+$/, "") + "/" + p;
+      let end = cwd.length;
+      while (end > 0) {
+        const c = cwd.charAt(end - 1);
+        if (c !== "/" && c !== "\\") break;
+        end--;
+      }
+      p = cwd.slice(0, end) + "/" + p;
     }
   }
 
   // Normalize separators and map drive letter to virtual prefix
   p = p.replaceAll("\\", "/");
-  const driveMatch = p.match(/^([A-Za-z]):\//);
+  const driveMatch = /^([A-Za-z]):\//.exec(p);
   if (driveMatch) {
     p = `/${driveMatch[1].toUpperCase()}${p.slice(2)}`;
   }
 
   // Collapse dot segments and ensure leading /
-  p = p.replace(/\/\.\//g, "/").replace(/\/+/g, "/");
+  p = p.replaceAll("/./", "/").replace(/\/+/g, "/");
   if (!p.startsWith("/")) p = "/" + p;
 
   return p;
@@ -265,6 +274,6 @@ export class TagLib {
 /**
  * Create a TagLib instance from a pre-loaded Wasm module.
  */
-export async function createTagLib(module: WasmModule): Promise<TagLib> {
-  return new TagLib(module);
+export function createTagLib(module: WasmModule): Promise<TagLib> {
+  return Promise.resolve(new TagLib(module));
 }

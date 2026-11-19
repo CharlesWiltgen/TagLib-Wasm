@@ -44,7 +44,11 @@ export function hostPathForPreopens(
     | { realPath: string; rest: string; prefixLength: number }
     | undefined;
   for (const [virtualPath, realPath] of Object.entries(preopens)) {
-    const prefix = virtualPath.replace(/\/+$/, "");
+    let prefixEnd = virtualPath.length;
+    while (prefixEnd > 0 && virtualPath.charAt(prefixEnd - 1) === "/") {
+      prefixEnd--;
+    }
+    const prefix = virtualPath.slice(0, prefixEnd);
     if (wasiPath === prefix) {
       return realPath;
     }

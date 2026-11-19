@@ -63,14 +63,16 @@ async function executeBatch<T>(
     const chunk = files.slice(i, i + concurrency);
     const chunkPromises = chunk.map(async (file, idx) => {
       const index = i + idx;
-      const fileName =
-        typeof file === "string"
-          ? file
-          : file instanceof File
-            ? file.name
-            : isNamedAudioInput(file)
-              ? file.name
-              : `buffer-${index}`;
+      let fileName: string;
+      if (typeof file === "string") {
+        fileName = file;
+      } else if (file instanceof File) {
+        fileName = file.name;
+      } else if (isNamedAudioInput(file)) {
+        fileName = file.name;
+      } else {
+        fileName = `buffer-${index}`;
+      }
       try {
         const audioFile = await taglib.open(file);
         try {

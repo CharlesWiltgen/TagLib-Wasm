@@ -20,7 +20,6 @@
  */
 
 import { basename } from "../utils/path.ts";
-import { dirname } from "./folder-disc.ts";
 import type { FolderScanResult } from "./types.ts";
 import type {
   AlbumGroup,
@@ -31,7 +30,7 @@ import type {
   GroupAlbumsOptions,
   OkItem,
 } from "./album-types.ts";
-import { baseConfidence, parseDiscName } from "./folder-disc.ts";
+import { baseConfidence, dirname, parseDiscName } from "./folder-disc.ts";
 import { CONFIDENCE_RANK, corroborated } from "./album-corroborate.ts";
 import { buildAlbumIdentity } from "./album-identity.ts";
 import { assembleDiscs } from "./album-discs.ts";
@@ -44,11 +43,15 @@ function flatPrefix(
   filename: string,
 ): { disc: number; form: "separated" | "compact" } | undefined {
   // Separated: 1-01, 1.01, 1_01, 1-1 — explicit, no plausibility check.
-  const separated = filename.match(/^(\d{1,2})[\s._-](\d{1,2})/);
-  if (separated) return { disc: parseInt(separated[1], 10), form: "separated" };
+  const separated = /^(\d{1,2})[\s._-](\d{1,2})/.exec(filename);
+  if (separated) {
+    return { disc: Number.parseInt(separated[1], 10), form: "separated" };
+  }
   // Compact: 101 = disc 1, track 01 — ambiguous; caller validates plausibility.
-  const compact = filename.match(/^(\d)(\d{2})(?:\D|$)/);
-  if (compact) return { disc: parseInt(compact[1], 10), form: "compact" };
+  const compact = /^(\d)(\d{2})(?:\D|$)/.exec(filename);
+  if (compact) {
+    return { disc: Number.parseInt(compact[1], 10), form: "compact" };
+  }
   return undefined;
 }
 

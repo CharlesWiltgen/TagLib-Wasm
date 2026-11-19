@@ -117,9 +117,7 @@ export abstract class BaseAudioFileImpl {
   }
 
   audioProperties(): AudioProperties | undefined {
-    if (!this.cachedAudioProperties) {
-      this.cachedAudioProperties = this.handle.getAudioProperties() ?? null;
-    }
+    this.cachedAudioProperties ??= this.handle.getAudioProperties() ?? null;
     return this.cachedAudioProperties ?? undefined;
   }
 

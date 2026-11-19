@@ -96,9 +96,7 @@ const READ_ALIASES: Record<string, string> = {
 
 for (const [alias, canonical] of Object.entries(READ_ALIASES)) {
   // Never shadow a real wire key: the canonical map is built first.
-  if (_fromTagLib[alias] === undefined) {
-    _fromTagLib[alias] = _fromTagLib[canonical];
-  }
+  _fromTagLib[alias] ??= _fromTagLib[canonical];
 }
 
 /** Translate a camelCase property key to TagLib's ALL_CAPS wire key. Unknown keys pass through. */
@@ -155,7 +153,7 @@ for (const meta of Object.values(PROPERTIES)) {
   // First mapping wins: several properties can name the same atom (`date` and
   // `year` both map to "©day"), and the canonical PropertyMap key is the one
   // registered first in PROPERTIES.
-  if (_mp4AtomToWireKey[atom] === undefined) _mp4AtomToWireKey[atom] = key;
+  _mp4AtomToWireKey[atom] ??= key;
 }
 
 /**

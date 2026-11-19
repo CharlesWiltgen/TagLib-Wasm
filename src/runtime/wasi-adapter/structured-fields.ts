@@ -193,7 +193,7 @@ export function setId3v2Frames(
   id: string,
   data: Uint8Array[],
 ): Record<string, unknown> {
-  const staged = { ...(getStagedId3v2Frames(tagData) ?? {}) };
+  const staged = { ...getStagedId3v2Frames(tagData) };
   staged[id] = data.map((d) => new Uint8Array(d));
   return {
     ...tagData,

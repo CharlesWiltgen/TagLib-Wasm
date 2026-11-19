@@ -1,5 +1,4 @@
 import type {
-  FileHandle,
   RawChapter,
   RawLyrics,
   TagLibModule,

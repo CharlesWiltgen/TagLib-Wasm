@@ -55,6 +55,18 @@ const OGG_CODEC_TO_FORMAT: Record<string, string> = {
   Speex: "SPEEX",
 };
 
+/** `isEncrypted` default per format contract (taglib-rcz). */
+function encryptionEntries(
+  isEncrypted: unknown,
+  containerFormat: ContainerFormat,
+): { isEncrypted?: boolean } {
+  if (isEncrypted === true) return { isEncrypted: true };
+  if (containerFormat === "MP4" || containerFormat === "ASF") {
+    return { isEncrypted: false };
+  }
+  return {};
+}
+
 /** The audio-properties block of the C++ snapshot, null when absent. */
 export function getAudioProperties(
   tagData: Record<string, unknown> | null,
@@ -82,11 +94,7 @@ export function getAudioProperties(
     // for the two formats whose contract carries the flag; an explicit false
     // from any other format stays absent — the exact evaluation the
     // Emscripten adapter performs (taglib-rcz).
-    ...(d.isEncrypted === true
-      ? { isEncrypted: true }
-      : containerFormat === "MP4" || containerFormat === "ASF"
-        ? { isEncrypted: false }
-        : {}),
+    ...encryptionEntries(d.isEncrypted, containerFormat),
     ...(formatVersion > 0 ? { formatVersion } : {}),
     ...(d.outputGainDb !== undefined
       ? { outputGainDb: d.outputGainDb as number }
@@ -109,7 +117,7 @@ export function detectOggCodec(fileData: Uint8Array): string {
   if (fileData.length < payloadStart + 8) return "OGG";
   const sig = fileData.slice(payloadStart, payloadStart + 8);
   // Opus: payload starts with "OpusHead"
-  const text = String.fromCharCode(...sig);
+  const text = String.fromCodePoint(...sig);
   if (text === "OpusHead") return "OPUS";
   // FLAC-in-Ogg: the mapping header starts with 0x7F "FLAC" (the native
   // "fLaC" stream marker follows the mapping version).

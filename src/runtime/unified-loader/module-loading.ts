@@ -8,16 +8,11 @@ import { fileUrlToPath } from "../../utils/path.ts";
 import { getNodeFsSync } from "../../utils/node-fs.ts";
 
 function isWindows(): boolean {
-  return isDeno()
-    ? Deno.build.os === "windows"
-    : (globalThis as Record<string, unknown>).process
-      ? (
-          (globalThis as Record<string, unknown>).process as Record<
-            string,
-            string
-          >
-        ).platform === "win32"
-      : false;
+  if (isDeno()) return Deno.build.os === "windows";
+  const proc = (globalThis as Record<string, unknown>).process as
+    | Record<string, string>
+    | undefined;
+  return proc?.platform === "win32";
 }
 
 /** @internal Exported for unit tests (tests/node-fs-acquisition.test.ts). */
@@ -31,7 +26,7 @@ export function getPreopens(): Record<string, string> {
   if (!statSync) {
     console.warn(
       "[taglib-wasm] Windows drive detection unavailable: node:fs could not " +
-        "be loaded. Only C:\\ is registered as a WASI preopen.",
+        String.raw`be loaded. Only C:\ is registered as a WASI preopen.`,
     );
     return { "/C": "C:\\" };
   }

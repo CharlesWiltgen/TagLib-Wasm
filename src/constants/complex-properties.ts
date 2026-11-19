@@ -22,8 +22,6 @@
  * ```
  */
 
-import type { Picture } from "../types.ts";
-
 /**
  * Rating metadata representing track popularity/rating.
  * Uses normalized 0.0-1.0 scale for cross-format compatibility.
