@@ -1739,6 +1739,13 @@ other type (including `utf16` and `implicit`, which are not self-describing).
 One item is returned per data value, so a multi-value atom repeats
 `mean`/`name`.
 
+Two normalizations keep a getter's output writable back. An untyped binary
+atom (AtomDataType 255 with bytes) reads as `"implicit"`, which is the type the
+save persists; writing `"undefined"` is accepted and round-trips as
+`"implicit"`. An `integer` atom whose payload is not 4 bytes reads as
+`"other"` carrying its raw `typeCode` and bytes, because the typed `integer`
+shape is int32-only.
+
 ##### Throws
 
 - Error if not an MP4 file
