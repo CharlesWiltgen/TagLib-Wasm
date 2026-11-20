@@ -572,7 +572,7 @@ public:
             
             // Try to create FileRef first
             fileRef = std::make_unique<TagLib::FileRef>(stream.get());
-            
+
             if (!fileRef->isNull() && fileRef->file() && fileRef->file()->isValid()) {
                 // MP4 genre precedence: the string ©gen beats a preceding gnre
                 // (taglib-lna2). The in-memory tag is this backend's write
@@ -638,32 +638,76 @@ public:
         return fileRef && !fileRef->isNull();
     }
     
+    // taglib-acyi: after an MP4 save, TagLib's tag keeps an atom tree whose
+    // `ilst` node length is never updated (saveExisting resizes only the
+    // ilst's parents), so a second save on the same object recomputes a wrong
+    // delta, appends a `free` padding atom and leaves the moov unparseable.
+    // Re-parse the bytes just written so the next save starts from the same
+    // coherent tree a fresh open gets — the per-save snapshot model the WASI
+    // backend already follows. Other formats save cleanly more than once
+    // (measured over every fixture), so this stays MP4-only.
+    void reloadAfterSave() {
+        if (!fileRef || !fileRef->file()) return;
+        if (!dynamic_cast<TagLib::MP4::File*>(fileRef->file())) return;
+        if (!stream) return;
+        // Parse a fresh stream over exactly the bytes just saved. The direct
+        // MP4 constructor (not FileRef) is the path that parses: FileRef's
+        // content detection leaves the stream positioned after its probes, and
+        // MP4::File starts reading at the current position — the load path
+        // below falls back to this same construction for the same reason.
+        std::vector<char> bytes(
+            reinterpret_cast<const char*>(stream->bufData()),
+            reinterpret_cast<const char*>(stream->bufData()) + stream->bufSize());
+        auto fresh = std::make_unique<VectorStream>(std::move(bytes));
+        fresh->seek(0, TagLib::IOStream::Beginning);
+        std::unique_ptr<TagLib::MP4::File> mp4(
+            new TagLib::MP4::File(fresh.get()));
+        if (!mp4->isValid() || !mp4->tag()) return;
+        auto rebuilt = std::make_unique<TagLib::FileRef>(mp4.release());
+        if (rebuilt->isNull()) return;
+        // Replace the file first (the old stream is still alive for its
+        // destructor), then the stream it referenced.
+        fileRef = std::move(rebuilt);
+        stream = std::move(fresh);
+        taglib_wasm::resolve_mp4_genre_precedence(fileRef->file());
+    }
+
     bool save() {
         if (!fileRef) return false;
-        // ASF multi-value attributes are rotated by TagLib's render+parse
-        // (ECDO/MLO split); right-rotate before render, restore after save
-        // (taglib-ilrg). Inert for every other format. Twin of
-        // save_preserving_id3() in src/capi/taglib_write.cpp.
-        taglib_wasm::ASFMultiValueRotationGuard asfGuard(fileRef->file());
-        auto* mpegFile = dynamic_cast<TagLib::MPEG::File*>(fileRef->file());
-        if (!mpegFile) return fileRef->save();
-
-        // Two separate reasons to suppress MPEG::File's default Duplicate sync,
-        // handled in this order because they are not interchangeable — see
-        // save_preserving_id3() in src/capi/taglib_write.cpp, the WASI twin.
-        bool skipTagLibDuplicate = !rawMappedFrameIds.empty();  // taglib-b67
-        if (!skipTagLibDuplicate &&
-            taglib_wasm::id3_duplicate_would_destroy(mpegFile)) {
-            // taglib-9m0w: run the sync losslessly rather than skip it.
-            taglib_wasm::duplicate_id3_tags_losslessly(mpegFile);
-            skipTagLibDuplicate = true;
+        bool saved = false;
+        {
+            // ASF multi-value attributes are rotated by TagLib's render+parse
+            // (ECDO/MLO split); right-rotate before render, restore after save
+            // (taglib-ilrg). Inert for every other format. Twin of
+            // save_preserving_id3() in src/capi/taglib_write.cpp.
+            // Scoped so the guard destructs BEFORE reloadAfterSave() frees the
+            // file it holds (taglib-acyi).
+            taglib_wasm::ASFMultiValueRotationGuard asfGuard(fileRef->file());
+            auto* mpegFile = dynamic_cast<TagLib::MPEG::File*>(fileRef->file());
+            if (!mpegFile) {
+                saved = fileRef->save();
+            } else {
+                // Two separate reasons to suppress MPEG::File's default
+                // Duplicate sync, handled in this order because they are not
+                // interchangeable — see save_preserving_id3() in
+                // src/capi/taglib_write.cpp, the WASI twin.
+                bool skipTagLibDuplicate = !rawMappedFrameIds.empty(); // taglib-b67
+                if (!skipTagLibDuplicate &&
+                    taglib_wasm::id3_duplicate_would_destroy(mpegFile)) {
+                    // taglib-9m0w: run the sync losslessly rather than skip it.
+                    taglib_wasm::duplicate_id3_tags_losslessly(mpegFile);
+                    skipTagLibDuplicate = true;
+                }
+                saved = skipTagLibDuplicate
+                            ? mpegFile->save(TagLib::MPEG::File::AllTags,
+                                             TagLib::File::StripOthers,
+                                             TagLib::ID3v2::v4,
+                                             TagLib::File::DoNotDuplicate)
+                            : fileRef->save();
+            }
         }
-        if (!skipTagLibDuplicate) return fileRef->save();
-
-        return mpegFile->save(TagLib::MPEG::File::AllTags,
-                              TagLib::File::StripOthers,
-                              TagLib::ID3v2::v4,
-                              TagLib::File::DoNotDuplicate);
+        if (saved) reloadAfterSave();
+        return saved;
     }
     
     TagWrapper getTag() {

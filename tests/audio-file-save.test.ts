@@ -51,6 +51,63 @@ describe("AudioFileImpl.save()", () => {
   });
 });
 
+describe("repeated save() (taglib-acyi)", () => {
+  for (const backend of ["wasi", "emscripten"] as const) {
+    it(`[${backend}] saves twice without corrupting an MP4 file`, async () => {
+      const tl = await TagLib.initialize({ forceWasmType: backend });
+      const file = await tl.open(
+        new Uint8Array(await readFile(FIXTURE_PATH.m4a)),
+      );
+      try {
+        file.tag().setTitle("Double Save");
+        expect(file.save()).toStrictEqual(true);
+        const first = new Uint8Array(file.getFileBuffer());
+
+        expect(file.save()).toStrictEqual(true);
+        const second = new Uint8Array(file.getFileBuffer());
+        // The defect appended a `free` padding atom (and grew the moov), so
+        // the second buffer got longer and stopped parsing.
+        expect(
+          second.length,
+          "the second save must not append padding",
+        ).toStrictEqual(first.length);
+
+        const reopened = await tl.open(second);
+        try {
+          expect(reopened.tag().title).toStrictEqual("Double Save");
+        } finally {
+          reopened.dispose();
+        }
+      } finally {
+        file.dispose();
+      }
+    });
+
+    it(`[${backend}] a post-save edit is saved onto a coherent file`, async () => {
+      const tl = await TagLib.initialize({ forceWasmType: backend });
+      const file = await tl.open(
+        new Uint8Array(await readFile(FIXTURE_PATH.m4a)),
+      );
+      try {
+        file.tag().setTitle("First Save");
+        file.save();
+        file.tag().setAlbum("Second Save Album");
+        file.save();
+
+        const reopened = await tl.open(file.getFileBuffer());
+        try {
+          expect(reopened.tag().title).toStrictEqual("First Save");
+          expect(reopened.tag().album).toStrictEqual("Second Save Album");
+        } finally {
+          reopened.dispose();
+        }
+      } finally {
+        file.dispose();
+      }
+    });
+  }
+});
+
 describe("AudioFileImpl.getFileBuffer()", () => {
   it("should return valid buffer after opening a file", async () => {
     const originalBuffer = new Uint8Array(await readFile(FIXTURE_PATH.mp3));
