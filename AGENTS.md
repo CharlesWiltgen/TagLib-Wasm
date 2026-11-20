@@ -45,6 +45,7 @@ await applyTagsToFile("song.mp3", { title: "New Title", artist: "New Artist" });
 - **Chapters?** → Full API: `audioFile.getChapters()`, `audioFile.setChapters([...])` (MP3 + MP4)
 - **Broadcast metadata (BWF `bext`/iXML)?** → Full API: `audioFile.getBext()` / `setBext(...)` / `getIxml()` / `setIxml(...)` (WAV + FLAC)
 - **Raw/vendor ID3v2 frames (RGAD, NCON, custom TXXX, …)?** → Full API: `audioFile.getId3v2Frames(id)` / `setId3v2Frames(id, data)` / `removeId3v2Frames(id)` (MP3 only)
+- **MP4 freeform atoms (typed or binary)?** → Full API: `audioFile.getMP4FreeformItems()` / `setMP4FreeformItems(items)` (MP4 only)
 
 ## Simple API Reference
 
@@ -276,6 +277,31 @@ if (bext) audioFile.setBext({ ...bext, description: "Take 1" });
 audioFile.getBextData(); // raw bext bytes | undefined; setBextData(null) removes
 audioFile.getIxml(); // raw iXML string | undefined; setIxml(null) removes
 // Also: import { bwf } from "taglib-wasm"; bwf.decodeBext(rawBytes) / bwf.encodeBext(obj)
+
+// MP4 items (MP4/M4A only). Standard atoms take TagLib's item name ("trkn",
+// "©nam"); a freeform atom takes the full `----:mean:name` key.
+audioFile.getMP4Item("----:com.apple.iTunes:iTunNORM"); // string | undefined
+audioFile.setMP4Item("----:com.apple.iTunes:MOOD", "Happy");
+audioFile.removeMP4Item("----:com.apple.iTunes:MOOD");
+
+// Typed MP4 freeform atoms — the lossless path for binary/typed items
+// (Acoustid fingerprints, vendor tags) that properties() would coerce to text.
+// One item per data value; an empty array clears every freeform item, and a
+// typed replacement and a property write agree (the later write wins).
+audioFile.getMP4FreeformItems(); // MP4FreeformItem[]
+audioFile.setMP4FreeformItems([
+  {
+    mean: "com.apple.iTunes",
+    name: "Acoustid Fingerprint",
+    type: "implicit",
+    value: fingerprintBytes,
+  },
+]);
+// MP4FreeformItem = { mean, name, type, typeCode?, value } — type is the
+// AtomDataType name ("implicit"|"utf8"|"utf16"|"jpeg"|"png"|"integer"|"bmp"|
+// "undefined"|"other"); value is a string for utf8, a number for a 4-byte
+// integer, and bytes for every other type. An untyped binary atom reads as
+// "implicit"; a non-4-byte integer reads as "other" with typeCode + raw bytes.
 
 // Raw ID3v2 frames (escape hatch, MP3 only): { id, data, flags? }[]
 audioFile.getId3v2Frames("TXXX"); // every frame with this ID
