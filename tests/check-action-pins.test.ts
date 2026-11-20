@@ -140,4 +140,42 @@ describe("check-action-pins", () => {
     expect(result.code).toBe(0);
     expect(result.stdout).toContain("Action pin check passed");
   });
+
+  it("accepts a quoted pinned action", async () => {
+    const result = await runWithWorkflows({
+      "ci.yml": [
+        "jobs:",
+        "  t:",
+        "    steps:",
+        `      - uses: "some/action@${SHA}" # v1`,
+        "",
+      ].join("\n"),
+    });
+    expect(result.code).toBe(0);
+    expect(result.stdout).toContain("Action pin check passed");
+  });
+
+  it("fails a flow-style uses: mapping instead of skipping it", async () => {
+    const result = await runWithWorkflows({
+      "ci.yml": "jobs:\n  t:\n    steps:\n      - {uses: some/action@v1}\n",
+    });
+    expect(result.code).toBe(1);
+    expect(result.stdout).toContain("flow-style");
+  });
+
+  it("does not treat uses: text inside a block scalar as an entry", async () => {
+    const result = await runWithWorkflows({
+      "ci.yml": [
+        "jobs:",
+        "  t:",
+        "    steps:",
+        `      - uses: some/action@${SHA} # v1`,
+        "      - run: |",
+        "          uses: evil/action@main",
+        "",
+      ].join("\n"),
+    });
+    expect(result.code).toBe(0);
+    expect(result.stdout).toContain("Action pin check passed");
+  });
 });

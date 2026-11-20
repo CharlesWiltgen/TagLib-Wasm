@@ -53,18 +53,53 @@ resolve() {
   printf '%s' "$sha"
 }
 
+# Print `file:line:text` for every workflow line, omitting block-scalar bodies
+# (`run: |`): a line inside one is text, not a `uses:` key. FILENAME:FNR keeps
+# the reported line numbers exact even though lines are skipped.
+scan_workflows() {
+  local file
+  while IFS= read -r file; do
+    awk '
+      BEGIN { in_scalar = 0; scalar_ind = 0 }
+      {
+        line = $0
+        if (match(line, /^[ ]*/)) ind = RLENGTH
+        if (in_scalar) {
+          if (line ~ /^[ ]*$/) next
+          if (ind > scalar_ind) next
+          in_scalar = 0
+        }
+        print FILENAME ":" FNR ":" line
+        if (match(line, /:[ ]*[|>][-+]?[0-9]?([ ]*#.*)?$/)) {
+          scalar_ind = ind
+          in_scalar = 1
+        }
+      }
+    ' "$file"
+  done < <(find "$workflows" -type f \( -name '*.yml' -o -name '*.yaml' \) | sort)
+}
+
+scanned=$(scan_workflows)
+
 # Every `uses:` entry, including unpinned ones, sub-path actions
 # (owner/repo/path@ref) and reusable workflows
-# (owner/repo/.github/workflows/x.yml@ref). The pattern anchors on the YAML
-# key so prose in comments or `run:` blocks is not mistaken for a reference.
-# Read the grep output without `mapfile` (bash 4+): macOS ships bash 3.2, and
-# this script must run on developer machines and the macOS CI leg.
+# (owner/repo/.github/workflows/x.yml@ref).
+# A flow-style mapping (`- {uses: x@y}`) cannot be inspected by a line scan;
+# report it as UNMANAGED so it can never pass silently.
+flow=$(printf '%s\n' "$scanned" | grep -E '\{[^}]*uses[[:space:]]*:' || true)
+if [ -n "$flow" ]; then
+  printf 'UNMANAGED flow-style uses: mapping(s) — convert to block style so the check can inspect them:\n%s\n' "$flow"
+  status=1
+fi
+
+# Read without `mapfile` (bash 4+): macOS ships bash 3.2, and this script must
+# run on developer machines and the macOS CI leg.
 entries=()
 while IFS= read -r entry; do
   entries+=("$entry")
 done < <(
-  grep -rnE --include='*.yml' --include='*.yaml' \
-    '^[[:space:]]*(-[[:space:]]+)?uses:[[:space:]]' "$workflows" || true
+  printf '%s\n' "$scanned" |
+    grep -E ':[0-9]+:[[:space:]]*(-[[:space:]]+)?uses:[[:space:]]' || true
 )
 
 if [ "${#entries[@]}" -eq 0 ]; then
@@ -86,6 +121,12 @@ for match in "${entries[@]}"; do
   value=${text#*uses:}
   value=${value%%#*} # drop a trailing comment before splitting the pin
   value=$(printf '%s' "$value" | sed -E 's/^[[:space:]]+//; s/[[:space:]]+$//')
+  # A quoted YAML scalar keeps its quotes in the raw line; strip one matching
+  # pair so `uses: "owner/repo@ref"` parses like the unquoted form.
+  if [ "${#value}" -ge 2 ] &&
+    { [[ "$value" == \"*\" ]] || [[ "$value" == \'*\' ]]; }; then
+    value=${value:1:${#value}-2}
+  fi
 
   # Local actions and Docker references are not tag-pinned actions.
   case "$value" in
