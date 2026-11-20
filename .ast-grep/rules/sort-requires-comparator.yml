@@ -13,9 +13,19 @@ note: |
   This is SonarCloud's typescript:S2871, enforced locally so a new violation
   fails `pnpm run check:all` instead of waiting for the Sonar gate. Suppress a
   deliberate custom sort with `// ast-grep-ignore` on the call.
+
+  Optional chaining (`items?.sort()`) and an explicit `undefined` comparator
+  (`items.sort(undefined)`) select the same default comparator, so they are
+  covered too.
 files:
   - "src/**"
 rule:
   any:
     - pattern: $RECEIVER.sort()
     - pattern: $RECEIVER.toSorted()
+    - pattern: $RECEIVER?.sort()
+    - pattern: $RECEIVER?.toSorted()
+    - pattern: $RECEIVER.sort(undefined)
+    - pattern: $RECEIVER.sort?.(undefined)
+    - pattern: $RECEIVER.toSorted(undefined)
+    - pattern: $RECEIVER.toSorted?.(undefined)

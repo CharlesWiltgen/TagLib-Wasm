@@ -11,3 +11,10 @@ invalid:
   # The Sonar S2871 shape: default string coercion.
   - "names.sort();"
   - "counts.toSorted();"
+  # Same call through optional chaining or an explicit undefined comparator.
+  - "names?.sort();"
+  - "counts?.toSorted();"
+  - "names.sort(undefined);"
+  - "counts.toSorted(undefined);"
+  - "names.sort?.(undefined);"
+  - "counts.toSorted?.(undefined);"
