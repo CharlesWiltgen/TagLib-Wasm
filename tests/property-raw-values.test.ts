@@ -1406,6 +1406,10 @@ describe("track and disc totals land in the standard on-disk field", () => {
               await readProperty(reader, path, "trackNumber"),
               `${reader} reading a file written by ${writer}: empty total list`,
             ).toStrictEqual(["4"]);
+            expect(
+              await readProperty(reader, path, "totalTracks"),
+              `${reader} reading a file written by ${writer}: empty total list must clear the total`,
+            ).toStrictEqual(undefined);
           }
         } finally {
           await rm(path).catch(() => {});

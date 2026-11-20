@@ -136,12 +136,16 @@ export abstract class BaseAudioFileImpl {
         // (taglib-7ru2): fromTagLibKey maps alias -> camel, toTagLibKey maps
         // camel -> canonical wire. Canonical keys round-trip unchanged.
         const wireKey = toTagLibKey(fromTagLibKey(key));
-        // An empty total is the documented clear, not a value. Normalizing it
-        // to [] keeps TagLib's int-pair fold from turning TRACKNUMBER "3" +
-        // TRACKTOTAL [""] into "3/" (Emscripten) instead of "3" (WASI).
+        // An empty total is the documented clear, not a value. WASI's merge
+        // model deletes the key on [], while Emscripten's replace model only
+        // removes it when the key is ABSENT — an empty list survives as an
+        // empty TXXX/freeform item and reads back as [""] (taglib-w53y).
+        // Omitting it also keeps the int-pair fold from turning TRACKNUMBER
+        // "3" + TRACKTOTAL [""] into "3/" on Emscripten.
         const emptyTotal =
           (wireKey === "TRACKTOTAL" || wireKey === "DISCTOTAL") &&
           values.every((v) => v === "");
+        if (emptyTotal && !this.module.isWasi) continue;
         translated[wireKey] = emptyTotal ? [] : values;
       }
     }
