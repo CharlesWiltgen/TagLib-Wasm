@@ -1435,6 +1435,42 @@ for (const backend of BACKENDS) {
     }
   });
 
+  it(`[${backend}] a numeric-looking freeform value persists and replaces the old one`, async () => {
+    const tl = await TagLib.initialize({ forceWasmType: backend });
+    const key = "----:com.apple.iTunes:PROBE_NUM";
+    const file = await tl.open(
+      new Uint8Array(await readFile(FIXTURE_PATH.m4a)),
+    );
+    try {
+      file.setMP4Item(key, "old-value");
+      file.save();
+
+      const overwrite = await tl.open(file.getFileBuffer());
+      try {
+        overwrite.setMP4Item(key, "42");
+        overwrite.save();
+
+        const reopened = await tl.open(overwrite.getFileBuffer());
+        try {
+          expect(
+            reopened.getMP4Item(key),
+            `${backend}: a numeric-looking value must not become an Int item`,
+          ).toStrictEqual("42");
+          expect(
+            reopened.getMP4FreeformItems().map((i) => i.name),
+            `${backend}: the atom was deleted instead of updated`,
+          ).toStrictEqual(["PROBE_NUM"]);
+        } finally {
+          reopened.dispose();
+        }
+      } finally {
+        overwrite.dispose();
+      }
+    } finally {
+      file.dispose();
+    }
+  });
+
   it(`[${backend}] a typed text update is stable across two saves (taglib-gja review)`, async () => {
     const tl = await TagLib.initialize({ forceWasmType: backend });
     const source = new Uint8Array(await readFile(FIXTURE_PATH.m4a));

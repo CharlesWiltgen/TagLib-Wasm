@@ -967,7 +967,22 @@ public:
         
         TagLib::MP4::Tag* tag = mp4File->tag();
         TagLib::String tagKey(key, TagLib::String::UTF8);
-        
+
+        // A freeform atom is text or bytes. An Int item has no representation
+        // in renderFreeForm(), which drops it on save — and dropping it also
+        // deletes any atom the key already held (taglib-u7gl). The API takes a
+        // string, so a numeric-looking value stays text. An empty value is the
+        // documented clear (matching setProperty and the WASI backend), so it
+        // removes the atom instead of storing an empty one.
+        if (key.compare(0, 5, "----:") == 0) {
+            if (value.empty()) {
+                if (tag->contains(tagKey)) tag->removeItem(tagKey);
+            } else {
+                tag->setItem(tagKey, TagLib::MP4::Item(TagLib::String(value, TagLib::String::UTF8)));
+            }
+            return;
+        }
+
         // Try to parse as integer first
         char* endptr;
         long intValue = strtol(value.c_str(), &endptr, 10);
