@@ -18,3 +18,12 @@ invalid:
   - "counts.toSorted(undefined);"
   - "names.sort?.(undefined);"
   - "counts.toSorted?.(undefined);"
+  # Optional call / optional member combined with either form.
+  - "names.sort?.();"
+  - "counts.toSorted?.();"
+  - "names?.sort(undefined);"
+  - "counts?.toSorted(undefined);"
+  - "names?.sort?.();"
+  - "counts?.toSorted?.();"
+  - "names?.sort?.(undefined);"
+  - "counts?.toSorted?.(undefined);"
