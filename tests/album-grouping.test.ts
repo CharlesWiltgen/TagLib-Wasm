@@ -583,6 +583,15 @@ describe("flat filename prefixes", () => {
       [R("Album/102 B.flac"), { album: "Album" }],
     ]);
     expect(albumByTitle(one, "Album").discs.length).toStrictEqual(1);
+
+    // Disc 3 from an array position cannot be derived when only two discs are
+    // present (3 > distinct.length): the parser's guess is not plausible, so
+    // the folder stays ONE disc instead of being subdivided.
+    const outOfRange = group([
+      [R("Album/101 A.flac"), { album: "Album" }],
+      [R("Album/301 B.flac"), { album: "Album" }],
+    ]);
+    expect(albumByTitle(outOfRange, "Album").discs.length).toStrictEqual(1);
   });
 
   it("10-01 / 11-01 split (separated forms are explicit)", () => {

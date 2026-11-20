@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vite-plus/test";
-import { readFile, stat } from "node:fs/promises";
-import { resolve } from "node:path";
+import { mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join, resolve } from "node:path";
 import { loadAudioData } from "./load-audio-data.ts";
 
 const TEST_MP3 = resolve(
@@ -14,6 +15,44 @@ describe("loadAudioData", () => {
     maxHeaderSize: 1024 * 1024,
     maxFooterSize: 128 * 1024,
   };
+
+  /** Append a 32-byte APEv2 footer declaring a `tagSize`-byte tag. */
+  function withApeFooter(
+    content: Uint8Array<ArrayBuffer>,
+    tagSize: number,
+  ): Uint8Array<ArrayBuffer> {
+    const at = content.length - 32;
+    content.set(new TextEncoder().encode("APETAGEX"), at);
+    content[at + 8] = 0xe8; // version 2000, little-endian (not validated)
+    content[at + 9] = 0x07;
+    content[at + 12] = tagSize & 0xff;
+    content[at + 13] = (tagSize >>> 8) & 0xff;
+    content[at + 14] = (tagSize >>> 16) & 0xff;
+    content[at + 15] = (tagSize >>> 24) & 0xff;
+    return content;
+  }
+
+  /**
+   * `size` bytes beginning with an ID3v2.3 header whose tag ends at
+   * `10 + declaredTagSize`. Partial loading is only allowed when it can prove
+   * the metadata ends inside the header window, so a fixture of arbitrary
+   * bytes is now (correctly) loaded in full — it has to look like something.
+   */
+  function id3File(
+    size: number,
+    declaredTagSize: number,
+  ): Uint8Array<ArrayBuffer> {
+    const content = Uint8Array.from({ length: size }, (_, i) => i);
+    content.set(new TextEncoder().encode("ID3"), 0);
+    content[3] = 3;
+    content[4] = 0;
+    content[5] = 0;
+    content[6] = (declaredTagSize >>> 21) & 0x7f;
+    content[7] = (declaredTagSize >>> 14) & 0x7f;
+    content[8] = (declaredTagSize >>> 7) & 0x7f;
+    content[9] = declaredTagSize & 0x7f;
+    return content;
+  }
 
   describe("Uint8Array input", () => {
     it("should return the buffer directly without partial loading", async () => {
@@ -45,28 +84,6 @@ describe("loadAudioData", () => {
       expect(result.data).toStrictEqual(content);
       expect(result.isPartiallyLoaded).toStrictEqual(false);
     });
-
-    /**
-     * `size` bytes beginning with an ID3v2.3 header whose tag ends at
-     * `10 + declaredTagSize`. Partial loading is only allowed when it can prove
-     * the metadata ends inside the header window, so a fixture of arbitrary
-     * bytes is now (correctly) loaded in full — it has to look like something.
-     */
-    function id3File(
-      size: number,
-      declaredTagSize: number,
-    ): Uint8Array<ArrayBuffer> {
-      const content = Uint8Array.from({ length: size }, (_, i) => i);
-      content.set(new TextEncoder().encode("ID3"), 0);
-      content[3] = 3;
-      content[4] = 0;
-      content[5] = 0;
-      content[6] = (declaredTagSize >>> 21) & 0x7f;
-      content[7] = (declaredTagSize >>> 14) & 0x7f;
-      content[8] = (declaredTagSize >>> 7) & 0x7f;
-      content[9] = declaredTagSize & 0x7f;
-      return content;
-    }
 
     it("should partially load large File combining header and footer", async () => {
       const size = 100;
@@ -122,6 +139,23 @@ describe("loadAudioData", () => {
         partial: true,
         maxHeaderSize: 20,
         maxFooterSize: 10,
+      });
+
+      expect(result.isPartiallyLoaded).toStrictEqual(false);
+      expect(result.data).toStrictEqual(content);
+    });
+
+    it("should fully load a File whose APE tag overruns the footer window", async () => {
+      // An APE tag larger than the footer window is spliced so TagLib computes
+      // its start inside the header's audio and reads nothing (taglib-f5hp).
+      // The header half is valid, so only the trailer guard can catch this.
+      const content = withApeFooter(id3File(1000, 1), 4096);
+      const file = new File([content], "ape.mp3");
+
+      const result = await loadAudioData(file, {
+        partial: true,
+        maxHeaderSize: 64,
+        maxFooterSize: 64,
       });
 
       expect(result.isPartiallyLoaded).toStrictEqual(false);
@@ -185,6 +219,24 @@ describe("loadAudioData", () => {
       expect(result.data.slice(headerSize)).toStrictEqual(
         fullData.slice(fullData.length - footerSize),
       );
+    });
+
+    it("should fully load a path whose APE tag overruns the footer window", async () => {
+      const content = withApeFooter(id3File(1000, 1), 4096);
+      const dir = await mkdtemp(join(tmpdir(), "load-audio-data-"));
+      const path = join(dir, "ape.mp3");
+      await writeFile(path, content);
+      try {
+        const result = await loadAudioData(path, {
+          partial: true,
+          maxHeaderSize: 64,
+          maxFooterSize: 64,
+        });
+        expect(result.isPartiallyLoaded).toStrictEqual(false);
+        expect(new Uint8Array(result.data)).toStrictEqual(content);
+      } finally {
+        await rm(dir, { recursive: true, force: true });
+      }
     });
 
     it("should fully load file when partial is false", async () => {
