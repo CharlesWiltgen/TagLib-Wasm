@@ -9,6 +9,7 @@
  */
 
 import { execFile } from "node:child_process";
+import { existsSync } from "node:fs";
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
@@ -17,6 +18,9 @@ import { describe, expect, it } from "vite-plus/test";
 
 const execFileAsync = promisify(execFile);
 const SCRIPT = resolve("scripts/check-action-pins.sh");
+// macOS's /bin/bash is 3.2 — the portability floor this script must run on
+// (it is also what the macOS CI leg and developer machines invoke).
+const BASH = existsSync("/bin/bash") ? "/bin/bash" : "bash";
 const SHA = "0123456789abcdef0123456789abcdef01234567";
 
 interface RunResult {
@@ -39,7 +43,7 @@ async function runWithWorkflows(
       }
     }
     try {
-      const { stdout, stderr } = await execFileAsync("bash", [
+      const { stdout, stderr } = await execFileAsync(BASH, [
         SCRIPT,
         "--static",
         root,

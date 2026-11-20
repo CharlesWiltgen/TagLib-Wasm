@@ -57,7 +57,12 @@ resolve() {
 # (owner/repo/path@ref) and reusable workflows
 # (owner/repo/.github/workflows/x.yml@ref). The pattern anchors on the YAML
 # key so prose in comments or `run:` blocks is not mistaken for a reference.
-mapfile -t entries < <(
+# Read the grep output without `mapfile` (bash 4+): macOS ships bash 3.2, and
+# this script must run on developer machines and the macOS CI leg.
+entries=()
+while IFS= read -r entry; do
+  entries+=("$entry")
+done < <(
   grep -rnE --include='*.yml' --include='*.yaml' \
     '^[[:space:]]*(-[[:space:]]+)?uses:[[:space:]]' "$workflows" || true
 )
@@ -67,8 +72,10 @@ if [ "${#entries[@]}" -eq 0 ]; then
   exit 1
 fi
 
-# One network round-trip per (repo, ref), not per occurrence.
-declare -A resolved=()
+# One network round-trip per (repo, ref), not per occurrence. Parallel arrays
+# instead of `declare -A`: bash 3.2 has no associative arrays.
+resolved_keys=()
+resolved_shas=()
 
 for match in "${entries[@]}"; do
   file=${match%%:*}
@@ -136,11 +143,19 @@ for match in "${entries[@]}"; do
   fi
 
   key="$repo@$comment"
-  if [ -n "${resolved[$key]+x}" ]; then
-    current=${resolved[$key]}
-  else
+  current=""
+  idx=0
+  while [ "$idx" -lt "${#resolved_keys[@]}" ]; do
+    if [ "${resolved_keys[$idx]}" = "$key" ]; then
+      current=${resolved_shas[$idx]}
+      break
+    fi
+    idx=$((idx + 1))
+  done
+  if [ -z "$current" ]; then
     current=$(resolve "https://github.com/$repo.git" "$comment")
-    resolved[$key]=$current
+    resolved_keys+=("$key")
+    resolved_shas+=("$current")
   fi
 
   if [ -z "$current" ]; then
