@@ -80,8 +80,7 @@ using file = await taglib.open(new Uint8Array(audioData));
 
 // Check if file is valid
 if (!file.isValid()) {
-  console.error("Invalid audio file");
-  return;
+  throw new Error("Invalid audio file");
 }
 
 // Read metadata
@@ -90,13 +89,15 @@ console.log(`Title: ${tags.title}`);
 console.log(`Artist: ${tags.artist}`);
 console.log(`Album: ${tags.album}`);
 
-// Read audio properties
+// Read audio properties (can be undefined — guard before dereferencing)
 const props = file.audioProperties();
-console.log(`Duration: ${props.duration} seconds`);
-console.log(`Bitrate: ${props.bitrate} kbps`);
-console.log(`Codec: ${props.codec}`);
-console.log(`Lossless: ${props.isLossless}`);
-console.log(`Bits per sample: ${props.bitsPerSample}`);
+if (props) {
+  console.log(`Duration: ${props.duration} seconds`);
+  console.log(`Bitrate: ${props.bitrate} kbps`);
+  console.log(`Codec: ${props.codec}`);
+  console.log(`Lossless: ${props.isLossless}`);
+  console.log(`Bits per sample: ${props.bitsPerSample}`);
+}
 
 // Update metadata (setters chain)
 file.tag().setTitle("New Title").setArtist("New Artist");

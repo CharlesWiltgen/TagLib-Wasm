@@ -287,7 +287,7 @@ ipcMain.handle("get-metadata", async (_event, filePath: string) => {
   return {
     title: file.tag().title,
     artist: file.tag().artist,
-    duration: file.audioProperties().duration,
+    duration: file.audioProperties()?.duration,
   };
 });
 
