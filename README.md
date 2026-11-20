@@ -4,7 +4,7 @@
 [![npm version](https://img.shields.io/npm/v/taglib-wasm.svg)](https://www.npmjs.com/package/taglib-wasm)
 [![npm downloads](https://img.shields.io/npm/dm/taglib-wasm.svg)](https://www.npmjs.com/package/taglib-wasm)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/CharlesWiltgen/TagLib-Wasm/blob/main/LICENSE)
-<br>[![Built with](https://img.shields.io/badge/TypeScript-5-3178c6.svg?logo=typescript&logoColor=f5f5f5)](https://www.typescriptlang.org/)
+<br>[![Built with](https://img.shields.io/badge/TypeScript-6-3178c6.svg?logo=typescript&logoColor=f5f5f5)](https://www.typescriptlang.org/)
 [![Built with Emscripten](https://img.shields.io/badge/Built%20with-Emscripten-4B9BFF.svg)](https://emscripten.org/)
 [![Built with WebAssembly](https://img.shields.io/badge/Built%20with-WebAssembly-654ff0.svg?logo=webassembly&logoColor=white)](https://webassembly.org/)
 [![Built with TagLib](https://img.shields.io/badge/Built%20with-TagLib-brightgreen.svg)](https://taglib.org/)
@@ -36,7 +36,8 @@ TagLib-Wasm is the **universal tagging library for TypeScript/JavaScript**
 - **Value fidelity** – Tag values round-trip verbatim: a `"3/12"` track or a
   zero-padded `"03"` is preserved, and MP4 freeform atoms keep their exact
   casing and vendor `mean`, so other tools still recognise them
-- **Zero dependencies** – Self-contained Wasm bundle
+- **Self-contained Wasm** – TagLib ships compiled in the package; no native
+  modules, system libraries, or post-install download
 - **Tested** – Cross-backend parity coverage across the supported formats
 - **Two API styles** – Use the "Simple" API for one-shot reads and writes, batch
   helpers, cover art, and checksums, or the full "Core" API for more advanced
@@ -286,6 +287,9 @@ const imageData = await Deno.readFile("new-cover.jpg");
 const modifiedBuffer = await applyCoverArt("song.mp3", imageData, "image/jpeg");
 // Save modifiedBuffer to file if needed
 ```
+
+`coverData` and `imageData` are `Uint8Array`s; this snippet uses Deno's file API
+— substitute your runtime's.
 
 ### Working with Ratings
 
@@ -624,9 +628,9 @@ browser, scan on a server and post the result; the pure
 **`./web` builds for the browser.** It declares a `browser` condition, so a
 browser-targeted build resolves an Emscripten-only build of that entry and pulls
 **`taglib-web.wasm` alone** – Measured with the vite invocation above on
-`pictureToDataURL` from `taglib-wasm/web`: one 689,870-byte Wasm asset, where
+`pictureToDataURL` from `taglib-wasm/web`: one 690,502-byte Wasm asset, where
 the vite build on the `node` condition instead emits both `taglib-web.wasm` and
-`taglib-wasi.wasm` (1,461,864 bytes of assets for a call that needs neither
+`taglib-wasi.wasm` (1,462,378 bytes of assets for a call that needs neither
 engine). The browser build is a pre-bundled file like `index.browser.js`, so it
 barely tree-shakes: that call is 86,179 bytes in the vite app build and 83,663
 under the esbuild browser column, against 205 bytes under esbuild's Node column —
