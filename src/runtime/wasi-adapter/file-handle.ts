@@ -99,7 +99,13 @@ export class WasiFileHandle implements FileHandle {
 
   setProperties(properties: Record<string, string[]>): void {
     this.checkNotDestroyed();
-    this.state.tagData = props.setProperties(this.state.tagData, properties);
+    let next = props.setProperties(this.state.tagData, properties);
+    if (audio.isMP4(this.state.tagData, this.state.fileData)) {
+      for (const [key, values] of Object.entries(properties)) {
+        next = mp4.mirrorFreeformPropertyWrite(next, key, values);
+      }
+    }
+    this.state.tagData = next;
   }
 
   getProperty(key: string): string {
@@ -109,7 +115,15 @@ export class WasiFileHandle implements FileHandle {
 
   setProperty(key: string, value: string): void {
     this.checkNotDestroyed();
-    this.state.tagData = props.setProperty(this.state.tagData, key, value);
+    let next = props.setProperty(this.state.tagData, key, value);
+    if (audio.isMP4(this.state.tagData, this.state.fileData)) {
+      next = mp4.mirrorFreeformPropertyWrite(
+        next,
+        key,
+        value === "" ? [] : [value],
+      );
+    }
+    this.state.tagData = next;
   }
 
   getMP4Item(key: string): string {

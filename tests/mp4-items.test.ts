@@ -1289,6 +1289,152 @@ for (const backend of BACKENDS) {
     }
   });
 
+  it(`[${backend}] a typed replacement clears a freeform property written earlier`, async () => {
+    const tl = await TagLib.initialize({ forceWasmType: backend });
+    const file = await tl.open(
+      new Uint8Array(await readFile(FIXTURE_PATH.m4a)),
+    );
+    try {
+      file.setProperty("MOOD", "Happy");
+      file.setMP4FreeformItems([
+        {
+          mean: "com.apple.iTunes",
+          name: "BAR",
+          type: "utf8",
+          value: "b",
+        },
+      ]);
+      file.save();
+
+      const reopened = await tl.open(file.getFileBuffer());
+      try {
+        expect(
+          reopened.getMP4FreeformItems().map((i) => i.name),
+          `${backend}: the replacement left an earlier property atom behind`,
+        ).toStrictEqual(["BAR"]);
+        expect(
+          (reopened.properties() as Record<string, unknown>).mood,
+          `${backend}: the earlier property survived the replacement`,
+        ).toBeUndefined();
+      } finally {
+        reopened.dispose();
+      }
+    } finally {
+      file.dispose();
+    }
+  });
+
+  it(`[${backend}] setMP4Item updates the typed view on a file with no freeform atoms`, async () => {
+    const tl = await TagLib.initialize({ forceWasmType: backend });
+    const file = await tl.open(
+      new Uint8Array(await readFile(FIXTURE_PATH.m4a)),
+    );
+    try {
+      file.setMP4Item("----:com.apple.iTunes:NEW_ATOM", "hello");
+      expect(
+        file.getMP4FreeformItems().map((i) => ({
+          name: i.name,
+          type: i.type,
+          value: i.value,
+        })),
+        `${backend}: the item write is missing from the typed view`,
+      ).toStrictEqual([{ name: "NEW_ATOM", type: "utf8", value: "hello" }]);
+
+      file.save();
+      const reopened = await tl.open(file.getFileBuffer());
+      try {
+        expect(
+          reopened.getMP4Item("----:com.apple.iTunes:NEW_ATOM"),
+        ).toStrictEqual("hello");
+      } finally {
+        reopened.dispose();
+      }
+    } finally {
+      file.dispose();
+    }
+  });
+
+  it(`[${backend}] setMP4Item(key, "") removes the typed entry`, async () => {
+    const tl = await TagLib.initialize({ forceWasmType: backend });
+    const file = await tl.open(
+      new Uint8Array(await readFile(FIXTURE_PATH.m4a)),
+    );
+    try {
+      file.setMP4FreeformItems([
+        {
+          mean: "com.apple.iTunes",
+          name: "MOOD",
+          type: "utf8",
+          value: "old",
+        },
+      ]);
+      file.setMP4Item("----:com.apple.iTunes:MOOD", "");
+      expect(
+        file.getMP4FreeformItems(),
+        `${backend}: the cleared item is still in the typed view`,
+      ).toStrictEqual([]);
+
+      file.save();
+      const reopened = await tl.open(file.getFileBuffer());
+      try {
+        expect(reopened.getMP4FreeformItems()).toStrictEqual([]);
+        expect(
+          reopened.getMP4Item("----:com.apple.iTunes:MOOD"),
+        ).toBeUndefined();
+      } finally {
+        reopened.dispose();
+      }
+    } finally {
+      file.dispose();
+    }
+  });
+
+  it(`[${backend}] a property write after saving a binary atom updates the typed view`, async () => {
+    const tl = await TagLib.initialize({ forceWasmType: backend });
+    const file = await tl.open(
+      new Uint8Array(await readFile(FIXTURE_PATH.m4a)),
+    );
+    try {
+      file.setMP4FreeformItems([
+        {
+          mean: "com.apple.iTunes",
+          name: "MOOD",
+          type: "jpeg",
+          value: new Uint8Array([1, 2, 3]),
+        },
+      ]);
+      file.save();
+      file.setProperty("MOOD", "Happy");
+      expect(
+        file.getMP4FreeformItems().map((i) => ({
+          name: i.name,
+          type: i.type,
+          value: i.value,
+        })),
+        `${backend}: the typed view still shows the binary atom`,
+      ).toStrictEqual([{ name: "MOOD", type: "utf8", value: "Happy" }]);
+
+      file.save();
+      const reopened = await tl.open(file.getFileBuffer());
+      try {
+        expect(
+          reopened.getMP4FreeformItems().map((i) => ({
+            name: i.name,
+            type: i.type,
+            value: i.value,
+          })),
+        ).toStrictEqual([{ name: "MOOD", type: "utf8", value: "Happy" }]);
+        expect(
+          (reopened.properties() as Record<string, unknown>).mood,
+        ).toStrictEqual(["Happy"]);
+      } finally {
+        reopened.dispose();
+      }
+    } finally {
+      file.dispose();
+    }
+  });
+
   it(`[${backend}] a typed text update is stable across two saves (taglib-gja review)`, async () => {
     const tl = await TagLib.initialize({ forceWasmType: backend });
     const source = new Uint8Array(await readFile(FIXTURE_PATH.m4a));

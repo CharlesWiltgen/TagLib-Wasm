@@ -5,7 +5,11 @@
  * guards. Extracted from file-handle.ts in the taglib-1dfc split.
  */
 
-import { fromTagLibKey, mp4AtomWireKey } from "../../constants/properties.ts";
+import {
+  fromTagLibKey,
+  mp4AtomWireKey,
+  PROPERTIES,
+} from "../../constants/properties.ts";
 import type { RawMP4FreeformItem } from "../../types/tags.ts";
 import { mirrorForRawKey, stringifyScalar } from "../../utils/mirror-fields.ts";
 import { getProperty, setProperty } from "./property-surface.ts";
@@ -74,10 +78,11 @@ export function setMP4Item(
     // Keep the typed channel consistent too: getMP4FreeformItems() serves
     // `_mp4Freeform`, and a write through this item API would otherwise leave
     // it reporting the pre-write value (WASI disagreed with itself and with
-    // the Emscripten live handle).
+    // the Emscripten live handle). A fresh file has no list yet, so start one.
     const sep = key.indexOf(":", 5);
-    const freeform = next._mp4Freeform as RawMP4FreeformItem[] | undefined;
-    if (sep !== -1 && freeform !== undefined) {
+    const freeform =
+      (next._mp4Freeform as RawMP4FreeformItem[] | undefined) ?? [];
+    if (sep !== -1) {
       const mean = key.slice(5, sep);
       const name = key.slice(sep + 1);
       const kept = freeform.filter(
@@ -157,6 +162,62 @@ export function getMP4FreeformItems(
 ): RawMP4FreeformItem[] {
   const raw = tagData?._mp4Freeform;
   return Array.isArray(raw) ? (raw as RawMP4FreeformItem[]) : [];
+}
+
+/** Minimal PROPERTIES entry shape needed to classify a property's MP4 form. */
+interface PropertyMetaLike {
+  mappings?: { mp4?: unknown };
+}
+
+/**
+ * The exact MP4 freeform atom a property write lands in, or `undefined` for a
+ * standard item. TagLib writes a property with no MP4 mapping as
+ * `----:com.apple.iTunes:<wireKey>`; one with a standard mapping ("©nam",
+ * "trkn", ...) is not a freeform atom at all.
+ */
+export function freeformAtomForProperty(wireKey: string): string | undefined {
+  if (wireKey.startsWith("_") || wireKey.startsWith("----:")) return undefined;
+  const table = PROPERTIES as Record<string, PropertyMetaLike>;
+  const meta = table[fromTagLibKey(wireKey)] ?? table[wireKey];
+  const atom = meta?.mappings?.mp4;
+  if (typeof atom === "string") {
+    return atom.startsWith("----:") ? atom : undefined;
+  }
+  return `----:com.apple.iTunes:${wireKey}`;
+}
+
+/**
+ * Keep the typed channel in step with a freeform-backed property write.
+ *
+ * The two views must agree: `setMP4FreeformItems` replaces every freeform
+ * atom, so a slot written through the property surface has to be visible to
+ * it; and after a binary atom is overwritten by a property write,
+ * `getMP4FreeformItems` must not keep serving the binary value. No dirty flag
+ * is set here — the property surface owns the value, this only mirrors it.
+ */
+export function mirrorFreeformPropertyWrite(
+  tagData: Record<string, unknown> | null,
+  wireKey: string,
+  values: readonly string[],
+): Record<string, unknown> {
+  const base = tagData ?? {};
+  const atom = freeformAtomForProperty(wireKey);
+  if (atom === undefined) return base;
+  const sep = atom.lastIndexOf(":");
+  const mean = atom.slice(5, sep);
+  const name = atom.slice(sep + 1);
+  const kept = getMP4FreeformItems(base).filter(
+    (entry) => entry.mean !== mean || entry.name !== name,
+  );
+  const added = values
+    .filter((value) => value !== "")
+    .map((value) => ({
+      mean,
+      name,
+      type: 1,
+      value: new TextEncoder().encode(value),
+    }));
+  return { ...base, _mp4Freeform: [...kept, ...added] };
 }
 
 /**
