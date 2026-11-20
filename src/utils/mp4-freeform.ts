@@ -161,6 +161,18 @@ export function toRawFreeformItem(item: MP4FreeformItem): RawMP4FreeformItem {
 /** Raw FileHandle entry -> public item. */
 export function fromRawFreeformItem(raw: RawMP4FreeformItem): MP4FreeformItem {
   const type = freeformTypeFromCode(raw.type);
+  if (type === "integer" && raw.value.byteLength !== 4) {
+    // AtomDataType 21 legally carries 1/2/3/8-byte payloads, but the public
+    // "integer" shape is int32-only. Report the raw bytes as "other" so a
+    // getter's output is a value the setter can write back.
+    return {
+      mean: raw.mean,
+      name: raw.name,
+      type: "other",
+      typeCode: raw.type,
+      value: new Uint8Array(raw.value),
+    };
+  }
   const value = decodeFreeformValue(type, raw.value);
   return type === "other"
     ? { mean: raw.mean, name: raw.name, type, typeCode: raw.type, value }

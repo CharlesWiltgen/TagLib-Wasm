@@ -82,6 +82,12 @@ inline std::vector<MP4FreeformEntry> collect_mp4_freeform_entries(
             item.type() == TagLib::MP4::Item::Type::StringList) {
             // renderFreeForm() infers UTF-8 for an untyped StringList.
             type = static_cast<int>(TagLib::MP4::TypeUTF8);
+        } else if (type == static_cast<int>(TagLib::MP4::TypeUndefined) &&
+                   item.type() == TagLib::MP4::Item::Type::ByteVectorList) {
+            // renderFreeForm() re-types an untyped binary item as Implicit, so
+            // report what a save actually persists rather than a type the
+            // setter would then round-trip to a different value.
+            type = static_cast<int>(TagLib::MP4::TypeImplicit);
         }
 
         if (item.type() == TagLib::MP4::Item::Type::StringList) {

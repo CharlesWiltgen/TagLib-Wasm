@@ -71,6 +71,34 @@ export function setMP4Item(
     if (next?.[key] !== undefined) {
       next = { ...next, [key]: value };
     }
+    // Keep the typed channel consistent too: getMP4FreeformItems() serves
+    // `_mp4Freeform`, and a write through this item API would otherwise leave
+    // it reporting the pre-write value (WASI disagreed with itself and with
+    // the Emscripten live handle).
+    const sep = key.indexOf(":", 5);
+    const freeform = next._mp4Freeform as RawMP4FreeformItem[] | undefined;
+    if (sep !== -1 && freeform !== undefined) {
+      const mean = key.slice(5, sep);
+      const name = key.slice(sep + 1);
+      const kept = freeform.filter(
+        (entry) => entry.mean !== mean || entry.name !== name,
+      );
+      next = {
+        ...next,
+        _mp4Freeform:
+          value === ""
+            ? kept
+            : [
+                ...kept,
+                {
+                  mean,
+                  name,
+                  type: 1,
+                  value: new TextEncoder().encode(value),
+                },
+              ],
+      };
+    }
   }
   return next;
 }
@@ -142,22 +170,33 @@ function syncFreeformPropertySlots(
   newItems: readonly RawMP4FreeformItem[],
 ): Record<string, unknown> {
   const next: Record<string, unknown> = { ...tagData };
-  const clearSlot = (name: string) => {
-    const upper = name.toUpperCase();
+  const clearSlot = (item: RawMP4FreeformItem) => {
+    // Only com.apple.iTunes is representable in the PropertyMap. A foreign-mean
+    // atom belongs to the typed channel alone: clearing its bare-name slot
+    // would delete an unrelated Apple atom that happens to share the name.
+    if (item.mean !== "com.apple.iTunes") return;
+    const upper = item.name.toUpperCase();
     delete next[upper];
     delete next[fromTagLibKey(upper)];
   };
-  for (const item of oldItems) clearSlot(item.name);
+  for (const item of oldItems) clearSlot(item);
+  for (const item of newItems) clearSlot(item);
+  // One atom can carry several values. The PropertyMap expresses a StringList,
+  // so mirror the whole group — writing one slot per item left only the last
+  // value, and with the typed apply now running first that single value would
+  // overwrite the group on the same save.
+  const utf8Slots = new Map<string, string[]>();
   for (const item of newItems) {
-    clearSlot(item.name);
     // Only UTF-8 is representable in the PropertyMap; binary/typed values
     // ride the directive alone.
-    if (item.type === 1) {
-      next[fromTagLibKey(item.name.toUpperCase())] = [
-        new TextDecoder().decode(item.value),
-      ];
+    if (item.type === 1 && item.mean === "com.apple.iTunes") {
+      const key = fromTagLibKey(item.name.toUpperCase());
+      const values = utf8Slots.get(key) ?? [];
+      values.push(new TextDecoder().decode(item.value));
+      utf8Slots.set(key, values);
     }
   }
+  for (const [key, values] of utf8Slots) next[key] = values;
   return next;
 }
 

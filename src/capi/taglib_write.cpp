@@ -611,26 +611,31 @@ static tl_error_code write_to_path(const char* path,
         if (taglib_wasm::uses_intpair_format(ref.file())) {
             taglib_wasm::merge_intpair_properties(propMap);
         }
-        // Snapshot the real freeform atom names off the file BEFORE the
-        // PropertyMap write mangles their casing, add the names JS is creating,
-        // and repair afterwards (taglib-bnhl).
-        auto mp4_names = capture_mp4_freeform_names(ref.file());
-        for (auto& n : read_mp4_item_names(tags_msgpack, tags_msgpack_len)) {
-            mp4_names.push_back(std::move(n));
-        }
         // Foreign-mean atom deletions queued by removeMP4Item: the PropertyMap
         // cannot express them, so delete them here (taglib-65nm).
         apply_mp4_item_removals(ref.file(),
                                 read_mp4_item_removals(tags_msgpack,
                                                        tags_msgpack_len));
-        apply_propmap(ref.file(), propMap);
-        restore_mp4_freeform_names(ref.file(), mp4_names);
+        // Apply the typed freeform replacement BEFORE the PropertyMap write: a
+        // property write made after setMP4FreeformItems() must still win, the
+        // same last-write-wins rule the Emscripten live handle follows.
+        // apply_propmap captures these items around setProperties and restores
+        // the ones the PropertyMap cannot express, so they are not lost either.
         bool freeform_apply = false;
         auto freeform_entries = read_mp4_freeform_entries(
             tags_msgpack, tags_msgpack_len, &freeform_apply);
         if (freeform_apply) {
             taglib_wasm::apply_mp4_freeform_entries(ref.file(), freeform_entries);
         }
+        // Snapshot the real freeform atom names off the file (now including the
+        // typed atoms) BEFORE the PropertyMap write mangles their casing, add
+        // the names JS is creating, and repair afterwards (taglib-bnhl).
+        auto mp4_names = capture_mp4_freeform_names(ref.file());
+        for (auto& n : read_mp4_item_names(tags_msgpack, tags_msgpack_len)) {
+            mp4_names.push_back(std::move(n));
+        }
+        apply_propmap(ref.file(), propMap);
+        restore_mp4_freeform_names(ref.file(), mp4_names);
         apply_pictures_from_msgpack(ref.file(), tags_msgpack, tags_msgpack_len);
         apply_ratings_from_msgpack(ref.file(), tags_msgpack, tags_msgpack_len);
         apply_chapters_from_msgpack(ref.file(), tags_msgpack, tags_msgpack_len);
@@ -679,22 +684,26 @@ static tl_error_code write_to_buffer(const uint8_t* buf, size_t len,
         if (taglib_wasm::uses_intpair_format(f)) {
             taglib_wasm::merge_intpair_properties(propMap);
         }
-        // See write_to_path: capture before, restore after (taglib-bnhl).
-        auto mp4_names = capture_mp4_freeform_names(f);
-        for (auto& n : read_mp4_item_names(tags_msgpack, tags_msgpack_len)) {
-            mp4_names.push_back(std::move(n));
-        }
         // Foreign-mean atom deletions queued by removeMP4Item (taglib-65nm).
         apply_mp4_item_removals(f, read_mp4_item_removals(tags_msgpack,
                                                           tags_msgpack_len));
-        apply_propmap(f, propMap);
-        restore_mp4_freeform_names(f, mp4_names);
+        // Same ordering as write_to_path: the typed replacement applies first so
+        // a later property write wins, and apply_propmap restores what the
+        // PropertyMap cannot express.
         bool freeform_apply = false;
         auto freeform_entries = read_mp4_freeform_entries(
             tags_msgpack, tags_msgpack_len, &freeform_apply);
         if (freeform_apply) {
             taglib_wasm::apply_mp4_freeform_entries(f, freeform_entries);
         }
+        // See write_to_path: capture after the typed apply, restore after the
+        // PropertyMap rewrite (taglib-bnhl).
+        auto mp4_names = capture_mp4_freeform_names(f);
+        for (auto& n : read_mp4_item_names(tags_msgpack, tags_msgpack_len)) {
+            mp4_names.push_back(std::move(n));
+        }
+        apply_propmap(f, propMap);
+        restore_mp4_freeform_names(f, mp4_names);
         apply_pictures_from_msgpack(f, tags_msgpack, tags_msgpack_len);
         apply_ratings_from_msgpack(f, tags_msgpack, tags_msgpack_len);
         apply_chapters_from_msgpack(f, tags_msgpack, tags_msgpack_len);

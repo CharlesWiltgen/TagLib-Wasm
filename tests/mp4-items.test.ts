@@ -17,6 +17,10 @@ import { TagLib } from "../src/taglib.ts";
 import { clearTags } from "../src/simple.ts";
 import type { MP4FreeformItem } from "../src/types.ts";
 import { MetadataError, UnsupportedFormatError } from "../src/errors.ts";
+import {
+  fromRawFreeformItem,
+  toRawFreeformItem,
+} from "../src/utils/mp4-freeform.ts";
 import { FIXTURE_PATH } from "./shared-fixtures.ts";
 
 const BACKENDS = ["wasi", "emscripten"] as const;
@@ -1159,6 +1163,132 @@ for (const backend of BACKENDS) {
     }
   });
 
+  it(`[${backend}] a property write after setMP4FreeformItems wins in the same save`, async () => {
+    const tl = await TagLib.initialize({ forceWasmType: backend });
+    const file = await tl.open(
+      new Uint8Array(await readFile(FIXTURE_PATH.m4a)),
+    );
+    try {
+      file.setMP4FreeformItems([
+        {
+          mean: "com.apple.iTunes",
+          name: "MOOD",
+          type: "jpeg",
+          value: new Uint8Array([1, 2, 3]),
+        },
+      ]);
+      // Same handle, same save: last write wins, as on the live Emscripten tag.
+      file.setProperty("MOOD", "Happy");
+      file.save();
+
+      const reopened = await tl.open(file.getFileBuffer());
+      try {
+        expect(
+          reopened.getMP4FreeformItems().map((i) => ({
+            name: i.name,
+            type: i.type,
+            value: i.value,
+          })),
+          `${backend}: the later property write was discarded`,
+        ).toStrictEqual([{ name: "MOOD", type: "utf8", value: "Happy" }]);
+        expect(
+          (reopened.properties() as Record<string, unknown>).mood,
+          `${backend}: the property slot is missing the later value`,
+        ).toStrictEqual(["Happy"]);
+      } finally {
+        reopened.dispose();
+      }
+    } finally {
+      file.dispose();
+    }
+  });
+
+  it(`[${backend}] a foreign-mean UTF-8 typed item gets no Apple twin`, async () => {
+    const tl = await TagLib.initialize({ forceWasmType: backend });
+    const file = await tl.open(
+      new Uint8Array(await readFile(FIXTURE_PATH.m4a)),
+    );
+    try {
+      file.setMP4FreeformItems([
+        {
+          mean: "org.example.test",
+          name: "FOREIGN_TEXT",
+          type: "utf8",
+          value: "foreign-value",
+        },
+      ]);
+      // The PropertyMap only expresses com.apple.iTunes; a slot here would
+      // save a SECOND atom in Apple's namespace.
+      expect(
+        (file.properties() as Record<string, unknown>).foreignText,
+        `${backend}: a foreign atom was mirrored into the PropertyMap`,
+      ).toBeUndefined();
+      file.save();
+
+      const reopened = await tl.open(file.getFileBuffer());
+      try {
+        expect(
+          reopened.getMP4FreeformItems().map((i) => ({
+            mean: i.mean,
+            name: i.name,
+            type: i.type,
+            value: i.value,
+          })),
+          `${backend}: the foreign atom did not round-trip alone`,
+        ).toStrictEqual([
+          {
+            mean: "org.example.test",
+            name: "FOREIGN_TEXT",
+            type: "utf8",
+            value: "foreign-value",
+          },
+        ]);
+      } finally {
+        reopened.dispose();
+      }
+    } finally {
+      file.dispose();
+    }
+  });
+
+  it(`[${backend}] setMP4Item updates the typed freeform view`, async () => {
+    const tl = await TagLib.initialize({ forceWasmType: backend });
+    const file = await tl.open(
+      new Uint8Array(await readFile(FIXTURE_PATH.m4a)),
+    );
+    try {
+      file.setMP4FreeformItems([
+        {
+          mean: "com.apple.iTunes",
+          name: "MOOD",
+          type: "utf8",
+          value: "old",
+        },
+      ]);
+      file.setMP4Item("----:com.apple.iTunes:MOOD", "new");
+      expect(
+        file
+          .getMP4FreeformItems()
+          .filter((i) => i.name === "MOOD")
+          .map((i) => i.value),
+        `${backend}: getMP4FreeformItems served a stale value`,
+      ).toStrictEqual(["new"]);
+
+      file.save();
+      const reopened = await tl.open(file.getFileBuffer());
+      try {
+        expect(
+          reopened.getMP4Item("----:com.apple.iTunes:MOOD"),
+          `${backend}: the saved atom kept the pre-setMP4Item value`,
+        ).toStrictEqual("new");
+      } finally {
+        reopened.dispose();
+      }
+    } finally {
+      file.dispose();
+    }
+  });
+
   it(`[${backend}] a typed text update is stable across two saves (taglib-gja review)`, async () => {
     const tl = await TagLib.initialize({ forceWasmType: backend });
     const source = new Uint8Array(await readFile(FIXTURE_PATH.m4a));
@@ -1269,3 +1399,16 @@ for (const backend of BACKENDS) {
     }
   });
 }
+
+it("a non-int32 AtomDataType 21 atom stays writable", () => {
+  const raw = {
+    mean: "com.apple.iTunes",
+    name: "SHORT_INT",
+    type: 21,
+    value: new Uint8Array([0, 7]),
+  };
+  const item = fromRawFreeformItem(raw);
+  expect(item.type).toStrictEqual("other");
+  expect(item.typeCode).toStrictEqual(21);
+  expect(toRawFreeformItem(item)).toStrictEqual(raw);
+});
