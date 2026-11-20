@@ -53,6 +53,8 @@ jobs:
 
   deploy:
     needs: build
+    # workflow_dispatch accepts any ref; only main may publish the live site.
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-24.04
     permissions:
       pages: write

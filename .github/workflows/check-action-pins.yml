@@ -3,10 +3,35 @@ name: Action Pin Drift
 on:
   schedule:
     - cron: "0 6 1 * *" # monthly, 1st at 06:00 UTC
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/**"
+      - "scripts/check-action-pins.sh"
+  pull_request:
+    paths:
+      - ".github/workflows/**"
+      - "scripts/check-action-pins.sh"
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
+  # Offline: a new or edited workflow must not introduce an unpinned
+  # third-party action. Runs on every push/PR touching a workflow, so the gap
+  # is caught at merge time instead of at the next monthly cron.
+  static:
+    if: github.event_name != 'schedule'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Check pin format (offline)
+        run: bash scripts/check-action-pins.sh --static
+
   check:
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-24.04
     permissions:
       contents: read
