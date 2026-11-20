@@ -16,41 +16,6 @@ import {
 import { isDenoCompiled } from "./deno-detect.ts";
 import { checkNodeVersion } from "./detector.ts";
 
-/**
- * Load the TagLib Wasm module.
- * This function initializes the WebAssembly module and returns
- * the loaded module for use with the Full API.
- *
- * Automatically selects the optimal implementation:
- * - WASI for Deno/Node.js (faster filesystem access, MessagePack serialization)
- * - Emscripten for browsers (universal compatibility)
- *
- * @param options - Optional configuration for module initialization
- * @returns Promise resolving to the initialized TagLib module
- *
- * @example
- * ```typescript
- * import { loadTagLibModule, TagLib } from "taglib-wasm";
- *
- * // Auto-select optimal implementation
- * const module = await loadTagLibModule();
- * const taglib = new TagLib(module);
- *
- * // Force Emscripten mode (in-memory I/O)
- * const module = await loadTagLibModule({ forceWasmType: "emscripten" });
- *
- * // Force WASI mode (Deno/Node.js only)
- * const module = await loadTagLibModule({ forceWasmType: "wasi" });
- *
- * // With custom WASM binary (selects the Emscripten backend; the bytes
- * // must be its artifact, taglib-web.wasm)
- * const wasmData = await fetch("taglib-web.wasm").then(r => r.arrayBuffer());
- * const module = await loadTagLibModule({ wasmBinary: wasmData });
- * ```
- *
- * @note Most users should use `TagLib.initialize()` instead,
- * which handles module loading automatically.
- */
 /** Validate backend/version preconditions before loading. */
 function validateLoadPreconditions(options?: LoadTagLibOptions): void {
   // Browsers have no `process`; Node's global type is not available in the
@@ -140,6 +105,41 @@ async function loadUnified(options?: LoadTagLibOptions): Promise<TagLibModule> {
   }
 }
 
+/**
+ * Load the TagLib Wasm module.
+ * This function initializes the WebAssembly module and returns
+ * the loaded module for use with the Full API.
+ *
+ * Automatically selects the optimal implementation:
+ * - WASI for Deno/Node.js (faster filesystem access, MessagePack serialization)
+ * - Emscripten for browsers (universal compatibility)
+ *
+ * @param options - Optional configuration for module initialization
+ * @returns Promise resolving to the initialized TagLib module
+ *
+ * @example
+ * ```typescript
+ * import { loadTagLibModule, TagLib } from "taglib-wasm";
+ *
+ * // Auto-select optimal implementation
+ * const module = await loadTagLibModule();
+ * const taglib = new TagLib(module);
+ *
+ * // Force Emscripten mode (in-memory I/O)
+ * const module = await loadTagLibModule({ forceWasmType: "emscripten" });
+ *
+ * // Force WASI mode (Deno/Node.js only)
+ * const module = await loadTagLibModule({ forceWasmType: "wasi" });
+ *
+ * // With custom WASM binary (selects the Emscripten backend; the bytes
+ * // must be its artifact, taglib-web.wasm)
+ * const wasmData = await fetch("taglib-web.wasm").then(r => r.arrayBuffer());
+ * const module = await loadTagLibModule({ wasmBinary: wasmData });
+ * ```
+ *
+ * @note Most users should use `TagLib.initialize()` instead,
+ * which handles module loading automatically.
+ */
 export async function loadTagLibModule(
   options?: LoadTagLibOptions,
 ): Promise<TagLibModule> {
