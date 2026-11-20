@@ -733,7 +733,8 @@ Key files: `build/taglib_embind.cpp` (Emscripten), `src/capi/taglib_read.cpp` +
 Dependencies are git submodules: `lib/taglib`, `lib/mpack`. (The C
 `lib/msgpack` submodule was removed with the orphan Emscripten C-API path;
 the WASI backend speaks MessagePack through `lib/mpack`, and the
-TS side has its own encoder/decoder in `src/msgpack/`.)
+TS side has an encoder/decoder pair in `src/msgpack/` built on the
+`@msgpack/msgpack` runtime dependency — its one runtime dependency.)
 
 ### The dual-backend state model (read before adding a feature)
 
