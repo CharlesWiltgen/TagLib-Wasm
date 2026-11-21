@@ -534,7 +534,10 @@ static std::string mp4_freeform_val_to_bytes(const val& value) {
 class ItemTypeProbe : public TagLib::MP4::ItemFactory {
 public:
     bool storedAsInt(const TagLib::String& name) const {
-        switch (handlerTypeForName(name.data(TagLib::String::UTF8))) {
+        // handlerTypeForName keys on the atom's RAW bytes; TagLib itself
+        // converts with Latin1 (mp4itemfactory.cpp), so ©-names stay four
+        // bytes instead of becoming UTF-8 five-byte sequences.
+        switch (handlerTypeForName(name.data(TagLib::String::Latin1))) {
         case ItemHandlerType::Bool:
         case ItemHandlerType::Int:
         case ItemHandlerType::UInt:

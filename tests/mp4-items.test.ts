@@ -1584,6 +1584,31 @@ for (const backend of BACKENDS) {
         }
       }
     });
+
+    it(`[${backend}] a numeric atom with a non-ASCII name keeps its value`, async () => {
+      // The handler lookup keys on the atom's raw bytes; ©-names are Latin-1.
+      const tl = await TagLib.initialize({ forceWasmType: backend });
+      const key = "©mvi";
+      const file = await tl.open(
+        new Uint8Array(await readFile(FIXTURE_PATH.m4a)),
+      );
+      try {
+        file.setMP4Item(key, "2");
+        file.save();
+
+        const reopened = await tl.open(file.getFileBuffer());
+        try {
+          expect(
+            reopened.getMP4Item(key),
+            `${backend}: the Int atom ©mvi lost its value`,
+          ).toStrictEqual("2");
+        } finally {
+          reopened.dispose();
+        }
+      } finally {
+        file.dispose();
+      }
+    });
   }
 
   it(`[${backend}] a typed text update is stable across two saves (taglib-gja review)`, async () => {
