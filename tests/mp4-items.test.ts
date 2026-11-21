@@ -1369,6 +1369,10 @@ for (const backend of BACKENDS) {
         },
       ]);
       file.setMP4Item("----:com.apple.iTunes:MOOD", "");
+      // Baseline, not an observed-failing guard: 7df942c already removed empty
+      // freeform atoms on the Embind path, so the pre-fix code also read back
+      // undefined here. The foreign-mean test below is the guard for routing
+      // the clear through removeMP4Item.
       expect(
         file.getMP4Item("----:com.apple.iTunes:MOOD"),
         `${backend}: the cleared item is still readable before save`,
@@ -1448,6 +1452,10 @@ for (const backend of BACKENDS) {
     try {
       file.setMP4Item(key, "to-remove");
       file.save();
+      expect(
+        bytesContain(file.getFileBuffer(), "MyTag"),
+        `${backend}: the seeded foreign atom is not on disk`,
+      ).toStrictEqual(true);
 
       const cleared = await tl.open(file.getFileBuffer());
       try {
@@ -1509,6 +1517,53 @@ for (const backend of BACKENDS) {
         }
       } finally {
         overwrite.dispose();
+      }
+    } finally {
+      file.dispose();
+    }
+  });
+
+  it(`[${backend}] setMP4Item(key, "") clears a binary atom`, async () => {
+    const tl = await TagLib.initialize({ forceWasmType: backend });
+    const key = "----:com.apple.iTunes:BINARY_CLEAR";
+    const file = await tl.open(
+      new Uint8Array(await readFile(FIXTURE_PATH.m4a)),
+    );
+    try {
+      file.setMP4FreeformItems([
+        {
+          mean: "com.apple.iTunes",
+          name: "BINARY_CLEAR",
+          type: "jpeg",
+          value: new Uint8Array([1, 2, 3]),
+        },
+      ]);
+      file.save();
+
+      const cleared = await tl.open(file.getFileBuffer());
+      try {
+        expect(
+          cleared.getMP4FreeformItems().map((i) => i.name),
+          `${backend}: the binary seed is not on disk`,
+        ).toStrictEqual(["BINARY_CLEAR"]);
+        cleared.setMP4Item(key, "");
+        cleared.save();
+
+        const reopened = await tl.open(cleared.getFileBuffer());
+        try {
+          expect(
+            reopened.getMP4Item(key),
+            `${backend}: the binary atom survived the clear`,
+          ).toBeUndefined();
+          expect(
+            reopened.getMP4FreeformItems(),
+            `${backend}: the binary atom is still in the typed list`,
+          ).toStrictEqual([]);
+        } finally {
+          reopened.dispose();
+        }
+      } finally {
+        cleared.dispose();
       }
     } finally {
       file.dispose();
