@@ -85,7 +85,12 @@ export default defineConfig({
     tasks: {
       static: {
         command: "vp check",
-        cache: true,
+        // The content cache tracks file reads with an fspy preload
+        // (DYLD_INSERT_LIBRARIES). On macOS that preload makes `/usr/bin/env`
+        // fail to exec `node`, which breaks tools launched through a
+        // `#!/usr/bin/env node` shebang (oxlint's tsgolint wrapper). Caching
+        // this gate is not worth breaking it (taglib-agec).
+        cache: false,
       },
     },
   },
