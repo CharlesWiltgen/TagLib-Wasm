@@ -204,9 +204,10 @@ export const GENERAL_EXTENDED_PROPERTIES = {
     key: "GROUPING",
     description: "Content group/work",
     type: "string" as const,
-    supportedFormats: ["Vorbis"] as const,
+    supportedFormats: ["MP4", "Vorbis"] as const,
     mappings: {
       vorbis: "GROUPING",
+      mp4: "©grp",
     },
   },
   work: {

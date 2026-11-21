@@ -527,6 +527,27 @@ static std::string mp4_freeform_val_to_bytes(const val& value) {
                        bytes.size());
 }
 
+// The MP4 item type follows the ATOM NAME, not the value: TagLib renders an
+// Int item for a Text handler with no data child, so the atom is silently
+// dropped on save (taglib-wbxy). This probe exposes TagLib's own name ->
+// handler map (a 4-byte name not in the map is Text).
+class ItemTypeProbe : public TagLib::MP4::ItemFactory {
+public:
+    bool storedAsInt(const TagLib::String& name) const {
+        switch (handlerTypeForName(name.data(TagLib::String::UTF8))) {
+        case ItemHandlerType::Bool:
+        case ItemHandlerType::Int:
+        case ItemHandlerType::UInt:
+        case ItemHandlerType::LongLong:
+        case ItemHandlerType::Byte:
+        case ItemHandlerType::Gnre:
+            return true;
+        default:
+            return false;
+        }
+    }
+};
+
 // Helper class to manage stream lifetime
 class FileHandle {
 private:
@@ -983,11 +1004,14 @@ public:
             return;
         }
 
-        // Try to parse as integer first
+        // Ask TagLib which representation this atom name takes; the value's
+        // spelling decides nothing. A Text atom keeps "1984" as text, while
+        // Int/UInt/Byte/Bool/Gnre handlers keep the numeric form.
+        static const ItemTypeProbe probe;
         char* endptr;
         long intValue = strtol(value.c_str(), &endptr, 10);
-        if (*endptr == '\0') {
-            // It's a valid integer
+        if (!value.empty() && *endptr == '\0' && probe.storedAsInt(tagKey)) {
+            // It's a valid integer for a numeric atom
             tag->setItem(tagKey, TagLib::MP4::Item(static_cast<int>(intValue)));
         } else {
             // Store as string

@@ -1515,6 +1515,77 @@ for (const backend of BACKENDS) {
     }
   });
 
+  it(`[${backend}] a numeric-looking value on a mapped text atom persists`, async () => {
+    // ©grp maps to GROUPING through the property surface, so this is parity.
+    const tl = await TagLib.initialize({ forceWasmType: backend });
+    const key = "©grp";
+    const file = await tl.open(
+      new Uint8Array(await readFile(FIXTURE_PATH.m4a)),
+    );
+    try {
+      file.setMP4Item(key, "Rock");
+      file.save();
+
+      const overwrite = await tl.open(file.getFileBuffer());
+      try {
+        overwrite.setMP4Item(key, "1984");
+        overwrite.save();
+
+        const reopened = await tl.open(overwrite.getFileBuffer());
+        try {
+          expect(
+            reopened.getMP4Item(key),
+            `${backend}: the text atom ${key} lost its numeric-looking value`,
+          ).toStrictEqual("1984");
+        } finally {
+          reopened.dispose();
+        }
+      } finally {
+        overwrite.dispose();
+      }
+    } finally {
+      file.dispose();
+    }
+  });
+
+  if (backend === "emscripten") {
+    it(`[${backend}] a numeric-looking value on an unmapped text atom persists`, async () => {
+      // WASI's item write for an unmapped 4CC is a separate gap (taglib-5y0s):
+      // it writes an uppercased Apple freeform twin and does not read back, so
+      // this behavior is Emscripten-only for now.
+      const tl = await TagLib.initialize({ forceWasmType: backend });
+      for (const key of ["©lyr", "abcd"]) {
+        const file = await tl.open(
+          new Uint8Array(await readFile(FIXTURE_PATH.m4a)),
+        );
+        try {
+          file.setMP4Item(key, "Rock");
+          file.save();
+
+          const overwrite = await tl.open(file.getFileBuffer());
+          try {
+            overwrite.setMP4Item(key, "1984");
+            overwrite.save();
+
+            const reopened = await tl.open(overwrite.getFileBuffer());
+            try {
+              expect(
+                reopened.getMP4Item(key),
+                `${backend}: the text atom ${key} lost its numeric-looking value`,
+              ).toStrictEqual("1984");
+            } finally {
+              reopened.dispose();
+            }
+          } finally {
+            overwrite.dispose();
+          }
+        } finally {
+          file.dispose();
+        }
+      }
+    });
+  }
+
   it(`[${backend}] a typed text update is stable across two saves (taglib-gja review)`, async () => {
     const tl = await TagLib.initialize({ forceWasmType: backend });
     const source = new Uint8Array(await readFile(FIXTURE_PATH.m4a));
