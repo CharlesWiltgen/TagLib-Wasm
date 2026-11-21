@@ -338,6 +338,14 @@ export abstract class BaseAudioFileImpl {
       this.handle.setProperty(wireKey, value);
       return;
     }
+    // An empty value is the documented clear. Route it through removeMP4Item:
+    // on WASI, setMP4Item alone only mutates the snapshot, so a foreign-mean or
+    // non-UTF8 atom would survive the save — removeMP4Item is the path that
+    // registers the exact-atom removal (taglib-65nm).
+    if (value === "") {
+      this.handle.removeMP4Item(key);
+      return;
+    }
     this.handle.setMP4Item(key, value);
   }
 

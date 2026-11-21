@@ -1370,6 +1370,10 @@ for (const backend of BACKENDS) {
       ]);
       file.setMP4Item("----:com.apple.iTunes:MOOD", "");
       expect(
+        file.getMP4Item("----:com.apple.iTunes:MOOD"),
+        `${backend}: the cleared item is still readable before save`,
+      ).toBeUndefined();
+      expect(
         file.getMP4FreeformItems(),
         `${backend}: the cleared item is still in the typed view`,
       ).toStrictEqual([]);
@@ -1429,6 +1433,46 @@ for (const backend of BACKENDS) {
         ).toStrictEqual(["Happy"]);
       } finally {
         reopened.dispose();
+      }
+    } finally {
+      file.dispose();
+    }
+  });
+
+  it(`[${backend}] setMP4Item(key, "") clears a foreign-mean atom`, async () => {
+    const tl = await TagLib.initialize({ forceWasmType: backend });
+    const key = "----:com.acme.tool:MyTag";
+    const file = await tl.open(
+      new Uint8Array(await readFile(FIXTURE_PATH.m4a)),
+    );
+    try {
+      file.setMP4Item(key, "to-remove");
+      file.save();
+
+      const cleared = await tl.open(file.getFileBuffer());
+      try {
+        cleared.setMP4Item(key, "");
+        expect(
+          cleared.getMP4Item(key),
+          `${backend}: the foreign atom is still readable after the clear`,
+        ).toBeUndefined();
+        cleared.save();
+
+        const reopened = await tl.open(cleared.getFileBuffer());
+        try {
+          expect(
+            reopened.getMP4Item(key),
+            `${backend}: the foreign atom survived the clear`,
+          ).toBeUndefined();
+          expect(
+            reopened.getMP4FreeformItems().map((i) => i.name),
+            `${backend}: the foreign atom is still in the typed list`,
+          ).toStrictEqual([]);
+        } finally {
+          reopened.dispose();
+        }
+      } finally {
+        cleared.dispose();
       }
     } finally {
       file.dispose();
