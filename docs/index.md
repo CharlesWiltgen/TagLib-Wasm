@@ -22,8 +22,8 @@ features:
     details: Supports MP3, FLAC, MP4/M4A, OGG, WAV and many more formats via TagLib
   - title: Format Abstraction
     details: Automatic tag mapping handles format-specific differences transparently
-  - title: Zero Dependencies
-    details: Self-contained Wasm bundle with no external dependencies
+  - title: Self-Contained Wasm
+    details: TagLib ships in the package — no native modules or system libraries
   - title: Battle-Tested
     details: Built on TagLib, the de-facto standard for audio metadata since 2002
 ---

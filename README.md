@@ -628,9 +628,9 @@ browser, scan on a server and post the result; the pure
 **`./web` builds for the browser.** It declares a `browser` condition, so a
 browser-targeted build resolves an Emscripten-only build of that entry and pulls
 **`taglib-web.wasm` alone** – Measured with the vite invocation above on
-`pictureToDataURL` from `taglib-wasm/web`: one 690,502-byte Wasm asset, where
+`pictureToDataURL` from `taglib-wasm/web`: one 690,719-byte Wasm asset, where
 the vite build on the `node` condition instead emits both `taglib-web.wasm` and
-`taglib-wasi.wasm` (1,462,378 bytes of assets for a call that needs neither
+`taglib-wasi.wasm` (1,462,595 bytes of assets for a call that needs neither
 engine). The browser build is a pre-bundled file like `index.browser.js`, so it
 barely tree-shakes: that call is 86,179 bytes in the vite app build and 83,663
 under the esbuild browser column, against 205 bytes under esbuild's Node column —
