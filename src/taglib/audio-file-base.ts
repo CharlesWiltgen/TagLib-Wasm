@@ -203,6 +203,17 @@ export abstract class BaseAudioFileImpl {
       this.clearTotal(wireKey);
       return;
     }
+    if (wireKey === "TRACKTOTAL" || wireKey === "DISCTOTAL") {
+      // An explicit total replaces a denominator the pair value already states;
+      // the int-pair fold would otherwise keep the pair's own denominator and
+      // silently ignore the write.
+      const rawKey = wireKey === "TRACKTOTAL" ? "TRACKNUMBER" : "DISCNUMBER";
+      const current = this.handle.getProperty(rawKey);
+      const slash = current.indexOf("/");
+      if (slash !== -1) {
+        this.handle.setProperty(rawKey, current.slice(0, slash));
+      }
+    }
     const nextValue = this.preserveIntPairTotal(wireKey, value);
     // Same atom-name channel setProperties uses: without it, a property backed
     // by a mixed-case MP4 freeform atom is written under TagLib's upper-cased

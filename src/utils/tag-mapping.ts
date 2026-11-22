@@ -267,6 +267,25 @@ function reconcilePairFields(
       continue;
     }
 
+    // A typed total replaces a denominator the file already states. The raw
+    // value must go out as the numerator alone, or the int-pair fold (MP3/MP4)
+    // keeps the pair's own denominator and the typed total is silently ignored.
+    // A raw pair supplied in the SAME call still wins (handled above).
+    if (
+      input[totalKey] !== undefined &&
+      input[rawKey as keyof TagInput] === undefined
+    ) {
+      const existing = currentProps[rawKey]?.[0];
+      const numerator =
+        input[numericKey] !== undefined
+          ? String(input[numericKey])
+          : existing?.split("/")[0];
+      if (numerator !== undefined && numerator !== "") {
+        newProps[rawKey] = [numerator];
+      }
+      continue;
+    }
+
     // Only the bare number was given, so inherit the total the file already has.
     const numericOnly =
       input[numericKey] !== undefined &&

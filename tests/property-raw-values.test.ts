@@ -1361,6 +1361,102 @@ describe("track and disc totals land in the standard on-disk field", () => {
       }
     });
 
+    it(`a typed total replaces a denominator the file already states [${format}]`, async () => {
+      for (const writer of BACKENDS) {
+        const path = await tempCopy(format);
+        try {
+          await seedProperties("emscripten", path, {
+            trackNumber: ["3/12"],
+            discNumber: ["1/2"],
+          });
+
+          const file = await taglibs[writer].open(path);
+          try {
+            mergeTagUpdates(file, { totalTracks: 11, totalDiscs: 3 });
+            file.save();
+            await writeFile(path, file.getFileBuffer());
+          } finally {
+            file.dispose();
+          }
+
+          for (const reader of BACKENDS) {
+            expect(
+              await readProperty(reader, path, "trackNumber"),
+              `${reader} reading a file written by ${writer}: the typed track total did not replace the stated denominator`,
+            ).toStrictEqual(["3/11"]);
+            expect(
+              await readProperty(reader, path, "discNumber"),
+              `${reader} reading a file written by ${writer}: the typed disc total did not replace the stated denominator`,
+            ).toStrictEqual(["1/3"]);
+          }
+        } finally {
+          await rm(path).catch(() => {});
+        }
+      }
+    });
+
+    it(`a typed total with a bare number replaces the denominator [${format}]`, async () => {
+      for (const writer of BACKENDS) {
+        const path = await tempCopy(format);
+        try {
+          await seedProperties("emscripten", path, { trackNumber: ["3/12"] });
+
+          const file = await taglibs[writer].open(path);
+          try {
+            mergeTagUpdates(file, { track: 5, totalTracks: 11 });
+            file.save();
+            await writeFile(path, file.getFileBuffer());
+          } finally {
+            file.dispose();
+          }
+
+          for (const reader of BACKENDS) {
+            expect(
+              await readProperty(reader, path, "trackNumber"),
+              `${reader} reading a file written by ${writer}: the bare number + typed total did not replace the denominator`,
+            ).toStrictEqual(["5/11"]);
+          }
+        } finally {
+          await rm(path).catch(() => {});
+        }
+      }
+    });
+
+    it(`a setProperty total replaces the denominator [${format}]`, async () => {
+      for (const writer of BACKENDS) {
+        const path = await tempCopy(format);
+        try {
+          await seedProperties("emscripten", path, {
+            trackNumber: ["3/12"],
+            discNumber: ["1/2"],
+          });
+
+          const file = await taglibs[writer].open(path);
+          try {
+            file.setProperty("TOTALTRACKS", "11");
+            file.setProperty("DISCTOTAL", "3");
+            file.save();
+            await writeFile(path, file.getFileBuffer());
+          } finally {
+            file.dispose();
+          }
+
+          for (const reader of BACKENDS) {
+            expect(
+              await readProperty(reader, path, "trackNumber"),
+              `${reader} reading a file written by ${writer}: the total write did not replace the stated denominator`,
+            ).toStrictEqual(["3/11"]);
+            expect(
+              await readProperty(reader, path, "discNumber"),
+              `${reader} reading a file written by ${writer}: the disc total write did not replace the stated denominator`,
+            ).toStrictEqual(["1/3"]);
+          }
+        } finally {
+          await rm(path).catch(() => {});
+        }
+      }
+    });
+
     it(`treats an empty total write as a clear [${format}]`, async () => {
       for (const writer of BACKENDS) {
         const path = await tempCopy(format);
@@ -1484,31 +1580,42 @@ describe("track and disc totals land in the standard on-disk field", () => {
       }
     });
 
-    it(`keeps a raw pair over a separate total [${format}]`, async () => {
+    it(`the later of a raw pair and a separate total wins [${format}]`, async () => {
+      // Last-write-wins on one handle: a total written after a pair replaces
+      // the pair's denominator (the reported bug), and a pair written after a
+      // total supersedes the total. The read-modify-write rule (a pair in the
+      // same update clears a stale separate total) lives in reconcilePairFields.
       for (const writer of BACKENDS) {
-        const path = await tempCopy(format);
-        try {
-          const file = await taglibs[writer].open(path);
+        for (const [first, second, expected] of [
+          ["pair", "total", "3/20"],
+          ["total", "pair", "3/12"],
+        ] as const) {
+          const path = await tempCopy(format);
           try {
-            file.setProperty("TRACKNUMBER", "3/12");
-            file.setProperty("TRACKTOTAL", "20");
-            file.save();
-            await writeFile(path, file.getFileBuffer());
+            const file = await taglibs[writer].open(path);
+            try {
+              if (first === "pair") file.setProperty("TRACKNUMBER", "3/12");
+              else file.setProperty("TRACKTOTAL", "20");
+              if (second === "pair") file.setProperty("TRACKNUMBER", "3/12");
+              else file.setProperty("TRACKTOTAL", "20");
+              file.save();
+              await writeFile(path, file.getFileBuffer());
+            } finally {
+              file.dispose();
+            }
+            for (const reader of BACKENDS) {
+              expect(
+                await readProperty(reader, path, "trackNumber"),
+                `${reader} reading a file written by ${writer}: ${first} then ${second}`,
+              ).toStrictEqual([expected]);
+              expect(
+                await readProperty(reader, path, "totalTracks"),
+                `${reader} reading a file written by ${writer}: a separate total survived`,
+              ).toStrictEqual(undefined);
+            }
           } finally {
-            file.dispose();
+            await rm(path).catch(() => {});
           }
-          for (const reader of BACKENDS) {
-            expect(
-              await readProperty(reader, path, "trackNumber"),
-              `${reader} reading a file written by ${writer}: raw pair lost`,
-            ).toStrictEqual(["3/12"]);
-            expect(
-              await readProperty(reader, path, "totalTracks"),
-              `${reader} reading a file written by ${writer}: separate total survived`,
-            ).toStrictEqual(undefined);
-          }
-        } finally {
-          await rm(path).catch(() => {});
         }
       }
     });

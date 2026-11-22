@@ -2039,6 +2039,11 @@ interface TagInput {
 }
 ```
 
+Writing `totalTracks`/`totalDiscs` replaces a denominator the number field
+already states: `applyTags({ totalTracks: 11 })` on a file reading `"3/12"`
+writes `"3/11"`. On one open handle the later of a pair and a total wins; a
+pair supplied in the same update still clears a stale separate total.
+
 #### PictureType
 
 Picture/artwork category, matching the ID3v2 APIC frame codes.
