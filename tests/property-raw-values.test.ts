@@ -459,7 +459,7 @@ describe("setTrack() preserves an existing track total (taglib-eq3)", () => {
           ).toStrictEqual(1);
           // Text frame body: 1 encoding byte, then the value.
           const raw = new TextDecoder()
-            .decode(frames[0]!.data.slice(1))
+            .decode(frames[0].data.slice(1))
             .replace(/\0+$/, "");
           expect(raw, `${backend} dropped the track total`).toStrictEqual(
             "7/12",
@@ -1189,7 +1189,7 @@ describe("a described COMM does not attract a duplicate (taglib-o3sl)", () => {
           // frame to write to, so it fell through to the DESCRIBED frame and
           // overwrote the Sound Check value — still exactly one frame. Assert
           // what the defect actually destroys.
-          const text = new TextDecoder("latin1").decode(frames[0]!.data);
+          const text = new TextDecoder("latin1").decode(frames[0].data);
           expect(
             text.includes(" 00000A1B"),
             `${backend} overwrote the described frame's payload: ${JSON.stringify(
@@ -1235,7 +1235,7 @@ describe("a described COMM does not attract a duplicate (taglib-o3sl)", () => {
             frames.length,
             `${backend} added a duplicate COMM frame`,
           ).toStrictEqual(1);
-          const text = new TextDecoder("latin1").decode(frames[0]!.data);
+          const text = new TextDecoder("latin1").decode(frames[0].data);
           expect(
             text.includes(" 00000A1B"),
             `${backend} overwrote the described frame's payload: ${JSON.stringify(
@@ -1487,6 +1487,46 @@ describe("track and disc totals land in the standard on-disk field", () => {
           }
         } finally {
           await rm(path).catch(() => {});
+        }
+      }
+    });
+
+    it(`encodes a total with no number as 0/<total> [${format}]`, async () => {
+      for (const writer of BACKENDS) {
+        for (const surface of ["setProperty", "setProperties"] as const) {
+          const path = await tempCopy(format);
+          try {
+            // Seed the no-number state the edge is about.
+            const seed = await taglibs[writer].open(path);
+            try {
+              seed.removeProperty("TRACKNUMBER");
+              seed.removeProperty("TRACKTOTAL");
+              seed.save();
+              await writeFile(path, seed.getFileBuffer());
+            } finally {
+              seed.dispose();
+            }
+
+            const file = await taglibs[writer].open(path);
+            try {
+              if (surface === "setProperty")
+                file.setProperty("TRACKTOTAL", "12");
+              else file.setProperties({ TRACKTOTAL: ["12"] });
+              file.save();
+              await writeFile(path, file.getFileBuffer());
+            } finally {
+              file.dispose();
+            }
+
+            for (const reader of BACKENDS) {
+              expect(
+                await readProperty(reader, path, "trackNumber"),
+                `${reader} reading a ${surface} file written by ${writer}: a total with no number encodes the pair as 0/<total>`,
+              ).toStrictEqual(["0/12"]);
+            }
+          } finally {
+            await rm(path).catch(() => {});
+          }
         }
       }
     });

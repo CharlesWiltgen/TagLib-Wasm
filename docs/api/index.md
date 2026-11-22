@@ -1319,7 +1319,8 @@ Set multiple properties at once from a PropertyMap.
 
 A total-only write (`{ TRACKTOTAL: ["12"] }` or `{ DISCTOTAL: … }`) pairs with
 the number already on the file (`"5/11"` → `"5/12"`); a pair supplied in the
-same map wins.
+same map wins. A total needs a number: on a file with no number, the pair
+encodes as `0/<total>` (`"0/12"`).
 
 ```typescript
 setProperties(properties: PropertyMap): void
@@ -2046,7 +2047,9 @@ interface TagInput {
 Writing `totalTracks`/`totalDiscs` replaces a denominator the number field
 already states: `applyTags({ totalTracks: 11 })` on a file reading `"3/12"`
 writes `"3/11"`. On one open handle the later of a pair and a total wins; a
-pair supplied in the same update still clears a stale separate total.
+pair supplied in the same update still clears a stale separate total. A total
+needs a number: on a file with no number, the pair encodes as `0/<total>`
+(`"0/12"`).
 
 #### PictureType
 
