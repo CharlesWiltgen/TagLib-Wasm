@@ -1317,6 +1317,10 @@ type PropertyMap =
 
 Set multiple properties at once from a PropertyMap.
 
+A total-only write (`{ TRACKTOTAL: ["12"] }` or `{ DISCTOTAL: … }`) pairs with
+the number already on the file (`"5/11"` → `"5/12"`); a pair supplied in the
+same map wins.
+
 ```typescript
 setProperties(properties: PropertyMap): void
 ```
