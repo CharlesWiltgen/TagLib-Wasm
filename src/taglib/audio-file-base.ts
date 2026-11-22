@@ -149,6 +149,20 @@ export abstract class BaseAudioFileImpl {
         translated[wireKey] = emptyTotal ? [] : values;
       }
     }
+    // A total-only write pairs with the number the file already has: without
+    // the numerator, the int-pair fold keeps the old denominator under WASI's
+    // merge model and Emscripten's replace model writes "0/<total>". A pair in
+    // the same map still wins (the w53y read-modify-write rule).
+    for (const [totalKey, rawKey] of [
+      ["TRACKTOTAL", "TRACKNUMBER"],
+      ["DISCTOTAL", "DISCNUMBER"],
+    ] as const) {
+      const totals = translated[totalKey];
+      if (totals === undefined || totals.every((v) => v === "")) continue;
+      if (translated[rawKey] !== undefined) continue;
+      const numerator = this.handle.getProperty(rawKey).split("/")[0];
+      if (numerator !== "") translated[rawKey] = [numerator];
+    }
     // Lyrics is owned by get/setLyrics(), not the properties() surface; when a
     // text-only setProperties (e.g. the applyTags read-modify-write) omits it,
     // preserve the existing frame so the replace-style Emscripten setProperties

@@ -1457,6 +1457,40 @@ describe("track and disc totals land in the standard on-disk field", () => {
       }
     });
 
+    it(`a total-only setProperties pairs with the existing number [${format}]`, async () => {
+      for (const writer of BACKENDS) {
+        const path = await tempCopy(format);
+        try {
+          await seedProperties("emscripten", path, {
+            trackNumber: ["3/12"],
+            discNumber: ["1/2"],
+          });
+
+          const file = await taglibs[writer].open(path);
+          try {
+            file.setProperties({ TRACKTOTAL: ["11"], DISCTOTAL: ["3"] });
+            file.save();
+            await writeFile(path, file.getFileBuffer());
+          } finally {
+            file.dispose();
+          }
+
+          for (const reader of BACKENDS) {
+            expect(
+              await readProperty(reader, path, "trackNumber"),
+              `${reader} reading a file written by ${writer}: the total-only write did not pair with the number`,
+            ).toStrictEqual(["3/11"]);
+            expect(
+              await readProperty(reader, path, "discNumber"),
+              `${reader} reading a file written by ${writer}: the disc total-only write did not pair with the number`,
+            ).toStrictEqual(["1/3"]);
+          }
+        } finally {
+          await rm(path).catch(() => {});
+        }
+      }
+    });
+
     it(`treats an empty total write as a clear [${format}]`, async () => {
       for (const writer of BACKENDS) {
         const path = await tempCopy(format);
