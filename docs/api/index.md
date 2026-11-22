@@ -2117,6 +2117,8 @@ type AudioCodec =
   | "Speex"
   | "PCM"
   | "IEEEFloat"
+  | "G.711"
+  | "AIFF"
   | "WAV"
   | "WMA"
   | "WMALossless"

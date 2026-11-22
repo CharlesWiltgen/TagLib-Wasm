@@ -302,7 +302,24 @@ public:
         }
         // AIFF files
         else if (dynamic_cast<TagLib::RIFF::AIFF::File*>(file)) {
-            return "PCM"; // AIFF is typically uncompressed PCM
+            // AIFF-C's COMM chunk names the codec in a 4CC; a plain AIFF
+            // (empty type) or NONE/sowt AIFF-C is PCM, fl32/fl64 are IEEE
+            // float, ulaw/alaw are G.711 (lossy). Mirror the WAV rule and
+            // src/capi/taglib_audio_props.cpp (keep both in sync).
+            std::string type;
+            if (TagLib::RIFF::AIFF::Properties* aiffProps = dynamic_cast<TagLib::RIFF::AIFF::Properties*>(props)) {
+                const TagLib::ByteVector typeBytes = aiffProps->compressionType();
+                if (!typeBytes.isEmpty()) {
+                    type.assign(typeBytes.data(), typeBytes.size());
+                }
+                for (char& c : type) {
+                    c = static_cast<char>(std::toupper(static_cast<unsigned char>(c)));
+                }
+            }
+            if (type.empty() || type == "NONE" || type == "SOWT") return "PCM";
+            if (type == "FL32" || type == "FL64") return "IEEEFloat";
+            if (type == "ULAW" || type == "ALAW") return "G.711";
+            return "AIFF";
         }
         // WavPack files
         else if (dynamic_cast<TagLib::WavPack::File*>(file)) {

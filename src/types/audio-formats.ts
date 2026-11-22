@@ -134,6 +134,8 @@ export type AudioCodec =
   | "Speex" // Speex (lossy, speech)
   | "PCM" // Pulse Code Modulation (uncompressed)
   | "IEEEFloat" // IEEE floating-point PCM
+  | "G.711" // ITU-T G.711 A-law/mu-law (AIFF-C, lossy)
+  | "AIFF" // Generic AIFF-C codec (when specific codec unknown)
   | "WAV" // Generic WAV codec (when specific codec unknown)
   | "WMA" // Windows Media Audio (lossy)
   | "WMALossless" // Windows Media Audio Lossless

@@ -196,9 +196,37 @@ ExtendedAudioInfo get_extended_audio_info(
     if (auto* f = dynamic_cast<TagLib::RIFF::AIFF::File*>(file)) {
         auto* props = f->audioProperties();
         if (props) info.bitsPerSample = props->bitsPerSample();
-        info.codec = "PCM";
         info.container = "AIFF";
-        info.isLossless = true;
+        // AIFF-C's COMM chunk names the codec in a 4CC: a plain AIFF (empty
+        // type) or NONE/sowt AIFF-C is uncompressed PCM, fl32/fl64 are IEEE
+        // float, ulaw/alaw are G.711 (lossy). Anything else is a compressed
+        // AIFF-C codec this layer cannot name. Twin of build/taglib_embind.cpp
+        // codec() - keep both in sync (taglib-e2cg).
+        std::string type;
+        if (auto* aiffProps =
+                dynamic_cast<TagLib::RIFF::AIFF::Properties*>(props)) {
+            const TagLib::ByteVector typeBytes = aiffProps->compressionType();
+            if (!typeBytes.isEmpty()) {
+                type.assign(typeBytes.data(), typeBytes.size());
+            }
+            for (char& c : type) {
+                c = static_cast<char>(
+                    std::toupper(static_cast<unsigned char>(c)));
+            }
+        }
+        if (type.empty() || type == "NONE" || type == "SOWT") {
+            info.codec = "PCM";
+            info.isLossless = true;
+        } else if (type == "FL32" || type == "FL64") {
+            info.codec = "IEEEFloat";
+            info.isLossless = true;
+        } else if (type == "ULAW" || type == "ALAW") {
+            info.codec = "G.711";
+            info.isLossless = false;
+        } else {
+            info.codec = "AIFF";
+            info.isLossless = false;
+        }
         return info;
     }
 

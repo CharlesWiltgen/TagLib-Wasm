@@ -93,4 +93,36 @@ describe("Codec Detection", () => {
       file.dispose();
     }
   });
+
+  for (const backend of ["wasi", "emscripten"] as const) {
+    it(`AIFF-C A-law reports G.711 and lossy [${backend}]`, async () => {
+      const taglib = await TagLib.initialize({ forceWasmType: backend });
+      const path = join("lib", "taglib", "tests", "data", "alaw.aifc");
+      const file = await taglib.open(new Uint8Array(await readFile(path)));
+
+      try {
+        const props = file.audioProperties();
+        expect(props?.containerFormat).toStrictEqual("AIFF");
+        expect(props?.codec).toStrictEqual("G.711");
+        expect(props?.isLossless).toStrictEqual(false);
+      } finally {
+        file.dispose();
+      }
+    });
+
+    it(`plain AIFF stays PCM and lossless [${backend}]`, async () => {
+      const taglib = await TagLib.initialize({ forceWasmType: backend });
+      const path = join("lib", "taglib", "tests", "data", "noise.aif");
+      const file = await taglib.open(new Uint8Array(await readFile(path)));
+
+      try {
+        const props = file.audioProperties();
+        expect(props?.containerFormat).toStrictEqual("AIFF");
+        expect(props?.codec).toStrictEqual("PCM");
+        expect(props?.isLossless).toStrictEqual(true);
+      } finally {
+        file.dispose();
+      }
+    });
+  }
 });
