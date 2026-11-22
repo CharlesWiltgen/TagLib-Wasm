@@ -1,5 +1,7 @@
 #include <emscripten/bind.h>
 #include <emscripten/val.h>
+#include <cctype>
+#include <string>
 #include <taglib.h>
 #include <fileref.h>
 #include <tag.h>

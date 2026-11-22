@@ -2,6 +2,9 @@
 
 #include "formats/taglib_lame.h"
 
+#include <cctype>
+#include <string>
+
 #include <tfile.h>
 #include <audioproperties.h>
 #include <mpack/mpack.h>
