@@ -1664,9 +1664,9 @@ getMP4Item(key: string): string | undefined
 
 ##### Parameters
 
-- `key`: a 4-character MP4 atom name (for example `©grp`) or a
-  `----:mean:name` freeform key (for example
-  `----:com.apple.iTunes:iTunNORM`)
+- `key`: a 4-character MP4 atom name (four Latin-1 bytes, for example `©grp`)
+  or a `----:mean:name` freeform key (for example
+  `----:com.apple.iTunes:iTunNORM`). Other keys read as `undefined`.
 
 ##### Throws
 
@@ -1682,10 +1682,15 @@ setMP4Item(key: string, value: string): void
 
 ##### Parameters
 
-- `key`: a 4-character MP4 atom name or a `----:mean:name` freeform key.
-  An atom with no property mapping (for example `abcd` or `©lyr`) is written
-  as that atom on both backends; a bare key that is neither form is rejected.
-- `value`: Item value
+- `key`: a 4-character MP4 atom name (four Latin-1 bytes) or a
+  `----:mean:name` freeform key. An atom with no property mapping (for example
+  `abcd` or `©lyr`) is written as that atom on both backends; a bare key that
+  is neither form is rejected.
+- `value`: Item value (at most 1 MiB). If the same atom is also written
+  through the property surface in one save, the later write wins for an atom
+  already in the file. For an atom not yet in the file, a property write wins
+  in that save, and the staged `getMP4Item()` value reflects it only after a
+  reopen.
 
 ##### Throws
 
@@ -1702,11 +1707,12 @@ removeMP4Item(key: string): void
 
 ##### Parameters
 
-- `key`: MP4 atom name to remove
+- `key`: a 4-character MP4 atom name (four Latin-1 bytes) or a
+  `----:mean:name` freeform key to remove
 
 ##### Throws
 
-- Error if not an MP4 file
+- Error if not an MP4 file, or if the key is neither form
 
 ##### Example
 

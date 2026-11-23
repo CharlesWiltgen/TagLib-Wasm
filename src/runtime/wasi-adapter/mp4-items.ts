@@ -11,8 +11,9 @@ import {
   PROPERTIES,
 } from "../../constants/properties.ts";
 import type { RawMP4FreeformItem } from "../../types/tags.ts";
+import type { RawMP4ItemEntry } from "./tag-keys.ts";
 import { mirrorForRawKey, stringifyScalar } from "../../utils/mirror-fields.ts";
-import { getProperty, setProperty } from "./property-surface.ts";
+import { getProperty, setProperties, setProperty } from "./property-surface.ts";
 
 /**
  * Normalize an MP4 item key for the PropertyMap path. TagLib's MP4 PropertyMap
@@ -53,9 +54,12 @@ export function getMP4Item(
       return stringifyScalar(foreign);
     }
   }
-  const items = tagData?._mp4Items as Record<string, unknown> | undefined;
-  if (items !== undefined && items[key] !== undefined) {
-    return stringifyScalar(items[key]);
+  const items = tagData?._mp4Items as
+    | Record<string, RawMP4ItemEntry | string>
+    | undefined;
+  const entry = items?.[key];
+  if (entry !== undefined) {
+    return stringifyScalar(typeof entry === "string" ? entry : entry.value);
   }
   return getProperty(tagData, mp4ItemPropertyKey(key));
 }
@@ -66,20 +70,45 @@ export function setMP4Item(
   key: string,
   value: string,
 ): Record<string, unknown> {
+  if (key === "rtng") {
+    // The advisory bridge owns rtng on WASI: it writes the atom from the
+    // ITUNESADVISORY slot, so a raw item write must go through that slot or
+    // the bridge reverts it (taglib-5y0s review).
+    let next = setProperties(tagData, {
+      ITUNESADVISORY: value === "" ? [] : [value],
+    });
+    const items =
+      (next._mp4Items as Record<string, RawMP4ItemEntry> | undefined) ?? {};
+    const updated = { ...items };
+    if (value === "") delete updated.rtng;
+    else updated.rtng = { value };
+    next = { ...next, _mp4Items: updated };
+    return next;
+  }
   if (!key.startsWith("----:") && mp4AtomWireKey(key) === undefined) {
     // An exact 4CC with no PropertyMap mapping: TagLib's setProperties would
     // file it as an Apple freeform twin under the uppercased name, so carry an
     // exact-name directive for the save (taglib-5y0s). The read map keeps a
     // staged value readable before the file is reopened.
     const items =
-      (tagData?._mp4Items as Record<string, string> | undefined) ?? {};
+      (tagData?._mp4Items as Record<string, RawMP4ItemEntry> | undefined) ?? {};
     const values =
       (tagData?._mp4ItemValues as Record<string, string> | undefined) ?? {};
+    const existing = items[key];
+    const entry: RawMP4ItemEntry = existing?.property
+      ? { value, property: existing.property }
+      : { value };
     let next: Record<string, unknown> = {
       ...tagData,
-      _mp4Items: { ...items, [key]: value },
+      _mp4Items: { ...items, [key]: entry },
       _mp4ItemValues: { ...values, [key]: value },
     };
+    // Keep the PropertyMap slot TagLib maps this atom to in step: the item
+    // engine applies before apply_propmap, so a stale snapshot value would
+    // otherwise win (the same rule the freeform channel documents).
+    if (existing?.property !== undefined) {
+      next[fromTagLibKey(existing.property)] = [value];
+    }
     const removals = next._mp4ItemRemovals as string[] | undefined;
     if (removals?.includes(key)) {
       next = {
@@ -132,6 +161,16 @@ export function setMP4Item(
       };
     }
   }
+  return next;
+}
+
+/** Clear the consumed write directive after a successful save. */
+export function clearMp4ItemValues(
+  tagData: Record<string, unknown> | null,
+): Record<string, unknown> | null {
+  if (tagData?._mp4ItemValues === undefined) return tagData;
+  const next = { ...tagData };
+  delete next._mp4ItemValues;
   return next;
 }
 
@@ -345,20 +384,44 @@ export function removeMP4Item(
 ): Record<string, unknown> | null {
   if (!tagData) return null;
   let next = tagData;
+  if (key === "rtng") {
+    let cleared = setProperties(tagData, { ITUNESADVISORY: [] });
+    const items = cleared._mp4Items as
+      | Record<string, RawMP4ItemEntry>
+      | undefined;
+    if (items !== undefined) {
+      const updated = { ...items };
+      delete updated.rtng;
+      cleared = { ...cleared, _mp4Items: updated };
+    }
+    return cleared;
+  }
   if (!key.startsWith("----:") && mp4AtomWireKey(key) === undefined) {
     // Exact-name raw atom: drop the staged read/write slots and register the
     // on-disk removal; setProperty cannot express it (taglib-5y0s).
-    const drop = (map: Record<string, string> | undefined) =>
+    const currentItems = next._mp4Items as
+      | Record<string, RawMP4ItemEntry>
+      | undefined;
+    const property = currentItems?.[key]?.property;
+    const drop = (map: Record<string, unknown> | undefined) =>
       map === undefined
         ? undefined
         : Object.fromEntries(Object.entries(map).filter(([k]) => k !== key));
-    const items = drop(next._mp4Items as Record<string, string> | undefined);
+    const items = drop(currentItems);
     const values = drop(
       next._mp4ItemValues as Record<string, string> | undefined,
     );
     next = { ...next };
     if (items !== undefined) next._mp4Items = items;
     if (values !== undefined) next._mp4ItemValues = values;
+    // The removal happens before apply_propmap, so the mapped property must
+    // not carry the old value back (taglib-5y0s review).
+    if (property !== undefined) {
+      const camel = fromTagLibKey(property);
+      delete next[camel];
+      const mirror = mirrorForRawKey(camel);
+      if (mirror !== undefined) delete next[mirror.numeric];
+    }
     return registerMp4ItemRemoval(next, key);
   }
   if (key.startsWith("----:")) {

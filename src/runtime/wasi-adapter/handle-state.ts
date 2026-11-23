@@ -8,7 +8,7 @@
 
 import type { WasiModule } from "../wasmer-sdk-loader/types.ts";
 import { decodeTagData } from "../../msgpack/decoder.ts";
-import { clearMP4FreeformDirty } from "./mp4-items.ts";
+import { clearMP4FreeformDirty, clearMp4ItemValues } from "./mp4-items.ts";
 import { preserveEmptyValues } from "./tag-keys.ts";
 import * as wasmIo from "./wasm-io.ts";
 
@@ -58,7 +58,9 @@ export function save(state: HandleState): boolean {
       state.filePath,
       state.tagData,
     );
-    if (ok) state.tagData = clearMP4FreeformDirty(state.tagData);
+    if (ok) {
+      state.tagData = clearMP4FreeformDirty(clearMp4ItemValues(state.tagData));
+    }
     return ok;
   }
 
@@ -70,7 +72,7 @@ export function save(state: HandleState): boolean {
   );
   if (result) {
     state.fileData = result;
-    state.tagData = clearMP4FreeformDirty(state.tagData);
+    state.tagData = clearMP4FreeformDirty(clearMp4ItemValues(state.tagData));
     return true;
   }
   return false;

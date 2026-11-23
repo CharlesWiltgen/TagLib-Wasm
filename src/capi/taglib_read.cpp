@@ -234,8 +234,16 @@ static tl_error_code encode_file_to_msgpack(TagLib::File* file,
         for (const auto& entry : item_values) {
             write_mpack_string(
                 &writer, TagLib::String(entry.name, TagLib::String::UTF8));
+            mpack_start_map(&writer, entry.property.empty() ? 1 : 2);
+            mpack_write_cstr(&writer, "value");
             write_mpack_string(
                 &writer, TagLib::String(entry.value, TagLib::String::UTF8));
+            if (!entry.property.empty()) {
+                mpack_write_cstr(&writer, "property");
+                write_mpack_string(
+                    &writer, TagLib::String(entry.property, TagLib::String::UTF8));
+            }
+            mpack_finish_map(&writer);
         }
         mpack_finish_map(&writer);
     }

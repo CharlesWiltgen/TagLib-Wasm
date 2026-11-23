@@ -503,17 +503,33 @@ read_mp4_item_values(const uint8_t* data, size_t len) {
             name[nlen] = '\0';
             uint32_t vlen = mpack_expect_str(&reader);
             if (mpack_reader_error(&reader) != mpack_ok) break;
-            char value[4096];
-            if (vlen >= sizeof(value)) {
+            std::string value;
+            if (vlen < 4096) {
+                char buf[4096];
+                mpack_read_bytes(&reader, buf, vlen);
+                mpack_done_str(&reader);
+                buf[vlen] = '\0';
+                value.assign(buf, vlen);
+            } else if (vlen <= MAX_STRING_VALUE_LEN) {
+                // Same cap as the property decoder: a long raw item (lyrics,
+                // for example) must not be dropped silently.
+                char* heap = static_cast<char*>(malloc(vlen + 1));
+                if (!heap) break;
+                mpack_read_bytes(&reader, heap, vlen);
+                mpack_done_str(&reader);
+                heap[vlen] = '\0';
+                value.assign(heap, vlen);
+                free(heap);
+            } else {
+                // The value is a string, fully consumed by skip+done_str; a
+                // discard here would eat the NEXT entry's key and misalign the
+                // whole map (taglib-5y0s review). Drop this entry only.
                 mpack_skip_bytes(&reader, vlen);
                 mpack_done_str(&reader);
-                mpack_discard(&reader);
                 continue;
             }
-            mpack_read_bytes(&reader, value, vlen);
-            mpack_done_str(&reader);
-            value[vlen] = '\0';
-            values.push_back({std::string(name), std::string(value)});
+            if (mpack_reader_error(&reader) != mpack_ok) break;
+            values.push_back({std::string(name), std::move(value), {}});
         }
         mpack_done_map(&reader);
         break;
@@ -704,10 +720,11 @@ static tl_error_code write_to_path(const char* path,
         for (auto& n : read_mp4_item_names(tags_msgpack, tags_msgpack_len)) {
             mp4_names.push_back(std::move(n));
         }
+        apply_mp4_item_values(
+            ref.file(), read_mp4_item_values(tags_msgpack, tags_msgpack_len),
+            &propMap);
         apply_propmap(ref.file(), propMap);
         restore_mp4_freeform_names(ref.file(), mp4_names);
-        apply_mp4_item_values(
-            ref.file(), read_mp4_item_values(tags_msgpack, tags_msgpack_len));
         apply_pictures_from_msgpack(ref.file(), tags_msgpack, tags_msgpack_len);
         apply_ratings_from_msgpack(ref.file(), tags_msgpack, tags_msgpack_len);
         apply_chapters_from_msgpack(ref.file(), tags_msgpack, tags_msgpack_len);
@@ -774,10 +791,11 @@ static tl_error_code write_to_buffer(const uint8_t* buf, size_t len,
         for (auto& n : read_mp4_item_names(tags_msgpack, tags_msgpack_len)) {
             mp4_names.push_back(std::move(n));
         }
+        apply_mp4_item_values(
+            f, read_mp4_item_values(tags_msgpack, tags_msgpack_len),
+            &propMap);
         apply_propmap(f, propMap);
         restore_mp4_freeform_names(f, mp4_names);
-        apply_mp4_item_values(
-            f, read_mp4_item_values(tags_msgpack, tags_msgpack_len));
         apply_pictures_from_msgpack(f, tags_msgpack, tags_msgpack_len);
         apply_ratings_from_msgpack(f, tags_msgpack, tags_msgpack_len);
         apply_chapters_from_msgpack(f, tags_msgpack, tags_msgpack_len);

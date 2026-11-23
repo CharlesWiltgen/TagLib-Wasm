@@ -18,7 +18,7 @@ import {
   stringifyScalar,
   TRACK_MIRROR,
 } from "../../utils/mirror-fields.ts";
-import { AUDIO_KEYS, INTERNAL_KEYS } from "./tag-keys.ts";
+import { AUDIO_KEYS, INTERNAL_KEYS, type RawMP4ItemEntry } from "./tag-keys.ts";
 
 /** The readable basic-tag surface (first-value idiom, numeric mirrors). */
 export function getBasicTagData(
@@ -110,6 +110,38 @@ export function getProperties(
   return result;
 }
 
+/**
+ * Keep the exact-name MP4 item read map in step with a property write (the
+ * item engine applies before the PropertyMap, and getMP4Item() reads this map;
+ * taglib-5y0s review). One atom per property key in practice; loop for safety.
+ */
+export function syncRawItemSlots(
+  next: Record<string, unknown>,
+  wireKey: string,
+  value: string | undefined,
+): void {
+  const items = next._mp4Items as Record<string, RawMP4ItemEntry> | undefined;
+  if (items === undefined) return;
+  const matches = Object.keys(items).filter(
+    (name) => items[name]?.property === wireKey,
+  );
+  if (matches.length === 0) return;
+  const updated = { ...items };
+  for (const name of matches) {
+    if (value === undefined) delete updated[name];
+    else updated[name] = { ...items[name], value };
+  }
+  next._mp4Items = updated;
+  // A later property write is authoritative; a surviving item directive would
+  // let the C++ seed resurrect an atom the property write just cleared.
+  const directives = next._mp4ItemValues as Record<string, string> | undefined;
+  if (directives !== undefined) {
+    const updatedDirectives = { ...directives };
+    for (const name of matches) delete updatedDirectives[name];
+    next._mp4ItemValues = updatedDirectives;
+  }
+}
+
 /** Replace-style property write; returns the next snapshot record. */
 export function setProperties(
   tagData: Record<string, unknown> | null,
@@ -144,6 +176,11 @@ export function setProperties(
     } else {
       next[camelKey] = values;
     }
+    syncRawItemSlots(
+      next,
+      toTagLibKey(camelKey),
+      values.length === 0 ? undefined : values[0],
+    );
   }
   return next;
 }
@@ -170,14 +207,16 @@ export function setProperty(
 ): Record<string, unknown> {
   const mappedKey = fromTagLibKey(key);
   const mirror = mirrorForRawKey(mappedKey);
+  const next = { ...tagData } as Record<string, unknown>;
   if (mirror !== undefined) {
     // The mirror must never outlive the raw string: an empty value is a clear,
     // and an unparseable one has no valid mirror. Leaving a stale number made
     // a delete a silent no-op and let tag() contradict the file (taglib-qpl,
     // taglib-iyfr).
-    const next = { ...tagData } as Record<string, unknown>;
     stageRawWrite(next, mirror, value === "" ? [] : [value]);
-    return next;
+  } else {
+    next[mappedKey] = value;
   }
-  return { ...tagData, [mappedKey]: value };
+  syncRawItemSlots(next, toTagLibKey(key), value === "" ? undefined : value);
+  return next;
 }

@@ -24,10 +24,12 @@
 
 namespace taglib_wasm {
 
-/** One exact-name MP4 item: the atom 4CC and its string form. */
+/** One exact-name MP4 item: the atom 4CC, its string form, and the PropertyMap
+ * key TagLib maps the atom to (empty when there is none). */
 struct MP4ItemValue {
     std::string name;
     std::string value;
+    std::string property;
 };
 
 /** The string form `getMP4Item()` reports, mirroring the Embind getter. */
@@ -56,11 +58,21 @@ inline std::vector<MP4ItemValue> collect_mp4_item_values(TagLib::File* file) {
     auto* mp4 = dynamic_cast<TagLib::MP4::File*>(file);
     if (!mp4 || !mp4->tag()) return items;
 
+    auto* factory = TagLib::MP4::ItemFactory::instance();
     for (const auto& [atom, item] : mp4->tag()->itemMap()) {
         const std::string name = atom.to8Bit(true);
         if (name.compare(0, 5, "----:") == 0) continue;  // typed channel owns these
         std::string value = mp4_item_value_string(item);
-        if (!value.empty()) items.push_back({name, std::move(value)});
+        const TagLib::String property =
+            factory ? factory->propertyKeyForName(
+                          atom.data(TagLib::String::Latin1))
+                    : TagLib::String();
+        const std::string propertyKey = property.to8Bit(true);
+        // A UInt/LongLong atom has no string form, but its association still
+        // matters: setMP4Item/removeMP4Item need the property key to reach the
+        // slot TagLib writes (taglib-5y0s review).
+        if (value.empty() && propertyKey.empty()) continue;
+        items.push_back({name, std::move(value), propertyKey});
     }
     return items;
 }
@@ -87,12 +99,21 @@ public:
     }
 };
 
-/** Apply exact-name raw item writes (and empty-value removals) at save. */
+/** Apply exact-name raw item writes (and empty-value removals) at save.
+ *
+ * \a propMap is the PropertyMap the save is about to apply: TagLib's
+ * setProperties() ERASES every mapped item whose property is absent, so an atom
+ * written here that TagLib maps (©lyr -> LYRICS) must also be seeded into the
+ * map. Only absent keys are added — an existing property value is the caller's
+ * later (or earlier) property write and must keep its precedence.
+ */
 inline void apply_mp4_item_values(
-    TagLib::File* file, const std::vector<MP4ItemValue>& values) {
+    TagLib::File* file, const std::vector<MP4ItemValue>& values,
+    TagLib::PropertyMap* propMap) {
     auto* mp4 = dynamic_cast<TagLib::MP4::File*>(file);
     if (!mp4 || !mp4->tag()) return;
 
+    auto* factory = TagLib::MP4::ItemFactory::instance();
     static const MP4ItemTypeProbe probe;
     for (const auto& entry : values) {
         TagLib::String atom(entry.name, TagLib::String::UTF8);
@@ -109,6 +130,16 @@ inline void apply_mp4_item_values(
             mp4->tag()->setItem(
                 atom, TagLib::MP4::Item(
                           TagLib::String(entry.value, TagLib::String::UTF8)));
+        }
+
+        const TagLib::String property =
+            factory ? factory->propertyKeyForName(
+                          atom.data(TagLib::String::Latin1))
+                    : TagLib::String();
+        if (!property.isEmpty() && propMap != nullptr &&
+            !propMap->contains(property)) {
+            (*propMap)[property] = TagLib::StringList(
+                TagLib::String(entry.value, TagLib::String::UTF8));
         }
     }
 }

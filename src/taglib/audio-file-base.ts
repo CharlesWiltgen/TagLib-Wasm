@@ -350,6 +350,9 @@ export abstract class BaseAudioFileImpl {
     if (!this.isMP4()) {
       throw new UnsupportedFormatError(this.getFormat(), ["MP4", "M4A"]);
     }
+    if (new TextEncoder().encode(value).byteLength > 1_048_576) {
+      throw new MetadataError("write", "MP4 item values are limited to 1 MiB");
+    }
     // A STANDARD atom's item type is fixed by its NAME, not by how its value
     // looks: `trkn`/`disk` are int PAIRS and `©nam` is text. Only TagLib's own
     // item factory knows that mapping, so route standard atoms through the
@@ -365,7 +368,7 @@ export abstract class BaseAudioFileImpl {
     }
     // A bare key that is neither a mapped atom nor a 4-character 4CC has no
     // storage form: reject instead of silently writing elsewhere (taglib-5y0s).
-    if (!key.startsWith("----:") && key.length !== 4) {
+    if (!key.startsWith("----:") && !isMp4FourCC(key)) {
       throw new MetadataError(
         "write",
         `"${key}" is not an MP4 4CC atom name or a ----:mean:name freeform key`,
@@ -385,6 +388,12 @@ export abstract class BaseAudioFileImpl {
   removeMP4Item(key: string): void {
     if (!this.isMP4()) {
       throw new UnsupportedFormatError(this.getFormat(), ["MP4", "M4A"]);
+    }
+    if (!key.startsWith("----:") && !isMp4FourCC(key)) {
+      throw new MetadataError(
+        "write",
+        `"${key}" is not an MP4 4CC atom name or a ----:mean:name freeform key`,
+      );
     }
     this.handle.removeMP4Item(key);
   }
@@ -432,4 +441,16 @@ export abstract class BaseAudioFileImpl {
   [Symbol.dispose](): void {
     this.dispose();
   }
+}
+
+/**
+ * True for an MP4 4CC atom name: four code units, each one Latin-1 byte.
+ * A non-Latin-1 name would be truncated by TagLib's Latin-1 atom conversion.
+ */
+function isMp4FourCC(key: string): boolean {
+  if (key.length !== 4) return false;
+  for (let i = 0; i < key.length; i++) {
+    if (key.charCodeAt(i) > 0xff) return false;
+  }
+  return true;
 }

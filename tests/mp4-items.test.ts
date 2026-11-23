@@ -1661,6 +1661,257 @@ for (const backend of BACKENDS) {
     }
   });
 
+  it(`[${backend}] a raw item value longer than 4 KiB persists`, async () => {
+    const tl = await TagLib.initialize({ forceWasmType: backend });
+    const key = "©lyr";
+    const value = "x".repeat(5000);
+    const file = await tl.open(
+      new Uint8Array(await readFile(FIXTURE_PATH.m4a)),
+    );
+    try {
+      file.setMP4Item(key, value);
+      file.save();
+
+      const reopened = await tl.open(file.getFileBuffer());
+      try {
+        expect(
+          reopened.getMP4Item(key),
+          `${backend}: the long raw item was dropped`,
+        ).toStrictEqual(value);
+      } finally {
+        reopened.dispose();
+      }
+    } finally {
+      file.dispose();
+    }
+  });
+
+  it(`[${backend}] an item write after a property write wins`, async () => {
+    const tl = await TagLib.initialize({ forceWasmType: backend });
+    const file = await tl.open(
+      new Uint8Array(await readFile(FIXTURE_PATH.m4a)),
+    );
+    try {
+      file.setMP4Item("©lyr", "OLD");
+      file.save();
+
+      const edited = await tl.open(file.getFileBuffer());
+      try {
+        edited.setProperty("LYRICS", "PROP");
+        edited.setMP4Item("©lyr", "ITEM");
+        edited.save();
+
+        const reopened = await tl.open(edited.getFileBuffer());
+        try {
+          expect(reopened.getMP4Item("©lyr")).toStrictEqual("ITEM");
+        } finally {
+          reopened.dispose();
+        }
+      } finally {
+        edited.dispose();
+      }
+    } finally {
+      file.dispose();
+    }
+  });
+
+  it(`[${backend}] a property write after an item write wins`, async () => {
+    const tl = await TagLib.initialize({ forceWasmType: backend });
+    const file = await tl.open(
+      new Uint8Array(await readFile(FIXTURE_PATH.m4a)),
+    );
+    try {
+      file.setMP4Item("©lyr", "OLD");
+      file.save();
+
+      const edited = await tl.open(file.getFileBuffer());
+      try {
+        edited.setMP4Item("©lyr", "ITEM");
+        edited.setProperty("LYRICS", "PROP");
+        edited.save();
+
+        const reopened = await tl.open(edited.getFileBuffer());
+        try {
+          expect(reopened.getMP4Item("©lyr")).toStrictEqual("PROP");
+        } finally {
+          reopened.dispose();
+        }
+      } finally {
+        edited.dispose();
+      }
+    } finally {
+      file.dispose();
+    }
+  });
+
+  it(`[${backend}] a property write updates the staged item read`, async () => {
+    const tl = await TagLib.initialize({ forceWasmType: backend });
+    const file = await tl.open(
+      new Uint8Array(await readFile(FIXTURE_PATH.m4a)),
+    );
+    try {
+      file.setMP4Item("©lyr", "OLD");
+      file.save();
+
+      const edited = await tl.open(file.getFileBuffer());
+      try {
+        edited.setProperty("LYRICS", "NEW");
+        expect(edited.getMP4Item("©lyr")).toStrictEqual("NEW");
+      } finally {
+        edited.dispose();
+      }
+    } finally {
+      file.dispose();
+    }
+  });
+
+  it(`[${backend}] removeMP4Item clears a property-backed atom`, async () => {
+    const tl = await TagLib.initialize({ forceWasmType: backend });
+    const file = await tl.open(
+      new Uint8Array(await readFile(FIXTURE_PATH.m4a)),
+    );
+    try {
+      file.setMP4Item("©lyr", "to-remove");
+      file.save();
+
+      const cleared = await tl.open(file.getFileBuffer());
+      try {
+        cleared.removeMP4Item("©lyr");
+        cleared.save();
+
+        const reopened = await tl.open(cleared.getFileBuffer());
+        try {
+          expect(reopened.getMP4Item("©lyr")).toBeUndefined();
+        } finally {
+          reopened.dispose();
+        }
+      } finally {
+        cleared.dispose();
+      }
+    } finally {
+      file.dispose();
+    }
+  });
+
+  it(`[${backend}] an rtng item write survives the advisory bridge`, async () => {
+    const tl = await TagLib.initialize({ forceWasmType: backend });
+    const file = await tl.open(
+      new Uint8Array(await readFile(FIXTURE_PATH.m4a)),
+    );
+    try {
+      file.setProperty("ITUNESADVISORY", "1");
+      file.save();
+
+      const edited = await tl.open(file.getFileBuffer());
+      try {
+        edited.setMP4Item("rtng", "0");
+        edited.save();
+
+        const reopened = await tl.open(edited.getFileBuffer());
+        try {
+          expect(reopened.getMP4Item("rtng")).toStrictEqual("0");
+
+          reopened.removeMP4Item("rtng");
+          reopened.save();
+
+          const cleared = await tl.open(reopened.getFileBuffer());
+          try {
+            expect(cleared.getMP4Item("rtng")).toBeUndefined();
+          } finally {
+            cleared.dispose();
+          }
+        } finally {
+          reopened.dispose();
+        }
+      } finally {
+        edited.dispose();
+      }
+    } finally {
+      file.dispose();
+    }
+  });
+
+  it(`[${backend}] a property clear after an item write clears the atom`, async () => {
+    const tl = await TagLib.initialize({ forceWasmType: backend });
+    const file = await tl.open(
+      new Uint8Array(await readFile(FIXTURE_PATH.m4a)),
+    );
+    try {
+      file.setMP4Item("©lyr", "OLD");
+      file.save();
+
+      const edited = await tl.open(file.getFileBuffer());
+      try {
+        edited.setMP4Item("©lyr", "ITEM");
+        edited.removeProperty("LYRICS");
+        edited.save();
+
+        const reopened = await tl.open(edited.getFileBuffer());
+        try {
+          expect(reopened.getMP4Item("©lyr")).toBeUndefined();
+        } finally {
+          reopened.dispose();
+        }
+      } finally {
+        edited.dispose();
+      }
+    } finally {
+      file.dispose();
+    }
+  });
+
+  it(`[${backend}] a UInt atom write reaches its property`, async () => {
+    const tl = await TagLib.initialize({ forceWasmType: backend });
+    const file = await tl.open(
+      new Uint8Array(await readFile(FIXTURE_PATH.m4a)),
+    );
+    try {
+      file.setProperty("TVSEASON", "1");
+      file.save();
+
+      const edited = await tl.open(file.getFileBuffer());
+      try {
+        edited.setMP4Item("tvsn", "2");
+        edited.save();
+
+        const reopened = await tl.open(edited.getFileBuffer());
+        try {
+          expect(reopened.getProperty("TVSEASON")).toStrictEqual(["2"]);
+
+          reopened.removeMP4Item("tvsn");
+          reopened.save();
+
+          const cleared = await tl.open(reopened.getFileBuffer());
+          try {
+            expect(cleared.getProperty("TVSEASON")).toBeUndefined();
+          } finally {
+            cleared.dispose();
+          }
+        } finally {
+          reopened.dispose();
+        }
+      } finally {
+        edited.dispose();
+      }
+    } finally {
+      file.dispose();
+    }
+  });
+
+  it(`[${backend}] an item value over 1 MiB is rejected`, async () => {
+    const tl = await TagLib.initialize({ forceWasmType: backend });
+    const file = await tl.open(
+      new Uint8Array(await readFile(FIXTURE_PATH.m4a)),
+    );
+    try {
+      expect(() => file.setMP4Item("abcd", "z".repeat(1_048_577))).toThrow(
+        /1 MiB/,
+      );
+    } finally {
+      file.dispose();
+    }
+  });
+
   it(`[${backend}] removeMP4Item clears an unmapped atom`, async () => {
     const tl = await TagLib.initialize({ forceWasmType: backend });
     const key = "abcd";
@@ -1701,6 +1952,12 @@ for (const backend of BACKENDS) {
     );
     try {
       expect(() => file.setMP4Item("MY_VENDOR_TAG", "42")).toThrow(
+        /not an MP4 4CC atom name/,
+      );
+      expect(() => file.setMP4Item("音乐符号", "X")).toThrow(
+        /not an MP4 4CC atom name/,
+      );
+      expect(() => file.removeMP4Item("MY_VENDOR_TAG")).toThrow(
         /not an MP4 4CC atom name/,
       );
     } finally {

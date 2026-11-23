@@ -13,6 +13,7 @@ import type {
 } from "../../wasm.ts";
 import type { HandleState } from "./handle-state.ts";
 import { readId3v2FramesFromWasm } from "./wasm-io.ts";
+import { syncRawItemSlots } from "./property-surface.ts";
 
 export function getPictures(
   tagData: Record<string, unknown> | null,
@@ -179,7 +180,13 @@ export function setLyrics(
   tagData: Record<string, unknown> | null,
   lyrics: RawLyrics[],
 ): Record<string, unknown> {
-  return { ...tagData, lyrics };
+  const next = { ...tagData, lyrics };
+  syncRawItemSlots(
+    next,
+    "LYRICS",
+    lyrics.length === 0 ? undefined : (lyrics[0]?.text ?? ""),
+  );
+  return next;
 }
 
 export function getStagedId3v2Frames(

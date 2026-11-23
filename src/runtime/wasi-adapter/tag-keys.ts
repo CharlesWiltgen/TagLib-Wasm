@@ -27,6 +27,13 @@ export const AUDIO_KEYS = new Set([
   "sampleRate",
 ]);
 
+/** One exact-name MP4 item in the read snapshot (taglib-5y0s). */
+export type RawMP4ItemEntry = {
+  value: string;
+  /** PropertyMap key TagLib maps the atom to, when there is one. */
+  property?: string;
+};
+
 /** Structured fields and write-time directives, never properties. */
 export const INTERNAL_KEYS = new Set([
   "pictures",
@@ -41,6 +48,9 @@ export const INTERNAL_KEYS = new Set([
   // Foreign-mean MP4 atom names to delete at save (taglib-65nm): a write-time
   // directive, never a property.
   "_mp4ItemRemovals",
+  // Exact-name raw MP4 items (taglib-5y0s): a read map and a write directive.
+  "_mp4Items",
+  "_mp4ItemValues",
   // Typed MP4 freeform values (taglib-gja): raw entries, never properties.
   "_mp4Freeform",
   // Explicit typed-freeform replacement requested by setMP4FreeformItems.
