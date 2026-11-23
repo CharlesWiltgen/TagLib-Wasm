@@ -18,6 +18,9 @@ const CONTROL_KEYS = new Set([
   // Direction bit for _mp4Freeform, recomputed whenever the typed setter runs;
   // the list itself is the carried state (taglib-gja).
   "_mp4FreeformDirty",
+  // Read-only raw item map (taglib-5y0s): the fresh handle's own read snapshot
+  // supplies it, so there is no state to carry across a reconstruct.
+  "_mp4Items",
 ]);
 
 it("extra-state registry covers every passthrough data field", () => {

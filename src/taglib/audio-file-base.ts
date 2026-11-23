@@ -363,6 +363,14 @@ export abstract class BaseAudioFileImpl {
       this.handle.setProperty(wireKey, value);
       return;
     }
+    // A bare key that is neither a mapped atom nor a 4-character 4CC has no
+    // storage form: reject instead of silently writing elsewhere (taglib-5y0s).
+    if (!key.startsWith("----:") && key.length !== 4) {
+      throw new MetadataError(
+        "write",
+        `"${key}" is not an MP4 4CC atom name or a ----:mean:name freeform key`,
+      );
+    }
     // An empty value is the documented clear. Route it through removeMP4Item:
     // on WASI, setMP4Item alone only mutates the snapshot, so a foreign-mean or
     // non-UTF8 atom would survive the save — removeMP4Item is the path that

@@ -31,6 +31,12 @@ export const PASSTHROUGH_KEYS = new Set([
   "_mp4ItemNames",
   // Foreign-mean MP4 atom names to delete at save (taglib-65nm).
   "_mp4ItemRemovals",
+  // Exact-name raw MP4 item writes (taglib-5y0s): the PropertyMap cannot
+  // express an unmapped 4CC, so the save applies these through setItem().
+  "_mp4ItemValues",
+  // Read-only raw item map from the snapshot; an `_`+lowercase key the C++
+  // decoder skips, carried so it cannot be remapped into a property.
+  "_mp4Items",
   // Typed MP4 freeform values (taglib-gja) — raw entries, not properties.
   "_mp4Freeform",
   "_mp4FreeformDirty",

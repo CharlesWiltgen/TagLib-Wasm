@@ -147,6 +147,8 @@ export interface FileHandle {
    */
   getMp4ItemRemovals?(): string[] | undefined;
   setMp4ItemRemovals?(removals: string[]): void;
+  getMp4ItemValues?(): Record<string, string> | undefined;
+  setMp4ItemValues?(values: Record<string, string>): void;
   destroy(): void;
 }
 

@@ -18,6 +18,7 @@
 #include "taglib_audio_props.h"
 #include "taglib_mp4_atoms.h"
 #include "taglib_mp4_freeform.h"
+#include "taglib_mp4_items.h"
 #include "taglib_id3_duplicate.h"
 #include "taglib_asf_multi_value.h"
 #include "taglib_asf_properties.h"
@@ -116,6 +117,11 @@ static tl_error_code encode_file_to_msgpack(TagLib::File* file,
     // with their raw bytes + AtomDataType, so binary atoms survive a save.
     const auto freeform_entries = taglib_wasm::collect_mp4_freeform_entries(file);
     if (!freeform_entries.empty()) count++;
+
+    // Raw 4CC items with no PropertyMap mapping (taglib-5y0s): the exact atom
+    // name and its string form, so getMP4Item() can read them after a reopen.
+    const auto item_values = taglib_wasm::collect_mp4_item_values(file);
+    if (!item_values.empty()) count++;
 
     uint32_t pic_count = count_pictures(file);
     if (pic_count > 0) count++;  // "pictures" key + array
@@ -220,6 +226,18 @@ static tl_error_code encode_file_to_msgpack(TagLib::File* file,
             }
             mpack_finish_array(&writer);
         }
+    }
+
+    if (!item_values.empty()) {
+        mpack_write_cstr(&writer, "_mp4Items");
+        mpack_start_map(&writer, static_cast<uint32_t>(item_values.size()));
+        for (const auto& entry : item_values) {
+            write_mpack_string(
+                &writer, TagLib::String(entry.name, TagLib::String::UTF8));
+            write_mpack_string(
+                &writer, TagLib::String(entry.value, TagLib::String::UTF8));
+        }
+        mpack_finish_map(&writer);
     }
 
     if (!freeform_entries.empty()) {

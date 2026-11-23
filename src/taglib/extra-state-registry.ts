@@ -107,6 +107,17 @@ export const EXTRA_FIELDS: readonly ExtraField[] = [
     },
   },
   {
+    name: "_mp4ItemValues",
+    copy(target, source, complete) {
+      // Exact-name raw item writes (taglib-5y0s): a save-as reconstruct must
+      // carry them or the atom the caller named is never written.
+      const v = source.getMp4ItemValues?.();
+      if (v === undefined) return;
+      if (!complete && Object.keys(v).length === 0) return;
+      target.setMp4ItemValues?.(v);
+    },
+  },
+  {
     name: "_mp4ItemRemovals",
     copy(target, source, complete) {
       // Foreign-mean freeform atom deletions (taglib-65nm): carried state on

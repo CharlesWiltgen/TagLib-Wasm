@@ -53,6 +53,10 @@ export function getMP4Item(
       return stringifyScalar(foreign);
     }
   }
+  const items = tagData?._mp4Items as Record<string, unknown> | undefined;
+  if (items !== undefined && items[key] !== undefined) {
+    return stringifyScalar(items[key]);
+  }
   return getProperty(tagData, mp4ItemPropertyKey(key));
 }
 
@@ -62,6 +66,29 @@ export function setMP4Item(
   key: string,
   value: string,
 ): Record<string, unknown> {
+  if (!key.startsWith("----:") && mp4AtomWireKey(key) === undefined) {
+    // An exact 4CC with no PropertyMap mapping: TagLib's setProperties would
+    // file it as an Apple freeform twin under the uppercased name, so carry an
+    // exact-name directive for the save (taglib-5y0s). The read map keeps a
+    // staged value readable before the file is reopened.
+    const items =
+      (tagData?._mp4Items as Record<string, string> | undefined) ?? {};
+    const values =
+      (tagData?._mp4ItemValues as Record<string, string> | undefined) ?? {};
+    let next: Record<string, unknown> = {
+      ...tagData,
+      _mp4Items: { ...items, [key]: value },
+      _mp4ItemValues: { ...values, [key]: value },
+    };
+    const removals = next._mp4ItemRemovals as string[] | undefined;
+    if (removals?.includes(key)) {
+      next = {
+        ...next,
+        _mp4ItemRemovals: removals.filter((name) => name !== key),
+      };
+    }
+    return next;
+  }
   let next = setProperty(tagData, mp4ItemPropertyKey(key), value);
   // The property slot above is keyed by the UPPERCASED bare name, which is
   // what TagLib's PropertyMap will hand back. Register the caller's exact
@@ -106,6 +133,21 @@ export function setMP4Item(
     }
   }
   return next;
+}
+
+/** Exact-name raw item writes staged for the next save (taglib-5y0s). */
+export function getMp4ItemValues(
+  tagData: Record<string, unknown> | null,
+): Record<string, string> | undefined {
+  return tagData?._mp4ItemValues as Record<string, string> | undefined;
+}
+
+/** Replace the exact-name raw item write directive. */
+export function setMp4ItemValues(
+  tagData: Record<string, unknown> | null,
+  values: Record<string, string>,
+): Record<string, unknown> {
+  return { ...tagData, _mp4ItemValues: values };
 }
 
 /** Record an exact atom name to be repaired after the PropertyMap write. */
@@ -303,6 +345,22 @@ export function removeMP4Item(
 ): Record<string, unknown> | null {
   if (!tagData) return null;
   let next = tagData;
+  if (!key.startsWith("----:") && mp4AtomWireKey(key) === undefined) {
+    // Exact-name raw atom: drop the staged read/write slots and register the
+    // on-disk removal; setProperty cannot express it (taglib-5y0s).
+    const drop = (map: Record<string, string> | undefined) =>
+      map === undefined
+        ? undefined
+        : Object.fromEntries(Object.entries(map).filter(([k]) => k !== key));
+    const items = drop(next._mp4Items as Record<string, string> | undefined);
+    const values = drop(
+      next._mp4ItemValues as Record<string, string> | undefined,
+    );
+    next = { ...next };
+    if (items !== undefined) next._mp4Items = items;
+    if (values !== undefined) next._mp4ItemValues = values;
+    return registerMp4ItemRemoval(next, key);
+  }
   if (key.startsWith("----:")) {
     // Foreign-mean freeform atom: the value may sit under the raw
     // `----:` key (snapshot mirror, taglib-5ibr) — delete it there AND

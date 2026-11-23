@@ -146,6 +146,16 @@ export class WasiFileHandle implements FileHandle {
     this.state.tagData = mp4.setMp4ItemRemovals(this.state.tagData, removals);
   }
 
+  getMp4ItemValues(): Record<string, string> | undefined {
+    this.checkNotDestroyed();
+    return mp4.getMp4ItemValues(this.state.tagData);
+  }
+
+  setMp4ItemValues(values: Record<string, string>): void {
+    this.checkNotDestroyed();
+    this.state.tagData = mp4.setMp4ItemValues(this.state.tagData, values);
+  }
+
   removeMP4Item(key: string): void {
     this.checkNotDestroyed();
     this.state.tagData = mp4.removeMP4Item(this.state.tagData, key);

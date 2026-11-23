@@ -177,7 +177,8 @@ inline void apply_mp4_item_removals(TagLib::File* file,
     auto* mp4 = dynamic_cast<TagLib::MP4::File*>(file);
     if (!mp4 || !mp4->tag()) return;
     for (const auto& name : removals) {
-        if (name.compare(0, 5, "----:") != 0) continue;
+        // Both channels record exact atom names: `----:mean:name` freeforms
+        // and raw 4CCs with no property mapping (taglib-5y0s).
         mp4->tag()->removeItem(TagLib::String(name, TagLib::String::UTF8));
     }
 }

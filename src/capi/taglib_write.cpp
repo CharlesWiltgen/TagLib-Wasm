@@ -18,6 +18,7 @@
 #include "taglib_audio_props.h"
 #include "taglib_mp4_atoms.h"
 #include "taglib_mp4_freeform.h"
+#include "taglib_mp4_items.h"
 #include "taglib_id3_duplicate.h"
 #include "taglib_asf_multi_value.h"
 #include "taglib_asf_properties.h"
@@ -453,6 +454,75 @@ static std::vector<std::string> read_mp4_item_removals(const uint8_t* data, size
 }
 
 /*!
+ * Exact-name raw MP4 item writes (`_mp4ItemValues`, taglib-5y0s): one entry
+ * per atom name. The PropertyMap cannot express an unmapped 4CC — TagLib files
+ * it as an Apple freeform twin — so the save applies these through setItem().
+ */
+static std::vector<taglib_wasm::MP4ItemValue>
+read_mp4_item_values(const uint8_t* data, size_t len) {
+    std::vector<taglib_wasm::MP4ItemValue> values;
+    mpack_reader_t reader;
+    mpack_reader_init_data(&reader, reinterpret_cast<const char*>(data), len);
+    uint32_t map_count = mpack_expect_map(&reader);
+    if (mpack_reader_error(&reader) != mpack_ok) {
+        mpack_reader_destroy(&reader);
+        return values;
+    }
+    for (uint32_t i = 0; i < map_count; i++) {
+        uint32_t klen = mpack_expect_str(&reader);
+        if (mpack_reader_error(&reader) != mpack_ok) break;
+        char key[64];
+        if (klen >= sizeof(key)) {
+            mpack_skip_bytes(&reader, klen);
+            mpack_done_str(&reader);
+            mpack_discard(&reader);
+            continue;
+        }
+        mpack_read_bytes(&reader, key, klen);
+        mpack_done_str(&reader);
+        if (mpack_reader_error(&reader) != mpack_ok) break;
+        key[klen] = '\0';
+        if (strcmp(key, "_mp4ItemValues") != 0) {
+            mpack_discard(&reader);
+            continue;
+        }
+        uint32_t count = mpack_expect_map(&reader);
+        if (mpack_reader_error(&reader) != mpack_ok) break;
+        for (uint32_t j = 0; j < count; j++) {
+            uint32_t nlen = mpack_expect_str(&reader);
+            if (mpack_reader_error(&reader) != mpack_ok) break;
+            char name[64];
+            if (nlen >= sizeof(name)) {
+                mpack_skip_bytes(&reader, nlen);
+                mpack_done_str(&reader);
+                mpack_discard(&reader);
+                continue;
+            }
+            mpack_read_bytes(&reader, name, nlen);
+            mpack_done_str(&reader);
+            name[nlen] = '\0';
+            uint32_t vlen = mpack_expect_str(&reader);
+            if (mpack_reader_error(&reader) != mpack_ok) break;
+            char value[4096];
+            if (vlen >= sizeof(value)) {
+                mpack_skip_bytes(&reader, vlen);
+                mpack_done_str(&reader);
+                mpack_discard(&reader);
+                continue;
+            }
+            mpack_read_bytes(&reader, value, vlen);
+            mpack_done_str(&reader);
+            value[vlen] = '\0';
+            values.push_back({std::string(name), std::string(value)});
+        }
+        mpack_done_map(&reader);
+        break;
+    }
+    mpack_reader_destroy(&reader);
+    return values;
+}
+
+/*!
  * Typed freeform values from the snapshot (`_mp4Freeform`), one entry per data
  * value. \a apply is true only when `_mp4FreeformDirty` accompanied the list:
  * a plain read snapshot carries the list for `getMP4FreeformItems()` but must
@@ -636,6 +706,8 @@ static tl_error_code write_to_path(const char* path,
         }
         apply_propmap(ref.file(), propMap);
         restore_mp4_freeform_names(ref.file(), mp4_names);
+        apply_mp4_item_values(
+            ref.file(), read_mp4_item_values(tags_msgpack, tags_msgpack_len));
         apply_pictures_from_msgpack(ref.file(), tags_msgpack, tags_msgpack_len);
         apply_ratings_from_msgpack(ref.file(), tags_msgpack, tags_msgpack_len);
         apply_chapters_from_msgpack(ref.file(), tags_msgpack, tags_msgpack_len);
@@ -704,6 +776,8 @@ static tl_error_code write_to_buffer(const uint8_t* buf, size_t len,
         }
         apply_propmap(f, propMap);
         restore_mp4_freeform_names(f, mp4_names);
+        apply_mp4_item_values(
+            f, read_mp4_item_values(tags_msgpack, tags_msgpack_len));
         apply_pictures_from_msgpack(f, tags_msgpack, tags_msgpack_len);
         apply_ratings_from_msgpack(f, tags_msgpack, tags_msgpack_len);
         apply_chapters_from_msgpack(f, tags_msgpack, tags_msgpack_len);

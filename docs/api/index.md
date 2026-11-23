@@ -1664,7 +1664,9 @@ getMP4Item(key: string): string | undefined
 
 ##### Parameters
 
-- `key`: MP4 atom name (e.g., "----:com.apple.iTunes:iTunNORM")
+- `key`: a 4-character MP4 atom name (for example `©grp`) or a
+  `----:mean:name` freeform key (for example
+  `----:com.apple.iTunes:iTunNORM`)
 
 ##### Throws
 
@@ -1680,12 +1682,15 @@ setMP4Item(key: string, value: string): void
 
 ##### Parameters
 
-- `key`: MP4 atom name
+- `key`: a 4-character MP4 atom name or a `----:mean:name` freeform key.
+  An atom with no property mapping (for example `abcd` or `©lyr`) is written
+  as that atom on both backends; a bare key that is neither form is rejected.
 - `value`: Item value
 
 ##### Throws
 
-- Error if not an MP4 file
+- Error if not an MP4 file, or if the key is neither a 4-character atom name
+  nor a `----:mean:name` freeform key
 
 ##### removeMP4Item()
 

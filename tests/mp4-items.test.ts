@@ -1603,68 +1603,110 @@ for (const backend of BACKENDS) {
     }
   });
 
-  if (backend === "emscripten") {
-    it(`[${backend}] a numeric-looking value on an unmapped text atom persists`, async () => {
-      // WASI's item write for an unmapped 4CC is a separate gap (taglib-5y0s):
-      // it writes an uppercased Apple freeform twin and does not read back, so
-      // this behavior is Emscripten-only for now.
-      const tl = await TagLib.initialize({ forceWasmType: backend });
-      for (const key of ["©lyr", "abcd"]) {
-        const file = await tl.open(
-          new Uint8Array(await readFile(FIXTURE_PATH.m4a)),
-        );
-        try {
-          file.setMP4Item(key, "Rock");
-          file.save();
-
-          const overwrite = await tl.open(file.getFileBuffer());
-          try {
-            overwrite.setMP4Item(key, "1984");
-            overwrite.save();
-
-            const reopened = await tl.open(overwrite.getFileBuffer());
-            try {
-              expect(
-                reopened.getMP4Item(key),
-                `${backend}: the text atom ${key} lost its numeric-looking value`,
-              ).toStrictEqual("1984");
-            } finally {
-              reopened.dispose();
-            }
-          } finally {
-            overwrite.dispose();
-          }
-        } finally {
-          file.dispose();
-        }
-      }
-    });
-
-    it(`[${backend}] a numeric atom with a non-ASCII name keeps its value`, async () => {
-      // The handler lookup keys on the atom's raw bytes; ©-names are Latin-1.
-      const tl = await TagLib.initialize({ forceWasmType: backend });
-      const key = "©mvi";
+  it(`[${backend}] a numeric-looking value on an unmapped text atom persists`, async () => {
+    const tl = await TagLib.initialize({ forceWasmType: backend });
+    for (const key of ["©lyr", "abcd"]) {
       const file = await tl.open(
         new Uint8Array(await readFile(FIXTURE_PATH.m4a)),
       );
       try {
-        file.setMP4Item(key, "2");
+        file.setMP4Item(key, "Rock");
         file.save();
 
-        const reopened = await tl.open(file.getFileBuffer());
+        const overwrite = await tl.open(file.getFileBuffer());
         try {
-          expect(
-            reopened.getMP4Item(key),
-            `${backend}: the Int atom ©mvi lost its value`,
-          ).toStrictEqual("2");
+          overwrite.setMP4Item(key, "1984");
+          overwrite.save();
+
+          const reopened = await tl.open(overwrite.getFileBuffer());
+          try {
+            expect(
+              reopened.getMP4Item(key),
+              `${backend}: the text atom ${key} lost its numeric-looking value`,
+            ).toStrictEqual("1984");
+          } finally {
+            reopened.dispose();
+          }
         } finally {
-          reopened.dispose();
+          overwrite.dispose();
         }
       } finally {
         file.dispose();
       }
-    });
-  }
+    }
+  });
+
+  it(`[${backend}] a numeric atom with a non-ASCII name keeps its value`, async () => {
+    // The handler lookup keys on the atom's raw bytes; ©-names are Latin-1.
+    const tl = await TagLib.initialize({ forceWasmType: backend });
+    const key = "©mvi";
+    const file = await tl.open(
+      new Uint8Array(await readFile(FIXTURE_PATH.m4a)),
+    );
+    try {
+      file.setMP4Item(key, "2");
+      file.save();
+
+      const reopened = await tl.open(file.getFileBuffer());
+      try {
+        expect(
+          reopened.getMP4Item(key),
+          `${backend}: the Int atom ©mvi lost its value`,
+        ).toStrictEqual("2");
+      } finally {
+        reopened.dispose();
+      }
+    } finally {
+      file.dispose();
+    }
+  });
+
+  it(`[${backend}] removeMP4Item clears an unmapped atom`, async () => {
+    const tl = await TagLib.initialize({ forceWasmType: backend });
+    const key = "abcd";
+    const file = await tl.open(
+      new Uint8Array(await readFile(FIXTURE_PATH.m4a)),
+    );
+    try {
+      file.setMP4Item(key, "1984");
+      file.save();
+
+      const cleared = await tl.open(file.getFileBuffer());
+      try {
+        expect(cleared.getMP4Item(key)).toStrictEqual("1984");
+        cleared.removeMP4Item(key);
+        cleared.save();
+
+        const reopened = await tl.open(cleared.getFileBuffer());
+        try {
+          expect(
+            reopened.getMP4Item(key),
+            `${backend}: the unmapped atom survived the removal`,
+          ).toBeUndefined();
+        } finally {
+          reopened.dispose();
+        }
+      } finally {
+        cleared.dispose();
+      }
+    } finally {
+      file.dispose();
+    }
+  });
+
+  it(`[${backend}] a non-4CC bare key is rejected`, async () => {
+    const tl = await TagLib.initialize({ forceWasmType: backend });
+    const file = await tl.open(
+      new Uint8Array(await readFile(FIXTURE_PATH.m4a)),
+    );
+    try {
+      expect(() => file.setMP4Item("MY_VENDOR_TAG", "42")).toThrow(
+        /not an MP4 4CC atom name/,
+      );
+    } finally {
+      file.dispose();
+    }
+  });
 
   it(`[${backend}] a typed text update is stable across two saves (taglib-gja review)`, async () => {
     const tl = await TagLib.initialize({ forceWasmType: backend });
